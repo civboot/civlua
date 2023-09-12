@@ -1,16 +1,6 @@
 METATY_CHECK = true
 
-local mty = require'metaty'
-local ty, record, eq = mty.ty, mty.record, mty.eq
-local assertEq, assertErrorPat = mty.assertEq, mty.assertErrorPat
-local assertMatch = mty.assertMatch
-local safeToStr = mty.safeToStr
-local fmt, Fmt, FmtSet = mty.fmt, mty.Fmt, mty.FmtSet
-
-local function test(name, fn)
-  print('# Test', name)
-  fn()
-end
+local mty = require'metaty':grequire()
 
 test('ty', function()
   assert('string' == ty('hi'))
@@ -84,3 +74,8 @@ test("fmt", function()
 
   assertEq('{1,2 :: a=12}', fmt({1, 2, a=12}))
 end)
+
+test('util', function()
+  assertEq({'a', 'bc', '', 'd'}, lines('a\nbc\n\nd'))
+end)
+

@@ -6,20 +6,12 @@
 local add, sfmt = table.insert, string.format
 local function identity(v) return v end
 local function nativeEq(a, b) return a == b end
-local function copy(t) -- shallow copy
-  if type(t) ~= 'table' then return t end
-  local x = {}; for k, v in pairs(t) do x[k] = v end
-  return x
-end
-local function lines(text)
-  local out = {}; for _, l in text:gmatch'[^\n]*' do add(out, l) end
-  return out
-end
 
 local M = {}
 M.CHECK = _G['METATY_CHECK'] or false
 M.KEYS_MAX = 64
 M.FMT_SAFE = false
+M.FNS = {}
 
 M.errorf  = function(...) error(string.format(...)) end
 M.assertf = function(a, ...) if not a then assert(a, sfmt(...)) end end
@@ -41,10 +33,6 @@ local TY_MAP = {
   table        = function(t) return getmetatable(t) or 'table' end,
 }
 local TY_NAME = {}; for k in pairs(TY_MAP) do TY_NAME[k] = k end
-local TY_CHECK = {
-  ['nil'] = nativeEq, ['function'] = nativeEq,
-  boolean = nativeEq, number = nativeEq, string = nativeEq,
-}
 
 -- Return type which is the metatable (if it exists) or raw type() string.
 M.ty = function(obj) return TY_MAP[type(obj)](obj) end
@@ -55,13 +43,12 @@ M.tyName = function(ty_) --> string
 end
 
 M.tyCheck = function(aTy, bTy) --> bool
-  local x = TY_CHECK[aTy]; if x then return x(aTy, bTy) end
   return M.ANY[aTy] or M.ANY[bTy] or (aTy == bTy)
 end
 
-M.tyError = function(expectTy, resultTy) --> !error
-  M.errorf("Types do not match: %s :: %s",
-         M.tyName(expectTy), M.tyName(resultTy))
+M.tyErrorMsg = function(expectTy, resultTy) --> !error
+   return sfmt("Types do not match: %s :: %s",
+     M.tyName(expectTy), M.tyName(resultTy))
 end
 
 ----------------------------------------------
@@ -89,8 +76,9 @@ M.newUnchecked = function(ty_, t) return setmetatable(t, ty_) end
 M.newChecked   = function(ty_, t)
   local tys = ty_.__tys
   for field, v in pairs(t) do
+    M.assertf(tys[field], 'unknown field: %s', field)
     if not M.tyCheck(tys[field], M.ty(v)) then
-      M.tyError(M.ty(v), tys[field] or '<field not specified>')
+      M.errorf('[%s] %s', field, M.tyErrorMsg(M.ty(v), tys[field]))
     end
   end
   return setmetatable(t, ty_)
@@ -106,6 +94,7 @@ M.rawTy = function(name, mt)
     __name=name,
     __index=M.index,
     __fmt=M.tblFmt,
+    __tostring=M.fmt,
     __tys={}, -- field types
   }
   return setmetatable(ty_, mt)
@@ -131,7 +120,6 @@ end
 
 M.record = function(name, mt)
   local r = M.rawTy(name, mt)
-  -- for k, v in pairs(prototype or {}) do r[k] = copy(v) end
   r.__fields = r.__fields or {}
 
   local mt = getmetatable(r)
@@ -220,7 +208,6 @@ M.Fmt = M.record('Fmt', {
   :field('done', 'table')
   :field('level', 'number', 0)
   :field('set', M.FmtSet, M.DEFAULT_FMT_SET)
-M.Fmt.__fmt = nil
 
 M.Fmt.__missing = function(self, k)
   if type(k) == 'number' then return nil end
@@ -322,7 +309,6 @@ M.tblFmt = function(t, f)
   if lenK >= f.set.keysMax then add(f, '...'); end
   f:levelLeave('}')
 end
-M.FmtSet.__fmt = M.tblFmt -- note: normal default but was nil
 
 -----------
 -- Fmt Methods
@@ -411,15 +397,37 @@ M.pnt = function(...)
   io.stdout:flush()
 end
 
+
 -----------
 -- Asserting
+
+M.lines = function(text)
+  local out = {}; for l in text:gmatch'[^\n]*' do add(out, l) end
+  return out
+end
+
+M.explode = function(s)
+  local t = {}; for ch in s:gmatch('.') do add(t, ch) end
+  return t
+end
+
+M.diffCol = function(sL, sR)
+  local i, sL, sR = 1, M.explode(sL), M.explode(sR)
+  while i <= #sL and i <= #sR do
+    if sL[i] ~= sR[i] then return i end
+    i = i + 1
+  end
+  if #sL < #sR then return #sL + 1 end
+  if #sR < #sL then return #sR + 1 end
+  return nil
+end
 
 M.diffLineCol = function(linesL, linesR)
   local i = 1
   while i <= #linesL and i <= #linesR do
     local lL, lR = linesL[i], linesR[i]
     if lL ~= lR then
-      return i, assert(strDiffPlace(lL, lR))
+      return i, assert(M.diffCol(lL, lR))
     end
     i = i + 1
   end
@@ -429,16 +437,18 @@ M.diffLineCol = function(linesL, linesR)
 end
 
 M.diffFmt = function(f, sE, sR)
-  local linesE = lines(sE)
-  local linesR = lines(sR)
+  local linesE = M.lines(sE)
+  local linesR = M.lines(sR)
   local l, c = M.diffLineCol(linesE, linesR)
-  assert(l); assert(c)
+  print('# E:', sE)
+  print('# R:', sR)
+  M.assertf(l and c, '%s, %s\n', l, c)
   add(f, sfmt("! Difference line=%q (", l))
   add(f, sfmt('lines[%q|%q]', #linesE, #linesR))
   add(f, sfmt(' strlen[%q|%q])\n', #sE, #sR))
   add(f, '! EXPECT: '); add(f, linesE[l]); add(f, '\n')
   add(f, '! RESULT: '); add(f, linesR[l]); add(f, '\n')
-  add(f, string.rep(' ', c - 1 + 7))
+  add(f, string.rep(' ', c - 1 + 10))
   add(f, sfmt('^ (column %q)\n', c))
   add(f, '! END DIFF\n')
 end
@@ -476,5 +486,22 @@ M.assertMatch = function(expectPat, result)
            expectPat, result)
   end
 end
+
+M.test = function(name, fn) print('# Test', name) fn() end
+
+-- Globally require a module. ONLY FOR TESTS.
+M.grequire = function(mod)
+  if type(mod) == 'string' then mod = require(mod) end
+  for k, v in pairs(mod) do
+    M.assertf(not _G[k], '%s already global', k); _G[k] = v
+  end
+  return mod
+end
+
+-- Cleanup Fmt objects (note: normal defaults were nil)
+M.FmtSet.__fmt = M.tblFmt
+M.FmtSet.__tostring = M.fmt
+M.Fmt.__fmt = nil
+M.Fmt.__tostring = function() return 'Fmt{}' end
 
 return M
