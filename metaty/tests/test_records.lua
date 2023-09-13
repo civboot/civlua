@@ -68,8 +68,20 @@ test("fmt", function()
 end)
 
 test('fn', function()
+  assert(mty.CHECK)
+
   local myFn = Fn{'string', 'number'}
   :out{'string'}
   :apply(function(s, n) return s .. n end)
   assertEq('foo42', myFn('foo', 42))
+  assertErrorPat(
+    '%[2%] Types do not match: number :: string %(fn inp%)',
+    function() myFn('foo', 'not a number') end)
+
+  local badOut = Fn{}:out{'number'}
+  :apply(function() return 'not a number' end)
+
+  assertErrorPat(
+    '%[1%] Types do not match: number :: string %(fn out%)',
+    function() badOut() end)
 end)

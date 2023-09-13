@@ -43,7 +43,7 @@ M.isTyErrMsg = function(ty_)
   local tystr = type(ty_)
   if tystr == 'string' then
     if not TY_MAP[ty_] then return sfmt(
-      '%q is not native', ty_
+      '%q is not a native type', ty_
     )end
   elseif tystr ~= 'table' then return sfmt(
     '%s cannot be used as a type', tystr
@@ -57,8 +57,23 @@ M.tyName = function(ty_) --> string
   return TY_NAME[ty_] or rawget(ty_, '__name') or 'table'
 end
 
-M.tyCheck = function(aTy, bTy) --> bool
-  return M.ANY[aTy] or M.ANY[bTy] or (aTy == bTy)
+M.tyCheck = function(expectTy, resultTy, maybe) --> bool
+  if maybe and resultTy == 'nil' then return true end
+  return M.ANY[expectTy] or M.ANY[resultTy] or (expectTy == resultTy)
+end
+M.tyCheckMsg = function(expectTy, resultTy) --> !error
+   return sfmt("Types do not match: %s :: %s",
+     M.tyName(expectTy), M.tyName(resultTy))
+end
+M.tysCheck = function(values, tys, maybes, context)
+  maybes = maybes or {}
+  for i, v in ipairs(values) do
+    if not tys[i] then
+      M.errorf('Type for arg %s not specified%s', i, context)
+    elseif not M.tyCheck(tys[i], ty(v), maybes[i]) then
+      M.errorf('[%s] %s%s', i, M.tyCheckMsg(tys[i], ty(v)), context)
+    end
+  end
 end
 
 -----------------------------
@@ -99,35 +114,27 @@ end
 -- rawTy: create new types
 
 -- Ultra-simple index function
-M.metaindex = function(self, k) return getmetatable(self)[k] end
+M.indexUnchecked = function(self, k) return getmetatable(self)[k] end
 
 -- __index function for most types
 -- Set metatable.__missing to type check on missing keys.
-M.index = function(self, k) --> any
+M.indexChecked = function(self, k) --> any
   local mt = getmetatable(self)
   local x = rawget(mt, k); if x then return x end
   x = rawget(mt, '__missing')
-  return x and x(self, k) or nil
+  return x and x(mt, k) or nil
 end
 
-
-M.fieldMissing = function(self, k)
-  M.errorf('Invalid field on %s: %s', M.tyName(M.ty(self)), k)
-end
 
 -- These are the default constructor functions
 M.newUnchecked = function(ty_, t) return setmetatable(t, ty_) end
 
-M.tyErrorMsg = function(expectTy, resultTy) --> !error
-   return sfmt("Types do not match: %s :: %s",
-     M.tyName(expectTy), M.tyName(resultTy))
-end
 M.newChecked   = function(ty_, t)
-  local tys = ty_.__tys
+  local tys, maybes = ty_.__tys, ty_.__maybes
   for field, v in pairs(t) do
     M.assertf(tys[field], 'unknown field: %s', field)
-    if not M.tyCheck(tys[field], M.ty(v)) then
-      M.errorf('[%s] %s', field, M.tyErrorMsg(tys[field], M.ty(v)))
+    if not M.tyCheck(tys[field], M.ty(v), maybes[field]) then
+      M.errorf('[%s] %s %s', field, M.tyCheckMsg(tys[field], M.ty(v)))
     end
   end
   return setmetatable(t, ty_)
@@ -141,10 +148,11 @@ M.rawTy = function(name, mt)
   mt.__call = mt.__call or M.selectNew()
   local ty_ = {
     __name=name,
-    __index=M.index,
+    __index=M.indexUnchecked,
     __fmt=M.tblFmt,
     __tostring=M.fmt,
-    __tys={}, -- field types
+    __tys={},    -- field types
+    __maybes={}, -- maybe (optional) fields
   }
   return setmetatable(ty_, mt)
 end
@@ -166,14 +174,31 @@ M.recordField = function(r, name, ty_, default)
   add(r.__fields, name) -- for in-order formatting
   return r
 end
+M.recordFieldMaybe = function(r, name, ty_, default)
+  assert(
+    default == nil,
+    'attempted to specify default for recordFieldMaybe')
+  M.recordField(r, name, ty_)
+  M.__maybes[name] = true
+end
+
+-- Used for records and similar for checking missing fields.
+M.fieldMissing = function(ty_, k)
+  local maybes = rawget(ty_, '__maybes')
+  if maybes and maybes[k] then return end
+  M.errorf('Invalid field on %s: %s', M.tyName(), k)
+end
 
 M.record = function(name, mt)
-  local r = M.rawTy(name, mt)
-  r.__fields = r.__fields or {}
-
-  local mt = getmetatable(r)
+  mt = mt or {}
   mt.field = M.recordField
-  mt.__index = M.metaindex
+
+  local r = M.rawTy(name, mt)
+  r.__fields  = r.__fields or {}
+  r.__missing = M.fieldMissing
+
+  if M.CHECK then mt.__index = M.indexChecked
+  else            mt.__index = M.indexUnchecked end
   return r
 end
 
@@ -195,6 +220,7 @@ M.FnInfo = M.record('FnInfo')
 
 M.Fn = M.record('Fn', {
   __call=function(ty_, inputs)
+    assert(ty(inputs) == 'table', 'inputs must be a raw table')
     local t = {
       inputs=M.assertIsTys(inputs),
       outputs={}, iMaybe={}, oMaybe={},
@@ -212,6 +238,7 @@ M.Fn.inpMaybe = function(self, m)
 end
 
 M.Fn.out = function(self, outputs)
+  assert(ty(outputs) == 'table', 'outputs must be a raw table')
   self.outputs = M.assertIsTys(outputs)
   return self
 end
@@ -221,20 +248,23 @@ M.Fn.outMaybe = function(self, m)
   return self
 end
 
-M.tyCheckList = function(list, tys, maybes)
-  for i, v in ipairs(list) do
-    local ty_ = tys[i]
-    if v == nil and ty_ ~= 'nil' and not maybes[i] then
-      errorf('argument %s (type %s) is nil', i, ty_)
-    end
-  end
-end
 M.Fn.apply = function(self, fn, name)
   if M.FNS[fn] then errorf('fn already applied: %s', fmt(fn)) end
   local dbg = debug.getinfo(fn, 'nS')
   M.FNS_INFO[fn] = FnInfo{debug=dbg, name=name or dbg.name}
-  -- FIXME: add type checking
   M.FNS[fn] = self
+  if M.CHECK then
+    local inner = fn
+    fn = function(...)
+      pnt('!! checking function', {...})
+      M.tysCheck({...}, self.inputs, self.iMaybes, ' (fn inp)')
+      local o = {inner(...)}
+      M.tysCheck(o, self.outputs, self.oMaybes, ' (fn out)')
+      return table.unpack(o)
+    end
+    M.FNS_INFO[fn] = FnInfo{debug=dbg, name=name or dbg.name}
+    M.FNS[fn] = self
+  end
   return fn
 end
 
@@ -285,9 +315,9 @@ M.Fmt = M.record('Fmt', {
   :field('level', 'number', 0)
   :field('set', M.FmtSet, M.DEFAULT_FMT_SET)
 
-M.Fmt.__missing = function(self, k)
+M.Fmt.__missing = function(ty_, k)
   if type(k) == 'number' then return nil end
-  return M.fieldMissing(self, k)
+  return M.fieldMissing(ty_, k)
 end
 
 -----------
@@ -328,7 +358,8 @@ M.metaName = function(mt)
 end
 
 -- Formatting function type with arguments
-M.tyFmtSafe = function(ty_, f)
+M.tyFmtSafe = function(f, ty_, maybe)
+  if maybe then add(f, '?') end
   local tyTy = ty(ty_)
   if tyTy == Fn then M.fnTyFmtSafe(tyTy, f)
   elseif tyTy == 'string' then add(f, ty_) -- native
@@ -337,8 +368,7 @@ end
 M.fmtTysSafe = function(f, tys, maybes)
   maybes = maybes or {}
   for i, ty_ in ipairs(tys) do
-    if maybes[i] then add(f, '?') end
-    M.tyFmtSafe(ty_, f)
+    M.tyFmtSafe(f, ty_, maybes[i])
   end
 end
 M.fnTyFmtSafe = function(fnTy, f)

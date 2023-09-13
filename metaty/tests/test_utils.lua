@@ -29,7 +29,9 @@ test('tyName', function()
   assertEq('F', tyName(ty(setmetatable({}, mt))))
 
   assert(not isTyErrMsg('string'))
-  assertEq('"null" is not native', isTyErrMsg('null'))
+  assertEq('"null" is not a native type', isTyErrMsg('null'))
   assertEq('boolean cannot be used as a type',
            isTyErrMsg(true))
 end)
+
+
