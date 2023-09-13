@@ -57,7 +57,7 @@ end
 local C = record('C', {
   __new=function(ty_, t)
     t.field1 = 7
-    return setmetatable(t, ty_) -- you have complete control
+    return mty.new(t, ty_) -- use metaty's default or your own
   end,
 }
   :field('field1', 'number')
@@ -90,10 +90,29 @@ a2Add(a, 'four') -- throws invalid type error at argument 2
 `metaty.pnt(...)` is a much better print function. It not only prints values
 using their `__fmt` method, it also prints tables in a clean and readable way.
 
+```lua
+pnt = require 'metaty'.pnt
+pnt({1, 2, 3, foo='bar', baz='true'})
+-- {1,2,3 :: foo=bar baz="true"}
+```
+
 #### assertEq(expect, result, pretty=true)
 
 asserts two values are equal. If not then prints them out (formatted)
 side-by-side and calls `error`.
+
+```
+assertEq({1, 2, x=7, y='true'}, {1, 2, x=7, y=true})
+-- ! Values not equal:
+-- ! EXPECT: {
+--   1,2 :: y="true"
+--   x=7
+-- }
+-- ! RESULT: {
+--   1,2 :: y=true
+--   x=7
+-- }
+```
 
 #### fmt(value, set=nil) and Fmt{set=FmtSet{... settings}}
 
@@ -120,42 +139,43 @@ num = LuckyNumber{a=42}
 pnt(num) -- "the lucky number is: 42\n"
 ```
 
-#### Runtime type checking (optional)
+## Runtime type checking (optional)
 
-> Note: Runtime type checking has a cost and so is **optional**.
-> The default is `metaty.CHECK = nil` (aka false).
+> Note: Runtime type checking has a cost and so is **optional**
+> (default=false).
 
-You can enable runtime type checking for ALL types by setting the global
-`METATY_CHECK = true` before any `require"metaty"` is executed (including by
-sub-modules).
+To enable runtime checking set the global value `METATY_CHECK = true` at
+the top of your application or test file (before executing any `require` calls).
+**Do not set it in library/module/etc files**.
 
-You can also enable it for yet-to-be-defined types by setting
-`metaty.CHECK = true`.
+> Note: For your application you may want to add `assert(not metaty.getCheck())`
+> after all your `require` calls to ensure type checking was disabled.
 
-> WARNING: neither of these should be done except for the **TOP LEVEL** module.
-> They should NEVER be done in a library (except in the test files).
-
-You can override the constructor and/or `__index` functions to customize type
-checking and other behavior.
-
-Type checking for records is setup in `forceCheckRecord`. You can override these
-functions for individual records to alter how type checking behaves:
+Type checking for record types is setup in the constructor and
+`forceCheckRecord`.  You can override these functions for individual record
+types to alter how type checking behaves (regardless of `METATY_CHECK`):
 
 ```
-M.forceCheckRecord = function(r)
-  r.__index    = M.indexChecked
-  r.__newindex = M.newindexChecked
-  r.__missing  = M.fieldMissing -- used by indexChecked
-end
+myType.__index    = myIndex
+myType.__newindex = myNewIndex
+myType.__missing  = myMissing
+ty(myType).__call = myConstructor
 ```
 
-For functions you can get a checked and a non-checked version of the function
-like so:
+For function types you can get both checked and a non-checked version of the
+function like so
 
 ```
 -- assuming CHECK=true
 local function uncheckedFn() ... end
 local checkedFn = Fn{}:apply(uncheckedFn)
 assert(ty(uncheckedFn) == ty(checkedFn)) -- passes
+if metaty.isChecked()
+  -- checkedFn is "wrapped" with type checking
+  assert(uncheckedFn ~= checkedFn)
+else
+  -- same function w/out type checking
+  assert(uncheckedFn == checkedFn)
+end
 ```
 

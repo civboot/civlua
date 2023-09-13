@@ -1,6 +1,7 @@
 METATY_CHECK = true
 
 local mty = require'metaty':grequire()
+assert(mty.getCheck())
 
 test('record', function()
   local A = record('A')
@@ -81,7 +82,6 @@ test("fmt", function()
 end)
 
 test('fn', function()
-  assert(mty.CHECK)
 
   local myFn = Fn{'string', 'number'}
   :out{'string'}

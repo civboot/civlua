@@ -1,15 +1,16 @@
 -- metaty: simple but effective Lua type system using metatable
 --
 -- See README.md for documentation.
+
+local CHECK = _G['METATY_CHECK'] or false -- private
 local M = {}
+M.getCheck = function() return CHECK end
 
 -- Utilities / aliases
 local add, sfmt = table.insert, string.format
 local function identity(v) return v end
 local function nativeEq(a, b) return a == b end
 
-
-M.CHECK = _G['METATY_CHECK'] or false
 M.KEYS_MAX = 64
 M.FMT_SAFE = false
 M.FNS = {}      -- function types (registered)
@@ -158,15 +159,13 @@ M.newChecked   = function(ty_, t)
   end
   return setmetatable(t, ty_)
 end
-M.selectNew = function()
-  return M.CHECK and M.newChecked or M.newUnchecked
-end
+M.new = CHECK and M.newChecked or M.newUnchecked
 
 -- MyType = rawTy('MyType', {new=function(ty_, t) ... end})
 M.rawTy = function(name, mt)
   mt = mt or {}
   mt.__name  = mt.__name or sfmt("Ty<%s>", name)
-  mt.__call  = mt.__call or M.selectNew()
+  mt.__call  = mt.__call or M.new
   local ty_ = {
     __name=name,
     __index=M.indexUnchecked,
@@ -217,7 +216,7 @@ M.forceCheckRecord = function(r)
 end
 M.record = function(name, mt)
   mt = mt or {}
-  mt.__index = M.indexUnchecked
+  mt.__index    = M.indexUnchecked
   mt.field      = M.recordField
   mt.fieldMaybe = M.recordFieldMaybe
 
@@ -225,7 +224,7 @@ M.record = function(name, mt)
   r.__tys = {}    -- field types
   r.__maybes = {} -- maybe (optional) fields
   r.__fields  = {} -- field names in order
-  if M.CHECK then M.forceCheckRecord(r) end
+  if CHECK then M.forceCheckRecord(r) end
   return r
 end
 
@@ -284,7 +283,7 @@ M.Fn.apply = function(self, fn, name)
   local dbg = debug.getinfo(fn, 'nS')
   M.FNS_INFO[fn] = FnInfo{debug=dbg, name=name or dbg.name}
   M.FNS[fn] = self
-  if M.CHECK then
+  if CHECK then
     local inner = fn
     fn = function(...)
       M.tysCheck({...}, self.inputs, self.iMaybes, ' (fn inp)')
@@ -300,7 +299,7 @@ end
 
 ----------------------------------------------
 -- Formatting
-M.FMT_NEW = M.selectNew()
+M.FMT_NEW = M.new -- overrideable
 
 M.FmtSet = M.record('FmtSet', {
   __call=function(ty_, t)
