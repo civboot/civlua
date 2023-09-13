@@ -58,10 +58,6 @@ M.tyName = function(ty_) --> string
 end
 
 M.tyCheck = function(expectTy, resultTy, maybe) --> bool
-  if M.pnt then
-    print('!! tyCheck:',
-    M.tyName(expectTy), M.tyName(resultTy), tostring(maybe))
-  end
   if maybe and resultTy == 'nil' then return true end
   return M.ANY[expectTy] or M.ANY[resultTy] or (expectTy == resultTy)
 end
@@ -78,7 +74,6 @@ M.tysCheck = function(values, tys, maybes, context)
     )end
   end
   maybes = maybes or {}
-  print('!! tysCheck:', len, M.fmt(maybes), '\n')
   for i=1,len do
     local v = values[i]
     -- if not tys[i] then
@@ -163,7 +158,9 @@ M.newChecked   = function(ty_, t)
   end
   return setmetatable(t, ty_)
 end
-M.selectNew = function() return M.CHECK and M.newChecked or M.newUnchecked end
+M.selectNew = function()
+  return M.CHECK and M.newChecked or M.newUnchecked
+end
 
 -- MyType = rawTy('MyType', {new=function(ty_, t) ... end})
 M.rawTy = function(name, mt)
@@ -232,7 +229,6 @@ M.record = function(name, mt)
   return r
 end
 
-
 ----------------------------------------------
 -- Fn: register function types
 
@@ -291,7 +287,6 @@ M.Fn.apply = function(self, fn, name)
   if M.CHECK then
     local inner = fn
     fn = function(...)
-      pnt('!! checking function', {...})
       M.tysCheck({...}, self.inputs, self.iMaybes, ' (fn inp)')
       local o = {inner(...)}
       M.tysCheck(o, self.outputs, self.oMaybes, ' (fn out)')
@@ -305,9 +300,6 @@ end
 
 ----------------------------------------------
 -- Formatting
-
------------
--- Fmt Object itself
 M.FMT_NEW = M.selectNew()
 
 M.FmtSet = M.record('FmtSet', {
@@ -344,8 +336,7 @@ M.Fmt = M.record('Fmt', {
     t.done = t.done or {}
     t.level = t.level or 0
     return M.FMT_NEW(ty_, t)
-  end
-})
+  end})
   :field('done', 'table')
   :field('level', 'number', 0)
   :field('set', M.FmtSet, M.DEFAULT_FMT_SET)
@@ -411,8 +402,6 @@ M.fnTyFmtSafe = function(fnTy, f)
   add(f, '->');  M.tysFmtSafe(f, self.outputs, self.oMaybes)
   add(f, ']');
 end
--- TODO: do I want this?
--- getmetatable(Fn).__fmt = M.fnTyFmtSafe
 
 M.fnFmtSafe = function(fn, f)
   local fnTy, dbg, name = ty(fn), nil, nil

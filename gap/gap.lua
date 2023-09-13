@@ -89,7 +89,6 @@ Gap.CMAX = 999
 M.Gap = Gap
 
 Gap.__fmt = function(g, f)
-  mty.pnt('!! gap.__fmt', g.bot, g.top)
   local len = g:len()
   for i, l in ipairs(g.bot) do
     add(f, l);
