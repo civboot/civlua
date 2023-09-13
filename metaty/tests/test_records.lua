@@ -2,14 +2,6 @@ METATY_CHECK = true
 
 local mty = require'metaty':grequire()
 
-test('ty', function()
-  assert('string' == ty('hi'))
-  assert('number' == ty(4))
-  assert('table'  == ty({}))
-  local mt = {}
-  assert(mt       == ty(setmetatable({}, mt)))
-end)
-
 local function records()
   local A = record('A')
     :field('a2', 'number')
@@ -46,7 +38,7 @@ test("safeToStr", function()
   assertEq('"123"',     safeToStr("123"))
   assertEq('"abc def"', safeToStr("abc def"))
   assertEq('423',       safeToStr(423))
-  assertEq('1A',        safeToStr(26, {num='%X'}))
+  assertEq('1A',        safeToStr(26, FmtSet{num='%X'}))
   assertEq('true',      safeToStr(true))
   assertMatch('Fn@.*/metaty%.lua:%d+', safeToStr(mty.errorf))
   assertMatch('Tbl@0x[a-f0-9]+', safeToStr({hi=4}))
@@ -75,7 +67,9 @@ test("fmt", function()
   assertEq('{1,2 :: a=12}', fmt({1, 2, a=12}))
 end)
 
-test('util', function()
-  assertEq({'a', 'bc', '', 'd'}, lines('a\nbc\n\nd'))
+test('fn', function()
+  local myFn = Fn{'string', 'number'}
+  :out{'string'}
+  :apply(function(s, n) return s .. n end)
+  assertEq('foo42', myFn('foo', 42))
 end)
-

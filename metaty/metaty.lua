@@ -1,17 +1,19 @@
 -- metaty: simple but effective Lua type system using metatable
 --
 -- See README.md for documentation.
+local M = {}
 
 -- Utilities / aliases
 local add, sfmt = table.insert, string.format
 local function identity(v) return v end
 local function nativeEq(a, b) return a == b end
 
-local M = {}
+
 M.CHECK = _G['METATY_CHECK'] or false
 M.KEYS_MAX = 64
 M.FMT_SAFE = false
-M.FNS = {}
+M.FNS = {}      -- function types (registered)
+M.FNS_INFO = {} -- function debug info
 
 M.errorf  = function(...) error(string.format(...)) end
 M.assertf = function(a, ...) if not a then assert(a, sfmt(...)) end end
@@ -25,7 +27,7 @@ M.Unset = setmetatable({__name='Unset'}, {
 })
 M.ANY = { [M.Any] = true }
 local TY_MAP = {
-  ['function'] = function()  return 'function' end,
+  ['function'] = function(f) return M.FNS[f] or 'function' end,
   ['nil']      = function()  return 'nil' end,
   boolean      = function()  return 'boolean' end,
   number       = function()  return 'number' end,
@@ -37,8 +39,21 @@ local TY_NAME = {}; for k in pairs(TY_MAP) do TY_NAME[k] = k end
 -- Return type which is the metatable (if it exists) or raw type() string.
 M.ty = function(obj) return TY_MAP[type(obj)](obj) end
 
+M.isTyErrMsg = function(ty_)
+  local tystr = type(ty_)
+  if tystr == 'string' then
+    if not TY_MAP[ty_] then return sfmt(
+      '%q is not native', ty_
+    )end
+  elseif tystr ~= 'table' then return sfmt(
+    '%s cannot be used as a type', tystr
+  )end
+end
+
 -- Safely get the name of type
 M.tyName = function(ty_) --> string
+  local check = M.isTyErrMsg(ty_);
+  if check then return sfmt('<!%s!>', check) end
   return TY_NAME[ty_] or rawget(ty_, '__name') or 'table'
 end
 
@@ -46,9 +61,38 @@ M.tyCheck = function(aTy, bTy) --> bool
   return M.ANY[aTy] or M.ANY[bTy] or (aTy == bTy)
 end
 
-M.tyErrorMsg = function(expectTy, resultTy) --> !error
-   return sfmt("Types do not match: %s :: %s",
-     M.tyName(expectTy), M.tyName(resultTy))
+-----------------------------
+-- Equality
+
+M.geteventhandler = function(a, b, event)
+  return (getmetatable(a) or {})[event]
+      or (getmetatable(b) or {})[event]
+end
+
+local EQ_TY = {
+  number = nativeEq, boolean = nativeEq, string = nativeEq,
+  ['nil'] = nativeEq, ['function'] = nativeEq,
+  ['table'] = function(a, b)
+    if M.geteventhandler(a, b, '__eq') then return a == b end
+    if a == b                          then return true   end
+    return M.eqDeep(a, b)
+  end,
+}
+M.eq = function(a, b) return EQ_TY[type(a)](a, b) end
+
+M.eqDeep = function(a, b)
+  if rawequal(a, b)     then return true   end
+  if M.ty(a) ~= M.ty(b) then return false  end
+  local aLen, eq = 0, M.eq
+  for aKey, aValue in pairs(a) do
+    local bValue = b[aKey]
+    if not M.eq(aValue, bValue) then return false end
+    aLen = aLen + 1
+  end
+  local bLen = 0
+  -- Note: #b only returns length of integer indexes
+  for bKey in pairs(b) do bLen = bLen + 1 end
+  return aLen == bLen
 end
 
 ----------------------------------------------
@@ -73,12 +117,17 @@ end
 
 -- These are the default constructor functions
 M.newUnchecked = function(ty_, t) return setmetatable(t, ty_) end
+
+M.tyErrorMsg = function(expectTy, resultTy) --> !error
+   return sfmt("Types do not match: %s :: %s",
+     M.tyName(expectTy), M.tyName(resultTy))
+end
 M.newChecked   = function(ty_, t)
   local tys = ty_.__tys
   for field, v in pairs(t) do
     M.assertf(tys[field], 'unknown field: %s', field)
     if not M.tyCheck(tys[field], M.ty(v)) then
-      M.errorf('[%s] %s', field, M.tyErrorMsg(M.ty(v), tys[field]))
+      M.errorf('[%s] %s', field, M.tyErrorMsg(tys[field], M.ty(v)))
     end
   end
   return setmetatable(t, ty_)
@@ -128,39 +177,66 @@ M.record = function(name, mt)
   return r
 end
 
+
 ----------------------------------------------
--- Equality
+-- Fn: register function types
 
-M.eqDeep = function(a, b)
-  if rawequal(a, b)     then return true   end
-  if M.ty(a) ~= M.ty(b) then return false  end
-  local aLen, eq = 0, M.eq
-  for aKey, aValue in pairs(a) do
-    local bValue = b[aKey]
-    if not M.eq(aValue, bValue) then return false end
-    aLen = aLen + 1
+M.assertIsTys = function(tys)
+  for i, ty_ in ipairs(tys) do
+    local err = M.isTyErrMsg(ty_)
+    assertf(not err, '[arg %s] %s', i, err)
   end
-  local bLen = 0
-  -- Note: #b only returns length of integer indexes
-  for bKey in pairs(b) do bLen = bLen + 1 end
-  return aLen == bLen
+  return tys
 end
 
--- modified from: https://www.lua.org/manual/5.1/manual.html
-M.geteventhandler = function(a, b, event)
-  return (getmetatable(a) or {})[event] or (getmetatable(b) or {})[event]
+M.FnInfo = M.record('FnInfo')
+  :field('debug', M.Any)
+  :field('name', 'string', '')
+
+M.Fn = M.record('Fn', {
+  __call=function(ty_, inputs)
+    local t = {
+      inputs=M.assertIsTys(inputs),
+      outputs={}, iMaybe={}, oMaybe={},
+    }
+    return M.newChecked(ty_, t)
+  end
+})
+  :field('inputs', 'table') :field('outputs', 'table')
+  :field('iMaybe', 'table') :field('oMaybe', 'table')
+
+M.Fn.inpMaybe = function(self, m)
+  assertf(M.ty(m) == 'table', 'inpMaybe must be list of booleans')
+  self.iMaybe = m
+  return self
 end
 
-local EQ_TY = {
-  number = nativeEq, boolean = nativeEq, string = nativeEq,
-  ['nil'] = nativeEq, ['function'] = nativeEq,
-  ['table'] = function(a, b)
-    if M.geteventhandler(a, b, '__eq') then return a == b end
-    if a == b                          then return true   end
-    return M.eqDeep(a, b)
-  end,
-}
-M.eq = function(a, b) return EQ_TY[type(a)](a, b) end
+M.Fn.out = function(self, outputs)
+  self.outputs = M.assertIsTys(outputs)
+  return self
+end
+M.Fn.outMaybe = function(self, m)
+  assertf(M.ty(m) == 'table', 'outMaybe must be list of booleans')
+  self.oMaybe = m
+  return self
+end
+
+M.tyCheckList = function(list, tys, maybes)
+  for i, v in ipairs(list) do
+    local ty_ = tys[i]
+    if v == nil and ty_ ~= 'nil' and not maybes[i] then
+      errorf('argument %s (type %s) is nil', i, ty_)
+    end
+  end
+end
+M.Fn.apply = function(self, fn, name)
+  if M.FNS[fn] then errorf('fn already applied: %s', fmt(fn)) end
+  local dbg = debug.getinfo(fn, 'nS')
+  M.FNS_INFO[fn] = FnInfo{debug=dbg, name=name or dbg.name}
+  -- FIXME: add type checking
+  M.FNS[fn] = self
+  return fn
+end
 
 ----------------------------------------------
 -- Formatting
@@ -217,12 +293,6 @@ end
 -----------
 -- Fmt Utilities
 
-M.fnToStr = function(fn)
-  local s = debug.getinfo(fn, 'nS')
-  local n = ''; if s.name then n = sfmt('%q', s.name) end
-  return sfmt('Fn%s@%s:%s', n, s.short_src, s.linedefined)
-end
-
 local function orderedKeys(t, max) --> table (ordered list of keys)
   local keys, len, max = {}, 0, max or M.KEYS_MAX
   for k in pairs(t) do
@@ -249,14 +319,63 @@ end
 -- return the table id
 -- requirement: metatable is nil or is missing __tostring
 M.tblIdUnsafe = function(t) --> string
-  return tostring(t):gsub('table: ', '')
+  local id = string.gsub(tostring(t), 'table: ', ''); return id
 end
 
 M.metaName = function(mt)
-  if not mt then return '' end
-  return mt.__name or '?'
+  if mt then return mt.__name or '?'
+  else return '' end
 end
 
+-- Formatting function type with arguments
+M.tyFmtSafe = function(ty_, f)
+  local tyTy = ty(ty_)
+  if tyTy == Fn then M.fnTyFmtSafe(tyTy, f)
+  elseif tyTy == 'string' then add(f, ty_) -- native
+  else add(f, ty_.__name) end
+end
+M.fmtTysSafe = function(f, tys, maybes)
+  maybes = maybes or {}
+  for i, ty_ in ipairs(tys) do
+    if maybes[i] then add(f, '?') end
+    M.tyFmtSafe(ty_, f)
+  end
+end
+M.fnTyFmtSafe = function(fnTy, f)
+  add(f, 'Fn['); M.tysFmtSafe(f, self.inputs,  self.iMaybe)
+  add(f, '->');  M.tysFmtSafe(f, self.outputs, self.oMaybe)
+  add(f, ']');
+end
+-- TODO: do I want this?
+-- getmetatable(Fn).__fmt = M.fnTyFmtSafe
+
+M.fnFmtSafe = function(fn, f)
+  local fnTy, dbg, name = ty(fn), nil, nil
+  if fnTy == 'function' then
+    add(f, 'Fn')
+    dbg = debug.getinfo(fn, 'nS'); name = dbg.name
+  else assert(ty(fnTy) == Fn)
+    M.fnTyFmtSafe(fnTy, f)
+    local info = assert(M.FNS_INFO[fn])
+    dbg = info.debug; name = info.name
+  end
+  if name then add(f, sfmt('%q', name)) end
+  add(f, '@'); add(f, dbg.short_src);
+  add(f, ':'); add(f, tostring(dbg.linedefined));
+end
+M.Fn.__fmt = M.fnFmtSafe
+
+M.tblFmtSafe = function(t, f)
+  local mt = getmetatable(t);
+  if not mt then
+    add(f, 'Tbl@'); add(f, M.tblIdUnsafe(t))
+  elseif mt.__tostring then
+    add(f, M.metaName(mt)); add(f, '{...}')
+  else
+    add(f, M.metaName(mt)); add(f, '@')
+    add(f, M.tblIdUnsafe(t));
+  end
+end
 M.tblToStrSafe = function(t)
   local mt = getmetatable(t);
   if not mt then return sfmt('Tbl@%s', M.tblIdUnsafe(t)) end
@@ -264,24 +383,21 @@ M.tblToStrSafe = function(t)
   return sfmt('%s@%s', M.metaName(mt), M.tblIdUnsafe(t))
 end
 
-M.SAFE_TOSTRING = {
-  ['nil']=function(n) return 'nil' end,
-  ['function']=M.fnToStr,
-  boolean=function(v, set) return tostring(v) end,
-  number=function(n, set)
-    local f = '%i'
-    if set then f = set.num or '%i' end
-    return sfmt(f, n)
+local SAFE = {
+  ['nil']=function(n, f)       add(f, 'nil') end,
+  ['function']=function(fn, f) M.fnFmtSafe(fn, f) end,
+  boolean=function(v, f)       add(f, tostring(v)) end,
+  number=function(n, f)        add(f, sfmt(f.set.num, n)) end,
+  string=function(s, f)
+    if M.strIsAmbiguous(s) then add(f, sfmt('%q', s))
+    else                        add(f, s) end
   end,
-  string=function(s)
-    if M.strIsAmbiguous(s) then return sfmt('%q', s) end
-    return s
-  end,
-  table=M.tblToStrSafe,
+  table=M.tblFmtSafe,
 }
 
 M.safeToStr = function(v, set) --> string
-  return M.SAFE_TOSTRING[type(v)](v, set)
+  local f = Fmt{set=set}; SAFE[type(v)](v, f)
+  return f:toStr()
 end
 
 M.tblFmt = function(t, f)
@@ -334,7 +450,7 @@ end
 M.Fmt.fmt = function(f, v)
   local tystr = type(v)
   if tystr ~= 'table' then
-    add(f, M.SAFE_TOSTRING[tystr](v, f.set))
+    SAFE[tystr](v, f)
     return f
   end
   if not f.set.recurse then
