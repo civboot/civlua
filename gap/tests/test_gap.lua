@@ -5,13 +5,6 @@ local gap = require'gap'
 local test, assertEq = mty.test, mty.assertEq
 local Gap = gap.Gap
 
-test('drain', function()
-  local t = {1, 2, 3, 4}
-  assertEq({3, 4}, gap.drain(t, 2))
-  assertEq({2}, gap.drain(t, 1))
-  assertEq({1}, gap.drain(t, 4))
-end)
-
 test('set', function()
   local g = Gap.new('ab\nc\n\nd')
   assertEq('ab\nc\n\nd', tostring(g))
@@ -162,7 +155,6 @@ end)
 test('find', function()
   local g = Gap.new('12345\n6789\n98765\n')
   assertEq({1, 3}, {g:find    ('34', 1, 1)})
-  assertEq({1, 3}, {g:findBack('34', 2, 3)})
   assertEq({2, 1}, {g:find    ('67', 1, 3)})
   assertEq({2, 1}, {g:find    ('6', 1, 3)})
   assertEq({3, 4}, {g:find    ('6', 2, 2)})

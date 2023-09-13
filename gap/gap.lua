@@ -10,6 +10,7 @@
 --    moved to a previous line then data is moved from top to bot
 
 local mty = require'metaty'
+local ds  = require'ds'
 
 local add, pop, concat = table.insert, table.remove, table.concat
 local sub = string.sub
@@ -20,40 +21,9 @@ local M = {} -- module
 -- Utilities
 -- I should seriously consider moving all of these
 
-local function copy(t) -- shallow copy
-  local x = {}; for k, v in pairs(t) do x[k] = v end
-  return x
-end
+local max, min, bound = ds.max, ds.min, ds.bound
+local copy, drain = ds.copy, ds.drain
 
-local max = function(a, b) if a > b then return a end return b end
-local min = function(a, b) if a < b then return a end return b end
-local function bound(v, min, max)
-  if v > max then return max end
-  if v < min then return min end
-  return v
-end
-M.drain = function(t, len)
-  len = min(#t, len)
-  local l = {}; for i=#t - len + 1, #t do
-    add(l, t[i]); t[i] = nil
-  end
-  return l
-end
-
--- string find backwards
--- this searches for the pattern and returns the LAST one found.
--- This is HORRIBLY non-performant, only use for small amounts of data
-M.findBack = function(s, pat, end_)
-  local s, fs, fe = s:sub(1, end_), nil, 0
-  assert(#s < 256)
-  while true do
-    local _fs, _fe = s:find(pat, fe + 1)
-    if not _fs then break end
-    fs, fe = _fs, _fe
-  end
-  if fe == 0 then fe = nil end
-  return fs, fe
-end
 
 -- return the first i characters and the remainder
 M.strdivide = function(s, i)
@@ -232,16 +202,6 @@ Gap.find=function(g, pat, l, c)
   end
 end
 
--- find the pattern (backwards) starting at l/c
-Gap.findBack = function(g, pat, l, c)
-  while true do
-    local s = g:get(l)
-    if not s then return nil end
-    c = M.findBack(s, pat, c)
-    if c then return l, c end
-    l, c = l - 1, nil
-  end
-end
 
 --------------------------
 -- Gap Mutations
@@ -264,7 +224,7 @@ Gap.remove=function(g, ...)
     else             return '' end
   end
   -- b=begin, e=end (of leftover text)
-  local b, e, out, rmNewline = '', '', M.drain(g.bot, l2 - l + 1)
+  local b, e, out, rmNewline = '', '', drain(g.bot, l2 - l + 1)
   if c == nil then      -- only lines, leave as list
   else
     rmNewline = c2 > #(out[#out])

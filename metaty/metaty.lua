@@ -140,16 +140,17 @@ M.newindexChecked = function(self, k, v)
   if not tys[k] then errorf(
     '%s does not have field %s', M.tyName(mt), k
   )end
-  if not M.tyCheck(tys[k], ty(v), rawget(mt, '__maybes')[k]) then
+  if not M.tyCheck(tys[k], M.ty(v), rawget(mt, '__maybes')[k]) then
     errorf('%s: %s', M.tyName(mt), M.tyCheckMsg(tys[k], ty(v)))
   end
   rawset(self, k, v)
 end
 
 -- These are the default constructor functions
-M.newUnchecked = function(ty_, t) return setmetatable(t, ty_) end
+M.newUnchecked = function(ty_, t) return setmetatable(t or {}, ty_) end
 
 M.newChecked   = function(ty_, t)
+  t = t or {}
   local tys, maybes = ty_.__tys, ty_.__maybes
   for field, v in pairs(t) do
     M.assertf(tys[field], 'unknown field: %s', field)
@@ -234,7 +235,7 @@ end
 M.assertIsTys = function(tys)
   for i, ty_ in ipairs(tys) do
     local err = M.isTyErrMsg(ty_)
-    assertf(not err, '[arg %s] %s', i, err)
+    M.assertf(not err, '[arg %s] %s', i, err)
   end
   return tys
 end
@@ -245,7 +246,7 @@ M.FnInfo = M.record('FnInfo')
 
 M.Fn = M.record('Fn', {
   __call=function(ty_, inputs)
-    assert(ty(inputs) == 'table', 'inputs must be a raw table')
+    assert(M.ty(inputs) == 'table', 'inputs must be a raw table')
     local t = {
       inputs=M.assertIsTys(inputs),
       outputs={},
@@ -260,20 +261,20 @@ M.Fn = M.record('Fn', {
 M.forceCheckRecord(M.Fn)
 
 M.Fn.inpMaybe = function(self, m)
-  assertf(M.ty(m) == 'table', 'inpMaybe must be list of booleans')
-  assertf(#m == #self.inputs, 'inpMaybe len must be same as inp')
+  M.assertf(M.ty(m) == 'table', 'inpMaybe must be list of booleans')
+  M.assertf(#m == #self.inputs, 'inpMaybe len must be same as inp')
   self.iMaybes = m
   return self
 end
 
 M.Fn.out = function(self, outputs)
-  assert(ty(outputs) == 'table', 'outputs must be a raw table')
+  assert(M.ty(outputs) == 'table', 'outputs must be a raw table')
   self.outputs = M.assertIsTys(outputs)
   return self
 end
 M.Fn.outMaybe = function(self, m)
-  assertf(M.ty(m) == 'table', 'outMaybe must be list of booleans')
-  assertf(#m == #self.outputs, 'outMaybe len must be same as out')
+  M.assertf(M.ty(m) == 'table', 'outMaybe must be list of booleans')
+  M.assertf(#m == #self.outputs, 'outMaybe len must be same as out')
   self.oMaybes = m
   return self
 end
@@ -281,7 +282,7 @@ end
 M.Fn.apply = function(self, fn, name)
   if M.FNS[fn] then errorf('fn already applied: %s', fmt(fn)) end
   local dbg = debug.getinfo(fn, 'nS')
-  M.FNS_INFO[fn] = FnInfo{debug=dbg, name=name or dbg.name}
+  M.FNS_INFO[fn] = M.FnInfo{debug=dbg, name=name or dbg.name}
   M.FNS[fn] = self
   if CHECK then
     local inner = fn
@@ -348,7 +349,7 @@ end
 -----------
 -- Fmt Utilities
 
-local function orderedKeys(t, max) --> table (ordered list of keys)
+M.orderedKeys = function(t, max) --> table (ordered list of keys)
   local keys, len, max = {}, 0, max or M.KEYS_MAX
   for k in pairs(t) do
     if len >= max then break end
@@ -464,7 +465,7 @@ M.tblFmt = function(t, f)
     if i < lenI then f:sep(f.set.listSep) end
   end
 
-  local keys = orderedKeys(t, f.set.keysMax)
+  local keys = M.orderedKeys(t, f.set.keysMax)
   local lenK = #keys
   if lenI > 0 and lenK - lenI > 0 then f:sep(f.set.tblSep) end
   for i, k in ipairs(keys) do
