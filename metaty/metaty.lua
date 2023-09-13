@@ -138,6 +138,17 @@ M.indexChecked = function(self, k) --> any
   return x and x(mt, k) or nil
 end
 
+M.newindexChecked = function(self, k, v)
+  local mt = getmetatable(self)
+  local tys = rawget(mt, '__tys')
+  if not tys[k] then errorf(
+    '%s does not have field %s', M.tyName(mt), k
+  )end
+  if not M.tyCheck(tys[k], ty(v), rawget(mt, '__maybes')[k]) then
+    errorf('%s: %s', M.tyName(mt), M.tyCheckMsg(tys[k], ty(v)))
+  end
+  rawset(self, k, v)
+end
 
 -- These are the default constructor functions
 M.newUnchecked = function(ty_, t) return setmetatable(t, ty_) end
@@ -199,18 +210,19 @@ end
 M.fieldMissing = function(ty_, k)
   local maybes = rawget(ty_, '__maybes')
   if maybes and maybes[k] then return end
-  M.errorf('Invalid field on %s: %s', M.tyName(ty_), k)
+  M.errorf('%s does not have field %s', M.tyName(ty_), k)
 end
 
 M.forceCheckRecord = function(r)
-  r.__index   = M.indexChecked
-  r.__missing = M.fieldMissing
+  r.__index    = M.indexChecked
+  r.__newindex = M.newindexChecked
+  r.__missing  = M.fieldMissing
 end
 M.record = function(name, mt)
   mt = mt or {}
   mt.__index = M.indexUnchecked
-  mt.field      = mt.field      or M.recordField
-  mt.fieldMaybe = mt.fieldMaybe or M.recordFieldMaybe
+  mt.field      = M.recordField
+  mt.fieldMaybe = M.recordFieldMaybe
 
   local r = M.rawTy(name, mt)
   r.__tys = {}    -- field types
@@ -337,7 +349,7 @@ M.Fmt = M.record('Fmt', {
   :field('done', 'table')
   :field('level', 'number', 0)
   :field('set', M.FmtSet, M.DEFAULT_FMT_SET)
-
+M.Fmt.__newindex = nil
 M.Fmt.__missing = function(ty_, k)
   if type(k) == 'number' then return nil end
   return M.fieldMissing(ty_, k)

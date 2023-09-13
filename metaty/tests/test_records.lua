@@ -26,6 +26,11 @@ test('record', function()
   assertErrorPat('a1=fail', function()
     assertEq(A{a1='fail', a2=5}, a)
   end)
+
+  assertErrorPat('A does not have field a3',
+    function() local x = a.a3 end)
+  assertErrorPat('A does not have field a3',
+    function() a.a3 = 7 end)
 end)
 
 test('record maybe', function()
