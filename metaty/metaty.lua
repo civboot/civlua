@@ -58,6 +58,10 @@ M.tyName = function(ty_) --> string
 end
 
 M.tyCheck = function(expectTy, resultTy, maybe) --> bool
+  if M.pnt then
+    print('!! tyCheck:',
+    M.tyName(expectTy), M.tyName(resultTy), tostring(maybe))
+  end
   if maybe and resultTy == 'nil' then return true end
   return M.ANY[expectTy] or M.ANY[resultTy] or (expectTy == resultTy)
 end
@@ -66,11 +70,20 @@ M.tyCheckMsg = function(expectTy, resultTy) --> !error
      M.tyName(expectTy), M.tyName(resultTy))
 end
 M.tysCheck = function(values, tys, maybes, context)
+  local len; if maybes then len = #maybes
+  else
+    len = #values
+    if len ~= #tys then errorf(
+      "ty len differs: expected=%s, given=%s", #tys, len
+    )end
+  end
   maybes = maybes or {}
-  for i, v in ipairs(values) do
-    if not tys[i] then
-      M.errorf('Type for arg %s not specified%s', i, context)
-    elseif not M.tyCheck(tys[i], ty(v), maybes[i]) then
+  print('!! tysCheck:', len, M.fmt(maybes), '\n')
+  for i=1,len do
+    local v = values[i]
+    -- if not tys[i] then
+    --   M.errorf('Type for arg %s not specified%s', i, context)
+    if not M.tyCheck(tys[i], ty(v), maybes[i]) then
       M.errorf('[%s] %s%s', i, M.tyCheckMsg(tys[i], ty(v)), context)
     end
   end
@@ -144,15 +157,13 @@ M.selectNew = function() return M.CHECK and M.newChecked or M.newUnchecked end
 -- MyType = rawTy('MyType', {new=function(ty_, t) ... end})
 M.rawTy = function(name, mt)
   mt = mt or {}
-  mt.__name = mt.__name or sfmt("Ty<%s>", name)
-  mt.__call = mt.__call or M.selectNew()
+  mt.__name  = mt.__name or sfmt("Ty<%s>", name)
+  mt.__call  = mt.__call or M.selectNew()
   local ty_ = {
     __name=name,
     __index=M.indexUnchecked,
     __fmt=M.tblFmt,
     __tostring=M.fmt,
-    __tys={},    -- field types
-    __maybes={}, -- maybe (optional) fields
   }
   return setmetatable(ty_, mt)
 end
@@ -172,6 +183,7 @@ M.recordField = function(r, name, ty_, default)
     r[name] = default
   end
   add(r.__fields, name) -- for in-order formatting
+  r.__maybes[name] = nil
   return r
 end
 M.recordFieldMaybe = function(r, name, ty_, default)
@@ -179,26 +191,32 @@ M.recordFieldMaybe = function(r, name, ty_, default)
     default == nil,
     'attempted to specify default for recordFieldMaybe')
   M.recordField(r, name, ty_)
-  M.__maybes[name] = true
+  r.__maybes[name] = true
+  return r
 end
 
 -- Used for records and similar for checking missing fields.
 M.fieldMissing = function(ty_, k)
   local maybes = rawget(ty_, '__maybes')
   if maybes and maybes[k] then return end
-  M.errorf('Invalid field on %s: %s', M.tyName(), k)
+  M.errorf('Invalid field on %s: %s', M.tyName(ty_), k)
 end
 
+M.forceCheckRecord = function(r)
+  r.__index   = M.indexChecked
+  r.__missing = M.fieldMissing
+end
 M.record = function(name, mt)
   mt = mt or {}
-  mt.field = M.recordField
+  mt.__index = M.indexUnchecked
+  mt.field      = mt.field      or M.recordField
+  mt.fieldMaybe = mt.fieldMaybe or M.recordFieldMaybe
 
   local r = M.rawTy(name, mt)
-  r.__fields  = r.__fields or {}
-  r.__missing = M.fieldMissing
-
-  if M.CHECK then mt.__index = M.indexChecked
-  else            mt.__index = M.indexUnchecked end
+  r.__tys = {}    -- field types
+  r.__maybes = {} -- maybe (optional) fields
+  r.__fields  = {} -- field names in order
+  if M.CHECK then M.forceCheckRecord(r) end
   return r
 end
 
@@ -223,17 +241,21 @@ M.Fn = M.record('Fn', {
     assert(ty(inputs) == 'table', 'inputs must be a raw table')
     local t = {
       inputs=M.assertIsTys(inputs),
-      outputs={}, iMaybe={}, oMaybe={},
+      outputs={},
     }
     return M.newChecked(ty_, t)
   end
 })
-  :field('inputs', 'table') :field('outputs', 'table')
-  :field('iMaybe', 'table') :field('oMaybe', 'table')
+  :field('inputs',  'table') :field('outputs', 'table')
+  :fieldMaybe('iMaybes', 'table')
+  :fieldMaybe('oMaybes', 'table')
+
+M.forceCheckRecord(M.Fn)
 
 M.Fn.inpMaybe = function(self, m)
   assertf(M.ty(m) == 'table', 'inpMaybe must be list of booleans')
-  self.iMaybe = m
+  assertf(#m == #self.inputs, 'inpMaybe len must be same as inp')
+  self.iMaybes = m
   return self
 end
 
@@ -244,7 +266,8 @@ M.Fn.out = function(self, outputs)
 end
 M.Fn.outMaybe = function(self, m)
   assertf(M.ty(m) == 'table', 'outMaybe must be list of booleans')
-  self.oMaybe = m
+  assertf(#m == #self.outputs, 'outMaybe len must be same as out')
+  self.oMaybes = m
   return self
 end
 
@@ -372,8 +395,8 @@ M.fmtTysSafe = function(f, tys, maybes)
   end
 end
 M.fnTyFmtSafe = function(fnTy, f)
-  add(f, 'Fn['); M.tysFmtSafe(f, self.inputs,  self.iMaybe)
-  add(f, '->');  M.tysFmtSafe(f, self.outputs, self.oMaybe)
+  add(f, 'Fn['); M.tysFmtSafe(f, self.inputs,  self.iMaybes)
+  add(f, '->');  M.tysFmtSafe(f, self.outputs, self.oMaybes)
   add(f, ']');
 end
 -- TODO: do I want this?

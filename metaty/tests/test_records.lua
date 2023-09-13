@@ -2,7 +2,7 @@ METATY_CHECK = true
 
 local mty = require'metaty':grequire()
 
-local function records()
+test('record', function()
   local A = record('A')
     :field('a2', 'number')
     :field('a1', 'string')
@@ -10,11 +10,6 @@ local function records()
     :field('b1', 'number')
     :field('b2', 'number', 32)
     :field('a', A)
-  return A, B
-end
-
-test('records', function()
-  local A, B = records()
 
   local a = A{a1='hi', a2=5}
   assert(A == getmetatable(a))
@@ -31,6 +26,19 @@ test('records', function()
   assertErrorPat('a1=fail', function()
     assertEq(A{a1='fail', a2=5}, a)
   end)
+end)
+
+test('record maybe', function()
+  local A = record('A')
+    :field('a1', 'string')
+    :fieldMaybe('a2', 'number')
+
+  local a = A{a1='hi'}
+    assertEq('hi', a.a1);   assertEq(nil, a.a2);
+    assertEq(A{a1='hi'}, a)
+  a.a2 = 4;   assertEq(4, a.a2);
+              assertEq(A{a1='hi', a2=4}, a)
+  a.a2 = nil; assertEq(nil, a.a2)
 end)
 
 test("safeToStr", function()
@@ -84,4 +92,16 @@ test('fn', function()
   assertErrorPat(
     '%[1%] Types do not match: number :: string %(fn out%)',
     function() badOut() end)
+
+  local fnMaybe = Fn
+           {'string', 'string'}
+  :inpMaybe{false,     true}
+  :out     {'string'}
+  :apply(function(a, b) return a .. (b and tostring(b) or '?') end)
+
+  assertEq('hi bob', fnMaybe('hi', ' bob'))
+  assertEq('hi?',    fnMaybe('hi'))
+  assertErrorPat(
+    '%[1%] Types do not match: string :: nil %(fn inp%)',
+    function() fnMaybe(nil, 'hi') end)
 end)
