@@ -19,31 +19,69 @@ M.FNS_INFO = {} -- function debug info
 M.errorf  = function(...) error(string.format(...)) end
 M.assertf = function(a, ...) if not a then assert(a, sfmt(...)) end end
 
--- Lookup tables for ty / tyName
-M.Any = setmetatable({__name='Any'}, {
-  __name='AnyTy', __tostring=function() return 'Any' end
-})
-M.Unset = setmetatable({__name='Unset'}, {
-  __name='UnsetTy', __tostring=function() return 'Unset' end
-})
-M.ANY = { [M.Any] = true }
-local TY_MAP = {
+local NATIVE_GET_TY = {
   ['function'] = function(f) return M.FNS[f] or 'function' end,
-  ['nil']      = function()  return 'nil' end,
+  ['nil']      = function()  return 'nil'     end,
   boolean      = function()  return 'boolean' end,
-  number       = function()  return 'number' end,
-  string       = function()  return 'string' end,
+  number       = function()  return 'number'  end,
+  string       = function()  return 'string'  end,
   table        = function(t) return getmetatable(t) or 'table' end,
 }
-local TY_NAME = {}; for k in pairs(TY_MAP) do TY_NAME[k] = k end
 
 -- Return type which is the metatable (if it exists) or raw type() string.
-M.ty = function(obj) return TY_MAP[type(obj)](obj) end
+M.ty = function(obj) return NATIVE_GET_TY[type(obj)](obj) end
+
+local function defaultNativeCheck(_chk, reqTy, giveTy)
+  return reqTy == giveTy
+end
+
+-- Note: we will replace 'function' for this (and possibly 'number')
+local NATIVE_CHECK_TY = {}; for k in pairs(NATIVE_GET_TY) do
+  NATIVE_CHECK_TY[k] = defaultNativeCheck
+end; NATIVE_CHECK_TY['nil'] = nil
+
+-- Ultra-simple index function
+M.indexUnchecked = function(self, k) return getmetatable(self)[k] end
+
+M.Checker = setmetatable({
+  __name='Checker',
+  __index=M.indexUnchecked,
+}, {
+  __name='Ty<Checker>',
+  -- Checker{} constructor
+  __call=function(ty_, t)
+    t.gen = t.gen or {}
+    return setmetatable(t, ty_)
+  end,
+})
+
+M.Checker.check = function(self, reqTy, giveTy, reqMaybe)
+  if (reqMaybe and giveTy == 'nil') then return true end
+  if type(reqTy) == 'string' then
+    M.assertf(NATIVE_CHECK_TY[reqTy], '%s is not a valid native type', reqTy)
+    return NATIVE_CHECK_TY[reqTy](self, reqTy, giveTy)
+  end
+  if reqTy == giveTy then return true end
+  local reqCheck = rawget(reqTy, '__check')
+  if reqCheck then return reqCheck(self, reqTy, giveTy) end
+end
+
+M.tyCheck = function(reqTy, giveTy, reqMaybe) --> bool
+  return M.Checker{}:check(reqTy, giveTy, reqMaybe)
+end
+
+-- Returns true when checked against any type
+M.Any = {
+  __name='Any',
+  __check=function() return true end,
+}
+
+assert(M.Any.__name == 'Any')
 
 M.isTyErrMsg = function(ty_)
   local tystr = type(ty_)
   if tystr == 'string' then
-    if not TY_MAP[ty_] then return sfmt(
+    if not NATIVE_GET_TY[ty_] then return sfmt(
       '%q is not a native type', ty_
     )end
   elseif tystr ~= 'table' then return sfmt(
@@ -51,20 +89,19 @@ M.isTyErrMsg = function(ty_)
   )end
 end
 
+local TY_NAME = {}; for k in pairs(NATIVE_GET_TY) do TY_NAME[k] = k end
+
 -- Safely get the name of type
 M.tyName = function(ty_) --> string
   local check = M.isTyErrMsg(ty_);
+  print('!! tyName', ty_, tostring(check), tostring(TY_NAME[ty_]))
   if check then return sfmt('<!%s!>', check) end
   return TY_NAME[ty_] or rawget(ty_, '__name') or 'table'
 end
 
-M.tyCheck = function(expectTy, resultTy, maybe) --> bool
-  if maybe and resultTy == 'nil' then return true end
-  return M.ANY[expectTy] or M.ANY[resultTy] or (expectTy == resultTy)
-end
-M.tyCheckMsg = function(expectTy, resultTy) --> !error
-   return sfmt("Types do not match: %s :: %s",
-     M.tyName(expectTy), M.tyName(resultTy))
+M.tyCheckMsg = function(reqTy, giveTy) --> string
+   return sfmt("Type error: require=%s given=%s",
+     M.tyName(reqTy), M.tyName(giveTy))
 end
 M.tysCheck = function(values, tys, maybes, context)
   local len; if maybes then len = #maybes
@@ -122,8 +159,6 @@ end
 ----------------------------------------------
 -- rawTy: create new types
 
--- Ultra-simple index function
-M.indexUnchecked = function(self, k) return getmetatable(self)[k] end
 
 -- __index function for most types
 -- Set metatable.__missing to type check on missing keys.
@@ -155,7 +190,9 @@ M.newChecked   = function(ty_, t)
   for field, v in pairs(t) do
     M.assertf(tys[field], 'unknown field: %s', field)
     if not M.tyCheck(tys[field], M.ty(v), maybes[field]) then
-      M.errorf('[%s] %s %s', field, M.tyCheckMsg(tys[field], M.ty(v)))
+      print('!! error', field, tys[field], M.ty(v))
+      print('!!  ', M.tyCheckMsg(tys[field], M.ty(v)))
+      M.errorf('[%s] %s', field, M.tyCheckMsg(tys[field], M.ty(v)))
     end
   end
   return setmetatable(t, ty_)

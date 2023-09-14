@@ -88,14 +88,14 @@ test('fn', function()
   :apply(function(s, n) return s .. n end)
   assertEq('foo42', myFn('foo', 42))
   assertErrorPat(
-    '%[2%] Types do not match: number :: string %(fn inp%)',
+    '%[2%] Type error: require=number given=string %(fn inp%)',
     function() myFn('foo', 'not a number') end)
 
   local badOut = Fn{}:out{'number'}
   :apply(function() return 'not a number' end)
 
   assertErrorPat(
-    '%[1%] Types do not match: number :: string %(fn out%)',
+    '%[1%] Type error: require=number given=string %(fn out%)',
     function() badOut() end)
 
   local fnMaybe = Fn
@@ -107,6 +107,6 @@ test('fn', function()
   assertEq('hi bob', fnMaybe('hi', ' bob'))
   assertEq('hi?',    fnMaybe('hi'))
   assertErrorPat(
-    '%[1%] Types do not match: string :: nil %(fn inp%)',
+    '%[1%] Type error: require=string given=nil %(fn inp%)',
     function() fnMaybe(nil, 'hi') end)
 end)
