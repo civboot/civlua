@@ -3,6 +3,10 @@ METATY_CHECK = true
 local mty = require'metaty':grequire()
 assert(mty.getCheck())
 
+test('assertError', function()
+  assertErrorPat('RESULT: 2', function() assertEq(1, 2) end)
+end)
+
 test('record', function()
   local A = record('A')
     :field('a2', 'number')
@@ -23,15 +27,18 @@ test('record', function()
   assertEq(5, b.b1); assertEq(32, b.b2) -- default
   b.b2 = 7;          assertEq(7, b.b2)
 
-  assertErrorPat('RESULT: 2', function() assertEq(1, 2) end)
+  assertEq(A,   tyCheck(A, A))
+  assertEq(B,   tyCheck(B, B))
+  assertEq(nil, tyCheck(A, B))
+
   assertErrorPat('a1=fail', function()
     assertEq(A{a1='fail', a2=5}, a)
   end)
-
   assertErrorPat('A does not have field a3',
     function() local x = a.a3 end)
   assertErrorPat('A does not have field a3',
     function() a.a3 = 7 end)
+
 end)
 
 test('record maybe', function()

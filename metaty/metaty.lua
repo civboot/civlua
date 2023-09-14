@@ -10,16 +10,46 @@ M.getCheck = function() return CHECK end
 local add, sfmt = table.insert, string.format
 local function identity(v) return v end
 local function nativeEq(a, b) return a == b end
+local function getOrEmpty(t, k)
+  local o = t[k]; if not o then o = {}; t[k] = o end
+  return o
+end
+
+local function copy(t, update)
+  local out = {}
+  for k, v in pairs(t) do out[k] = v end
+  setmetatable(out, getmetatable(t))
+  if update then
+    for k, v in pairs(update) do out[k] = v end
+  end
+  return out
+end
+local function deepcopy(t)
+  local out = {}; for k, v in pairs(t) do
+    if 'table' == type(v) then v = deepcopy(v) end
+    out[k] = v
+  end
+  return setmetatable(out, getmetatable(t))
+end
+
 
 M.KEYS_MAX = 64
 M.FMT_SAFE = false
 M.FNS = {}      -- function types (registered)
+M.FNS_UNCHECKED = {} -- functions w/out type check wrapper
 M.FNS_INFO = {} -- function debug info
 
 M.errorf  = function(...) error(string.format(...)) end
-M.assertf = function(a, ...) if not a then assert(a, sfmt(...)) end end
+M.assertf = function(a, ...)
+  if not a then error('assertf: '..string.format(...)) end
+  return a
+end
 
-local NATIVE_GET_TY = {
+M.defaultNativeCheck = function(_chk, anchor, reqTy, giveTy)
+  return reqTy == giveTy
+end
+
+local NATIVE_TY_GET = {
   ['function'] = function(f) return M.FNS[f] or 'function' end,
   ['nil']      = function()  return 'nil'     end,
   boolean      = function()  return 'boolean' end,
@@ -28,17 +58,22 @@ local NATIVE_GET_TY = {
   table        = function(t) return getmetatable(t) or 'table' end,
 }
 
--- Return type which is the metatable (if it exists) or raw type() string.
-M.ty = function(obj) return NATIVE_GET_TY[type(obj)](obj) end
+local NATIVE_TY_CHECK = {}; for k in pairs(NATIVE_TY_GET) do
+  NATIVE_TY_CHECK[k] = M.defaultNativeCheck
+end; NATIVE_TY_CHECK['nil'] = nil
 
-local function defaultNativeCheck(_chk, reqTy, giveTy)
-  return reqTy == giveTy
+local NATIVE_TY_NAME = {}
+for k in pairs(NATIVE_TY_GET) do NATIVE_TY_NAME[k] = k end
+
+-- Use to add/override a native type
+M.setNativeTy = function(name, getTy, check)
+  NATIVE_TY_NAME[name]  = name
+  NATIVE_TY_GET[name]   = getTy
+  NATIVE_TY_CHECK[name] = check
 end
 
--- Note: we will replace 'function' for this (and possibly 'number')
-local NATIVE_CHECK_TY = {}; for k in pairs(NATIVE_GET_TY) do
-  NATIVE_CHECK_TY[k] = defaultNativeCheck
-end; NATIVE_CHECK_TY['nil'] = nil
+-- Return type which is the metatable (if it exists) or raw type() string.
+M.ty = function(obj) return NATIVE_TY_GET[type(obj)](obj) end
 
 -- Ultra-simple index function
 M.indexUnchecked = function(self, k) return getmetatable(self)[k] end
@@ -55,33 +90,56 @@ M.Checker = setmetatable({
   end,
 })
 
-M.Checker.check = function(self, reqTy, giveTy, reqMaybe)
-  if (reqMaybe and giveTy == 'nil') then return true end
+
+-- Check returns the constrained type or nil if the types don't check.
+--
+-- Note: the constrained type is only used for generics, which are implemented
+--       in the __check method of those types.
+M.Checker.check = function(self, anchor, reqTy, giveTy, reqMaybe)
+  if (reqMaybe and giveTy == 'nil') then return reqTy end
   if type(reqTy) == 'string' then
-    M.assertf(NATIVE_CHECK_TY[reqTy], '%s is not a valid native type', reqTy)
-    return NATIVE_CHECK_TY[reqTy](self, reqTy, giveTy)
+    M.assertf(NATIVE_TY_CHECK[reqTy], '%s is not a valid native type', reqTy)
+    return NATIVE_TY_CHECK[reqTy](self, anchor, reqTy, giveTy)
   end
-  if reqTy == giveTy then return true end
+  if M.ty(reqTy) == M.g then
+    reqTy = self:resolveGenVar(anchor, reqTy.var, giveTy)
+  end
+  if reqTy == giveTy then return reqTy end
   local reqCheck = rawget(reqTy, '__check')
-  if reqCheck then return reqCheck(self, reqTy, giveTy) end
+  if reqCheck then return reqCheck(self, anchor, reqTy, giveTy) end
+end
+
+-- Resolve the Generic Variable's from anchor type's genvars and
+-- update chk.gen
+M.Checker.resolveGenVar = function(chk, aTy, vname, useTy) -- aTy=anchorTy
+  if not useTy or not M.isConcreteTy(useTy) then
+    M.assertf(aTy, 'no anchor provided for generic <%s>', vname)
+    local gv = M.assertf(aTy.__genvars,
+      'Cannot resolve %s on non-generic %s', vname, aTy)
+    useTy = M.assertf(gv[vname],
+      '(anchor) %s does not have generic var %s', aTy, vname)
+  end
+  local cur = chk.gen[vname]; if cur then
+    useTy = M.assertf(chk:check(cty, cur, useTy)
+      "%s already chosen as %s, does not type check with %s", vname, cur, useTy)
+  end
+  chk.gen[vname] = useTy
+  return useTy
 end
 
 M.tyCheck = function(reqTy, giveTy, reqMaybe) --> bool
-  return M.Checker{}:check(reqTy, giveTy, reqMaybe)
+  return M.Checker{}:check(nil, reqTy, giveTy, reqMaybe)
 end
 
 -- Returns true when checked against any type
-M.Any = {
-  __name='Any',
-  __check=function() return true end,
-}
-
-assert(M.Any.__name == 'Any')
+M.Any = setmetatable(
+  {__name='Any', __check=function() return true end},
+  {__tostring=function() return 'Any' end})
 
 M.isTyErrMsg = function(ty_)
   local tystr = type(ty_)
   if tystr == 'string' then
-    if not NATIVE_GET_TY[ty_] then return sfmt(
+    if not NATIVE_TY_GET[ty_] then return sfmt(
       '%q is not a native type', ty_
     )end
   elseif tystr ~= 'table' then return sfmt(
@@ -89,21 +147,18 @@ M.isTyErrMsg = function(ty_)
   )end
 end
 
-local TY_NAME = {}; for k in pairs(NATIVE_GET_TY) do TY_NAME[k] = k end
-
 -- Safely get the name of type
 M.tyName = function(ty_) --> string
   local check = M.isTyErrMsg(ty_);
-  print('!! tyName', ty_, tostring(check), tostring(TY_NAME[ty_]))
   if check then return sfmt('<!%s!>', check) end
-  return TY_NAME[ty_] or rawget(ty_, '__name') or 'table'
+  return NATIVE_TY_NAME[ty_] or rawget(ty_, '__name') or 'table'
 end
 
 M.tyCheckMsg = function(reqTy, giveTy) --> string
    return sfmt("Type error: require=%s given=%s",
      M.tyName(reqTy), M.tyName(giveTy))
 end
-M.tysCheck = function(values, tys, maybes, context)
+M.tysCheck = function(chk, anchor, values, tys, maybes, context)
   local len; if maybes then len = #maybes
   else
     len = #values
@@ -114,9 +169,7 @@ M.tysCheck = function(values, tys, maybes, context)
   maybes = maybes or {}
   for i=1,len do
     local v = values[i]
-    -- if not tys[i] then
-    --   M.errorf('Type for arg %s not specified%s', i, context)
-    if not M.tyCheck(tys[i], ty(v), maybes[i]) then
+    if not chk:check(anchor, tys[i], ty(v), maybes[i]) then
       M.errorf('[%s] %s%s', i, M.tyCheckMsg(tys[i], ty(v)), context)
     end
   end
@@ -130,7 +183,7 @@ M.geteventhandler = function(a, b, event)
       or (getmetatable(b) or {})[event]
 end
 
-local EQ_TY = {
+local EQ = {
   number = nativeEq, boolean = nativeEq, string = nativeEq,
   ['nil'] = nativeEq, ['function'] = nativeEq,
   ['table'] = function(a, b)
@@ -139,7 +192,7 @@ local EQ_TY = {
     return M.eqDeep(a, b)
   end,
 }
-M.eq = function(a, b) return EQ_TY[type(a)](a, b) end
+M.eq = function(a, b) return EQ[type(a)](a, b) end
 
 M.eqDeep = function(a, b)
   if rawequal(a, b)     then return true   end
@@ -158,7 +211,6 @@ end
 
 ----------------------------------------------
 -- rawTy: create new types
-
 
 -- __index function for most types
 -- Set metatable.__missing to type check on missing keys.
@@ -186,13 +238,16 @@ M.newUnchecked = function(ty_, t) return setmetatable(t or {}, ty_) end
 
 M.newChecked   = function(ty_, t)
   t = t or {}
+  local chk = M.Checker{}
   local tys, maybes = ty_.__tys, ty_.__maybes
   for field, v in pairs(t) do
     M.assertf(tys[field], 'unknown field: %s', field)
-    if not M.tyCheck(tys[field], M.ty(v), maybes[field]) then
-      print('!! error', field, tys[field], M.ty(v))
-      print('!!  ', M.tyCheckMsg(tys[field], M.ty(v)))
-      M.errorf('[%s] %s', field, M.tyCheckMsg(tys[field], M.ty(v)))
+    local vTy = M.ty(v)
+    assert(M.isConcreteTy(vTy), '[%s] is generic: %s', field, vTy)
+    print('! newChecked:', field, tys[field], vTy)
+    if not chk:check(vTy, tys[field], vTy, maybes[field]) then
+      print('! ... after check:', field, tys[field], vTy)
+      M.errorf('[%s] %s', field, M.tyCheckMsg(tys[field], vTy))
     end
   end
   return setmetatable(t, ty_)
@@ -214,27 +269,191 @@ M.rawTy = function(name, mt)
 end
 
 ----------------------------------------------
--- record: create record types
+-- Generic Types
+--
+-- The user should use generics like:
+--   local GenFn = Fn{g'A', g'A'}:out{g'A'}
+--   local GenType = record'GenType'
+--     :generic'A' :generic('B', Table{I='A'})
+--     :field(a, g'A')
+--
+--   GenType.myMethod = Method{g'A'}:out{g'B'}
+--   :apply(function(self, a) ... end)
+--
+--   local TypeNum = GenType{A='number'}
+--   local n = TypeNum{a=7}
+--   ... call functions on n and access n.a normally
 
+local GENERIC_VARS = {} -- Cached genvar singletons
+local GENERICS = {}     -- Trie of generic type singletons
+
+-- Note: Do NOT create these directly, use the `g()` function.
+M.g = setmetatable({
+  __name='GenVar', 
+  __index=function(v, k)
+      if k == 'var' then return v['#var__doNotSet'] end
+      error('GenVar does not have field: '..k)
+    end,
+}, {
+  __name='Ty<GenVar>',
+  __call=function(ty_, var)
+    assert(ty_ == M.g)
+    local v = GENERIC_VARS[var]
+    if not v then
+      v = {__name='<'..var..'>', ['#var__doNotSet']=var}
+      GENERIC_VARS[var] = setmetatable(v, M.g)
+    end
+    return v
+  end,
+})
+
+M.isConcreteTy = function(ty_)
+  return (
+    type(ty_) == 'string'
+    or (type(ty_) == 'table'
+        and rawget(ty_, '__kind') == 'concrete'))
+end
+
+-- Prefer to use nxt if it is concrete
+M.chooseAnchor = function(prev, nxt)
+  return isConcreteTy(nxt) and nxt or prev
+end
+
+
+-- Do record type checking and return new constraints
+-- For example: recordCheck(nil, Table{I=g'I'}, Table{I='number'})
+M.recordCheck = function(chk, anchor, reqTy, giveTy)
+  pnt('!! recordCheck', tostring(anchor), reqTy, giveTy)
+  -- handled in Checker.check
+  assert(type(reqTy) == 'table'); assert(type(giveTy) == 'table')
+  assert(reqTy ~= giveTy)
+
+  if reqTy.__kind == 'generic' then
+    anchor = M.chooseAnchor(c, reqTy)
+    assertf(anchor, 'No anchor type: require=%s given=%s', reqTy, giveTy)
+    for vname in pairs(reqTy.__genvars) do
+      local rTy = chk:resolveGenVar(anchor, vname)
+      local gTy = giveTy.__genvars[vname]
+      pnt(sfmt('!! genvar=%s: ', vname), M.tyCheckMsg(rTy, gTy))
+      if not chk:check(anchor, rTy, gTy) then return nil end
+    end
+    return reqTy
+  end
+  -- TODO: parents check
+  return nil
+end
+
+----------------------
+-- Create New Generic Type
+
+-- Create a new type with the variables substituted from varMap
+M.substituteVars = function(genTy, varMap, new)
+  assert(genTy.__kind == 'generic', 'Cannot substitute non-generic')
+  local t = copy(genTy)
+  local mt = copy(getmetatable(genTy))
+  setmetatable(t, mt)
+  t.__name = t.__name..M.fmt(varMap)
+  t.__kind = 'concrete'
+  mt.__name = 'Ty<'..t.__name..'>'
+  mt.__call = assert(t.__gencall)
+  t.__gencall = nil
+  t.__fromgen = genTy
+  -- TODO: check constraints
+  for k in pairs(t.__genvars) do t.__genvars[k] = varMap[k] or M.Any end
+  return t
+end
+
+-- new (aka __call) for Generic types
+-- i.e. Table{I='number'} calls newGeneric
+-- Attempts to lookup the (existing) generic type,
+-- else creates a new one
+M.newGeneric = function(genTy, varMap, newGenerated)
+  -- GENERICS is a trie that for record'MyGen':generic'A':generic'B'
+  -- might look like:
+  -- {MyGen={
+  --   --<A>   <B>      or alternate        <B>
+  --   number={number=MyGen{number,number}, string=MyGen{number,string}},
+  --   --<A>    <B>
+  --   string={ ... },
+  --   Any={...},
+  -- }}
+  local c = getOrEmpty(GENERICS, genTy)
+  local vars = genTy.__genvars
+  local gen
+  for i, vname in ipairs(vars) do
+    vTy = varMap[vname] or M.Any
+    if i < #vars then c = getOrEmpty(c, vTy)
+    else -- last item: either get or create substituted type
+      gen = c[vTy]; if not gen then
+        gen = substituteVars(genTy, varMap, newGenerated)
+        c[vTy] = gen
+      end
+    end
+  end
+  return assert(gen)
+end
+
+----------------------------------------------
+-- record: create record types
+--
+-- The table (type) created by record has the following fields:
+--
+-- __name: type name
+-- __kind: concrete or generic
+-- __tys:  field types AND ordering (by name)
+-- __maybes: map of optional fields
+-- __genvars: (optional) generic constraints AND ordering (by name)
+-- __gencall: (optional) holds the 'new' method of the concrete type.
+-- __fromgen: (optional) holds the generic type of a concrete type
+--
+-- And the following methods:
+--   new:        set constructor (__call on metatable)
+--   generic:    generic variable (w/optional constraint)
+--   field:      add field to the record
+--   fieldMaybe: add optional-field to the record
+--   __index:    instance method lookup and (optional) type checking
+--   __newindex: (optional) instance set=field type checking
+--   __missing:  (optional) instance missing-field type checking
+
+M.recordNew = function(r, fn)
+  assert(r.__kind == 'concrete', 'Must set new before generic')
+  getmetatable(r).__call = fn
+  return r
+end
+
+-- i.e. record'Name':generic('A', 'number')
+M.recordGeneric = function(r, name, constraintTy)
+  M.assertf(#r.__tys == 0, 'Must specify generics before any fields')
+  r.__kind = 'generic'
+  r.__genvars = r.__genvars or {}
+  assertf(not r.__genvars[name], 'attempt to overide generic: %s', name)
+  add(r.__genvars, name); r.__genvars[name] = constraintTy or M.Any
+
+  local mt = getmetatable(r)
+  if not r.__gencall then r.__gencall = mt.__call end
+  mt.__call = M.newGeneric
+  return r
+end
+
+-- i.e. record'Name':field('a', 'number')
 M.recordField = function(r, name, ty_, default)
-  assert(name, "must provide field name")
+  assert(name, 'must provide field name')
   M.assertf(not r.__tys[name], 'Attempted override of field: %s', name)
   M.assertf(not r.name, 'Attempted override of method with field: %s', name)
   ty_ = ty_ or M.Any
 
-  r.__tys[name] = ty_ -- track the type name
+  r.__tys[name] = ty_; add(r.__tys, name)
   if nil ~= default then
     M.tyCheck(ty_, M.ty(default))
     r[name] = default
   end
-  add(r.__fields, name) -- for in-order formatting
   r.__maybes[name] = nil
   return r
 end
+
+-- i.e. record'Name':fieldMaybe('a', 'number')
 M.recordFieldMaybe = function(r, name, ty_, default)
-  assert(
-    default == nil,
-    'attempted to specify default for recordFieldMaybe')
+  assert(default == nil, 'default given for fieldMaybe')
   M.recordField(r, name, ty_)
   r.__maybes[name] = true
   return r
@@ -252,16 +471,20 @@ M.forceCheckRecord = function(r)
   r.__newindex = M.newindexChecked
   r.__missing  = M.fieldMissing
 end
+
 M.record = function(name, mt)
   mt = mt or {}
   mt.__index    = M.indexUnchecked
+  mt.new        = M.recordNew
+  mt.generic    = M.recordGeneric
   mt.field      = M.recordField
   mt.fieldMaybe = M.recordFieldMaybe
 
   local r = M.rawTy(name, mt)
-  r.__tys = {}    -- field types
-  r.__maybes = {} -- maybe (optional) fields
-  r.__fields  = {} -- field names in order
+  r.__kind = 'concrete'
+  r.__tys = {}     -- field types
+  r.__maybes = {}  -- maybe (optional) fields
+  r.__check = M.recordCheck
   if CHECK then M.forceCheckRecord(r) end
   return r
 end
@@ -321,16 +544,19 @@ M.Fn.apply = function(self, fn, name)
   local dbg = debug.getinfo(fn, 'nS')
   M.FNS_INFO[fn] = M.FnInfo{debug=dbg, name=name or dbg.name}
   M.FNS[fn] = self
+  local unchecked = fn
   if CHECK then
+    local chk = Checker{}
     local inner = fn
     fn = function(...)
-      M.tysCheck({...}, self.inputs, self.iMaybes, ' (fn inp)')
+      M.tysCheck(chk, nil, {...}, self.inputs, self.iMaybes, ' (fn inp)')
       local o = {inner(...)}
-      M.tysCheck(o, self.outputs, self.oMaybes, ' (fn out)')
+      M.tysCheck(chk, nil, o, self.outputs, self.oMaybes, ' (fn out)')
       return table.unpack(o)
     end
     M.FNS_INFO[fn] = FnInfo{debug=dbg, name=name or dbg.name}
     M.FNS[fn] = self
+    M.FNS_UNCHECKED[fn] = unchecked
   end
   return fn
 end
