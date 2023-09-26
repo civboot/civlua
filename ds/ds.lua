@@ -1,114 +1,95 @@
 local mty = require 'metaty'
-local record, Fn, Any = mty.record, mty.Fn, mty.Any
+local record, Any = mty.record, mty.Any
 
 local M = {}
 
 ---------------------
--- Any (orderable) Functions
-local A2A = Fn{Any, Any}:out{Any}
-local A3A = Fn{Any, Any, Any}:out{Any}
-local A2B = Fn{Any, Any}:out{'boolean'}
-local A3B = Fn{Any, Any, Any}:out{'boolean'}
+-- Order checking functions
 
-M.isWithin = A3B:apply(function(v, min, max)
+M.isWithin = function(v, min, max)
   local out = (min <= v) and (v <= max)
   print('! isWithin out', out)
   return out
-end)
+end
 
-M.min = A2A:apply(function(a, b) return (a<b) and a or b end)
-M.max = A2A:apply(function(a, b) return (a>b) and a or b end)
-M.bound = A3A:apply(function(v, min, max)
+M.min = function(a, b) return (a<b) and a or b end
+M.max = function(a, b) return (a>b) and a or b end
+M.bound = function(v, min, max)
   return ((v>max) and max) or ((v<min) and min) or v
-end)
-M.sort2 = Fn{Any, Any}:out{Any, Any}
-:apply(function(a, b)
+end
+M.sort2 = function(a, b)
   if a <= b then return a, b end; return b, a
-end)
+end
 
 ---------------------
 -- Number Functions
-local N1B = Fn{'number'}:out{'boolean'}
-local N1N = Fn{'number'}:out{'number'}
-M.isEven = N1B:apply(function(a) return a % 2 == 0 end)
-M.isOdd  = N1B:apply(function(a) return a % 2 == 1 end)
-M.decAbs = N1N:apply(function(v)
+M.isEven = function(a) return a % 2 == 0 end
+M.isOdd  = function(a) return a % 2 == 1 end
+M.decAbs = function(v)
   if v == 0 then return 0 end
   return ((v > 0) and v - 1) or v + 1
-end)
+end
 
 ---------------------
 -- String Functions
-local T1S = Fn{'table'}:out{'string'}
-
-M.strLast = Fn{'string'}:out{'string'}
-:apply(function(s) return s:sub(#s, #s) end)
+M.strLast = function(s) return s:sub(#s, #s) end
 
 --- return the first i characters and the remainder
-M.strDivide = Fn{'string', 'number'}:out{'string', 'string'}
-:apply(function(s, i)
+M.strDivide = function(s, i)
   return string.sub(s, 1, i), string.sub(s, i+1)
-end)
+end
 
 -- insert the value string at index
-M.strInsert = Fn{'string', 'number', 'string'}:out{'string'}
-:apply(function (s, i, v)
+M.strInsert = function (s, i, v)
   return string.sub(s, 1, i-1) .. v .. string.sub(s, i)
-end)
+end
 
 ---------------------
 -- Table Functions
-local T1T = Fn{'table'}:out{'table'}
-local T2V = Fn{'table', 'table'}
 
 -- reverse a list-like table in-place
-M.reverse = T1T:apply(function(t)
+M.reverse = function(t)
   local l = #t;
   for i=1, l/2 do
     t[i], t[l-i+1] = t[l-i+1], t[i]
   end
   return t
-end)
+end
 
-M.extend = T2V:apply(function(t, vals)
+M.extend = function(t, vals)
   for _, v in ipairs(vals) do table.insert(t, v) end
-end)
-M.update = T2V:apply(function(t, add)
+end
+M.update = function(t, add)
   for k, v in pairs(add) do t[k] = v end
-end)
+end
 
-M.pop = Fn{'table', Any}:out{Any}
-:apply(function(t, k)
+M.pop = function(t, k)
   local v = t[k]; t[k] = nil; return v
-end)
+end
 
-M.drain = Fn{'table', 'number'}:out{'table'}
-:apply(function(t, len)
+M.drain = function(t, len)
   local out = {}
   for i=1, M.min(#t, len) do table.insert(out, table.remove(t)) end
   return M.reverse(out)
-end)
+end
 
-M.getOrSet = Fn{'table', Any, Any}:out{Any}
-:apply(function(t, k, new)
+M.getOrSet = function(t, k, new)
   local v = t[k]; if v then return v end
   if new then v = new(t, k); t[k] = v end
   return v
-end)
+end
 
 -- assertEq(7, getPath({a={b=7}}, {'a', 'b'}))
-M.getPath = Fn{'table', 'table'}:out{Any}:outMaybe{true}
-:apply(function(d, path)
+M.getPath = function(d, path)
   for i, k in ipairs(path) do
     local nxt = d[k]
     if not nxt then return nil end
     d = nxt
   end
   return d
-end)
+end
 
-M.setPath = Fn{'table', 'table', Any}
-:apply(function(d, path, value)
+M.setPath = function(d, path, value)
   local len = #path
   assert(len > 0, 'empty path')
   for i, k in ipairs(path) do
@@ -116,14 +97,13 @@ M.setPath = Fn{'table', 'table', Any}
     d = M.getOrSet(d, k, function() return {} end)
   end
   d[path[len]] = value
-end)
+end
 
-M.indexOf = Fn{'table', Any}:out{'number'}:outMaybe{true}
-:apply(function(t, find)
+M.indexOf = function(t, find)
   for i, v in ipairs(t) do
     if v == find then return i end
   end
-end)
+end
 
 ---------------------
 -- Untyped Functions
@@ -160,11 +140,10 @@ end
 
 ---------------------
 -- Source Code Functions
-M.callerSource = Fn{}:out{'string'}
-:apply(function()
+M.callerSource = function()
   local info = debug.getinfo(3)
   return string.format('%s:%s', info.source, info.currentline)
-end)
+end
 
 M.eval = function(s, env, name) -- Note: not typed
   assert(type(s) == 'string'); assert(type(env) == 'table')
@@ -284,20 +263,18 @@ M.Set.__eq = function(self, t)
   return true
 end
 
-M.Set.union = Fn{M.Set, Any}:out{M.Set} :apply(
-function(self, s)
+M.Set.union = function(self, s)
   local both = Set{}
   for k in pairs(self) do if s[k] then both[k] = true end end
   return both
-end)
+end
 
 -- items in self but not in s
-M.Set.diff = Fn{M.Set, Any}:out{M.Set}
-:apply(function(self, s)
+M.Set.diff = function(self, s)
   local left = Set{}
   for k in pairs(self) do if not s[k] then left[k] = true end end
   return left
-end)
+end
 
 ---------------------
 -- Linked List

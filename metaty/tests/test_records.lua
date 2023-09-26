@@ -87,33 +87,3 @@ test("fmt", function()
 
   assertEq('{1,2 :: a=12}', fmt({1, 2, a=12}))
 end)
-
-test('fn', function()
-
-  local myFn = Fn{'string', 'number'}
-  :out{'string'}
-  :apply(function(s, n) return s .. n end)
-  assertEq('foo42', myFn('foo', 42))
-  assertErrorPat(
-    '%[2%] Type error: require=number given=string %(fn inp%)',
-    function() myFn('foo', 'not a number') end)
-
-  local badOut = Fn{}:out{'number'}
-  :apply(function() return 'not a number' end)
-
-  assertErrorPat(
-    '%[1%] Type error: require=number given=string %(fn out%)',
-    function() badOut() end)
-
-  local fnMaybe = Fn
-           {'string', 'string'}
-  :inpMaybe{false,     true}
-  :out     {'string'}
-  :apply(function(a, b) return a .. (b and tostring(b) or '?') end)
-
-  assertEq('hi bob', fnMaybe('hi', ' bob'))
-  assertEq('hi?',    fnMaybe('hi'))
-  assertErrorPat(
-    '%[1%] Type error: require=string given=nil %(fn inp%)',
-    function() fnMaybe(nil, 'hi') end)
-end)

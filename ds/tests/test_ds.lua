@@ -54,8 +54,6 @@ test("table", function()
   assertEq(7,   getPath({a={b=7}}, {'a', 'b'}))
   assertEq(nil, getPath({}, {'a', 'b'}))
   assertEq(nil, getPath({}, {'a', 'b'}))
-
-  assertErrorPat('ty len differs', function() getPath('hi') end)
 end)
 
 
