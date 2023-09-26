@@ -6,8 +6,7 @@ all: test
 test:
 	mkdir -p out/
 	# metaty
-	lua metaty/tests/test_utils.lua
-	lua metaty/tests/test_records.lua
+	lua metaty/test.lua
 	# ds
 	lua ds/tests/test_ds.lua
 	# gap

@@ -590,6 +590,7 @@ local function diffLineCol(linesL, linesR)
   return nil
 end
 
+-- TODO: GETTING RID OF THESE
 M.diffFmt = function(f, sE, sR)
   local linesE = lines(sE)
   local linesR = lines(sR)
