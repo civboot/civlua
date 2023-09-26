@@ -169,12 +169,12 @@ end
 
 M.newindexChecked = function(self, k, v)
   local mt = getmetatable(self)
-  local tys = rawget(mt, '__tys')
-  if not tys[k] then errorf(
+  local fields = rawget(mt, '__fields')
+  if not fields[k] then errorf(
     '%s does not have field %s', M.tyName(mt), k
   )end
-  if not M.tyCheck(tys[k], M.ty(v), rawget(mt, '__maybes')[k]) then
-    errorf('%s: %s', M.tyName(mt), M.tyCheckMsg(tys[k], ty(v)))
+  if not M.tyCheck(fields[k], M.ty(v), rawget(mt, '__maybes')[k]) then
+    errorf('%s: %s', M.tyName(mt), M.tyCheckMsg(fields[k], ty(v)))
   end
   rawset(self, k, v)
 end
@@ -184,14 +184,14 @@ M.newUnchecked = function(ty_, t) return setmetatable(t or {}, ty_) end
 
 M.newChecked   = function(ty_, t)
   t = t or {}
-  local tys, maybes = ty_.__tys, ty_.__maybes
+  local fields, maybes = ty_.__fields, ty_.__maybes
   for field, v in pairs(t) do
-    M.assertf(tys[field], 'unknown field: %s', field)
+    M.assertf(fields[field], 'unknown field: %s', field)
     local vTy = M.ty(v)
-    print('! newChecked:', field, tys[field], vTy)
-    if not M.tyCheck(vTy, tys[field], maybes[field]) then
-      print('! ... after check:', field, tys[field], vTy)
-      M.errorf('[%s] %s', field, M.tyCheckMsg(tys[field], vTy))
+    print('! newChecked:', field, fields[field], vTy)
+    if not M.tyCheck(vTy, fields[field], maybes[field]) then
+      print('! ... after check:', field, fields[field], vTy)
+      M.errorf('[%s] %s', field, M.tyCheckMsg(fields[field], vTy))
     end
   end
   return setmetatable(t, ty_)
@@ -219,7 +219,7 @@ end
 -- The table (type) created by record has the following fields:
 --
 -- __name: type name
--- __rtys:  field types AND ordering by name (runtime)
+-- __fields: field types AND ordering by name (runtime)
 -- __maybes: map of optional fields
 --
 -- And the following methods:
@@ -238,11 +238,11 @@ end
 -- i.e. record'Name':field('a', 'number')
 M.recordField = function(r, name, ty_, default)
   assert(name, 'must provide field name')
-  M.assertf(not r.__tys[name], 'field %s already exists', name)
+  M.assertf(not r.__fields[name], 'field %s already exists', name)
   M.assertf(not r.name, 'Attempted override of method with field: %s', name)
   ty_ = ty_ or M.Any
 
-  r.__tys[name] = ty_; add(r.__tys, name)
+  r.__fields[name] = ty_; add(r.__fields, name)
   if nil ~= default then
     M.tyCheck(ty_, M.ty(default))
     r[name] = default
@@ -280,8 +280,9 @@ M.record = function(name, mt)
   mt.fieldMaybe = M.recordFieldMaybe
 
   local r = M.rawTy(name, mt)
-  r.__tys = {}     -- field types
+  r.__fields = {}  -- field types AND ordering
   r.__maybes = {}  -- maybe (optional) fields
+  r.__fmt = M.recordFmt
   if CHECK then M.forceCheckRecord(r) end
   return r
 end
@@ -433,7 +434,7 @@ M.safeToStr = function(v, set) --> string
   return f:toStr()
 end
 
-M.tblFmt = function(t, f)
+M.tblFmtKeys = function(t, f, keys)
   assert(type(t) == 'table', type(t))
   local mt = getmetatable(t)
   add(f, M.metaName(mt))
@@ -443,8 +444,6 @@ M.tblFmt = function(t, f)
     f:fmt(t[i])
     if i < lenI then f:sep(f.set.listSep) end
   end
-
-  local keys = M.orderedKeys(t, f.set.keysMax)
   local lenK = #keys
   if lenI > 0 and lenK - lenI > 0 then f:sep(f.set.tblSep) end
   for i, k in ipairs(keys) do
@@ -457,6 +456,14 @@ M.tblFmt = function(t, f)
   end
   if lenK >= f.set.keysMax then add(f, '...'); end
   f:levelLeave('}')
+end
+
+M.tblFmt = function(t, f)
+  return M.tblFmtKeys(t, f, M.orderedKeys(t, f.set.keysMax))
+end
+
+M.recordFmt = function(r, f)
+  M.tblFmtKeys(r, f, getmetatable(r).__fields)
 end
 
 -----------

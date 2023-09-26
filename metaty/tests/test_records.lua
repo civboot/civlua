@@ -20,12 +20,14 @@ test('record', function()
   assert(A == getmetatable(a))
   assert(A == ty(a))
   assert('hi' == a.a1); assert(5 == a.a2)
+  assertEq('A{a2=5 a1=hi}', tostring(a))
   a.a2 = 4;             assert(4 == a.a2)
 
   local b = B{b1=5, a=a}
   assert(B == getmetatable(b))
   assertEq(5, b.b1); assertEq(32, b.b2) -- default
   b.b2 = 7;          assertEq(7, b.b2)
+  assertEq('B{b1=5 b2=7 a=A{a2=4 a1=hi}}', tostring(b))
 
   assertEq(A,   tyCheck(A, A))
   assertEq(B,   tyCheck(B, B))
@@ -43,7 +45,7 @@ end)
 
 test('record maybe', function()
   local A = record('A')
-    :field('a1', 'string')
+    :field('a1',      'string')
     :fieldMaybe('a2', 'number')
 
   local a = A{a1='hi'}
