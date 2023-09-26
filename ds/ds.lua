@@ -154,7 +154,7 @@ M.copy = function(t, update)
 end
 M.deepcopy = function(t)
   local out = {}; for k, v in pairs(t) do
-    if 'table' == type(v) then v = deepcopy(v) end
+    if 'table' == type(v) then v = M.deepcopy(v) end
     out[k] = v
   end
   return setmetatable(out, getmetatable(t))
@@ -233,9 +233,9 @@ M.Duration.fromSeconds = fromSeconds
 M.Duration.fromMs = fromMs
 M.Duration.asSeconds = asSeconds
 M.Duration.__sub = function(self, r)
-  assert(ty(r) == Duration)
+  assert(mty.ty(r) == M.Duration)
   local s, ns = durationSub(self.s, self.ns, r.s, r.ns)
-  return Duration(s, ns)
+  return M.Duration(s, ns)
 end
 M.Duration.__lt = function(self, o)
   if self.s < o.s then return true end
@@ -255,9 +255,9 @@ M.Epoch.__sub = function(self, r)
   assert(self);     assert(r)
   assertTime(self); assertTime(r)
   local s, ns = durationSub(self.s, self.ns, r.s, r.ns)
-  if ty(r) == Duration then return Epoch(s, ns) end
-  assert(ty(r) == Epoch, 'can only subtract Duration or Epoch')
-  return Duration(s, ns)
+  if mty.ty(r) == M.Duration then return M.Epoch(s, ns) end
+  assert(mty.ty(r) == M.Epoch, 'can only subtract Duration or Epoch')
+  return M.Duration(s, ns)
 end
 M.Epoch.__fmt = nil
 M.Epoch.__tostring = function(self)
@@ -300,14 +300,14 @@ M.Set.__eq = function(self, t)
 end
 
 M.Set.union = function(self, s)
-  local both = Set{}
+  local both = M.Set{}
   for k in pairs(self) do if s[k] then both[k] = true end end
   return both
 end
 
 -- items in self but not in s
 M.Set.diff = function(self, s)
-  local left = Set{}
+  local left = M.Set{}
   for k in pairs(self) do if not s[k] then left[k] = true end end
   return left
 end

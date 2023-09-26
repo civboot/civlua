@@ -4,9 +4,9 @@ local ge = {}; for k in pairs(_G) do table.insert(ge, k) end
 local M = require'metaty'
 assert(M.getCheck())
 
-local ty, tyName, record = M.ty, M.tyName, M.record
-local tyCheck = M.tyCheck
-local fmt, Fmt, FmtSet = M.fmt, M.Fmt, M.FmtSet
+local ty, tyName, tyCheck, record;
+local fmt, Fmt, FmtSet;
+M.lrequire'metaty' -- includes undefined locals
 
 local add, sfmt = table.insert, string.format
 

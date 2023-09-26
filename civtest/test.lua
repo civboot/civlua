@@ -1,6 +1,7 @@
 
-local M = require'civtest':grequire()
-local mty = grequire'metaty'
+local mty = require'metaty'
+local test, assertEq, assertErrorPat, diffFmt;
+mty.lrequire'civtest'
 
 test('civtest', function()
   assertEq(1, 1)

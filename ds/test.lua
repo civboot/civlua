@@ -1,8 +1,15 @@
 METATY_CHECK = true
 
-require'civtest':grequire()
-grequire'metaty'
-grequire'ds'
+local mty = require'metaty'
+local test, assertEq; mty.lrequire'civtest'
+
+local min, max, bound, isWithin, sort2, decAbs
+local indexOf, copy, deepcopy
+local strInsert, strLast, strDivide, trimWs, splitWs
+local pop, getOrSet, getPath, drain, reverse
+local eval
+local Set, LL, Duration, Epoch
+mty.lrequire'ds'
 
 test("number", function()
   assert(0, decAbs(1)); assert(0, decAbs(-1))

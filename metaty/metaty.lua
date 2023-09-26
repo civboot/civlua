@@ -558,4 +558,17 @@ M.FmtSet.__tostring = M.fmt
 M.Fmt.__fmt = nil
 M.Fmt.__tostring = function() return 'Fmt{}' end
 
+M.lrequire = function(mod, i)
+  i, mod = i or 1, type(mod) == 'string' and require(mod) or mod
+  while true do
+    local n, v = debug.getlocal(2, i)
+    if not n then break end
+    if nil == v then
+      debug.setlocal(2, i, M.assertf(mod[n], "%s not in module", n))
+    end
+    i = i + 1
+  end
+  return mod, i
+end
+
 return M
