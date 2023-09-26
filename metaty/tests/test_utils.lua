@@ -2,9 +2,9 @@ METATY_CHECK = true
 
 local mty = require'metaty':grequire()
 
-test('lines', function()
-  assertEq({'a', 'bc', '', 'd'}, lines('a\nbc\n\nd'))
-end)
+-- test('lines', function()
+--   assertEq({'a', 'bc', '', 'd'}, lines('a\nbc\n\nd'))
+-- end)
 
 test('ty', function()
   assert('string' == ty('hi'))

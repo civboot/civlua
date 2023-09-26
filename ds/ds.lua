@@ -51,7 +51,34 @@ end
 
 -- work with whitespace in strings
 M.trimWs  = function(s) return string.match(s, '^%s*(.-)%s*$') end
+M.explode = function(s) return M.matches(s, '.') end
 M.splitWs = function(s) return M.matches(s, "[^%s]+") end
+M.splitLines = function(s) return M.matches(s, '[^\n]*') end
+
+M.diffCol = function(sL, sR)
+  local i, sL, sR = 1, M.explode(sL), M.explode(sR)
+  while i <= #sL and i <= #sR do
+    if sL[i] ~= sR[i] then return i end
+    i = i + 1
+  end
+  if #sL < #sR then return #sL + 1 end
+  if #sR < #sL then return #sR + 1 end
+  return nil
+end
+
+M.diffLineCol = function(linesL, linesR)
+  local i = 1
+  while i <= #linesL and i <= #linesR do
+    local lL, lR = linesL[i], linesR[i]
+    if lL ~= lR then
+      return i, assert(M.diffCol(lL, lR))
+    end
+    i = i + 1
+  end
+  if #linesL < #linesR then return #linesL + 1, 1 end
+  if #linesR < #linesL then return #linesR + 1, 1 end
+  return nil
+end
 
 ---------------------
 -- Table Functions

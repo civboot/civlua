@@ -555,18 +555,18 @@ end
 -----------
 -- Asserting
 
-M.lines = function(text)
+local function lines(text)
   local out = {}; for l in text:gmatch'[^\n]*' do add(out, l) end
   return out
 end
 
-M.explode = function(s)
+local function explode(s)
   local t = {}; for ch in s:gmatch('.') do add(t, ch) end
   return t
 end
 
-M.diffCol = function(sL, sR)
-  local i, sL, sR = 1, M.explode(sL), M.explode(sR)
+local function diffCol(sL, sR)
+  local i, sL, sR = 1, explode(sL), M.explode(sR)
   while i <= #sL and i <= #sR do
     if sL[i] ~= sR[i] then return i end
     i = i + 1
@@ -576,12 +576,12 @@ M.diffCol = function(sL, sR)
   return nil
 end
 
-M.diffLineCol = function(linesL, linesR)
+local function diffLineCol(linesL, linesR)
   local i = 1
   while i <= #linesL and i <= #linesR do
     local lL, lR = linesL[i], linesR[i]
     if lL ~= lR then
-      return i, assert(M.diffCol(lL, lR))
+      return i, assert(diffCol(lL, lR))
     end
     i = i + 1
   end
@@ -591,9 +591,9 @@ M.diffLineCol = function(linesL, linesR)
 end
 
 M.diffFmt = function(f, sE, sR)
-  local linesE = M.lines(sE)
-  local linesR = M.lines(sR)
-  local l, c = M.diffLineCol(linesE, linesR)
+  local linesE = lines(sE)
+  local linesR = lines(sR)
+  local l, c = diffLineCol(linesE, linesR)
   M.assertf(l and c, '%s, %s\n', l, c)
   add(f, sfmt("! Difference line=%q (", l))
   add(f, sfmt('lines[%q|%q]', #linesE, #linesR))
