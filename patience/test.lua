@@ -30,9 +30,7 @@ T.test('patience stacks', function()
     {4},
     {5},
   }
-  mty.pnt('!! counts', counts)
   local stacks = M.patienceStacks(counts)
-  mty.ppnt('!! stacks', stacks)
   local result = stackIs(stacks)
   T.assertEq(expected, result)
 

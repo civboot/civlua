@@ -11,3 +11,7 @@ might be:
 * [metaty](./metaty/README.md): runtime type system.
 * [gap](./gap/README.md): a simple and powerful line-based Gap buffer.
 
+
+## TODO:
+
+* gap should use `__index` and `__len` instead of it's own functions.
