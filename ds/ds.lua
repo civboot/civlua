@@ -8,7 +8,6 @@ local M = {}
 
 M.isWithin = function(v, min, max)
   local out = (min <= v) and (v <= max)
-  print('! isWithin out', out)
   return out
 end
 
@@ -43,6 +42,16 @@ end
 M.strInsert = function (s, i, v)
   return string.sub(s, 1, i-1) .. v .. string.sub(s, i)
 end
+
+M.matches = function(s, m)
+  local out = {}; for v in string.gmatch(s, m) do
+    table.insert(out, v) end
+  return out
+end
+
+-- work with whitespace in strings
+M.trimWs  = function(s) return string.match(s, '^%s*(.-)%s*$') end
+M.splitWs = function(s) return M.matches(s, "[^%s]+") end
 
 ---------------------
 -- Table Functions
@@ -205,12 +214,11 @@ M.Duration.__lt = function(self, o)
   if self.s < o.s then return true end
   return self.ns < o.ns
 end
-M.Duration.__tostring = function(self)
-  return self:asSeconds() .. 's'
-end
+M.Duration.__fmt = nil
+M.Duration.__tostring = function(self) return self:asSeconds() .. 's' end
 
 ---------------------
--- Epoch: time since the unix epoch
+-- Epoch: time since the unix epoch. Interacts with duration.
 M.Epoch = record('Epoch', {__call=timeNew})
   :field('s', 'number') :field('ns', 'number')
 
@@ -221,9 +229,10 @@ M.Epoch.__sub = function(self, r)
   assertTime(self); assertTime(r)
   local s, ns = durationSub(self.s, self.ns, r.s, r.ns)
   if ty(r) == Duration then return Epoch(s, ns) end
-  assert(ty(r) == Epoch)
+  assert(ty(r) == Epoch, 'can only subtract Duration or Epoch')
   return Duration(s, ns)
 end
+M.Epoch.__fmt = nil
 M.Epoch.__tostring = function(self)
   return string.format('Epoch(%ss)', self:asSeconds())
 end

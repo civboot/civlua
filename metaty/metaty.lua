@@ -188,9 +188,7 @@ M.newChecked   = function(ty_, t)
   for field, v in pairs(t) do
     M.assertf(fields[field], 'unknown field: %s', field)
     local vTy = M.ty(v)
-    print('! newChecked:', field, fields[field], vTy)
     if not M.tyCheck(vTy, fields[field], maybes[field]) then
-      print('! ... after check:', field, fields[field], vTy)
       M.errorf('[%s] %s', field, M.tyCheckMsg(fields[field], vTy))
     end
   end
@@ -596,8 +594,6 @@ M.diffFmt = function(f, sE, sR)
   local linesE = M.lines(sE)
   local linesR = M.lines(sR)
   local l, c = M.diffLineCol(linesE, linesR)
-  print('# E:', sE)
-  print('# R:', sR)
   M.assertf(l and c, '%s, %s\n', l, c)
   add(f, sfmt("! Difference line=%q (", l))
   add(f, sfmt('lines[%q|%q]', #linesE, #linesR))
