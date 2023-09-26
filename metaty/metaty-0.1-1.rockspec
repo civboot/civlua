@@ -18,7 +18,4 @@ build = {
   modules = {
     metaty = "metaty.lua",
   },
-  copy_directories = {
-    "tests"
-  }
 }

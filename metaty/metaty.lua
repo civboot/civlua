@@ -170,11 +170,11 @@ end
 M.newindexChecked = function(self, k, v)
   local mt = getmetatable(self)
   local fields = rawget(mt, '__fields')
-  if not fields[k] then errorf(
+  if not fields[k] then M.errorf(
     '%s does not have field %s', M.tyName(mt), k
   )end
   if not M.tyCheck(fields[k], M.ty(v), rawget(mt, '__maybes')[k]) then
-    errorf('%s: %s', M.tyName(mt), M.tyCheckMsg(fields[k], ty(v)))
+    M.errorf('%s: %s', M.tyName(mt), M.tyCheckMsg(fields[k], ty(v)))
   end
   rawset(self, k, v)
 end
@@ -428,7 +428,7 @@ local SAFE = {
 }
 
 M.safeToStr = function(v, set) --> string
-  local f = Fmt{set=set}; SAFE[type(v)](v, f)
+  local f = M.Fmt{set=set}; SAFE[type(v)](v, f)
   return f:toStr()
 end
 
@@ -566,7 +566,7 @@ local function explode(s)
 end
 
 local function diffCol(sL, sR)
-  local i, sL, sR = 1, explode(sL), M.explode(sR)
+  local i, sL, sR = 1, explode(sL), explode(sR)
   while i <= #sL and i <= #sR do
     if sL[i] ~= sR[i] then return i end
     i = i + 1

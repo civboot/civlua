@@ -1,7 +1,12 @@
 METATY_CHECK = true
 
-local mty = require'metaty':grequire()
-assert(mty.getCheck())
+local ge = {}; for k in pairs(_G) do table.insert(ge, k) end
+local M = require'metaty'
+assert(M.getCheck())
+
+local ty, tyName, record = M.ty, M.tyName, M.record
+local tyCheck = M.tyCheck
+local fmt, Fmt, FmtSet = M.fmt, M.Fmt, M.FmtSet
 
 local add, sfmt = table.insert, string.format
 
@@ -11,21 +16,29 @@ local add, sfmt = table.insert, string.format
 local function test(name, fn) print('# Test', name) fn() end
 
 local function assertEq(expect, result)
-  if eq(expect, result) then return end
-  local f = Fmt{set=FmtSet{ pretty=true }}
+  if M.eq(expect, result) then return end
+  local f = M.Fmt{set=FmtSet{ pretty=true }}
   add(f, "! Values not equal:")
   add(f, "\n! EXPECT: "); f:fmt(expect)
   add(f, "\n! RESULT: "); f:fmt(result); add(f, '\n')
   error(f:toStr())
 end
 
+local function assertMatch(expectPat, result)
+  if not result:match(expectPat) then
+    M.errorf('Does not match pattern:\nPattern: %q\n Result:  %s',
+           expectPat, result)
+  end
+end
+
 local function assertErrorPat(errPat, fn, plain)
   local ok, err = pcall(fn)
-  if ok then errorf('! No error received, expected: %q', errPat) end
-  if not err:find(errPat, 1, plain) then errorf(
+  if ok then M.errorf('! No error received, expected: %q', errPat) end
+  if not err:find(errPat, 1, plain) then M.errorf(
     '! Expected error %q but got %q', errPat, err
   )end
 end
+
 
 test('ty', function()
   assert('string' == ty('hi'))
@@ -49,10 +62,10 @@ test('tyName', function()
   assertEq('F', tyName(mt))
   assertEq('F', tyName(ty(setmetatable({}, mt))))
 
-  assert(not isTyErrMsg('string'))
-  assertEq('"null" is not a native type', isTyErrMsg('null'))
+  assert(not M.isTyErrMsg('string'))
+  assertEq('"null" is not a native type', M.isTyErrMsg('null'))
   assertEq('boolean cannot be used as a type',
-           isTyErrMsg(true))
+           M.isTyErrMsg(true))
 end)
 
 test('record', function()
@@ -105,13 +118,14 @@ test('record maybe', function()
 end)
 
 test("safeToStr", function()
+  local safeToStr = M.safeToStr
   assertEq("a123",      safeToStr("a123"))
   assertEq('"123"',     safeToStr("123"))
   assertEq('"abc def"', safeToStr("abc def"))
   assertEq('423',       safeToStr(423))
   assertEq('1A',        safeToStr(26, FmtSet{num='%X'}))
   assertEq('true',      safeToStr(true))
-  assertMatch('Fn@.*/metaty%.lua:%d+', safeToStr(mty.errorf))
+  assertMatch('Fn@.*/metaty%.lua:%d+', safeToStr(M.errorf))
   assertMatch('Tbl@0x[a-f0-9]+', safeToStr({hi=4}))
   assertMatch('?@0x[a-f0-9]+',
     safeToStr(setmetatable({hi=4}, {}))
@@ -136,4 +150,10 @@ test("fmt", function()
   assertEq('{\n  a=1\n  b=2\n  c=3\n}', result)
 
   assertEq('{1,2 :: a=12}', fmt({1, 2, a=12}))
+end)
+
+test('globals', function()
+  local gr = {}; for k in pairs(_G) do table.insert(gr, k) end
+  table.sort(ge); table.sort(gr);
+  assertEq(ge, gr)
 end)
