@@ -533,24 +533,27 @@ M.fmt = function(v, set)
   return M.Fmt{set=set}:fmt(v):toStr()
 end
 
--- This is basically the same as `print` except:
---
--- 1. it uses fmt to format the arguments
--- 2. it respects io.stdout
-M.pnt = function(...)
+M.pntset = function(set, ...)
   local args = {...}
   for i, arg in ipairs(args) do
     if type(arg) ~= 'table' then
       io.stdout:write(tostring(arg))
     else
-      io.stdout:write(M.fmt(arg))
+      io.stdout:write(M.fmt(arg, set))
     end
     if i < #args then io.stdout:write('\t') end
   end
   io.stdout:write('\n')
   io.stdout:flush()
+
 end
 
+-- This is basically the same as `print` except:
+--
+-- 1. it uses fmt to format the arguments
+-- 2. it respects io.stdout
+M.pnt = function(...) M.pntset(nil, ...) end
+M.ppnt = function(...) M.pntset(M.FmtSet{pretty=true}, ...) end
 
 -- Cleanup Fmt objects (note: normal defaults were nil)
 M.FmtSet.__fmt = M.tblFmt

@@ -35,7 +35,7 @@ M.assertEq = function(expect, result, pretty)
   add(f, "\n! RESULT: "); f:fmt(result)
   add(f, '\n')
   if type(expect) == 'string' and type(result) == 'string' then
-    mty.diffFmt(f, expect, result)
+    M.diffFmt(f, expect, result)
   end
   error(f:toStr())
 end

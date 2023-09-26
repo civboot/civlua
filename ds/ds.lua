@@ -1,5 +1,6 @@
 local mty = require 'metaty'
 local record, Any = mty.record, mty.Any
+local add = table.insert
 
 local M = {}
 
@@ -45,7 +46,7 @@ end
 
 M.matches = function(s, m)
   local out = {}; for v in string.gmatch(s, m) do
-    table.insert(out, v) end
+    add(out, v) end
   return out
 end
 
@@ -54,6 +55,10 @@ M.trimWs  = function(s) return string.match(s, '^%s*(.-)%s*$') end
 M.explode = function(s) return M.matches(s, '.') end
 M.splitWs = function(s) return M.matches(s, "[^%s]+") end
 M.splitLines = function(s) return M.matches(s, '[^\n]*') end
+M.concatToStrs = function(t, sep)
+  local o = {}; for _, v in ipairs(t) do add(o, tostring(v)) end
+  return table.concat(o, sep)
+end
 
 M.diffCol = function(sL, sR)
   local i, sL, sR = 1, M.explode(sL), M.explode(sR)
@@ -93,7 +98,7 @@ M.reverse = function(t)
 end
 
 M.extend = function(t, vals)
-  for _, v in ipairs(vals) do table.insert(t, v) end
+  for _, v in ipairs(vals) do add(t, v) end
 end
 M.update = function(t, add)
   for k, v in pairs(add) do t[k] = v end
@@ -105,7 +110,7 @@ end
 
 M.drain = function(t, len)
   local out = {}
-  for i=1, M.min(#t, len) do table.insert(out, table.remove(t)) end
+  for i=1, M.min(#t, len) do add(out, table.remove(t)) end
   return M.reverse(out)
 end
 

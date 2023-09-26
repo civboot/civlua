@@ -8,5 +8,5 @@ test:
 	lua metaty/test.lua
 	lua civtest/test.lua
 	lua ds/test.lua
-	# gap
 	lua gap/tests/test_gap.lua
+	lua patience/test.lua
