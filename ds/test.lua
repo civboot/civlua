@@ -1,6 +1,7 @@
 METATY_CHECK = true
 
-require'metaty':grequire()
+require'civtest':grequire()
+grequire'metaty'
 grequire'ds'
 
 test("number", function()

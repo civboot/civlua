@@ -1,8 +1,9 @@
 
+local ct  = require'civtest'
 local mty = require'metaty'
 local gap = require'gap'
 
-local test, assertEq = mty.test, mty.assertEq
+local test, assertEq = ct.test, ct.assertEq
 local Gap = gap.Gap
 
 test('set', function()

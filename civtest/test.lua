@@ -1,6 +1,6 @@
 
-local mty = require'metaty'
-local T = mty.grequire'civtest'
+local M = require'civtest':grequire()
+local mty = grequire'metaty'
 
 test('civtest', function()
   assertEq(1, 1)
