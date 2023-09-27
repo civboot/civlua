@@ -162,7 +162,7 @@ end
 -- Set metatable.__missing to type check on missing keys.
 M.indexChecked = function(self, k) --> any
   local mt = getmetatable(self)
-  local x = rawget(mt, k); if x then return x end
+  local x = rawget(mt, k); if x ~= nil then return x end
   x = rawget(mt, '__missing')
   return x and x(mt, k) or nil
 end
@@ -560,6 +560,12 @@ M.FmtSet.__fmt = M.tblFmt
 M.FmtSet.__tostring = M.fmt
 M.Fmt.__fmt = nil
 M.Fmt.__tostring = function() return 'Fmt{}' end
+
+-- Alternative to `require` when the module is optional
+M.want = function(mod)
+  local ok, mod = pcall(function() return require(mod) end)
+  if ok then return mod else return nil, mod end
+end
 
 M.lrequire = function(mod, i)
   i, mod = i or 1, type(mod) == 'string' and require(mod) or mod
