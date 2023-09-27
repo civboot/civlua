@@ -202,6 +202,29 @@ Gap.find=function(g, pat, l, c)
   end
 end
 
+-- TODO: get from motion
+local findBack = function(s, pat, end_)
+  local s, fs, fe = s:sub(1, end_), nil, 0
+  assert(#s < 256)
+  while true do
+    local _fs, _fe = s:find(pat, fe + 1)
+    if not _fs then break end
+    fs, fe = _fs, _fe
+  end
+  if fe == 0 then fe = nil end
+  return fs, fe
+end
+
+-- find the pattern (backwards) starting at l/c
+Gap.findBack = function(g, pat, l, c)
+  while true do
+    local s = g:get(l)
+    if not s then return nil end
+    c = findBack(s, pat, c)
+    if c then return l, c end
+    l, c = l - 1, nil
+  end
+end
 
 --------------------------
 -- Gap Mutations

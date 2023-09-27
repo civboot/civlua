@@ -104,6 +104,9 @@ end
 M.update = function(t, add)
   for k, v in pairs(add) do t[k] = v end
 end
+M.updateKeys = function(t, add, keys)
+  for _, k in ipairs(keys) do t[k] = add[k] end
+end
 
 M.pop = function(t, k)
   local v = t[k]; t[k] = nil; return v
@@ -171,6 +174,20 @@ M.deepcopy = function(t)
     out[k] = v
   end
   return setmetatable(out, getmetatable(t))
+end
+
+M.iter = function(l)
+  local i = 0
+  return function()
+    i = i + 1; if i <= #l then return i, l[i] end
+  end
+end
+
+M.iterV = function(l)
+  local i = 0
+  return function()
+    i = i + 1; if i <= #l then return l[i] end
+  end
 end
 
 ---------------------

@@ -277,7 +277,4 @@ M.sh = function(cmd, set)
   return _sh(cmd, set, err)
 end
 
--- "user" variants that write to stdout
-M.shu = function(cmd, set) io.stdout:write(M.sh(cmd, set)) end
-
 return M

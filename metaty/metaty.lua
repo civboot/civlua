@@ -39,9 +39,9 @@ M.FNS = {}      -- function types (registered)
 M.FNS_UNCHECKED = {} -- functions w/out type check wrapper
 M.FNS_INFO = {} -- function debug info
 
-M.errorf  = function(...) error(string.format(...)) end
+M.errorf  = function(...) error(string.format(...), 2) end
 M.assertf = function(a, ...)
-  if not a then error('assertf: '..string.format(...)) end
+  if not a then error('assertf: '..string.format(...), 2) end
   return a
 end
 
@@ -85,7 +85,7 @@ M.indexUnchecked = function(self, k) return getmetatable(self)[k] end
 M.tyCheck = function(reqTy, giveTy, reqMaybe)
   if (reqMaybe and giveTy == 'nil') then return reqTy end
   if type(reqTy) == 'string' then
-    M.assertf(NATIVE_TY_CHECK[reqTy], '%s is not a valid native type', reqTy)
+    M.assertf(NATIVE_TY_CHECK[reqTy], '%q is not a valid native type', reqTy)
     return NATIVE_TY_CHECK[reqTy](reqTy, giveTy)
   end
   if reqTy == giveTy then return reqTy end
@@ -168,6 +168,7 @@ M.indexChecked = function(self, k) --> any
 end
 
 M.newindexChecked = function(self, k, v)
+  if type(k) == 'number' then rawset(self, k, v); return end
   local mt = getmetatable(self)
   local fields = rawget(mt, '__fields')
   if not fields[k] then M.errorf(
@@ -188,7 +189,7 @@ M.newChecked   = function(ty_, t)
   for field, v in pairs(t) do
     M.assertf(fields[field], 'unknown field: %s', field)
     local vTy = M.ty(v)
-    if not M.tyCheck(vTy, fields[field], maybes[field]) then
+    if not M.tyCheck(fields[field], vTy, maybes[field]) then
       M.errorf('[%s] %s', field, M.tyCheckMsg(fields[field], vTy))
     end
   end
