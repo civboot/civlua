@@ -32,6 +32,7 @@ end
 
 ---------------------
 -- String Functions
+
 M.strLast = function(s) return s:sub(#s, #s) end
 
 --- return the first i characters and the remainder
@@ -106,6 +107,13 @@ end
 
 M.pop = function(t, k)
   local v = t[k]; t[k] = nil; return v
+end
+
+-- pop multiple keys, pops(t, {'a', 'b'})
+M.pops = function(t, keys)
+  local o = {}
+  for _, k in ipairs(keys) do o[k] = t[k]; t[k] = nil end
+  return o
 end
 
 M.drain = function(t, len)

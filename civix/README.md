@@ -21,7 +21,8 @@ assertEq('on stdout\n', sh[[ echo 'on' stdout ]].out)
 assertEq(''           , sh[[ echo '<stderr from test>' 1>&2 ]].out)
 assertEq('<stderr from test>',
   sh([[ echo '<stderr from test>' 1>&2 ]], {err=true}).err)
-assertEq('foo --bool --bar=7\n', shl{'echo', 'foo', bool=true, bar=7})
+assertEq("foo --bool --bar='hi there'\n",
+         sh{'echo', 'foo', bool=true, bar='hi there'})
 ```
 
 [metaty]:   ../metaty/README.md
