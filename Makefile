@@ -1,5 +1,5 @@
 
-LP = "./?/?.lua;${LUA_PATH}"
+LP = "./?/?.lua;./civix/?.lua;${LUA_PATH}"
 
 all: test
 
@@ -10,3 +10,4 @@ test:
 	lua ds/test.lua
 	# lua patience/test.lua
 	lua civix/test.lua
+	LUA_PATH=${LP} lua civix/test_term.lua

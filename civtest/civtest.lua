@@ -3,7 +3,7 @@ local ds = require'ds'
 
 local add, sfmt = table.insert, string.format
 
-M = {}
+local M = {}
 
 -----------
 -- Asserting
