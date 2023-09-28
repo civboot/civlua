@@ -3,10 +3,11 @@ local mty = require'metaty'
 local ds = require'ds'
 local civix = require'civix'
 
-local yield, stdin = coroutine.yield, io.stdin
-local char, byte   = string.char, string.byte
-local function getb() return string.byte(stdin:read(1)) end
-local function outf(...) stdin:write(...); stdin:flush() end
+local yield = coroutine.yield
+local char, byte, slen = string.char, string.byte, string.len
+local function getb() return string.byte(io.read(1)) end
+local function outf(...) io.write(...); io.flush() end
+local function min(a, b) return (a<b) and a or b end
 
 local READALL = (_VERSION < "Lua 5.3") and "*a" or "a"
 local setrawmode = function()
@@ -24,12 +25,12 @@ local M = {}
 
 ---------------------------------
 -- UTF8 Stream Handling
+local U8MSK, u8decode = {}
 if utf8 then
-  char = utf8.char
+  char, slen = utf8.char, utf8.len
   -- lenRemain, mask for decoding first byte
   local u1 = {1, 0x7F}; local u2 = {2, 0x1F}
   local u3 = {3, 0x0F}; local u4 = {4, 0x07}
-  local U8MSK = {} -- Get {len,msk} via U8MSK[0xF8 & firstByte]
   for b=0,15 do U8MSK[        b << 3 ] = u1 end -- 0xxxxxxx: 1byte utf8
   for b=0,3  do U8MSK[0xC0 | (b << 3)] = u2 end -- 110xxxxx: 2byte utf8
   for b=0,1  do U8MSK[0xE0 | (b << 3)] = u3 end -- 1110xxxx: 3byte utf8
@@ -37,7 +38,7 @@ if utf8 then
 
   -- decode utf8 data into an integer.
   -- Use utf8.char to turn into a string.
-  local function u8decode(lenMsk, c, rest)
+  u8decode = function(lenMsk, c, rest)
     c = lenMsk[2] & c
     for i=1,lenMsk[1]-1 do c = (c << 6) | (0x3F & rest[i]) end
     return c
@@ -114,7 +115,7 @@ M.niceinput = function() return coroutine.wrap(function()
   end
   if b ~= ESC then yield(nice(b)); goto continue end
   while b == ESC do -- get next char, guard against multi-escapes
-    b = getb(); if b == ESC then yeild('esc') end
+    b = getb(); if b == ESC then yield'esc' end
   end
   if b == LETO then -- <esc>[O, get up to 1 character
     b = getb()
@@ -138,12 +139,14 @@ end) end
 ---------------------------------
 -- Terminal Control Functions
 
-M.termFn = function(fmt)
-  fmt = '\027['..fmt; return function(...)
-    return string.format(fmt, ...)
+M.termFn = function(name, fmt)
+  local fmt = '\027['..fmt
+  return function(...)
+    local f = string.format(fmt, ...)
+    io.write(f)
   end
 end
-for name, fmt in ipairs({
+for name, fmt in pairs({
   clear = '2J',       cleareol= 'K',
   -- color(0) resets; colorFB(foreground,background)
   color = '%im',      colorFB = '%i;%im',
@@ -151,7 +154,7 @@ for name, fmt in ipairs({
   up='%iA',      down='%iB',  right='%iC', left='%iD',
   golc='%i;%iH', hide='?25l', show='?25h',
   save='s',      restore='u', reset='c',
-}) do M[name] = M.termFn(name) end
+}) do M[name] = M.termFn(name, fmt) end
 
 M.colors = {
   default = 0,
@@ -184,22 +187,23 @@ M.size = function()
 end
 
 M.ATEXIT = {}
-M.enterRawMode = function(enteredFn, exitFn)
+M.enterRawMode = function(stdout, stderr, enteredFn, exitFn)
+  assert(stdout, 'must provide new stdout')
+  assert(stderr, 'must provide new stderr')
   assert(not getmetatable(M.ATEXIT))
-  local SAVED, err, msg = M.savemode()
-  assert(err, msg); err, msg = nil, nil
+  local SAVED, ok, msg = savemode()
+  assert(ok, msg); ok, msg = nil, nil
   local mt = {
     __gc = function()
       M.clear()
       restoremode(SAVED)
-      io.stdout = stdout
-      io.stderr = stderr
+      io.stdout = M.ATEXIT.stdout; io.stderr = M.ATEXIT.stderr
       if exitFn then exitFn() end
    end,
   }
   setmetatable(M.ATEXIT, mt)
-  io.stdout = stdoutF
-  io.stderr = stdoutF
+  M.ATEXIT.stdout = io.stdout; M.ATEXIT.stderr = io.stderr
+  io.stdout = stdout;          io.stderr = stderr
   mty.pnt('Entering raw mode')
   setrawmode(); if enteredFn then enteredFn() end
 end
@@ -207,6 +211,7 @@ M.exitRawMode = function()
   local mt = getmetatable(M.ATEXIT); assert(mt)
   mt.__gc()
   setmetatable(M.ATEXIT, nil)
+  io.stdout = M.ATEXIT.r; io.stderr = M.ATEXIT.l
 end
 
 -- Term object
@@ -216,12 +221,16 @@ end
 M.Term = {
   w=-1, h=-1, l=-1, c=-1,
   golc = function(t, l, c) -- term:golc(l, c)
-    M.golc(l, c); t.l, t.c = l, c
+    M.golc(l, c); if l then t.l, t.c = l, c end
+  end,
+  write = function(t, s)
+    io.write(s)
+    t.c = min(t.w, t.c + slen(s))
   end,
   -- TODO: remove golc here. Just write.
   set = function(t, l, c, char) -- term:set(l, c, 'f')
     t:golc(l, c); io.write(char)
-    c = c + 1; t.c = (c<t.w) and c or t.w
+    t.c = min(t.w, t.c + 1)
   end,
   clear = function(t) -- term:clear()
     M.clear(); t.l, t.c = 1, 1
@@ -231,10 +240,12 @@ M.Term = {
     t:golc(l, c); M.cleareol()
   end,
   size = function(t) -- h, w = term:size()
-    t.h, t.w = M.size(); return t.h, t.w
+    local h, w = M.size()
+    if h then t.h, t.w = h, w end
+    return h, w
   end,
-  start=M.enterRawMode,
-  stop=M.exitRawMode,
+  start = function(t, ...) return M.enterRawMode(...) end,
+  stop = function(t, ...) return M.exitRawMode(...) end,
 }
 
 return M

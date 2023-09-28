@@ -28,6 +28,9 @@ assert(M.std_lw == posix.fileno(io.stderr))
 
 -- Sleep for a duration
 M.sleep = function(duration)
+  if type(duration) == 'number' then
+    duration = ds.Duration:fromSeconds(duration)
+  end
   posix.nanosleep(duration.s, duration.ns)
 end
 

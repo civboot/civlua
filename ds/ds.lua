@@ -246,10 +246,13 @@ local timeNew = function(ty_, s, ns)
 end
 local fromSeconds = function(ty_, s)
   local sec = math.floor(s)
-  return ty_(sec, NANO * (s - sec))
+  return ty_(sec, math.floor(NANO * (s - sec)))
 end
 local fromMs = function(ty_, s)
   return ty_(s / 1000)
+end
+local fromMicros = function(ty_, s)
+  return ty_(s / 1000000)
 end
 local asSeconds = function(time)
   return time.s + (time.ns / NANO)
