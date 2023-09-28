@@ -6,10 +6,6 @@
 -- I will be asking the author whether the whole work can be re-licensed as
 -- CC0.
 
-local mty = require'metaty'
-local ds = require'ds'
-local civix = require'civix'
-
 local yield = coroutine.yield
 local char, byte, slen = string.char, string.byte, string.len
 local function getb() return string.byte(io.read(1)) end
@@ -77,6 +73,7 @@ local INP_SEQO = { -- valid input sequences following '<esc>O'
   --[[xterm]] ['OP'] = 'f1', ['OQ'] = 'f2', ['OR'] = 'f3', ['OS'] = 'f4',
   --[[vt]]    ['OH'] = 'home', ['OF'] = 'end',
 }
+M.INP_SEQ = INP_SEQ; M.INP_SEQO = INP_SEQO
 
 ---------------------------------
 -- Byte -> Character/Command
@@ -84,6 +81,7 @@ local CMD = { -- command characters (not sequences)
   [  9] = 'tab',   [ 13] = 'return',  [ 32] = 'space',
   [127] = 'back',  [ESC] = 'esc',
 }
+M.CMD = CMD
 local function ctrlChar(c) -- Note: excludes CMD
   if c >= 32 then return nil end
   return char(64+c) -- TODO: use 96 for lower-case
@@ -211,7 +209,6 @@ M.enterRawMode = function(stdout, stderr, enteredFn, exitFn)
   setmetatable(M.ATEXIT, mt)
   M.ATEXIT.stdout = io.stdout; M.ATEXIT.stderr = io.stderr
   io.stdout = stdout;          io.stderr = stderr
-  mty.pnt('Entering raw mode')
   setrawmode(); if enteredFn then enteredFn() end
 end
 M.exitRawMode = function()
