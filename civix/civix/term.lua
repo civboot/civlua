@@ -1,3 +1,10 @@
+-- Copyright (c) 2022 Phil Leblanc  BSD License github.com/philanc/ple
+--
+-- This file has been heavily modified by Rett Berg for civboot. All
+-- modificaitons are in the public domain (the original license is preserved)
+--
+-- I will be asking the author whether the whole work can be re-licensed as
+-- CC0.
 
 local mty = require'metaty'
 local ds = require'ds'
