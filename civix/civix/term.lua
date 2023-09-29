@@ -1,10 +1,5 @@
--- Copyright (c) 2022 Phil Leblanc  BSD License github.com/philanc/ple
---
--- This file has been heavily modified by Rett Berg for civboot. All
--- modificaitons are in the public domain (the original license is preserved)
---
--- I will be asking the author whether the whole work can be re-licensed as
--- CC0.
+-- License CC0 / UNLICENSE (http://github.com/philanc/plterm/issues/4)
+-- Originally written 2022 Phil Leblanc, modified 2023 Rett Berg (Civboot.org)
 
 local yield = coroutine.yield
 local char, byte, slen = string.char, string.byte, string.len
@@ -53,8 +48,8 @@ end
 -- Escape Sequences
 local ESC,  LETO, LETR, LBR = 27, byte'O', byte'R', byte'['
 local INP_SEQ = { -- valid input sequences following '<esc>['
-  ['A'] = 'up',   ['B'] = 'down',  ['C'] = 'right',  ['D'] = 'left',
-  ['2~'] = 'ins', ['3~'] = 'del',  ['5~'] = 'pgup',  ['6~'] = 'pgdn',
+  ['A'] = 'up',    ['B'] = 'down',  ['C'] = 'right', ['D'] = 'left',
+  ['2~'] = 'ins',  ['3~'] = 'del',  ['5~'] = 'pgup', ['6~'] = 'pgdn',
 
   ['11~'] = 'f1',  ['12~'] = 'f2',  ['13~'] = 'f3',  ['14~'] = 'f4',
   ['15~'] = 'f5',  ['17~'] = 'f6',  ['18~'] = 'f7',  ['19~'] = 'f8',
@@ -85,7 +80,7 @@ M.CMD = CMD
 local function ctrlChar(c) -- Note: excludes CMD
   if c >= 32 then return nil end
   return char(64+c) -- TODO: use 96 for lower-case
-end
+end; M.ctrlChar = ctrlChar
 local function nice(c)
   if     CMD[c]      then return CMD[c]
   elseif ctrlChar(c) then return '^'..ctrlChar(c) end
