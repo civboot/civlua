@@ -30,10 +30,15 @@ T.test('keywords', function()
 end)
 
 T.test('key', function()
-  local kws = Key{keys=Set{'hi', 'there', 'bob'}, kind='kw'}
+  local kws = Key{{'hi', 'there', 'bob'}, kind='kw'}
   assertParse{
     dat='hi there', spec={kws, kws},
     expect={{kind='kw', 'hi'}, {kind='kw', 'there'}},
+  }
+  local kws = Key{{'x', ['+']={true, '+'}}}
+  assertParse{
+    dat='x + x ++ x', spec={kws, kws, kws, kws, kws},
+    expect={KW'x', KW'+', KW'x', KW'++', KW'x'},
   }
 end)
 

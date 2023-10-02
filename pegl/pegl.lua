@@ -78,8 +78,35 @@ M.Pat:new(function(ty_, pattern, kind)
   return setmetatable({pattern=pattern, kind=kind}, M.Pat)
 end)
 
-M.Key = newSpec'Key'
-  :fieldMaybe'keys' :fieldMaybe'name' :fieldMaybe'kind'
+local KEY_FORM =
+  "construct Keys like Keys{{'kw1', 'kw2', kw3=true, kw4={sub-keys}, kind=...}"
+
+local function constructKeys(keys)
+  assert(mty.ty(keys) == 'table', KEY_FORM)
+  for i=1,#keys do
+    mty.pnt('!!', i, tostring(keys[i]))
+    keys[keys[i]] = true;
+    keys[i] = nil end
+  for k, v in pairs(keys) do
+    if k == true then assert(v == true)
+    else mty.assertf(
+      type(k) == 'string', 'number key after list items: %s', k)
+    end
+    if mty.ty(v) == 'table' then keys[k] = constructKeys(v)
+    else mty.assertf(v == true, '%s: %s', KEY_FORM, mty.fmt(v)) end
+  end
+  mty.pnt('!! keys', keys)
+  return keys
+end
+
+M.Key = newSpec'Key' -- Key{{'myKeword', ['+']={'+'=true}}, kind='kw'}
+  :field'keys' :fieldMaybe'name' :fieldMaybe'kind'
+M.Key:new(function(ty_, k)
+  local keys = assert(ds.pop(k, 1), 'must provide keys at index 1')
+  k['keys'] = constructKeys(keys)
+  return mty.newUnchecked(ty_, k)
+end)
+
 M.Or = newSpec('Or', FIELDS)
 M.Maybe = function(spec) return M.Or{spec, M.Empty} end
 M.Many = newSpec'Many'
@@ -118,19 +145,9 @@ M.RootSpec.skipEmpty = function(p)
   end
 end
 
-local function tokenizePunc(p, punc, pat)
-  if not punc then return end
-  local m = p.line:match(pat, p.c)
-  if punc[m] then return m end
-end; M.tokenizePunc = tokenizePunc
-
 M.defaultTokenizer = function(p)
-  p:skipEmpty(); if p:isEof() then return end
-  return (
-    tokenizePunc(p, p.root.punc2, '^%p%p')
-    or tokenizePunc(p, p.root.punc1, '^%p')
-    or p.line:match('^%w+', p.c)
-  )
+  if p:isEof() then return end
+  return p.line:match('^%p', p.c) or p.line:match('^%w+', p.c)
 end
 M.RootSpec.tokenizer = M.defaultTokenizer
 
@@ -215,20 +232,29 @@ local function parseOr(p, or_)
   p:dbgLeave()
 end
 
-
-local function keyImpl(p, keys, kind)
-  p:skipEmpty();
-  local l, c = p.l, p.c
-  local k = p.root.tokenizer(p)
-  if k and keys[k] then
-    p.c = c + #k
-    return M.Token{kind=kind or k, l=l, c=c, l2=l, c2=p.c - 1}
-  end
-end
-
 ds.update(SPEC, {
-  ['string']=function(p, keyword) return keyImpl(p, {[keyword]=true}) end,
-  [M.Key]=function(p, key) return keyImpl(p, key.keys, key.kind) end,
+  ['string']=function(p, kw)
+    p:skipEmpty();
+    if kw == p.root.tokenizer(p) then
+      local c = p.c; p.c = c + #kw
+      return M.Token{kind=kw, l=p.l, c=c, l2=p.l, c2=p.c - 1}
+    end
+  end,
+  [M.Key]=function(p, key)
+    p:skipEmpty();
+    local c, keys, found = p.c, key.keys, false
+    while true do
+      local k = p.root.tokenizer(p); if not k    then break end
+      keys = keys[k];                if not keys then break end
+      p.c = p.c + #k
+      if keys == true then found = true; break end
+      found = keys[true]
+    end
+    if found then
+      local kind = key.kind or lines.sub(p.dat, p.l, c, p.l, p.c - 1)
+      return M.Token{kind=kind, l=p.l, c=c, l2=p.l, c2=p.c - 1}
+    end
+  end,
   [M.Pat]=function(p, pat) return patImpl(p, pat.kind, pat.pattern, false) end,
   [M.EmptyTy]=function() return M.EmptyNode end,
   [M.EofTy]=function(p)
