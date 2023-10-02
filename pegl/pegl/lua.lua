@@ -220,5 +220,6 @@ return {
   exp=exp, exp1=exp1, stmt=stmt,
   num=num, str=str,
   field=field,
+  explist=explist,
   varset=varset,
 }

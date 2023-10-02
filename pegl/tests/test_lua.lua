@@ -1,3 +1,4 @@
+local ds = require'ds'
 local T = require'civtest'
 T.grequire'pegl'
 T.grequire'pegl.lua'
@@ -106,41 +107,39 @@ T.test('require', function()
 end)
 
 T.test('varset', function()
-  -- local code1 = 'a = 7'
-  -- local expect1 = {kind='varset',
-  --   N'a', KW'=', {kind='dec', '7'},
-  -- }
-  -- assertParse{dat=code1, spec=varset, expect=expect1, dbg=true}
+  local code1 = 'a = 7'
+  local expect1 = {kind='varset', N'a', KW'=', {kind='dec', '7'},
+  }
+  assertParse{dat=code1, spec=varset, expect=expect1, dbg=true}
 end)
 
 T.test('src', function()
---  local code1 = 'a.b = function(y, z) return y + z end'
---  local expect1 = {
---    {kind='varset',
---      N'a', KW'.', N'b', KW'=', {kind='fnvalue',
---        KW'function', KW'(', N'y', KW',', N'z', EMPTY, KW')',
---        {kind='return', KW'return', N'y', KW'+', N'z'},
---        EMPTY,
---        KW'end',
---      },
---    },
---    EOF,
---  }
---  assertParse{dat=code1, spec=src, expect=expect1, dbg=true}
--- 
---   local code2 = code1..'\nx = y'
---   local expect2 = copy(expect1)
---   table.remove(expect2) -- EOF
---   extend(expect2, {
---     {kind='varset',
---       N'x', KW'=', N'y',
---     },
---     EOF,
---   })
-  -- assertParse{dat=code2, spec=src, expect=expect2}
--- 
+  local code1 = 'a.b = function(y, z) return y + z end'
+  local expect1 = {
+    {kind='varset',
+      N'a', KW'.', N'b', KW'=', {kind='fnvalue',
+        KW'function', KW'(', N'y', KW',', N'z', EMPTY, KW')',
+        {kind='return', KW'return', N'y', KW'+', N'z'},
+        EMPTY,
+        KW'end',
+      },
+    },
+    EOF,
+  }
+  assertParse{dat=code1, spec=src, expect=expect1, dbg=true}
+
+  local code2 = code1..'\nx = y'
+  local expect2 = ds.copy(expect1)
+  table.remove(expect2) -- EOF
+  ds.extend(expect2, {
+    {kind='varset',
+      N'x', KW'=', N'y',
+    },
+    EOF,
+  })
+  assertParse{dat=code2, spec=src, expect=expect2}
 end)
--- 
+
 -- local function testLuaPath(path)
 --   local f = io.open('pegl.lua', 'r')
 --   local text = f:read'*a'; f:close()

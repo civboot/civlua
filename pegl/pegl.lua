@@ -147,6 +147,7 @@ end
 
 M.defaultTokenizer = function(p)
   if p:isEof() then return end
+  mty.pnt(string.format('!! tokenizer: %q', string.sub(p.line, p.c, p.c)))
   return p.line:match('^%p', p.c) or p.line:match('^%w+', p.c)
 end
 M.RootSpec.tokenizer = M.defaultTokenizer
@@ -202,6 +203,7 @@ local function parseSeq(p, seq)
     if     spec == M.PIN   then pin = true;  goto continue
     elseif spec == M.UNPIN then pin = false; goto continue
     end
+    mty.pnt('!! seq spec', type(spec), spec)
     local t = p:parse(spec)
     if not t then
       p:dbgMissed(spec)
@@ -233,9 +235,11 @@ local function parseOr(p, or_)
 end
 
 ds.update(SPEC, {
-  ['string']=function(p, kw)
+  string=function(p, kw)
     p:skipEmpty();
-    if kw == p.root.tokenizer(p) then
+    local tk = p.root.tokenizer(p)
+    mty.pnt('!! parse string:', kw, tk)
+    if kw == tk then
       local c = p.c; p.c = c + #kw
       return M.Token{kind=kw, l=p.l, c=c, l2=p.l, c2=p.c - 1}
     end
@@ -245,6 +249,7 @@ ds.update(SPEC, {
     local c, keys, found = p.c, key.keys, false
     while true do
       local k = p.root.tokenizer(p); if not k    then break end
+      mty.pnt(string.format('!! key token %s: %q %s', key.kind, k, mty.fmt(keys[k])))
       keys = keys[k];                if not keys then break end
       p.c = p.c + #k
       if keys == true then found = true; break end
@@ -254,6 +259,7 @@ ds.update(SPEC, {
       local kind = key.kind or lines.sub(p.dat, p.l, c, p.l, p.c - 1)
       return M.Token{kind=kind, l=p.l, c=c, l2=p.l, c2=p.c - 1}
     end
+    p.c = c
   end,
   [M.Pat]=function(p, pat) return patImpl(p, pat.kind, pat.pattern, false) end,
   [M.EmptyTy]=function() return M.EmptyNode end,
