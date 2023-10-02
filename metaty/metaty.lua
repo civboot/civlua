@@ -315,6 +315,7 @@ M.FmtSet
   :field('listSep', 'string',  ',')
   :field('tblSep',  'string',  ' :: ')
   :field('num',     'string',  '%i')
+  :field('tblFmt',  'function')
 M.FmtSet.__missing = M.recordMissing
 
 M.DEFAULT_FMT_SET = M.FmtSet{}
@@ -375,7 +376,7 @@ end
 M.tyFmtSafe = function(f, ty_, maybe)
   if maybe then add(f, '?') end
   local tyTy = ty(ty_)
-  if tyTy == 'string' then add(f, ty_) -- native
+  if tyTy == 'string' then add(f, ty_)
   else add(f, ty_.__name) end
 end
 M.fmtTysSafe = function(f, tys, maybes)
@@ -421,10 +422,7 @@ local SAFE = {
   ['function']=function(fn, f) M.fnFmtSafe(fn, f) end,
   boolean=function(v, f)       add(f, tostring(v)) end,
   number=function(n, f)        add(f, sfmt(f.set.num, n)) end,
-  string=function(s, f)
-    if M.strIsAmbiguous(s) then add(f, sfmt('%q', s))
-    else                        add(f, s) end
-  end,
+  string=function(s, f)        add(f, sfmt('%q', s)) end,
   table=M.tblFmtSafe,
 }
 
@@ -448,8 +446,10 @@ M.tblFmtKeys = function(t, f, keys)
   for i, k in ipairs(keys) do
     if type(k) == 'number' and 0<k and k<=lenI then -- already added
     else
-      f:fmt(k);    add(f, '=')
-      f:fmt(t[k]);
+      if     type(k) == 'table' then f:fmt(k)
+      elseif type(k) == 'string' and not M.strIsAmbiguous(k) then add(f, k)
+      else   add(f, '['); add(f, sfmt('%q', k)); add(f, ']') end
+      add(f, '='); f:fmt(t[k])
       if i < lenK then f:sep(f.set.itemSep) end
     end
   end
@@ -460,6 +460,7 @@ end
 M.tblFmt = function(t, f)
   return M.tblFmtKeys(t, f, M.orderedKeys(t, f.set.keysMax))
 end
+M.FmtSet.tblFmt = M.tblFmt
 
 M.recordFmt = function(r, f)
   M.tblFmtKeys(r, f, getmetatable(r).__fields)
@@ -501,11 +502,11 @@ M.Fmt.fmt = function(f, v)
   local mt = getmetatable(v)
   local len, level = #f, f.level
   local doFmt = function()
-    if not mt then M.tblFmt(v, f)
+    if not mt then f.set.tblFmt(v, f)
     elseif rawget(mt, '__fmt') then mt.__fmt(v, f)
     elseif rawget(mt, '__tostring') ~= M.fmt then
       add(f, tostring(v))
-    else M.tblFmt(v, f) end
+    else f.set.tblFmt(v, f) end
   end
   if f.set.safe then
     local ok, err = pcall(doFmt)

@@ -81,20 +81,20 @@ test('record', function()
   assert(A == getmetatable(a))
   assert(A == ty(a))
   assert('hi' == a.a1); assert(5 == a.a2)
-  assertEq('A{a2=5 a1=hi}', tostring(a))
+  assertEq('A{a2=5 a1="hi"}', tostring(a))
   a.a2 = 4;             assert(4 == a.a2)
 
   local b = B{b1=5, a=a}
   assert(B == getmetatable(b))
   assertEq(5, b.b1); assertEq(32, b.b2) -- default
   b.b2 = 7;          assertEq(7, b.b2)
-  assertEq('B{b1=5 b2=7 a=A{a2=4 a1=hi}}', tostring(b))
+  assertEq('B{b1=5 b2=7 a=A{a2=4 a1="hi"}}', tostring(b))
 
   assertEq(A,   tyCheck(A, A))
   assertEq(B,   tyCheck(B, B))
   assertEq(nil, tyCheck(A, B))
 
-  assertErrorPat('a1=fail', function()
+  assertErrorPat('a1="fail"', function()
     assertEq(A{a1='fail', a2=5}, a)
   end)
   assertErrorPat('A does not have field a3',
@@ -119,7 +119,7 @@ end)
 
 test("safeToStr", function()
   local safeToStr = M.safeToStr
-  assertEq("a123",      safeToStr("a123"))
+  assertEq('"a123"',      safeToStr("a123"))
   assertEq('"123"',     safeToStr("123"))
   assertEq('"abc def"', safeToStr("abc def"))
   assertEq('423',       safeToStr(423))
@@ -145,11 +145,11 @@ test("fmt", function()
   assertMatch('!ERROR!.*stack overflow', fmt(t, FmtSet{safe=true}))
   assertMatch('{1,2,RECURSE%[Tbl@0x%w+%]}', fmt(t, FmtSet{recurse=false}))
 
-  assertEq([[{baz=boo foo=bar}]], fmt({foo="bar", baz="boo"}))
+  assertEq([[{baz="boo" foo="bar"}]], fmt({foo="bar", baz="boo"}))
   local result = fmt({a=1, b=2, c=3}, FmtSet{pretty=true})
   assertEq('{\n  a=1\n  b=2\n  c=3\n}', result)
-
   assertEq('{1,2 :: a=12}', fmt({1, 2, a=12}))
+  assertEq('{["a b"]=5}', fmt({['a b'] = 5}))
 end)
 
 test('globals', function()

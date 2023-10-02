@@ -23,7 +23,7 @@ test('diffFmt', function()
 end)
 
 test('testGlobal', function()
-  assertErrorPat('New globals: {GLOBAL}', function()
+  assertErrorPat('New globals: {"GLOBAL"}', function()
     test('  (globalErr)', function() GLOBAL = true end)
   end)
   GLOBAL = nil

@@ -110,10 +110,10 @@ T.test('varset', function()
   local code1 = 'a = 7'
   local expect1 = {kind='varset', N'a', KW'=', {kind='dec', '7'},
   }
-  assertParse{dat=code1, spec=varset, expect=expect1, dbg=true}
+  assertParse{dat=code1, spec=varset, expect=expect1}
 end)
 
-T.test('src', function()
+T.test('src1', function()
   local code1 = 'a.b = function(y, z) return y + z end'
   local expect1 = {
     {kind='varset',
@@ -126,7 +126,7 @@ T.test('src', function()
     },
     EOF,
   }
-  assertParse{dat=code1, spec=src, expect=expect1, dbg=true}
+  assertParse{dat=code1, spec=src, expect=expect1}
 
   local code2 = code1..'\nx = y'
   local expect2 = ds.copy(expect1)
@@ -140,14 +140,61 @@ T.test('src', function()
   assertParse{dat=code2, spec=src, expect=expect2}
 end)
 
--- local function testLuaPath(path)
---   local f = io.open('pegl.lua', 'r')
---   local text = f:read'*a'; f:close()
---   assertParse(text, src, {
---   }, true)
--- 
--- end
--- 
--- T.test('parseSrc', function()
---   -- testLuaPath('./pegl.lua')
--- end)
+local function extendExpectAssert(code, spec, expect, extend, dbg)
+  T.assertEq(EOF, table.remove(expect))
+  ds.extend(expect, extend)
+  table.insert(expect, EOF)
+  assertParse{dat=code, spec=spec, expect=expect, dbg=dbg}
+end
+
+T.test('src2', function()
+  local code = '-- this is a comment\n--\n-- and another comment\n'
+  local expect = {
+    {'-- this is a comment',   kind='comment'},
+    {'--',                     kind='comment'},
+    {'-- and another comment', kind='comment'},
+    EOF,
+  }
+  assertParse{dat=code, spec=src, expect=expect}
+
+  local code = code..'\nlocal add = table.insert\n'
+  extendExpectAssert(code, src, expect, {{kind='varlocal',
+    KW'local', N'add', KW'=', N'table', KW'.', N'insert'
+  }})
+
+  local code = code..'\nlocal add = table.insert\n'
+  extendExpectAssert(code, src, expect, {{kind='varlocal',
+    KW'local', N'add', KW'=', N'table', KW'.', N'insert'
+  }})
+
+  local code = code..'local last = function(t) return t[#t] end\n'
+  extendExpectAssert(code, src, expect, {{kind='varlocal',
+    KW'local', N'last', KW'=',
+      {kind='fnvalue',
+        KW'function', KW'(', N't', EMPTY, KW')',
+        {kind='return',
+          KW'return', N't', {kind='index',
+            KW'[', KW'#', N't', KW']',
+          }
+        },
+        EMPTY, KW'end',
+      },
+    },
+  })
+local add = table.insert
+
+end)
+
+local function testLuaPath(path)
+  local f = io.open(path, 'r')
+  local text = f:read'*a'
+  f:close()
+  assertParse{dat=text, spec=src,
+    expect={
+    },
+  }
+end
+
+T.test('parseSrc', function()
+  -- testLuaPath('./patience/patience.lua')
+end)

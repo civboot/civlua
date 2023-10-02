@@ -84,7 +84,6 @@ local KEY_FORM =
 local function constructKeys(keys)
   assert(mty.ty(keys) == 'table', KEY_FORM)
   for i=1,#keys do
-    mty.pnt('!!', i, tostring(keys[i]))
     keys[keys[i]] = true;
     keys[i] = nil end
   for k, v in pairs(keys) do
@@ -95,7 +94,6 @@ local function constructKeys(keys)
     if mty.ty(v) == 'table' then keys[k] = constructKeys(v)
     else mty.assertf(v == true, '%s: %s', KEY_FORM, mty.fmt(v)) end
   end
-  mty.pnt('!! keys', keys)
   return keys
 end
 
@@ -147,7 +145,6 @@ end
 
 M.defaultTokenizer = function(p)
   if p:isEof() then return end
-  mty.pnt(string.format('!! tokenizer: %q', string.sub(p.line, p.c, p.c)))
   return p.line:match('^%p', p.c) or p.line:match('^%w+', p.c)
 end
 M.RootSpec.tokenizer = M.defaultTokenizer
@@ -203,7 +200,6 @@ local function parseSeq(p, seq)
     if     spec == M.PIN   then pin = true;  goto continue
     elseif spec == M.UNPIN then pin = false; goto continue
     end
-    mty.pnt('!! seq spec', type(spec), spec)
     local t = p:parse(spec)
     if not t then
       p:dbgMissed(spec)
@@ -238,7 +234,6 @@ ds.update(SPEC, {
   string=function(p, kw)
     p:skipEmpty();
     local tk = p.root.tokenizer(p)
-    mty.pnt('!! parse string:', kw, tk)
     if kw == tk then
       local c = p.c; p.c = c + #kw
       return M.Token{kind=kw, l=p.l, c=c, l2=p.l, c2=p.c - 1}
@@ -249,7 +244,6 @@ ds.update(SPEC, {
     local c, keys, found = p.c, key.keys, false
     while true do
       local k = p.root.tokenizer(p); if not k    then break end
-      mty.pnt(string.format('!! key token %s: %q %s', key.kind, k, mty.fmt(keys[k])))
       keys = keys[k];                if not keys then break end
       p.c = p.c + #k
       if keys == true then found = true; break end
@@ -327,15 +321,34 @@ M.parseStrs=function(dat, spec, root)
   return toStrTokens(dat, node)
 end
 
+M.parsedFmt = function(t, f)
+  if     #t == 1 and t.kind == 'name'  then add(f, sfmt('N%q', t[1]))
+  elseif #t == 1 and t.kind == t[1]    then add(f, sfmt('KV%q', t[1]))
+  elseif #t == 0 and t.kind == 'EOF'   then add(f, 'EOF')
+  elseif #t == 0 and t.kind == 'Empty' then add(f, 'Empty')
+  else mty.tblFmt(t, f) end
+end
+
 M.assertParse=function(t) -- {dat, spec, expect, dbg=false, root=RootSpec{}}
   assert(t.dat, 'dat'); assert(t.spec, 'spec')
   local root = t.root or RootSpec{}
   root.dbg   = t.dbg or root.dbg
   local result = M.parseStrs(t.dat, t.spec, root)
   if t.expect ~= result then
-    civtest.assertEq(
-      mty.fmt(t.expect, mty.FmtSet{pretty=true}),
-      mty.fmt(result,   mty.FmtSet{pretty=true}))
+    local set = mty.FmtSet{
+      pretty=true, tblFmt=M.parsedFmt,
+      listSep=', ', tblSep=', ',
+    }
+    local eStr = mty.fmt(t.expect, set)
+    local rStr = mty.fmt(result, set)
+    if eStr ~= rStr then
+      print('\n#### EXPECT:'); print(eStr)
+      print('\n#### RESULT:'); print(rStr)
+      print()
+      local b = {}; civtest.diffFmt(b, eStr, rStr)
+      print(table.concat(b))
+      assert(false, 'failed parse test')
+    end
   end
 end
 
