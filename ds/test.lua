@@ -9,6 +9,7 @@ local strInsert, strLast, strDivide, trimWs, splitWs
 local pop, getOrSet, getPath, drain, reverse
 local eval
 local Set, LL, Duration, Epoch
+local lines
 mty.lrequire'ds'
 
 test("number", function()
@@ -142,3 +143,18 @@ test('time', function()
   assertEq('Epoch(1.5s)', tostring(Epoch(1.5)))
 end)
 
+test('lines.sub', function()
+  local lsub = lines.sub
+  local l = lines.split'ab\nc\n\nd'
+  assertEq({'ab'},      lsub(l, 1, 1))
+  assertEq({'ab', 'c'}, lsub(l, 1, 2))
+  assertEq({'c', ''},   lsub(l, 2, 3))
+  assertEq('ab\n',      lsub(l, 1, 1, 1, 3))
+  assertEq('b\nc',      lsub(l, 1, 2, 2, 1))
+
+  l = lines.split"4     It's nice to have some real data"
+  assertEq('It',     lsub(l, 1, 7, 1, 8))
+  assertEq("'",      lsub(l, 1, 9, 1, 9))
+  assertEq("s",      lsub(l, 1, 10, 1, 10))
+  assertEq(" nice",  lsub(l, 1, 11, 1, 15))
+end)

@@ -87,6 +87,43 @@ M.diffLineCol = function(linesL, linesR)
 end
 
 ---------------------
+-- lines module
+
+-- Address lines span via either (l,l2) or (l,c, l2,c2)
+local function span(l, c, l2, c2)
+  if not (l2 or c2) then return l, nil, c, nil end --(l,   l2)
+  if      l2 and c2 then return l, c, l2, c2   end --(l,c, l2,c2)
+  error'span must be 2 or 4 indexes: (l, l2) or (l, c, l2, c2)'
+end
+
+-- TODO: remove M.splitLines and migrate ele.lcs -> ds.lines.span
+M.lines = {span=span, split=M.splitLines}
+
+function M.lines.sub(t, ...)
+  local l, c, l2, c2 = span(...)
+  local len = #t
+  local lb, lb2 = M.bound(l, 1, len), M.bound(l2, 1, len+1)
+  if lb  > l  then c = 1 end
+  if lb2 < l2 then c2 = nil end -- EoL
+  l, l2 = lb, lb2
+  local s = {} -- s is sub
+  for i=l,l2 do add(s, t[i]) end
+  if    nil == c then -- skip, only lines
+  elseif #s == 0 then s = '' -- empty
+  elseif l == l2 then
+    assert(1 == #s); local line = s[1]
+     s = string.sub(line, c, c2)
+    if c2 > #line and l2 < len then s = s..'\n' end
+  else
+    local last = s[#s]
+    s[1] = string.sub(s[1], c); s[#s] = string.sub(last, 1, c2)
+    if c2 > #last and l2 < len then add(s, '') end
+    s = table.concat(s, '\n')
+  end
+  return s
+end
+
+---------------------
 -- Table Functions
 
 -- reverse a list-like table in-place
