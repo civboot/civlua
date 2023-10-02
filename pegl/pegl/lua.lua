@@ -7,6 +7,7 @@ local ds  = require'ds'
 local pegl = require'pegl'
 local add = table.insert
 
+local Key = pegl.Key
 local Pat, Or, Not, Many = pegl.Pat, pegl.Or, pegl.Not, pegl.Many
 local Empty, EOF = pegl.Empty, pegl.EOF
 local PIN, UNPIN = pegl.PIN, pegl.UNPIN
@@ -19,25 +20,22 @@ local num = Or{name='num',
   Pat('[0-9]+', 'dec'),
 }
 
-local key = Or{name='key',
+local key = Key{name='key', {
   'end', 'if', 'else', 'elseif', 'while', 'do', 'repeat', 'local', 'until',
   'then', 'function', 'return',
-}
+}}
 local notKey = Not{key}
 local name = {UNPIN, notKey, Pat('[%a_]%w*', 'name')}
 
 -- uniary and binary operations
-op1 = Or{name='op1', '-', 'not', '#'}
-op2 = Or{name='op2',
-  -- Technically only a `name` can be after `.`
-  -- check in later pass if necessary.
-  '.',
-
+op1 = Key{name='op1', {'-', 'not', '#'}}
+op2 = Key{name='op2', {
   -- standard binops
-  '+'  ,  '-'   ,  '*'  ,  '/'   ,  '^'   ,  '%'   ,  '..'  ,
-  '<'  ,  '<='  ,  '>'  ,  '>='  ,  '=='  ,  '~='  ,
-  'and'  ,  'or',
-}
+  '+', '-', '*', '/', '^', '%', 'and', 'or',
+  ['.'] = {true, '.'},                      -- .    ..
+  ['<'] = {true, '='}, ['>'] = {true, '='}, --  <   <=   >   >=
+  ['='] = {'='}, ['~'] = {'='}              --  ==  ~=
+}}
 
 -----------------
 -- Expression (exp)
@@ -58,7 +56,7 @@ op2 = Or{name='op2',
 -- exp1 ::=  nil       |  false      |  true       |  ...        |
 --           Number    | unop exp    | String      | tbl         |
 --           function  | name
-local exp1 = Or{name='exp1', 'nil', 'false', 'true', '...', num};
+local exp1 = Or{name='exp1', Key{{'nil', 'false', 'true', '...'}}, num};
 add(exp1, {op1, exp1})
 
 local exp = {name='exp'}    -- defined just below
@@ -170,6 +168,10 @@ local elseif_  = {'elseif', exp, 'then', block, kind='elseif'}
 local else_    = {'else', block, kind='else'}
 local funcname = {name, Many{'.', name}, Maybe{':', name}, kind='funcname'}
 
+-- varlist `=´ explist
+-- Check pass: check that all items in first explist are var-like
+local varset = {UNPIN, explist, '=', PIN, explist, kind='varset'}
+
 ds.extend(stmt, {
   comment,
 
@@ -206,9 +208,7 @@ ds.extend(stmt, {
   -- local namelist [`=´ explist1]
   {'local', namelist, Maybe{'=', explist}, kind='varlocal'},
 
-  -- varlist `=´ explist
-  -- Check pass: check that all items in first explist are var-like
-  {UNPIN, explist, '=', PIN, explist, kind='varset'},
+  varset,
 
   -- catch-all exp
   -- Check pass: only a fncall is actually valid syntax
@@ -220,4 +220,5 @@ return {
   exp=exp, exp1=exp1, stmt=stmt,
   num=num, str=str,
   field=field,
+  varset=varset,
 }

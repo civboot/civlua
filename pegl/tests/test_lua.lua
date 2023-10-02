@@ -39,74 +39,94 @@ T.test('field', function()
     expect={kind='field', {kind='dec',  '44'}}}
   assertParse{dat=' hi ',     spec={field},
     expect={kind='field', {kind='name', 'hi'}}}
-  -- assertParse{
-  --   dat=' hi="x" ',spec={field},
-  --   expect={kind='field',
-  --     {kind='name', 'hi'}, KW('='), {kind='doubleStr', '"x"'},
-  --   }
-  -- }
-  -- assertParse('[hi] = 4', {field}, {kind='field',
-  --   KW('['), {'hi', kind='name'}, KW(']'),
-  --   KW('='), {'4', kind='dec'},
-  -- })
+  assertParse{dat=' hi="x" ', spec={field},
+    expect={kind='field',
+      {kind='name', 'hi'}, KW('='), {kind='doubleStr', '"x"'},
+    }
+  }
+  assertParse{dat='[hi] = 4', spec={field},
+    expect = {
+      kind='field',
+      KW('['), {'hi', kind='name'}, KW(']'),
+      KW('='), {'4', kind='dec'},
+    }
+  }
 end)
 
--- T.test('table', function()
---   assertParse('{}', {exp}, {kind='table',
---     KW('{'), EMPTY, KW('}'),
---   })
---   assertParse('{4}', {exp}, {kind='table',
---     KW('{'),
---     {kind='field', {kind='dec', '4'}},
---     EMPTY,
---     KW('}'),
---   })
---   assertParse('{4, x="hi"}', {exp}, {kind='table',
---     KW('{'),
---     {kind='field', {kind='dec', '4'}},
---     KW(','),
---     {kind='field',
---       {kind='name', 'x'}, KW('='), {kind='doubleStr', '"hi"'}},
---     EMPTY,
---     KW('}'),
---   })
--- end)
--- 
--- T.test('fnValue', function()
---   assertParse('function() end', {exp}, {kind='fnvalue',
---     KW('function'), KW('('), EMPTY, KW(')'),
---     EMPTY,
---     KW('end'),
---   }, true)
--- end)
--- 
--- T.test('require', function()
---   assertParse('local F = require"foo"', src, {
---     { kind='varlocal',
---       KW('local'),
---       {kind='name', 'F'},
---       KW('='),
---       {kind='name', 'require'},
---       {kind='doubleStr', '"foo"'},
---     },
---     EOF,
---   })
--- end)
--- 
--- T.test('src', function()
---   local code1 = 'a.b = function(y, z) return y + z end'
---   local expect1 = {
---     {kind='varset',
---       N'a', KW'.', N'b', KW'=', {kind='fnvalue',
---         KW'function', KW'(', N'y', KW',', N'z', EMPTY, KW')',
---         {kind='return', KW'return', N'y', KW'+', N'z'},
---         EMPTY,
---         KW'end',
---       },
---     },
---     EOF,
---   }
---   assertParse(code1, src, expect1)
+T.test('table', function()
+  assertParse{dat='{}', spec={exp}, 
+    expect={kind='table',
+      KW('{'), EMPTY, KW('}'),
+    },
+  }
+  assertParse{dat='{4}', spec={exp},
+    expect={kind='table',
+      KW('{'),
+      {kind='field', {kind='dec', '4'}},
+      EMPTY,
+      KW('}'),
+    },
+  }
+  assertParse{dat='{4, x="hi"}', spec={exp},
+    expect={ kind='table',
+      KW('{'),
+      {kind='field', {kind='dec', '4'}},
+      KW(','),
+      {kind='field',
+        {kind='name', 'x'}, KW('='), {kind='doubleStr', '"hi"'}},
+      EMPTY,
+      KW('}'),
+    },
+  }
+end)
+
+T.test('fnValue', function()
+  assertParse{dat='function() end', spec={exp},
+    expect = { kind='fnvalue',
+      KW('function'), KW('('), EMPTY, KW(')'),
+      EMPTY,
+      KW('end'),
+    },
+  }
+end)
+
+T.test('require', function()
+  assertParse{dat='local F = require"foo"', spec=src, 
+    expect = {
+      { kind='varlocal',
+        KW('local'),
+        {kind='name', 'F'},
+        KW('='),
+        {kind='name', 'require'},
+        {kind='doubleStr', '"foo"'},
+      },
+      EOF,
+    },
+  }
+end)
+
+T.test('varset', function()
+  -- local code1 = 'a = 7'
+  -- local expect1 = {kind='varset',
+  --   N'a', KW'=', {kind='dec', '7'},
+  -- }
+  -- assertParse{dat=code1, spec=varset, expect=expect1, dbg=true}
+end)
+
+T.test('src', function()
+--  local code1 = 'a.b = function(y, z) return y + z end'
+--  local expect1 = {
+--    {kind='varset',
+--      N'a', KW'.', N'b', KW'=', {kind='fnvalue',
+--        KW'function', KW'(', N'y', KW',', N'z', EMPTY, KW')',
+--        {kind='return', KW'return', N'y', KW'+', N'z'},
+--        EMPTY,
+--        KW'end',
+--      },
+--    },
+--    EOF,
+--  }
+--  assertParse{dat=code1, spec=src, expect=expect1, dbg=true}
 -- 
 --   local code2 = code1..'\nx = y'
 --   local expect2 = copy(expect1)
@@ -117,9 +137,9 @@ end)
 --     },
 --     EOF,
 --   })
---   assertParse(code2, src, expect2)
+  -- assertParse{dat=code2, spec=src, expect=expect2}
 -- 
--- end)
+end)
 -- 
 -- local function testLuaPath(path)
 --   local f = io.open('pegl.lua', 'r')

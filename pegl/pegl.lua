@@ -45,7 +45,7 @@ M.fmtSpec = function(s, f)
     add(f, '<'); add(f, s.name or s.kind); add(f, '>')
     return
   end
-  add(f, mty.tyName(s));
+  if mty.ty(s) ~= 'table' then add(f, mty.tyName(s)) end
   f:levelEnter('{')
   for i, sub in ipairs(s) do
     M.fmtSpec(sub, f);
@@ -421,7 +421,7 @@ M.Parser.dbgMissed=function(p, spec, note)
 end
 M.Parser.dbgUnpack=function(p, spec, t)
   if not p.root.dbg then return end
-  p:dbg('UNPACK: %s :: %s', fmt(spec), fmt(t))
+  p:dbg('UNPACK: %s :: %s', mty.fmt(spec), mty.fmt(t))
 end
 M.Parser.dbg=function(p, fmt, ...)
   if not p.root.dbg then return end
