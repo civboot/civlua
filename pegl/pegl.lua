@@ -29,8 +29,6 @@ M.RootSpec = mty.record'RootSpec'
   :fieldMaybe('skipComment', 'function')
   :field('tokenizer', 'function')
   :field('dbg', 'boolean', false)
-  :field('encodeLC', 'function')
-  :field('decodeLC', 'function')
 
 M.Parser = mty.record'Parser'
   :field'dat'
@@ -146,15 +144,18 @@ end
 
 -- Default skipEmpty function.
 M.RootSpec.skipEmpty = function(p)
-  local loop, sc = true, p.root.skipComment
+  local loop, sc, cmt, cL = true, p.root.skipComment
   while loop and not p:isEof() do
     loop = not M.skipWs1(p)
-    local lc = p.root.encodeLC(p.l, p.c)
-    local cmt = p.commentLC[lc] or (sc and sc(p))
-    if cmt then
-      p:dbg('COMMENT: %s.%s', p.l, c)
-      p.commentLC[lc] = cmt
-      p.l, p.c = cmt.l2, cmt.c2 + 1
+    if sc then
+      cL = p.commentLC[p.l]; cmt = (cL and cL[p.c]) or sc(p)
+      if cmt then -- cache for later and advance
+        p:dbg('COMMENT: %s.%s', p.l, c)
+        cL = p.commentLC[p.l]
+        if not cL then cL = {}; p.commentLC[p.l] = cL end
+        cL[p.c] = cmt
+        p.l, p.c = cmt.l2, cmt.c2 + 1
+      end
     end
   end
 end
@@ -164,15 +165,6 @@ M.defaultTokenizer = function(p)
   return p.line:match('^%p', p.c) or p.line:match('^%w+', p.c)
 end
 M.RootSpec.tokenizer = M.defaultTokenizer
-
-M.strEncodeLC = function(l, c) return string.format('%i:%i', l, c) end
-M.strDecodeLC = function(lc)
-  local l, c = lc:match('(%d+):(%d+)')
-  return tonumber(l), tonumber(c)
-end
-M.RootSpec.encodeLC = M.strEncodeLC
-M.RootSpec.decodeLC = M.strDecodeLC
-
 
 -- TODO: the civ version had M.Tbl which was (accidentally) null.
 -- Do we want 'table' here?
