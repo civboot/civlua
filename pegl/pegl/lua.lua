@@ -103,11 +103,10 @@ end
 local singleStr = function(p) return quoteImpl(p, "'", "(\\*)'", 'singleStr') end
 local doubleStr = function(p) return quoteImpl(p, '"', '(\\*)"', 'doubleStr') end
 
-local bracketStrImpl = function(p, prefix)
-  p:skipEmpty()
+local bracketStrImpl = function(p)
   local l, c = p.l, p.c
-  local start = p:consume(prefix..'%[=*%['); if not start then return end
-  local pat = prefix..'%]'..string.rep('=', start.c2 - start.c1 - 1)..'%]'
+  local start = p:consume('%[=*%['); if not start then return end
+  local pat = '%]'..string.rep('=', start.c2 - start.c1 - 1)..'%]'
   while true do
     local c1, c2 = p.line:find(pat, p.c)
     if c2 then return Token{l=l, c=c, l2=p.l, c2=c2}
@@ -119,8 +118,10 @@ local bracketStrImpl = function(p, prefix)
     end
   end
 end
-local bracketStr     = function(p) return bracketStrImpl(p, '') end
-local bracketComment = function(p) return bracketStrImpl(p, '%-%-') end
+local bracketStr     = function(p)
+  p:skipEmpty()
+  return bracketStrImpl(p)
+end
 local str     = Or{singleStr, doubleStr, bracketStr}
 add(exp1, str)
 
@@ -211,8 +212,25 @@ ds.extend(stmt, {
   {exp, kind='stmtexp'},
 })
 
+local bracketComment = function(p) return bracketStrImpl(p, '%-%-') end
+local function skipComment(p)
+  if not p.line then return end
+  local c, c2 = p.line:find('^%-%-', p.c)
+  if not c then return end
+  local l = p.l; p.c = c2+1
+  local t = bracketStrImpl(p)
+  if t then t.c = c; return t
+  else
+    p.l, p.line = l, p.dat[l]
+    local _, c2 = p.line:find('^.*', c2+1)
+    return {l, c, l, c2}
+  end
+end
+
+local root = pegl.RootSpec{skipComment=skipComment}
+
 return {
-  src={Many{stmt}, EOF},
+  root=root, src={Many{stmt}, EOF},
   exp=exp, exp1=exp1, stmt=stmt,
   num=num, str=str,
   field=field,

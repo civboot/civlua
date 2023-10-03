@@ -7,6 +7,15 @@ local Set = ds.Set
 local KW = function(kw) return {kw, kind=kw} end
 local K  = function(k)  return {k, kind='key'} end
 
+local function testLCStr(l, c)
+  local rL, rC = strDecodeLC(strEncodeLC(l, c))
+  T.assertEq({l, c}, {rL, rC})
+end
+T.test('strCodeLC', function()
+  testLCStr(1,1);  testLCStr(1,15);   testLCStr(1,200)
+  testLCStr(15,1); testLCStr(200,10); testLCStr(2000, 200)
+end)
+
 T.test('keywords', function()
   assertParse{
     dat='hi there bob',

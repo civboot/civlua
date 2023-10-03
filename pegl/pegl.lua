@@ -24,14 +24,20 @@ M.RootSpec = mty.record'RootSpec'
   -- function(p): skip empty space
   -- default: skip whitespace
   :field('skipEmpty', 'function')
+  -- The skipComment function MUST return {l, c, l2, c2}
+  -- of any found comments (or NULL)
+  :fieldMaybe('skipComment', 'function')
   :field('tokenizer', 'function')
   :field('dbg', 'boolean', false)
+  :field('encodeLC', 'function')
+  :field('decodeLC', 'function')
 
 M.Parser = mty.record'Parser'
   :field'dat'
   :field'l' :field'c' :field'line' :field'lines'
   :field('root', M.RootSpec)
   :field('dbgIndent', 'number', 0)
+  :field('commentLC', 'table')
 
 M.fmtSpec = function(s, f)
   if type(s) == 'string' then
@@ -138,22 +144,18 @@ M.skipWs1 = function(p)
   return true
 end
 
--- TODO: move this to lua
-M.skipComment = function(p)
-  if not p.line then return end
-  local c, c2 = p.line:find('^%-%-.*', p.c)
-  if c then
-    p.c = c2 + 1;
-    p:dbg('COMMENT: %s.%s', p.l, c)
-  end
-end
-
 -- Default skipEmpty function.
 M.RootSpec.skipEmpty = function(p)
-  local loop = true
+  local loop, sc = true, p.root.skipComment
   while loop and not p:isEof() do
     loop = not M.skipWs1(p)
-    M.skipComment(p)
+    local lc = p.root.encodeLC(p.l, p.c)
+    local cmt = p.commentLC[lc] or (sc and sc(p))
+    if cmt then
+      p:dbg('COMMENT: %s.%s', p.l, c)
+      p.commentLC[lc] = cmt
+      p.l, p.c = cmt[3], cmt[4] + 1
+    end
   end
 end
 
@@ -162,6 +164,15 @@ M.defaultTokenizer = function(p)
   return p.line:match('^%p', p.c) or p.line:match('^%w+', p.c)
 end
 M.RootSpec.tokenizer = M.defaultTokenizer
+
+M.strEncodeLC = function(l, c) return string.format('%i:%i', l, c) end
+M.strDecodeLC = function(lc)
+  local l, c = lc:match('(%d+):(%d+)')
+  return tonumber(l), tonumber(c)
+end
+M.RootSpec.encodeLC = M.strEncodeLC
+M.RootSpec.decodeLC = M.strDecodeLC
+
 
 -- TODO: the civ version had M.Tbl which was (accidentally) null.
 -- Do we want 'table' here?
@@ -382,6 +393,7 @@ M.Parser.new=function(dat, root)
   return M.Parser{
     dat=dat, l=1, c=1, line=dat[1], lines=#dat,
     root=root or RootSpec{},
+    commentLC={},
   }
 end
 M.Parser.parse=function(p, spec)

@@ -123,6 +123,7 @@ T.test('comment', function()
       },
       EOF,
     },
+    root=root,
     dbg=true,
   }
 end)
@@ -158,7 +159,7 @@ local function extendExpectAssert(code, spec, expect, extend, dbg)
   T.assertEq(EOF, table.remove(expect))
   ds.extend(expect, extend)
   table.insert(expect, EOF)
-  assertParse{dat=code, spec=spec, expect=expect, dbg=dbg}
+  assertParse{dat=code, spec=spec, expect=expect, root=root, dbg=dbg}
 end
 
 T.test('src2', function()
@@ -169,7 +170,7 @@ T.test('src2', function()
     -- {'-- and another comment', kind='comment'},
     EOF,
   }
-  assertParse{dat=code, spec=src, expect=EOF}
+  assertParse{dat=code, spec=src, expect=EOF, root=root}
 
   expect = {EOF}
   local code = code..'\nlocal add = table.insert\n'
