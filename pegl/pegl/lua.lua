@@ -121,9 +121,7 @@ local bracketStrImpl = function(p, prefix)
 end
 local bracketStr     = function(p) return bracketStrImpl(p, '') end
 local bracketComment = function(p) return bracketStrImpl(p, '%-%-') end
-local comment = Or{bracketComment, Pat('%-%-.*'), kind='comment'}
 local str     = Or{singleStr, doubleStr, bracketStr}
-table.insert(exp1, 1, comment)
 add(exp1, str)
 
 
@@ -173,8 +171,6 @@ local funcname = {name, Many{'.', name}, Maybe{':', name}, kind='funcname'}
 local varset = {UNPIN, explist, '=', PIN, explist, kind='varset'}
 
 ds.extend(stmt, {
-  comment,
-
   -- do block end
   {'do', block, 'end', kind='do'},
 

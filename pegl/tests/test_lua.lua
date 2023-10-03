@@ -113,6 +113,20 @@ T.test('varset', function()
   assertParse{dat=code1, spec=varset, expect=expect1}
 end)
 
+T.test('comment', function()
+  assertParse{dat='x = --line\n  {}', spec=src,
+    expect = {
+      {kind='varset',
+        N"x", KW"=", {kind="table",
+          KW"{", EMPTY, KW"}",
+        },
+      },
+      EOF,
+    },
+    dbg=true,
+  }
+end)
+
 T.test('src1', function()
   local code1 = 'a.b = function(y, z) return y + z end'
   local expect1 = {
@@ -150,13 +164,14 @@ end
 T.test('src2', function()
   local code = '-- this is a comment\n--\n-- and another comment\n'
   local expect = {
-    {'-- this is a comment',   kind='comment'},
-    {'--',                     kind='comment'},
-    {'-- and another comment', kind='comment'},
+    -- {'-- this is a comment',   kind='comment'},
+    -- {'--',                     kind='comment'},
+    -- {'-- and another comment', kind='comment'},
     EOF,
   }
-  assertParse{dat=code, spec=src, expect=expect}
+  assertParse{dat=code, spec=src, expect=EOF}
 
+  expect = {EOF}
   local code = code..'\nlocal add = table.insert\n'
   extendExpectAssert(code, src, expect, {{kind='varlocal',
     KW'local', N'add', KW'=', N'table', KW'.', N'insert'

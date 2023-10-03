@@ -26,7 +26,6 @@ M.RootSpec = mty.record'RootSpec'
   :field('skipEmpty', 'function')
   :field('tokenizer', 'function')
   :field('dbg', 'boolean', false)
-  :field'punc1' :field'punc2'
 
 M.Parser = mty.record'Parser'
   :field'dat'
@@ -130,16 +129,31 @@ M.EofTy = newSpec('EOF', FIELDS)
 M.EOF = M.EofTy{kind='EOF'}
 M.EofNode = {kind='EOF'}
 
+M.skipWs1 = function(p)
+  if p.c > #p.line then p:incLine(); return
+  else
+    local c, c2 = p.line:find('^%s+', p.c)
+    if c then p.c = c2 + 1; return end
+  end
+  return true
+end
+
+-- TODO: move this to lua
+M.skipComment = function(p)
+  if not p.line then return end
+  local c, c2 = p.line:find('^%-%-.*', p.c)
+  if c then
+    p.c = c2 + 1;
+    p:dbg('COMMENT: %s.%s', p.l, c)
+  end
+end
+
 -- Default skipEmpty function.
 M.RootSpec.skipEmpty = function(p)
-  while true do
-    if p:isEof() then return end
-    if p.c > #p.line then p:incLine()
-    else
-      local c, c2 = string.find(p.line, '^%s', p.c)
-      if not c then return end
-      p.c = c2 + 1
-    end
+  local loop = true
+  while loop and not p:isEof() do
+    loop = not M.skipWs1(p)
+    M.skipComment(p)
   end
 end
 
@@ -177,6 +191,7 @@ local function node(spec, t, kind)
 end
 
 local function patImpl(p, kind, pattern, plain)
+  p:skipEmpty()
   local t = p:consume(pattern, plain)
   if t then
     p:dbgMatched(kind or pattern)
@@ -194,6 +209,7 @@ local function _seqAdd(p, out, spec, t)
 end
 
 local function parseSeq(p, seq)
+  p:skipEmpty()
   local out, pin = {}, nil
   p:dbgEnter(seq)
   for i, spec in ipairs(seq) do
@@ -266,6 +282,7 @@ ds.update(SPEC, {
   [M.Seq]=parseSeq,
   ['table']=function(p, seq) return parseSeq(p, M.Seq(seq)) end,
   [M.Many]=function(p, many)
+    p:skipEmpty()
     local out = {}
     local seq = ds.copy(many); seq.kind = nil
     p:dbgEnter(many)
@@ -372,7 +389,7 @@ M.Parser.parse=function(p, spec)
   return specFn(p, spec)
 end
 M.Parser.peek=function(p, pattern, plain)
-  if p:skipEmpty() then return nil end
+  if p:isEof() then return nil end
   local c, c2 = nil, nil
   if not plain or not pattern:find('%w+') then
     -- not plain or only symbols in pattern
