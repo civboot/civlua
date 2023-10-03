@@ -1,3 +1,4 @@
+-- METATY_CHECK = true
 
 local T = require'civtest'
 local ds = require'ds'
@@ -64,7 +65,6 @@ T.test('many', function()
     dat='hi there bob',
     spec=Seq{Many{Pat('%w+'), kind='words'}},
     expect={'hi', 'there', 'bob', kind='words'},
-    dbg=true,
   }
 end)
 

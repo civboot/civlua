@@ -32,8 +32,10 @@ M.Parser = mty.record'Parser'
   :field'dat'
   :field'l' :field'c' :field'line' :field'lines'
   :field('root', M.RootSpec)
-  :field('dbgIndent', 'number', 0)
+  :field('stack', 'table')
+  :fieldMaybe'stackLast'
   :field('commentLC', 'table')
+  :field('dbgLevel', 'number', 0)
 
 M.fmtSpec = function(s, f)
   if type(s) == 'string' then
@@ -273,7 +275,8 @@ M.Or.parse = function(or_, p)
   for _, spec in ipairs(or_) do
     local t = p:parse(spec)
     if t then
-      t = node(spec, t, or_.kind); p:dbgLeave(t)
+      t = node(spec, t, or_.kind)
+      p:dbgLeave(t)
       return t
     end
     p:setState(state)
@@ -295,8 +298,8 @@ M.Many.parse = function(many, p)
     else _seqAdd(p, out, many, t) end
   end
   if #out < many.min then
+    p:dbgMissed(many, ' got count=%s', #out)
     out = nil
-    p:dbgMissed(many, ' got count='..#out)
   end
   p:dbgLeave(many)
   return node(many, out, many.kind)
@@ -325,7 +328,7 @@ local SPEC_TY = {
 
 -- parse('hi + there', {Pat('\w+'), '+', Pat('\w+')})
 -- Returns tokens: 'hi', {'+', kind='+'}, 'there'
-M.parse=function(dat, spec, root)
+M.parse = function(dat, spec, root)
   local p = M.Parser.new(dat, root)
   return p:parse(spec)
 end
@@ -399,22 +402,23 @@ M.assertParseError=function(t)
 end
 
 M.Parser.__tostring=function() return 'Parser()' end
-M.Parser.new=function(dat, root)
+M.Parser.new = function(dat, root)
   dat = defaultDat(dat)
   return M.Parser{
     dat=dat, l=1, c=1, line=dat[1], lines=#dat,
     root=root or RootSpec{},
+    stack={},
     commentLC={},
   }
 end
-M.Parser.parse=function(p, spec)
+M.Parser.parse = function(p, spec)
   local ty_ = mty.ty(spec)
   local specFn = SPEC_TY[ty_]
   if specFn then return specFn(p, spec)
   else           return spec:parse(p)
   end
 end
-M.Parser.peek=function(p, pattern)
+M.Parser.peek = function(p, pattern)
   if p:isEof() then return nil end
   local c, c2 = p.line:find(pattern, p.c)
   if c == p.c then return M.Token{l=p.l, c=c, l2=p.l, c2=c2} end
@@ -424,7 +428,7 @@ M.Parser.consume = function(p, pattern, plain)
   if t then p.c = t.c2 + 1 end
   return t
 end
-M.Parser.sub=function(p, t) -- t=token
+M.Parser.sub =function(p, t) -- t=token
   return lines.sub(p.dat, t.l, t.c, t.l2, t.c2)
 end
 M.Parser.incLine=function(p)
@@ -439,36 +443,50 @@ end
 M.Parser.state   =function(p) return {l=p.l, c=p.c, line=p.line} end
 M.Parser.setState=function(p, st) p.l, p.c, p.line = st.l, st.c, st.line end
 
+local function fmtStack(p)
+  local stk = p.stack
+  local b = {}; for _, v in ipairs(stk) do
+    if v == true then -- skip
+    elseif type(v) == 'string' then add(b, v)
+    else add(b, mty.fmt(v)) end
+  end
+  add(b, sfmt('%s', p.stackLast))
+  return table.concat(b, ' -> ')
+end
 M.Parser.checkPin=function(p, pin, expect)
   if not pin then return end
+  local stk = fmtStack(p)
   if p.line then
     mty.errorf(
-      "ERROR %s.%s, parser expected: %s\nGot: %s",
-      p.l, p.c, expect, p.line:sub(p.c))
+      "ERROR %s.%s\nstack: %s\nparser expected: %s\nGot: %s",
+      p.l, p.c, stk, expect, p.line:sub(p.c))
   else
     mty.errorf(
-      "ERROR %s.%s, parser reached EOF but expected: %s",
-      p.l, p.c, expect)
+      "ERROR %s.%s\nstack: %s\nparser reached EOF but expected: %s",
+      p.l, p.c, stk, expect)
   end
 end
 
 M.Parser.dbgEnter=function(p, spec)
+  add(p.stack, spec.kind or spec.name or true)
   if not p.root.dbg then return end
-  p:dbg('ENTER:%s', mty.fmt(spec))
-  p.dbgIndent = p.dbgIndent + 1
+  p:dbg('ENTER: %s', mty.fmt(spec))
+  p.dbgLevel = p.dbgLevel + 1
 end
 M.Parser.dbgLeave=function(p, n)
-  if not p.root.dbg then return end
-  p.dbgIndent = p.dbgIndent - 1
-  p:dbg('LEAVE: %s', mty.fmt(n or '((none))'))
+  local sn = table.remove(p.stack); p.stackLast = sn
+  if not p.root.dbg then return n end
+  p.dbgLevel = p.dbgLevel - 1
+  p:dbg('LEAVE: %s', mty.fmt(n or sn))
+  return n
 end
 M.Parser.dbgMatched=function(p, spec)
   if not p.root.dbg then return end
-  p:dbg('MATCH:%s', mty.fmt(spec))
+  p:dbg('MATCH: %s', mty.fmt(spec))
 end
 M.Parser.dbgMissed=function(p, spec, note)
   if not p.root.dbg then return end
-  p:dbg('MISS:%s%s', mty.fmt(spec), (note or ''))
+  p:dbg('MISS: %s%s', mty.fmt(spec), (note or ''))
 end
 M.Parser.dbgUnpack=function(p, spec, t)
   if not p.root.dbg then return end
@@ -477,8 +495,8 @@ end
 M.Parser.dbg=function(p, fmt, ...)
   if not p.root.dbg then return end
   local msg = sfmt(fmt, ...)
-  mty.pnt(string.format('%%%s %s (%s.%s)',
-    string.rep('  ', p.dbgIndent), msg, p.l, p.c))
+  mty.pnt(string.format('%%%s%s (%s.%s)',
+    string.rep('* ', p.dbgLevel), msg, p.l, p.c))
 end
 
 M.testing = {}

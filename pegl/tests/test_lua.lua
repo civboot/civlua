@@ -1,3 +1,5 @@
+-- METATY_CHECK = true
+
 local ds = require'ds'
 local T = require'civtest'
 T.grequire'pegl'
@@ -253,8 +255,20 @@ T.test('src2', function()
       },
     },
   })
-local add = table.insert
+end)
 
+T.test('error', function()
+  T.assertErrorPat(
+    'stack: block -> stmt -> fnlocal -> fnbody '
+    ..'-> block -> stmt -> varset -> exp -> op2exp -> exp -> exp1 -> table\n'
+    ..'parser expected: }',
+    function()
+      parseStrs([[
+        local function x()
+          x = 1 + {2 3} -- '2 3' is invalid
+        end
+      ]], src, RootSpec{dbg=false})
+    end, --[[plain]] true)
 end)
 
 local function testLuaPath(path)

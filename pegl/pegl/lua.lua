@@ -65,8 +65,8 @@ add(exp1, {'(', exp, ')', kind='group'})
 local call     = Or{kind='call'} -- function call (defined much later)
 local methcall = {UNPIN, ':', name, PIN, call, kind='methcall'}
 local index    = {'[', exp, ']', kind='index'}
-local postexp  = Or{methcall, index, call}
-ds.extend(exp, {exp1, Many{ Or{postexp, {op2, exp}} }})
+local postexp  = Or{name='postexp', methcall, index, call}
+ds.extend(exp, {exp1, Many{ Or{postexp, {name='op2exp', op2, exp}} }})
 
 -- laststat ::= return [explist1]  |  break
 -- block    ::= {stat [`;´]} [laststat[`;´]]
@@ -130,7 +130,7 @@ add(exp1, str)
 -- Table (+exp1)
 
 -- field ::= `[´ exp `]´ `=´ exp  |  Name `=´ exp  |  exp
-local fieldsep = Or{',', ';'}
+local fieldsep = Key{{',', ';'}}
 local field = Or{kind='field',
   {UNPIN, '[', exp, ']', '=', exp},
   {UNPIN, name, '=', exp},
@@ -145,7 +145,10 @@ add(exp1, tbl)
 
 -- fully define function call
 -- call ::=  `(´ [explist1] `)´  |  tableconstructor  |  String
-ds.extend(call, {{'(', explist, ')'}, tbl, str})
+ds.extend(call, {
+  {name='call()', '(', explist, ')'},
+  {name='call{}', tbl}, {name="call''", str},
+})
 
 -----------------
 -- Function (+exp1)
@@ -155,12 +158,13 @@ ds.extend(call, {{'(', explist, ')'}, tbl, str})
 -- funcbody ::= `(´ [parlist1] `)´ block end
 -- function ::= `function` funcbody
 local namelist = {name, Many{',', name}}
-local parlist = Or{
-  {name, Many{ ',', Or{name, Pat'%.%.%.'} }},
+local parlist = Or{name='parlist',
   Pat'%.%.%.',
+  -- NeedLint: `...` only valid at the end
+  {name, Many{ ',', Or{Pat'%.%.%.', name} }},
   Empty
 }
-local fnbody = {'(', parlist, ')', block, 'end'}
+local fnbody = {name='fnbody', '(', parlist, ')', block, 'end'}
 local fnvalue = {'function', fnbody, kind='fnvalue'}
 add(exp1, fnvalue)
 add(exp1, name)
@@ -172,7 +176,7 @@ local else_    = {'else', block, kind='else'}
 local funcname = {name, Many{'.', name}, Maybe{UNPIN, ':', name}, kind='funcname'}
 
 -- varlist `=´ explist
--- Check pass: check that all items in first explist are var-like
+-- NeedLint: check that all items in first explist are var-like
 local varset = {UNPIN, explist, '=', PIN, explist, kind='varset'}
 
 ds.extend(stmt, {
@@ -215,7 +219,7 @@ ds.extend(stmt, {
   varset,
 
   -- catch-all exp
-  -- Check pass: only a fncall is actually valid syntax
+  -- NeedLint: only a fncall is actually valid syntax
   {exp, kind='stmtexp'},
 })
 
