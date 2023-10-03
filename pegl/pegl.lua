@@ -154,7 +154,7 @@ M.RootSpec.skipEmpty = function(p)
     if cmt then
       p:dbg('COMMENT: %s.%s', p.l, c)
       p.commentLC[lc] = cmt
-      p.l, p.c = cmt[3], cmt[4] + 1
+      p.l, p.c = cmt.l2, cmt.c2 + 1
     end
   end
 end

@@ -223,7 +223,7 @@ local function skipComment(p)
   else
     p.l, p.line = l, p.dat[l]
     local _, c2 = p.line:find('^.*', c2+1)
-    return {l, c, l, c2}
+    return Token{l=l, c=c, l2=l, c2=c2}
   end
 end
 
