@@ -92,7 +92,7 @@ T.test('fnValue', function()
 end)
 
 T.test('require', function()
-  assertParse{dat='local F = require"foo"', spec=src, 
+  assertParse{dat='local F = require"foo"', spec=src,
     expect = {
       { kind='varlocal',
         KW('local'),

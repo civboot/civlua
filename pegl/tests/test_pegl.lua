@@ -10,20 +10,20 @@ local K  = function(k)  return {k, kind='key'} end
 T.test('keywords', function()
   assertParse{
     dat='hi there bob',
-    spec=Seq{'hi', 'there', 'bob', EOF},
+    spec=Seq{'hi', 'there', 'bob', Eof},
     expect={KW('hi'), KW('there'), KW('bob'), EofNode}
   }
 
   -- keyword search looks for token break
   assertParse{
     dat='hitherebob',
-    spec=Seq{'hi', 'there', 'bob', EOF},
+    spec=Seq{'hi', 'there', 'bob', Eof},
     expect=nil,
   }
 
   assertParse{
     dat='hi+there',
-    spec=Seq{'hi', '+', 'there', EOF},
+    spec=Seq{'hi', '+', 'there', Eof},
     expect={KW('hi'), KW('+'), KW('there'), EofNode},
     root=RootSpec{punc1=Set{'+'}},
   }
@@ -45,7 +45,7 @@ end)
 T.test('pat', function()
   assertParse{
     dat='hi there bob',
-    spec={'hi', Pat('%w+'), 'bob', EOF},
+    spec={'hi', Pat('%w+'), 'bob', Eof},
     expect={KW('hi'), 'there', KW('bob'), EofNode},
   }
 end)
@@ -53,7 +53,7 @@ end)
 T.test('or', function()
   assertParse{
     dat='hi +-',
-    spec={'hi', Or{'-', '+'}, Or{'-', '+', Empty}, Or{'+', Empty}, EOF},
+    spec={'hi', Or{'-', '+'}, Or{'-', '+', Empty}, Or{'+', Empty}, Eof},
     expect={KW('hi'), KW('+'), KW('-'), EmptyNode, EofNode},
     root=RootSpec{punc1=Set{'+', '-'}},
   }
@@ -71,23 +71,23 @@ end)
 T.test('pin', function()
   assertParseError{
     dat='hi there jane',
-    spec={'hi', 'there', 'bob', EOF},
+    spec={'hi', 'there', 'bob', Eof},
     errPat='expected: bob',
   }
   assertParseError{
     dat='hi there jane',
-    spec={UNPIN, 'hi', 'there', PIN, 'bob', EOF},
+    spec={UNPIN, 'hi', 'there', PIN, 'bob', Eof},
     errPat='expected: bob',
   }
 
   assertParse{
     dat='hi there jane',
-    spec=Seq{UNPIN, 'hi', 'there', 'bob', EOF},
+    spec=Seq{UNPIN, 'hi', 'there', 'bob', Eof},
     expect=nil,
   }
   assertParse{
     dat='hi there jane',
-    spec=Seq{UNPIN, 'hi', 'there', 'bob', PIN, EOF},
+    spec=Seq{UNPIN, 'hi', 'there', 'bob', PIN, Eof},
     expect=nil,
   }
 end)

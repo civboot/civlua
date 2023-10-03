@@ -8,7 +8,6 @@ local extend, lines = ds.extend, ds.lines
 local add, sfmt = table.insert, string.format
 
 local M = {}
-local SPEC = {}
 
 M.Token = mty.record'Token'
   :field'kind'
@@ -24,8 +23,7 @@ M.RootSpec = mty.record'RootSpec'
   -- function(p): skip empty space
   -- default: skip whitespace
   :field('skipEmpty', 'function')
-  -- The skipComment function MUST return {l, c, l2, c2}
-  -- of any found comments (or NULL)
+  -- skipComment: return Token for found comment.
   :fieldMaybe('skipComment', 'function')
   :field('tokenizer', 'function')
   :field('dbg', 'boolean', false)
@@ -130,8 +128,11 @@ M.EmptyNode = {kind='Empty'}
 
 -- Denotes the end of the file
 M.EofTy = newSpec('EOF', FIELDS)
-M.EOF = M.EofTy{kind='EOF'}
+M.Eof = M.EofTy{kind='EOF'}
 M.EofNode = {kind='EOF'}
+
+-------------------
+-- Root and Utilities
 
 M.skipWs1 = function(p)
   if p.c > #p.line then p:incLine(); return
@@ -193,6 +194,29 @@ local function node(spec, t, kind)
   return t
 end
 
+-------------------
+-- Key
+
+M.Key.parse = function(key, p)
+  p:skipEmpty();
+  local c, keys, found = p.c, key.keys, false
+  while true do
+    local k = p.root.tokenizer(p); if not k    then break end
+    keys = keys[k];                if not keys then break end
+    p.c = p.c + #k
+    if keys == true then found = true; break end
+    found = keys[true]
+  end
+  if found then
+    local kind = key.kind or lines.sub(p.dat, p.l, c, p.l, p.c - 1)
+    return M.Token{kind=kind, l=p.l, c=c, l2=p.l, c2=p.c - 1}
+  end
+  p.c = c
+end
+
+-------------------
+-- Pat
+
 local function patImpl(p, kind, pattern, plain)
   p:skipEmpty()
   local t = p:consume(pattern, plain)
@@ -202,6 +226,10 @@ local function patImpl(p, kind, pattern, plain)
   end
   return t
 end
+M.Pat.parse = function(pat, p) return patImpl(p, pat.kind, pat.pattern, false) end
+
+-------------------
+-- Seq
 
 local function _seqAdd(p, out, spec, t)
   if type(t) == 'boolean' then -- skip
@@ -234,7 +262,11 @@ local function parseSeq(p, seq)
   return out
 end
 
-local function parseOr(p, or_)
+M.Seq.parse = function(seq, p) return parseSeq(p, seq) end
+
+-------------------
+-- Or
+M.Or.parse = function(or_, p)
   p:skipEmpty()
   p:dbgEnter(or_)
   local state = p:state()
@@ -249,7 +281,37 @@ local function parseOr(p, or_)
   p:dbgLeave()
 end
 
-ds.update(SPEC, {
+-------------------
+-- Or
+M.Many.parse = function(many, p)
+  p:skipEmpty()
+  local out = {}
+  local seq = ds.copy(many); seq.kind = nil
+  p:dbgEnter(many)
+  while true do
+    local t = parseSeq(p, seq)
+    if not t then break end
+    if ty(t) ~= M.Token and #t == 1 then add(out, t[1])
+    else _seqAdd(p, out, many, t) end
+  end
+  if #out < many.min then
+    out = nil
+    p:dbgMissed(many, ' got count='..#out)
+  end
+  p:dbgLeave(many)
+  return node(many, out, many.kind)
+end
+
+-------------------
+-- Misc
+M.Not.parse = function(self, p) return not parseSeq(p, self) end
+M.EofTy.parse = function(self, p)
+  p:skipEmpty(); if p:isEof() then return M.EofNode end
+end
+M.EmptyTy.parse = function() return M.EmptyNode end
+
+local SPEC_TY = {
+  ['function']=function(p, fn) p:skipEmpty() return fn(p) end,
   string=function(p, kw)
     p:skipEmpty();
     local tk = p.root.tokenizer(p)
@@ -258,51 +320,8 @@ ds.update(SPEC, {
       return M.Token{kind=kw, l=p.l, c=c, l2=p.l, c2=p.c - 1}
     end
   end,
-  [M.Key]=function(p, key)
-    p:skipEmpty();
-    local c, keys, found = p.c, key.keys, false
-    while true do
-      local k = p.root.tokenizer(p); if not k    then break end
-      keys = keys[k];                if not keys then break end
-      p.c = p.c + #k
-      if keys == true then found = true; break end
-      found = keys[true]
-    end
-    if found then
-      local kind = key.kind or lines.sub(p.dat, p.l, c, p.l, p.c - 1)
-      return M.Token{kind=kind, l=p.l, c=c, l2=p.l, c2=p.c - 1}
-    end
-    p.c = c
-  end,
-  [M.Pat]=function(p, pat) return patImpl(p, pat.kind, pat.pattern, false) end,
-  [M.EmptyTy]=function() return M.EmptyNode end,
-  [M.EofTy]=function(p)
-    p:skipEmpty(); if p:isEof() then return M.EofNode end
-  end,
-  ['function']=function(p, fn) p:skipEmpty() return fn(p) end,
-  [M.Or]=parseOr,
-  [M.Not]=function(p, spec) return not parseSeq(p, spec) end,
-  [M.Seq]=parseSeq,
-  ['table']=function(p, seq) return parseSeq(p, M.Seq(seq)) end,
-  [M.Many]=function(p, many)
-    p:skipEmpty()
-    local out = {}
-    local seq = ds.copy(many); seq.kind = nil
-    p:dbgEnter(many)
-    while true do
-      local t = parseSeq(p, seq)
-      if not t then break end
-      if ty(t) ~= M.Token and #t == 1 then add(out, t[1])
-      else _seqAdd(p, out, many, t) end
-    end
-    if #out < many.min then
-      out = nil
-      p:dbgMissed(many, ' got count='..#out)
-    end
-    p:dbgLeave(many)
-    return node(many, out, many.kind)
-  end,
-})
+  table=function(p, tbl) return parseSeq(p, M.Seq(tbl)) end,
+}
 
 -- parse('hi + there', {Pat('\w+'), '+', Pat('\w+')})
 -- Returns tokens: 'hi', {'+', kind='+'}, 'there'
@@ -313,9 +332,8 @@ end
 
 local function toStrTokens(dat, n)
   if not n then return nil end
-  if SPEC[n] then
-    return n
-  end
+  if n == M.EofTy   then return n end
+  if n == M.EmptyTy then return n end
   if ty(n) == M.Token then
     return node(Pat, lines.sub(dat, n.l, n.c, n.l2, n.c2), n.kind)
   end
@@ -389,8 +407,11 @@ M.Parser.new=function(dat, root)
   }
 end
 M.Parser.parse=function(p, spec)
-  local specFn = SPEC[ty(spec)]
-  return specFn(p, spec)
+  local ty_ = mty.ty(spec)
+  local specFn = SPEC_TY[ty_]
+  if specFn then return specFn(p, spec)
+  else           return spec:parse(p)
+  end
 end
 M.Parser.peek=function(p, pattern, plain)
   if p:isEof() then return nil end
@@ -425,9 +446,6 @@ end
 M.Parser.state   =function(p) return {l=p.l, c=p.c, line=p.line} end
 M.Parser.setState=function(p, st) p.l, p.c, p.line = st.l, st.c, st.line end
 
-M.Parser.parse=function(p, spec)
-  return SPEC[ty(spec)](p, spec)
-end
 M.Parser.checkPin=function(p, pin, expect)
   if not pin then return end
   if p.line then

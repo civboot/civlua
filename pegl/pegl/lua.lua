@@ -9,7 +9,7 @@ local add = table.insert
 
 local Key = pegl.Key
 local Pat, Or, Not, Many = pegl.Pat, pegl.Or, pegl.Not, pegl.Many
-local Empty, EOF = pegl.Empty, pegl.EOF
+local Empty, Eof = pegl.Empty, pegl.Eof
 local PIN, UNPIN = pegl.PIN, pegl.UNPIN
 
 local stmt = Or{kind='stmt'}
@@ -230,7 +230,7 @@ end
 local root = pegl.RootSpec{skipComment=skipComment}
 
 return {
-  root=root, src={Many{stmt}, EOF},
+  root=root, src={Many{stmt}, Eof},
   exp=exp, exp1=exp1, stmt=stmt,
   num=num, str=str,
   field=field,
