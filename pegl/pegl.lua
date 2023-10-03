@@ -46,7 +46,7 @@ M.fmtSpec = function(s, f)
     add(f, '<'); add(f, s.name or s.kind); add(f, '>')
     return
   end
-  if mty.ty(s) ~= 'table' then add(f, mty.tyName(s)) end
+  if mty.ty(s) ~= 'table' then add(f, mty.tyName(mty.ty(s))) end
   f:levelEnter('{')
   for i, sub in ipairs(s) do
     M.fmtSpec(sub, f);
@@ -124,12 +124,12 @@ M.UNPIN = {name='UNPIN'}
 -- Example: Or{Integer, String, Empty}
 M.EmptyTy = newSpec('Empty', FIELDS)
 M.Empty = M.EmptyTy{kind='Empty'}
-M.EmptyNode = {kind='Empty'}
+M.EMPTY = {kind='Empty'}
 
 -- Denotes the end of the file
 M.EofTy = newSpec('EOF', FIELDS)
 M.Eof = M.EofTy{kind='EOF'}
-M.EofNode = {kind='EOF'}
+M.EOF = {kind='EOF'}
 
 -------------------
 -- Root and Utilities
@@ -163,7 +163,7 @@ end
 
 M.defaultTokenizer = function(p)
   if p:isEof() then return end
-  return p.line:match('^%p', p.c) or p.line:match('^%w+', p.c)
+  return p.line:match('^%p', p.c) or p.line:match('^[_%w]+', p.c)
 end
 M.RootSpec.tokenizer = M.defaultTokenizer
 
@@ -217,9 +217,9 @@ end
 -------------------
 -- Pat
 
-local function patImpl(p, kind, pattern, plain)
+local function patImpl(p, kind, pattern)
   p:skipEmpty()
-  local t = p:consume(pattern, plain)
+  local t = p:consume(pattern)
   if t then
     p:dbgMatched(kind or pattern)
     t.kind = kind
@@ -306,9 +306,9 @@ end
 -- Misc
 M.Not.parse = function(self, p) return not parseSeq(p, self) end
 M.EofTy.parse = function(self, p)
-  p:skipEmpty(); if p:isEof() then return M.EofNode end
+  p:skipEmpty(); if p:isEof() then return M.EOF end
 end
-M.EmptyTy.parse = function() return M.EmptyNode end
+M.EmptyTy.parse = function() return M.EMPTY end
 
 local SPEC_TY = {
   ['function']=function(p, fn) p:skipEmpty() return fn(p) end,
@@ -361,9 +361,9 @@ end
 
 M.parsedFmt = function(t, f)
   if     #t == 1 and t.kind == 'name'  then add(f, sfmt('N%q', t[1]))
-  elseif #t == 1 and t.kind == t[1]    then add(f, sfmt('KV%q', t[1]))
+  elseif #t == 1 and t.kind == t[1]    then add(f, sfmt('KW%q', t[1]))
   elseif #t == 0 and t.kind == 'EOF'   then add(f, 'EOF')
-  elseif #t == 0 and t.kind == 'Empty' then add(f, 'Empty')
+  elseif #t == 0 and t.kind == 'Empty' then add(f, 'EMPTY')
   else mty.tblFmt(t, f) end
 end
 
@@ -372,6 +372,7 @@ M.assertParse=function(t) -- {dat, spec, expect, dbg=false, root=RootSpec{}}
   local root = t.root or RootSpec{}
   root.dbg   = t.dbg or root.dbg
   local result = M.parseStrs(t.dat, t.spec, root)
+  if not t.expect and t.parseOnly then return end
   if t.expect ~= result then
     local set = mty.FmtSet{
       pretty=true, tblFmt=M.parsedFmt,
@@ -413,20 +414,12 @@ M.Parser.parse=function(p, spec)
   else           return spec:parse(p)
   end
 end
-M.Parser.peek=function(p, pattern, plain)
+M.Parser.peek=function(p, pattern)
   if p:isEof() then return nil end
-  local c, c2 = nil, nil
-  if not plain or not pattern:find('%w+') then
-    -- not plain or only symbols in pattern
-    c, c2 = p.line:find(pattern, p.c, plain)
-  else -- plain word-like, tokenize
-    if pattern == p.line:match('^'..pattern..'%w*', p.c) then
-      c, c2 = p.c, p.c + #pattern - 1
-    end
-  end
+  local c, c2 = p.line:find(pattern, p.c)
   if c == p.c then return M.Token{l=p.l, c=c, l2=p.l, c2=c2} end
 end
-M.Parser.consume=function(p, pattern, plain)
+M.Parser.consume = function(p, pattern, plain)
   local t = p:peek(pattern, plain)
   if t then p.c = t.c2 + 1 end
   return t
@@ -487,5 +480,9 @@ M.Parser.dbg=function(p, fmt, ...)
   mty.pnt(string.format('%%%s %s (%s.%s)',
     string.rep('  ', p.dbgIndent), msg, p.l, p.c))
 end
+
+M.testing = {}
+function M.testing.KW(kw)  return {kw, kind=kw} end       -- keyword
+function M.testing.N(name) return {name, kind='name'} end -- name
 
 return M

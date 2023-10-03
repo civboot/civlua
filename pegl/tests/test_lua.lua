@@ -3,10 +3,9 @@ local T = require'civtest'
 T.grequire'pegl'
 T.grequire'pegl.lua'
 
-local KW = function(kw) return {kw, kind=kw} end
-local EMPTY, EOF = {kind='Empty'}, {kind='EOF'}
-
-local N = function(n) return {kind='name', n} end
+local KW = testing.KW
+local N  = testing.N
+local SRC = function(...) return {..., EMPTY, EMPTY, EOF} end
 
 T.test('easy', function()
   assertParse{dat='42  0x3A', spec={num, num}, expect={
@@ -91,18 +90,30 @@ T.test('fnValue', function()
   }
 end)
 
+T.test('expression', function()
+  assertParse{dat='x+3', spec=exp,
+    expect={N'x', KW'+', {kind='dec', '3'}},
+  }
+  assertParse{dat='x()+3', spec=exp,
+    expect= {
+      N"x", {kind='call',
+        KW"(", EMPTY, KW")",
+      }, KW"+", { "3", kind="dec" }
+    },
+  }
+end)
+
 T.test('require', function()
   assertParse{dat='local F = require"foo"', spec=src,
-    expect = {
+    expect = SRC(
       { kind='varlocal',
         KW('local'),
         {kind='name', 'F'},
         KW('='),
         {kind='name', 'require'},
         {kind='doubleStr', '"foo"'},
-      },
-      EOF,
-    },
+      }
+    ),
   }
 end)
 
@@ -114,80 +125,125 @@ T.test('varset', function()
 end)
 
 T.test('comment', function()
-  assertParse{dat='x = --line\n  {}', spec=src,
-    expect = {
-      {kind='varset',
-        N"x", KW"=", {kind="table",
-          KW"{", EMPTY, KW"}",
-        },
+  local expect = SRC(
+    {kind='varset',
+      N"x", KW"=", {kind="table",
+        KW"{", EMPTY, KW"}",
       },
-      EOF,
+    })
+  assertParse{dat='x = --line\n  {}', spec=src,
+    expect=expect, root=root,
+  }
+  assertParse{dat='x = --[[block]]{}', spec=src,
+    expect = expect, root=root,
+  }
+  assertParse{dat='x\n=\n--[[\nblock\n]]\n{}--hi\n--EOF', spec=src,
+    expect = expect, root=root,
+  }
+end)
+
+T.test('function', function()
+  assertParse{ spec=src, root=root,
+    dat=[[ local function f(a) end ]],
+    expect = {
+      {kind="fnlocal",
+        KW"local", KW"function", N"f", KW"(", N"a", KW")", EMPTY, KW"end",
+      }, EMPTY, EMPTY, EOF
     },
-    root=root,
-    dbg=true,
+  }
+end)
+
+T.test('fncall', function()
+  assertParse{dat='foo(4)', spec=src, root=root,
+    expect = SRC({ kind="stmtexp",
+      N"foo", {kind='call',
+        KW"(", { "4", kind="dec" }, KW")",
+      },
+    })
+  }
+
+  assertParse{dat='foo({__tostring=4})', spec=src, root=root,
+    expect = SRC({ kind="stmtexp",
+      N"foo", { kind='call',
+        KW"(", { kind="table",
+          KW"{",
+            {N"__tostring", KW"=", { "4", kind="dec"}, kind="field"}, EMPTY,
+          KW"}",
+        }, KW")",
+      },
+    })
+  }
+end)
+
+T.test('if elseif else', function()
+  assertParse{dat='if n==nil then return "" end', spec=src, root=root,
+    expect=SRC(
+    { kind='if',
+      KW"if",
+        { kind='cond',
+          N"n", KW"==", KW"nil",
+        }, KW"then", { kind='return',
+        KW"return", {
+          "\"\"", kind="doubleStr"
+        },
+      }, EMPTY, EMPTY, KW"end",
+    })
   }
 end)
 
 T.test('src1', function()
   local code1 = 'a.b = function(y, z) return y + z end'
-  local expect1 = {
-    {kind='varset',
-      N'a', KW'.', N'b', KW'=', {kind='fnvalue',
-        KW'function', KW'(', N'y', KW',', N'z', EMPTY, KW')',
-        {kind='return', KW'return', N'y', KW'+', N'z'},
-        EMPTY,
-        KW'end',
-      },
+  local expect1 = SRC({kind='varset',
+    N'a', KW'.', N'b', KW'=', {kind='fnvalue',
+      KW'function', KW'(', N'y', KW',', N'z', KW')',
+      {kind='return', KW'return', N'y', KW'+', N'z'},
+      EMPTY,
+      KW'end',
     },
-    EOF,
-  }
+  })
   assertParse{dat=code1, spec=src, expect=expect1}
 
   local code2 = code1..'\nx = y'
   local expect2 = ds.copy(expect1)
   table.remove(expect2) -- EOF
-  ds.extend(expect2, {
-    {kind='varset',
-      N'x', KW'=', N'y',
-    },
-    EOF,
-  })
+  table.remove(expect2) -- EMPTY
+  ds.extend(expect2, SRC({kind='varset',
+    N'x', KW'=', N'y',
+  }))
   assertParse{dat=code2, spec=src, expect=expect2}
 end)
 
 local function extendExpectAssert(code, spec, expect, extend, dbg)
   T.assertEq(EOF, table.remove(expect))
+  T.assertEq(EMPTY, table.remove(expect))
+  T.assertEq(EMPTY, table.remove(expect))
   ds.extend(expect, extend)
+  table.insert(expect, EMPTY)
+  table.insert(expect, EMPTY)
   table.insert(expect, EOF)
   assertParse{dat=code, spec=spec, expect=expect, root=root, dbg=dbg}
 end
 
 T.test('src2', function()
   local code = '-- this is a comment\n--\n-- and another comment\n'
-  local expect = {
-    -- {'-- this is a comment',   kind='comment'},
-    -- {'--',                     kind='comment'},
-    -- {'-- and another comment', kind='comment'},
-    EOF,
-  }
-  assertParse{dat=code, spec=src, expect=EOF, root=root}
+  assertParse{dat=code, spec=src, expect={EMPTY, EOF}, root=root}
 
-  expect = {EOF}
+  local expect = {EMPTY, EMPTY, EOF}
   local code = code..'\nlocal add = table.insert\n'
   extendExpectAssert(code, src, expect, {{kind='varlocal',
     KW'local', N'add', KW'=', N'table', KW'.', N'insert'
   }})
 
   local code = code..'\nlocal add = table.insert\n'
-  extendExpectAssert(code, src, expect, {{kind='varlocal',
+  extendExpectAssert(code, src, expect, {EMPTY, {kind='varlocal',
     KW'local', N'add', KW'=', N'table', KW'.', N'insert'
   }})
 
   local code = code..'local last = function(t) return t[#t] end\n'
-  extendExpectAssert(code, src, expect, {{kind='varlocal',
+  extendExpectAssert(code, src, expect, {EMPTY, {kind='varlocal',
     KW'local', N'last', KW'=',
       {kind='fnvalue',
-        KW'function', KW'(', N't', EMPTY, KW')',
+        KW'function', KW'(', N't', KW')',
         {kind='return',
           KW'return', N't', {kind='index',
             KW'[', KW'#', N't', KW']',
@@ -205,12 +261,11 @@ local function testLuaPath(path)
   local f = io.open(path, 'r')
   local text = f:read'*a'
   f:close()
-  assertParse{dat=text, spec=src,
-    expect={
-    },
-  }
+  assertParse{dat=text, spec=src, root=root, parseOnly=true}
 end
 
 T.test('parseSrc', function()
-  -- testLuaPath('./patience/patience.lua')
+  testLuaPath('./patience/patience.lua')
+  testLuaPath('./pegl/pegl.lua')
+  testLuaPath('./pegl/pegl/lua.lua')
 end)

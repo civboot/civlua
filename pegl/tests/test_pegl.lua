@@ -11,7 +11,7 @@ T.test('keywords', function()
   assertParse{
     dat='hi there bob',
     spec=Seq{'hi', 'there', 'bob', Eof},
-    expect={KW('hi'), KW('there'), KW('bob'), EofNode}
+    expect={KW('hi'), KW('there'), KW('bob'), EOF}
   }
 
   -- keyword search looks for token break
@@ -24,7 +24,7 @@ T.test('keywords', function()
   assertParse{
     dat='hi+there',
     spec=Seq{'hi', '+', 'there', Eof},
-    expect={KW('hi'), KW('+'), KW('there'), EofNode},
+    expect={KW('hi'), KW('+'), KW('there'), EOF},
     root=RootSpec{punc1=Set{'+'}},
   }
 end)
@@ -46,7 +46,7 @@ T.test('pat', function()
   assertParse{
     dat='hi there bob',
     spec={'hi', Pat('%w+'), 'bob', Eof},
-    expect={KW('hi'), 'there', KW('bob'), EofNode},
+    expect={KW('hi'), 'there', KW('bob'), EOF},
   }
 end)
 
@@ -54,7 +54,7 @@ T.test('or', function()
   assertParse{
     dat='hi +-',
     spec={'hi', Or{'-', '+'}, Or{'-', '+', Empty}, Or{'+', Empty}, Eof},
-    expect={KW('hi'), KW('+'), KW('-'), EmptyNode, EofNode},
+    expect={KW('hi'), KW('+'), KW('-'), EMPTY, EOF},
     root=RootSpec{punc1=Set{'+', '-'}},
   }
 end)

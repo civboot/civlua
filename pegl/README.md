@@ -171,16 +171,16 @@ The root spec defines custom behavior for your spec and can be attached via
   strings) then hand-roll those as recursive-descent functions and leave
   this function alone.
 
-### Naitve Nodes: Token, EofNode, EmptyNode
+### Naitve Nodes: Token, EOF, EMPTY
 A token represents an actual span of text and has fields `l, c, l2, c2`
-which can be passed to `Parser:sub`.
-
-A token can also have a `kind` value.
+which can be passed to `Parser:sub`.  A token can also have a `kind` value.
 
 Other native nodes include:
 
-* EofNode: represents that the end of the file was reached.
-* EmptyNode: a non-match of the spec when that is allowed (`Or{..., Empty}`)
+* `Eof`: represents that the end of the file was reached: `{Many(expr), Eof}`
+  will return `EOF` when the end of the file is reached
+* `Empty`: always returns EMPTY: `Or{..., Empty}`
+  will return `EMPTY` if none of the `...` items matched.
 
 ### Keyword: raw string
 Any raw strings in the spec denotes a keyword. A "plain" match is performed and
@@ -192,8 +192,10 @@ pattern and the kind of `word` when matched.
 
 ### Or: choose one spec
 `Or{'keyword', OtherSpec, Empty}` will match one of the three specs given.  Note
-that `Empty` will always match (and return `EmptyNode`). Without `Empty` this
+that `Empty` will always match (and return `EMPTY`). Without `Empty` this
 could return `nil`, causing a parent `Or` to match a different spec.
+
+> `Maybe(spec)` literally expands to `Or{spec, Empty}`
 
 ### Sequence: raw table of ordered Specs
 `{'keyword', OtherSpec, Or{'key', Empty}}` will match the exact order

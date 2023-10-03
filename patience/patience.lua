@@ -1,3 +1,4 @@
+
 -- Patience diff
 --
 -- Thanks to https://blog.jcoglan.com/2017/09/19/the-patience-diff-algorithm/

@@ -12,7 +12,7 @@ local Pat, Or, Not, Many = pegl.Pat, pegl.Or, pegl.Not, pegl.Many
 local Empty, Eof = pegl.Empty, pegl.Eof
 local PIN, UNPIN = pegl.PIN, pegl.UNPIN
 
-local stmt = Or{kind='stmt'}
+local stmt = Or{name='stmt'}
 
 -- TODO: need decimal notation
 local num = Or{name='num',
@@ -20,12 +20,11 @@ local num = Or{name='num',
   Pat('[0-9]+', 'dec'),
 }
 
-local key = Key{name='key', {
+local keyW = Key{name='keyw', {
   'end', 'if', 'else', 'elseif', 'while', 'do', 'repeat', 'local', 'until',
   'then', 'function', 'return',
 }}
-local notKey = Not{key}
-local name = {UNPIN, notKey, Pat('[%a_]%w*', 'name')}
+local name = {UNPIN, Not{keyW}, Pat('[%a_][%w_]*', 'name')}
 
 -- uniary and binary operations
 op1 = Key{name='op1', {'-', 'not', '#'}}
@@ -56,23 +55,24 @@ op2 = Key{name='op2', {
 -- exp1 ::=  nil       |  false      |  true       |  ...        |
 --           Number    | unop exp    | String      | tbl         |
 --           function  | name
-local exp1 = Or{name='exp1', Key{{'nil', 'false', 'true', '...'}}, num};
+
+local exp1 = Or{name='exp1', Key{{'nil', 'false', 'true'}}, Pat'%.%.%.', num}
 add(exp1, {op1, exp1})
 
 local exp = {name='exp'}    -- defined just below
 add(exp1, {'(', exp, ')', kind='group'})
 
-local call     = Or{name='call'} -- function call (defined much later)
-local methcall = {':', name, call, kind='methcall'}
+local call     = Or{kind='call'} -- function call (defined much later)
+local methcall = {UNPIN, ':', name, PIN, call, kind='methcall'}
 local index    = {'[', exp, ']', kind='index'}
 local postexp  = Or{methcall, index, call}
-ds.extend(exp,      {exp1, Many{op2, exp1}, Many{postexp}})
+ds.extend(exp, {exp1, Many{ Or{postexp, {op2, exp}} }})
 
 -- laststat ::= return [explist1]  |  break
 -- block    ::= {stat [`;´]} [laststat[`;´]]
-local explist  = {exp, Many{',', exp}}
-local laststmt = Or{name='laststmt',
-  {'return', explist, kind='return'}, 'break'}
+local explist  = Maybe{exp, Many{',', exp}}
+local return_ = {'return', explist, kind='return'}
+local laststmt = Or{name='laststmt', return_, 'break'}
 local block = {name='block',
   Many{stmt, Maybe(';')},
   Maybe{laststmt, Maybe(';')}
@@ -106,9 +106,9 @@ local doubleStr = function(p) return quoteImpl(p, '"', '(\\*)"', 'doubleStr') en
 local bracketStrImpl = function(p)
   local l, c = p.l, p.c
   local start = p:consume('%[=*%['); if not start then return end
-  local pat = '%]'..string.rep('=', start.c2 - start.c1 - 1)..'%]'
+  local pat = '%]'..string.rep('=', start.c2 - start.c - 1)..'%]'
   while true do
-    local c1, c2 = p.line:find(pat, p.c)
+    local _, c2 = p.line:find(pat, p.c)
     if c2 then return Token{l=l, c=c, l2=p.l, c2=c2}
     else
       p:incLine()
@@ -155,7 +155,11 @@ ds.extend(call, {{'(', explist, ')'}, tbl, str})
 -- funcbody ::= `(´ [parlist1] `)´ block end
 -- function ::= `function` funcbody
 local namelist = {name, Many{',', name}}
-local parlist = Or{{namelist, Maybe{',', '...'}}, '...', Empty}
+local parlist = Or{
+  {name, Many{ ',', Or{name, Pat'%.%.%.'} }},
+  Pat'%.%.%.',
+  Empty
+}
 local fnbody = {'(', parlist, ')', block, 'end'}
 local fnvalue = {'function', fnbody, kind='fnvalue'}
 add(exp1, fnvalue)
@@ -163,15 +167,17 @@ add(exp1, name)
 
 -----------------
 -- Statement (stmt)
-local elseif_  = {'elseif', exp, 'then', block, kind='elseif'}
+local elseif_  = {'elseif', {kind='cond', exp}, 'then', block, kind='elseif'}
 local else_    = {'else', block, kind='else'}
-local funcname = {name, Many{'.', name}, Maybe{':', name}, kind='funcname'}
+local funcname = {name, Many{'.', name}, Maybe{UNPIN, ':', name}, kind='funcname'}
 
 -- varlist `=´ explist
 -- Check pass: check that all items in first explist are var-like
 local varset = {UNPIN, explist, '=', PIN, explist, kind='varset'}
 
 ds.extend(stmt, {
+  {Pat'::', name, Pat'::', kind='loc'},
+
   -- do block end
   {'do', block, 'end', kind='do'},
 
@@ -182,7 +188,8 @@ ds.extend(stmt, {
   {'repeat', block, 'until', exp, kind='repeat'},
 
   -- if exp then block {elseif exp then block} [else block] end
-  {'if', exp, 'then', block, Many{elseif_}, else_, kind='if'},
+  {'if', {kind='cond', exp}, 'then', block,
+    Many{elseif_}, Maybe(else_), 'end', kind='if'},
 
   -- for Name `=´ exp `,´ exp [`,´ exp] do block end
   {kind='fori',
@@ -228,9 +235,10 @@ local function skipComment(p)
 end
 
 local root = pegl.RootSpec{skipComment=skipComment}
+local src = {block, Eof}
 
 return {
-  root=root, src={Many{stmt}, Eof},
+  root=root, src=src,
   exp=exp, exp1=exp1, stmt=stmt,
   num=num, str=str,
   field=field,
