@@ -6,12 +6,10 @@ local M = {}
 
 ---------------------
 -- Order checking functions
-
 M.isWithin = function(v, min, max)
   local out = (min <= v) and (v <= max)
   return out
 end
-
 M.min = function(a, b) return (a<b) and a or b end
 M.max = function(a, b) return (a>b) and a or b end
 M.bound = function(v, min, max)
@@ -33,8 +31,6 @@ end
 ---------------------
 -- String Functions
 
-M.strLast = function(s) return s:sub(#s, #s) end
-
 --- return the first i characters and the remainder
 M.strDivide = function(s, i)
   return string.sub(s, 1, i), string.sub(s, i+1)
@@ -55,7 +51,6 @@ end
 M.trimWs  = function(s) return string.match(s, '^%s*(.-)%s*$') end
 M.explode = function(s) return M.matches(s, '.') end
 M.splitWs = function(s) return M.matches(s, "[^%s]+") end
-M.splitLines = function(s) return M.matches(s, '[^\n]*') end
 M.concatToStrs = function(t, sep)
   local o = {}; for _, v in ipairs(t) do add(o, tostring(v)) end
   return table.concat(o, sep)
@@ -72,20 +67,6 @@ M.diffCol = function(sL, sR)
   return nil
 end
 
-M.diffLineCol = function(linesL, linesR)
-  local i = 1
-  while i <= #linesL and i <= #linesR do
-    local lL, lR = linesL[i], linesR[i]
-    if lL ~= lR then
-      return i, assert(M.diffCol(lL, lR))
-    end
-    i = i + 1
-  end
-  if #linesL < #linesR then return #linesL + 1, 1 end
-  if #linesR < #linesL then return #linesR + 1, 1 end
-  return nil
-end
-
 ---------------------
 -- lines module
 
@@ -96,9 +77,8 @@ local function span(l, c, l2, c2)
   error'span must be 2 or 4 indexes: (l, l2) or (l, c, l2, c2)'
 end
 
--- TODO: remove M.splitLines and migrate ele.lcs -> ds.lines.span
-M.lines = {span=span, split=M.splitLines}
-
+M.lines = {span=span}
+function M.lines.split(s) return M.matches(s, '[^\n]*') end
 function M.lines.sub(t, ...)
   local l, c, l2, c2 = span(...)
   local len = #t
@@ -121,6 +101,20 @@ function M.lines.sub(t, ...)
     s = table.concat(s, '\n')
   end
   return s
+end
+
+function M.lines.diff(linesL, linesR)
+  local i = 1
+  while i <= #linesL and i <= #linesR do
+    local lL, lR = linesL[i], linesR[i]
+    if lL ~= lR then
+      return i, assert(M.diffCol(lL, lR))
+    end
+    i = i + 1
+  end
+  if #linesL < #linesR then return #linesL + 1, 1 end
+  if #linesR < #linesL then return #linesR + 1, 1 end
+  return nil
 end
 
 ---------------------
@@ -162,9 +156,9 @@ M.drain = function(t, len)
   return M.reverse(out)
 end
 
-M.getOrSet = function(t, k, new)
+M.getOrSet = function(t, k, newFn)
   local v = t[k]; if v then return v end
-  if new then v = new(t, k); t[k] = v end
+  if newFn then v = newFn(t, k); t[k] = v end
   return v
 end
 
@@ -178,12 +172,14 @@ M.getPath = function(d, path)
   return d
 end
 
-M.setPath = function(d, path, value)
+M.emptyTable = function() return {} end
+M.setPath = function(d, path, value, newFn)
+  local newFn = newFn or M.emptyTable
   local len = #path
   assert(len > 0, 'empty path')
   for i, k in ipairs(path) do
     if i >= len then break end
-    d = M.getOrSet(d, k, function() return {} end)
+    d = newFn(i, k)
   end
   d[path[len]] = value
 end

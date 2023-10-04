@@ -48,10 +48,6 @@ op2 = Key{name='op2', {
 -- recursion is fine ONLY if you make "progress" (attempt to parse some tokens)
 -- before you recurse.
 --
--- We don't have quite as much of a "complete" parsing here: a checking pass
--- will need to ensure that when you use `exp = exp` that the left-hand `exp`
--- is actually a valid variable (exp . name | exp [ exp ] | name).
---
 -- exp1 ::=  nil       |  false      |  true       |  ...        |
 --           Number    | unop exp    | String      | tbl         |
 --           function  | name
@@ -223,7 +219,6 @@ ds.extend(stmt, {
   {exp, kind='stmtexp'},
 })
 
-local bracketComment = function(p) return bracketStrImpl(p, '%-%-') end
 local function skipComment(p)
   if not p.line then return end
   local c, c2 = p.line:find('^%-%-', p.c)
@@ -238,11 +233,17 @@ local function skipComment(p)
   end
 end
 
-local root = pegl.RootSpec{skipComment=skipComment}
 local src = {block, Eof}
+local defaultRoot = pegl.RootSpec{skipComment=skipComment}
+local parse = function(dat, spec, root)
+  root = root or defaultRoot
+  if not root.skipComment then root.skipComment = skipComment end
+  return pegl.parse(dat, spec, root)
+end
 
 return {
-  root=root, src=src,
+  root=defaultRoot, src=src,
+  skipComment=skipComment,
   exp=exp, exp1=exp1, stmt=stmt,
   num=num, str=str,
   field=field,

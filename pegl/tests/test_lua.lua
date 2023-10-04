@@ -1,4 +1,4 @@
--- METATY_CHECK = true
+METATY_CHECK = true
 
 local ds = require'ds'
 local T = require'civtest'

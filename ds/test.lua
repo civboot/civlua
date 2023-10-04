@@ -5,7 +5,7 @@ local test, assertEq; mty.lrequire'civtest'
 
 local min, max, bound, isWithin, sort2, decAbs
 local indexOf, copy, deepcopy
-local strInsert, strLast, strDivide, trimWs, splitWs
+local strInsert, strDivide, trimWs, splitWs
 local pop, getOrSet, getPath, drain, reverse
 local eval
 local Set, LL, Duration, Epoch
@@ -14,7 +14,6 @@ mty.lrequire'ds'
 
 test("number", function()
   assert(0, decAbs(1)); assert(0, decAbs(-1))
-  assert('a', strLast('cba'))
 
   assert(1 == min(1, 3)); assert(-1 == min(1, -1))
   assert(3 == max(1, 3)); assert(1  == max(1, -1))
@@ -40,7 +39,6 @@ test("str", function()
   local a, b = strDivide('12345', 3)
   assertEq(a, '123'); assertEq(b, '45')
 
-  assertEq('', strLast'') assertEq('c', strLast'abc')
   assertEq('hi there', trimWs('  hi there\n '))
   assertEq('hi there', trimWs('hi there'))
   assertEq({'1', 'ab', 'c'}, splitWs('  1 \n ab c'))

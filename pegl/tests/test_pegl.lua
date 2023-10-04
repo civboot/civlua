@@ -1,4 +1,4 @@
--- METATY_CHECK = true
+METATY_CHECK = true
 
 local T = require'civtest'
 local ds = require'ds'
@@ -26,7 +26,6 @@ T.test('keywords', function()
     dat='hi+there',
     spec=Seq{'hi', '+', 'there', Eof},
     expect={KW('hi'), KW('+'), KW('there'), EOF},
-    root=RootSpec{punc1=Set{'+'}},
   }
 end)
 
@@ -56,7 +55,6 @@ T.test('or', function()
     dat='hi +-',
     spec={'hi', Or{'-', '+'}, Or{'-', '+', Empty}, Or{'+', Empty}, Eof},
     expect={KW('hi'), KW('+'), KW('-'), EMPTY, EOF},
-    root=RootSpec{punc1=Set{'+', '-'}},
   }
 end)
 

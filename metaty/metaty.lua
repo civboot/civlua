@@ -187,11 +187,13 @@ M.newChecked   = function(ty_, t)
   t = t or {}
   local fields, maybes = ty_.__fields, ty_.__maybes
   for field, v in pairs(t) do
+    if type(field) == 'number' then goto continue end
     M.assertf(fields[field], 'unknown field: %s', field)
     local vTy = M.ty(v)
     if not M.tyCheck(fields[field], vTy, maybes[field]) then
       M.errorf('[%s] %s', field, M.tyCheckMsg(fields[field], vTy))
     end
+    ::continue::
   end
   return setmetatable(t, ty_)
 end

@@ -10,9 +10,9 @@ local add, sfmt = table.insert, string.format
 local M = {}
 
 M.Token = mty.record'Token'
-  :field'kind'
   :field('l', 'number')  :field('c', 'number')
   :field('l2', 'number') :field('c2', 'number')
+  :fieldMaybe'kind'
 
 M.Token.__fmt = function(t, f)
   if t.kind then extend(f, {'Token(', t.kind, ')'})
@@ -30,7 +30,7 @@ M.RootSpec = mty.record'RootSpec'
 
 M.Parser = mty.record'Parser'
   :field'dat'
-  :field'l' :field'c' :field'line' :field'lines'
+  :field'l' :field'c' :fieldMaybe'line' :field'lines'
   :field('root', M.RootSpec)
   :field('stack', 'table')
   :fieldMaybe'stackLast'
@@ -67,13 +67,16 @@ local function newSpec(name, fields)
   local r = mty.record(name)
   r.__index = mty.indexUnchecked
   r.__fmt = M.fmtSpec
-  for _, args in ipairs(fields or {}) do r:field(table.unpack(args)) end
+  for _, args in ipairs(fields or {}) do
+    local n, t = table.unpack(args)
+    r:fieldMaybe(n, t)
+  end
   return r
 end
 
 local FIELDS = {
-  {'kind', 'string', false},
-  {'name', 'string', false}, -- for fmt only
+  {'kind', 'string'},
+  {'name', 'string'}, -- for fmt only
 }
 M.Pat = newSpec('Pat')
   :fieldMaybe'pattern' :fieldMaybe'kind' :fieldMaybe'name'

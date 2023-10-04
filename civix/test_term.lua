@@ -1,3 +1,4 @@
+METATY_CHECK = true
 
 local T = require'civtest'
 local term = require'civix.term'
