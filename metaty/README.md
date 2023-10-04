@@ -20,7 +20,7 @@ passed to `tostring`.
 
 metaty provides:
 
-* Type definitions: `record`, `Fn`, `rawTy`
+* Type definitions: `record`, `rawTy`
 * Easy equality checking (`eq`) and assertion (`assertEq`)
 * Better formatting for debugging: `fmt`, `pnt`, `Fmt`
 * Getting the type of an arbitrary object: `ty`
@@ -53,36 +53,13 @@ A.add = function(self, a)
     return A{a2=self.a2 + a.a2, a1=self.a1 + a.a1}
 end
 
--- define your own constructor with a custom metatable
-local C = record('C', {
-  __new=function(ty_, t)
-    t.field1 = 7
-    return mty.new(t, ty_) -- use metaty's default or your own
-  end,
-}
+-- define your own constructor
+local C = record('C'
   :field('field1', 'number')
-```
-
-#### Fn{... inputs}:out{... outputs}:apply(function ...)
-
-Specify (and optionally check) the types of a function.
-
-```lua
-local a2Add = Fn
-         {A,     'number'} -- input types
-:inpMaybe{false, true}     -- optional inputs (by index)
-:out     {'number'}        -- output types
-:apply(function(a, num)    -- register a function
-  return a.a2 + (num or 0)
+C:new(function(ty_, f1)
+  local t = {field1=f1}
+  return mty.new(t, ty_) -- use metaty's default or your own
 end)
-
-assertEq({A, 'number'}, ty(a2Add).inputs) -- retrieve the type
-
-local a = A{a1='hi', a2=4}
-assertEq(A, ty(a))
-assertEq(7, a2Add(a, 3)); assertEq(4, a2Add(a))
-
-a2Add(a, 'four') -- throws invalid type error at argument 2
 ```
 
 #### pnt(...)
@@ -146,7 +123,8 @@ pnt(num) -- "the lucky number is: 42\n"
 
 To enable runtime checking set the global value `METATY_CHECK = true` at
 the top of your application or test file (before executing any `require` calls).
-**Do not set it in library/module/etc files**.
+**Set in TEST files only, or main behind a developer flag. Do not set it in
+library/module/etc files**.
 
 > Note: For your application you may want to add `assert(not metaty.getCheck())`
 > after all your `require` calls to ensure type checking was disabled.
@@ -161,21 +139,3 @@ myType.__newindex = myNewIndex
 myType.__missing  = myMissing
 ty(myType).__call = myConstructor
 ```
-
-For function types you can get both checked and a non-checked version of the
-function like so
-
-```
--- assuming CHECK=true
-local function uncheckedFn() ... end
-local checkedFn = Fn{}:apply(uncheckedFn)
-assert(ty(uncheckedFn) == ty(checkedFn)) -- passes
-if metaty.isChecked()
-  -- checkedFn is "wrapped" with type checking
-  assert(uncheckedFn ~= checkedFn)
-else
-  -- same function w/out type checking
-  assert(uncheckedFn == checkedFn)
-end
-```
-
