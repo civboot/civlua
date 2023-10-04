@@ -1,23 +1,21 @@
-package = "civtest"
-version = "0.1-0"
+package = "metaty"
+version = "0.1-4"
 source = {
   url = "git+ssh://git@github.com/civboot/civlua.git",
-  dir = "civtest/",
-  tag = 'civtest-'..version,
+  dir = "metaty/",
+  tag = 'metaty-'..version,
 }
 description = {
   summary = "Simple but effective Lua type system using metatables",
-  homepage = "https://github.com/civboot/civlua/blob/main/civtest/README.md",
+  homepage = "https://github.com/civboot/civlua/blob/main/metaty/README.md",
   license = "UNLICENSE",
 }
 dependencies = {
   "lua ~> 5.3",
-  "metaty ~> 0.1",
-  "ds ~> 0.1",
 }
 build = {
   type = "builtin",
   modules = {
-    civtest = "civtest.lua",
+    metaty = "metaty.lua",
   },
 }
