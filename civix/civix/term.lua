@@ -187,6 +187,12 @@ M.size = function()
 end
 
 M.ATEXIT = {}
+M.exitRawMode = function()
+  local mt = getmetatable(M.ATEXIT); assert(mt)
+  mt.__gc()
+  setmetatable(M.ATEXIT, nil)
+  io.stdout = M.ATEXIT.stdout; io.stderr = M.ATEXIT.stderr
+end
 M.enterRawMode = function(stdout, stderr, enteredFn, exitFn)
   assert(stdout, 'must provide new stdout')
   assert(stderr, 'must provide new stderr')
@@ -195,9 +201,9 @@ M.enterRawMode = function(stdout, stderr, enteredFn, exitFn)
   assert(ok, msg); ok, msg = nil, nil
   local mt = {
     __gc = function()
+      if not getmetatable(M.ATEXIT) then return end
       M.clear()
       restoremode(SAVED)
-      io.stdout = M.ATEXIT.stdout; io.stderr = M.ATEXIT.stderr
       if exitFn then exitFn() end
    end,
   }
@@ -205,12 +211,6 @@ M.enterRawMode = function(stdout, stderr, enteredFn, exitFn)
   M.ATEXIT.stdout = io.stdout; M.ATEXIT.stderr = io.stderr
   io.stdout = stdout;          io.stderr = stderr
   setrawmode(); if enteredFn then enteredFn() end
-end
-M.exitRawMode = function()
-  local mt = getmetatable(M.ATEXIT); assert(mt)
-  mt.__gc()
-  setmetatable(M.ATEXIT, nil)
-  io.stdout = M.ATEXIT.r; io.stderr = M.ATEXIT.l
 end
 
 -- Term object

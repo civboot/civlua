@@ -178,7 +178,7 @@ M.setPath = function(d, path, value, newFn)
   local len = #path; assert(len > 0, 'empty path')
   for i, k in ipairs(path) do
     if i >= len then break end
-    d[k] = newFn(i, k); d = d[k]
+    d = M.getOrSet(d, k, newFn)
   end
   d[path[len]] = value
 end
