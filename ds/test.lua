@@ -6,7 +6,7 @@ local test, assertEq; mty.lrequire'civtest'
 local min, max, bound, isWithin, sort2, decAbs
 local indexOf, copy, deepcopy
 local strInsert, strDivide, trimWs, splitWs
-local pop, getOrSet, getPath, drain, reverse
+local pop, getOrSet, getPath, setPath, drain, reverse
 local eval
 local Set, LL, Duration, Epoch
 local lines
@@ -64,6 +64,12 @@ test("table", function()
   assertEq(7,   getPath({a={b=7}}, {'a', 'b'}))
   assertEq(nil, getPath({}, {'a', 'b'}))
   assertEq(nil, getPath({}, {'a', 'b'}))
+
+  local t = {}
+  setPath(t, {'a', 'b'}, 4); assertEq(4, t.a.b)
+  setPath(t, {'a', 'a', 'a'}, 5);   assertEq(5, t.a.a.a)
+  setPath(t, {'a', 'a', 'a'}, nil); assertEq(nil, t.a.a.a)
+  setPath(t, {'a', 'b'}, 4); assertEq(4, t.a.b)
 end)
 
 

@@ -175,11 +175,10 @@ end
 M.emptyTable = function() return {} end
 M.setPath = function(d, path, value, newFn)
   local newFn = newFn or M.emptyTable
-  local len = #path
-  assert(len > 0, 'empty path')
+  local len = #path; assert(len > 0, 'empty path')
   for i, k in ipairs(path) do
     if i >= len then break end
-    d = newFn(i, k)
+    d[k] = newFn(i, k); d = d[k]
   end
   d[path[len]] = value
 end
