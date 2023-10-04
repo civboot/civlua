@@ -8,6 +8,9 @@ It accomplishes this in a bit more than 500 lines of Lua code. Since it only
 uses metatables it can seamlessly interoperate with other Lua type solutions
 based on metatables.
 
+> For testing check out [civtest](../civtest/README.md) which has an `assertEq`
+> built on `metaty.eq`
+
 ## Why?
 
 Lua has a powerful metatable type system which can be leveraged to make rich
@@ -20,78 +23,87 @@ passed to `tostring`.
 
 metaty provides:
 
-* Type definitions: `record`, `rawTy`
-* Easy equality checking (`eq`) and assertion (`assertEq`)
-* Better formatting for debugging: `fmt`, `pnt`, `Fmt`
 * Getting the type of an arbitrary object: `ty`
+* Type definitions: `record`, `rawTy`
+* Easy equality checking (`eq`)
+* Better formatting for debugging: `fmt`, `pnt`, `Fmt`
+* More ergonomic imports: `lrequire`
 
 ## API
 
 The API for metaty is very small but drastically improves the ergonomics of
 developing for Lua.
 
-#### record(name, metatable=nil)
+### ty(val)
+If `type(val) ~= "table"` this returns the result: `"nil", "boolean", "number",
+"string"`
+
+Else it returns `getmetatable(val) or "table"`
+
+### record(name, metatable=nil)
 
 Defines a Record with fields and methods.
 
-This is similar to a struct or a class in other languages.
+```
+local Point = record'Point'
+  :field('x', 'number')
+  :field('y', 'number')
+  :fieldMaybe('z', 'number') -- can be nil
 
-```lua
-local mty = require'metaty'
-local record, ty = mty.record, mty.ty
-
-local A = record('A')
-  :field('a2', 'number')
-  :field('a1', 'string')
-local B = record('B')
-  :field('b1', 'number')
-  :field('b2', 'number', 32) -- default=32
-  :fieldMaybe('a', A) -- can be nil
-
--- Define methods
-A.add = function(self, a)
-    return A{a2=self.a2 + a.a2, a1=self.a1 + a.a1}
+-- constructor
+Point:new(function(ty_, x, y, z)
+  return metaty.new(ty_, {x=x, y=y, z=z})
 end
-
--- define your own constructor
-local C = record('C'
-  :field('field1', 'number')
-C:new(function(ty_, f1)
-  local t = {field1=f1}
-  return mty.new(t, ty_) -- use metaty's default or your own
-end)
 ```
 
-#### pnt(...)
+This is similar to a struct or a class in other languages. It is implemented as
+a thin wrapper over a regular table using Lua's `setmetatable` where the
+metatable is simply the record returned by `record'name'` (with whatever
+`:field'name'`'s and `.method = function(self)...end` are set to it).
 
-`metaty.pnt(...)` is a much better print function. It not only prints values
-using their `__fmt` method, it also prints tables in a clean and readable way.
+The record type (aka value metatable) has these fields set:
+* `__name`: type name for formatting
+* `__fields`: field types AND ordering by name (for formatting)
+* `__index`: allows for method lookup from the record metatable. When type
+  checking is enabled also checks `myRecord.field` types, etc.
+* `__fmt`: function(self, fmt) used for formatting the type
+* `__tostring`: by default calls `__fmt` to get the string.
+* `metatable.__call`: the type's constructor, override with `:new(function)`
+
+These are only used when type checking is enabled:
+* `__maybes`: map of optional fields (allows `nil` values)
+* `__newindex`: (optional) type checking for `myRecord[v]=field`
+* `__missing`: (optional) function to call when a field is missing
+
+> Note: Records have no concept of inheritance, but you could build inheritance
+> through the `__check` method (used by `metaty.tyCheck`)
+
+### pnt(...)
+
+`metaty.pnt(...)` is a much better `print(...)` function.
+
+* Uses `io.stdout` (`print` does NOT as of Lua 5.3)
+* prints tables using their `__fmt` method and prints raw tables in a readable
+  way.
+* Use `ppnt(...)` for quick and easy pretty printing
 
 ```lua
 pnt = require 'metaty'.pnt
 pnt({1, 2, 3, foo='bar', baz='true'})
 -- {1,2,3 :: foo=bar baz="true"}
-```
-
-#### assertEq(expect, result, pretty=true)
-
-asserts two values are equal. If not then prints them out (formatted)
-side-by-side and calls `error`.
-
-```
-assertEq({1, 2, x=7, y='true'}, {1, 2, x=7, y=true})
--- ! Values not equal:
--- ! EXPECT: {
---   1,2 :: y="true"
---   x=7
--- }
--- ! RESULT: {
---   1,2 :: y=true
---   x=7
+ppnt{a=5, b=7}
+-- {
+--   a=5,
+--   b=7,
 -- }
 ```
 
-#### fmt(value, set=nil) and Fmt{set=FmtSet{... settings}}
+### eq(a, b)
+
+`metaty.eq` compares two values. If both are raw tables or are the same `ty` it
+does a deep comparison of their keys/indexes.
+
+### fmt(value, set=nil) and Fmt{set=FmtSet{... settings}}
 
 All records have a default `__fmt` method defined which is used by `fmt`
 function and `Fmt` object, etc.
@@ -114,6 +126,27 @@ end
 
 num = LuckyNumber{a=42}
 pnt(num) -- "the lucky number is: 42\n"
+```
+
+### lrequire'module'
+`lrequire` walks the local stack, setting nil slots to matching names from the
+module.
+
+```
+-- Get a, b, and c from myModule into locals.
+local a, b, c; metaty.lrequire'myModule'
+
+-- vs
+local mm = require'myModule'
+local a, b, c = mm.a, mm.b, mm.c
+```
+
+`lrequire` also returns an index and takes an index as its second argument for
+minor speed increase. This should be basically never necessary.
+
+```
+local d, e; local i = metaty.lrequire'other'
+local f, g; metaty.lrequire('other', i)
 ```
 
 ## Runtime type checking (optional)

@@ -224,9 +224,6 @@ end
 -- __maybes: map of optional fields
 --
 -- And the following methods:
---   new:        function to set constructor (__call on metatable)
---   field:      add field (with runtime-ty and default) to the record
---   fieldMaybe: add optional-field to the record
 --   __index:    instance method lookup and (optional) type checking
 --   __newindex: (optional) instance set=field type checking
 --   __missing:  (optional) instance missing-field type checking
