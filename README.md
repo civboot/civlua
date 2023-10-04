@@ -17,14 +17,15 @@ might be:
 * [pegl](./pegl/README.md): recursive descent parsing language (430 LoC `pegl.lua`)
   * PEG-like but Lua-only syntax
   * 214 LoC for Lua's syntax definition (`./pegl/pegl/lua.lua`)
-* [ele](./ele/README.md): Extendable Lua Editor
-  * Modal, similar to Vim
-  * Currently incomplete, but 2181 LoC with core functionality
 
 > LoC are from 2023-10-03 using `tokei ?/?.lua ?/?/` where `?` is the folder name
 
 ## Work In Progress
 
+* [ele](./ele/README.md): Extendable Lua Editor
+  * Modal, similar to Vim
+  * Currently incomplete, but 2181 LoC with core functionality
+* [shim](./shim/README.md): write scripts for Lua, execute for shell.
 * `patience/` is to implement a patience diff, be patient!
 
 ## LICENSE
