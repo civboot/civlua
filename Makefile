@@ -7,6 +7,7 @@ all: test
 
 test:
 	mkdir -p out/
+	lua shim/test.lua --test=test.lua
 	lua metaty/test.lua
 	lua civtest/test.lua
 	lua ds/test.lua

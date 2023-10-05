@@ -1,36 +1,63 @@
 # shim: write scripts for Lua, execute from shell
 
-`shim` is a tiny Lua module that converts a list of (shell) arguments into a Lua
-table. It follows standard shell conventions.
+`shim` is a tiny Lua module that makes it easy to write command line utilities
+in Lua without having to worry about it.
 
-Example:
+At it's core it:
+1. Detects whether your Lua script was executed directly
+2. Parses the list of (shell) arguments into a simple Lua table and passes it to
+   the `exe` function you give it.
 
+For example:
 ```
-mycmd a b c --foo=bar --baz --foo --name bob
-```
+local shim = require'shim'
+local M = {} -- normal module conventions
 
-Will be the following after shim.parse(args)
-```
-{'a', 'b', 'c', foo={bar, true}, baz=true, name='bob'}
-```
+-- implement file listing in lua
+M.ls = function(args, exe) ...  end
 
-In your script's `main.lua` you then call `shim{main=main}` and it will run your
-script if and only if your script was called by bash (arg[0] == your script
-name).
-
-```
-local function main(args)
-  local t = shim.parse(args)
-  ... your main function
-end
+-- Execute `exe` if this file was executed directly by bash.
+-- Otherwise, this is a noop.
 shim {
-  doc="my doc string",
-  main=main,
+  help="list entries at a path ... and other docs",
+  exe=M.ls,
 }
+
+return M
 ```
 
-Shim also provides a few convinience methods that one can use for duck-typing:
+If the user passes the following to your script then
+they get the lua table shown
+```
+lua ls.lua some/path  other/path  --time     --size=Mib
+        {'some/path', 'other/path', time=true, size='MiB'}
+```
 
-* `shim.num(v)`: if `v` is not a number returns `tonumber(v)`
-* `shim.list(v)`: if `v` is not a table returns `{v}`
-* `shim.auto(ty_, v)`: if `ty(v) == 'table'` then converts with `ty_(v)`
+You can use the other shim functions (`number`, `list`, etc) to help deal with
+the dynamic duck typing problem of dealing with shell vs lua.
+
+API:
+
+* `shim{help=, exe=}` to auto-execute `exe` iff the script is called directly
+  (i.e. `lua ls.lua`). If help is set and the user passes `--help` then the
+  help message will be printed and the program will quit.
+* `isExe(depth)` returns whether this script was called directly. Must call at
+  the main level or set depth appropriately.
+* `parse(args)` parse a list of string arguments to the shim table. Note that
+  calling `shim` directly does this for you using the global `arg` value.
+
+The following help with duck (dynamic) types, since your `exe` function won't
+know whether it receives only string values (if called from shell) or proper lua
+values (when called from lua).
+
+* `boolean(val)`: convert val to a boolean.
+  * `'true'  'yes' '1' true` return `true`
+  * `'false' 'no'  '0' false nil` return `false`
+* `number(num)`: if num is not a number then return `tonumber(num)`
+* `list(val)`: if val is not a table then return `{val}`
+* `listSplit(val, sep)`: split `val` into a list using `sep`. If `val` is
+  already a list then split all the elements and flatten them.
+* `new(ty, val)` if val does not have a `getmetatable` then return `ty(val)`
+  * Note: strings DO have a metatable
+  * This is primarily used with libraries like `metaty`
+
