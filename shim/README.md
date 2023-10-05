@@ -1,9 +1,11 @@
 # shim: write scripts for Lua, execute from shell
 
 `shim` is a tiny Lua module that makes it easy to write command line utilities
-in Lua without having to worry about it.
+in Lua without having to worry about it.  The main benefit (besides a wicked
+simple argument parsing) is that your Lua function can be **either** called
+directly in Lua or via a bash command, with very little overhead or complexity.
 
-At it's core it:
+At its core shim:
 1. Detects whether your Lua script was executed directly
 2. Parses the list of (shell) arguments into a simple Lua table and passes it to
    the `exe` function you give it.
@@ -13,8 +15,10 @@ For example:
 local shim = require'shim'
 local M = {} -- normal module conventions
 
--- implement file listing in lua
-M.ls = function(args, exe) ...  end
+-- Implement file listing in lua.
+-- You will probably want to write the result to `io.stdout` or
+-- similar if `isExe=true`
+M.ls = function(args, isExe) ...  end
 
 -- Execute `exe` if this file was executed directly by bash.
 -- Otherwise, this is a noop.
@@ -26,11 +30,10 @@ shim {
 return M
 ```
 
-If the user passes the following to your script then
-they get the lua table shown
+Then when the user calls your script you get the following:
 ```
 lua ls.lua some/path  other/path  --time     --size=Mib
-        {'some/path', 'other/path', time=true, size='MiB'}
+# args = {'some/path', 'other/path', time=true, size='MiB'}
 ```
 
 You can use the other shim functions (`number`, `list`, etc) to help deal with

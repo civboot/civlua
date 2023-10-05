@@ -8,6 +8,7 @@ pick and choose the pieces they want to use for their own projects.
 See the sub-directories for the individual documentation. A suggested order
 might be:
 
+* [shim](./shim/README.md): write scripts for Lua, execute from shell (57 LoC)
 * [metaty](./metaty/README.md): runtime type specification and checking (457 LoC)
   * Auto type formatting
   * Auto type equality (depth comparison)
@@ -25,7 +26,6 @@ might be:
 * [ele](./ele/README.md): Extendable Lua Editor
   * Modal, similar to Vim
   * Currently incomplete, but 2181 LoC with core functionality
-* [shim](./shim/README.md): write scripts for Lua, execute for shell.
 * `patience/` is to implement a patience diff, be patient!
 
 ## LICENSE
