@@ -1,6 +1,29 @@
+local shim = require'shim'
 local mty = require'metaty'
 local term = require'civix.term'
-local model = require'ele.model'
+local sfmt = string.format
+
+local dir = debug.getinfo(1).source:sub(2, -1-#'ele.lua')
+local function load(name, path)
+  assert(not package.loaded[name], name)
+  local p = dofile(dir..path); package.loaded[name] = p
+  return p
+end
+
+load('ele.FakeTerm', 'ele/FakeTerm.lua')
+load('ele.data',     'ele/data.lua')
+
+load('ele.motion',   'ele/motion.lua')
+load('ele.gap',      'ele/gap.lua')
+load('ele.types',    'ele/types.lua')
+load('ele.buffer',   'ele/buffer.lua')
+
+load('ele.keys',     'ele/keys.lua')
+load('ele.window',   'ele/window.lua')
+load('ele.edit',     'ele/edit.lua')
+load('ele.action',   'ele/action.lua')
+load('ele.bindings', 'ele/bindings.lua')
+local model = load('ele.model',    'ele/model.lua')
 
 local M = {}
 M.main = function()
@@ -11,6 +34,9 @@ M.main = function()
   mdl:app()
 end
 
-M.main()
+shim{
+  help='ele: the extendable lua text editor',
+  exe=M.main,
+}
 
 return M

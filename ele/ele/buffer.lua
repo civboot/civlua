@@ -1,8 +1,8 @@
 local mty = require'metaty'
 local ds = require'ds'
+local motion  = require'ele.motion'
 local gap  = require'ele.gap'
 local T = require'ele.types'
-local motion  = require'ele.motion'
 
 local M = {}
 local add = table.insert

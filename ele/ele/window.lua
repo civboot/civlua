@@ -207,7 +207,7 @@ Window.forceDim=function(w, dimFn, sc)
     elseif sc then return 0, 0 end
   end; return fd, n
 end
-forceWidth= function(w)
+Window.forceWidth= function(w)
   if w.kind == 'h' then return w:forceDimMax('forceWidth') end
   return  w:forceDim('forceWidth', true)
 end

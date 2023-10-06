@@ -11,7 +11,8 @@ local term = require'civix.term'
 local T = require'ele.types'
 local window = require'ele.window'
 local data = require'ele.data'
-local action = require'ele.action'; A = action.Actions
+local action = require'ele.action'
+local A = action.Actions
 local FakeTerm = require'ele.FakeTerm'
 
 local add = table.insert
@@ -270,7 +271,7 @@ end)
 
 ------------
 -- Test D C modline
-MODLINE_0 = '12345\n8909876'
+local MODLINE_0 = '12345\n8909876'
 test('modLine', function()
   local m = mockedModel(2, 8, MODLINE_0)
   local e, t = m.edit, m.term
@@ -293,7 +294,7 @@ end)
 
 ------------
 -- Test d delete
-DEL = '12 34+56\n78+9'
+local DEL = '12 34+56\n78+9'
 test('deleteChain', function()
   local m = mockedModel(1, 8, '12 34 567')
   local e, t = m.edit, m.term; e.l, e.c = 1, 1
@@ -336,7 +337,7 @@ end)
 
 ------------
 -- Test /search
-SEARCH_0 = '12345\n12345678\nabcdefg'
+local SEARCH_0 = '12345\n12345678\nabcdefg'
 test('modLine', function()
   local m = mockedModel(3, 9, SEARCH_0)
   local e, t, s, sch = m.edit, m.term, m.statusEdit, m.searchEdit
@@ -382,7 +383,7 @@ assertEq([[
   stepKeys(m, 'N'); assertEq(1, e.l); assertEq(1, e.c)
 end)
 
-UNDO_0 = '12345'
+local UNDO_0 = '12345'
 test('undo', function()
   local m = mockedModel(1, 9, UNDO_0)
   local e, t, s, sch = m.edit, m.term, m.statusEdit, m.searchEdit

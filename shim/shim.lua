@@ -1,4 +1,4 @@
-local add = table.insert
+local add, sfmt = table.insert, string.format
 local M = {}
 
 local function addKV(t, k, v)
@@ -70,12 +70,43 @@ end
 -- such as metaty types.
 function M.new(ty, val) return getmetatable(val) and val or ty(val) end
 
+local function invalid(msg)
+  io.stderr:write(msg); io.stderr:write'\n'
+  io.stderr:write(DOC)
+  os.exit(1)
+end
+
+local function checkHelp(sh, args, subs)
+  if sh.help and args.help == true then
+    print(sh.help);
+    if subs then
+      print('Subcommands:\n')
+      local t = {}; for k in pairs(subs) do table.insert(t, k) end
+      table.sort(t)
+      for _, s in ipairs(t) do print('  '..s) end
+    end
+    os.exit(0)
+  end
+end
+
 return setmetatable(M, {
   __call=function(ty_, sh)
     if not _G.arg or not M.isExe(1) then return end
-    local t = M.parse(arg)
-    if sh.help and t.help == true then print(sh.help)
-    else                               sh.exe(t, true) end
+    local args = M.parse(arg)
+    local exe = sh.exe; if exe then
+      assert(not sh.subs, 'choose exe or subs')
+      checkHelp(sh, args)
+    else
+      assert(sh.subs, 'app did not specify exe or subs')
+      if not args[1] then
+        checkHelp(sh, args, sh.subs)
+        invalid'Error: must specify a subcommand.'
+      end
+      exe = sh.subs[args[1]]
+      if not exe then invalid(sfmt('Error: unknown subcommand %q', args[1])) end
+      table.remove(args, 1)
+    end
+    exe(args, true)
     os.exit(0)
   end,
 })

@@ -45,5 +45,5 @@ end)
 
 assert(M.isExe())
 M{exe=function(t)
-  assert(t.test == 'test.lua')
+  assert(t.test == 'test.lua', tostring(t.test))
 end}
