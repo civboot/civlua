@@ -57,14 +57,18 @@ M.assertMatch = function(expectPat, result)
   end
 end
 
+function M.assertGlobals(prevG)
+  local newG = {}; for k in pairs(_G) do
+    if prevG[k] == nil then add(newG, k) end
+  end
+  if #newG ~= 0 then error("New globals: "..mty.fmt(newG)) end
+end
+
 M.test = function(name, fn)
   local ge = ds.copy(_G)
   print('# Test', name)
   fn()
-  local newG = {}; for k in pairs(_G) do
-    if nil == ge[k] then add(newG, k) end
-  end
-  if #newG ~= 0 then error("New globals: "..mty.fmt(newG)) end
+  M.assertGlobals(ge)
 end
 
 -- Globally require a module. ONLY FOR TESTS.

@@ -1,12 +1,18 @@
 METATY_CHECK = true
 
+local mty = require'metaty'
 local ds = require'ds'
 local T = require'civtest'
-T.grequire'pegl'
-T.grequire'pegl.lua'
 
-local KW = testing.KW
-local N  = testing.N
+local RootSpec, Token
+local testing, EMPTY, EOF, assertParse, assertParseError, parseStrs
+local lua = mty.lrequire'pegl'
+
+local num, str, exp1, exp, field, varset
+local root, src
+local M = mty.lrequire'pegl.lua'
+
+local KW, N = testing.KW, testing.N
 local SRC = function(...) return {..., EMPTY, EMPTY, EOF} end
 
 T.test('easy', function()

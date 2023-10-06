@@ -1,12 +1,17 @@
 METATY_CHECK = true
 
+local mty = require'metaty'
 local T = require'civtest'
 local ds = require'ds'
-T.grequire'pegl'
 local Set = ds.Set
 
-local KW = function(kw) return {kw, kind=kw} end
-local K  = function(k)  return {k, kind='key'} end
+local RootSpec, Key
+local Pat, Or, Not, Many, Maybe, Seq
+local Empty, Eof, PIN, UNPIN
+local testing, EMPTY, EOF, assertParse, assertParseError
+local pegl = mty.lrequire'pegl'
+
+local KW, N = testing.KW, testing.N
 
 T.test('keywords', function()
   assertParse{

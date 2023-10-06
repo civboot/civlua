@@ -3,14 +3,14 @@
 -- I used http://parrot.github.io/parrot-docs0/0.4.7/html/languages/lua/doc/lua51.bnf.html
 -- as a reference
 
+local mty = require'metaty'
 local ds  = require'ds'
-local pegl = require'pegl'
 local add = table.insert
 
-local Key = pegl.Key
-local Pat, Or, Not, Many = pegl.Pat, pegl.Or, pegl.Not, pegl.Many
-local Empty, Eof = pegl.Empty, pegl.Eof
-local PIN, UNPIN = pegl.PIN, pegl.UNPIN
+local Key
+local Pat, Or, Not, Many, Maybe
+local Token, Empty, Eof, PIN, UNPIN
+local pegl = mty.lrequire'pegl'
 
 local stmt = Or{name='stmt'}
 
@@ -27,8 +27,8 @@ local keyW = Key{name='keyw', {
 local name = {UNPIN, Not{keyW}, Pat('[%a_][%w_]*', 'name')}
 
 -- uniary and binary operations
-op1 = Key{name='op1', {'-', 'not', '#'}}
-op2 = Key{name='op2', {
+local op1 = Key{name='op1', {'-', 'not', '#'}}
+local op2 = Key{name='op2', {
   -- standard binops
   '+', '-', '*', '/', '^', '%', 'and', 'or',
   ['.'] = {true, '.'},                      -- .    ..

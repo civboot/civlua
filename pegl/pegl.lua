@@ -375,7 +375,7 @@ end
 
 M.assertParse=function(t) -- {dat, spec, expect, dbg=false, root=RootSpec{}}
   assert(t.dat, 'dat'); assert(t.spec, 'spec')
-  local root = t.root or RootSpec{}
+  local root = t.root or M.RootSpec{}
   root.dbg   = t.dbg or root.dbg
   local result = M.parseStrs(t.dat, t.spec, root)
   if not t.expect and t.parseOnly then return end
@@ -409,7 +409,7 @@ M.Parser.new = function(dat, root)
   dat = defaultDat(dat)
   return M.Parser{
     dat=dat, l=1, c=1, line=dat[1], lines=#dat,
-    root=root or RootSpec{},
+    root=root or M.RootSpec{},
     stack={},
     commentLC={},
   }
