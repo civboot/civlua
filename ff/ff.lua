@@ -2,18 +2,16 @@ local DOC = [[ff: find+fix files
 ff is a simple utility to find and fix files and file-content.
 
 Examples (bash):
-  ff path                   # print files at path (recursively
+  ff path                   # print files at path (recursively)
   ff path --dir             # also print directories
-  ff path --depth=3         # limit depth
-  ff path --pat='my%s+name' # find pattern like "my  name" in files at path
+  ff path --depth=3         # recurse to depth 3 (default=1)
+  ff path --depth=          # recurse infinitely (depth=nil)
+  ff path --pat='my%s+name' # find Lua pattern like "my  name" in files at path
   ff path --pat='my%s+name' --matches=false  # print paths with match only
-  ff path --pat='(name=).+ --sub='%1bob' # change name=anything to name=bob
-
-It finds utilties within the given paths using the `pat` and `fpat` arguments,
-which are standard lua patterns.  It fixes files by substituting values in
-their name or contents using the `fsub` and `sub` arguments.  These follow
-Lua's `string.find` and `string.gsub` conventions regarding patterns and group
-matches.
+  ff path --pat='(name=)%S+' --sub='%1bob' # change name=anything to name=bob
+  # add `--mut` to actually change the file contents
+  ff path --fpat='%.txt'    # filter to .txt files
+  ff path --fpat='(.*)%.txt' --fsub='%1.md'  # rename all .txt -> .md
 
 List arguments:
   path path2 path3 ...: list of paths to find/fix
@@ -86,7 +84,10 @@ local function _fileFn(path, args, out)
   end
 
   local pat, sub = args.pat, args.sub;
-  if not pat then return end
+  if not pat then
+    if args.mut and to then civix.mv(path, to) end
+    return
+  end
   for line in io.open(path, 'r'):lines() do
     local m = line:find(pat); if not m then
       if f then wln(f, line) end
@@ -112,6 +113,7 @@ local function _fileFn(path, args, out)
 end
 
 function M.findfix(args, out)
+  if #args == 0 then add(args, '.') end
   if args.sub then
     assert(args.pat, 'must specify pat with sub')
     assert(not args.fsub, 'cannot specify both sub and fsub')
@@ -122,22 +124,24 @@ function M.findfix(args, out)
     dirs    = args.dirs    and {} or nil,
     matches = args.matches and {} or nil,
   }
-  args.depth   = shim.number(args.depth or 1)
+  if args.depth ~= nil then args.depth = shim.number(args.depth or 1) end
   args.files   = shim.boolean(args.files   or true)
   args.matches = shim.boolean(args.matches or true)
+  args.dirs    = shim.boolean(args.dirs)
   args.dpre    = args.dpre or '\n'
-  if args.files == nil then args.files = true end
 
   civix.walk(
     args,
     function(path, depth) return _fileFn(path, args, out) end,
-    function(path, depth) return _dirFn(path, args, out.dirs) end
+    function(path, depth) return _dirFn(path, args, out.dirs) end,
+    args.depth
   )
   return out
 end
 
 function M.exe(args, isExe)
   assert(isExe)
+  if args.depth == '' then args.depth = nil end
   args.log = io.stdout
   M.findfix(args, {})
 end

@@ -21,7 +21,7 @@ function M.parse(args)
   local t = {}
   for i, arg in ipairs(args) do
     if arg:find'^%-%-[^-]+' then
-      local k, v = arg:match('(.-)=(.+)', 3)
+      local k, v = arg:match('(.-)=(.*)', 3)
       if k then addKV(t, k, v)
       else      addKV(t, arg:sub(3), true) end
     else        add(t, arg) end
