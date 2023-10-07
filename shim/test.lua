@@ -8,6 +8,8 @@ T.test('parse', function()
   T.assertEq({'a', 'b', c='42'}, parse{'a', '--c=42', 'b'})
   T.assertEq({c={'1', '2'}}, parse{'--c=1', '--c=2'})
   T.assertEq({c={'1', '2', '3'}}, parse{'--c=1', '--c=2', '--c=3'})
+
+  T.assertEq({a=true, b=true, c='foo', parse{'-ab', '--c=foo'}})
 end)
 
 T.test('list', function()

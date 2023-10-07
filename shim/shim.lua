@@ -20,7 +20,11 @@ assert(not M.isExe(), "Don't call shim directly")
 function M.parse(args)
   local t = {}
   for i, arg in ipairs(args) do
-    if arg:find'^%-%-[^-]+' then
+    if arg:find'^%-%w+' then
+      for c in arg:sub(2):gmatch('.') do
+        addKV(t, c, true)
+      end
+    elseif arg:find'^%-%-[^-]+' then
       local k, v = arg:match('(.-)=(.*)', 3)
       if k then addKV(t, k, v)
       else      addKV(t, arg:sub(3), true) end
@@ -35,23 +39,29 @@ local BOOLS = {
 }
 
 -- Duck type: always return a boolean. See BOOLS (above) for mapping.
--- Note: nil -> false
+-- Note: nil -> nil
 function M.boolean(v)
-  if v == nil then return false end
+  if v == nil then return nil end
   local b = BOOLS[v] if b ~= nil then return b end
   error('invalid boolean: '..tostring(v))
 end
 
 -- Duck type: always return a number
 function M.number(num)
+  if num == nil then return nil end
   return (type(num)=='number') and num or tonumber(num)
 end
 
 -- Duck type: always return a list.
-function M.list(val, sep) return (type(val) == 'table') and val or {val} end
+function M.list(val, sep)
+  if val == nil then return {} end
+  return (type(val) == 'table') and val or {val}
+end
 
 -- Duck type: split a value or (flattened) list of values
+-- nil results in an empty list
 function M.listSplit(val, sep)
+  if val == nil then return {} end
   sep = '[^'..(sep or '%s')..']+'; local t = {}
   if type(val) == 'string' then
       for m in val:gmatch(sep) do add(t, m) end
@@ -68,7 +78,10 @@ end
 --
 -- This is primarily used for types which have a __call constructor,
 -- such as metaty types.
-function M.new(ty, val) return getmetatable(val) and val or ty(val) end
+function M.new(ty, val)
+  if val == nil then return end
+  return getmetatable(val) and val or ty(val)
+end
 
 local function invalid(msg)
   io.stderr:write(msg); io.stderr:write'\n'

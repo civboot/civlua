@@ -1,11 +1,8 @@
 #!/usr/bin/lua
+METATY_CHECK = true
+METATY_DOC   = true
 DOC = [[civ: bundled Civboot applications.
 
-Bash recommendation: `alias ,=/path/to/civ.lua`
-Now execute sub-commands with:
-  , find --dir --pat 'some pattern'
-
-Note: This is a self-loading Lua module, just execute and it runs!
 ]]
 local M = {}
 

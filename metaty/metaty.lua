@@ -41,6 +41,8 @@ local NATIVE_TY_GET = {
   number       = function()  return 'number'  end,
   string       = function()  return 'string'  end,
   table        = function(t) return getmetatable(t) or 'table' end,
+  userdata = function()      return 'userdata' end,
+  thread   = function()      return 'thread'   end,
 }
 
 local NATIVE_TY_CHECK = {}; for k in pairs(NATIVE_TY_GET) do
@@ -145,6 +147,7 @@ end
 -- __index function for most types
 -- Set metatable.__missing to type check on missing keys.
 M.indexChecked = function(self, k) --> any
+  if type(k) == 'number' then return rawget(self, k) end
   local mt = getmetatable(self)
   local x = rawget(mt, k); if x ~= nil then return x end
   x = rawget(mt, '__missing')
@@ -423,6 +426,8 @@ local SAFE = {
     end; if prev then add(f, prev) end
   end,
   table=M.tblFmtSafe,
+  userdata = function(u, f) add(f, tostring(u)) end,
+  thread   = function(c, f) add(f, tostring(c)) end,
 }
 
 M.safeToStr = function(v, set) --> string
