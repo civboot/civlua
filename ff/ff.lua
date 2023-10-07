@@ -28,6 +28,9 @@ Key arguments:
   log: In Lua this is the file handle to print results to.
        In shell this is ignored (always io.stdout)
 
+  fpre: prefix characters before printing files
+  dpre: prefix characters before printing directories
+
 Prints:
   In shell writes the file paths and possibly dir paths depending on files/dirs
   settings. In Lua writes nothing unless `log` is specified.
@@ -44,27 +47,29 @@ local ds = require'ds'
 local civix = require'civix'
 local add = table.insert
 
-local function wln(f, msg) f:write(msg); f:write'\n' end
+local function wln(f, msg, pre)
+  if pre then f:write(pre) end; f:write(msg); f:write'\n'
+end
 
 local function _dirFn(path, args, dirs)
   if args.dpat and not path:find(args.dpat) then return 'skip' end
   if args.dirs then
-    if args.log then args.log:write'\n'; wln(args.log, path) end
+    if args.log then wln(args.log, path, args.dpre) end
     if dirs then add(dirs, path) end
   end
 end
 
 local function _fileFn(path, args, out)
-  local log = args.log
+  local log, pre = args.log, args.fpre
   if args.fpat and not path:find(args.fpat) then return end
   if args.files then
-    if log and not args.fsub then wln(log, path) end
+    if log and not args.fsub then wln(log, path, pre) end
     if out.files then add(out.files, path) end
   end
   local to, text = nil, nil
   if args.fsub then to = path:gsub(args.fpat, args.fsub) end
   if to and args.files then
-    if log then wln(log, to) end
+    if log then wln(log, to, pre) end
     if to and out.mvfiles then add(out.mvfiles, to) end
   end
 
@@ -78,9 +83,9 @@ local function _fileFn(path, args, out)
       if f then wln(f, line) end
       goto continue
     end
-    line = (sub and line:gsub(pat, sub)) or sub
+    line = (sub and line:gsub(pat, sub)) or line
     if args.matches then
-      if log then wl(log, line) end
+      if log then wln(log, line) end
       if out.matches then add(out.matches, line) end
      end
      if f then wln(f, line) end
@@ -102,6 +107,7 @@ function M.findfix(args, out)
   args.depth = shim.number(args.depth or 1)
   shim.default(args, 'files', true)
   shim.default(args, 'matches', true)
+  shim.default(args, 'dpre', '\n')
   if args.files == nil then args.files = true end
 
   civix.walk(
