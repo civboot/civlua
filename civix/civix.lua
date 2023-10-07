@@ -1,5 +1,6 @@
 local mty = require'metaty'
 local ds = require'ds'
+local add, concat, sfmt = table.insert, table.concat, string.format
 
 local M = {
   std_r = 0, std_w = 1, std_lw = 2,
@@ -14,6 +15,15 @@ if M.posix then
   assert(M.std_lw == M.posix.fileno(io.stderr))
 end
 
+-------------------------------------
+-- Utility
+
+-- quote the str if it's possible
+M.quote = function(str)
+  if string.find(str, "'") then return nil end
+  return "'" .. str .. "'"
+end
+
 -- execute a command using lua's io.popen(c, 'r')
 -- return (read('*a'), {close()})
 -- if noCheck is falsy (default) asserts the command succeeds.
@@ -22,13 +32,6 @@ M.lsh = function(c, noCheck)
   local o, r = f:read('*a'), {f:close()}
   assert(r[1] or noCheck, r[2])
   return o, r
-end
-
-local add, concat = table.insert, table.concat
-local function asStr(v)
-  if 'table' == type(v) then        return concat(v)
-  elseif 'userdata' == type(v) then return v:read('*a') end
-  return v
 end
 
 -- "global" shell settings
@@ -53,6 +56,53 @@ M.epoch = function()
     assert(s); assert(ns)
     return ds.Epoch(s, ns)
   else return ds.Epoch(tonumber((M.lsh'date +%s.%N'))) end
+end
+
+-------------------------------------
+-- Core Filesystem
+
+local function qp(p)
+  return mty.assertf(M.quote(p), 'path cannot contain "\'": %s', p)
+end
+
+-- walk the paths up to depth, calling fileFn for each file and dirFn for each
+-- directory. If depth is nil/false then it is infinite.
+M.walk = function(paths, fileFn, dirFn, maxDepth)
+  local dirs, depths, cmd = {}, {}
+  for _, path in ipairs(paths) do
+    assert('' ~= path, 'empty path')
+    if '' ~= M.lsh('find '..qp(path)..' -maxdepth 0 -type d') then
+      add(dirs, path); add(depths, 0)
+    elseif fileFn then fileFn(path) end
+  end
+  ds.reverse(dirs); ds.reverse(depths)
+  while #dirs > 0 do      -- dirs is a stack that we grow with depth
+    local dir, depth = table.remove(dirs), table.remove(depths)
+    dir = (dir:sub(-1)=='/') and dir or (dir..'/') -- always dir/
+    if dirFn then dirFn(dir, depth) end
+    if not maxDepth or depth < maxDepth then
+      -- find and call files
+      if fileFn then
+        local cmd = 'find '..qp(dir)..' -maxdepth 1 -type f -print0'
+        for f in M.lsh(cmd):gmatch'%Z+' do fileFn(f) end
+      end
+      -- find sub-dirs and add to stack
+      local cmd = 'find '..qp(dir)..' -maxdepth 1 -type d -print0'
+      for d in M.lsh(cmd):gmatch'%Z+' do
+        if d ~= dir then add(dirs, d); add(depths, depth + 1) end
+      end
+    end
+  end
+end
+
+-- A very simple ls (list paths) implementation
+-- Returns (files, dirs) tables
+M.ls = function(paths, maxDepth)
+  local files, dirs = {}, {}
+  local function addF(f) add(files, f) end
+  local function addD(f) add(dirs,  f) end
+  M.walk(paths, addF, addD, maxDepth)
+  return files, dirs
 end
 
 -------------------------------------
@@ -213,12 +263,6 @@ M.ShResult = mty.record'ShResult'
   -- These can only be available when fork=true
   -- Note: fork.pipes will have the requested {r, w, lr}
   :fieldMaybe('fork', M.Fork)
-
-M.quote = function(v)
-  v = asStr(v)
-  if string.match(v, "'") then return nil end -- cannot quote values with '
-  return "'" .. v .. "'"
-end
 
 -- Just get the command, don't do anything
 --

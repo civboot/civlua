@@ -82,3 +82,16 @@ test('time', function()
   testTime()
   civix.posix = posix
 end)
+
+test('walk', function()
+  local f, d = civix.ls{'civix/'}
+  table.remove(f, ds.indexOfPat(f, '%.rockspec'))
+  table.sort(f); table.sort(d)
+  local expected = {
+      "civix/README.md",      "civix/civix.lua",
+      "civix/civix/term.lua", "civix/runterm.lua",
+      "civix/test.lua",       "civix/test_term.lua"
+  }
+  assertEq(expected, f)
+  assertEq({'civix/', 'civix/civix/'}, d)
+end)

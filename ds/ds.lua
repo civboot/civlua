@@ -189,6 +189,10 @@ M.indexOf = function(t, find)
   end
 end
 
+function M.indexOfPat(strs, pat)
+  for i, s in ipairs(strs) do if s:find(pat) then return i end end
+end
+
 ---------------------
 -- Untyped Functions
 M.copy = function(t, update)
