@@ -69,8 +69,9 @@ end
 -- directory. If depth is nil/false then it is infinite.
 --
 -- The Fn signatures are: (path, depth) -> stopWalk
--- If stopWalk is true the walk is ended immediately.
-M.walk = function(paths, fileFn, dirFn, maxDepth)
+-- If either return true then the walk is ended immediately
+-- If dirFn returns 'skip' then the directory is skipped
+function M.walk(paths, fileFn, dirFn, maxDepth)
   local dirs, depths, cmd = {}, {}
   for _, path in ipairs(paths) do
     assert('' ~= path, 'empty path')
@@ -82,7 +83,11 @@ M.walk = function(paths, fileFn, dirFn, maxDepth)
   while #dirs > 0 do      -- dirs is a stack that we grow with depth
     local dir, depth = table.remove(dirs), table.remove(depths)
     dir = (dir:sub(-1)=='/') and dir or (dir..'/') -- always dir/
-    if dirFn and dirFn(dir, depth) then return end
+    if dirFn then
+      local o = dirFn(dir, depth)
+      if o == true then return end
+      if o == 'skip' then goto skip end
+    end
     if not maxDepth or depth < maxDepth then
       -- find and call files
       if fileFn then
@@ -97,6 +102,7 @@ M.walk = function(paths, fileFn, dirFn, maxDepth)
         if d ~= dir then add(dirs, d); add(depths, depth + 1) end
       end
     end
+    ::skip::
   end
 end
 
@@ -109,6 +115,9 @@ M.ls = function(paths, maxDepth)
   M.walk(paths, addF, addD, maxDepth)
   return files, dirs
 end
+
+M.mv = function(from, to) M.lsh(sfmt('mv %s %s', qp(from), qp(to))) end
+M.rm = function(path) M.lsh('rm '..qp(path)) end
 
 -------------------------------------
 -- Pipe

@@ -26,13 +26,16 @@ M.load('pegl',       'pegl/pegl.lua')
 M.load('pegl.lua',   'pegl/pegl/lua.lua')
 M.load('civix',      'civix/civix.lua')
 M.load('civix.term', 'civix/civix/term.lua')
-local ele = M.load('ele',        'ele/ele.lua')
+
+local ff  = M.load('ff',   'ff/ff.lua')
+local ele = M.load('ele',  'ele/ele.lua')
 civtest.assertGlobals(initG)
 
 shim{
   help=DOC,
   subs = {
-    ele=ele.main,
+    ele = ele.main,
+    ff = ff.exe,
   },
 }
 
