@@ -1,6 +1,14 @@
 local DOC = [[ff: find+fix files
 ff is a simple utility to find and fix files and file-content.
 
+Examples (bash):
+  ff path                   # print files at path (recursively
+  ff path --dir             # also print directories
+  ff path --depth=3         # limit depth
+  ff path --pat='my%s+name' # find pattern like "my  name" in files at path
+  ff path --pat='my%s+name' --matches=false  # print paths with match only
+  ff path --pat='(name=).+ --sub='%1bob' # change name=anything to name=bob
+
 It finds utilties within the given paths using the `pat` and `fpat` arguments,
 which are standard lua patterns.  It fixes files by substituting values in
 their name or contents using the `fsub` and `sub` arguments.  These follow
@@ -60,15 +68,15 @@ local function _dirFn(path, args, dirs)
 end
 
 local function _fileFn(path, args, out)
-  local log, pre = args.log, args.fpre
+  local log, pre, files = args.log, args.fpre, args.files
   if args.fpat and not path:find(args.fpat) then return end
-  if args.files then
+  if files and not args.pat then
     if log and not args.fsub then wln(log, path, pre) end
     if out.files then add(out.files, path) end
   end
   local to, text = nil, nil
   if args.fsub then to = path:gsub(args.fpat, args.fsub) end
-  if to and args.files then
+  if to and files then files = false
     if log then wln(log, to, pre) end
     if to and out.mvfiles then add(out.mvfiles, to) end
   end
@@ -77,11 +85,16 @@ local function _fileFn(path, args, out)
     fpath = (to or path)..'.SUB'; f = io.open(fpath, 'w')
   end
 
-  local pat, sub = args.pat, args.sub; if not pat then return end
+  local pat, sub = args.pat, args.sub;
+  if not pat then return end
   for line in io.open(path, 'r'):lines() do
     local m = line:find(pat); if not m then
       if f then wln(f, line) end
       goto continue
+    end
+    if files then files = false
+      if log then wln(log, path, pre) end
+      if out.files then add(out.files, path) end
     end
     line = (sub and line:gsub(pat, sub)) or line
     if args.matches then
@@ -99,15 +112,20 @@ local function _fileFn(path, args, out)
 end
 
 function M.findfix(args, out)
+  if args.sub then
+    assert(args.pat, 'must specify pat with sub')
+    assert(not args.fsub, 'cannot specify both sub and fsub')
+  end
+  if args.fsub then assert(args.fpat, 'must specify fpat with fsub') end
   out = out or {
     files   = args.files   and {} or nil,
     dirs    = args.dirs    and {} or nil,
     matches = args.matches and {} or nil,
   }
-  args.depth = shim.number(args.depth or 1)
-  shim.default(args, 'files', true)
-  shim.default(args, 'matches', true)
-  shim.default(args, 'dpre', '\n')
+  args.depth   = shim.number(args.depth or 1)
+  args.files   = shim.boolean(args.files   or true)
+  args.matches = shim.boolean(args.matches or true)
+  args.dpre    = args.dpre or '\n'
   if args.files == nil then args.files = true end
 
   civix.walk(

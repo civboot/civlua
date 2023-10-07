@@ -29,10 +29,6 @@ function M.parse(args)
   return t
 end
 
-function M.default(t, name, default)
-  if t[name] == nil then t[name] = default end
-end
-
 local BOOLS = {
   [true]=true,   ['true']=true,   ['yes']=true, ['1']=true,
   [false]=false, ['false']=false, ['no']=false, ['0']=false,
