@@ -1,6 +1,28 @@
 local mty = require'metaty'
 local ds = require'ds'
-local posix = require'posix'
+
+local M = {
+  std_r = 0, std_w = 1, std_lw = 2,
+  PIPE_R = io.stdin,
+  PIPE_W = io.stdout,
+  PIPE_LW = io.stderr,
+}
+M.posix = mty.want'posix'
+if M.posix then
+  assert(M.std_r  == M.posix.fileno(io.stdin))
+  assert(M.std_w  == M.posix.fileno(io.stdout))
+  assert(M.std_lw == M.posix.fileno(io.stderr))
+end
+
+-- execute a command using lua's io.popen(c, 'r')
+-- return (read('*a'), {close()})
+-- if noCheck is falsy (default) asserts the command succeeds.
+M.lsh = function(c, noCheck)
+  local f = assert(io.popen(c, 'r'), c)
+  local o, r = f:read('*a'), {f:close()}
+  assert(r[1] or noCheck, r[2])
+  return o, r
+end
 
 local add, concat = table.insert, table.concat
 local function asStr(v)
@@ -9,19 +31,8 @@ local function asStr(v)
   return v
 end
 
-local M = {
-  std_r = 0, std_w = 1, std_lw = 2,
-  PIPE_R = io.stdin,
-  PIPE_W = io.stdout,
-  PIPE_LW = io.stderr,
-}
-
 -- "global" shell settings
 M.SH_SET = { debug=false, host=false }
-
-assert(M.std_r  == posix.fileno(io.stdin))
-assert(M.std_w  == posix.fileno(io.stdout))
-assert(M.std_lw == posix.fileno(io.stderr))
 
 -------------------------------------
 -- Time Functions
@@ -31,26 +42,28 @@ M.sleep = function(duration)
   if type(duration) == 'number' then
     duration = ds.Duration:fromSeconds(duration)
   end
-  posix.nanosleep(duration.s, duration.ns)
+  if M.posix then M.posix.nanosleep(duration.s, duration.ns)
+  else M.lsh('sleep '..tostring(duration)) end
 end
 
 -- Return the Epoch time
 M.epoch = function()
-  local s, ns, errnum = posix.clock_gettime(posix.CLOCK_REALTIME)
-  assert(s); assert(ns)
-  return ds.Epoch(s, ns)
+  if M.posix then
+    local s, ns, errnum = M.posix.clock_gettime(M.posix.CLOCK_REALTIME)
+    assert(s); assert(ns)
+    return ds.Epoch(s, ns)
+  else return ds.Epoch(tonumber((M.lsh'date +%s.%N'))) end
 end
 
 -------------------------------------
 -- Pipe
-
 M.Pipe = mty.record'Pipe'
   :field('fd', 'number')
   :field('closed', 'boolean', false)
 
 M.Pipe.close = function(self)
   if not self.closed then
-    posix.close(self.fd); self.closed = true
+    M.posix.close(self.fd); self.closed = true
   end
 end
 
@@ -60,18 +73,18 @@ M.Pipe.read = function(self, m)
     local t = {};
     while true do
       i = i + 1
-      local s, err = posix.read(self.fd, 1024)
+      local s, err = M.posix.read(self.fd, 1024)
       if nil == s then return nil, err end
       table.insert(t, s)
       if '' == s then return table.concat(t) end
     end
   end
-  return posix.read(self.fd, 1024)
+  return M.posix.read(self.fd, 1024)
 end
-M.Pipe.write = function(self, w) return posix.write(self.fd, w) end
+M.Pipe.write = function(self, w) return M.posix.write(self.fd, w) end
 
 local function pipe()
-  local r, w = posix.pipe()
+  local r, w = M.posix.pipe()
   assert(r, 'no read'); assert(w, 'no write')
   return r, w
 end
@@ -102,9 +115,9 @@ end
 
 M.Pipes.dupStd = function(p)
   -- dup pipes to std file descriptors
-  if p.r  then posix.dup2(p.r.fd,  M.std_r) end
-  if p.w  then posix.dup2(p.w.fd,  M.std_w) end
-  if p.lw then posix.dup2(p.lw.fd, M.std_lw) end
+  if p.r  then M.posix.dup2(p.r.fd,  M.std_r) end
+  if p.w  then M.posix.dup2(p.w.fd,  M.std_w) end
+  if p.lw then M.posix.dup2(p.lw.fd, M.std_lw) end
 end
 
 -------------------------------------
@@ -120,12 +133,13 @@ M.Fork = mty.record'Fork'
   :fieldMaybe('pipes', M.Pipes)
   :fieldMaybe('rc', 'number')
 M.Fork:new(function(ty_, r, w, l)
+  assert(M.posix, 'install luaposix')
   local parent, child = {}, {}
   if r then parent.r , child.w  = pipe() end
   if w then child.r,   parent.w = pipe() end
   if l then parent.lr, child.lw = pipe() end
   parent, child = M.Pipes:from(parent), M.Pipes:from(child)
-  local self = {cpid = posix.fork()}
+  local self = {cpid = M.posix.fork()}
   if(not self.cpid) then error('fork failed') end
   if 0 == self.cpid then -- is child
     parent:close() -- parent's side of pipes are not used in child fork
@@ -145,7 +159,7 @@ M.Fork.wait = function(self)
   mty.assertf(self.status == 'running',
               "wait called when not running, status=%s", self.status)
   self.pipes:close()
-  local a, b, c = posix.wait(self.cpid)
+  local a, b, c = M.posix.wait(self.cpid)
   if nil == a then self.status = 'error'; return nil, b, c end
   if 'running' == b then return false end
   self.rc = c; self.status = b; return true
@@ -155,7 +169,7 @@ end
 -- the child process (since exec doesn't typically return).
 M.Fork.exec = function(self, cmd)
   assert(not self.isParent, 'exec can only be called on child')
-  local a, err = posix.exec('/bin/sh', {'-c', cmd, nil}) -- TODO: remove nil?
+  local a, err = M.posix.exec('/bin/sh', {'-c', cmd, nil}) -- TODO: remove nil?
   if nil == a then error(err) end
   os.exit(0)
 end
@@ -206,13 +220,6 @@ M.quote = function(v)
   return "'" .. v .. "'"
 end
 
--- execute a command, using lua's shell
--- return {output, closeValues}
-M.luash = function(c)
-  local f = assert(io.popen(asStr(c)), 'r')
-  return f:read('*a'), {f:close()}
-end
-
 -- Just get the command, don't do anything
 --
 -- returns cmdSettings, cmdBuf
@@ -243,6 +250,7 @@ M.shCmd = function(cmd, set)
 end
 
 local function _sh(cmd, set, err)
+  assert(M.posix, 'install luaposix')
   if err then error(err) end
   local log = set.log -- output
   if set.debug then

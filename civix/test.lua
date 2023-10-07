@@ -1,6 +1,7 @@
 METATY_CHECK = true
 
 local mty = require'metaty'
+local ds = require'ds'
 local test, assertEq; mty.lrequire'civtest'
 
 -- test('load', nil, function() mod = require('civ.sh') end)
@@ -63,4 +64,21 @@ test('sh', function()
   assertEq('--foo=bar\n'  ,  sh{'echo', foo='bar'}.out)
   assert(select(3, shCmd{foo="that's bad"})) -- assert error
   assertEq('from pipe', sh([[ cat ]], {inp='from pipe'}).out)
+end)
+
+local function testTime()
+  local period, e1 = ds.Duration(0.001), civix.epoch()
+  for i=1,10 do
+    civix.sleep(period)
+    local e2 = civix.epoch()
+    local result = e2 - e1; assert((e2 - e1) > period, result)
+    e1 = e2
+  end
+end
+test('time', function()
+  testTime()
+
+  local posix = civix.posix; civix.posix = nil
+  testTime()
+  civix.posix = posix
 end)
