@@ -106,7 +106,7 @@ end
 M.Key = newSpec'Key' -- Key{{'myKeword', ['+']={'+'=true}}, kind='kw'}
   :field'keys' :fieldMaybe'name' :fieldMaybe'kind'
 M.Key:new(function(ty_, k)
-  local keys = assert(ds.pop(k, 1), 'must provide keys at index 1')
+  local keys = assert(table.remove(k, 1), 'must provide keys at index 1')
   k['keys'] = constructKeys(keys)
   return mty.newUnchecked(ty_, k)
 end)

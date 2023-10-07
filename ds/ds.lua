@@ -2,7 +2,9 @@ local mty = require 'metaty'
 local record, Any = mty.record, mty.Any
 local add = table.insert
 
-local M = {}
+local M = {
+  steal = mty.steal, trimWs = mty.trimWs,
+}
 
 ---------------------
 -- Order checking functions
@@ -48,7 +50,6 @@ M.matches = function(s, m)
 end
 
 -- work with whitespace in strings
-M.trimWs  = function(s) return string.match(s, '^%s*(.-)%s*$') end
 M.explode = function(s) return M.matches(s, '.') end
 M.splitWs = function(s) return M.matches(s, "[^%s]+") end
 M.concatToStrs = function(t, sep)
@@ -137,10 +138,6 @@ M.update = function(t, add)
 end
 M.updateKeys = function(t, add, keys)
   for _, k in ipairs(keys) do t[k] = add[k] end
-end
-
-M.pop = function(t, k)
-  local v = t[k]; t[k] = nil; return v
 end
 
 -- pop multiple keys, pops(t, {'a', 'b'})

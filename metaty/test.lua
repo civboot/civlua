@@ -157,3 +157,38 @@ test('globals', function()
   table.sort(ge); table.sort(gr);
   assertEq(ge, gr)
 end)
+
+test('doc', function()
+assertEq([[
+function [Fn@metaty/metaty.lua:16]
+  steal(t, key): return t[key] and remove it]],
+M.help(M.steal))
+  local A = M.doc'demo record and some fields.'
+    (record'A')
+    :field('a1', 'number', 3):fdoc'pick number,\
+    now with newline!'
+    :fieldMaybe('a2', 'string'):fdoc'and a string'
+  print(M.help(A))
+assertMatch([=[
+%[A%]: demo record and some fields.
+
+  Fields:
+    a1 %[number default=3%]: pick number,
+        now with newline!
+    a2 %[string default=nil%]: and a string
+%s*
+  Members
+    __doc: string
+    __fdocs: table
+    __fields: table
+    __maybes: table
+    __name: string
+%s*
+  Methods
+    __fmt: function %[.-]
+    __index: function %[.-]
+    __missing: function %[.-]
+    __newindex: function %[.-]
+    __tostring: function %[.-]]=],
+M.help(A))
+end)

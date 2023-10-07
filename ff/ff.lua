@@ -13,30 +13,6 @@ Examples (bash):
   ff path --fpat='%.txt'    # filter to .txt files
   ff path --fpat='(.*)%.txt' --fsub='%1.md'  # rename all .txt -> .md
 
-List arguments:
-  path path2 path3 ...: list of paths to find/fix
-
-Key arguments:
-  depth:   (default=1) depth to recurse. '' or nil will recurse infinitely.
-  files:   (default=true) log/return files or substituted files
-  matches: (default=true) log/return the matches or substitutions.
-  dirs:    (default=false) log/return directories.
-
-  fpat: file name pattern to filter on, only files which match this pattern
-        will be included in the output and pattern search/substitute.
-  pat: content pattern which searches inside of files and prints the results.
-       Used for sub.
-  dpat: dir name pattern to filter on
-
-  mut: boolean. If not true will NEVER modify files (but does print)
-  fsub: file substitute for fpat (rename files). ff will never rename dirs.
-  sub: substitute pattern to go with pat (see lua's gsub)
-  log: In Lua this is the file handle to print results to.
-       In shell this is ignored (always io.stdout)
-
-  fpre: prefix characters before printing files
-  dpre: prefix characters before printing directories
-
 Prints:
   In shell writes the file paths and possibly dir paths depending on files/dirs
   settings. In Lua writes nothing unless `log` is specified.
@@ -45,13 +21,50 @@ Returns (lua only):
   returns (files, dirs, matches) which may be nil depending on the files/dirs
   arguments.
 ]]
-local M = {DOC=DOC}
 
-local shim = require'shim'
 local mty = require'metaty'
+local shim = require'shim'
 local ds = require'ds'
 local civix = require'civix'
 local add = table.insert
+
+local ff = mty.doc[[
+List arguments:
+  path path2 path3 ...: list of paths to find/fix
+]](mty.record'findfix')
+  :field('depth', 'number', 1):fdoc
+    [[depth to recurse. '' or nil will recurse infinitely.]]
+  :field('files', 'boolean', true):fdoc
+    [[log/return files or substituted files.]]
+  :field('matches', 'boolean', true):fdoc
+    [[log/return the matches or substitutions.]]
+  :field('dirs', 'boolean', false):fdoc[[log/return directories.]]
+  :fieldMaybe('fpat', 'string'):fdoc[[
+file name pattern to filter on, only files which match this pattern
+will be included in the output and pattern search/substitute.]]
+  :fieldMaybe('pat', 'string'):fdoc[[
+content pattern which searches inside of files and prints the results.
+Used for sub.]]
+  :fieldMaybe('dpat', 'string'):fdoc
+    [[name pattern to filter on]]
+  :field('mut', 'boolean', false):fdoc[[
+If not true will NEVER modify files (but does print)]]
+  :fieldMaybe('fsub', 'string'):fdoc[[
+file substitute for fpat (rename files).
+Note: ff will never rename dirs.]]
+  :fieldMaybe('sub', 'string'):fdoc
+    [[substitute pattern to go with pat (see lua's gsub)]]
+  :fieldMaybe'log':fdoc[[
+In Lua this is the file handle to print results to.
+In shell this is ignored (always io.stdout).]]
+  :field('fpre', 'string', ''):fdoc
+    [[prefix characters before printing files]]
+  :field('dpre', 'string', '\n'):fdoc
+    [[prefix characters before printing directories]]
+
+local f = mty.helpFmter(); mty.helpFields(ff, f)
+DOC = DOC..'\n'..f:toStr(); f = nil
+local M = {DOC=DOC}
 
 local function wln(f, msg, pre)
   if pre then f:write(pre) end; f:write(msg); f:write'\n'
@@ -146,6 +159,6 @@ function M.exe(args, isExe)
   M.findfix(args, {})
 end
 
-shim{help = DOC, exe = M.exe}
+M.shim = shim{help = DOC, exe = M.exe}
 
 return M

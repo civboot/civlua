@@ -3,35 +3,20 @@
 -- See README.md for documentation.
 
 local CHECK = _G['METATY_CHECK'] or false -- private
+local DOC   = _G['METATY_DOC'] or false   -- private
 local M = {}
 M.getCheck = function() return CHECK end
+M.getDoc   = function() return DOC end
+M.FN_DOCS = {}
 
 -- Utilities / aliases
 local add, sfmt = table.insert, string.format
 local function identity(v) return v end
 local function nativeEq(a, b) return a == b end
-local function getOrEmpty(t, k)
-  local o = t[k]; if not o then o = {}; t[k] = o end
-  return o
+function M.steal(t, k)
+  local v = t[k]; t[k] = nil; return v
 end
-
-local function copy(t, update)
-  local out = {}
-  for k, v in pairs(t) do out[k] = v end
-  setmetatable(out, getmetatable(t))
-  if update then
-    for k, v in pairs(update) do out[k] = v end
-  end
-  return out
-end
-local function deepcopy(t)
-  local out = {}; for k, v in pairs(t) do
-    if 'table' == type(v) then v = deepcopy(v) end
-    out[k] = v
-  end
-  return setmetatable(out, getmetatable(t))
-end
-
+function M.trimWs(s) return string.match(s, '^%s*(.-)%s*$') end
 
 M.KEYS_MAX = 64
 M.FMT_SAFE = false
@@ -72,7 +57,6 @@ M.setNativeTy = function(name, getTy, check)
   NATIVE_TY_CHECK[name] = check
 end
 
--- Return type which is the metatable (if it exists) or raw type() string.
 M.ty = function(obj) return NATIVE_TY_GET[type(obj)](obj) end
 
 -- Ultra-simple index function
@@ -233,6 +217,14 @@ M.recordNew = function(r, fn)
   return r
 end
 
+M.recordFieldDoc = function(r, doc)
+  local field = r.__fields[#r.__fields]
+  assert(field, 'must specify :fdoc after a :field')
+  r.__fdocs = r.__fdocs or {}
+  r.__fdocs[field] = assert(doc)
+  return r
+end
+
 -- i.e. record'Name':field('a', 'number')
 M.recordField = function(r, name, ty_, default)
   assert(name, 'must provide field name')
@@ -276,6 +268,7 @@ M.record = function(name, mt)
   mt.new        = M.recordNew
   mt.field      = M.recordField
   mt.fieldMaybe = M.recordFieldMaybe
+  mt.fdoc       = M.recordFieldDoc
 
   local r = M.rawTy(name, mt)
   r.__fields = {}  -- field types AND ordering
@@ -314,6 +307,7 @@ M.FmtSet
   :field('listSep', 'string',  ',')
   :field('tblSep',  'string',  ' :: ')
   :field('num',     'string',  '%i')
+  :field('str',     'string',  '%q')
   :field('tblFmt',  'function')
 M.FmtSet.__missing = M.recordMissing
 
@@ -421,7 +415,13 @@ local SAFE = {
   ['function']=function(fn, f) M.fnFmtSafe(fn, f) end,
   boolean=function(v, f)       add(f, tostring(v)) end,
   number=function(n, f)        add(f, sfmt(f.set.num, n)) end,
-  string=function(s, f)        add(f, sfmt('%q', s)) end,
+  string=function(s, f)
+    if f.set.str ~= '%s' then return add(f, sfmt(f.set.str, s)) end
+    -- format with newlines. Last line should not have sep'\n'
+    local prev; for line in s:gmatch'[^\n]+' do
+      if prev then add(f, prev); f:sep'\n' end; prev = line
+    end; if prev then add(f, prev) end
+  end,
   table=M.tblFmtSafe,
 }
 
@@ -485,6 +485,15 @@ M.Fmt.levelLeave = function(f, endCh)
   else add(f, endCh) end
 end
 
+-- Note: may be called inside pcall
+local function doFmt(f, v, mt)
+  if not mt then f.set.tblFmt(v, f)
+  elseif rawget(mt, '__fmt') then mt.__fmt(v, f)
+  elseif rawget(mt, '__tostring') ~= M.fmt then
+    add(f, tostring(v))
+  else f.set.tblFmt(v, f) end
+end
+
 -- Format the value and store the result in `f`
 M.Fmt.fmt = function(f, v)
   local tystr = type(v)
@@ -500,15 +509,8 @@ M.Fmt.fmt = function(f, v)
   end
   local mt = getmetatable(v)
   local len, level = #f, f.level
-  local doFmt = function()
-    if not mt then f.set.tblFmt(v, f)
-    elseif rawget(mt, '__fmt') then mt.__fmt(v, f)
-    elseif rawget(mt, '__tostring') ~= M.fmt then
-      add(f, tostring(v))
-    else f.set.tblFmt(v, f) end
-  end
   if f.set.safe then
-    local ok, err = pcall(doFmt)
+    local ok, err = pcall(doFmt, f, v, mt)
     if not ok then
       while #f > len do table.remove(f) end
       f.level = level
@@ -516,7 +518,7 @@ M.Fmt.fmt = function(f, v)
       add(f, '-->!ERROR!['); add(f, M.safeToStr(err));
       add(f, ']');
     end
-  else doFmt() end
+  else doFmt(f, v, mt) end
   return f
 end
 
@@ -524,6 +526,7 @@ M.Fmt.toStr = function(f) return table.concat(f, '') end
 M.Fmt.write = function(f, fd)
   for _, s in ipairs(f) do fd:write(s) end
 end
+M.Fmt.writeLn = function(f, fd) f:write(fd); fd:write'\n' end
 M.Fmt.pnt = function(f)
   f:write(io.stdout)
   io.stdout:write('\n')
@@ -546,7 +549,6 @@ M.pntset = function(set, ...)
   end
   io.stdout:write('\n')
   io.stdout:flush()
-
 end
 
 -- This is basically the same as `print` except:
@@ -580,5 +582,133 @@ M.lrequire = function(mod, i)
   end
   return mod, i
 end
+
+local function valhelp(v, fmt, name)
+  if name then fmt:fmt(name); add(fmt, ': ') end
+  fmt:fmt(type(v))
+end
+local FMT_DOC = {
+  ['nil'] = valhelp, boolean = valhelp,
+  number  = valhelp, string  = valhelp,
+  table = function(t, fmt, name)
+    if rawget(t, '__name') or rawget(t, '__tostring') then
+      M.helpTy(t, fmt, name)
+    else
+      if name then fmt:fmt(name); add(fmt, ': ') end
+      fmt:fmt'table'; fmt:sep'\n'
+    end
+    return true
+  end,
+  ['function'] = function(f, fmt, name)
+    if name then fmt:fmt(name); add(fmt, ': ') end
+    add(fmt, 'function ['); fmt:fmt(f); add(fmt, ']')
+    local d = M.FN_DOCS[f]; if d then
+      fmt:levelEnter''; fmt:fmt(d); fmt:levelLeave''
+    else fmt:sep'\n' end
+    return true
+  end,
+}
+
+function M.helpFields(mt, fmt)
+  local fields = rawget(mt, '__fields')
+  if not fields then return end
+  fmt:levelEnter'Fields:'
+  for _, field in ipairs(fields) do
+    local ty_, maybe = fields[field], mt.__maybes[field]
+    fmt:fmt(field); fmt:fmt' ['; fmt:fmt(ty_)
+    if maybe then fmt:fmt' default=nil'
+    elseif mt[field] then fmt:fmt' default='; fmt:fmt(mt[field]) end
+    fmt:fmt']'
+    local d = mt.__fdocs; if d and d[field] then
+      add(fmt, ': '); fmt:fmt(d[field])
+    end
+    fmt:sep'\n'
+  end
+  fmt:levelLeave''
+end
+
+local function _members(fmt, name, mt, keys, fields, onlyTy, notTy)
+  fmt:levelEnter(name)
+  for _, k in ipairs(keys) do
+    if fields and fields[k] then goto continue end -- default field
+    local v = mt[k]
+    if onlyTy and type(v) ~= onlyTy then goto continue end
+    if notTy  and type(v) == notTy  then goto continue end
+    if not FMT_DOC[type(v)](v, fmt, k) then
+      fmt:sep'\n'
+    end
+    ::continue::
+  end
+  fmt:levelLeave''
+end
+
+function M.helpMembers(mt, fmt)
+  local fields = rawget(mt, '__fields')
+  local keys, d = M.orderedKeys(mt, 1024)
+  _members(fmt, 'Members', mt, keys, fields, nil, 'function')
+  _members(fmt, 'Methods', mt, keys, fields, 'function')
+end
+
+function M.helpTy(mt, fmt, name)
+  if name then fmt:fmt(name); add(fmt, ' ') end
+  fmt:fmt'[';
+  fmt:fmt(rawget(mt, '__name') or tostring(mt))
+  fmt:fmt']'; if rawget(mt, '__doc') then
+    fmt:fmt': '; fmt:fmt(mt.__doc); fmt:sep'\n';
+  end
+  fmt:levelEnter''
+  M.helpFields(mt, fmt); M.helpMembers(mt, fmt)
+  fmt:levelLeave''
+end
+
+function M.helpFmter()
+  return M.Fmt{set=M.FmtSet{
+    pretty=true, str='%s'
+  }}
+end
+
+function M.help(v)
+  local f = M.helpFmter()
+  FMT_DOC[type(v)](v, f)
+  return M.trimWs(f:toStr())
+end
+
+function M.docTy(ty_, doc)
+  doc = M.trimWs(doc)
+  if type(ty_) == 'function' then  M.FN_DOCS[ty_] = doc
+  elseif type(ty_) == 'table' then ty_.__doc = doc
+  else error('cannot document type '..type(doc)) end
+  return ty_
+end
+
+function M.doc(doc)
+  if not DOC then return identity end
+  return function(ty_) return M.docTy(ty_, doc) end
+end
+
+M.docTy(M.doc, [==[Document a type.
+
+Example:
+  M.myFn = doc[[myFn is awesome!
+  It does ... stuff with a and b.
+  ]](function(a, b)
+    ...
+  end)
+]==])
+
+M.docTy(M.docTy, [==[
+docTy(ty_, doc): Document a type, prefer `doc` instead.
+
+Example:
+  docTy(myTy, [[my doc string]])
+]==])
+
+M.docTy(M.ty, [[Get the type of the value.
+  table: getmetatable(v) or 'table'
+  other: type(v)]])
+
+M.docTy(M.steal,   'steal(t, key): return t[key] and remove it')
+M.docTy(M.errorf,  'errorf(...): error(string.format(...))')
+M.docTy(M.assertf, 'assertf(a, ...): assert with string.format')
 
 return M

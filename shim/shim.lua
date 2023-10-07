@@ -76,12 +76,12 @@ local function invalid(msg)
   os.exit(1)
 end
 
-local function checkHelp(sh, args, subs)
+local function checkHelp(sh, args)
   if sh.help and args.help == true then
     print(sh.help);
-    if subs then
+    if sh.subs then
       print('Subcommands:\n')
-      local t = {}; for k in pairs(subs) do table.insert(t, k) end
+      local t = {}; for k in pairs(sh.subs) do table.insert(t, k) end
       table.sort(t)
       for _, s in ipairs(t) do print('  '..s) end
     end
@@ -89,24 +89,41 @@ local function checkHelp(sh, args, subs)
   end
 end
 
+local function shimcall(sh)
+  local args = M.parse(arg)
+  ::restart::
+  if sh.exe then
+    checkHelp(sh, args)
+    sh.exe(args, true)
+  else
+    if not args[1] then
+      checkHelp(sh, args)
+      invalid'Error: must specify a subcommand.'
+    end
+    sh = sh.subs[args[1]]
+    if not sh then invalid(sfmt(
+      'Error: unknown subcommand %q', args[1]
+    ))end
+    table.remove(args, 1)
+    goto restart
+  end
+end
+
 return setmetatable(M, {
   __call=function(ty_, sh)
-    if not _G.arg or not M.isExe(1) then return end
-    local args = M.parse(arg)
-    local exe = sh.exe; if exe then
-      assert(not sh.subs, 'choose exe or subs')
-      checkHelp(sh, args)
-    else
-      assert(sh.subs, 'app did not specify exe or subs')
-      if not args[1] then
-        checkHelp(sh, args, sh.subs)
-        invalid'Error: must specify a subcommand.'
-      end
-      exe = sh.subs[args[1]]
-      if not exe then invalid(sfmt('Error: unknown subcommand %q', args[1])) end
-      table.remove(args, 1)
+    if sh.exe and sh.subs then error(
+      'must specify exe OR subs, not both'
+    )end
+    if not (sh.exe or sh.subs) then error(
+      'must specify one of: exe, subs'
+    )end
+    if _G.arg and M.isExe(1) then
+      shimcall(sh)
+      os.exit(0)
     end
-    exe(args, true)
-    os.exit(0)
+    return setmetatable(sh, {
+      __name='SHIM',
+      __call=shimcall,
+    })
   end,
 })

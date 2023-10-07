@@ -35,7 +35,7 @@ shim{
   help=DOC,
   subs = {
     ele = ele.main,
-    ff = ff.exe,
+    ff = ff.shim,
   },
 }
 

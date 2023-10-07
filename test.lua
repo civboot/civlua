@@ -1,4 +1,5 @@
 METATY_CHECK = true
+METATY_DOC   = true
 
 local civ = dofile'civ.lua'
 local T, dir = require'civtest', civ.dir

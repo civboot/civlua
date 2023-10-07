@@ -6,7 +6,7 @@ local test, assertEq; mty.lrequire'civtest'
 local min, max, bound, isWithin, sort2, decAbs
 local indexOf, copy, deepcopy
 local strInsert, strDivide, trimWs, splitWs
-local pop, getOrSet, getPath, setPath, drain, reverse
+local steal, getOrSet, getPath, setPath, drain, reverse
 local eval
 local Set, LL, Duration, Epoch
 local lines
@@ -56,7 +56,7 @@ test("table", function()
   assert(r.a[1] == 3)
 
   local t = {a=8, b=9}
-  assert(8 == pop(t, 'a')) assert(9 == pop(t, 'b'))
+  assert(8 == steal(t, 'a')) assert(9 == steal(t, 'b'))
   assert(0 == #t)
 
   assertEq(5,   getOrSet({a=5}, 'a', function() return 7 end))
