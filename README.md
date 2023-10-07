@@ -1,22 +1,29 @@
 # Civboot Lua Modules
 
-This is the repository for civboot-owned Lua modules.
+This is the repository for civboot-owned Lua modules and software.
 
 These are developed together but kept in separate modules so that others can
-pick and choose the pieces they want to use for their own projects.
+pick and choose the pieces they want to use for their own projects. Together
+they (will) form a complete development environment with some awesome shell/lua
+commandline scripting tools. See [Installation](#Installation) for how to
+install (just copy this directory).
 
-See the sub-directories for the individual documentation. A suggested order
+`./civ.lua ff -r --pat=recursive`
+```
+./README.md
+     1: * [pegl](./pegl/README.md): recursive descent parsing language (430 LoC `pegl.lua`)
+     2: > `, ff -r --pat=recursive`
+./pegl/README.md
+     1: # PEGL: PEG-like recursive descent Parser in Lua
+     2: PEGL is PEG like recursive descent Parser written in Lua.
+... etc
+```
+
+Each sub-directory has individual documentation. A suggested reading order
 might be:
 
 * [civ.lua](./civ.lua): a self-loading lua module which acts as
-    a hub for civboot scripts. See [Installation](#Installation)
-    for details.
-* [ff](./civ.lua): find and fix files. Kind of like a supercharged
-  `find`, `grep` and pattern subtitution all rolled into a simple
-  203 line script.
-  * `ff -r --pat='OldTest([Cc]lass)' --sub='NewTesting%1' --mut`
-    to rename OldTestClass -> NewTestingClass in all files,
-    where the 'c' is not case-sensitive (but preserved)
+    a hub for civboot scripts. 
 * [shim](./shim/README.md): write scripts for Lua, execute from shell (57 LoC)
 * [metaty](./metaty/README.md): runtime type specification and checking (457 LoC)
   * Auto type formatting
@@ -27,12 +34,18 @@ might be:
 * [pegl](./pegl/README.md): recursive descent parsing language (430 LoC `pegl.lua`)
   * PEG-like but Lua-only syntax
   * 214 LoC for Lua's syntax definition (`./pegl/pegl/lua.lua`)
+* [ff](./civ.lua): find and fix files. Kind of like a supercharged
+  `find`, `grep` and pattern subtitution all rolled into a simple
+  203 line script.
+  * `ff -r --pat='OldTest([Cc]lass)' --sub='NewTesting%1' --mut`
+    to rename OldTestClass -> NewTestingClass in all files,
+    where the 'c' is not case-sensitive (but preserved)
 
 > LoC are from 2023-10-03 using `tokei ?/?.lua ?/?/` where `?` is the folder name
 
 ## Installation
-[civ.lua](./civ.lua) is a self-contained, self-loading lua module.
-Simply put this `civlua` directory anywhere and execute it on
+[civ.lua](./civ.lua) is a self-contained, self-loading Lua module.
+Simply copy this `civlua` directory anywhere and execute it on
 unix and it will work.
 
 > Bash recommendation: `alias ,=/path/to/civ.lua`
