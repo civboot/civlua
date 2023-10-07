@@ -67,24 +67,29 @@ end
 
 -- walk the paths up to depth, calling fileFn for each file and dirFn for each
 -- directory. If depth is nil/false then it is infinite.
+--
+-- The Fn signatures are: (path, depth) -> stopWalk
+-- If stopWalk is true the walk is ended immediately.
 M.walk = function(paths, fileFn, dirFn, maxDepth)
   local dirs, depths, cmd = {}, {}
   for _, path in ipairs(paths) do
     assert('' ~= path, 'empty path')
     if '' ~= M.lsh('find '..qp(path)..' -maxdepth 0 -type d') then
       add(dirs, path); add(depths, 0)
-    elseif fileFn then fileFn(path) end
+    elseif fileFn and fileFn(path, 0) then return end
   end
   ds.reverse(dirs); ds.reverse(depths)
   while #dirs > 0 do      -- dirs is a stack that we grow with depth
     local dir, depth = table.remove(dirs), table.remove(depths)
     dir = (dir:sub(-1)=='/') and dir or (dir..'/') -- always dir/
-    if dirFn then dirFn(dir, depth) end
+    if dirFn and dirFn(dir, depth) then return end
     if not maxDepth or depth < maxDepth then
       -- find and call files
       if fileFn then
         local cmd = 'find '..qp(dir)..' -maxdepth 1 -type f -print0'
-        for f in M.lsh(cmd):gmatch'%Z+' do fileFn(f) end
+        for f in M.lsh(cmd):gmatch'%Z+' do
+          if fileFn(f, depth) then return end
+        end
       end
       -- find sub-dirs and add to stack
       local cmd = 'find '..qp(dir)..' -maxdepth 1 -type d -print0'
