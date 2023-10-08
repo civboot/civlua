@@ -122,8 +122,8 @@ M.Not = newSpec('Not', FIELDS)
 
 -- Used in Seq to "pin" or "unpin" the parser, affecting when errors
 -- are thrown.
-M.PIN   = {name='PIN'}
-M.UNPIN = {name='UNPIN'}
+M.PIN   = ds.newSentinel('PIN',   {name='PIN'})
+M.UNPIN = ds.newSentinel('UNPIN', {name='UNPIN'})
 
 -- Denotes a missing node. When used in a spec simply returns Empty.
 -- Example: Or{Integer, String, Empty}

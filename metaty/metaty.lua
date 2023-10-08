@@ -183,6 +183,7 @@ end
 M.eq = function(a, b) return NATIVE_TY_EQ[type(a)](a, b) end
 
 M.eqDeep = function(a, b)
+  M.pnt('!! eqDeep', a, b)
   if rawequal(a, b)     then return true   end
   if M.ty(a) ~= M.ty(b) then return false  end
   local aLen, eq = 0, M.eq

@@ -297,7 +297,8 @@ end
 
 ---------------------
 -- `newSentinel` function, `none` sentinel and `bool` function
-local _si=function() error'invalid operation on sentinel' end
+
+local _si=function() error('invalid operation on sentinel', 2) end
 M.newSentinel = mty.doc[[newSentinel(name, ty_, metatable)
 Use to create a "sentinel type". Return the metatable used.
 
@@ -319,6 +320,20 @@ mty.addNativeTy(M.none)
 
 M.bool = mty.doc[[convert to boolean (none aware)]]
 (function(v) return not rawequal(M.none, v) and v and true or false end)
+
+M.Imm = mty.doc[[Imm{hi='immutable'}: make a table immutable.
+A performant immutable table implementation. We actually hide the table
+inside rawget(f, '#frozen'), but nobody needs to know that!
+]](setmetatable({
+  __name='Imm', __fmt=mty.tblFmt,
+  __newindex=function() error('invalid operation on Imm', 2) end,
+  __index=function(v, k) return rawget(v, '#frozen')[k] end,
+  __pairs=function(v)    return pairs(rawget(v, '#frozen')) end,
+  __ipairs=function(v)   return ipairs(rawget(v, '#frozen')) end,
+  __len=function(v)      return #rawget(v, '#frozen') end,
+}, {__name='ImmTy', __call=function(ty_, t)
+  return setmetatable({['#frozen']=t}, ty_) end
+}))
 
 ---------------------
 -- Duration

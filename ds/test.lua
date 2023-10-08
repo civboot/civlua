@@ -216,3 +216,19 @@ test('path', function()
   assertEq({'', '/b/'},    {pl'/b/'})
   assertEq({'', '/'},      {pl'/'})
 end)
+
+test('Imm', function()
+  local t = M.Imm{1, 2, v=3}
+  assertEq(1, t[1])
+  assertEq(3, t.v)
+  assertEq(M.Imm, getmetatable(t))
+  assertEq(M.Imm, mty.ty(t))
+  assertErrorPat('invalid operation', function() t.b = 8 end)
+  assertErrorPat('invalid operation', function() t.v = 8 end)
+  local j = M.Imm{1, 2, v=3}
+  local k = M.Imm{1, 2, v=4}
+  assert(t == t); assert(t ~= j)
+  assertEq(t, t); assertEq(t, j)
+  assert(t ~= k); assert(not mty.eq(t, k))
+
+end)
