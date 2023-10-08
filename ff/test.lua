@@ -10,7 +10,6 @@ local ff = require'ff'
 
 local add, sfmt = table.insert, string.format
 
-
 local dir = 'out/ff/'
 if civix.exists(dir) then civix.rmDir(dir, true) end
 local a = {}; for i=1,100 do add(a, 'a '..i) end

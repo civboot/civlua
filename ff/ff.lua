@@ -58,8 +58,8 @@ content pattern which searches inside of files and prints the results.
   :fieldMaybe('dpat', 'string'):fdoc[[
 directory name patterns to include, can specify multiple times.
     ANY matches will include the directory.]]
-  :fieldMaybe('notdpat', 'table'):fdoc[[
-default='/%.', aka hidden directories.
+  :fieldMaybe('excl', 'table'):fdoc[[
+default='/%.[^/]+/', aka exclude hidden directories.
     directory name pattern/s to exclude, can specify multiple times.
     ANY matches will exclude the directory.]]
   :field('mut', 'boolean', false):fdoc[[
@@ -86,8 +86,8 @@ local function wln(f, msg, pre, i)
 end
 
 local function _dirFn(path, args, dirs)
-  for _, nd in ipairs(args.notdpat) do
-    if path:find(nd) then return 'skip' end
+  for _, excl in ipairs(args.excl) do
+    if path:find(excl) then return 'skip' end
   end
   if #args.dpat > 0 then local include;
     for _, dpat in ipairs(args.dpat) do
@@ -104,6 +104,9 @@ local function _dirFn(path, args, dirs)
 end
 
 local function _fileFn(path, args, out)
+  for _, excl in ipairs(args.excl) do
+    if path:find(excl) then return 'skip' end
+  end
   local log, pre, files = args.log, args.fpre, args.files
   if args.fpat and not path:find(args.fpat) then return end
   if files and not args.pat then
@@ -152,7 +155,7 @@ local function _fileFn(path, args, out)
 end
 
 function M.findfix(args, out, isExe)
-  args = shim.parseStr(args, true)
+  local argsTy = type(args); args = shim.parseStr(args, true)
   if #args == 0 then add(args, '.') end
   if args.sub then
     assert(args.pat, 'must specify pat with sub')
@@ -161,20 +164,17 @@ function M.findfix(args, out, isExe)
   if args.fsub then assert(
     args.fpat, 'must specify fpat with fsub'
   )end
-  args.files   = shim.boolean(args.files)
-  args.matches = shim.boolean(args.matches)
-  args.dirs    = shim.boolean(args.dirs)
-  args.dpat    = shim.list(args.dpat)
-  if args.notdpat == nil then args.notdpat = {'/%.'} end
-  args.notdpat = shim.list(args.notdpat)
-  if args.d then args.dirs  = true; args.d = nil end
-  if args.r then args.depth = -1;   args.r = nil end
-  if args.m then args.mut   = true; args.m = nil end
-  if args.p then args.plain = true; args.p = nil end
+  shim.bools(args, 'files', 'matches', 'dirs')
   args.depth = shim.number(args.depth or 1)
+  args.dpat  = shim.list(args.dpat)
+  args.excl  = shim.list(shim.excl, {'/%.[^/]+/'}, {})
+  shim.short(args, 'd', 'dirs',  true)
+  shim.short(args, 'r', 'depth', -1)
+  shim.short(args, 'm', 'mut',   true)
+  shim.short(args, 'p', 'plain', true)
   if args.depth < 0 then args.depth = nil end
-  if type(args.log) == 'string' then
-    args.log = io.open(args.log, 'a')
+  if type(args.log) == 'string' then args.log = io.open(args.log, 'a')
+  elseif argsTy == 'string' and not args.log then args.log = io.stdout
   end
 
   if isExe then local ok;
@@ -184,12 +184,10 @@ function M.findfix(args, out, isExe)
 
   -- args.dpre    = args.dpre or '\n'
   out = out or {
-    files   = args.files   and {} or nil,
-    dirs    = args.dirs    and {} or nil,
+    files = args.files and {} or nil, dirs = args.dirs and {} or nil,
     matches = args.matches and {} or nil,
   }
   out.log = args.log
-
   civix.walk(
     args,
     function(path, depth) return _fileFn(path, args, out) end,

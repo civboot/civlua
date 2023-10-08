@@ -44,6 +44,10 @@ function M.parseStr(s, duck)
   return M.parse(s:find'%S+')
 end
 
+function M.short(args, short, long, value)
+  if args[short] then args[long] = value; args[short] = nil end
+end
+
 local BOOLS = {
   [true]=true,   ['true']=true,   ['yes']=true, ['1']=true,
   [false]=false, ['false']=false, ['no']=false, ['0']=false,
@@ -56,6 +60,12 @@ function M.boolean(v)
   local b = BOOLS[v] if b ~= nil then return b end
   error('invalid boolean: '..tostring(v))
 end
+function M.bools(args, ...)
+  for _, arg in ipairs{...} do
+    args[arg] = M.boolean(args[arg])
+  end
+end
+
 
 -- Duck type: always return a number
 function M.number(num)
@@ -64,8 +74,11 @@ function M.number(num)
 end
 
 -- Duck type: always return a list.
-function M.list(val, sep)
-  if val == nil then return {} end
+-- default controls val==nil
+-- empty   controls val==''
+function M.list(val, default, empty)
+  if val == nil then return default or {} end
+  if empty and val == '' then return empty end
   return (type(val) == 'table') and val or {val}
 end
 
