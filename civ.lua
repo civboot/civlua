@@ -13,7 +13,6 @@ function M.load(name, path)
 end
 
 local initG = {}; for k in pairs(_G) do initG[k] = true end
-initG.none = true -- expected in ds.lua
 local shim = M.load('shim',    'shim/shim.lua')
 local mty = M.load('metaty',  'metaty/metaty.lua')
 M.load('ds',      'ds/ds.lua')

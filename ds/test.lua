@@ -1,7 +1,7 @@
 METATY_CHECK = true
 
 local mty = require'metaty'
-local test, assertEq; mty.lrequire'civtest'
+local test, assertEq, assertErrorPat; mty.lrequire'civtest'
 
 local min, max, bound, isWithin, sort2, decAbs
 local indexOf, copy, deepcopy
@@ -12,7 +12,8 @@ local Set, LL, Duration, Epoch
 local lines
 local M = mty.lrequire'ds'
 
-test('bool', function()
+test('bool and none', function()
+  local none = M.none
   assertEq(false, M.bool())
   assertEq(false, M.bool(false))
   assertEq(false, M.bool(none))
@@ -28,7 +29,12 @@ test('bool', function()
   assert(not mty.eq(none, {}))
   assertEq('none', getmetatable(none))
   assertEq('none', mty.ty(none))
-  -- assertEq('none', mty.fmt(none))
+  assertEq('none', mty.fmt(none))
+  local err = 'invalid operation on sentinel'
+  assertErrorPat(err, function() return none.foo end)
+  assertErrorPat(err, function() none.foo = 3 end)
+  assertErrorPat(err, function() return #none end)
+  assertErrorPat(err, function() return none.__name end)
 end)
 
 test("number", function()

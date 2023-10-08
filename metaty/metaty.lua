@@ -31,9 +31,7 @@ end
 -- Native types: now add your own with addNativeTy!
 -- These dictionaries are used for fast conversion
 -- of ty(v) (when the result is a string) into the approriate function.
---
--- Recomendation: for your own native type, do:
---   __metatable=function() return 'mynativety' end
+-- Note: native types must have __metatable='mynativetype'
 local NATIVE_TY_GET = {
   ['function'] = function(f) return 'function' end,
   ['nil']      = function()  return 'nil'     end,
@@ -111,10 +109,12 @@ local NATIVE_TY_DOC = {
 
 -- Add your own custom native type.
 -- you can override behavior in `t`, see implementation for defaults.
-M.addNativeTy = function(name, t)
-  assert(type(name) == 'string' and #name)
+M.addNativeTy = function(ty_, t)
+  local name, t = getmetatable(ty_), t or {}
+  print('!! name', type(name))
+  assert(type(name) == 'string' and #name > 0,
+    'native types must have __metatable="nativeTypeName"')
   M.assertf(not NATIVE_TY_GET[name], '%s already exists', name)
-  t = t or {}
   NATIVE_TY_NAME[name]  = name
   NATIVE_TY_GET[name]   = function() return name end
   NATIVE_TY_FMT[name]   = t.fmt  or M.tostringFmt

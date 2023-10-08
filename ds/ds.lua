@@ -164,13 +164,13 @@ M.reverse = function(t)
 end
 
 M.extend = function(t, vals)
-  for _, v in ipairs(vals) do add(t, v) end
+  for _, v in ipairs(vals) do add(t, v) end; return t
 end
 M.update = function(t, add)
-  for k, v in pairs(add) do t[k] = v end
+  for k, v in pairs(add) do t[k] = v end; return t
 end
 M.updateKeys = function(t, add, keys)
-  for _, k in ipairs(keys) do t[k] = add[k] end
+  for _, k in ipairs(keys) do t[k] = add[k] end; return t
 end
 
 -- pop multiple keys, pops(t, {'a', 'b'})
@@ -296,18 +296,30 @@ M.eval = function(s, env, name) -- Note: not typed
 end
 
 ---------------------
--- none and bool
-M.NONE = setmetatable({}, {
-  __doc = [[none means "set as none" (nil means "unset")]],
-  __name='none', __tostring=function() return 'none' end,
-  __eq=rawequal, __metatable='none',
-  __index=   function() error'get on "none"' end,
-  __newindex=function() error'set on "none"' end,
+-- Sentinel values, none sentinel and bool function
+
+local _si=function() error'invalid operation on sentinel' end
+M.newSentinel = mty.doc[[newSentinel(name, ty_, metatable)
+Use to create a "sentinel type". Return the metatable used.
+
+Sentinels are "single values" commonly used for things like: none, empty, EOF, etc.
+They have most metatable methods disallowed and are locked down. Override/add
+whatever methods you want by passing your own metatable.
+]](function(name, ty_, mt)
+  mt = M.update({
+    __name=name, __eq=rawequal, __tostring=function() return name end,
+    __index=_si, __newindex=_si, __len=_si, __pairs=_si, __ipairs=_si,
+  }, mt or {})
+  return setmetatable(ty_, mt)
+end)
+
+M.none = M.newSentinel('none', {}, {__metatable='none',
+  __doc=[[none means "set as none" (nil means "unset")]],
 })
-_G.none = (_G.none==nil) and M.NONE or _G.none; M.none = _G.none
+mty.addNativeTy(M.none)
+
 M.bool = mty.doc[[convert to boolean (none aware)]]
-(function(v) return not rawequal(none, v) and v and true or false end)
--- mty.addNativeTy'none'
+(function(v) return not rawequal(M.none, v) and v and true or false end)
 
 ---------------------
 -- Duration
