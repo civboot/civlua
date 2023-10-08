@@ -6,6 +6,8 @@ and method gaps in Lua's standard library.
 It contains the following functions and types. All types use
 [metaty](../metaty/README.md) for specifying the type.
 
+- global: `none` (see below section)
+- boolean: `bool`
 - comparable: `min`, `max`, `bound`, `isWithin`
 - number: `isOdd`, `isEven`, `decAbs` (decrement absolute)
 - string: `strDivide`, `strInsert`, `explode` (make table of characters),
@@ -22,3 +24,14 @@ The following types are also defined:
 - Duration and Epoch for time (must use civix or posix to construct an Epoch)
 - Hash Set: `Set{'zebra', 'anchovy'}:union{'corn', 'zebra'}`
 - Linked List: `LL():addFront(1):addBack(2)`
+
+## global none: "set but none" vs nil's simply "unset"
+
+ds adds (or uses if already set) only one global: `none`
+
+In Lua `nil` always means "unset". Certain APIs (like JSON) might distinguish
+between unset vs null/empty/none. For such APIs `none` can be used to mean "set
+as none" instead of simply "unset" (which is what `nil` means).
+
+WARNING: `none and 'is true' or 'is false' == 'is true'`
+  You can use `ds.bool` to auto-convert none to `false`.

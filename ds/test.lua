@@ -12,6 +12,15 @@ local Set, LL, Duration, Epoch
 local lines
 local M = mty.lrequire'ds'
 
+test('none', function()
+  assert(none == none)
+  assertEq(none, none)
+  assert(none ~= {})
+  assert(not mty.eq(none, {}))
+  assertEq('is true', none and 'is true' or 'is false')
+  assertEq(false, M.bool(none))
+end)
+
 test("number", function()
   assert(0, decAbs(1)); assert(0, decAbs(-1))
 

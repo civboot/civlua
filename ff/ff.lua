@@ -32,6 +32,7 @@ Short:
   r: --depth='' (infinite recursion)
 ]]
 
+METATY_DOC = true
 local mty = require'metaty'
 local shim = require'shim'
 local ds = require'ds'
