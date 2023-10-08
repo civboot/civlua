@@ -296,8 +296,7 @@ M.eval = function(s, env, name) -- Note: not typed
 end
 
 ---------------------
--- Sentinel values, none sentinel and bool function
-
+-- `newSentinel` function, `none` sentinel and `bool` function
 local _si=function() error'invalid operation on sentinel' end
 M.newSentinel = mty.doc[[newSentinel(name, ty_, metatable)
 Use to create a "sentinel type". Return the metatable used.
