@@ -4,7 +4,7 @@ I have a VERY initial version of generics working, with almost no testing except
 to make sure the basic plumbing works. I need to take a 6 month break from
 personal projects as I can't focus on anything else while I work on this.
 
-For basic usage see "Generic Types" in `metaty.lua`
+For basic usage see "Generic Types" in `metaty.lua` (at commit d5db3b4)
 
 The basic process is that `Checker.gen` holds the names of all currently defined
 genvars (`g'A'` has name "A"). As it type checks it updates the current
