@@ -1,5 +1,6 @@
 local mty = require'metaty'
 local ds = require'ds'
+local path = ds.path
 local add, concat, sfmt = table.insert, table.concat, string.format
 
 local M = {
@@ -24,15 +25,16 @@ M.quote = function(str)
   return "'" .. str .. "'"
 end
 
--- execute a command using lua's io.popen(c, 'r')
 -- return (read('*a'), {close()})
--- if noCheck is falsy (default) asserts the command succeeds.
-M.lsh = function(c, noCheck)
+M.lsh = mty.doc[[execute via io.popen(c, 'r')
+returns stdout, {ok, msg, rc} aka fd:close()
+If allowError is false asserts that ok == true
+]](function(c, allowError)
   local f = assert(io.popen(c, 'r'), c)
   local o, r = f:read('*a'), {f:close()}
-  assert(r[1] or noCheck, r[2])
+  assert(r[1] or allowError, r[2])
   return o, r
-end
+end)
 
 -- "global" shell settings
 M.SH_SET = { debug=false, host=false }
@@ -106,6 +108,7 @@ function M.walk(paths, fileFn, dirFn, maxDepth)
   end
 end
 
+
 -- A very simple ls (list paths) implementation
 -- Returns (files, dirs) tables
 M.ls = function(paths, maxDepth)
@@ -118,6 +121,50 @@ end
 
 M.mv = function(from, to) M.lsh(sfmt('mv %s %s', qp(from), qp(to))) end
 M.rm = function(path) M.lsh('rm '..qp(path)) end
+M.rmDir = function(path, children)
+  if children then M.lsh('rm -r '..qp(path))
+  else             M.lsh('rmdir '..qp(path)) end
+end
+M.mkDir = function(path, parents)
+  if parents then M.lsh('mkdir -p '..qp(path))
+  else            M.lsh('mkdir '..qp(path)) end
+end
+M.exists = function(path)
+  local _, r = M.lsh('test -e '..qp(path), true)
+  return r[3] == 0
+end
+
+M.mkTree = mty.doc[[
+mkTree(tree) builds a tree of files and dirs at `dir`.
+Dirs  are tables.
+Files are string or fd -- which are read+closed.
+
+tree = {
+  a = {
+    ['a1.txt'] = 'stuff in a1.txt',
+    ['a2.txt'] = 'stuff in a.txt',
+    a3 = {
+      ['a4.txt'] = io.open'some/file.txt',
+    }
+  }
+}
+
+Builds a tree like
+a/a1.txt    # content: stuff in a1.txt
+a/a2.txt    # content: stuff in a2.txt
+a/a3/a4.txt # content: stuff in a3.txt
+]](function(dir, tree, parents)
+  M.mkDir(dir, parents)
+  for name, v in pairs(tree) do
+    local p = path.concat{dir, name, type(v) == 'table' and '/' or nil}
+    if     type(v) == 'table'  then M.mkTree(p, v)
+    elseif type(v) == 'string' then ds.writePath(p, v)
+    elseif type(v) == 'userdata' then
+      local f = ds.fdMv(io.popen(p, 'w'), v)
+      f:close(); v:close()
+    else error('invalid tree value of type '..type(v)) end
+  end
+end)
 
 -------------------------------------
 -- Pipe

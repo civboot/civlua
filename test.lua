@@ -18,6 +18,10 @@ T.test('[[libs]]', function()
   dofile(dir..'civix/test_term.lua')
 end)
 
+T.test('[[apps]]', function()
+  dofile(dir..'ff/test.lua')
+end)
+
 T.test('[[ele]]', function()
   dofile(dir..'ele/tests/test_motion.lua')
   dofile(dir..'ele/tests/test_gap.lua')

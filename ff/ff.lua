@@ -5,7 +5,8 @@ Examples (bash):
   ff path                   # print files at path (recursively)
   ff path --dir             # also print directories
   ff path --depth=3         # recurse to depth 3 (default=1)
-  ff path --depth=          # recurse infinitely (depth=nil)
+  ff path --depth=          # recurse infinitely (depth=-1)
+  ff path --depth=-1        # recurse infinitely (depth=-1)
   ff path --pat='my%s+name' # find Lua pattern like "my  name" in files at path
   ff path --pat='my%s+name' --matches=false  # print paths with match only
   ff path --pat='(name=)%S+' --sub='%1bob' # change name=anything to name=bob
@@ -68,9 +69,7 @@ file substitute for fpat (rename files).
     Note: ff will never rename dirs.]]
   :fieldMaybe('sub', 'string'):fdoc
     [[substitute pattern to go with pat (see lua's gsub)]]
-  :fieldMaybe'log':fdoc[[
-In Lua this is the file handle to print results to.
-    In shell this is ignored (always io.stdout).]]
+  :fieldMaybe'log':fdoc[[path or (Lua) filehandle to log to.]]
   :field('fpre', 'string', ''):fdoc
     [[prefix characters before printing files]]
   :field('dpre', 'string', ''):fdoc
@@ -140,10 +139,10 @@ local function _fileFn(path, args, out)
     if args.matches then
       if log then wln(log, line, pre, l) end
       if out.matches then add(out.matches, line) end
-     end
-     if f then wln(f, line) end
-     l = l + 1
+    end
+    if f then wln(f, line) end
     ::continue::
+    l = l + 1
   end
   if f then -- close file and move it
     f:flush(); f:close()
@@ -153,6 +152,7 @@ local function _fileFn(path, args, out)
 end
 
 function M.findfix(args, out, isExe)
+  args = shim.parseStr(args, true)
   if #args == 0 then add(args, '.') end
   if args.sub then
     assert(args.pat, 'must specify pat with sub')
@@ -168,11 +168,13 @@ function M.findfix(args, out, isExe)
   if args.notdpat == nil then args.notdpat = {'/%.'} end
   args.notdpat = shim.list(args.notdpat)
   if args.d then args.dirs  = true; args.d = nil end
-  if args.r then args.depth = nil;  args.r = nil end
+  if args.r then args.depth = -1;   args.r = nil end
   if args.m then args.mut   = true; args.m = nil end
   if args.p then args.plain = true; args.p = nil end
-  if args.depth ~= nil then
-    args.depth = shim.number(args.depth or 1)
+  args.depth = shim.number(args.depth or 1)
+  if args.depth < 0 then args.depth = nil end
+  if type(args.log) == 'string' then
+    args.log = io.open(args.log, 'a')
   end
 
   if isExe then local ok;
@@ -186,6 +188,7 @@ function M.findfix(args, out, isExe)
     dirs    = args.dirs    and {} or nil,
     matches = args.matches and {} or nil,
   }
+  out.log = args.log
 
   civix.walk(
     args,
@@ -193,12 +196,14 @@ function M.findfix(args, out, isExe)
     function(path, depth) return _dirFn(path, args, out.dirs) end,
     args.depth
   )
+  if args.log then args.log:flush() end
   return out
 end
 
 function M.exe(args, isExe)
   assert(isExe)
-  if args.depth == '' then args.depth = nil end
+  if not args.depth   then args.depth = 1   end
+  if args.depth == '' then args.depth = -1 end
   args.log = io.stdout
   M.findfix(args, {}, true)
 end

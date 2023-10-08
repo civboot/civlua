@@ -118,6 +118,39 @@ function M.lines.diff(linesL, linesR)
   return nil
 end
 
+--------------------
+-- Working with file paths
+M.path = {}
+M.path.concat = mty.doc[[concat a table of path elements.
+This preserves the first and last '/'.
+a, b, c/d/e   -> a/b/c/d/e
+/a/, /b, c/d/ -> /a/b/c/d/
+]](function(t)
+  if #t == 0 then return '' end
+  local root = (t[1]:sub(1,1)=='/') and '/' or ''
+  local dir  = (t[#t]:sub(-1)=='/') and '/' or ''
+  local out = {}
+  for i, p in ipairs(t) do
+    p = string.match(p, '^/*(.-)/*$')
+    if p ~= '' then add(out, p) end
+  end; return root..table.concat(out, '/')..dir
+end)
+
+M.path.first = mty.doc[[split the path into (first, rest)]]
+(function(path)
+  if path:sub(1,1) == '/' then return '/', path:sub(2) end
+  local a, b = path:match('^(.-)/(.*)$')
+  if not a or a == '' or b == '' then return path, '' end
+  return a, b
+end)
+
+M.path.last = mty.doc[[split the path into (start, last)]]
+(function(path)
+  local a, b = path:match('^(.*)/(.+)$')
+  if not a or a == '' or b == '' then return '', path end
+  return a, b
+end)
+
 ---------------------
 -- Table Functions
 
@@ -225,17 +258,27 @@ end
 
 ---------------------
 -- File Functions
-local function readPath(path)
-  local f = io.open(path, 'r')
+function M.readPath(path)
+  local f = mty.assertf(io.open(path), 'invalid %s', path)
   local out = f:read('a'); f:close()
   return out
 end
 
-local function writePath(path, text)
-  local f = io.open(path, 'w')
+function M.writePath(path, text)
+  local f = mty.assertf(io.open(path, 'w'), 'invalid %s', path)
   local out = f:write(text); f:close()
   return out
 end
+
+M.fdMv = mty.doc[[fdMv(fdTo, fdFrom): memonic fdTo = fdFrom
+Read data from fdFrom and write to fdTo, then flush.
+]](function(fdTo, fdFrom)
+  while true do
+    local d = fdFrom:read(4096); if not d then break end
+    fdTo:write(d)
+  end fdTo:flush()
+  return fdTo, fdFrom
+end)
 
 ---------------------
 -- Source Code Functions

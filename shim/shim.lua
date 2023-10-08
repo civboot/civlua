@@ -33,6 +33,17 @@ function M.parse(args)
   return t
 end
 
+-- parses the string by splititng via whitespace.
+-- Asserts the string contains no special chars: '"[]
+-- This is for convinience, use a table if it's not enough.
+function M.parseStr(s, duck)
+  if duck and type(s) == 'table' then return s end
+  if s:find'[%[%]\'"]' then error(
+    'parseStr is split on whitespace: '..s
+  )end
+  return M.parse(s:find'%S+')
+end
+
 local BOOLS = {
   [true]=true,   ['true']=true,   ['yes']=true, ['1']=true,
   [false]=false, ['false']=false, ['no']=false, ['0']=false,

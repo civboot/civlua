@@ -10,7 +10,7 @@ local steal, getOrSet, getPath, setPath, drain, reverse
 local eval
 local Set, LL, Duration, Epoch
 local lines
-mty.lrequire'ds'
+local M = mty.lrequire'ds'
 
 test("number", function()
   assert(0, decAbs(1)); assert(0, decAbs(-1))
@@ -161,4 +161,33 @@ test('lines.sub', function()
   assertEq("'",      lsub(l, 1, 9, 1, 9))
   assertEq("s",      lsub(l, 1, 10, 1, 10))
   assertEq(" nice",  lsub(l, 1, 11, 1, 15))
+end)
+
+test('path', function()
+  local pc = M.path.concat
+  assertEq('foo/bar',   pc{'foo/', 'bar'})
+  assertEq('/foo/bar',  pc{'/foo/', 'bar'})
+  assertEq('/foo/bar/', pc{'/foo/', 'bar/'})
+  assertEq('',          pc{''})
+  assertEq('a/b',       pc{'a', '', 'b'})
+
+  local pf = M.path.first
+  assertEq({'/',  'a/b/c/'}, {pf'/a/b/c/'})
+  assertEq({'a',  'b/c/'},   {pf'a/b/c/'})
+  assertEq({'/',  'a/b/'},   {pf'/a/b/'})
+  assertEq({'/',  'a/b'},    {pf'/a/b'})
+  assertEq({'/',  'b'},      {pf'/b'})
+  assertEq({'b',  ''},       {pf'b'})
+  assertEq({'/',  'b/'},     {pf'/b/'})
+  assertEq({'/',  ''},       {pf'/'})
+
+  local pl = M.path.last
+  assertEq({'/a/b', 'c/'}, {pl'/a/b/c/'})
+  assertEq({'a/b', 'c/'},  {pl'a/b/c/'})
+  assertEq({'/a', 'b/'},   {pl'/a/b/'})
+  assertEq({'/a', 'b'},    {pl'/a/b'})
+  assertEq({'', '/b'},     {pl'/b'})
+  assertEq({'', 'b'},      {pl'b'})
+  assertEq({'', '/b/'},    {pl'/b/'})
+  assertEq({'', '/'},      {pl'/'})
 end)

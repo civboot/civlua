@@ -4,12 +4,8 @@ local mty = require'metaty'
 local ds = require'ds'
 local test, assertEq; mty.lrequire'civtest'
 
--- test('load', nil, function() mod = require('civ.sh') end)
-
 local posix = require'posix'
 local civix  = require'civix'
-
--- local sh, shCmd, assertSh = mod.sh, mod.shCmd, mod.assertSh
 
 test('fork', function()
   local fork = civix.Fork(true, true)
@@ -83,6 +79,21 @@ test('time', function()
   civix.posix = posix
 end)
 
+test('mkTree', function()
+  local d = 'out/civix/'
+  if civix.exists(d) then civix.rmDir(d, true) end
+  civix.mkTree(d, {
+    ['a.txt'] = 'for civix a test',
+    b = {
+      ['b1.txt'] = '1 in dir b/',
+      ['b2.txt'] = '2 in dir b/',
+    },
+  }, true)
+  assertEq(ds.readPath'out/civix/a.txt', 'for civix a test')
+  assertEq(ds.readPath'out/civix/b/b1.txt', '1 in dir b/')
+  assertEq(ds.readPath'out/civix/b/b2.txt', '2 in dir b/')
+end)
+
 test('walk', function()
   local f, d = civix.ls{'civix/'}
   table.remove(f, ds.indexOfPat(f, '%.rockspec'))
@@ -95,3 +106,4 @@ test('walk', function()
   assertEq(expected, f)
   assertEq({'civix/', 'civix/civix/'}, d)
 end)
+

@@ -1,15 +1,21 @@
 
 local T = require'civtest'
 local M = require'shim'
-local parse = M.parse
+local p, ps = M.parse, M.parseStr
 
 
 T.test('parse', function()
-  T.assertEq({'a', 'b', c='42'}, parse{'a', '--c=42', 'b'})
-  T.assertEq({c={'1', '2'}}, parse{'--c=1', '--c=2'})
-  T.assertEq({c={'1', '2', '3'}}, parse{'--c=1', '--c=2', '--c=3'})
+  T.assertEq({'a', 'b', c='42'}, ps{'a', '--c=42', 'b'})
+  T.assertEq({c={'1', '2'}}, ps{'--c=1', '--c=2'})
+  T.assertEq({c={'1', '2', '3'}}, ps{'--c=1', '--c=2', '--c=3'})
 
-  T.assertEq({a=true, b=true, c='foo', parse{'-ab', '--c=foo'}})
+  T.assertEq({a=true, b=true, c='foo'}, ps{'-ab', '--c=foo'})
+end)
+
+T.test('parseStr', function()
+  T.assertEq({'a', 'b', c='42'}, ps'a b --c=42')
+  T.assertEq({c={'1', '2'}},     ps'--c=1   --c=2')
+  T.assertEq({a=true, b=true, c='foo'}, ps'-ab --c=foo')
 end)
 
 T.test('list', function()
