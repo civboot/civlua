@@ -12,13 +12,22 @@ local Set, LL, Duration, Epoch
 local lines
 local M = mty.lrequire'ds'
 
-test('none', function()
+test('bool', function()
+  assertEq(false, M.bool())
+  assertEq(false, M.bool(false))
+  assertEq(false, M.bool(none))
+  assertEq(true, M.bool(true))
+  assertEq(true, M.bool(''))
+  assertEq(true, M.bool(0))
+  assertEq(true, M.bool({}))
+  assert(none) -- truthy, use ds.bool for falsy
+  assert(rawequal(none, none))
   assert(none == none)
   assertEq(none, none)
   assert(none ~= {})
   assert(not mty.eq(none, {}))
-  assertEq('is true', none and 'is true' or 'is false')
-  assertEq(false, M.bool(none))
+  assertEq('none', getmetatable(none))
+  assertEq('none', mty.ty(none))
 end)
 
 test("number", function()

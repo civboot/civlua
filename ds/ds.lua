@@ -2,26 +2,9 @@ local mty = require 'metaty'
 local record, Any = mty.record, mty.Any
 local add = table.insert
 
-if _G.none ~= nil then
-  assert(({userdata=true, table=true})[type(_G.none)],
-         'none set globally to non table/userdata.')
-else
-  _G.none = mty.doc[[none means "set as none", nil means "unset"]]
-  (setmetatable({}, {
-    __name='none', __tostring=function()return'none'end,
-    __eq=rawequal,
-  }))
-end
-
 local M = {
-  none=_G.none, steal = mty.steal, trimWs = mty.trimWs,
+  steal = mty.steal, trimWs = mty.trimWs,
 }
-
-M.bool = mty.doc[[convert to boolean and check for none]]
-(function(v)
-  if v == none then return false end
-  return v and v or false
-end)
 
 ---------------------
 -- Order checking functions
@@ -313,9 +296,21 @@ M.eval = function(s, env, name) -- Note: not typed
 end
 
 ---------------------
+-- none and bool
+M.NONE = setmetatable({}, {
+  __doc = [[none means "set as none" (nil means "unset")]],
+  __name='none', __tostring=function() return 'none' end,
+  __eq=rawequal, __metatable='none',
+  __index=   function() error'get on "none"' end,
+  __newindex=function() error'set on "none"' end,
+})
+_G.none = (_G.none==nil) and M.NONE or _G.none; M.none = _G.none
+M.bool = mty.doc[[convert to boolean (none aware)]]
+(function(v) return not rawequal(none, v) and v and true or false end)
+
+---------------------
 -- Duration
 local NANO  = 1000000000
-local MILLI = 1000000000
 local function durationSub(s, ns, s2, ns2)
   s, ns = s - s2, ns - ns2
   if ns < 0 then

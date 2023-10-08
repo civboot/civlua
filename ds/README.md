@@ -33,5 +33,10 @@ In Lua `nil` always means "unset". Certain APIs (like JSON) might distinguish
 between unset vs null/empty/none. For such APIs `none` can be used to mean "set
 as none" instead of simply "unset" (which is what `nil` means).
 
-WARNING: `none and 'is true' or 'is false' == 'is true'`
-  You can use `ds.bool` to auto-convert none to `false`.
+`none` overrides `__metatable='none'` so that `getmetatable(none)=='none'` and
+`metaty.ty(none) == 'none'`.
+
+WARNING: `assert(none)` will pass.  Use `ds.bool` to make `none` falsy.
+
+Note: `ds.NONE ~= ds.none` iff metaty is using an existing global.
+  You may want to assert something regarding this in your application.

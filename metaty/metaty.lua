@@ -37,6 +37,7 @@ end
 local NATIVE_TY_GET = {
   ['function'] = function(f) return M.FNS[f] or 'function' end,
   ['nil']      = function()  return 'nil'     end,
+  none         = function()  return 'none'    end, -- for ds.lua
   boolean      = function()  return 'boolean' end,
   number       = function()  return 'number'  end,
   string       = function()  return 'string'  end,
