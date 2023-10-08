@@ -307,6 +307,7 @@ M.NONE = setmetatable({}, {
 _G.none = (_G.none==nil) and M.NONE or _G.none; M.none = _G.none
 M.bool = mty.doc[[convert to boolean (none aware)]]
 (function(v) return not rawequal(none, v) and v and true or false end)
+-- mty.addNativeTy'none'
 
 ---------------------
 -- Duration

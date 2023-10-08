@@ -28,6 +28,7 @@ test('bool', function()
   assert(not mty.eq(none, {}))
   assertEq('none', getmetatable(none))
   assertEq('none', mty.ty(none))
+  -- assertEq('none', mty.fmt(none))
 end)
 
 test("number", function()

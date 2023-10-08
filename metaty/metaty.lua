@@ -12,7 +12,7 @@ M.FN_DOCS = {}
 -- Utilities / aliases
 local add, sfmt = table.insert, string.format
 local function identity(v) return v end
-local function nativeEq(a, b) return a == b end
+function M.nativeEq(a, b) return a == b end
 function M.steal(t, k)
   local v = t[k]; t[k] = nil; return v
 end
@@ -20,9 +20,6 @@ function M.trimWs(s) return string.match(s, '^%s*(.-)%s*$') end
 
 M.KEYS_MAX = 64
 M.FMT_SAFE = false
-M.FNS = {}      -- function types (registered)
-M.FNS_UNCHECKED = {} -- functions w/out type check wrapper
-M.FNS_INFO = {} -- function debug info
 
 M.errorf  = function(...) error(string.format(...), 2) end
 M.assertf = function(a, ...)
@@ -30,35 +27,102 @@ M.assertf = function(a, ...)
   return a
 end
 
-M.defaultNativeCheck = function(_chk, anchor, reqTy, giveTy)
-  return reqTy == giveTy
-end
-
+-----------------------------
+-- Native types: now add your own with addNativeTy!
+-- These dictionaries are used for fast conversion
+-- of ty(v) (when the result is a string) into the approriate function.
+--
+-- Recomendation: for your own native type, do:
+--   __metatable=function() return 'mynativety' end
 local NATIVE_TY_GET = {
-  ['function'] = function(f) return M.FNS[f] or 'function' end,
+  ['function'] = function(f) return 'function' end,
   ['nil']      = function()  return 'nil'     end,
-  none         = function()  return 'none'    end, -- for ds.lua
   boolean      = function()  return 'boolean' end,
   number       = function()  return 'number'  end,
   string       = function()  return 'string'  end,
   table        = function(t) return getmetatable(t) or 'table' end,
-  userdata = function()      return 'userdata' end,
-  thread   = function()      return 'thread'   end,
+  userdata     = function()  return 'userdata' end,
+  thread       = function()  return 'thread'   end,
 }
 
+M.checkNative = function(_chk, anchor, reqTy, giveTy)
+  return reqTy == giveTy
+end
 local NATIVE_TY_CHECK = {}; for k in pairs(NATIVE_TY_GET) do
-  NATIVE_TY_CHECK[k] = M.defaultNativeCheck
+  NATIVE_TY_CHECK[k] = M.checkNative
 end; NATIVE_TY_CHECK['nil'] = nil
+
+local NATIVE_TY_EQ = {
+  number   = rawequal,   boolean = rawequal, string = rawequal,
+  userdata = M.nativeEq, thread  = M.nativeEq,
+  ['nil']  = rawequal,   ['function'] = rawequal,
+  ['table'] = function(a, b)
+    if M.geteventhandler(a, b, '__eq') then return a == b end
+    if a == b                          then return true   end
+    return M.eqDeep(a, b)
+  end,
+}
 
 local NATIVE_TY_NAME = {}
 for k in pairs(NATIVE_TY_GET) do NATIVE_TY_NAME[k] = k end
 
--- Use to add/override a native type
-M.setNativeTy = function(name, getTy, check)
-  NATIVE_TY_NAME[name]  = name
-  NATIVE_TY_GET[name]   = getTy
-  NATIVE_TY_CHECK[name] = check
+M.tostringFmt = function(v, f) add(f, tostring(v)) end
+local NATIVE_TY_FMT = {
+  boolean=M.tostringFmt, userdata = M.tostringFmt, thread=M.tostringFmt,
+  ['nil']=function(n, f)       add(f, 'nil') end,
+  number=function(n, f)        add(f, sfmt(f.set.num, n)) end,
+  string=function(s, f)
+    if f.set.str ~= '%s' then return add(f, sfmt(f.set.str, s)) end
+    -- format with newlines. Last line should not have sep'\n'
+    local prev; for line in s:gmatch'[^\n]+' do
+      if prev then add(f, prev); f:sep'\n' end; prev = line
+    end; if prev then add(f, prev) end
+  end,
+  -- ['function'] = fnFmtSafe (later)
+  -- table        = tblFmtSafe (later)
+}
+
+function M.simpleDoc(v, fmt, name)
+  if name then fmt:fmt(name); add(fmt, ': ') end
+  fmt:fmt(type(v))
 end
+local NATIVE_TY_DOC = {
+  ['nil']  = M.simpleDoc, boolean = M.simpleDoc,
+  number   = M.simpleDoc, string  = M.simpleDoc,
+  userdata = M.simpleDoc, thread  = M.simpleDoc,
+  table = function(t, fmt, name)
+    if rawget(t, '__name') or rawget(t, '__tostring') then
+      M.helpTy(t, fmt, name)
+    else
+      if name then fmt:fmt(name); add(fmt, ': ') end
+      fmt:fmt'table'; fmt:sep'\n'
+    end
+    return true
+  end,
+  ['function'] = function(f, fmt, name)
+    if name then fmt:fmt(name); add(fmt, ': ') end
+    add(fmt, 'function ['); fmt:fmt(f); add(fmt, ']')
+    local d = M.FN_DOCS[f]; if d then
+      fmt:levelEnter''; fmt:fmt(d); fmt:levelLeave''
+    else fmt:sep'\n' end
+    return true
+  end,
+}
+
+-- Add your own custom native type.
+-- you can override behavior in `t`, see implementation for defaults.
+M.addNativeTy = function(name, t)
+  assert(type(name) == 'string' and #name)
+  M.assertf(not NATIVE_TY_GET[name], '%s already exists', name)
+  t = t or {}
+  NATIVE_TY_NAME[name]  = name
+  NATIVE_TY_GET[name]   = function() return name end
+  NATIVE_TY_FMT[name]   = t.fmt  or M.tostringFmt
+  NATIVE_TY_CHECK[name] = t.check or M.checkNative
+  NATIVE_TY_EQ[name]    = t.eq   or rawequal
+  NATIVE_TY_DOC[name]   = t.doc  or M.simpleDoc
+end
+
 
 M.ty = function(obj) return NATIVE_TY_GET[type(obj)](obj) end
 
@@ -116,16 +180,7 @@ M.geteventhandler = function(a, b, event)
       or (getmetatable(b) or {})[event]
 end
 
-local EQ = {
-  number = nativeEq, boolean = nativeEq, string = nativeEq,
-  ['nil'] = nativeEq, ['function'] = nativeEq,
-  ['table'] = function(a, b)
-    if M.geteventhandler(a, b, '__eq') then return a == b end
-    if a == b                          then return true   end
-    return M.eqDeep(a, b)
-  end,
-}
-M.eq = function(a, b) return EQ[type(a)](a, b) end
+M.eq = function(a, b) return NATIVE_TY_EQ[type(a)](a, b) end
 
 M.eqDeep = function(a, b)
   if rawequal(a, b)     then return true   end
@@ -395,6 +450,7 @@ M.fnFmtSafe = function(fn, f)
   add(f, '@'); add(f, dbg.short_src);
   add(f, ':'); add(f, tostring(dbg.linedefined));
 end
+NATIVE_TY_FMT['function'] = M.fnFmtSafe
 
 M.tblFmtSafe = function(t, f)
   local mt = getmetatable(t);
@@ -407,6 +463,8 @@ M.tblFmtSafe = function(t, f)
     add(f, M.tblIdUnsafe(t));
   end
 end
+NATIVE_TY_FMT.table = M.tblFmtSafe
+
 M.tblToStrSafe = function(t)
   local mt = getmetatable(t);
   if not mt then return sfmt('Tbl@%s', M.tblIdUnsafe(t)) end
@@ -414,25 +472,8 @@ M.tblToStrSafe = function(t)
   return sfmt('%s@%s', M.metaName(mt), M.tblIdUnsafe(t))
 end
 
-local SAFE = {
-  ['nil']=function(n, f)       add(f, 'nil') end,
-  ['function']=function(fn, f) M.fnFmtSafe(fn, f) end,
-  boolean=function(v, f)       add(f, tostring(v)) end,
-  number=function(n, f)        add(f, sfmt(f.set.num, n)) end,
-  string=function(s, f)
-    if f.set.str ~= '%s' then return add(f, sfmt(f.set.str, s)) end
-    -- format with newlines. Last line should not have sep'\n'
-    local prev; for line in s:gmatch'[^\n]+' do
-      if prev then add(f, prev); f:sep'\n' end; prev = line
-    end; if prev then add(f, prev) end
-  end,
-  table=M.tblFmtSafe,
-  userdata = function(u, f) add(f, tostring(u)) end,
-  thread   = function(c, f) add(f, tostring(c)) end,
-}
-
 M.safeToStr = function(v, set) --> string
-  local f = M.Fmt{set=set}; SAFE[type(v)](v, f)
+  local f = M.Fmt{set=set}; NATIVE_TY_FMT[type(v)](v, f)
   return f:toStr()
 end
 
@@ -502,10 +543,9 @@ end
 
 -- Format the value and store the result in `f`
 M.Fmt.fmt = function(f, v)
-  local tystr = type(v)
-  if tystr ~= 'table' then
-    SAFE[tystr](v, f)
-    return f
+  local ty_ = M.ty(v)
+  if type(ty_) == 'string' and ty_ ~= 'table' then
+    NATIVE_TY_FMT[ty_](v, f); return f
   end
   if not f.set.recurse then
     if f.done[v] then
@@ -589,32 +629,6 @@ M.lrequire = function(mod, i)
   return mod, i
 end
 
-local function valhelp(v, fmt, name)
-  if name then fmt:fmt(name); add(fmt, ': ') end
-  fmt:fmt(type(v))
-end
-local FMT_DOC = {
-  ['nil'] = valhelp, boolean = valhelp,
-  number  = valhelp, string  = valhelp,
-  table = function(t, fmt, name)
-    if rawget(t, '__name') or rawget(t, '__tostring') then
-      M.helpTy(t, fmt, name)
-    else
-      if name then fmt:fmt(name); add(fmt, ': ') end
-      fmt:fmt'table'; fmt:sep'\n'
-    end
-    return true
-  end,
-  ['function'] = function(f, fmt, name)
-    if name then fmt:fmt(name); add(fmt, ': ') end
-    add(fmt, 'function ['); fmt:fmt(f); add(fmt, ']')
-    local d = M.FN_DOCS[f]; if d then
-      fmt:levelEnter''; fmt:fmt(d); fmt:levelLeave''
-    else fmt:sep'\n' end
-    return true
-  end,
-}
-
 function M.helpFields(mt, fmt)
   local fields = rawget(mt, '__fields')
   if not fields then return end
@@ -640,7 +654,7 @@ local function _members(fmt, name, mt, keys, fields, onlyTy, notTy)
     local v = mt[k]
     if onlyTy and type(v) ~= onlyTy then goto continue end
     if notTy  and type(v) == notTy  then goto continue end
-    if not FMT_DOC[type(v)](v, fmt, k) then
+    if not NATIVE_TY_DOC[type(v)](v, fmt, k) then
       fmt:sep'\n'
     end
     ::continue::
@@ -675,7 +689,7 @@ end
 
 function M.help(v)
   local f = M.helpFmter()
-  FMT_DOC[type(v)](v, f)
+  NATIVE_TY_DOC[type(v)](v, f)
   return M.trimWs(f:toStr())
 end
 
