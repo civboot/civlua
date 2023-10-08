@@ -336,15 +336,9 @@ local fromSeconds = function(ty_, s)
   local sec = math.floor(s)
   return ty_(sec, math.floor(NANO * (s - sec)))
 end
-local fromMs = function(ty_, s)
-  return ty_(s / 1000)
-end
-local fromMicros = function(ty_, s)
-  return ty_(s / 1000000)
-end
-local asSeconds = function(time)
-  return time.s + (time.ns / NANO)
-end
+local fromMs = function(ty_, s)     return ty_(s / 1000) end
+local fromMicros = function(ty_, s) return ty_(s / 1000000) end
+local asSeconds = function(time) return time.s + (time.ns / NANO) end
 
 M.Duration = record('Duration', {__call=timeNew})
   :field('s', 'number') :field('ns', 'number')
