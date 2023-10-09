@@ -37,6 +37,7 @@ M.Parser = mty.record'Parser'
   :fieldMaybe'stackLast'
   :field('commentLC', 'table')
   :field('dbgLevel', 'number', 0)
+  :fieldMaybe('fmtSet', mty.FmtSet)
 
 M.fmtSpec = function(s, f)
   if type(s) == 'string' then
@@ -135,7 +136,7 @@ M.Empty = mty.record'Empty'
 M.EMPTY = ds.Imm{kind='EMPTY'}
 
 -- Denotes the end of the file
-M.Eof = mty.record'EOF'
+M.Eof = mty.record('Eof', {__tostring=function() return 'EOF' end})
 M.EOF = ds.Imm{kind='EOF'}
 
 -------------------
@@ -345,32 +346,19 @@ end; M.toStrTokens = toStrTokens
 -- This is primarily used for testing
 M.parseStrs=function(dat, spec, root)
   local node, p = M.parse(dat, spec, root)
-  return toStrTokens(p.dat, node)
+  return toStrTokens(p.dat, node), p
 end
 
-function M.isKeyword(t) return #t == 1 and t.kind == t[1] end
-M.tblFmtParsed = function(t, f)
-  if M.isKeyword(t) then add(f, sfmt('KW%q', t[1])); return end
-  local fmtK = f.set.data and f.set.data.fmtKind
-  local fmtK = t.kind and fmtK and fmtK[t.kind]
-  if fmtK then fmtK(t, f) else mty.tblFmt(t, f) end
-end
-
-function M.fmtParsed(t, root) return mty.fmt(t, mty.FmtSet{
-  pretty=true,  tblFmt=M.tblFmtParsed,
-  listSep=', ', tblSep=', ',
-  data=root,
-})end
 
 M.assertParse=function(t) -- {dat, spec, expect, dbg=false, root=RootSpec{}}
   assert(t.dat, 'dat'); assert(t.spec, 'spec')
   local root = (t.root and ds.copy(t.root)) or M.RootSpec{}
   root.dbg   = t.dbg or root.dbg
-  local result = M.parseStrs(t.dat, t.spec, root)
+  local result, parser = M.parseStrs(t.dat, t.spec, root)
   if not t.expect and t.parseOnly then return end
   if t.expect ~= result then
-    local eStr = M.fmtParsed(t.expect, t.root)
-    local rStr = M.fmtParsed(result, t.root)
+    local eStr = parser:fmtParsed(t.expect)
+    local rStr = parser:fmtParsed(result)
     if eStr ~= rStr then
       print('\n#### EXPECT:'); print(eStr)
       print('\n#### RESULT:'); print(rStr)
@@ -380,7 +368,7 @@ M.assertParse=function(t) -- {dat, spec, expect, dbg=false, root=RootSpec{}}
       assert(false, 'failed parse test')
     end
   end
-  return result
+  return result, parser
 end
 
 M.assertParseError=function(t)
@@ -431,6 +419,13 @@ M.Parser.skipEmpty=function(p)
 end
 M.Parser.state   =function(p) return {l=p.l, c=p.c, line=p.line} end
 M.Parser.setState=function(p, st) p.l, p.c, p.line = st.l, st.c, st.line end
+M.Parser.fmtParsed=function(p, t)
+  p.fmtSet = p.fmtSet or mty.FmtSet{
+    data=p.root, tblFmt=M.tblFmtParsed, pretty=true,
+    listSep=', ', tblSep=', ',
+  }
+  return mty.fmt(t, p.fmtSet)
+end
 
 local function fmtStack(p)
   local stk = p.stack
@@ -448,12 +443,20 @@ M.Parser.checkPin=function(p, pin, expect)
   if p.line then
     mty.errorf(
       "ERROR %s.%s\nstack: %s\nparser expected: %s\nGot: %s",
-      p.l, p.c, stk, expect, p.line:sub(p.c))
+      p.l, p.c, stk, mty.fmt(expect), p.line:sub(p.c))
   else
     mty.errorf(
       "ERROR %s.%s\nstack: %s\nparser reached EOF but expected: %s",
-      p.l, p.c, stk, expect)
+      p.l, p.c, stk, mty.fmt(expect))
   end
+end
+
+function M.isKeyword(t) return #t == 1 and t.kind == t[1] end
+M.tblFmtParsed = function(t, f)
+  if M.isKeyword(t) then add(f, sfmt('KW%q', t[1])); return end
+  local fmtK = f.set.data and f.set.data.fmtKind
+  local fmtK = t.kind and fmtK and fmtK[t.kind]
+  if fmtK then fmtK(t, f) else mty.tblFmt(t, f) end
 end
 
 M.Parser.dbgEnter=function(p, spec)

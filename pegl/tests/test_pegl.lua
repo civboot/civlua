@@ -75,12 +75,12 @@ T.test('pin', function()
   assertParseError{
     dat='hi there jane',
     spec={'hi', 'there', 'bob', Eof},
-    errPat='expected: bob',
+    errPat='expected: "bob"',
   }
   assertParseError{
     dat='hi there jane',
     spec={UNPIN, 'hi', 'there', PIN, 'bob', Eof},
-    errPat='expected: bob',
+    errPat='expected: "bob"',
   }
 
   assertParse{

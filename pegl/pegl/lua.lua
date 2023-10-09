@@ -58,7 +58,7 @@ add(exp1, {'(', exp, ')', kind='group'})
 
 local call     = Or{kind='call'} -- function call (defined much later)
 local methcall = {UNPIN, ':', name, PIN, call, kind='methcall'}
-local index    = {'[', exp, ']', kind='index'}
+local index    = {UNPIN, '[', Not{'['}, PIN, exp, ']', kind='index'}
 local postexp  = Or{name='postexp', methcall, index, call}
 ds.extend(exp, {exp1, Many{ Or{postexp, {name='op2exp', op2, exp}} }})
 
@@ -231,7 +231,7 @@ local function skipComment(p)
   end
 end
 
-local src = {block, Eof}
+local src = {name='src', block, Eof}
 M.root = pegl.RootSpec{skipComment=skipComment}
 local parse = function(dat, spec, root)
   root = root or M.root
