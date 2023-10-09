@@ -131,14 +131,11 @@ M.UNPIN = ds.newSentinel('UNPIN', {name='UNPIN'})
 
 -- Denotes a missing node. When used in a spec simply returns Empty.
 -- Example: Or{Integer, String, Empty}
-M.EmptyTy = ds.imm(newSpec('Empty', FIELDS))
-M.Empty = M.EmptyTy{kind='Empty'}
-M.EMPTY = ds.Imm{kind='Empty'}
-assert(M.EMPTY.kind == 'Empty')
+M.Empty = mty.record'Empty'
+M.EMPTY = ds.Imm{kind='EMPTY'}
 
 -- Denotes the end of the file
-M.EofTy = ds.imm(newSpec('EOF', FIELDS))
-M.Eof = M.EofTy{kind='EOF'}
+M.Eof = mty.record'EOF'
 M.EOF = ds.Imm{kind='EOF'}
 
 -------------------
@@ -177,9 +174,7 @@ M.defaultTokenizer = function(p)
 end
 M.RootSpec.tokenizer = M.defaultTokenizer
 
--- TODO: the civ version had M.Tbl which was (accidentally) null.
--- Do we want 'table' here?
-local UNPACK_SPECS = ds.Set{M.Seq, M.Many, M.Or, --[['table']]}
+local UNPACK_SPECS = ds.Set{'table', M.Seq, M.Many, M.Or}
 local function shouldUnpack(spec, t)
   local r = (
     type(t) == 'table'
@@ -194,13 +189,10 @@ end
 -- Create node with optional kind
 local function node(spec, t, kind)
   if type(t) ~= 'boolean' and t and kind then
-    if type(t) == 'table' and not t.kind then
-      t.kind = kind
+    if type(t) == 'table' and not t.kind then t.kind = kind
     else t = {t, kind=kind} end
   end
-  if t and shouldUnpack(spec, t) and #t == 1 then
-    t = t[1]
-  end
+  if shouldUnpack(spec, t) and #t==1 then t = t[1] end
   return t
 end
 
@@ -239,8 +231,7 @@ M.Pat.parse = function(self, p)
 end
 
 -------------------
--- Seq
-
+-- Seq (table)
 local function _seqAdd(p, out, spec, t)
   if type(t) == 'boolean' then -- skip
   elseif shouldUnpack(spec, t) then
@@ -293,7 +284,7 @@ M.Or.parse = function(or_, p)
 end
 
 -------------------
--- Or
+-- Many
 M.Many.parse = function(many, p)
   p:skipEmpty()
   local out = {}
@@ -315,10 +306,10 @@ end
 -------------------
 -- Misc
 M.Not.parse = function(self, p) return not parseSeq(p, self) end
-M.EofTy.parse = function(self, p)
+M.Eof.parse = function(self, p)
   p:skipEmpty(); if p:isEof() then return M.EOF end
 end
-M.EmptyTy.parse = function() return M.EMPTY end
+M.Empty.parse = function() return M.EMPTY end
 
 local SPEC_TY = {
   ['function']=function(p, fn) p:skipEmpty() return fn(p) end,
@@ -330,52 +321,46 @@ local SPEC_TY = {
       return M.Token{kind=kw, l=p.l, c=c, l2=p.l, c2=p.c - 1}
     end
   end,
-  table=function(p, tbl) return parseSeq(p, M.Seq(tbl)) end,
+  table=function(p, tbl) return parseSeq(p, tbl) end,
 }
 
 -- parse('hi + there', {Pat{'\w+'}, '+', Pat{'\w+'}})
 -- Returns tokens: 'hi', {'+', kind='+'}, 'there'
 M.parse = function(dat, spec, root)
-  local p = M.Parser.new(dat, root)
-  return p:parse(spec)
+  local p = M.Parser:new(dat, root)
+  return p:parse(spec), p
 end
 
 local function toStrTokens(dat, n)
-  if not n then return nil end
-  if n == M.EofTy   then return n end
-  if n == M.EmptyTy then return n end
-  if ty(n) == M.Token then
+  if not n then return nil elseif ty(n) == M.Token then
     return node(Pat, lines.sub(dat, n.l, n.c, n.l2, n.c2), n.kind)
-  end
-  local out = {kind=n.kind}
-  for _, n in ipairs(n) do
-    add(out, toStrTokens(dat, n))
-  end
-  return out
+  elseif #n == 0 then return n end
+  local t={} for _, n in ipairs(n) do add(t, toStrTokens(dat, n)) end
+  t.kind=n.kind; return t
 end; M.toStrTokens = toStrTokens
-
-local function defaultDat(dat)
-  if type(dat) == 'string' then return lines.split(dat)
-  else return dat end
-end
 
 -- Parse and convert into StrTokens. Str tokens are
 -- tables (lists) with the 'kind' key set.
 --
 -- This is primarily used for testing
 M.parseStrs=function(dat, spec, root)
-  local dat = defaultDat(dat)
-  local node = M.parse(dat, spec, root)
-  return toStrTokens(dat, node)
+  local node, p = M.parse(dat, spec, root)
+  return toStrTokens(p.dat, node)
 end
 
-M.parsedFmt = function(t, f)
+function M.isKeyword(t) return #t == 1 and t.kind == t[1] end
+M.tblFmtParsed = function(t, f)
+  if M.isKeyword(t) then add(f, sfmt('KW%q', t[1])); return end
   local fmtK = f.set.data and f.set.data.fmtKind
   local fmtK = t.kind and fmtK and fmtK[t.kind]
-  if #t == 1 and t.kind == t[1] then add(f, sfmt('KW%q', t[1]))
-  elseif fmtK then fmtK(t, f)
-  else mty.tblFmt(t, f) end
+  if fmtK then fmtK(t, f) else mty.tblFmt(t, f) end
 end
+
+function M.fmtParsed(t, root) return mty.fmt(t, mty.FmtSet{
+  pretty=true,  tblFmt=M.tblFmtParsed,
+  listSep=', ', tblSep=', ',
+  data=root,
+})end
 
 M.assertParse=function(t) -- {dat, spec, expect, dbg=false, root=RootSpec{}}
   assert(t.dat, 'dat'); assert(t.spec, 'spec')
@@ -384,13 +369,8 @@ M.assertParse=function(t) -- {dat, spec, expect, dbg=false, root=RootSpec{}}
   local result = M.parseStrs(t.dat, t.spec, root)
   if not t.expect and t.parseOnly then return end
   if t.expect ~= result then
-    local set = mty.FmtSet{
-      pretty=true,  tblFmt=M.parsedFmt,
-      listSep=', ', tblSep=', ',
-      data=t.root,
-    }
-    local eStr = mty.fmt(t.expect, set)
-    local rStr = mty.fmt(result, set)
+    local eStr = M.fmtParsed(t.expect, t.root)
+    local rStr = M.fmtParsed(result, t.root)
     if eStr ~= rStr then
       print('\n#### EXPECT:'); print(eStr)
       print('\n#### RESULT:'); print(rStr)
@@ -400,6 +380,7 @@ M.assertParse=function(t) -- {dat, spec, expect, dbg=false, root=RootSpec{}}
       assert(false, 'failed parse test')
     end
   end
+  return result
 end
 
 M.assertParseError=function(t)
@@ -410,14 +391,14 @@ M.assertParseError=function(t)
 end
 
 M.Parser.__tostring=function() return 'Parser()' end
-M.Parser.new = function(dat, root)
-  dat = defaultDat(dat)
-  return M.Parser{
+M.Parser.new = function(ty_, dat, root)
+  dat = (type(dat)=='string') and ds.lines.split(dat) or dat
+  return mty.new(ty_, {
     dat=dat, l=1, c=1, line=dat[1], lines=#dat,
     root=root or M.RootSpec{},
     stack={},
     commentLC={},
-  }
+  })
 end
 M.Parser.parse = function(p, spec)
   local ty_ = mty.ty(spec)
@@ -507,40 +488,42 @@ M.Parser.dbg=function(p, fmt, ...)
     string.rep('* ', p.dbgLevel), msg, p.l, p.c))
 end
 
-
-local _dec, _hpat = M.Pat'[0-9]+', '[a-fA-F0-9]+'
-local dec = {kind='dec',
-  M.UNPIN, M.Maybe'-',  _dec, M.Maybe{'.', _dec}
+local _n10, _hpat = M.Pat'[0-9]+', '[a-fA-F0-9]+'
+local n10 = {kind='n10', -- base 10 number
+  M.UNPIN, M.Maybe'-',  _n10, M.Maybe{'.', _n10}
 }
-local hex = {kind='hex',
+local n16 = {kind='n16', -- base 16 number
   M.UNPIN, M.Maybe'-',  M.Pat('0x'.._hpat),
   M.Maybe{'.', M.Pat(_hpat)},
 }
-local num = M.Or{name='num', hex, dec}
-M.common = {num=num, dec=dec, hex=hex}
+local num = M.Or{name='num', n16, n10}
+M.common = {num=num, n10=n10, n16=n16}
 
--- Debugging keywords(KW), names(N) and numbers(DEC/HEX)
+-- Debugging keywords(KW), names(N) and numbers(NUM/HEX)
 M.testing = {}
-function M.testing.KW(kw)  return {kw, kind=kw} end       -- keyword
+local KW = function(kw) return {kw, kind=kw} end -- keyword
+M.testing.KW = KW
 function M.testing.N(name) return {name, kind='name'} end -- name
 local function NUM(kind, t)
-  if type(t) == 'string' then t = {t} end; assert(#t == 1)
-  return {kind=kind, t.neg and '-' or M.EMPTY, t[1], t.deci or M.EMPTY}
+  if type(t) == 'string' then t = {t} end; assert(#t <= 2)
+  return {kind=kind, (tonumber(t[1])<0 and '-') or M.EMPTY, t[1], t[2] or M.EMPTY}
 end
-function M.testing.DEC(t) return NUM('dec', t) end
-function M.testing.HEX(t) return NUM('hex', t) end
+function M.testing.NUM(t) return NUM('n10', t) end
+function M.testing.HEX(t) return NUM('n16', t) end
 
 -- formatting parsed so it can be copy/pasted
-local fmtKindNum = function(name, t, f) add(f, name..sfmt(
-  '{%s%s%s}', mty.eq(t[1],M.EMPTY) and '' or 'neg=true ',
-  t[2], mty.eq(t[3],M.EMPTY) and '' or 'point='..t[3][2]
+local fmtKindNum = function(name, t, f)
+  mty.pnt('!!', t)
+  add(f, name..sfmt('{%s%s%s}',
+    mty.eq(t[1],M.EMPTY) and '' or '-', t[2],
+    (mty.eq(t[3],M.EMPTY) and '') or (','..t[4])
 ))end
 M.RootSpec.fmtKind = {
-  name  = function(t, f) add(f, sfmt('N%q', t[1])) end,
   EOF   = function(t, f) add(f, 'EOF')   end,
   EMPTY = function(t, f) add(f, 'EMPTY') end,
-  dec   = function(t, f) fmtKindNum('DEC', t, f) end,
-  hex   = function(t, f) fmtKindNum('HEX', t, f) end,
+  name  = function(t, f) add(f, sfmt('N%q', t[1])) end,
+  n10   = function(t, f) fmtKindNum('NUM', t, f) end,
+  n16   = function(t, f) fmtKindNum('HEX', t, f) end,
 }
 
 return M

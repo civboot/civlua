@@ -6,18 +6,18 @@ local T = require'civtest'
 
 local RootSpec, Token
 local testing, EMPTY, EOF, assertParse, assertParseError, parseStrs
-local lua = mty.lrequire'pegl'
+local pegl = mty.lrequire'pegl'
 
 local num, str, exp1, exp, field, varset
 local root, src
 local M = mty.lrequire'pegl.lua'
 
-local KW, N, DEC, HEX; mty.lrequire(testing)
+local KW, N, NUM, HEX; mty.lrequire(testing)
 local SRC = function(...) return {..., EMPTY, EMPTY, EOF} end
 
 T.test('easy', function()
   assertParse{dat='42  0x3A', spec={num, num}, expect={
-    DEC'42', HEX'0x3A',
+    NUM'42', HEX'0x3A',
   }, root=root}
   assertParse{dat='  nil\n', spec={exp1}, expect=KW('nil')}
   assertParse{
@@ -40,10 +40,17 @@ T.test('str', function()
     expect={kind='singleStr', [['single']]}}
 end)
 
+-- TODO: Not sure where '.' is going
+-- T.test('decimal', function()
+--   assertParse{dat='-42 . 3343', spec={num}, expect={
+--     NUM{neg=-1, 42,3343}
+--   }, root=root, dbg=true}
+-- end)
+
 
 T.test('field', function()
   assertParse{dat=' 44 ',     spec={field},
-    expect={kind='field', DEC'44'}}
+    expect={kind='field', NUM'44'}}
   assertParse{dat=' hi ',     spec={field},
     expect={kind='field', {kind='name', 'hi'}}}
   assertParse{dat=' hi="x" ', spec={field},
@@ -55,7 +62,7 @@ T.test('field', function()
     expect = {
       kind='field',
       KW('['), {'hi', kind='name'}, KW(']'),
-      KW('='), DEC'4',
+      KW('='), NUM'4',
     }
   }
 end)
@@ -69,7 +76,7 @@ T.test('table', function()
   assertParse{dat='{4}', spec={exp},
     expect={kind='table',
       KW('{'),
-      {kind='field', DEC'4'},
+      {kind='field', NUM'4'},
       EMPTY,
       KW('}'),
     },
@@ -77,7 +84,7 @@ T.test('table', function()
   assertParse{dat='{4, x="hi"}', spec={exp},
     expect={ kind='table',
       KW('{'),
-      {kind='field', DEC'4'},
+      {kind='field', NUM'4'},
       KW(','),
       {kind='field',
         {kind='name', 'x'}, KW('='), {kind='doubleStr', '"hi"'}},
@@ -99,13 +106,13 @@ end)
 
 T.test('expression', function()
   assertParse{dat='x+3', spec=exp,
-    expect={N'x', KW'+', DEC'3'},
+    expect={N'x', KW'+', NUM'3'},
   }
   assertParse{dat='x()+3', spec=exp,
     expect= {
       N"x", {kind='call',
         KW"(", EMPTY, KW")",
-      }, KW"+", DEC'3'
+      }, KW"+", NUM'3'
     },
   }
 end)
@@ -126,7 +133,7 @@ end)
 
 T.test('varset', function()
   local code1 = 'a = 7'
-  local expect1 = {kind='varset', N'a', KW'=', DEC'7',
+  local expect1 = {kind='varset', N'a', KW'=', NUM'7',
   }
   assertParse{dat=code1, spec=varset, expect=expect1}
 end)
@@ -161,20 +168,29 @@ T.test('function', function()
 end)
 
 T.test('fncall', function()
-  assertParse{dat='foo(4)', spec=src, root=root,
+  local r = assertParse{dat='foo(4)', spec=src, root=root,
     expect = SRC({ kind="stmtexp",
       N"foo", {kind='call',
-        KW"(", DEC'4', KW")",
+        KW"(", NUM'4', KW")",
       },
     })
   }
+  r = pegl.fmtParsed(r, root)
+  T.assertEq([[
+{
+  {
+    N"foo", {
+      KW"(", NUM{4}, KW")", kind="call"
+    }, kind="stmtexp"
+  }, EMPTY, EMPTY, EOF
+}]], r)
 
   assertParse{dat='foo({__tostring=4})', spec=src, root=root,
     expect = SRC({ kind="stmtexp",
       N"foo", { kind='call',
         KW"(", { kind="table",
           KW"{",
-            {N"__tostring", KW"=", DEC'4', kind="field"}, EMPTY,
+            {N"__tostring", KW"=", NUM'4', kind="field"}, EMPTY,
           KW"}",
         }, KW")",
       },
