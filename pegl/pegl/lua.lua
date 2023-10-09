@@ -103,10 +103,14 @@ local bracketStrImpl = function(p)
   local l, c = p.l, p.c
   local start = p:consume('%[=*%['); if not start then return end
   local pat = '%]'..string.rep('=', start.c2 - start.c - 1)..'%]'
+  l, c = p.l, p.c
   while true do
-    local _, c2 = p.line:find(pat, p.c) if c2 then
-      p.c = c2 + 1
-      return Token{l=l, c=c, l2=p.l, c2=c2, kind='bracketStr'}
+    local c2, ce = p.line:find(pat, p.c) if c2 then
+      local t = {kind='bracketStr', start,
+        Token{l=l, c=c, l2=p.l, c2=c2-1},
+        Token{l=p.l, c=c2, l2=p.l, c2=ce}
+      }; p.c = ce + 1
+      return t
     else
       p:incLine()
       if p:isEof() then error(
@@ -195,8 +199,8 @@ ds.extend(stmt, {
 
   -- for Name `=´ exp `,´ exp [`,´ exp] do block end
   {kind='fori',
-    UNPIN, 'for', name, '=', PIN, exp, ',', exp, Maybe{',', exp}, 'do',
-    block, 'end',
+    UNPIN, 'for', name, '=', PIN,
+    exp, ',', exp, Maybe{',', exp}, 'do', block, 'end',
   },
 
   -- for namelist in explist1 do block end
@@ -227,6 +231,9 @@ local function skipComment(p)
   if not c then return end
   local l = p.l; p.c = c2+1
   local t = bracketStrImpl(p)
+  if t and mty.ty(t) ~= Token then t = Token{
+    l=t[1].l, c=t[1].c, l2=t[#t].l2, c2=t[#t].c2
+  }end
   if t then t.c = c; return t
   else
     p.l, p.line = l, p.dat[l]

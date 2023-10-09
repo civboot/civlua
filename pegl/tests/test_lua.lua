@@ -42,8 +42,12 @@ T.test('str', function()
     expect={kind='singleStr', [['single']]}}
 
   assertParse{dat="[[a ['string'] ]]", spec=str, root=root,
-    expect={kind='bracketStr', "[[a ['string'] ]]"},
-  }
+    expect={kind='bracketStr', "[[", "a ['string'] ", "]]"}}
+  assertParse{dat="[====[\n[=[\n[[ wow ]]\n]=]\n]====]",
+    spec=str, root=root,
+    expect={kind='bracketStr',
+      "[====[", "\n[=[\n[[ wow ]]\n]=]\n", "]====]",
+    }}
 end)
 
 T.test('decimal', function()
@@ -214,7 +218,7 @@ T.test('fncall', function()
   assertParse{dat='foo[[4]]', spec=src, root=root,
     expect = SRC({ kind="stmtexp",
       N"foo", {kind='callStr',
-        {"[[4]]", kind="bracketStr"}
+        {"[[", "4", "]]", kind="bracketStr"}
       },
     }),
     dbg=true,
