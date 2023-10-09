@@ -9,16 +9,15 @@ local testing, EMPTY, EOF, assertParse, assertParseError, parseStrs
 local lua = mty.lrequire'pegl'
 
 local num, str, exp1, exp, field, varset
-local root, src, DEC, HEX
+local root, src
 local M = mty.lrequire'pegl.lua'
 
-local KW, N = testing.KW, testing.N
+local KW, N, DEC, HEX; mty.lrequire(testing)
 local SRC = function(...) return {..., EMPTY, EMPTY, EOF} end
 
 T.test('easy', function()
   assertParse{dat='42  0x3A', spec={num, num}, expect={
-    DEC'42',
-    HEX'0x3A',
+    DEC'42', HEX'0x3A',
   }, root=root}
   assertParse{dat='  nil\n', spec={exp1}, expect=KW('nil')}
   assertParse{
@@ -44,7 +43,7 @@ end)
 
 T.test('field', function()
   assertParse{dat=' 44 ',     spec={field},
-    expect={kind='field', {kind='dec',  '44'}}}
+    expect={kind='field', DEC'44'}}
   assertParse{dat=' hi ',     spec={field},
     expect={kind='field', {kind='name', 'hi'}}}
   assertParse{dat=' hi="x" ', spec={field},
@@ -56,7 +55,7 @@ T.test('field', function()
     expect = {
       kind='field',
       KW('['), {'hi', kind='name'}, KW(']'),
-      KW('='), {'4', kind='dec'},
+      KW('='), DEC'4',
     }
   }
 end)
@@ -70,7 +69,7 @@ T.test('table', function()
   assertParse{dat='{4}', spec={exp},
     expect={kind='table',
       KW('{'),
-      {kind='field', {kind='dec', '4'}},
+      {kind='field', DEC'4'},
       EMPTY,
       KW('}'),
     },
@@ -78,7 +77,7 @@ T.test('table', function()
   assertParse{dat='{4, x="hi"}', spec={exp},
     expect={ kind='table',
       KW('{'),
-      {kind='field', {kind='dec', '4'}},
+      {kind='field', DEC'4'},
       KW(','),
       {kind='field',
         {kind='name', 'x'}, KW('='), {kind='doubleStr', '"hi"'}},
@@ -100,13 +99,13 @@ end)
 
 T.test('expression', function()
   assertParse{dat='x+3', spec=exp,
-    expect={N'x', KW'+', {kind='dec', '3'}},
+    expect={N'x', KW'+', DEC'3'},
   }
   assertParse{dat='x()+3', spec=exp,
     expect= {
       N"x", {kind='call',
         KW"(", EMPTY, KW")",
-      }, KW"+", { "3", kind="dec" }
+      }, KW"+", DEC'3'
     },
   }
 end)
@@ -127,7 +126,7 @@ end)
 
 T.test('varset', function()
   local code1 = 'a = 7'
-  local expect1 = {kind='varset', N'a', KW'=', {kind='dec', '7'},
+  local expect1 = {kind='varset', N'a', KW'=', DEC'7',
   }
   assertParse{dat=code1, spec=varset, expect=expect1}
 end)
@@ -165,7 +164,7 @@ T.test('fncall', function()
   assertParse{dat='foo(4)', spec=src, root=root,
     expect = SRC({ kind="stmtexp",
       N"foo", {kind='call',
-        KW"(", { "4", kind="dec" }, KW")",
+        KW"(", DEC'4', KW")",
       },
     })
   }
@@ -175,7 +174,7 @@ T.test('fncall', function()
       N"foo", { kind='call',
         KW"(", { kind="table",
           KW"{",
-            {N"__tostring", KW"=", { "4", kind="dec"}, kind="field"}, EMPTY,
+            {N"__tostring", KW"=", DEC'4', kind="field"}, EMPTY,
           KW"}",
         }, KW")",
       },

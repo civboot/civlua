@@ -10,26 +10,13 @@ local add, sfmt = table.insert, string.format
 local Key
 local Pat, Or, Not, Many, Maybe
 local Token, Empty, Eof, PIN, UNPIN
+local EMPTY, common
 local pegl = mty.lrequire'pegl'
+local num = common.num
 
 local M = {}
 
 local stmt = Or{name='stmt'}
-
-local _dec = Pat'[0-9]+'
-local dec = {kind='dec',
-  Maybe'-',  _dec, Maybe{'.', _dec},
-}
-local hex = {kind='hex',
-  Maybe'-', Pat'0x[a-fA-F0-9]+',
-  Maybe{'.', Pat'[a-fA-F0-9]+'},
-}
-
--- local num = Or{dec, hex} -- TODO
-local num = Or{name='num',
-  Pat{'0x[a-fA-F0-9]+', kind='hex'},
-  Pat{'[0-9]+', kind='dec'},
-}
 
 local keyW = Key{name='keyw', {
   'end', 'if', 'else', 'elseif', 'while', 'do', 'repeat', 'local', 'until',
@@ -245,40 +232,15 @@ local function skipComment(p)
 end
 
 local src = {block, Eof}
-local defaultRoot = pegl.RootSpec{skipComment=skipComment}
+M.root = pegl.RootSpec{skipComment=skipComment}
 local parse = function(dat, spec, root)
-  root = root or defaultRoot
+  root = root or M.root
   if not root.skipComment then root.skipComment = skipComment end
   return pegl.parse(dat, spec, root)
 end
 
--- TODO: fmtKind
--- local fmtKind = ds.copy(pegl.FMT_KIND)
--- local fmtKindNum = function(name, t, f)
---   mty.pnt('!!', t, t[3], t[3] == pegl.EMPTY, pegl.EMPTY, pegl.EMPTY == pegl.EMPTY)
---   mty.pnt('!!', type(t[3]), getmetatable(pegl.EMPTY), tostring(getmetatable(t[3])))
---   add(f, name..sfmt(
---     '{%s%s%s}',
---     t[1] == pegl.EMPTY and '' or 'neg=true ',
---     t[2],
---     t[3] == pegl.EMPTY and '' or 'point='..t[3][2]
---   ))
--- end
--- fmtKind.dec = function(t, f) fmtKindNum('DEC', t, f) end
--- fmtKind.hex = function(t, f) fmtKindNum('HEX', t, f) end
--- defaultRoot.fmtKind = fmtKind
-
-local function NUM(kind, t)
-  if type(t) == 'string' then t = {t} end
-  assert(#t == 1)
-  return {t[1], kind=kind}
-  -- return {t.neg and '-' or EMPTY, t[1], t.deci or EMPTY}
-end
-function M.DEC(t) return NUM('dec', t) end
-function M.HEX(t) return NUM('hex', t) end
-
 return ds.update(M, {
-  root=defaultRoot, src=src,
+  src=src,
   skipComment=skipComment,
   exp=exp, exp1=exp1, stmt=stmt,
   num=num, str=str,

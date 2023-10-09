@@ -19,12 +19,6 @@ M.Token.__fmt = function(t, f)
   else mty.tblFmt(t, f) end
 end
 
-M.FMT_KIND = {
-  name  = function(t, f) add(f, sfmt('N%q', t[1])) end,
-  EOF   = function(t, f) add(f, 'EOF')   end,
-  EMPTY = function(t, f) add(f, 'EMPTY') end,
-}
-
 M.RootSpec = mty.record'RootSpec'
   -- function(p): skip empty space
   -- default: skip whitespace
@@ -33,7 +27,7 @@ M.RootSpec = mty.record'RootSpec'
   :fieldMaybe('skipComment', 'function')
   :field('tokenizer', 'function')
   :field('dbg', 'boolean', false)
-  :field('fmtKind', 'table', M.FMT_KIND):fdoc[[for debug format]]
+  :field('fmtKind', 'table') -- default set at bottom
 
 M.Parser = mty.record'Parser'
   :field'dat'
@@ -303,11 +297,9 @@ end
 M.Many.parse = function(many, p)
   p:skipEmpty()
   local out = {}
-  mty.pnt('!! parse many', many)
-  local seq = ds.copy(many); seq.kind = nil
   p:dbgEnter(many)
   while true do
-    local t = parseSeq(p, seq)
+    local t = parseSeq(p, many)
     if not t then break end
     if ty(t) ~= M.Token and #t == 1 then add(out, t[1])
     else _seqAdd(p, out, many, t) end
@@ -515,8 +507,40 @@ M.Parser.dbg=function(p, fmt, ...)
     string.rep('* ', p.dbgLevel), msg, p.l, p.c))
 end
 
+
+local _dec, _hpat = M.Pat'[0-9]+', '[a-fA-F0-9]+'
+local dec = {kind='dec',
+  M.UNPIN, M.Maybe'-',  _dec, M.Maybe{'.', _dec}
+}
+local hex = {kind='hex',
+  M.UNPIN, M.Maybe'-',  M.Pat('0x'.._hpat),
+  M.Maybe{'.', M.Pat(_hpat)},
+}
+local num = M.Or{name='num', hex, dec}
+M.common = {num=num, dec=dec, hex=hex}
+
+-- Debugging keywords(KW), names(N) and numbers(DEC/HEX)
 M.testing = {}
 function M.testing.KW(kw)  return {kw, kind=kw} end       -- keyword
 function M.testing.N(name) return {name, kind='name'} end -- name
+local function NUM(kind, t)
+  if type(t) == 'string' then t = {t} end; assert(#t == 1)
+  return {kind=kind, t.neg and '-' or M.EMPTY, t[1], t.deci or M.EMPTY}
+end
+function M.testing.DEC(t) return NUM('dec', t) end
+function M.testing.HEX(t) return NUM('hex', t) end
+
+-- formatting parsed so it can be copy/pasted
+local fmtKindNum = function(name, t, f) add(f, name..sfmt(
+  '{%s%s%s}', mty.eq(t[1],M.EMPTY) and '' or 'neg=true ',
+  t[2], mty.eq(t[3],M.EMPTY) and '' or 'point='..t[3][2]
+))end
+M.RootSpec.fmtKind = {
+  name  = function(t, f) add(f, sfmt('N%q', t[1])) end,
+  EOF   = function(t, f) add(f, 'EOF')   end,
+  EMPTY = function(t, f) add(f, 'EMPTY') end,
+  dec   = function(t, f) fmtKindNum('DEC', t, f) end,
+  hex   = function(t, f) fmtKindNum('HEX', t, f) end,
+}
 
 return M

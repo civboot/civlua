@@ -235,4 +235,6 @@ test('Imm', function()
 
   assertEq({1, 2, v=3}, j) -- table vs Imm
   assert(not mty.eq({1, 2}, j))
+
+  assertEq({kind='Empty'}, M.Imm{kind='Empty'})
 end)
