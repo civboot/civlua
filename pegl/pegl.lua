@@ -331,7 +331,7 @@ M.assertParse=function(t) -- {dat, spec, expect, dbg=false, root=RootSpec{}}
   assert(t.dat, 'dat'); assert(t.spec, 'spec')
   local root = (t.root and ds.copy(t.root)) or M.RootSpec{}
   root.dbg   = t.dbg or root.dbg
-  local node, parser = M.parse(t.dat, t.spec, t.root)
+  local node, parser = M.parse(t.dat, t.spec, root)
   local result = parser:toStrTokens(node)
   if not t.expect and t.parseOnly then return end
   if t.expect ~= result then
@@ -400,7 +400,8 @@ M.Parser.setState=function(p, st) p.l, p.c, p.line = st.l, st.c, st.line end
 M.Parser.toStrTokens=function(p, n--[[node]])
   if not n then return nil end
   if ty(n) == M.Token then
-    return node(Pat, lines.sub(p.dat, n.l, n.c, n.l2, n.c2), n.kind)
+    local t = lines.sub(p.dat, n.l, n.c, n.l2, n.c2)
+    return n.kind and {t, kind=n.kind} or t
   elseif #n == 0 then return n end
   local t={} for _, n in ipairs(n) do add(t, p:toStrTokens(n)) end
   t.kind=n.kind; return t
@@ -446,12 +447,11 @@ end
 
 M.Token.__fmt = function(t, f)
   local p = f.set.data
-  if ty(p) == M.Parser then assert(false, 'not workie'); f:fmt(
-    node(Pat, lines.sub(p.dat, t.l, t.c, t.l2, t.c2), t.kind)
-  )else add(f, sfmt('T{%s%i:%i->%i:%i}',
-    t.kind and (sfmt('kind=%s ', ds.q1str(t.kind))),
-    t.l, t.c, t.l2, t.c2
-  ))end
+  if ty(f.set.data) == M.Parser then
+    M.tblFmtParsedTokens(t, f)
+  elseif t.kind then add(f, sfmt('<%s>', t.kind))
+  else add(f, sfmt('T{i:%i->%i:%i}', t.l, t.c, t.l2, t.c2))
+  end
 end
 
 function M.isKeyword(t) return #t == 1 and t.kind == t[1] end
@@ -462,17 +462,21 @@ M.tblFmtParsedStrs = function(t, f)
   if M.isKeyword(t) then add(f, sfmt('KW%q', t[1])); return end
   local fmtK = f.set.data and f.set.data.root.fmtKind
   local fmtK = t.kind and fmtK and fmtK[t.kind]
-  if fmtK then fmtK(t, f) else mty.tblFmt(t, f) end
+  if fmtK then fmtK(t, f)
+  elseif type(t) == 'table' then mty.tblFmt(t, f) 
+  else error('not a table: '..mty.fmt(t)) end
 end
 M.tblFmtParsedTokens = function(t, f)
-  -- Convert tables+tokens to strings, using fmtKind if available.
-  -- I think I need to re-work a good deal of the infra.  I tried a hacky
-  -- approach and it was absolutely horrid and unworkable.
-  --
-  -- In particular DON'T use toStrTokens. I can't figure out what
-  -- that code is really doing and trying to use it just failed
-  -- in bizare ways.
-  assert(false, 'not yet impl')
+  local p = f.set.data
+  local fmtK = t.kind and p.root.fmtKind[t.kind]
+  local st = ((ty(t)==M.Token) or fmtK) and p:toStrTokens(t)
+  if st then -- ya this is hacky. Don't execute from multiple threads
+    if type(st) == 'string' then add(f, sfmt('%q', st)); return end
+    f.set.tblFmt = M.tblFmtParsedStrs;
+    f.set.tblFmt(st, f)
+    f.set.tblFmt = M.tblFmtParsedTokens
+  elseif type(t) == 'table' then mty.tblFmt(t, f)
+  else error(mty.fmt(t)) end
 end
 
 M.Parser.dbgEnter=function(p, spec)
@@ -485,8 +489,8 @@ M.Parser.dbgLeave=function(p, n)
   local sn = table.remove(p.stack); p.stackLast = sn
   if not p.root.dbg then return n end
   p.dbgLevel = p.dbgLevel - 1
+  -- p:dbg('LEAVE: %s', p:fmtParsedTokens(n or sn))
   p:dbg('LEAVE: %s', mty.fmt(n or sn))
-  -- p:dbg('LEAVE: %s', p:fmtParsed(n or sn)) -- TODO
   return n
 end
 M.Parser.dbgMatched=function(p, spec)
@@ -499,6 +503,7 @@ M.Parser.dbgMissed=function(p, spec, note)
 end
 M.Parser.dbgUnpack=function(p, spec, t)
   if not p.root.dbg then return end
+  -- p:dbg('UNPACK: %s :: %s', mty.fmt(spec), p:fmtParsedTokens(t))
   p:dbg('UNPACK: %s :: %s', mty.fmt(spec), mty.fmt(t))
 end
 M.Parser.dbg=function(p, fmt, ...)

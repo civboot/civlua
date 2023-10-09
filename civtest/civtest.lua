@@ -46,7 +46,7 @@ M.assertErrorPat = function(errPat, fn, plain)
     '! No error received, expected: %q', errPat
   )end
   if not err:find(errPat, 1, plain) then mty.errorf(
-    '! Expected error %q but got %q', errPat, err
+    '! Expected error:\n%q\n!### Got error:\n%q', errPat, err
   )end
 end
 

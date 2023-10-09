@@ -38,6 +38,12 @@ T.test('str', function()
   }
   assertParse{dat=[[  'single'  ]], spec={str},
     expect={kind='singleStr', [['single']]}}
+  assertParse{dat=[[  'single'  ]], spec={str},
+    expect={kind='singleStr', [['single']]}}
+
+  assertParse{dat="[[a ['string'] ]]", spec=str, root=root,
+    expect={kind='bracketStr', "[[a ['string'] ]]"},
+  }
 end)
 
 T.test('decimal', function()
@@ -123,8 +129,9 @@ T.test('require', function()
         KW('local'),
         {kind='name', 'F'},
         KW('='),
-        {kind='name', 'require'},
-        {kind='doubleStr', '"foo"'},
+        {kind='name', 'require'}, {kind='callStr',
+          {kind='doubleStr', '"foo"'},
+        },
       }
     ),
   }
@@ -174,8 +181,7 @@ T.test('fncall', function()
       },
     })
   }
-  local expect = [[
-{
+  local expect = [[{
   {
     N"foo", {
       KW"(", NUM{4}, KW")", kind="call"
@@ -183,8 +189,7 @@ T.test('fncall', function()
   }, EMPTY, EMPTY, EOF
 }]]
   T.assertEq(expect, p:fmtParsedStrs(r))
-
-  -- T.assertEq(expect, p:fmtParsedTokens(n))
+  T.assertEq(expect, p:fmtParsedTokens(n))
 
   assertParse{dat='foo({__tostring=4})', spec=src, root=root,
     expect = SRC({ kind="stmtexp",
@@ -196,6 +201,23 @@ T.test('fncall', function()
         }, KW")",
       },
     })
+  }
+
+  assertParse{dat='foo"4"', spec=src, root=root,
+    expect = SRC({ kind="stmtexp",
+      N"foo", {kind='callStr',
+        {"\"4\"", kind="doubleStr"}
+      },
+    })
+  }
+
+  assertParse{dat='foo[[4]]', spec=src, root=root,
+    expect = SRC({ kind="stmtexp",
+      N"foo", {kind='callStr',
+        {"[[4]]", kind="bracketStr"}
+      },
+    }),
+    dbg=true,
   }
 end)
 
@@ -223,11 +245,10 @@ T.test('fnChain', function()
     }
   }
 
-  -- assertParse{dat="x\n[[a ['string'] ]]\n(3)", spec=src, root=root,
-  --   expect= SRC{ kind="stmtexp", N"x",
-  --   },
-  --   dbg=true,
+  -- assertParse{dat="x\n\"a ['string'] \"", spec=src, root=root,
+  --   expect= SRC{ kind="stmtexp", N"x", },
   -- }
+
 end)
 
 T.test('src1', function()
@@ -294,18 +315,24 @@ T.test('src2', function()
   })
 end)
 
+local ERR_EXPECT ='stack: src -> block -> stmt -> fnlocal '
+..'-> fnbody -> block -> stmt -> varset -> exp -> '
+..'op2exp -> exp -> exp1 -> table\n'
+..[[
+parser expected: "}"
+Got: 3} -- '2 3' is invalid]]
+
+
 T.test('error', function()
-  -- T.assertErrorPat(
-  --   'stack: block -> stmt -> fnlocal -> fnbody '
-  --   ..'-> block -> stmt -> varset -> exp -> op2exp -> exp -> exp1 -> table\n'
-  --   ..'parser expected: "}"',
-  --   function()
-  --     parseStrs([[
-  --       local function x()
-  --         x = 1 + {2 3} -- '2 3' is invalid
-  --       end
-  --     ]], src, RootSpec{dbg=false})
-  --   end, --[[plain]] true)
+  T.assertErrorPat(
+    ERR_EXPECT,
+    function()
+      pegl.parse([[
+        local function x()
+          x = 1 + {2 3} -- '2 3' is invalid
+        end
+      ]], src, RootSpec{dbg=false})
+    end, --[[plain]] true)
 end)
 
 local function testLuaPath(path)
@@ -315,7 +342,6 @@ end
 
 T.test('parseSrc', function()
   testLuaPath('./patience/patience.lua')
-  -- TODO: it doesn't like doc[[...]](thing)
-  -- testLuaPath('./pegl/pegl.lua')
+  testLuaPath('./pegl/pegl.lua')
   testLuaPath('./pegl/pegl/lua.lua')
 end)

@@ -58,7 +58,9 @@ add(exp1, {'(', exp, ')', kind='group'})
 
 local call     = Or{kind='call'} -- function call (defined much later)
 local methcall = {UNPIN, ':', name, PIN, call, kind='methcall'}
-local index    = {UNPIN, '[', Not{'['}, PIN, exp, ']', kind='index'}
+local index    = {kind='index',
+  UNPIN, '[', Not{Or{'[', '='}}, PIN, exp, ']'
+}
 local postexp  = Or{name='postexp', methcall, index, call}
 ds.extend(exp, {exp1, Many{ Or{postexp, {name='op2exp', op2, exp}} }})
 
@@ -102,8 +104,9 @@ local bracketStrImpl = function(p)
   local start = p:consume('%[=*%['); if not start then return end
   local pat = '%]'..string.rep('=', start.c2 - start.c - 1)..'%]'
   while true do
-    local _, c2 = p.line:find(pat, p.c)
-    if c2 then return Token{l=l, c=c, l2=p.l, c2=c2}
+    local _, c2 = p.line:find(pat, p.c) if c2 then
+      p.c = c2 + 1
+      return Token{l=l, c=c, l2=p.l, c2=c2, kind='bracketStr'}
     else
       p:incLine()
       if p:isEof() then error(
@@ -116,7 +119,7 @@ local bracketStr     = function(p)
   p:skipEmpty()
   return bracketStrImpl(p)
 end
-local str     = Or{singleStr, doubleStr, bracketStr}
+local str     = Or{name='str', singleStr, doubleStr, bracketStr}
 add(exp1, str)
 
 
@@ -140,8 +143,9 @@ add(exp1, tbl)
 -- fully define function call
 -- call ::=  `(´ [explist1] `)´  |  tableconstructor  |  String
 ds.extend(call, {
-  {name='call()', '(', explist, ')'},
-  {name='call{}', tbl}, {name="call''", str},
+  {kind='call', '(', explist, ')'},
+  {kind='callParen', tbl},
+  {kind="callStr", str},
 })
 
 -----------------

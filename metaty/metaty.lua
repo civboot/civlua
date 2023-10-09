@@ -511,6 +511,7 @@ end
 
 -- Note: may be called inside pcall
 local function doFmt(f, v, mt)
+  assert(type(v) == 'table', type(v))
   if not mt or mt == 'table' then f.set.tblFmt(v, f)
   elseif mt.__fmt then mt.__fmt(v, f)
   elseif mt.__tostring ~= M.fmt then
@@ -524,6 +525,7 @@ M.Fmt.fmt = function(f, v)
   if type(ty_) == 'string' and ty_ ~= 'table' then
     NATIVE_TY_FMT[ty_](v, f); return f
   end
+  assert(type(v) == 'table')
   if not f.set.recurse then
     if f.done[v] then
       add(f, 'RECURSE['); add(f, M.tblToStrSafe(v)); add(f, ']')
