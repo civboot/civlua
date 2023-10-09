@@ -67,6 +67,10 @@ test("str", function()
   assertEq('hi there', trimWs('  hi there\n '))
   assertEq('hi there', trimWs('hi there'))
   assertEq({'1', 'ab', 'c'}, splitWs('  1 \n ab c'))
+
+  assertEq([['hello']], M.q1str[[hello]])
+  assertEq([['\'hello\'']], M.q1str[['hello']])
+  assertEq([['"hello"']], M.q1str[["hello"]])
 end)
 
 test("table", function()

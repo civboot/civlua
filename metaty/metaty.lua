@@ -457,9 +457,8 @@ end
 
 M.tblFmtKeys = function(t, f, keys)
   assert(type(t) == 'table', type(t))
-  local mt = getmetatable(t)
+  local mt, lenI = getmetatable(t), #t
   add(f, M.metaName(mt))
-  local lenI = #t
   f:levelEnter('{')
   for i=1,lenI do
     f:fmt(t[i])

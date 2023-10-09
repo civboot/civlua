@@ -1,6 +1,6 @@
 local mty = require 'metaty'
 local record, Any = mty.record, mty.Any
-local add = table.insert
+local add, sfmt = table.insert, string.format
 
 local M = {
   steal = mty.steal, trimWs = mty.trimWs,
@@ -68,6 +68,10 @@ M.diffCol = function(sL, sR)
   return nil
 end
 
+M.q1str = function(s)
+  return "'"..sfmt("%q", s):sub(2, -2)
+    :gsub("'", "\\'"):gsub('\\"', '"').."'"
+end
 ---------------------
 -- lines module
 
