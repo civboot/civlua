@@ -9,7 +9,7 @@ local testing, EMPTY, EOF, assertParse, assertParseError, parseStrs
 local lua = mty.lrequire'pegl'
 
 local num, str, exp1, exp, field, varset
-local root, src
+local root, src, DEC, HEX
 local M = mty.lrequire'pegl.lua'
 
 local KW, N = testing.KW, testing.N
@@ -17,9 +17,9 @@ local SRC = function(...) return {..., EMPTY, EMPTY, EOF} end
 
 T.test('easy', function()
   assertParse{dat='42  0x3A', spec={num, num}, expect={
-    {kind='dec', '42'},
-    {kind='hex', '0x3A'},
-  }}
+    DEC'42',
+    HEX'0x3A',
+  }, root=root}
   assertParse{dat='  nil\n', spec={exp1}, expect=KW('nil')}
   assertParse{
     dat='true  \n false', spec={exp1, exp1},

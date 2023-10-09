@@ -5,12 +5,14 @@
 
 local mty = require'metaty'
 local ds  = require'ds'
-local add = table.insert
+local add, sfmt = table.insert, string.format
 
 local Key
 local Pat, Or, Not, Many, Maybe
 local Token, Empty, Eof, PIN, UNPIN
 local pegl = mty.lrequire'pegl'
+
+local M = {}
 
 local stmt = Or{name='stmt'}
 
@@ -23,7 +25,7 @@ local hex = {kind='hex',
   Maybe{'.', Pat'[a-fA-F0-9]+'},
 }
 
--- local num = Or{dec, hex} TODO
+-- local num = Or{dec, hex} -- TODO
 local num = Or{name='num',
   Pat{'0x[a-fA-F0-9]+', kind='hex'},
   Pat{'[0-9]+', kind='dec'},
@@ -250,7 +252,32 @@ local parse = function(dat, spec, root)
   return pegl.parse(dat, spec, root)
 end
 
-return {
+-- TODO: fmtKind
+-- local fmtKind = ds.copy(pegl.FMT_KIND)
+-- local fmtKindNum = function(name, t, f)
+--   mty.pnt('!!', t, t[3], t[3] == pegl.EMPTY, pegl.EMPTY, pegl.EMPTY == pegl.EMPTY)
+--   mty.pnt('!!', type(t[3]), getmetatable(pegl.EMPTY), tostring(getmetatable(t[3])))
+--   add(f, name..sfmt(
+--     '{%s%s%s}',
+--     t[1] == pegl.EMPTY and '' or 'neg=true ',
+--     t[2],
+--     t[3] == pegl.EMPTY and '' or 'point='..t[3][2]
+--   ))
+-- end
+-- fmtKind.dec = function(t, f) fmtKindNum('DEC', t, f) end
+-- fmtKind.hex = function(t, f) fmtKindNum('HEX', t, f) end
+-- defaultRoot.fmtKind = fmtKind
+
+local function NUM(kind, t)
+  if type(t) == 'string' then t = {t} end
+  assert(#t == 1)
+  return {t[1], kind=kind}
+  -- return {t.neg and '-' or EMPTY, t[1], t.deci or EMPTY}
+end
+function M.DEC(t) return NUM('dec', t) end
+function M.HEX(t) return NUM('hex', t) end
+
+return ds.update(M, {
   root=defaultRoot, src=src,
   skipComment=skipComment,
   exp=exp, exp1=exp1, stmt=stmt,
@@ -258,4 +285,4 @@ return {
   field=field,
   explist=explist,
   varset=varset,
-}
+})

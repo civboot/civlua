@@ -19,6 +19,12 @@ M.Token.__fmt = function(t, f)
   else mty.tblFmt(t, f) end
 end
 
+M.FMT_KIND = {
+  name  = function(t, f) add(f, sfmt('N%q', t[1])) end,
+  EOF   = function(t, f) add(f, 'EOF')   end,
+  EMPTY = function(t, f) add(f, 'EMPTY') end,
+}
+
 M.RootSpec = mty.record'RootSpec'
   -- function(p): skip empty space
   -- default: skip whitespace
@@ -27,6 +33,7 @@ M.RootSpec = mty.record'RootSpec'
   :fieldMaybe('skipComment', 'function')
   :field('tokenizer', 'function')
   :field('dbg', 'boolean', false)
+  :field('fmtKind', 'table', M.FMT_KIND):fdoc[[for debug format]]
 
 M.Parser = mty.record'Parser'
   :field'dat'
@@ -296,6 +303,7 @@ end
 M.Many.parse = function(many, p)
   p:skipEmpty()
   local out = {}
+  mty.pnt('!! parse many', many)
   local seq = ds.copy(many); seq.kind = nil
   p:dbgEnter(many)
   while true do
@@ -369,19 +377,9 @@ M.parseStrs=function(dat, spec, root)
   return toStrTokens(dat, node)
 end
 
-M.FMT_KIND = {
-  name  = function(t, f) add(f, sfmt('N%q', t[1])) end,
-  EOF   = function(t, f) add(f, 'EOF')   end,
-  EMPTY = function(t, f) add(f, 'EMPTY') end,
-}
-
-  -- elseif t.kind == 'dec' then 
-  --   mty.pnt('!!', t)
-  --   add(f, sfmt(
-  --   'D{%s%i%s}', t[1] == M.EMPTY and '' or 'neg=true ',
-  --   t[2] == M.EMPTY and '' or 'deci='..t[2]))
 M.parsedFmt = function(t, f)
-  local fmtK = t.kind and M.FMT_KIND[t.kind]
+  local fmtK = f.set.data and f.set.data.fmtKind
+  local fmtK = t.kind and fmtK and fmtK[t.kind]
   if #t == 1 and t.kind == t[1] then add(f, sfmt('KW%q', t[1]))
   elseif fmtK then fmtK(t, f)
   else mty.tblFmt(t, f) end
@@ -520,11 +518,5 @@ end
 M.testing = {}
 function M.testing.KW(kw)  return {kw, kind=kw} end       -- keyword
 function M.testing.N(name) return {name, kind='name'} end -- name
-function M.testing.D(t)
-  return {t.neg and '-' or EMPTY, t[1], t.deci or EMPTY}
-end
-function M.testing.H(t)
-  return {t.neg and '-' or EMPTY, t[1], t.deci or EMPTY}
-end
 
 return M
