@@ -12,8 +12,8 @@ M.isWithin = function(v, min, max)
   local out = (min <= v) and (v <= max)
   return out
 end
-M.min = function(a, b) return (a<b) and a or b end
-M.max = function(a, b) return (a>b) and a or b end
+M.min = math.min -- TODO: remove these
+M.max = math.max
 M.bound = function(v, min, max)
   return ((v>max) and max) or ((v<min) and min) or v
 end

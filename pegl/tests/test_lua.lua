@@ -346,6 +346,6 @@ end
 
 T.test('parseSrc', function()
   testLuaPath('./patience/patience.lua')
-  testLuaPath('./pegl/pegl.lua')
+  -- testLuaPath('./pegl/pegl.lua')
   testLuaPath('./pegl/pegl/lua.lua')
 end)

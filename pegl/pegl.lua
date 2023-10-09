@@ -8,11 +8,27 @@ local add, sfmt = table.insert, string.format
 
 local M = {}
 
-M.Token = mty.record'Token'
-  :field('l', 'number')  :field('c', 'number')
-  :field('l2', 'number') :field('c2', 'number')
-  :fieldMaybe'kind'
+-- a 32bit float has 23 bits of fraction.
+-- We use 8 for the column (0-255) and 15
+-- for the line (0-32767).
+M.encodeLCNum = function(l, c)
+  assert((l <= 0x7FFF) and (c <= 0xFF), 'possible line/col overflow')
+  return (l << 8) + c
+end
+M.decodeLCNum= function(lc)
+  return lc >> 8, 0xFF & lc
+end
+M.encodeLCTbl = function(l, c) return {l, c} end
+M.decodeLCTbl = table.unpack
 
+M.Token = mty.record'Token'
+  :fieldMaybe'kind'
+M.Token.lc1=function(t, p) return p.root.decodeLC(t[1]) end
+M.Token.lc2=function(t, p) return p.root.decodeLC(t[2]) end
+M.Token.encode=function(ty_, p, l, c, l2, c2, kind)
+  local e = p.root.encodeLC
+  return M.Token{e(l, c), e(l2, c2), kind=kind}
+end
 
 M.RootSpec = mty.record'RootSpec'
   -- function(p): skip empty space
@@ -23,6 +39,8 @@ M.RootSpec = mty.record'RootSpec'
   :field('tokenizer', 'function')
   :field('dbg', 'boolean', false)
   :field('fmtKind', 'table') -- default set at bottom
+  :field('encodeLC', 'function', M.encodeLCNum)
+  :field('decodeLC', 'function', M.decodeLCNum)
 
 M.Parser = mty.record'Parser'
   :field'dat'
@@ -158,7 +176,7 @@ M.RootSpec.skipEmpty = function(p)
         cL = p.commentLC[p.l]
         if not cL then cL = {}; p.commentLC[p.l] = cL end
         cL[p.c] = cmt
-        p.l, p.c = cmt.l2, cmt.c2 + 1
+        p.l, p.c = cmt:lc2(p); p.c = p.c + 1
       end
     end
   end
@@ -207,7 +225,7 @@ M.Key.parse = function(key, p)
   end
   if found then
     local kind = key.kind or lines.sub(p.dat, p.l, c, p.l, p.c - 1)
-    return M.Token{kind=kind, l=p.l, c=c, l2=p.l, c2=p.c - 1}
+    return M.Token:encode(p, p.l, c, p.l, p.c -1, kind)
   end
   p.c = c
 end
@@ -314,7 +332,7 @@ local SPEC_TY = {
     local tk = p.root.tokenizer(p)
     if kw == tk then
       local c = p.c; p.c = c + #kw
-      return M.Token{kind=kw, l=p.l, c=c, l2=p.l, c2=p.c - 1}
+      return M.Token:encode(p, p.l, c, p.l, p.c - 1, kw)
     end
   end,
   table=function(p, tbl) return parseSeq(p, tbl) end,
@@ -376,15 +394,18 @@ end
 M.Parser.peek = function(p, pat)
   if p:isEof() then return nil end
   local c, c2 = p.line:find(pat, p.c)
-  if c == p.c then return M.Token{l=p.l, c=c, l2=p.l, c2=c2} end
+  if c == p.c then
+    return M.Token:encode(p, p.l, c, p.l, c2)
+  end
 end
 M.Parser.consume = function(p, pat, plain)
   local t = p:peek(pat, plain)
-  if t then p.c = t.c2 + 1 end
+  if t then p.c = select(2, t:lc2(p)) + 1 end
   return t
 end
 M.Parser.sub =function(p, t) -- t=token
-  return lines.sub(p.dat, t.l, t.c, t.l2, t.c2)
+  local l, c = t:lc1(p)
+  return lines.sub(p.dat, l, c, t:lc2(p))
 end
 M.Parser.incLine=function(p)
   p.l, p.c = p.l + 1, 1
@@ -400,7 +421,8 @@ M.Parser.setState=function(p, st) p.l, p.c, p.line = st.l, st.c, st.line end
 M.Parser.toStrTokens=function(p, n--[[node]])
   if not n then return nil end
   if ty(n) == M.Token then
-    local t = lines.sub(p.dat, n.l, n.c, n.l2, n.c2)
+    local l, c = n:lc1(p)
+    local t = lines.sub(p.dat, l, c, n:lc2(p))
     return n.kind and {t, kind=n.kind} or t
   elseif #n == 0 then return n end
   local t={} for _, n in ipairs(n) do add(t, p:toStrTokens(n)) end
@@ -450,20 +472,16 @@ M.Token.__fmt = function(t, f)
   if ty(f.set.data) == M.Parser then
     M.tblFmtParsedTokens(t, f)
   elseif t.kind then add(f, sfmt('<%s>', t.kind))
-  else add(f, sfmt('T{i:%i->%i:%i}', t.l, t.c, t.l2, t.c2))
-  end
+  else add(f, 'Tkn'); mty.tblFmt(t, f) end
 end
 
 function M.isKeyword(t) return #t == 1 and t.kind == t[1] end
-function M.maybeKeyword(t)
-  return (t.l == t.l2) and (#t.kind == t.c2 - t.c1 + 1)
-end
 M.tblFmtParsedStrs = function(t, f)
   if M.isKeyword(t) then add(f, sfmt('KW%q', t[1])); return end
   local fmtK = f.set.data and f.set.data.root.fmtKind
   local fmtK = t.kind and fmtK and fmtK[t.kind]
   if fmtK then fmtK(t, f)
-  elseif type(t) == 'table' then mty.tblFmt(t, f) 
+  elseif type(t) == 'table' then mty.tblFmt(t, f)
   else error('not a table: '..mty.fmt(t)) end
 end
 M.tblFmtParsedTokens = function(t, f)
@@ -489,7 +507,6 @@ M.Parser.dbgLeave=function(p, n)
   local sn = table.remove(p.stack); p.stackLast = sn
   if not p.root.dbg then return n end
   p.dbgLevel = p.dbgLevel - 1
-  -- p:dbg('LEAVE: %s', p:fmtParsedTokens(n or sn))
   p:dbg('LEAVE: %s', mty.fmt(n or sn))
   return n
 end
@@ -503,7 +520,6 @@ M.Parser.dbgMissed=function(p, spec, note)
 end
 M.Parser.dbgUnpack=function(p, spec, t)
   if not p.root.dbg then return end
-  -- p:dbg('UNPACK: %s :: %s', mty.fmt(spec), p:fmtParsedTokens(t))
   p:dbg('UNPACK: %s :: %s', mty.fmt(spec), mty.fmt(t))
 end
 M.Parser.dbg=function(p, fmt, ...)

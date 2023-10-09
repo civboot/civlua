@@ -86,7 +86,7 @@ local quoteImpl = function(p, char, pat, kind)
       p.c = c2 + 1
       local bs = string.match(p.line:sub(c1, c2), pat)
       if ds.isEven(#bs) then
-        return Token{l=l, c=c, l2=p.l, c2=c2, kind=kind}
+        return Token:encode(p, l, c, p.l, c2, kind)
       end
     else
       if p.line:sub(#p.line) == '\\' then
@@ -102,13 +102,14 @@ local doubleStr = function(p) return quoteImpl(p, '"', '(\\*)"', 'doubleStr') en
 local bracketStrImpl = function(p)
   local l, c = p.l, p.c
   local start = p:consume('%[=*%['); if not start then return end
-  local pat = '%]'..string.rep('=', start.c2 - start.c - 1)..'%]'
+  local cs, cs2 = select(2, start:lc1(p)), select(2, start:lc2(p))
+  local pat = '%]'..string.rep('=', cs2 - cs - 1)..'%]'
   l, c = p.l, p.c
   while true do
     local c2, ce = p.line:find(pat, p.c) if c2 then
       local t = {kind='bracketStr', start,
-        Token{l=l, c=c, l2=p.l, c2=c2-1},
-        Token{l=p.l, c=c2, l2=p.l, c2=ce}
+        Token:encode(p, l,   c,  p.l, c2-1),
+        Token:encode(p, p.l, c2, p.l, ce),
       }; p.c = ce + 1
       return t
     else
@@ -231,14 +232,15 @@ local function skipComment(p)
   if not c then return end
   local l = p.l; p.c = c2+1
   local t = bracketStrImpl(p)
-  if t and mty.ty(t) ~= Token then t = Token{
-    l=t[1].l, c=t[1].c, l2=t[#t].l2, c2=t[#t].c2
-  }end
+  if t and mty.ty(t) ~= Token then
+    local l1, c1 = t[1]:lc1(p)
+    return Token:encode(p, l1, c1, t[#t]:lc2(p))
+  end
   if t then t.c = c; return t
   else
     p.l, p.line = l, p.dat[l]
     local _, c2 = p.line:find('^.*', c2+1)
-    return Token{l=l, c=c, l2=l, c2=c2}
+    return Token:encode(p, l, c, l, c2)
   end
 end
 
