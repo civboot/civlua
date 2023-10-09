@@ -13,10 +13,6 @@ M.Token = mty.record'Token'
   :field('l2', 'number') :field('c2', 'number')
   :fieldMaybe'kind'
 
-M.Token.__fmt = function(t, f)
-  if t.kind then extend(f, {'Token(', t.kind, ')'})
-  else mty.tblFmt(t, f) end
-end
 
 M.RootSpec = mty.record'RootSpec'
   -- function(p): skip empty space
@@ -402,12 +398,14 @@ end
 M.Parser.state   =function(p) return {l=p.l, c=p.c, line=p.line} end
 M.Parser.setState=function(p, st) p.l, p.c, p.line = st.l, st.c, st.line end
 M.Parser.toStrTokens=function(p, n--[[node]])
-  if not n then return nil elseif ty(n) == M.Token then
+  if not n then return nil end
+  if ty(n) == M.Token then
     return node(Pat, lines.sub(p.dat, n.l, n.c, n.l2, n.c2), n.kind)
   elseif #n == 0 then return n end
   local t={} for _, n in ipairs(n) do add(t, p:toStrTokens(n)) end
   t.kind=n.kind; return t
 end
+
 M.Parser.fmtSetDefault = function(p) return mty.FmtSet{
   data=p, pretty=true, listSep=', ', tblSep=', ',
 }end
@@ -446,6 +444,16 @@ M.Parser.checkPin=function(p, pin, expect)
   end
 end
 
+M.Token.__fmt = function(t, f)
+  local p = f.set.data
+  if ty(p) == M.Parser then assert(false, 'not workie'); f:fmt(
+    node(Pat, lines.sub(p.dat, t.l, t.c, t.l2, t.c2), t.kind)
+  )else add(f, sfmt('T{%s%i:%i->%i:%i}',
+    t.kind and (sfmt('kind=%s ', ds.q1str(t.kind))),
+    t.l, t.c, t.l2, t.c2
+  ))end
+end
+
 function M.isKeyword(t) return #t == 1 and t.kind == t[1] end
 function M.maybeKeyword(t)
   return (t.l == t.l2) and (#t.kind == t.c2 - t.c1 + 1)
@@ -458,16 +466,13 @@ M.tblFmtParsedStrs = function(t, f)
 end
 M.tblFmtParsedTokens = function(t, f)
   -- Convert tables+tokens to strings, using fmtKind if available.
-  local p, fmtK = f.set.data; fmtK = p.root.fmtKind
-  fmtK = t.kind and fmtK and fmtK[t.kind]
-  local st = (ty(t) == M.Token or fmtK) and p:toStrTokens(t)
-  if st then
-    if ty(st) == 'string' then add(f, st)
-    elseif M.isKeyword(t) then add(f, sfmt('KW%q', t[1]))
-    elseif fmtK then fmtK(t, f)
-    else assert(false)--[[mty.tblFmt(st, f)]] end
-  else mty.tblFmt(t, f) -- else it contains tokens/etc
-  end
+  -- I think I need to re-work a good deal of the infra.  I tried a hacky
+  -- approach and it was absolutely horrid and unworkable.
+  --
+  -- In particular DON'T use toStrTokens. I can't figure out what
+  -- that code is really doing and trying to use it just failed
+  -- in bizare ways.
+  assert(false, 'not yet impl')
 end
 
 M.Parser.dbgEnter=function(p, spec)
@@ -529,7 +534,6 @@ M.testing.KW = KW
 
 -- formatting parsed so it can be copy/pasted
 local fmtKindNum = function(name, t, f)
-  mty.pnt('!!', t)
   add(f, name..sfmt('{%s%s%s}',
     mty.eq(t[1],M.EMPTY) and '' or 'neg=1 ', t[2],
     (mty.eq(t[3],M.EMPTY) and '') or (','..t[4])

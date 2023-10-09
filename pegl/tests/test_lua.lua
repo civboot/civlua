@@ -183,6 +183,7 @@ T.test('fncall', function()
   }, EMPTY, EMPTY, EOF
 }]]
   T.assertEq(expect, p:fmtParsedStrs(r))
+
   -- T.assertEq(expect, p:fmtParsedTokens(n))
 
   assertParse{dat='foo({__tostring=4})', spec=src, root=root,
