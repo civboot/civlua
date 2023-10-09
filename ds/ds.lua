@@ -296,7 +296,7 @@ M.eval = function(s, env, name) -- Note: not typed
 end
 
 ---------------------
--- `newSentinel` function, `none` sentinel and `bool` function
+-- Sentinal, none type and bool()
 
 local _si=function() error('invalid operation on sentinel', 2) end
 M.newSentinel = mty.doc[[newSentinel(name, ty_, metatable)
@@ -321,19 +321,45 @@ mty.addNativeTy(M.none)
 M.bool = mty.doc[[convert to boolean (none aware)]]
 (function(v) return not rawequal(M.none, v) and v and true or false end)
 
-M.Imm = mty.doc[[Imm{hi='immutable'}: make a table immutable.
-A performant immutable table implementation. We actually hide the table
-inside rawget(f, '#frozen'), but nobody needs to know that!
-]](setmetatable({
-  __name='Imm', __fmt=mty.tblFmt,
-  __newindex=function() error('invalid operation on Imm', 2) end,
-  __index=function(v, k) return rawget(v, '#frozen')[k] end,
-  __pairs=function(v)    return pairs(rawget(v, '#frozen')) end,
-  __ipairs=function(v)   return ipairs(rawget(v, '#frozen')) end,
-  __len=function(v)      return #rawget(v, '#frozen') end,
-}, {__name='ImmTy', __call=function(ty_, t)
-  return setmetatable({['#frozen']=t}, ty_) end
-}))
+---------------------
+-- imm(myTy) and Imm{...} table
+
+M._IMM_FIELD = '! DO-NOT-SET !'; M.IMM_DEFAULTS = {
+  __newindex=function()  error('set on immutable type', 2) end,
+  __index=function(v, k) return v[M._IMM_FIELD][k] end,
+  __pairs=function(v)    return pairs(v[M._IMM_FIELD]) end,
+  __ipairs=function(v)   return ipairs(v[M._IMM_FIELD]) end,
+  __len=function(v)      return #v[M._IMM_FIELD] end,
+}
+M.newImmChecked = function(ty_, t)
+  return setmetatable({[M._IMM_FIELD]=t}, ty_)
+end
+M.newImm = mty.getCheck() and M.newImmChecked or mty.new
+
+M.immChecked = mty.doc[[
+imm(MyType): make a type (record, etc) mostly-immutable.
+We actually hide the table inside [ds._IMM_FIELD], but nobody needs
+to know that!
+Example:
+  myTy = imm(record'myTy')
+    :field'f1'
+  -- Important: use ds.newImm (not metaty.new)
+  :new(function(ty_, t) ...; return ds.newImm(ty_, t) end)]]
+(function(ty_)
+  getmetatable(ty_).__call=M.newImm
+  M.update(ty_, M.IMM_DEFAULTS)
+  return ty_
+end)
+M.imm = mty.getCheck() and M.immChecked or mty.identity
+
+M.ImmChecked = mty.doc[[Imm{hi='immutable'}: immutable table.
+In all ways this will look like a normal table:
+  metaty.ty(Imm{}) == 'table'
+  however: getmetatable(Imm{}) == 'table' -- instead of nil
+
+Caveats: see ds.imm.]]
+(M.immChecked(mty.rawTy'Imm')); M.ImmChecked.__metatable = 'table'
+M.Imm = mty.getCheck() and M.ImmChecked or mty.identity
 
 ---------------------
 -- Duration

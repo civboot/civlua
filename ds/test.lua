@@ -221,14 +221,18 @@ test('Imm', function()
   local t = M.Imm{1, 2, v=3}
   assertEq(1, t[1])
   assertEq(3, t.v)
-  assertEq(M.Imm, getmetatable(t))
-  assertEq(M.Imm, mty.ty(t))
-  assertErrorPat('invalid operation', function() t.b = 8 end)
-  assertErrorPat('invalid operation', function() t.v = 8 end)
+  assertEq('table', getmetatable(t))
+  assertEq('table', mty.ty(t))
+  assertErrorPat('set on immutable', function() t.b = 8 end)
+  assertErrorPat('set on immutable', function() t.v = 8 end)
   local j = M.Imm{1, 2, v=3}
   local k = M.Imm{1, 2, v=4}
   assert(t == t); assert(t ~= j)
   assertEq(t, t); assertEq(t, j)
   assert(t ~= k); assert(not mty.eq(t, k))
+  assertEq('{1 :: k=5}', mty.fmt(M.Imm{1, k=5}))
+  assertEq('table', mty.tyName(M.Imm{}))
 
+  assertEq({1, 2, v=3}, j) -- table vs Imm
+  assert(not mty.eq({1, 2}, j))
 end)

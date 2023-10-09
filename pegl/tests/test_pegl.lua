@@ -60,6 +60,7 @@ T.test('or', function()
     dat='hi +-',
     spec={'hi', Or{'-', '+'}, Or{'-', '+', Empty}, Or{'+', Empty}, Eof},
     expect={KW('hi'), KW('+'), KW('-'), EMPTY, EOF},
+    dbg=true,
   }
 end)
 

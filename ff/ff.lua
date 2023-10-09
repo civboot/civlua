@@ -8,13 +8,17 @@ Examples (bash):
   ff path --depth=          # recurse infinitely (depth=-1)
   ff path --depth=-1        # recurse infinitely (depth=-1)
   ff path --pat='my%s+name' # find Lua pattern like "my  name" in files at path
-  ff path --pat='my%s+name' --matches=false  # print paths with match only
-  ff path --pat='(name=)%S+' --sub='%1bob' # change name=anything to name=bob
-  # add `--mut` to actually change the file contents
+  ff path %my%s+name        # shortcut for --pat=my%s+name
+  ff path %my%s+name --matches=false  # print paths with match only
+  ff path %(name=)%S+ --sub='%1bob'   # change name=anything to name=bob
+  # add --mut or -m to actually modify the file contents
   ff path --fpat='%.txt'    # filter to .txt files
   ff path --fpat='(.*)%.txt' --fsub='%1.md'  # rename all .txt -> .md
   # rename OldTestClass -> NewTestClass, 'C' is not case sensitive.
   ff -r --pat='OldTest([Cc]lass)' --sub='NewTesting%1 --mut
+
+Special:
+  indexed %arg will be converged to --pat=arg
 
 Stdout:
   In shell prints files, directories and content matched, depending on
@@ -30,6 +34,7 @@ Short:
   p: --plain=true
   m: --mut=true
   r: --depth='' (infinite recursion)
+  F: no special features (%pat parsing, etc)
 ]]
 
 METATY_DOC = true
@@ -53,9 +58,10 @@ List arguments:
   :field('dirs', 'boolean', false):fdoc[[log/return directories.]]
   :fieldMaybe('fpat', 'string'):fdoc
     [[file name pattern to include.]]
-  :fieldMaybe('pat', 'string'):fdoc[[
-content pattern which searches inside of files and prints the results.
-    Also with for sub.]]
+  :fieldMaybe('pat', 'table'):fdoc[[
+content pattern/s which searches inside of files and prints the results.
+    Any match will include the file/line in the output in order.
+    sub will use the first match found.]]
   :fieldMaybe('dpat', 'string'):fdoc[[
 directory name patterns to include, can specify multiple times.
     ANY matches will include the directory.]]
@@ -93,10 +99,7 @@ local function _dirFn(path, args, dirs)
   if #args.dpat > 0 then local include;
     for _, dpat in ipairs(args.dpat) do
       if path:find(dpat) then include = true; break; end
-    end; if not include then
-      print('!! excluded', path)
-      return 'skip'
-    end
+    end; if not include then return 'skip' end
   end
   if args.dirs then
     if args.log then wln(args.log, path, args.dpre) end
@@ -110,7 +113,7 @@ local function _fileFn(path, args, out)
   end
   local log, pre, files = args.log, args.fpre, args.files
   if args.fpat and not path:find(args.fpat) then return end
-  if files and not args.pat then
+  if files and #args.pat == 0 then
     if log and not args.fsub then wln(log, path, pre) end
     if out.files then add(out.files, path) end
   end
@@ -126,12 +129,14 @@ local function _fileFn(path, args, out)
   end
 
   local pat, sub = args.pat, args.sub;
-  if not pat then
+  if #pat == 0 then
     if args.mut and to then civix.mv(path, to) end
     return
   end
   local l = 1; for line in io.open(path, 'r'):lines() do
-    local m = line:find(pat); if not m then
+    local m, patFound; for _, p in ipairs(pat) do
+      m = line:find(p); if m then patFound = p; break end
+    end; if not m then
       if f then wln(f, line) end
       goto continue
     end
@@ -139,7 +144,7 @@ local function _fileFn(path, args, out)
       if log then wln(log, path) end
       if out.files then add(out.files, path) end
     end
-    line = (sub and line:gsub(pat, sub)) or line
+    line = (sub and line:gsub(patFound, sub)) or line
     if args.matches then
       if log then wln(log, line, pre, l) end
       if out.matches then add(out.matches, line) end
@@ -155,16 +160,28 @@ local function _fileFn(path, args, out)
   end
 end
 
+local function argPats(args)
+  if args.F then return shim.list(args.pat) end
+  local pat = {}; for i=#args,1,-1 do local a=args[i];
+    if type(a) == 'string' and a:sub(1,1)=='%' then
+      add(pat, a:sub(2)); table.remove(args, i)
+    end
+  end; return ds.extend(ds.reverse(pat), shim.list(args.pat))
+end
+
+
 function M.findfix(args, out, isExe)
   local argsTy = type(args); args = shim.parseStr(args, true)
+  args.pat = argPats(args)
   if #args == 0 then add(args, '.') end
   if args.sub then
-    assert(args.pat, 'must specify pat with sub')
+    assert(#args.pat, 'must specify pat with sub')
     assert(not args.fsub, 'cannot specify both sub and fsub')
   end
   if args.fsub then assert(
     args.fpat, 'must specify fpat with fsub'
   )end
+
   shim.bools(args, 'files', 'matches', 'dirs')
   args.depth = shim.number(args.depth or 1)
   args.dpat  = shim.list(args.dpat)
@@ -208,5 +225,4 @@ function M.exe(args, isExe)
 end
 
 M.shim = shim{help = M.DOC, exe = M.exe}
-
 return M

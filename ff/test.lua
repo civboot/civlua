@@ -40,7 +40,7 @@ test('ff pat', function()
   assertEq(
     expectSimple('out/ff/a.txt', '    %i1: a %i1'),
     seekRead(f))
-  ff.findfix{dir, pat='a %d1', r=true, log=f}
+  ff.findfix{dir, '%a %d1', r=true, log=f}
   assertEq(
     expectSimple('out/ff/a.txt', '    %i1: a %i1'),
     seekRead(f))

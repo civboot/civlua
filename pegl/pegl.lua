@@ -129,12 +129,13 @@ M.UNPIN = ds.newSentinel('UNPIN', {name='UNPIN'})
 -- Example: Or{Integer, String, Empty}
 M.EmptyTy = newSpec('Empty', FIELDS)
 M.Empty = M.EmptyTy{kind='Empty'}
-M.EMPTY = {kind='Empty'}
+M.EMPTY = ds.Imm{kind='Empty'}
+assert(M.EMPTY.kind == 'Empty')
 
 -- Denotes the end of the file
 M.EofTy = newSpec('EOF', FIELDS)
 M.Eof = M.EofTy{kind='EOF'}
-M.EOF = {kind='EOF'}
+M.EOF = ds.Imm{kind='EOF'}
 
 -------------------
 -- Root and Utilities
@@ -180,8 +181,8 @@ local function shouldUnpack(spec, t)
     type(t) == 'table'
     and UNPACK_SPECS[ty(spec)]
     and ty(t) ~= M.Token
-    and not rawget(spec, 'kind')
-    and not rawget(t,    'kind')
+    and not spec.kind
+    and not t.kind
   )
   return r
 end

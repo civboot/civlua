@@ -11,7 +11,7 @@ M.FN_DOCS = {}
 
 -- Utilities / aliases
 local add, sfmt = table.insert, string.format
-local function identity(v) return v end
+function M.identity(v) return v end
 function M.nativeEq(a, b) return a == b end
 function M.steal(t, k)
   local v = t[k]; t[k] = nil; return v
@@ -89,8 +89,7 @@ local NATIVE_TY_DOC = {
   number   = M.simpleDoc, string  = M.simpleDoc,
   userdata = M.simpleDoc, thread  = M.simpleDoc,
   table = function(t, fmt, name)
-    if rawget(t, '__name') or rawget(t, '__tostring') then
-      M.helpTy(t, fmt, name)
+    if t.__name or t.__tostring then M.helpTy(t, fmt, name)
     else
       if name then fmt:fmt(name); add(fmt, ': ') end
       fmt:fmt'table'; fmt:sep'\n'
@@ -111,7 +110,6 @@ local NATIVE_TY_DOC = {
 -- you can override behavior in `t`, see implementation for defaults.
 M.addNativeTy = function(ty_, t)
   local name, t = getmetatable(ty_), t or {}
-  print('!! name', type(name))
   assert(type(name) == 'string' and #name > 0,
     'native types must have __metatable="nativeTypeName"')
   M.assertf(not NATIVE_TY_GET[name], '%s already exists', name)
@@ -127,7 +125,7 @@ end
 M.ty = function(obj) return NATIVE_TY_GET[type(obj)](obj) end
 
 -- Ultra-simple index function
-M.indexUnchecked = function(self, k) return rawget(getmetatable(self), k) end
+M.indexUnchecked = function(self, k) return getmetatable(self)[k] end
 
 -- Check returns the constrained type or nil if the types don't check.
 --
@@ -140,7 +138,7 @@ M.tyCheck = function(reqTy, giveTy, reqMaybe)
     return NATIVE_TY_CHECK[reqTy](reqTy, giveTy)
   end
   if reqTy == giveTy then return reqTy end
-  local reqCheck = rawget(reqTy, '__check')
+  local reqCheck = reqTy.__check
   if reqCheck then return reqCheck(reqTy, giveTy) end
 end
 
@@ -164,7 +162,7 @@ end
 M.tyName = function(ty_) --> string
   local check = M.isTyErrMsg(ty_);
   if check then return sfmt('<!%s!>', check) end
-  return NATIVE_TY_NAME[ty_] or rawget(ty_, '__name') or 'table'
+  return NATIVE_TY_NAME[ty_] or ty_.__name or 'table'
 end
 
 M.tyCheckMsg = function(reqTy, giveTy) --> string
@@ -183,7 +181,6 @@ end
 M.eq = function(a, b) return NATIVE_TY_EQ[type(a)](a, b) end
 
 M.eqDeep = function(a, b)
-  M.pnt('!! eqDeep', a, b)
   if rawequal(a, b)     then return true   end
   if M.ty(a) ~= M.ty(b) then return false  end
   local aLen, eq = 0, M.eq
@@ -204,21 +201,21 @@ end
 -- __index function for most types
 -- Set metatable.__missing to type check on missing keys.
 M.indexChecked = function(self, k) --> any
-  if type(k) == 'number' then return rawget(self, k) end
+  if type(k) == 'number' then return nil end
   local mt = getmetatable(self)
-  local x = rawget(mt, k); if x ~= nil then return x end
-  x = rawget(mt, '__missing')
+  local x = mt[k]; if x ~= nil then return x end
+  x = mt.__missing
   return x and x(mt, k) or nil
 end
 
 M.newindexChecked = function(self, k, v)
   if type(k) == 'number' then rawset(self, k, v); return end
   local mt = getmetatable(self)
-  local fields = rawget(mt, '__fields')
+  local fields = mt.__fields
   if not fields[k] then M.errorf(
     '%s does not have field %s', M.tyName(mt), k
   )end
-  if not M.tyCheck(fields[k], M.ty(v), rawget(mt, '__maybes')[k]) then
+  if not M.tyCheck(fields[k], M.ty(v), mt.__maybes[k]) then
     M.errorf('%s: %s', M.tyName(mt), M.tyCheckMsg(fields[k], ty(v)))
   end
   rawset(self, k, v)
@@ -311,8 +308,7 @@ end
 
 -- Used for records and similar for checking missing fields.
 M.recordMissing = function(ty_, k)
-  local maybes = rawget(ty_, '__maybes')
-  if maybes and maybes[k] then return end
+  if ty_.__maybes and ty_.__maybes[k] then return end
   M.errorf('%s does not have field %s', M.tyName(ty_), k)
 end
 
@@ -421,27 +417,8 @@ M.tblIdUnsafe = function(t) --> string
 end
 
 M.metaName = function(mt)
-  if mt then return mt.__name or '?'
-  else return '' end
-end
-
--- Formatting function type with arguments
-M.tyFmtSafe = function(f, ty_, maybe)
-  if maybe then add(f, '?') end
-  local tyTy = ty(ty_)
-  if tyTy == 'string' then add(f, ty_)
-  else add(f, ty_.__name) end
-end
-M.fmtTysSafe = function(f, tys, maybes)
-  maybes = maybes or {}
-  for i, ty_ in ipairs(tys) do
-    M.tyFmtSafe(f, ty_, maybes[i])
-  end
-end
-M.fnTyFmtSafe = function(fnTy, f)
-  add(f, 'Fn['); M.tysFmtSafe(f, self.inputs,  self.iMaybes)
-  add(f, '->');  M.tysFmtSafe(f, self.outputs, self.oMaybes)
-  add(f, ']');
+  if not mt or type(mt) ~= 'table' then return ''
+  else return mt.__name or '?' end
 end
 
 M.fnFmtSafe = function(fn, f)
@@ -455,8 +432,7 @@ NATIVE_TY_FMT['function'] = M.fnFmtSafe
 
 M.tblFmtSafe = function(t, f)
   local mt = getmetatable(t);
-  if not mt then
-    add(f, 'Tbl@'); add(f, M.tblIdUnsafe(t))
+  if mt == nil then add(f, 'Tbl@'); add(f, M.tblIdUnsafe(t))
   elseif mt.__tostring then
     add(f, M.metaName(mt)); add(f, '{...}')
   else
@@ -535,9 +511,9 @@ end
 
 -- Note: may be called inside pcall
 local function doFmt(f, v, mt)
-  if not mt then f.set.tblFmt(v, f)
-  elseif rawget(mt, '__fmt') then mt.__fmt(v, f)
-  elseif rawget(mt, '__tostring') ~= M.fmt then
+  if not mt or mt == 'table' then f.set.tblFmt(v, f)
+  elseif mt.__fmt then mt.__fmt(v, f)
+  elseif mt.__tostring ~= M.fmt then
     add(f, tostring(v))
   else f.set.tblFmt(v, f) end
 end
@@ -631,7 +607,7 @@ M.lrequire = function(mod, i)
 end
 
 function M.helpFields(mt, fmt)
-  local fields = rawget(mt, '__fields')
+  local fields = mt.__fields
   if not fields then return end
   fmt:levelEnter'Fields:'
   for _, field in ipairs(fields) do
@@ -664,7 +640,7 @@ local function _members(fmt, name, mt, keys, fields, onlyTy, notTy)
 end
 
 function M.helpMembers(mt, fmt)
-  local fields = rawget(mt, '__fields')
+  local fields = mt.__fields
   local keys, d = M.orderedKeys(mt, 1024)
   _members(fmt, 'Members', mt, keys, fields, nil, 'function')
   _members(fmt, 'Methods', mt, keys, fields, 'function')
@@ -673,8 +649,8 @@ end
 function M.helpTy(mt, fmt, name)
   if name then fmt:fmt(name); add(fmt, ' ') end
   fmt:fmt'[';
-  fmt:fmt(rawget(mt, '__name') or tostring(mt))
-  fmt:fmt']'; if rawget(mt, '__doc') then
+  fmt:fmt(mt.__name or tostring(mt))
+  fmt:fmt']'; if mt.__doc then
     fmt:fmt': '; fmt:fmt(mt.__doc); fmt:sep'\n';
   end
   fmt:levelEnter''
@@ -703,7 +679,7 @@ function M.docTy(ty_, doc)
 end
 
 function M.doc(doc)
-  if not DOC then return identity end
+  if not DOC then return M.identity end
   return function(ty_) return M.docTy(ty_, doc) end
 end
 
