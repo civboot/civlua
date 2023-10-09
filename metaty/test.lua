@@ -169,13 +169,15 @@ M.help(M.steal))
     now with newline!'
     :fieldMaybe('a2', 'string'):fdoc'and a string'
   print(M.help(A))
-assertMatch([=[
+assertMatch(([=[
 %[A%]: demo record and some fields.
 
   Fields:
     a1 %[number default=3%]: pick number,
         now with newline!
     a2 %[string default=nil%]: and a string
+%s*
+  metatable=%b{}
 %s*
   Members
     __doc: string
@@ -185,10 +187,11 @@ assertMatch([=[
     __name: string
 %s*
   Methods
-    __fmt: function %[.-]
-    __index: function %[.-]
-    __missing: function %[.-]
-    __newindex: function %[.-]
-    __tostring: function %[.-]]=],
+    __fmt      %s+: function %b[]
+    __index    %s+: function %b[]
+    __missing  %s+: function %b[]
+    __newindex %s+: function %b[]
+    __tostring %s+: function %b[]
+]=]):sub(1, -2), -- remove newline
 M.help(A))
 end)

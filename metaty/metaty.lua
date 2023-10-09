@@ -89,7 +89,7 @@ local NATIVE_TY_DOC = {
   number   = M.simpleDoc, string  = M.simpleDoc,
   userdata = M.simpleDoc, thread  = M.simpleDoc,
   table = function(t, fmt, name)
-    if t.__name or t.__tostring then M.helpTy(t, fmt, name)
+    if t.__name or t.__tostring then return M.helpTy(t, fmt, name)
     else
       if name then fmt:fmt(name); add(fmt, ': ') end
       fmt:fmt'table'; fmt:sep'\n'
@@ -97,8 +97,11 @@ local NATIVE_TY_DOC = {
     return true
   end,
   ['function'] = function(f, fmt, name)
-    if name then fmt:fmt(name); add(fmt, ': ') end
+    if name then
+      fmt:fmt(name..string.rep(' ', 42 - #name)); add(fmt, ': ')
+    end
     add(fmt, 'function ['); fmt:fmt(f); add(fmt, ']')
+    if fmt.level > 1 then return end
     local d = M.FN_DOCS[f]; if d then
       fmt:levelEnter''; fmt:fmt(d); fmt:levelLeave''
     else fmt:sep'\n' end
@@ -643,7 +646,10 @@ end
 
 function M.helpMembers(mt, fmt)
   local fields = mt.__fields
-  local keys, d = M.orderedKeys(mt, 1024)
+  local keys, mmt = M.orderedKeys(mt, 1024), getmetatable(mt)
+  if mmt then
+    fmt:fmt('metatable='); fmt:fmt(mmt) fmt:sep'\n'; fmt:sep'\n'
+  end
   _members(fmt, 'Members', mt, keys, fields, nil, 'function')
   _members(fmt, 'Methods', mt, keys, fields, 'function')
 end
@@ -652,7 +658,9 @@ function M.helpTy(mt, fmt, name)
   if name then fmt:fmt(name); add(fmt, ' ') end
   fmt:fmt'[';
   fmt:fmt(mt.__name or tostring(mt))
-  fmt:fmt']'; if mt.__doc then
+  fmt:fmt']';
+  if fmt.level > 1 then return end
+  if mt.__doc then
     fmt:fmt': '; fmt:fmt(mt.__doc); fmt:sep'\n';
   end
   fmt:levelEnter''
@@ -667,8 +675,12 @@ function M.helpFmter()
 end
 
 function M.help(v)
+  local name; if type(v) == 'string' then
+    name, v = v, require(v)
+  end
   local f = M.helpFmter()
-  NATIVE_TY_DOC[type(v)](v, f)
+  if type(v) == 'table' then M.helpTy(v, f, name)
+  else NATIVE_TY_DOC[type(v)](v, f) end
   return M.trimWs(f:toStr())
 end
 

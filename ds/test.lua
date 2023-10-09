@@ -31,10 +31,8 @@ test('bool and none', function()
   assertEq('none', mty.ty(none))
   assertEq('none', mty.fmt(none))
   local err = 'invalid operation on sentinel'
-  assertErrorPat(err, function() return none.foo end)
   assertErrorPat(err, function() none.foo = 3 end)
   assertErrorPat(err, function() return #none end)
-  assertErrorPat(err, function() return none.__name end)
 end)
 
 test("number", function()

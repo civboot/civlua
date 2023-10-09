@@ -2,14 +2,17 @@
 
 This is the repository for civboot-owned Lua modules and software.
 
-These are developed together but kept in separate modules so that others can
-pick and choose the pieces they want to use for their own projects. Together
-they (will) form a complete development environment with some awesome shell/lua
-commandline scripting tools. See [Installation](#Installation) for how to
-install (just copy this directory).
+```bash
+cd civlua/
+# Get Help for any Lua module
+$ lua -e "print(require'metaty'.help(math)"
+$ lua -e "print(require'metaty'.help(table)"
+$ lua -e "print(require'metaty'.help(require'ds')"
+$ lua -e "print(require'metaty'.help(require'ds'.Duration))"
 
-`./civ.lua ff -r --pat=recursive`
-```
+# Execute awesome tiny tools
+$ alias ,="$PWD/civ.lua"
+$ , ff -r %recursive
 ./README.md
      1: * [pegl](./pegl/README.md): recursive descent parsing language (430 LoC `pegl.lua`)
      2: > `, ff -r --pat=recursive`
@@ -19,13 +22,20 @@ install (just copy this directory).
 ... etc
 ```
 
+These libraries and tools are developed together but kept in separate modules so
+that others can pick and choose the pieces they want to use for their own
+projects. Together they (will) form a complete development environment with some
+awesome shell/lua commandline scripting tools. See [Installation](#Installation)
+for how to install (just copy this directory).
+
 Each sub-directory has individual documentation. A suggested reading order
 might be:
 
 * [civ.lua](./civ.lua): a self-loading lua module which acts as
-    a hub for civboot scripts. 
+    a hub for civboot scripts.
 * [shim](./shim/README.md): write scripts for Lua, execute from shell (57 LoC)
 * [metaty](./metaty/README.md): runtime type specification and checking (457 LoC)
+  * `help()` function for viewing documentation on any module or type
   * Auto type formatting
   * Auto type equality (depth comparison)
 * [ds](./ds/README.md): absurdly necessary data structures and algorithms (341 LoC)

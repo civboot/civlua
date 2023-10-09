@@ -312,7 +312,8 @@ whatever methods you want by passing your own metatable.
 ]](function(name, ty_, mt)
   mt = M.update({
     __name=name, __eq=rawequal, __tostring=function() return name end,
-    __index=_si, __newindex=_si, __len=_si, __pairs=_si, __ipairs=_si,
+    __newindex=_si, __len=_si, __pairs=_si, __ipairs=_si,
+    __index=function() return nil end,
   }, mt or {})
   return setmetatable(ty_, mt)
 end)

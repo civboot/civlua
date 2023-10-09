@@ -36,8 +36,11 @@ end
 -- parses the string by splititng via whitespace.
 -- Asserts the string contains no special chars: '"[]
 -- This is for convinience, use a table if it's not enough.
-function M.parseStr(s, duck)
-  if duck and type(s) == 'table' then return s end
+function M.parseStr(s)
+  if type(s) == 'table' then return s end
+  if type(s) ~= 'string' then
+    error('invalid parseStr type: '..type(s))
+  end
   if s:find'[%[%]\'"]' then error(
     'parseStr is split on whitespace: '..s
   )end

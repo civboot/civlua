@@ -53,7 +53,7 @@ end)
 T.test('decimal', function()
   assertParse{dat='-42 . 3343', spec={num}, expect=
     NUM{neg=true, '42','3343'}
-  , root=root, dbg=true}
+  , root=root}
 end)
 
 
@@ -221,7 +221,6 @@ T.test('fncall', function()
         {"[[", "4", "]]", kind="bracketStr"}
       },
     }),
-    dbg=true,
   }
 end)
 
