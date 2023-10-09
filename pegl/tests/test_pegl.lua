@@ -67,7 +67,7 @@ end)
 T.test('many', function()
   assertParse{
     dat='hi there bob',
-    spec=Seq{Many{Pat('%w+'), kind='words'}},
+    spec=Seq{Many{Pat'%w+', kind='words'}},
     expect={'hi', 'there', 'bob', kind='words'},
   }
 end)

@@ -325,8 +325,11 @@ M.bool = mty.doc[[convert to boolean (none aware)]]
 -- imm(myTy) and Imm{...} table
 
 M._IMM_FIELD = '! DO-NOT-SET !'; M.IMM_DEFAULTS = {
+  __index=function(self, k)
+    local x = self[M._IMM_FIELD][k]; if x ~= nil then return x end
+    return mty.indexChecked(self, k)
+  end,
   __newindex=function()  error('set on immutable type', 2) end,
-  __index=function(v, k) return v[M._IMM_FIELD][k] end,
   __pairs=function(v)    return pairs(v[M._IMM_FIELD]) end,
   __ipairs=function(v)   return ipairs(v[M._IMM_FIELD]) end,
   __len=function(v)      return #v[M._IMM_FIELD] end,
@@ -358,7 +361,9 @@ In all ways this will look like a normal table:
   however: getmetatable(Imm{}) == 'table' -- instead of nil
 
 Caveats: see ds.imm.]]
-(M.immChecked(mty.rawTy'Imm')); M.ImmChecked.__metatable = 'table'
+(M.immChecked(mty.rawTy'Imm'))
+M.ImmChecked.__index=function(v, k) return v[M._IMM_FIELD][k] end
+M.ImmChecked.__metatable = 'table'
 M.Imm = mty.getCheck() and M.ImmChecked or mty.identity
 
 ---------------------

@@ -67,8 +67,8 @@ p:parse(grammar)
 PEGL: very concise and easy to fallback to hand-rolled recursive descent.
 Things like `kind` and `name` make debug printing easier.
 ```
-num    = Pat('%d+', 'num') -- kind=num sets the node name
-name   = Pat('%w+', 'name')
+num    = Pat{'%d+', kind='num'} -- kind=num sets the node name
+name   = Pat{'%w+', kind='name'}
 -- Note: UNPIN and PIN are used for when errors should be raised
 setVar = {UNPIN, name, '=', PIN, num, kind='setVar'}
 expr   = Or{setVar, ... other valid expressions, name='expr'}
@@ -193,7 +193,7 @@ Any raw strings in the spec denotes a keyword. A "plain" match is performed and
 if successful the returned node will have `kind` equal to the raw string.
 
 ### Pat: pattern
-`Pat('%w+', 'word')` will create a Token with the span matching the `%w+`
+`Pat{'%w+', kind='word'}` will create a Token with the span matching the `%w+`
 pattern and the kind of `word` when matched.
 
 ### Key: keyword trie

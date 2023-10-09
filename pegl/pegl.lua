@@ -78,10 +78,13 @@ local FIELDS = {
   {'kind', 'string'},
   {'name', 'string'}, -- for fmt only
 }
-M.Pat = newSpec('Pat')
-  :fieldMaybe'pattern' :fieldMaybe'kind' :fieldMaybe'name'
-M.Pat:new(function(ty_, pattern, kind)
-  return setmetatable({pattern=pattern, kind=kind}, M.Pat)
+M.Pat = mty.doc[[Pat'pat%wern' or Pat{'pat', kind='foo'}]]
+(ds.imm(newSpec('Pat'))
+  :fieldMaybe'kind' :fieldMaybe'name')
+M.Pat:new(function(ty_, t)
+  if type(t) == 'string' then t = {t} end
+  assert(#t > 0, 'must specify a pattern')
+  return ds.newImm(ty_, t)
 end)
 
 local KEY_FORM =
@@ -127,13 +130,13 @@ M.UNPIN = ds.newSentinel('UNPIN', {name='UNPIN'})
 
 -- Denotes a missing node. When used in a spec simply returns Empty.
 -- Example: Or{Integer, String, Empty}
-M.EmptyTy = newSpec('Empty', FIELDS)
+M.EmptyTy = ds.imm(newSpec('Empty', FIELDS))
 M.Empty = M.EmptyTy{kind='Empty'}
 M.EMPTY = ds.Imm{kind='Empty'}
 assert(M.EMPTY.kind == 'Empty')
 
 -- Denotes the end of the file
-M.EofTy = newSpec('EOF', FIELDS)
+M.EofTy = ds.imm(newSpec('EOF', FIELDS))
 M.Eof = M.EofTy{kind='EOF'}
 M.EOF = ds.Imm{kind='EOF'}
 
@@ -222,17 +225,17 @@ end
 
 -------------------
 -- Pat
-
-local function patImpl(p, kind, pattern)
+M.Pat.parse = function(self, p)
   p:skipEmpty()
-  local t = p:consume(pattern)
-  if t then
-    p:dbgMatched(kind or pattern)
-    t.kind = kind
+  for _, pat in ipairs(self) do
+    local t = p:consume(pat)
+    if t then
+      t.kind = self.kind
+      p:dbgMatched(t.kind or pat)
+      return t
+    end
   end
-  return t
 end
-M.Pat.parse = function(pat, p) return patImpl(p, pat.kind, pat.pattern, false) end
 
 -------------------
 -- Seq
@@ -330,7 +333,7 @@ local SPEC_TY = {
   table=function(p, tbl) return parseSeq(p, M.Seq(tbl)) end,
 }
 
--- parse('hi + there', {Pat('\w+'), '+', Pat('\w+')})
+-- parse('hi + there', {Pat{'\w+'}, '+', Pat{'\w+'}})
 -- Returns tokens: 'hi', {'+', kind='+'}, 'there'
 M.parse = function(dat, spec, root)
   local p = M.Parser.new(dat, root)
@@ -366,11 +369,21 @@ M.parseStrs=function(dat, spec, root)
   return toStrTokens(dat, node)
 end
 
+M.FMT_KIND = {
+  name  = function(t, f) add(f, sfmt('N%q', t[1])) end,
+  EOF   = function(t, f) add(f, 'EOF')   end,
+  EMPTY = function(t, f) add(f, 'EMPTY') end,
+}
+
+  -- elseif t.kind == 'dec' then 
+  --   mty.pnt('!!', t)
+  --   add(f, sfmt(
+  --   'D{%s%i%s}', t[1] == M.EMPTY and '' or 'neg=true ',
+  --   t[2] == M.EMPTY and '' or 'deci='..t[2]))
 M.parsedFmt = function(t, f)
-  if     #t == 1 and t.kind == 'name'  then add(f, sfmt('N%q', t[1]))
-  elseif #t == 1 and t.kind == t[1]    then add(f, sfmt('KW%q', t[1]))
-  elseif #t == 0 and t.kind == 'EOF'   then add(f, 'EOF')
-  elseif #t == 0 and t.kind == 'Empty' then add(f, 'EMPTY')
+  local fmtK = t.kind and M.FMT_KIND[t.kind]
+  if #t == 1 and t.kind == t[1] then add(f, sfmt('KW%q', t[1]))
+  elseif fmtK then fmtK(t, f)
   else mty.tblFmt(t, f) end
 end
 
@@ -382,8 +395,9 @@ M.assertParse=function(t) -- {dat, spec, expect, dbg=false, root=RootSpec{}}
   if not t.expect and t.parseOnly then return end
   if t.expect ~= result then
     local set = mty.FmtSet{
-      pretty=true, tblFmt=M.parsedFmt,
+      pretty=true,  tblFmt=M.parsedFmt,
       listSep=', ', tblSep=', ',
+      data=t.root,
     }
     local eStr = mty.fmt(t.expect, set)
     local rStr = mty.fmt(result, set)
@@ -422,13 +436,13 @@ M.Parser.parse = function(p, spec)
   else           return spec:parse(p)
   end
 end
-M.Parser.peek = function(p, pattern)
+M.Parser.peek = function(p, pat)
   if p:isEof() then return nil end
-  local c, c2 = p.line:find(pattern, p.c)
+  local c, c2 = p.line:find(pat, p.c)
   if c == p.c then return M.Token{l=p.l, c=c, l2=p.l, c2=c2} end
 end
-M.Parser.consume = function(p, pattern, plain)
-  local t = p:peek(pattern, plain)
+M.Parser.consume = function(p, pat, plain)
+  local t = p:peek(pat, plain)
   if t then p.c = t.c2 + 1 end
   return t
 end
@@ -506,5 +520,11 @@ end
 M.testing = {}
 function M.testing.KW(kw)  return {kw, kind=kw} end       -- keyword
 function M.testing.N(name) return {name, kind='name'} end -- name
+function M.testing.D(t)
+  return {t.neg and '-' or EMPTY, t[1], t.deci or EMPTY}
+end
+function M.testing.H(t)
+  return {t.neg and '-' or EMPTY, t[1], t.deci or EMPTY}
+end
 
 return M

@@ -365,6 +365,7 @@ M.FmtSet
   :field('num',     'string',  '%i')
   :field('str',     'string',  '%q')
   :field('tblFmt',  'function')
+  :fieldMaybe'data' -- arbitrary data, use carefully!
 M.FmtSet.__missing = M.recordMissing
 
 M.DEFAULT_FMT_SET = M.FmtSet{}

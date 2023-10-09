@@ -14,17 +14,26 @@ local pegl = mty.lrequire'pegl'
 
 local stmt = Or{name='stmt'}
 
--- TODO: need decimal notation
+local _dec = Pat'[0-9]+'
+local dec = {kind='dec',
+  Maybe'-',  _dec, Maybe{'.', _dec},
+}
+local hex = {kind='hex',
+  Maybe'-', Pat'0x[a-fA-F0-9]+',
+  Maybe{'.', Pat'[a-fA-F0-9]+'},
+}
+
+-- local num = Or{dec, hex} TODO
 local num = Or{name='num',
-  Pat('0x[a-fA-F0-9]+', 'hex'),
-  Pat('[0-9]+', 'dec'),
+  Pat{'0x[a-fA-F0-9]+', kind='hex'},
+  Pat{'[0-9]+', kind='dec'},
 }
 
 local keyW = Key{name='keyw', {
   'end', 'if', 'else', 'elseif', 'while', 'do', 'repeat', 'local', 'until',
   'then', 'function', 'return',
 }}
-local name = {UNPIN, Not{keyW}, Pat('[%a_][%w_]*', 'name')}
+local name = {UNPIN, Not{keyW}, Pat{'[%a_][%w_]*', kind='name'}}
 
 -- uniary and binary operations
 local op1 = Key{name='op1', {'-', 'not', '#'}}
