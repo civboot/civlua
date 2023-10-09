@@ -1,9 +1,8 @@
 -- rd: recursive descent parser
 
-local mty     = require'metaty'
+local mty, ty = require'metaty'; ty = mty.ty
 local ds      = require'ds'
 local civtest = require'civtest'
-local ty = mty.ty
 local extend, lines = ds.extend, ds.lines
 local add, sfmt = table.insert, string.format
 
@@ -332,33 +331,16 @@ M.parse = function(dat, spec, root)
   return p:parse(spec), p
 end
 
-local function toStrTokens(dat, n)
-  if not n then return nil elseif ty(n) == M.Token then
-    return node(Pat, lines.sub(dat, n.l, n.c, n.l2, n.c2), n.kind)
-  elseif #n == 0 then return n end
-  local t={} for _, n in ipairs(n) do add(t, toStrTokens(dat, n)) end
-  t.kind=n.kind; return t
-end; M.toStrTokens = toStrTokens
-
--- Parse and convert into StrTokens. Str tokens are
--- tables (lists) with the 'kind' key set.
---
--- This is primarily used for testing
-M.parseStrs=function(dat, spec, root)
-  local node, p = M.parse(dat, spec, root)
-  return toStrTokens(p.dat, node), p
-end
-
-
 M.assertParse=function(t) -- {dat, spec, expect, dbg=false, root=RootSpec{}}
   assert(t.dat, 'dat'); assert(t.spec, 'spec')
   local root = (t.root and ds.copy(t.root)) or M.RootSpec{}
   root.dbg   = t.dbg or root.dbg
-  local result, parser = M.parseStrs(t.dat, t.spec, root)
+  local node, parser = M.parse(t.dat, t.spec, t.root)
+  local result = parser:toStrTokens(node)
   if not t.expect and t.parseOnly then return end
   if t.expect ~= result then
-    local eStr = parser:fmtParsed(t.expect)
-    local rStr = parser:fmtParsed(result)
+    local eStr = parser:fmtParsedStrs(t.expect)
+    local rStr = parser:fmtParsedStrs(result)
     if eStr ~= rStr then
       print('\n#### EXPECT:'); print(eStr)
       print('\n#### RESULT:'); print(rStr)
@@ -368,7 +350,7 @@ M.assertParse=function(t) -- {dat, spec, expect, dbg=false, root=RootSpec{}}
       assert(false, 'failed parse test')
     end
   end
-  return result, parser
+  return result, node, parser
 end
 
 M.assertParseError=function(t)
@@ -419,12 +401,25 @@ M.Parser.skipEmpty=function(p)
 end
 M.Parser.state   =function(p) return {l=p.l, c=p.c, line=p.line} end
 M.Parser.setState=function(p, st) p.l, p.c, p.line = st.l, st.c, st.line end
-M.Parser.fmtParsed=function(p, t)
-  p.fmtSet = p.fmtSet or mty.FmtSet{
-    data=p.root, tblFmt=M.tblFmtParsed, pretty=true,
-    listSep=', ', tblSep=', ',
-  }
-  return mty.fmt(t, p.fmtSet)
+M.Parser.toStrTokens=function(p, n--[[node]])
+  if not n then return nil elseif ty(n) == M.Token then
+    return node(Pat, lines.sub(p.dat, n.l, n.c, n.l2, n.c2), n.kind)
+  elseif #n == 0 then return n end
+  local t={} for _, n in ipairs(n) do add(t, p:toStrTokens(n)) end
+  t.kind=n.kind; return t
+end
+M.Parser.fmtSetDefault = function(p) return mty.FmtSet{
+  data=p, pretty=true, listSep=', ', tblSep=', ',
+}end
+M.Parser.fmtParsedStrs=function(p, nodeStrs)
+  p.fmtSet = p.fmtSet or p:fmtSetDefault()
+  p.fmtSet.tblFmt = M.tblFmtParsedStrs
+  return mty.fmt(nodeStrs, p.fmtSet)
+end
+M.Parser.fmtParsedTokens=function(p, nodeTokens)
+  p.fmtSet = p.fmtSet or p:fmtSetDefault()
+  p.fmtSet.tblFmt = M.tblFmtParsedTokens
+  return mty.fmt(nodeTokens, p.fmtSet)
 end
 
 local function fmtStack(p)
@@ -452,11 +447,27 @@ M.Parser.checkPin=function(p, pin, expect)
 end
 
 function M.isKeyword(t) return #t == 1 and t.kind == t[1] end
-M.tblFmtParsed = function(t, f)
+function M.maybeKeyword(t)
+  return (t.l == t.l2) and (#t.kind == t.c2 - t.c1 + 1)
+end
+M.tblFmtParsedStrs = function(t, f)
   if M.isKeyword(t) then add(f, sfmt('KW%q', t[1])); return end
-  local fmtK = f.set.data and f.set.data.fmtKind
+  local fmtK = f.set.data and f.set.data.root.fmtKind
   local fmtK = t.kind and fmtK and fmtK[t.kind]
   if fmtK then fmtK(t, f) else mty.tblFmt(t, f) end
+end
+M.tblFmtParsedTokens = function(t, f)
+  -- Convert tables+tokens to strings, using fmtKind if available.
+  local p, fmtK = f.set.data; fmtK = p.root.fmtKind
+  fmtK = t.kind and fmtK and fmtK[t.kind]
+  local st = (ty(t) == M.Token or fmtK) and p:toStrTokens(t)
+  if st then
+    if ty(st) == 'string' then add(f, st)
+    elseif M.isKeyword(t) then add(f, sfmt('KW%q', t[1]))
+    elseif fmtK then fmtK(t, f)
+    else assert(false)--[[mty.tblFmt(st, f)]] end
+  else mty.tblFmt(t, f) -- else it contains tokens/etc
+  end
 end
 
 M.Parser.dbgEnter=function(p, spec)
@@ -470,6 +481,7 @@ M.Parser.dbgLeave=function(p, n)
   if not p.root.dbg then return n end
   p.dbgLevel = p.dbgLevel - 1
   p:dbg('LEAVE: %s', mty.fmt(n or sn))
+  -- p:dbg('LEAVE: %s', p:fmtParsed(n or sn)) -- TODO
   return n
 end
 M.Parser.dbgMatched=function(p, spec)

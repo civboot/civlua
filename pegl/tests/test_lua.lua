@@ -5,7 +5,7 @@ local ds = require'ds'
 local T = require'civtest'
 
 local RootSpec, Token
-local testing, EMPTY, EOF, assertParse, assertParseError, parseStrs
+local testing, EMPTY, EOF, assertParse, assertParseError
 local pegl = mty.lrequire'pegl'
 
 local num, str, exp1, exp, field, varset
@@ -167,21 +167,23 @@ T.test('function', function()
 end)
 
 T.test('fncall', function()
-  local r, p = assertParse{dat='foo(4)', spec=src, root=root,
+  local r, n, p = assertParse{dat='foo(4)', spec=src, root=root,
     expect = SRC({ kind="stmtexp",
       N"foo", {kind='call',
         KW"(", NUM'4', KW")",
       },
     })
   }
-  T.assertEq([[
+  local expect = [[
 {
   {
     N"foo", {
       KW"(", NUM{4}, KW")", kind="call"
     }, kind="stmtexp"
   }, EMPTY, EMPTY, EOF
-}]], p:fmtParsed(r))
+}]]
+  T.assertEq(expect, p:fmtParsedStrs(r))
+  -- T.assertEq(expect, p:fmtParsedTokens(n))
 
   assertParse{dat='foo({__tostring=4})', spec=src, root=root,
     expect = SRC({ kind="stmtexp",
