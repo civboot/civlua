@@ -364,7 +364,7 @@ function M.fmtParsed(t, root) return mty.fmt(t, mty.FmtSet{
 
 M.assertParse=function(t) -- {dat, spec, expect, dbg=false, root=RootSpec{}}
   assert(t.dat, 'dat'); assert(t.spec, 'spec')
-  local root = t.root or M.RootSpec{}
+  local root = (t.root and ds.copy(t.root)) or M.RootSpec{}
   root.dbg   = t.dbg or root.dbg
   local result = M.parseStrs(t.dat, t.spec, root)
   if not t.expect and t.parseOnly then return end
@@ -501,21 +501,22 @@ M.common = {num=num, n10=n10, n16=n16}
 
 -- Debugging keywords(KW), names(N) and numbers(NUM/HEX)
 M.testing = {}
-local KW = function(kw) return {kw, kind=kw} end -- keyword
-M.testing.KW = KW
-function M.testing.N(name) return {name, kind='name'} end -- name
-local function NUM(kind, t)
-  if type(t) == 'string' then t = {t} end; assert(#t <= 2)
-  return {kind=kind, (tonumber(t[1])<0 and '-') or M.EMPTY, t[1], t[2] or M.EMPTY}
+local function NumT(kind, t)
+  if type(t) == 'string' then t = {t} end; assert(#t <= 3)
+  return ds.extend({kind=kind, (t.neg and '-') or M.EMPTY, t[1]},
+    t[2] and {'.', t[2]} or {M.EMPTY})
 end
-function M.testing.NUM(t) return NUM('n10', t) end
-function M.testing.HEX(t) return NUM('n16', t) end
+local KW = function(kw)    return {kw, kind=kw} end -- keyword
+function M.testing.N(name) return {name, kind='name'} end -- name
+function M.testing.NUM(t)  return NumT('n10', t) end
+function M.testing.HEX(t)  return NumT('n16', t) end
+M.testing.KW = KW
 
 -- formatting parsed so it can be copy/pasted
 local fmtKindNum = function(name, t, f)
   mty.pnt('!!', t)
   add(f, name..sfmt('{%s%s%s}',
-    mty.eq(t[1],M.EMPTY) and '' or '-', t[2],
+    mty.eq(t[1],M.EMPTY) and '' or 'neg=1 ', t[2],
     (mty.eq(t[3],M.EMPTY) and '') or (','..t[4])
 ))end
 M.RootSpec.fmtKind = {

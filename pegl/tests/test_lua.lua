@@ -41,11 +41,11 @@ T.test('str', function()
 end)
 
 -- TODO: Not sure where '.' is going
--- T.test('decimal', function()
---   assertParse{dat='-42 . 3343', spec={num}, expect={
---     NUM{neg=-1, 42,3343}
---   }, root=root, dbg=true}
--- end)
+T.test('decimal', function()
+  assertParse{dat='-42 . 3343', spec={num}, expect=
+    NUM{neg=true, '42','3343'}
+  , root=root, dbg=true}
+end)
 
 
 T.test('field', function()
@@ -293,9 +293,7 @@ T.test('error', function()
 end)
 
 local function testLuaPath(path)
-  local f = io.open(path, 'r')
-  local text = f:read'*a'
-  f:close()
+  local text = ds.readPath(path)
   assertParse{dat=text, spec=src, root=root, parseOnly=true}
 end
 
