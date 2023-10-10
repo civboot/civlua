@@ -6,7 +6,8 @@
 PEGL is PEG like recursive descent Parser written in Lua.
 
 Recursive descent is simultaniously one of the (conceptually) simplest parsers
-while also being the one of the most powerful. PEG is one of the simplest
+while also being the one of the most powerful -- it's literally just function
+recursion which walks a file stream. PEG is one of the simplest
 parser-combinator languages, conceptually implementing a recursive descent
 parser with a specific subset of features.
 
@@ -37,11 +38,12 @@ Into something like:
 A recursive descent parser does so via hand-rolled functions which typically
 _recurse_ into eachother. Each function attempts to parse from the current
 parser position using its spec (which may be composed of calling other parsing
-functions) and returns either the successfully parsed node or `nil` (or perhaps
-raises an error if it finds a syntax error).  PEGL is a Lua library for writing
-the common-cases of a recursive descent parser in a (pure Lua) syntax similar to
-PEG, while still being able to easily fallback to hand-rolled recursive descent
-when needed.
+functions) and returns either the successfully parsed node or `nil` (or returns
+an error if it finds a syntax error).
+
+PEGL is a Lua library for writing the common-cases of a recursive descent parser
+in a (pure Lua) syntax similar to PEG, while still being able to easily fallback
+to hand-rolled recursive descent when needed.
 
 Most traditional PEG parsers struggle with complicated syntax such as Lua's
 `[===[raw string syntax]===]`, python's whitespace denoted syntax or C's

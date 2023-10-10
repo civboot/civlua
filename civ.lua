@@ -13,9 +13,9 @@ function M.load(name, path)
 end
 
 local initG = {}; for k in pairs(_G) do initG[k] = true end
-local shim = M.load('shim',    'shim/shim.lua')
-local mty = M.load('metaty',  'metaty/metaty.lua')
-M.load('ds',      'ds/ds.lua')
+local shim    = M.load('shim',    'shim/shim.lua')
+local mty     = M.load('metaty',  'metaty/metaty.lua')
+local ds      = M.load('ds',      'ds/ds.lua')
 local civtest = M.load('civtest', 'civtest/civtest.lua')
 
 M.load('pegl',       'pegl/pegl.lua')
@@ -27,11 +27,29 @@ local ff  = M.load('ff',   'ff/ff.lua')
 local ele = M.load('ele',  'ele/ele.lua')
 civtest.assertGlobals(initG)
 
+M.HELP = [[help module.any.object
+Get help for any lua module (including ones in civlib)]]
+function M.help(args, isExe)
+  args = shim.listSplit(args, '.')
+  if #args == 0 then print(M.HELP) return end
+  local path = ds.copy(args)
+  local mname = table.remove(path, 1);
+  local mod = package.loaded[mname] or require(mname)
+  local obj = ds.getPath(mod, path); if not obj then print(
+    'ERROR: '..table.concat(path, '.')..' not found'
+  )end
+  print('Help: '..table.concat(args, '.'))
+  print(mty.help(obj))
+end
+
+M.helpShim = {help=M.HELP, exe=M.help}
+
 shim{
   help=DOC,
   subs = {
-    ele = ele.main,
-    ff = ff.shim,
+    help = M.helpShim,
+    ele  = ele.main,
+    ff   = ff.shim,
   },
 }
 

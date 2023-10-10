@@ -1,5 +1,7 @@
 # Lua ds: absurdly necessary data structures and algorithms
 
+**`./civlua.lua help ds`**
+
 `ds` is a small (<500 LoC) lua library which fills many of the data structure
 and method gaps in Lua's standard library.
 

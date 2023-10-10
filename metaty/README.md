@@ -1,5 +1,7 @@
 # metaty: simple but effective Lua type system using metatables
 
+**`./civlua.lua help metaty`**
+
 metaty is a minimalistic type library allowing users to express (runtime) types
 in Lua and get the benefits of structured records like better formatting
 (printing) and assertions.

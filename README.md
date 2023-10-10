@@ -4,14 +4,14 @@ This is the repository for civboot-owned Lua modules and software.
 
 ```bash
 cd civlua/
-# Get Help for any Lua module
-$ lua -e "print(require'metaty'.help(math)"
-$ lua -e "print(require'metaty'.help(table)"
-$ lua -e "print(require'metaty'.help(require'ds')"
-$ lua -e "print(require'metaty'.help(require'ds'.Duration))"
+LUA_PATH="?/?.lua"
+$ alias ,="$PWD/civ.lua"  # NOTE: can now execute from anywhere!
+, help math        # core lua math
+, help table       # core lua table
+, help ds          # civlua datastructure module
+, help ds.Duration # help on inner type
 
 # Execute awesome tiny tools
-$ alias ,="$PWD/civ.lua"
 $ , ff -r %recursive
 ./README.md
      1: * [pegl](./pegl/README.md): recursive descent parsing language (430 LoC `pegl.lua`)
@@ -53,6 +53,13 @@ might be:
 
 > LoC are from 2023-10-03 using `tokei ?/?.lua ?/?/` where `?` is the folder name
 
+## Work In Progress
+
+* [ele](./ele/README.md): Extendable Lua Editor
+  * Modal, similar to Vim
+  * Currently incomplete, but 2181 LoC with core functionality
+* `patience/` is to implement a patience diff, be patient!
+
 ## Installation
 [civ.lua](./civ.lua) is a self-contained, self-loading Lua module.
 Simply copy this `civlua` directory anywhere and execute it on
@@ -64,12 +71,9 @@ unix and it will work.
 >
 > `, ff -r --pat=recursive`
 
-## Work In Progress
+Running tests currently requires [luaposix], but most libraries work without it.
 
-* [ele](./ele/README.md): Extendable Lua Editor
-  * Modal, similar to Vim
-  * Currently incomplete, but 2181 LoC with core functionality
-* `patience/` is to implement a patience diff, be patient!
+[luaposix]: https://github.com/luaposix/luaposix
 
 ## LICENSE
 

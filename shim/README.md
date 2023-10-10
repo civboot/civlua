@@ -1,5 +1,7 @@
 # shim: write scripts for Lua, execute from shell
 
+**`./civlua.lua help shim`**
+
 `shim` is a tiny Lua module that makes it easy to write command line utilities
 in Lua without having to worry about it.  The main benefit (besides a wicked
 simple argument parsing) is that your Lua function can be **either** called

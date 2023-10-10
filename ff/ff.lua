@@ -107,53 +107,46 @@ local function _dirFn(path, args, dirs)
   end
 end
 
-local function _fileFn(path, args, out)
+local function _fileFn(path, args, out) -- got a file from walk
+  -- check if the excl and fpat match
   for _, excl in ipairs(args.excl) do
     if path:find(excl) then return 'skip' end
   end
-  local log, pre, files = args.log, args.fpre, args.files
+  local log, pre, files, to = args.log, args.fpre, args.files, nil
   if args.fpat and not path:find(args.fpat) then return end
-  if files and #args.pat == 0 then
-    if log and not args.fsub then wln(log, path, pre) end
-    if out.files then add(out.files, path) end
-  end
-  local to, text = nil, nil
   if args.fsub then to = path:gsub(args.fpat, args.fsub) end
-  if to and files then files = false
-    if log then wln(log, to, pre) end
-    if to and out.mvfiles then add(out.mvfiles, to) end
-  end
-
-  local f, fpath; if args.mut and args.sub then
-    fpath = (to or path)..'.SUB'; f = io.open(fpath, 'w')
-  end
-
-  local pat, sub = args.pat, args.sub;
+  local pat, sub = args.pat, args.sub
+  -- if no patterns exit early
   if #pat == 0 then
+    if files and log   then wln(log, to or path, pre) end
+    if files           then add(out.files, to or path) end
     if args.mut and to then civix.mv(path, to) end
     return
   end
+  -- Search for patterns and substitution. If mut then write subs.
+  local f, fpath; if args.mut and args.sub then
+    fpath = (to or path)..'.SUB'; f = io.open(fpath, 'w')
+  end
   local l = 1; for line in io.open(path, 'r'):lines() do
-    local m, patFound; for _, p in ipairs(pat) do
+    local m, patFound; for l, p in ipairs(pat) do -- find any matches
       m = line:find(p); if m then patFound = p; break end
-    end; if not m then
+    end; if not m then -- no match
       if f then wln(f, line) end
       goto continue
     end
-    if files then files = false
-      if log then wln(log, path) end
+    if files then files = false -- =false -> pnt only once
+      if log       then wln(log, path)       end
       if out.files then add(out.files, path) end
     end
     line = (sub and line:gsub(patFound, sub)) or line
     if args.matches then
-      if log then wln(log, line, pre, l) end
+      if log         then wln(log, line, pre, l) end
       if out.matches then add(out.matches, line) end
     end
     if f then wln(f, line) end
-    ::continue::
-    l = l + 1
+    ::continue:: l = l + 1
   end
-  if f then -- close file and move it
+  if f then -- close .SUB file and move it
     f:flush(); f:close()
     civix.mv(fpath, to or path)
     if to then civix.rm(path) end
@@ -168,7 +161,6 @@ local function argPats(args)
     end
   end; return ds.extend(ds.reverse(pat), shim.list(args.pat))
 end
-
 
 function M.findfix(args, out, isExe)
   local argsTy = type(args); args = shim.parseStr(args, true)
