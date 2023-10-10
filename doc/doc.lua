@@ -1,7 +1,7 @@
 local shim = require'shim'
 local mty = require 'metaty'
 local d = mty.docTy
-local M = d({doc=mty.doc, docTy=mty.docTy, help=mty.help}[=[
+local M = d({doc=mty.doc, docTy=mty.docTy, help=mty.help}, [=[
 Documentation and help for Lua types (including core).
 
    help 'string.find'
@@ -33,7 +33,7 @@ Note: The documentation in this module is brief by design.
 For full documentation go to the links in Reference. This
 documentation is for the civboot.org project and will
 make small references to other civboot libraries.
-]=]
+]=])
 
 -------------------------------
 -- string
@@ -86,7 +86,7 @@ get substring by index (NOT pattern matching).
 
 Note: This is confusingly named considering string.gsub uses pattern
 matching. Such is life.
-]]
+]])
 
 d(string.gsub, [[
 Globally Substittue pattern with subpattern.
@@ -129,7 +129,7 @@ Directives:
 Directive control structure:
 
   % <fill character>? <fill count> directive
-]]
+]])
 
 -------------------------------
 -- table
@@ -163,7 +163,7 @@ table.insert(t, 'c', 2) -- {'b', 'c', 'd', 'e'}
 
 Recommendation:
   local add = table.insert; add(t, 4)
-]]
+]])
 
 
 -------------------------------
@@ -205,7 +205,11 @@ seek
   seek'set' ->  set to beginning
   seek'end' ->  set to end
 ]])
-for k in pairs(io) do io[k] = 'See "io" for documentation' end
+for k, v in pairs(io) do
+  if type(v) == 'table' or type(v) == 'function' then
+    d(v, 'See "io" for documentation')
+  end
+end
 
 -------------------------------
 -- os
@@ -224,7 +228,11 @@ Useful:
 Recommendation:
   civix.epoch() returns nanosec precision, os.time() only sec.
 ]])
-for k in pairs(io) do io[k] = 'See "os" for documentation' end
+for k, v in pairs(os) do
+  if type(v) == 'table' or type(v) == 'function' then
+    d(v, 'See "os" for documentation')
+  end
+end
 
 -------------------------------
 -- os.execute and io.popen
@@ -248,18 +256,18 @@ Prints:
    string itself.
 ]])
 
-d(io.popen, [[
-Execute shell command in separate process.
-
-io.popen(command, mode='r|w') -> file
-
-Reference:
-  os.execute: docs on file:close()
-  luaposix: external lib for more "complete" support
-  civix.sh: more ergonomic shell
-
-Note: as of Lua5.4 it is not possible to have stderr or both stdin&stdout.
-]])
+-- d(io.popen, [[
+-- Execute shell command in separate process.
+-- 
+-- io.popen(command, mode='r|w') -> file
+-- 
+-- Reference:
+--   os.execute: docs on file:close()
+--   luaposix: external lib for more "complete" support
+--   civix.sh: more ergonomic shell
+-- 
+-- Note: as of Lua5.4 it is not possible to have stderr or both stdin&stdout.
+-- ]])
 
 
 return M
