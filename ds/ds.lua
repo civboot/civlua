@@ -312,16 +312,21 @@ whatever methods you want by passing your own metatable.
 ]](function(name, ty_, mt)
   mt = M.update({
     __name=name, __eq=rawequal, __tostring=function() return name end,
-    __newindex=_si, __len=_si, __pairs=_si, __ipairs=_si,
-    __index=function() return nil end,
+    __index=_si, __newindex=_si, __len=_si, __pairs=_si, __ipairs=_si,
   }, mt or {})
   return setmetatable(ty_, mt)
 end)
 
-M.none = M.newSentinel('none', {}, {__metatable='none',
-  __doc=[[none means "set as none" (nil means "unset")]],
-})
-mty.addNativeTy(M.none)
+-- TODO: if I remove this space then 'help ds none' is
+-- missing a newline (???)
+local noneDoc = [[
+none: "set as none" vs nil aka "unset"
+ 
+none is a sentinel value. Use it in APIs where there is an
+"unset but none" such as JSON's "null".
+]]
+M.none = M.newSentinel('none', {}, {__metatable='none'})
+mty.addNativeTy(M.none, {doc=noneDoc})
 
 M.bool = mty.doc[[convert to boolean (none aware)]]
 (function(v) return not rawequal(M.none, v) and v and true or false end)

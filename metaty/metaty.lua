@@ -73,7 +73,9 @@ local NATIVE_TY_FMT = {
     if f.set.str ~= '%s' then return add(f, sfmt(f.set.str, s)) end
     -- format with newlines. Last line should not have sep'\n'
     local prev; for line in s:gmatch'[^\n]+' do
-      if prev then add(f, prev); f:sep'\n' end; prev = line
+      if prev then
+        add(f, prev); f:sep'\n'
+      end; prev = line
     end; if prev then add(f, prev) end
   end,
   -- ['function'] = fnFmtSafe (later)
@@ -98,8 +100,14 @@ local NATIVE_TY_DOC = {
   end,
   ['function'] = function(f, fmt, name)
     if name then
-      fmt:fmt(name..string.rep(' ', 42 - #name)); add(fmt, ': ')
+      fmt:fmt(name)
+      if fmt.level > 1 and M.FN_DOCS[f] then
+        fmt:fmt(string.rep(' ', 36 - #name));
+        fmt:fmt'(DOC) '
+      else fmt:fmt(string.rep(' ', 42 - #name)) end
+      add(fmt, ': ')
     end
+
     add(fmt, 'function ['); fmt:fmt(f); add(fmt, ']')
     if fmt.level > 1 then return end
     local d = M.FN_DOCS[f]; if d then
@@ -550,7 +558,7 @@ M.Fmt.fmt = function(f, v)
   return f
 end
 
-M.Fmt.toStr = function(f) return table.concat(f, '') end
+M.Fmt.toStr = function(f) return table.concat(f) end
 M.Fmt.write = function(f, fd)
   for _, s in ipairs(f) do fd:write(s) end
 end
@@ -655,10 +663,16 @@ function M.helpMembers(mt, fmt)
 end
 
 function M.helpTy(mt, fmt, name)
-  if name then fmt:fmt(name); add(fmt, ' ') end
-  fmt:fmt'[';
-  fmt:fmt(mt.__name or tostring(mt))
-  fmt:fmt']';
+  local mmt = getmetatable(mt); if mmt and NATIVE_TY_DOC[mmt] then
+    return fmt:fmt(NATIVE_TY_DOC[mmt])
+  end
+  local ty_ = mt.__name or tostring(mt); local nlen = 2 + #ty_
+  if name then fmt:fmt(name); add(fmt, ' ');   nlen = 1 + #name; end
+  if fmt.level > 1 and mt.__doc then
+    fmt:fmt(string.rep(' ', 36 - nlen))
+    fmt:fmt'(DOC) ';
+  else fmt:fmt(string.rep(' ', 42 - nlen)) end
+  fmt:fmt'['; fmt:fmt(ty_) fmt:fmt']'
   if fmt.level > 1 then return end
   if mt.__doc then
     fmt:fmt': '; fmt:fmt(mt.__doc); fmt:sep'\n';

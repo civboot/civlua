@@ -65,6 +65,14 @@ test("str", function()
   assertEq('hi there', trimWs('  hi there\n '))
   assertEq('hi there', trimWs('hi there'))
   assertEq({'1', 'ab', 'c'}, splitWs('  1 \n ab c'))
+  local multi = [[  one
+
+three
+four
+
+]]
+  assertEq('  one\n\nthree\nfour\n\n', multi)
+  assertEq('one\n\nthree\nfour', trimWs(multi))
 
   assertEq([['hello']], M.q1str[[hello]])
   assertEq([['\'hello\'']], M.q1str[['hello']])

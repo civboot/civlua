@@ -1,5 +1,5 @@
 package = "metaty"
-version = "0.1-4"
+version = "0.1-5"
 source = {
   url = "git+ssh://git@github.com/civboot/civlua.git",
   dir = "metaty/",

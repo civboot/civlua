@@ -1,6 +1,10 @@
 local DOC = [[ff: find+fix files
 ff is a simple utility to find and fix files and file-content.
 
+References:
+  string.find for pat
+  string.gsub for sub
+
 Examples (bash):
   ff path                   # print files at path (recursively)
   ff path --dir             # also print directories
