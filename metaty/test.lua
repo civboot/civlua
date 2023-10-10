@@ -62,10 +62,10 @@ test('tyName', function()
   assertEq('F', tyName(mt))
   assertEq('F', tyName(ty(setmetatable({}, mt))))
 
-  assert(not M.isTyErrMsg('string'))
-  assertEq('"null" is not a native type', M.isTyErrMsg('null'))
+  assert(not M._isTyErrMsg('string'))
+  assertEq('"null" is not a native type', M._isTyErrMsg('null'))
   assertEq('boolean cannot be used as a type',
-           M.isTyErrMsg(true))
+           M._isTyErrMsg(true))
 end)
 
 test('record', function()
@@ -160,15 +160,15 @@ end)
 
 test('doc', function()
 assertEq([[
-function [Fn@metaty/metaty.lua:16]
-  steal(t, key): return t[key] and remove it]],
-M.help(M.steal))
+function [Fn@metaty/metaty.lua:10]
+  isEnv"MY_VAR" -> boolean (environment variable)
+    true: 'true' '1'    false: 'false' '0' '']],
+M.help(M.isEnv))
   local A = M.doc'demo record and some fields.'
     (record'A')
     :field('a1', 'number', 3):fdoc'pick number,\
     now with newline!'
     :fieldMaybe('a2', 'string'):fdoc'and a string'
-  print(M.help(A))
 assertMatch(([=[
 %[A%]: demo record and some fields.
 
@@ -191,7 +191,7 @@ assertMatch(([=[
     __index    %s+: function %b[]
     __missing  %s+: function %b[]
     __newindex %s+: function %b[]
-    __tostring %s+: function %b[]
+    __tostring %s+%(DOC%) : function %b[]
 ]=]):sub(1, -2), -- remove newline
 M.help(A))
 end)

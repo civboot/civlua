@@ -2,30 +2,74 @@
 --
 -- See README.md for documentation.
 
-local CHECK = _G['METATY_CHECK'] or false -- private
-local DOC   = _G['METATY_DOC'] or false   -- private
 local M = {}
+
+-- isEnv: returns boolean for below values, else nil
+local IS_ENV = { ['true']=true,   ['1']=true,
+                 ['false']=false, ['0']=false, ['']=false }
+function M.isEnv(var)
+  var = os.getenv(var); if var then return IS_ENV[var] end
+end
+function M.isEnvG(var) -- is env or globals
+  local e = M.isEnv(var); if e ~= nil then return e end
+  return _G[var]
+end
+
+local CHECK = M.isEnvG'METATY_CHECK' or false -- private
+local DOC   = M.isEnvG'METATY_DOC'   or false -- private
 M.getCheck = function() return CHECK end
 M.getDoc   = function() return DOC end
 M.FN_DOCS = {}
 
--- Utilities / aliases
 local add, sfmt = table.insert, string.format
 function M.identity(v) return v end
-function M.nativeEq(a, b) return a == b end
-function M.steal(t, k)
-  local v = t[k]; t[k] = nil; return v
-end
 function M.trimWs(s) return string.match(s, '^%s*(.-)%s*$') end
+function M.steal(t, k) local v = t[k]; t[k] = nil; return v end
+function M.nativeEq(a, b) return a == b end
+function M.docTy(ty_, doc)
+  if not DOC then return end
+  doc = M.trimWs(doc)
+  if type(ty_) == 'function' then  M.FN_DOCS[ty_] = doc
+  elseif type(ty_) == 'table' then ty_.__doc = doc
+  else error('cannot document type '..type(doc)) end
+  return ty_
+end
+function M.doc(doc)
+  if not DOC then return M.identity end
+  return function(ty_) return M.docTy(ty_, doc) end
+end
+M.docTy(M.isEnvG,  'isEnvG"MY_VAR": isEnv but also checks _G')
+M.docTy(M.isEnv,  [[isEnv"MY_VAR" -> boolean (environment variable)
+  true: 'true' '1'    false: 'false' '0' '']])
+M.docTy(M.steal,   'steal(t, key): return t[key] and remove it')
+M.docTy(M.doc, [==[Document a type.
+ 
+Example:
+  M.myFn = doc[[myFn is awesome!
+  It does ... stuff with a and b.
+  ]](function(a, b)
+    ...
+  end)
+]==])
+M.docTy(M.docTy, [==[
+docTy(ty_, doc): Document a type, prefer `doc` instead.
+ 
+Example:
+  docTy(myTy, [[my doc string]])
+]==])
 
 M.KEYS_MAX = 64
 M.FMT_SAFE = false
 
-M.errorf  = function(...) error(string.format(...), 2) end
-M.assertf = function(a, ...)
-  if not a then error('assertf: '..string.format(...), 2) end
-  return a
-end
+M.pntf = M.doc'pntf(...): print(string.format(...))'
+  (function(...) print(string.format(...)) end)
+M.errorf = M.doc'errorf(...): error(string.format(...))'
+  (function(...) error(string.format(...), 2) end)
+M.assertf = M.doc'assertf(a, ...): assert with string.format'
+  (function(a, ...)
+    if not a then error('assertf: '..string.format(...), 2) end
+    return a
+  end)
 
 -----------------------------
 -- Native types: now add your own with addNativeTy!
@@ -78,8 +122,8 @@ local NATIVE_TY_FMT = {
       end; prev = line
     end; if prev then add(f, prev) end
   end,
-  -- ['function'] = fnFmtSafe (later)
-  -- table        = tblFmtSafe (later)
+  -- Note: ['function'] = fnFmtSafe  (later)
+  -- Note: table        = tblFmtSafe (later)
 }
 
 function M.simpleDoc(v, fmt, name)
@@ -91,7 +135,7 @@ local NATIVE_TY_DOC = {
   number   = M.simpleDoc, string  = M.simpleDoc,
   userdata = M.simpleDoc, thread  = M.simpleDoc,
   table = function(t, fmt, name)
-    if t.__name or t.__tostring then return M.helpTy(t, fmt, name)
+    if t.__name or t.__tostring then return helpTy(t, fmt, name)
     else
       if name then fmt:fmt(name); add(fmt, ': ') end
       fmt:fmt'table'; fmt:sep'\n'
@@ -107,7 +151,6 @@ local NATIVE_TY_DOC = {
       else fmt:fmt(string.rep(' ', 42 - #name)) end
       add(fmt, ': ')
     end
-
     add(fmt, 'function ['); fmt:fmt(f); add(fmt, ']')
     if fmt.level > 1 then return end
     local d = M.FN_DOCS[f]; if d then
@@ -117,9 +160,11 @@ local NATIVE_TY_DOC = {
   end,
 }
 
--- Add your own custom native type.
--- you can override behavior in `t`, see implementation for defaults.
-M.addNativeTy = function(ty_, t)
+M.addNativeTy = M.doc[[
+Add your own custom native type.
+
+  addNativeTy(ty_, t) override behavior in t, see implementation.]]
+(function(ty_, t)
   local name, t = getmetatable(ty_), t or {}
   assert(type(name) == 'string' and #name > 0,
     'native types must have __metatable="nativeTypeName"')
@@ -130,10 +175,12 @@ M.addNativeTy = function(ty_, t)
   NATIVE_TY_CHECK[name] = t.check or M.checkNative
   NATIVE_TY_EQ[name]    = t.eq   or rawequal
   NATIVE_TY_DOC[name]   = t.doc  or M.simpleDoc
-end
+end)
 
-
-M.ty = function(obj) return NATIVE_TY_GET[type(obj)](obj) end
+M.ty = M.doc[[Get the type of the value.
+  table: getmetatable(v) or 'table'
+  other: type(v)]]
+(function(obj) return NATIVE_TY_GET[type(obj)](obj) end)
 
 -- Ultra-simple index function
 M.indexUnchecked = function(self, k) return getmetatable(self)[k] end
@@ -158,7 +205,7 @@ M.Any = setmetatable(
   {__name='Any', __check=function() return true end},
   {__tostring=function() return 'Any' end})
 
-M.isTyErrMsg = function(ty_)
+M._isTyErrMsg = function(ty_)
   local tystr = type(ty_)
   if tystr == 'string' then
     if not NATIVE_TY_GET[ty_] then return sfmt(
@@ -169,12 +216,12 @@ M.isTyErrMsg = function(ty_)
   )end
 end
 
--- Safely get the name of type
-M.tyName = function(ty_) --> string
-  local check = M.isTyErrMsg(ty_);
+M.tyName = M.doc'(ty_) -> string: safely get the name of a type'
+(function(ty_) --> string
+  local check = M._isTyErrMsg(ty_);
   if check then return sfmt('<!%s!>', check) end
   return NATIVE_TY_NAME[ty_] or ty_.__name or 'table'
-end
+end)
 
 M.tyCheckMsg = function(reqTy, giveTy) --> string
    return sfmt("Type error: require=%s given=%s",
@@ -188,8 +235,8 @@ M.geteventhandler = function(a, b, event)
   return (getmetatable(a) or {})[event]
       or (getmetatable(b) or {})[event]
 end
-
-M.eq = function(a, b) return NATIVE_TY_EQ[type(a)](a, b) end
+M.eq = M.doc'use __eq or auto-deep equality'
+  (function(a, b) return NATIVE_TY_EQ[type(a)](a, b) end)
 
 M.eqDeep = function(a, b)
   if rawequal(a, b)     then return true   end
@@ -249,10 +296,12 @@ M.newChecked   = function(ty_, t)
   end
   return setmetatable(t, ty_)
 end
-M.new = CHECK and M.newChecked or M.newUnchecked
+M.new = M.doc'return this from :new'
+  (CHECK and M.newChecked or M.newUnchecked)
 
 -- MyType = rawTy('MyType', {new=function(ty_, t) ... end})
-M.rawTy = function(name, mt)
+M.rawTy = M.doc'create a raw type. Prefer record'
+(function(name, mt)
   mt = mt or {}
   mt.__name  = mt.__name or sfmt("Ty<%s>", name)
   mt.__call  = mt.__call or M.new
@@ -263,7 +312,7 @@ M.rawTy = function(name, mt)
     __tostring=M.fmt,
   }
   return setmetatable(ty_, mt)
-end
+end)
 
 
 ----------------------------------------------
@@ -280,12 +329,12 @@ end
 --   __newindex: (optional) instance set=field type checking
 --   __missing:  (optional) instance missing-field type checking
 
-M.recordNew = function(r, fn)
+M._recordNew = function(r, fn)
   getmetatable(r).__call = fn
   return r
 end
 
-M.recordFieldDoc = function(r, doc)
+M._recordFieldDoc = function(r, doc)
   local field = r.__fields[#r.__fields]
   assert(field, 'must specify :fdoc after a :field')
   r.__fdocs = r.__fdocs or {}
@@ -294,7 +343,7 @@ M.recordFieldDoc = function(r, doc)
 end
 
 -- i.e. record'Name':field('a', 'number')
-M.recordField = function(r, name, ty_, default)
+M._recordField = function(r, name, ty_, default)
   assert(name, 'must provide field name')
   M.assertf(not r.__fields[name], 'field %s already exists', name)
   M.assertf(not r.name, 'Attempted override of method with field: %s', name)
@@ -310,46 +359,60 @@ M.recordField = function(r, name, ty_, default)
 end
 
 -- i.e. record'Name':fieldMaybe('a', 'number')
-M.recordFieldMaybe = function(r, name, ty_, default)
+M._recordFieldMaybe = function(r, name, ty_, default)
   assert(default == nil, 'default given for fieldMaybe')
-  M.recordField(r, name, ty_)
+  M._recordField(r, name, ty_)
   r.__maybes[name] = true
   return r
 end
 
 -- Used for records and similar for checking missing fields.
-M.recordMissing = function(ty_, k)
+M._recordMissing = function(ty_, k)
   if ty_.__maybes and ty_.__maybes[k] then return end
   M.errorf('%s does not have field %s', M.tyName(ty_), k)
 end
 
-M.forceCheckRecord = function(r)
+M.forceCheckRecord = M.doc[[
+make a record type-checked even if not isCheck()]]
+(function(r)
   r.__index    = M.indexChecked
   r.__newindex = M.newindexChecked
-  r.__missing  = M.recordMissing
-end
+  r.__missing  = M._recordMissing
+end)
 
-M.record = function(name, mt)
+M.record = M.doc[[create your own record aka struct.
+ 
+local Point = record'Point'
+  :field('x', 'number')
+  :field('y', 'number')
+  :fieldMaybe('z', 'number') -- can be nil
+ 
+-- constructor
+Point:new(function(ty_, x, y, z)
+  return metaty.new(ty_, {x=x, y=y, z=z})
+end]]
+(function(name, mt)
   mt = mt or {}
   mt.__index    = M.indexUnchecked
-  mt.new        = M.recordNew
-  mt.field      = M.recordField
-  mt.fieldMaybe = M.recordFieldMaybe
-  mt.fdoc       = M.recordFieldDoc
+  mt.new        = M._recordNew
+  mt.field      = M._recordField
+  mt.fieldMaybe = M._recordFieldMaybe
+  mt.fdoc       = M._recordFieldDoc
 
   local r = M.rawTy(name, mt)
   r.__fields = {}  -- field types AND ordering
   r.__maybes = {}  -- maybe (optional) fields
-  r.__fmt = M.recordFmt
+  r.__fmt = M._recordFmt
   if CHECK then M.forceCheckRecord(r) end
   return r
-end
+end)
 
 ----------------------------------------------
 -- Formatting
 M.FMT_NEW = M.new -- overrideable
 
-M.FmtSet = M.record('FmtSet', {
+M.FmtSet = M.doc[[Fmt settings]]
+(M.record('FmtSet', {
   __call=function(ty_, t)
     t.safe     = t.safe     or M.FMT_SAFE
     t.keysMax  = t.keysMax  or M.KEYS_MAX
@@ -357,7 +420,7 @@ M.FmtSet = M.record('FmtSet', {
     t.levelSep = t.levelSep or ((t.pretty and '\n') or '')
     return M.FMT_NEW(ty_, t)
   end
-})
+}))
 
 -- Fields with constructor defaults
 M.FmtSet
@@ -377,29 +440,39 @@ M.FmtSet
   :field('str',     'string',  '%q')
   :field('tblFmt',  'function')
   :fieldMaybe'data' -- arbitrary data, use carefully!
-M.FmtSet.__missing = M.recordMissing
+M.FmtSet.__missing = M._recordMissing
 
 M.DEFAULT_FMT_SET = M.FmtSet{}
 
-M.Fmt = M.record('Fmt', {
+M.Fmt = M.doc[[Fmt anything.
+ 
+Fmt uses __fmt or __tostring methods on table metatables.
+Otherwise, it formats by sorting the table keys.
+ 
+It is highly configurable, see FmtSet.]]
+(M.record('Fmt', {
   __call=function(ty_, t)
     t.done = t.done or {}
     t.level = t.level or 0
     return M.FMT_NEW(ty_, t)
-  end})
+  end}))
   :field('done', 'table')
   :field('level', 'number', 0)
   :field('set', M.FmtSet, M.DEFAULT_FMT_SET)
 M.Fmt.__newindex = nil
 M.Fmt.__missing = function(ty_, k)
   if type(k) == 'number' then return nil end
-  return M.recordMissing(ty_, k)
+  return M._recordMissing(ty_, k)
 end
 
 -----------
 -- Fmt Utilities
 
-M.orderedKeys = function(t, max) --> table (ordered list of keys)
+M.orderedKeys = M.doc[[(t, max) -> keyList
+ 
+max (or metaty.KEYS_MAX) specifies the maximum number
+of keys to order.]]
+(function(t, max) --> table (ordered list of keys)
   local keys, len, max = {}, 0, max or M.KEYS_MAX
   for k in pairs(t) do
     if len >= max then break end
@@ -408,23 +481,24 @@ M.orderedKeys = function(t, max) --> table (ordered list of keys)
   end
   pcall(function() table.sort(keys) end)
   return keys
-end
+end)
 
 local STR_IS_AMBIGUOUS = {['true']=true, ['false']=true, ['nil']=true}
-M.strIsAmbiguous = function(s) --> boolean
+M.strIsAmbiguous = M.doc'return whether a string needs %q'
+(function(s) --> boolean
   return (
     STR_IS_AMBIGUOUS[s]
     or tonumber(s)
     or s:find('[%s\'"={}%[%]]')
   )
-end
+end)
 
 -----------
 -- Fmt Native Types
 
 -- return the table id
 -- requirement: metatable is nil or is missing __tostring
-M.tblIdUnsafe = function(t) --> string
+local function _tblId(t) --> string
   local id = string.gsub(tostring(t), 'table: ', ''); return id
 end
 
@@ -444,21 +518,21 @@ NATIVE_TY_FMT['function'] = M.fnFmtSafe
 
 M.tblFmtSafe = function(t, f)
   local mt = getmetatable(t);
-  if mt == nil then add(f, 'Tbl@'); add(f, M.tblIdUnsafe(t))
+  if mt == nil then add(f, 'Tbl@'); add(f, _tblId(t))
   elseif mt.__tostring then
     add(f, M.metaName(mt)); add(f, '{...}')
   else
     add(f, M.metaName(mt)); add(f, '@')
-    add(f, M.tblIdUnsafe(t));
+    add(f, _tblId(t));
   end
 end
 NATIVE_TY_FMT.table = M.tblFmtSafe
 
 M.tblToStrSafe = function(t)
   local mt = getmetatable(t);
-  if not mt then return sfmt('Tbl@%s', M.tblIdUnsafe(t)) end
+  if not mt then return sfmt('Tbl@%s', _tblId(t)) end
   if mt.__tostring then return sfmt('%s{...}', M.metaName(mt)) end
-  return sfmt('%s@%s', M.metaName(mt), M.tblIdUnsafe(t))
+  return sfmt('%s@%s', M.metaName(mt), _tblId(t))
 end
 
 M.safeToStr = function(v, set) --> string
@@ -491,22 +565,24 @@ M.tblFmtKeys = function(t, f, keys)
   f:levelLeave('}')
 end
 
-M.tblFmt = function(t, f)
+M.tblFmt = M.doc'(t, fmt) format as a table'
+(function(t, f)
   return M.tblFmtKeys(t, f, M.orderedKeys(t, f.set.keysMax))
-end
+end)
 M.FmtSet.tblFmt = M.tblFmt
 
-M.recordFmt = function(r, f)
+M._recordFmt = function(r, f)
   M.tblFmtKeys(r, f, getmetatable(r).__fields)
 end
 
 -----------
 -- Fmt Methods
-M.Fmt.sep = function(f, sep)
+M.Fmt.sep = M.doc'handle possible newlines'
+(function(f, sep)
   add(f, sep); if sep == '\n' then
     add(f, string.rep(f.set.indent, f.level))
   end
-end
+end)
 M.Fmt.levelEnter = function(f, startCh)
   add(f, startCh)
   f.level = f.level + 1
@@ -530,8 +606,8 @@ local function doFmt(f, v, mt)
   else f.set.tblFmt(v, f) end
 end
 
--- Format the value and store the result in `f`
-M.Fmt.fmt = function(f, v)
+M.Fmt.fmt = M.doc'(f, v): Format the value and store the result in `f`'
+(function(f, v)
   local ty_ = M.ty(v)
   if type(ty_) == 'string' and ty_ ~= 'table' then
     NATIVE_TY_FMT[ty_](v, f); return f
@@ -556,22 +632,21 @@ M.Fmt.fmt = function(f, v)
     end
   else doFmt(f, v, mt) end
   return f
-end
+end)
 
 M.Fmt.toStr = function(f) return table.concat(f) end
-M.Fmt.write = function(f, fd)
+M.Fmt.write = M.doc'(fmt, file)'(function(f, fd)
   for _, s in ipairs(f) do fd:write(s) end
-end
+end)
 M.Fmt.writeLn = function(f, fd) f:write(fd); fd:write'\n' end
-M.Fmt.pnt = function(f)
+M.Fmt.pnt = M.doc'print to io.stdout'(function(f)
   f:write(io.stdout)
   io.stdout:write('\n')
   io.stdout:flush()
-end
+end)
 
-M.fmt = function(v, set)
-  return M.Fmt{set=set}:fmt(v):toStr()
-end
+M.fmt = M.doc'Format anything. See Fmt'
+(function(v, set) return M.Fmt{set=set}:fmt(v):toStr() end)
 
 M.pntset = function(set, ...)
   local args = {...}
@@ -587,12 +662,14 @@ M.pntset = function(set, ...)
   io.stdout:flush()
 end
 
--- This is basically the same as `print` except:
---
--- 1. it uses fmt to format the arguments
--- 2. it respects io.stdout
-M.pnt = function(...) M.pntset(nil, ...) end
-M.ppnt = function(...) M.pntset(M.FmtSet{pretty=true}, ...) end
+M.pnt = M.doc[[
+pnt(...): basically the same as `print` except:
+ 
+1. it uses fmt to format the arguments
+2. it respects io.stdout]]
+  (function(...) M.pntset(nil, ...) end)
+M.ppnt = M.doc'pnt but pretty'
+  (function(...) M.pntset(M.FmtSet{pretty=true}, ...) end)
 
 -- Cleanup Fmt objects (note: normal defaults were nil)
 M.FmtSet.__fmt = M.tblFmt
@@ -600,13 +677,15 @@ M.FmtSet.__tostring = M.fmt
 M.Fmt.__fmt = nil
 M.Fmt.__tostring = function() return 'Fmt{}' end
 
--- Alternative to `require` when the module is optional
-M.want = function(mod)
+M.want = M.doc'Alternative to "require" when the module is optional'
+(function(mod)
   local ok, mod = pcall(function() return require(mod) end)
   if ok then return mod else return nil, mod end
-end
+end)
 
-M.lrequire = function(mod, i)
+M.lrequire = M.doc[[
+local x, y, z; lrequire'mm' -- sets x=mm.x; y=mm.y; z=mm.z
+]](function(mod, i)
   i, mod = i or 1, type(mod) == 'string' and require(mod) or mod
   while true do
     local n, v = debug.getlocal(2, i)
@@ -617,7 +696,7 @@ M.lrequire = function(mod, i)
     i = i + 1
   end
   return mod, i
-end
+end)
 
 function M.helpFields(mt, fmt)
   local fields = mt.__fields
@@ -662,7 +741,7 @@ function M.helpMembers(mt, fmt)
   _members(fmt, 'Methods', mt, keys, fields, 'function')
 end
 
-function M.helpTy(mt, fmt, name)
+local function helpTy(mt, fmt, name)
   local mmt = getmetatable(mt); if mmt and NATIVE_TY_DOC[mmt] then
     return fmt:fmt(NATIVE_TY_DOC[mmt])
   end
@@ -688,52 +767,15 @@ function M.helpFmter()
   }}
 end
 
-function M.help(v)
+M.help = M.doc'(v) -> string: Get help'
+(function(v)
   local name; if type(v) == 'string' then
     name, v = v, require(v)
   end
   local f = M.helpFmter()
-  if type(v) == 'table' then M.helpTy(v, f, name)
+  if type(v) == 'table' then helpTy(v, f, name)
   else NATIVE_TY_DOC[type(v)](v, f) end
   return M.trimWs(f:toStr())
-end
-
-function M.docTy(ty_, doc)
-  doc = M.trimWs(doc)
-  if type(ty_) == 'function' then  M.FN_DOCS[ty_] = doc
-  elseif type(ty_) == 'table' then ty_.__doc = doc
-  else error('cannot document type '..type(doc)) end
-  return ty_
-end
-
-function M.doc(doc)
-  if not DOC then return M.identity end
-  return function(ty_) return M.docTy(ty_, doc) end
-end
-
-M.docTy(M.doc, [==[Document a type.
-
-Example:
-  M.myFn = doc[[myFn is awesome!
-  It does ... stuff with a and b.
-  ]](function(a, b)
-    ...
-  end)
-]==])
-
-M.docTy(M.docTy, [==[
-docTy(ty_, doc): Document a type, prefer `doc` instead.
-
-Example:
-  docTy(myTy, [[my doc string]])
-]==])
-
-M.docTy(M.ty, [[Get the type of the value.
-  table: getmetatable(v) or 'table'
-  other: type(v)]])
-
-M.docTy(M.steal,   'steal(t, key): return t[key] and remove it')
-M.docTy(M.errorf,  'errorf(...): error(string.format(...))')
-M.docTy(M.assertf, 'assertf(a, ...): assert with string.format')
+end)
 
 return M
