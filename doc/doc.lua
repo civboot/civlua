@@ -3,32 +3,32 @@ local mty = require 'metaty'
 local d = mty.docTy
 local M = d({doc=mty.doc, docTy=mty.docTy, help=mty.help}, [=[
 Documentation and help for Lua types (including core).
- 
+
    help 'string.find'
- 
+
 Register documentation for your own types with:
- 
+
 local myfunction = doc.doc[[my documentation]]
 (function(... args ...)
   ... my implemntation ...
 end)
- 
+
 Reference:
   metaty: create types. This re-exports metaty's
     doc, help and docTy
   https://www.lua.org/pil/contents.html  tutorial
   https://www.lua.org/manual/            reference manual
- 
+
 This module mainly exists to provide documentation on Lua's
 core types. Recommended documentation is in the form:
- 
+
 module.function(arg1: ?type, arg2:type=default) -> returns
- 
+
 Notes:
   "?" denotes a nil, =value denotes a default. The args
   or return values can be replaced by "a|b" indicating a
   string of value "a" or "b" is used.
- 
+
 Note: The documentation in this module is brief by design.
 For full documentation go to the links in Reference. This
 documentation is for the civboot.org project and will
@@ -39,15 +39,15 @@ make small references to other civboot libraries.
 -- string
 d(string.find, [[
 Find the pattern in the subject string, starting at the index.
- 
+
   string.find(subject:str, pat, index=1)
    -> (starti, endi, ... match strings)
- 
+
 assertEq({2, 4},       {find('%w+', ' bob is nice')})
 assertEq({2, 7, 'is'}, {find(' bob is nice', '%w+ (%w+)')})
- 
+
 Character classes for matching specific sets:
- 
+
     .   all characters
     %a  letters
     %c  control characters
@@ -59,9 +59,9 @@ Character classes for matching specific sets:
     %w  alphanumeric characters
     %x  hexadecimal digits
     %z  the character with representation 0
- 
+
 Magic characters, `.` indicates one character, more indicates many:
- 
+
     %.     selects a character class or escapes a magic char
     (...)  create a group
     [...]  create your own character class
@@ -71,10 +71,10 @@ Magic characters, `.` indicates one character, more indicates many:
     ?      match zero or one of previous class  (NOT group)
     ^...   if at pat[1], match only beggining of text
     ...$   if at pat[#pat], match only end of text
- 
+
 Also: %[1-9] refers to a the previously matched group
 and matches it's exact content.
- 
+
 assert(    find('yes bob yes',  '(%w+) bob %1'))
 assert(not find('yes bob no',   '(%w+) bob %1'))
 ]])
@@ -269,5 +269,35 @@ Reference:
 Note: as of Lua5.4 it is not possible to have stderr or both stdin&stdout.
 ]])
 
+
+M.lang = {}
+M.lang['for'] = [[
+for is a looping construct with two forms:
+
+Numeric:
+  for: for i=si,ei,period do
+    -- code using [si -> ei] (inclusive) with period --
+  end
+
+Generic:
+  for i, v, etc in explist do
+      -- code using a, b, etc here --
+  end
+
+A Generic for destructures to:
+  do -- Note: $vars are not accessible
+    local $fn, $state, $index = explist
+    while true do
+      local $index, i, v, etc = $f($state, $index)
+      if $index == nil then break end
+      i = $index
+      -- code using i, v, etc here
+    end
+  end
+
+The goal in writing a stateless iterator function is to match this 
+loop's API as much as possible.
+
+]]
 
 return M

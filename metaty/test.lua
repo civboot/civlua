@@ -5,7 +5,7 @@ local M = require'metaty'
 assert(M.getCheck())
 
 local ty, tyName, tyCheck, record;
-local fmt, Fmt, FmtSet;
+local fmt, Fmt, FmtSet, split
 M.lrequire'metaty' -- includes undefined locals
 
 local add, sfmt = table.insert, string.format
@@ -39,6 +39,30 @@ local function assertErrorPat(errPat, fn, plain)
   )end
 end
 
+local function splitT(...)
+  local t = {}; for st, item in split(...) do
+    add(t, {item, st.si, st.ei})
+  end
+  return t
+end
+local LINES = '\nhi\n\nthere\nyou\n', '\n'
+
+test('split', function()
+  assertEq({
+    {'hi',    1, 2},
+    {'there', 4, 8},
+    {'jane',  10, 13},
+  }, splitT('hi there\njane'))
+
+  assertEq({
+    {'',      1,  0},
+    {'hi',    2,  3},
+    {'',      5,  4},
+    {'there', 6,  10},
+    {'you',   12, 14},
+    {'',      16, 15},
+  }, splitT(LINES, '\n'))
+end)
 
 test('ty', function()
   assert('string' == ty('hi'))

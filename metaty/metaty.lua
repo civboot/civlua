@@ -71,6 +71,100 @@ M.assertf = M.doc'assertf(a, ...): assert with string.format'
     return a
   end)
 
+local function _rawsplit(state, nexti)
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- local function _split(state)
+--   local subj, pat, index = table.unpack(state)
+--   M.pntf('!! _split %q, %q', pat, index)
+--   if index > #subj then return end
+--   local si, ei = subj:find(pat, index)
+--   ei = ei or #subj
+--   print('!!   si,ei', si, ei)
+--   state.si, state.ei, state[3] = index, si or #subj, ei+1
+--   return state, subj:sub(state.si, si)
+-- end
+-- 
+-- M.split = M.doc[[
+-- split subj by pattern starting at index.
+-- 
+--   split(subj:str, pat="%s+", index=1) -> iterator
+-- 
+-- for state, line in state(text, '\n') do
+--   -- state.si: start index of line
+--   -- state.ei: start index of line
+--   -- table.unpack(state) -> subj, pat, nextindex
+-- end
+-- ]]
+-- (function(subj, pat, index)
+--   return _split, {subj, pat or '%s+', index or 1}
+-- end)
+
+
+
+
+
+local function rawsplit(subj, ctx)
+  local pat, i = table.unpack(ctx)
+  if not i then return end
+  if i > #subj then
+    ctx.si, ctx.ei, ctx[2] = #subj+1, #subj, nil
+    return ctx, ''
+  end
+  local s, e = subj:find(pat, i)
+  ctx.si, ctx.ei, ctx[2] = i, (s and (s-1)) or #subj, e and (e+1)
+  return ctx, subj:sub(ctx.si, ctx.ei)
+end
+M.rawsplit = M.docTy(rawsplit, [[
+Implementation of split, can be used directly.
+
+rawsplit(subj, ctx) -> (ctx, splitstr)
+  ctx: {pat, index}. rawsplit adds: si=, ei= (see split)
+
+for ctx, line in rawsplit, text, {'\n', 1} do ... end
+]])
+
+M.split = M.doc[[
+split subj by pattern starting at index.
+
+  split(subj:str, pat="%s+", index=1) -> forexpr
+
+for ctx, line in split(text, '\n') do
+  -- ctx.si: start index of line
+  -- ctx.ei: end index of line
+  -- table.unpack(ctx) -> pat, nextIndex
+end
+]]
+(function(subj, pat, index)
+  return rawsplit, subj, {pat or '%s+', index or 1}
+end)
+
+
+
+
+
+
+
+
+
+
+
+
+
 -----------------------------
 -- Native types: now add your own with addNativeTy!
 -- These dictionaries are used for fast conversion
@@ -116,7 +210,7 @@ local NATIVE_TY_FMT = {
   string=function(s, f)
     if f.set.str ~= '%s' then return add(f, sfmt(f.set.str, s)) end
     -- format with newlines. Last line should not have sep'\n'
-    local prev; for line in s:gmatch'[^\n]+' do
+    local prev; for _, line in rawsplit, s, {'\n', 1} do
       if prev then
         add(f, prev); f:sep'\n'
       end; prev = line
