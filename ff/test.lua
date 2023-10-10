@@ -88,19 +88,19 @@ end)
 test('ff fsub', function()
   local f = io.open('out/TEST', 'w+')
   ff.findfix{dir, r=true, fpat='b%d.txt', log=f}
-  local result = ds.lines.split(seekRead(f)); table.sort(result)
+  local result = ds.lines(seekRead(f)); table.sort(result)
   local expected = {'', "out/ff/b/b1.txt", "out/ff/b/b2.txt"}
   assertEq(expected, result)
 
   ff.findfix{dir, r=true, fpat='b(%d.txt)', fsub='B%1', log=f}
-  local result = ds.lines.split(seekRead(f)); table.sort(result)
+  local result = ds.lines(seekRead(f)); table.sort(result)
   local expected = {'', "out/ff/b/B1.txt", "out/ff/b/B2.txt"}
   assertEq(expected, result)
   assertEq('mostly empty', ds.readPath("out/ff/b/b2.txt"))
 
   ff.findfix{dir, m=true, r=true, fpat='b(%d.txt)', fsub='B%1',
              log=f}
-  local result = ds.lines.split(seekRead(f)); table.sort(result)
+  local result = ds.lines(seekRead(f)); table.sort(result)
   local expected = {'', "out/ff/b/B1.txt", "out/ff/b/B2.txt"}
   assertEq(expected, result)
   assert(not civix.exists"out/ff/b/b1.txt")

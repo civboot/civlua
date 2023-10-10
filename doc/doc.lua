@@ -81,26 +81,26 @@ assert(not find('yes bob no',   '(%w+) bob %1'))
 
 d(string.sub, [[
 get substring by index (NOT pattern matching).
- 
+
   string.sub(subject: str, start: num, end: num) -> str[s:e]
- 
+
 Note: This is confusingly named considering string.gsub uses pattern
 matching. Such is life.
 ]])
 
 d(string.gsub, [[
 Globally Substittue pattern with subpattern.
- 
+
   string.gsub(subject: str, pat, subpat, index=1) -> str
- 
+
 Reference:
   string.find for pattern documentation.
- 
+
 The subpattern has no special characters except:
- 
+
   %%     a literal %
   %1-9   a matched group from pat
- 
+
 gsub = string.gsub
   assertEq('yes ann yes',
     gsub(  'yes bob yes', '(%w+) bob %1', '%1 ann %1'))
@@ -108,26 +108,26 @@ gsub = string.gsub
 
 d(string.format, [[
 Format values into a fmt string, i.e: format('%s: %i', 'age', 42)
- 
+
 string.format(fmt: str, ...) -> str
- 
+
 Examples:
   sfmt = string.format
   assertEq('age: 42',    sfmt('%s: %i',   'age', 42))
   assertEq('age:    42', sfmt('%s: %5i',  'age', 42))
   assertEq('age: 00042', sfmt('%s: %05i', 'age', 42)
- 
+
 Directives:
- 
+
   %%    literal % char
   %d    decimal
   %o    octal
   %x    hexidecimal (%X uppercase)
   %f    floating point
   %s    string
- 
+
 Directive control structure:
- 
+
   % <fill character>? <fill count> directive
 ]])
 
@@ -135,18 +135,18 @@ Directive control structure:
 -- table
 d(table.concat, [[
 concatenate values in a table.
- 
+
   table.concat(table, sep='')
- 
+
 assertEq(1..' = '..3, concat{1, ' = ', 3})
 assertEq('1, 2, 3',   concat({1, 2, 3}, ', ')
 ]])
 
 d(table.remove, [[
 remove an item from a table, returning it.
- 
+
   table.remove(table, index=#table)
- 
+
 The table is shifted if index<#table.
 ]])
 
@@ -154,13 +154,13 @@ d(table.sort, 'table.sort(list, function=nil) sort table in-place')
 
 d(table.insert, [[
 insert or add to table (list-like)
- 
+
 local t = {}
 table.insert(t, 'd')    -- {'d'
 table.insert(t, 'e')    -- {'d', 'e'}
 table.insert(t, 'b', 1) -- {'b', 'd', 'e'}
 table.insert(t, 'c', 2) -- {'b', 'c', 'd', 'e'}
- 
+
 Recommendation:
   local add = table.insert; add(t, 4)
 ]])
@@ -170,7 +170,7 @@ Recommendation:
 -- io module
 d(io, [[
 Open -> do input and output -> close files.
- 
+
 Methods:
   input()  ->  file            get stdin
   output() ->  file            get stdout
@@ -180,7 +180,7 @@ Methods:
   output(path or file)         set stdout
   lines(path or file) -> iter  close when done, fail=error
   type() -> ?"file|closed file"
- 
+
 file object:
   read(format="l")   read a file according to format
   lines(format="l")  get iterator for reading format
@@ -188,7 +188,7 @@ file object:
   flush()            flush (save) all writes
   seek(whence, offset)
   setvbuf("no|full|line", sizeHint=appropriateSize)
- 
+
 format (read, etc)                  (in Lua<=5.2)
   a       read all text                        *a
   l       read next line, skip EOL             *l
@@ -196,7 +196,7 @@ format (read, etc)                  (in Lua<=5.2)
   n       read and return a number             *n
   number  read an exact number of bytes, EOF=nil
   0       nil=EOF, ''=notEOF
- 
+
 seek
   whence="set"  offset from beginning of file (0)
   whence="cur"  offset from current position
@@ -214,7 +214,7 @@ end
 -------------------------------
 -- os
 d(os, [[os functions
- 
+
 Useful:
   exit(rc=0, close=false) exit program with return code
   date()                  get the date. See os.date
@@ -224,7 +224,7 @@ Useful:
   rename(old, new)        mv old new
   tmpname() -> path       create temporary file
   clock()                 seconds used by process (performance)
- 
+
 Recommendation:
   civix.epoch() returns nanosec precision, os.time() only sec.
 ]])
@@ -238,18 +238,18 @@ end
 -- os.execute and io.popen
 d(os.execute, [[
 Execute shell command via C's `system` API.
- 
+
   os.execute'shell command' -> (ok, "exit", rc)
   os.execute()              -> shellAvailable
- 
+
 Recommendation:
   For all but the simplest cases use io.popen instead.
- 
+
 Args:
    ok      true on command success, false if rc>0
    "exit"  always literal "exit" if command completed
    rc      the return code of the command
- 
+
 Prints:
    prints whatever was executed. There are no ways to
    redirect the output besides piping in the command
@@ -258,14 +258,14 @@ Prints:
 
 d(io.popen, [[
 Execute shell command in separate process.
- 
+
 io.popen(command, mode='r|w') -> file
- 
+
 Reference:
   os.execute: docs on file:close()
   luaposix: external lib for more "complete" support
   civix.sh: more ergonomic shell
- 
+
 Note: as of Lua5.4 it is not possible to have stderr or both stdin&stdout.
 ]])
 

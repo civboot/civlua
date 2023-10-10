@@ -71,7 +71,7 @@ end
 
 Gap.new = function(s)
   s = s or {''}
-  if type(s) == 'string' then s = ds.lines.split(s) end
+  if type(s) == 'string' then s = ds.lines(s) end
   return Gap{ bot=s, top={} }
 end
 
@@ -290,7 +290,7 @@ end
 
 -- extend onto gap
 Gap.extend=function(g, s)
-  if type(s) == 'string' then s = ds.lines.split(s) end
+  if type(s) == 'string' then s = ds.lines(s) end
   for _, l in ipairs(s) do add(g.bot, l) end
 end
 

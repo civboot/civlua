@@ -376,7 +376,7 @@ end
 
 M.Parser.__tostring=function() return 'Parser()' end
 M.Parser.new = function(ty_, dat, root)
-  dat = (type(dat)=='string') and ds.lines.split(dat) or dat
+  dat = (type(dat)=='string') and ds.lines(dat) or dat
   return mty.new(ty_, {
     dat=dat, l=1, c=1, line=dat[1], lines=#dat,
     root=root or M.RootSpec{},

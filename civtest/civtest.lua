@@ -9,8 +9,8 @@ local M = {}
 -- Asserting
 
 M.diffFmt = function(f, sE, sR)
-  local linesE = ds.lines.split(sE)
-  local linesR = ds.lines.split(sR)
+  local linesE = ds.lines(sE)
+  local linesR = ds.lines(sR)
   local l, c = ds.lines.diff(linesE, linesR)
   mty.assertf(l and c, '%s, %s\n', l, c)
   add(f, sfmt("! Difference line=%q (", l))

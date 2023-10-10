@@ -11,9 +11,10 @@ It contains the following functions and types. All types use
 - comparable: `min`, `max`, `bound`, `isWithin`
 - number: `isOdd`, `isEven`, `decAbs` (decrement absolute)
 - string: `strDivide`, `strInsert`, `explode` (make table of characters),
-  `concatToStrs`, (whitespace) `trimWs` and `splitWs`, `matches` (gmatch table)
+  `concatToStrs`, (whitespace) `trimWs` and `split`, `matches` (gmatch table)
   `diffCol` (find column diff)
-- lines submodule: `span`, `sub(l, c, l2, c2)`, `split`, `diff` (first line:col)
+- lines submodule: `ds.lines(text)` to get table of lines, `span`, `sub(l, c,
+  l2, c2)`, `diff` (first line:col)
 - table (general): shallow `copy(t, update)`, `deepcopy(t)`, `emptyTable`
 - table (list-like): `extend`, `reverse`, `indexOf`, `drain`
 - table (map-like): `update`, `getPath`, `setPath`, `getOrSet`

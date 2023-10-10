@@ -23,12 +23,16 @@ M.FN_DOCS = {}
 
 local add, sfmt = table.insert, string.format
 function M.identity(v) return v end
-function M.trimWs(s) return string.match(s, '^%s*(.-)%s*$') end
+function M.trim(subj, pat, index)
+  pat = pat and ('^'..pat..'*(.-)'..pat..'*$') or '^%s*(.-)%s*$'
+  return subj:match(pat, index)
+end
+
 function M.steal(t, k) local v = t[k]; t[k] = nil; return v end
 function M.nativeEq(a, b) return a == b end
 function M.docTy(ty_, doc)
   if not DOC then return end
-  doc = M.trimWs(doc)
+  doc = M.trim(doc)
   if type(ty_) == 'function' then  M.FN_DOCS[ty_] = doc
   elseif type(ty_) == 'table' then ty_.__doc = doc
   else error('cannot document type '..type(doc)) end
@@ -42,8 +46,10 @@ M.docTy(M.isEnvG,  'isEnvG"MY_VAR": isEnv but also checks _G')
 M.docTy(M.isEnv,  [[isEnv"MY_VAR" -> boolean (environment variable)
   true: 'true' '1'    false: 'false' '0' '']])
 M.docTy(M.steal,   'steal(t, key): return t[key] and remove it')
+M.docTy(M.trim, [[trim(subj, pat='%s', index=1) -> string
+  removes pat from front+back of string]])
 M.docTy(M.doc, [==[Document a type.
- 
+
 Example:
   M.myFn = doc[[myFn is awesome!
   It does ... stuff with a and b.
@@ -53,7 +59,7 @@ Example:
 ]==])
 M.docTy(M.docTy, [==[
 docTy(ty_, doc): Document a type, prefer `doc` instead.
- 
+
 Example:
   docTy(myTy, [[my doc string]])
 ]==])
@@ -70,53 +76,6 @@ M.assertf = M.doc'assertf(a, ...): assert with string.format'
     if not a then error('assertf: '..string.format(...), 2) end
     return a
   end)
-
-local function _rawsplit(state, nexti)
-end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
--- local function _split(state)
---   local subj, pat, index = table.unpack(state)
---   M.pntf('!! _split %q, %q', pat, index)
---   if index > #subj then return end
---   local si, ei = subj:find(pat, index)
---   ei = ei or #subj
---   print('!!   si,ei', si, ei)
---   state.si, state.ei, state[3] = index, si or #subj, ei+1
---   return state, subj:sub(state.si, si)
--- end
--- 
--- M.split = M.doc[[
--- split subj by pattern starting at index.
--- 
---   split(subj:str, pat="%s+", index=1) -> iterator
--- 
--- for state, line in state(text, '\n') do
---   -- state.si: start index of line
---   -- state.ei: start index of line
---   -- table.unpack(state) -> subj, pat, nextindex
--- end
--- ]]
--- (function(subj, pat, index)
---   return _split, {subj, pat or '%s+', index or 1}
--- end)
-
-
-
-
 
 local function rawsplit(subj, ctx)
   local pat, i = table.unpack(ctx)
@@ -152,18 +111,6 @@ end
 (function(subj, pat, index)
   return rawsplit, subj, {pat or '%s+', index or 1}
 end)
-
-
-
-
-
-
-
-
-
-
-
-
 
 -----------------------------
 -- Native types: now add your own with addNativeTy!
@@ -408,7 +355,6 @@ M.rawTy = M.doc'create a raw type. Prefer record'
   return setmetatable(ty_, mt)
 end)
 
-
 ----------------------------------------------
 -- record: create record types
 --
@@ -475,12 +421,12 @@ make a record type-checked even if not isCheck()]]
 end)
 
 M.record = M.doc[[create your own record aka struct.
- 
+
 local Point = record'Point'
   :field('x', 'number')
   :field('y', 'number')
   :fieldMaybe('z', 'number') -- can be nil
- 
+
 -- constructor
 Point:new(function(ty_, x, y, z)
   return metaty.new(ty_, {x=x, y=y, z=z})
@@ -539,10 +485,10 @@ M.FmtSet.__missing = M._recordMissing
 M.DEFAULT_FMT_SET = M.FmtSet{}
 
 M.Fmt = M.doc[[Fmt anything.
- 
+
 Fmt uses __fmt or __tostring methods on table metatables.
 Otherwise, it formats by sorting the table keys.
- 
+
 It is highly configurable, see FmtSet.]]
 (M.record('Fmt', {
   __call=function(ty_, t)
@@ -563,7 +509,7 @@ end
 -- Fmt Utilities
 
 M.orderedKeys = M.doc[[(t, max) -> keyList
- 
+
 max (or metaty.KEYS_MAX) specifies the maximum number
 of keys to order.]]
 (function(t, max) --> table (ordered list of keys)
@@ -758,7 +704,7 @@ end
 
 M.pnt = M.doc[[
 pnt(...): basically the same as `print` except:
- 
+
 1. it uses fmt to format the arguments
 2. it respects io.stdout]]
   (function(...) M.pntset(nil, ...) end)
@@ -869,7 +815,7 @@ M.help = M.doc'(v) -> string: Get help'
   local f = M.helpFmter()
   if type(v) == 'table' then helpTy(v, f, name)
   else NATIVE_TY_DOC[type(v)](v, f) end
-  return M.trimWs(f:toStr())
+  return M.trim(f:toStr())
 end)
 
 return M

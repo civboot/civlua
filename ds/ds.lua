@@ -3,7 +3,7 @@ local record, Any = mty.record, mty.Any
 local add, sfmt = table.insert, string.format
 
 local M = {
-  steal = mty.steal, trimWs = mty.trimWs,
+  steal = mty.steal, trim = mty.trim,
 }
 
 ---------------------
@@ -50,8 +50,8 @@ M.matches = function(s, m)
 end
 
 -- work with whitespace in strings
+M.split = mty.split
 M.explode = function(s) return M.matches(s, '.') end
-M.splitWs = function(s) return M.matches(s, "[^%s]+") end
 M.concatToStrs = function(t, sep)
   local o = {}; for _, v in ipairs(t) do add(o, tostring(v)) end
   return table.concat(o, sep)
@@ -82,8 +82,23 @@ local function span(l, c, l2, c2)
   error'span must be 2 or 4 indexes: (l, l2) or (l, c, l2, c2)'
 end
 
-M.lines = {span=span}
-function M.lines.split(s) return M.matches(s, '[^\n]*') end
+M.lines = mty.doc[[
+lines module, when called splits a string into lines.
+
+lines(text) -> table of lines
+
+Also has functions for working with a table of lines.
+
+  lines.sub(myLines, l, c, l2, c2)
+]](setmetatable({span=span}, {
+  __call=function(_, text, index)
+    local t = {}
+    for _, line in mty.rawsplit, text, {'\n', index or 1} do
+      add(t, line)
+    end; return t
+  end,
+}))
+
 function M.lines.sub(t, ...)
   local l, c, l2, c2 = span(...)
   local len = #t
@@ -321,7 +336,7 @@ end)
 -- missing a newline (???)
 local noneDoc = [[
 none: "set as none" vs nil aka "unset"
- 
+
 none is a sentinel value. Use it in APIs where there is an
 "unset but none" such as JSON's "null".
 ]]

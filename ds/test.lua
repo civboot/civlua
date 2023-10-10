@@ -5,7 +5,7 @@ local test, assertEq, assertErrorPat; mty.lrequire'civtest'
 
 local min, max, bound, isWithin, sort2, decAbs
 local indexOf, copy, deepcopy
-local strInsert, strDivide, trimWs, splitWs
+local strInsert, strDivide, trim
 local steal, getOrSet, getPath, setPath, drain, reverse
 local eval
 local Set, LL, Duration, Epoch
@@ -55,6 +55,7 @@ test("number", function()
   local a, b = sort2(2, 1); assert(a == 1); assert(b == 2)
 end)
 
+
 test("str", function()
   assertEq("12 34 56", strInsert("1256", 3, " 34 "))
   assertEq("78 1256", strInsert("1256", 1, "78 "))
@@ -62,9 +63,8 @@ test("str", function()
   local a, b = strDivide('12345', 3)
   assertEq(a, '123'); assertEq(b, '45')
 
-  assertEq('hi there', trimWs('  hi there\n '))
-  assertEq('hi there', trimWs('hi there'))
-  assertEq({'1', 'ab', 'c'}, splitWs('  1 \n ab c'))
+  assertEq('hi there', trim('  hi there\n '))
+  assertEq('hi there', trim('hi there'))
   local multi = [[  one
 
 three
@@ -72,7 +72,7 @@ four
 
 ]]
   assertEq('  one\n\nthree\nfour\n\n', multi)
-  assertEq('one\n\nthree\nfour', trimWs(multi))
+  assertEq('one\n\nthree\nfour', trim(multi))
 
   assertEq([['hello']], M.q1str[[hello]])
   assertEq([['\'hello\'']], M.q1str[['hello']])
@@ -184,14 +184,14 @@ end)
 
 test('lines.sub', function()
   local lsub = lines.sub
-  local l = lines.split'ab\nc\n\nd'
+  local l = lines'ab\nc\n\nd'
   assertEq({'ab'},      lsub(l, 1, 1))
   assertEq({'ab', 'c'}, lsub(l, 1, 2))
   assertEq({'c', ''},   lsub(l, 2, 3))
   assertEq('ab\n',      lsub(l, 1, 1, 1, 3))
   assertEq('b\nc',      lsub(l, 1, 2, 2, 1))
 
-  l = lines.split"4     It's nice to have some real data"
+  l = lines"4     It's nice to have some real data"
   assertEq('It',     lsub(l, 1, 7, 1, 8))
   assertEq("'",      lsub(l, 1, 9, 1, 9))
   assertEq("s",      lsub(l, 1, 10, 1, 10))
