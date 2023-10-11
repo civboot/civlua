@@ -1,0 +1,223 @@
+[!]##########################################################################[/]
+[h1]zoa: serialized data made easy[/]
+
+zoa is a set of standards related to serialized structured data and it's
+textual representation and processing. It is part of the @Civboot project.
+
+["] zoa is named after "protozoa", which is itself a nod to @protobuf. Yes, I'm
+    aware protozoa are not fungi, but the name was too good.[/]
+
+zoa encompases the following technologies:[+]
+ * [b]zoab[b] `.zb`: a binary structured data composed of only data and array.
+ * [b]zoas[b] `.zb`: structured serialized data with built-in types and
+                     user-defineable types.
+ * [b]zoat[b] `.zt`: specification for structured types similar to @protobuf
+[/]
+
+zoab is about the simplest possible general purpose structured data that can
+exist. Having only two types allows it to be compact and fast. The use of
+single byte signals alows it to be trivially deserialized by even
+embedded system.
+
+zoas is a serialized competitor to formats like msgpack or json
+
+zoat is a type and constant (value) specification which targets low-level
+languages.
+
+[t set=protobuf r=https://developers.google.com/protocol-buffers]protobuf[/]
+[t set=cxt r=https://github.com/civboot/cxt]cxt[/]
+[t set=Civboot r=https://civboot.org]Civboot[/]
+
+[!]##########################[/]
+[h2]zoab: structured array and byte data[/]
+
+The binary representation of zoa is called zoab. Like zoat it is composed of
+only two types: data and array. Both can only have sections of length 63, but a
+join bit may be used to make longer values.
+
+The start of a zoab item has a single byte which specifies it's type, join
+status and length. it looks like:
+
+[###]
+  Bitmap      Description
+  JTLL LLLL : J=join bit   T=type bit   L=length bits (0-63)
+[###]
+
+[+]
+  * `J` can be 1, which will cause it to be "joined" to the next item (which
+      must be the same type). This allows the true length to be longer than 63
+      (any length is possible with multiple joins).
+  * `T` can be 0 for "data" or 1 for "array".
+  * `L` contains a length (0-63) of the data or array.
+[/]
+
+
+[!]##########################################################################[/]
+[h1]zoas: structured serialized zoab data.[/]
+
+`zoas` is dynamic types encoded in zoab. It contains compact types for most
+use-cases of real systems drawing much of it's inspiration from standard JSON
+and SQL data types.
+
+A dynamic value is encoded as a zaob array of `[bEnum, ...]` (except "empty"
+types which are encoded as only `bEnum` byte) where `bEnum` is a single byte of
+data and `...` depends on the value of `enum` as described. The encoding of
+names are determined by prefix:[+]
+* `i`: big-endian integer
+* `b`: raw binary data (aka bytes)
+* `u8`: utf8 encoded binary data (aka string)
+* `is`: boolean (0=false, 1=true)
+* `d`: embedded dynamic type (encoded as inner-array)
+* `?`: either zoab data or array (userdata only)
+[/]
+
+Additionally:[+]
+* `user` can be used to encode compact user-defined types (typically specified
+   with zoat syntax) inside the dynamic type. The iType/u8Type are
+   application-defined unique integers/strings. Decoders that cannot understand
+   a usertype may replace them with an `error` in some application defined
+   circumstances.
+
+* `error` is intended for errors encountered by the decoder itself to ease
+  the implementation of reporting, collection and testing of such conditions.
+  Any u8Type prefixed with `Z` are reserved. The following are defined. The
+  remaining fields should typically contain the entire type that caused the
+  error.[+]
+  * `Zenum`: unknown enum number
+  * `Zempty`: a non-empty type was encoded as data (not array)
+  * `Zlen`: the type's length was invalid (too short typically)
+  * `Zuser`: unknown  user type
+  [/]
+
+* For the various numeric types, (integer, number, duration, time, money) the
+  type determines the sign of the components.
+
+* `number` is represented as the formula `2^exp * 1.frac` (sign=frac sign)
+
+* "zero" and "empty" types are for data compactness, since empty values are
+  extremely common for many APIs.
+
+* `date` types come in two flavors, unspecified flavor (Common Erra) and BCE
+  (Before Common Erra)
+[/]
+
+[###]
+  0  none            : <empty> (aka python None, json null)
+  1  false           : <empty> (boolean)
+  2  true            : <empty> (boolean)
+  3  integer0        : <empty> (integer=0)
+  4  number0         : <empty> (number=0)
+  5  dataEmpty       : <empty> (data of len=0)
+  6  utf8Empty       : <empty> (utf8 of len=0)
+  7  error:          : u8Type, u8Msg, [?1, ?2, ...]
+  8  user(i)         : iType,  [?1, ?2, ...]
+  9  user(u8)        : u8Type, [?1, ?2, ...]
+  10 list            : [d1, d2, d3, ...]
+  11 map             : [dKey1, d1, dKey2, d2, ...]
+  12 integer(+)      : +integer
+  13 integer(-)      : -integer
+  14 number(+,+)     : +iExp, +iFrac
+  15 number(+,-)     : +iExp, -iFrac
+  16 number(-,+)     : -iExp, +iFrac
+  17 number(-,-)     : -iExp, -iFrac
+  18 number(special) : 0=NaN, 1=+infinity, 2=-infinity
+  19 data            : bData
+  20 utf8            : u8String
+  21 duration(+)     : iSeconds [, iNanoSeconds]
+  22 duration(-)     : iSeconds [, iNanoSeconds]
+  23 time(+)         : +iSeconds [, +iNanoSeconds] (relative to Epoch)
+  24 time(-)         : -iSeconds [, -iNanoSeconds] (relative to Epoch)
+  25 datetime        : iYear,    iDay (1 = January 1st), ...(+timeOfDay)
+  26 datetimeBCE     : iYearBCE, iDay (1 = January 1st), ...(+timeOfDay)
+  27 date            : iYear,    iDay (1 = January 1st)
+  28 dateBCE         : iYearBCE, iDay (1 = January 1st)
+  29 year            : iYear
+  30 yearBCE         : iYearBCE
+[###]
+
+[!]##########################[/]
+[h2]zoat specification[/]
+["][b]WARNING:[b] This section is currently being worked on so is not yet
+polished.[/]
+
+Zoa also has a default type protocol and text specification for generating
+serializers and deserializers for zoab data. These are typically contained in
+`.zt` files.  Zoa types are specified in a language similar to protobufs, with
+a few key differences. For an overview:
+
+Types are as follows:[+]
+ * `U1 U2 U4 U8` unsigned integers of N bytes
+ * `I1 I2 I4 I8` signed integers of N bytes
+ * `F4 F8` represent floating point numbers of 2,4 bytes
+ * <user-defined> embedded user-defined type
+ * a specific (joined) zoas type (i.e. bool, number, utf8, time)
+ * Dyn: an unspecified zoas type
+ * `&<type>` reference type. On some systems will compile the type to
+ * Arr[ty] are an array with encoded length. Arr[U1] is a byte-array, Arr[&MyTy]
+   is an array of MyTy.
+[/]
+
+Users can create their own struct types with the format below. All structs
+are POSITIONAL and zero initialized.
+
+[###]
+struct Foo [
+  a: U4;       -- unsigned int
+  b: I4;       -- signed int
+  c: Arr[U8]   -- array of U8 values
+  d: Bar       -- embedded user-defined type
+  e: Arr[&Bar] -- array of bar references
+]
+[###]
+
+> For some languages (i.e. Lua, Python, Java) there is effectively no
+> difference between `Type` and `&Type` besides that `&Type` can be
+> null or missing.
+
+Similarily, enumerated values can be defined. Enums must always specify their
+id. All ids from [[0 - max specified]] must be declared (but can be declared in
+any order). The syntax for a vairant is `name : id [type]` where a missing type
+indicates variant-only enum (i.e. normal C enums).
+
+[#]
+struct Cheese [ isCheddar: U8 ]
+struct Cake [ isChocolate: U8 ]
+struct Pizza [
+  cheese: Cheese
+  hasPeperoni: U8
+]
+
+enum Food [
+  none:      0 ;    -- note: empty type, no data
+  someNuts:  3 Int; -- note: declared out of order (OK)
+  pizza:     1 Pizza;
+  cake:      2 Cake;
+  cheeses:   4 Arr[Cheese];
+]
+[#]
+
+The enum protocol is:[+]
+ * The first item contains the enum variant, i.e. noaccount, user, admin
+ * The rest of the items contain the selected variant data.
+[/]
+
+[!]##########################[/]
+[h2]Binary Runtime Type Selection[/]
+
+The first byte of a `.zb` file can (optionally) be `J=1 T=0 L=0`, which in
+binary is `1000 0000` or in hex is 0x80. Note that this byte is invalid
+UTF8 and is otherwise invalid in zoab. It signals that the next byte has a
+"steam type". The supported ones are:[+]
+
+ 1. pure unstructured `zoab` data, it is up to the application to know how to decode.
+    This is equivalent to the `0x80` byte not existing at all.
+
+ 2. `zoas` data without userdata. Any encoded types are encoded as
+    human-readable maps (i.e. struct fields and enum variants are strings, etc)
+    and the data can be printed without extra libraries.
+
+ 3. `zoas` data possibly with userdata. The following bytes specify what userdata
+    needs to be loaded as well as version information/etc (not-yet defined)
+[/]
+
+["]This document is written using @cxt in README.cxt[/]
