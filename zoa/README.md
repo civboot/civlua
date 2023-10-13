@@ -18,8 +18,8 @@ Zoa types are specified in a `.zty` file in the syntax below. They also have a
 defined encoding in the Zoa Binary section and have minimalistic support
 for constants in the constants section.
 
-Zoa supports the following native types, which match Lua's [packfmt].
-In addition "native" and "Lua" types are not supported and floats are IEE instead of native.
+Zoa supports the following native types, which match Lua's [packfmt][packfmt]
+(types from packfmt not listed, such as "native length" types, are not supported).
 
 ```
   b: a signed byte (char)
@@ -40,39 +40,37 @@ In addition to native types, users can define their own `struct` (aka C struct)
 and `enum` (aka C tagged union) types. The syntax is:
 
 ```
-struct Owner; -- declare the type (defined later)
-enum Cheese [ -- tagged union
-  mozz        -- empty variant (just the id)
-  cheddar     -- same
-  other: Arr[U1]
+struct Point [x:i4, y:i4]
+enum TagKind [
+  notag,    -- no data
+  id:I4,    -- data=I4 integer
+  name:&s1, -- data=reference to counted string
 ]
-
-struct Pizza [
-  owner: &Owner   -- reference to owner struct
-  cheese: Cheese  -- field of previous type
-  numPeperoni: I8
-]
-struct Owner [ -- define pre-declared type
-  store: [U1], -- array of data
-  name:  [U1], -- array of data
+struct Tag   [kind:TagKind, point:&Point]
+struct Data [
+  points: Arr[Point], -- array of points
+  tags:   Arr[Tag],   -- array of tags
 ]
 ```
 
-The following types are pre-defined and use reserved type ids of `#64-255`. `ZTy`
-refers to an enum (valueSize=16) of all zoa types except ZPair.
+Types are encoded as integer ids. Ids 0-63 are reserved for zoa native types (i.e. b, i3, s2),
+Ids 64-255 are used for Zoa standard types defined below. 
 
 ```
+enum   ZTy         [ ... all native+standard zoa types ... ]
 struct ZPair       [ str: ZTy, value: &ZTy ] -- typeid = 128
 struct ZList       [ Arr[ZTy]                       ]
 struct ZMap        [ Arr[ZPair]                     ]
 
-struct ZStr        [ Arr[U8]                        ]
 struct ZDuration   [ I8 sec , U4 ns                 ]
 struct ZTime       [ I8 sec , U4 ns                 ] -- since unix Epoch
 struct ZDateTime   [ I4 year, U2 day, U4 sec, U4 ns ]
 struct ZDate       [ I8 year, U2 day,               ]
 struct ZYear       [ I8 year ]
 ```
+
+All zoa types (except ZTy) require a maximum of 8 bytes of space so the ZTy enum requires
+wordsize+8.
 
 ## Serialization
 
