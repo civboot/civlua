@@ -116,12 +116,14 @@ The basic serialization is:
 * walk all values recursively. Every value behind a reference is put in a
   `table[value] = nextIdx()` where the idx is a number that increments from `1`
   (`0` is reserved as `null`). If the value is already in the table it is skipped.
-  * Every field _within_ a value (for a struct or enum) gets its own idx.
-    Enum's always consume the maximum number of idxs any of their variants would
-    consume.
+  * Every field _within_ a value (for a struct or enum) gets its own idx (but is
+    not prefixed by a tid since that is already known).  Enum's always consume
+    the maximum number of idxs any of their variants would consume.
   * For arrays, the whole array uses the first idx, and each value gets its own
-    set of idxs. This allows fields to reference either the whole array OR values
-    within the array.
+    set of idxs (again not prefixed by tid). This allows fields to reference
+    either the whole array OR values within the array.
+  * s (strings) cannot have references to their internal values (they are given
+    exactly one idx)
 * From now on, any references will use the idx to refer to the value.
 * The values in this table are then serialized from idx high->low. Each value is
   prefixed by its ity (the types must be a known constant size) and if it's an
