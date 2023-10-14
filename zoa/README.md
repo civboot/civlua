@@ -76,6 +76,23 @@ struct ZYear       [ I8 year ]
 wordsize+16 in storage.
 
 ## Serialization
+The simplest version of serialization (with no references or arrays) simply unwraps the type's fields and call `string.pack` on it's concatenated format.
+Optional C compatibility can be achieved by adding appropriate `x` formats for alignment between structs. Simple deserialization is the reverse: unpack the string and then walk the fields from the resulting array.
+
+The existence of references and/or arrays complicate things. The basic structure is:
+
+* every type is given an id and every id is given a name (which uses the metaty name). Requires metaty names to be registered.
+* walk all values recursively. Every value behind a reference or contained in an array is put in a `table[value] = nextId()` where the id is a number that increments. If the value is already in the table it is skipped.
+* From now on, any references will use the id to refer to the value.
+* The values in this table are serialized from id high->low. Each value is prefixed by a type id.  (which has a conatant size)
+* The remaining (non indirect) values are serialized.
+
+Serialization is the reverse:
+* items are deserialized into a table keyed by index.
+* any references use the index to lookup the value.
+* the result is the ginal root values.
+
+**rework the below**
 
 The serialization format is intended for file storage and network transfer.
 It is composed of two sections: (1) communicating the header containing type
