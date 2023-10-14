@@ -3,7 +3,7 @@
 Zoa is a serialization and type framework inspired by protobuf and capnproto.
 It's primary goals are:
 
-* Specify types that are valid across language paradigms (especially C + Lua)
+* Specify types that are valid across language paradigms (especially C and Lua)
 * Be able to serialize/deserialize types specified by Zoa to/from any language
 
 Zoa is part of the [Civboot] project which aims to create a very simple while
@@ -19,29 +19,28 @@ defined encoding in the Zoa Binary section and have minimalistic support
 for constants in the constants section.
 
 Zoa supports the following native types, which match Lua's [packfmt][packfmt]
-(types from packfmt not listed, such as "native length" types, are not supported).
 
 ```
   b: a signed byte (char)
   B: an unsigned byte (char)
-  i[n]: a signed int with n bytes (default is native size)
-  I[n]: an unsigned int with n bytes (default is native size)
-  f: a float (IEEE single, 4 bytes)
-  d: a double (IEEE double, 8 bytes)
-  cn: a fixed-sized string with n bytes. Must be a reference
-  z: a zero-terminated string
-  s[n]: a string preceded by its length coded as an unsigned integer with n bytes. Note: n MUST be specified.
-  x: one byte of padding
-  Xop: an empty item that aligns according to option op (which is otherwise ignored)
-  ' ': (empty space) ignored
+  i[n]: a signed int with n bytes
+  I[n]: a unsigned int with n bytes
+  n[n]: a number(float) with n bytes
+  s[n]: a counted string with n byte count.
 ```
 
-> For Lua, `require'zoa'` adds the above types as metaty native types. This means
-> they typecheck with "number", "string", etc.
+* only n=1,2,4,8 are supported
+* for number, only n=4,8 are supported.
+* types from packfmt not listed, such as "native length" types, are not supported
+* For Lua, `require'zoa'` adds the above types as metaty native types. This means they typecheck with "number", "string", etc. Other languages should act in a similar fashion.
 
-In addition to native types, users can define their own `struct` (aka C struct)
-and `enum` (aka C tagged union) types. This can be done in Lua by just calling
-`zoa(myMetaType)` (from a metaty record or enum that uses only native types), or via zty syntax in a .zty file:
+Zty syntax also accommodates the following complex types:
+* user-defined struct (aka C struct aka Product types) and enum (aka C tagged union aka Sum types), defined below.
+* `&type` for a reference to a type. Multiple references are NOT supported (but can be achieved by wrapping in a struct).
+* `A[type]` an array type, conceptually a length and a reference.
+
+Users can define their own `struct`
+and `enum` types in either ZTy syntax or using their language's zoa library.
 
 ```
 struct Point [x:i4, y:i4]
@@ -57,40 +56,43 @@ struct Data [
 ]
 ```
 
-Zoa also defines a few standard types:
+Zoa also comes pre-defined with a few standard types. If your language already has these types, then you should implement the zoa interface for it or similar. The below shows their structure when serialized/deserialized:
 
 ```
-enum   ZTy         [ ... all native+standard zoa types ... ]
+enum   ZTy         [ all Zoa types ]
 struct ZPair       [ str: ZTy, value: &ZTy ] -- typeid = 128
-struct ZList       [ Arr[ZTy]                       ]
-struct ZMap        [ Arr[ZPair]                     ]
+struct List       [ Arr[ZTy]                       ]
+struct Map        [ Arr[ZPair]                     ]
 
-struct ZDuration   [ I8 sec , U4 ns                 ]
-struct ZTime       [ I8 sec , U4 ns                 ] -- since unix Epoch
-struct ZDateTime   [ I4 year, U2 day, U4 sec, U4 ns ]
-struct ZDate       [ I8 year, U2 day,               ]
-struct ZYear       [ I8 year ]
+struct Duration   [ I8 sec , U4 ns                 ]
+struct Time       [ I8 sec , U4 ns                 ] -- since unix Epoch
+struct DateTime   [ I4 year, U2 day, U4 sec, U4 ns ]
+struct Date       [ I8 year, U2 day,               ]
+struct Year       [ I8 year ]
 ```
 
 > All zoa concrete types (not ZTy or ZPair) require a maximum of 16 bytes of space so the ZTy enum requires
 wordsize+16 in storage.
 
 ## Serialization
-The simplest version of serialization (with no references or arrays) simply unwraps the type's fields and call `string.pack` on it's concatenated format.
-Optional C compatibility can be achieved by adding appropriate `x` formats for alignment between structs. Simple deserialization is the reverse: unpack the string and then walk the fields from the resulting array.
+The simplest version of serialization in Lua has no references or arrays and simply unwraps the type's fields and calls `string.pack` on it's concatenated format, with appropriate substitutions for float/etc.
+Optional C compatibility can be achieved by adding appropriate `x` padding for alignment between structs. Simple deserialization is the reverse: unpack the string and then walk and set the fields from the resulting array.
 
-The existence of references and/or arrays complicate things. The basic structure is:
+The existence of references and/or arrays complicate things. Essentially every value must be given an index, and anything that references that value will instead reference the index. The basic structure is:
 
-* every type is given an id and every id is given a name (which uses the metaty name). Requires metaty names to be registered.
-* walk all values recursively. Every value behind a reference or contained in an array is put in a `table[value] = nextId()` where the id is a number that increments. If the value is already in the table it is skipped.
-* From now on, any references will use the id to refer to the value.
-* The values in this table are serialized from id high->low. Each value is prefixed by a type id.  (which has a conatant size)
+* every type is given an ity (type id) and every ity is given a name (which uses the metaty name).
+  * ity=0 (when used below) refers to the "root type" and the actual ity encoded is also ity=0 (it is both ids)
+  * when a value's ity=0 it is considered a "root value" and will be included in the output array.
+    * see below for how ity are actually encoded.
+* walk all values recursively. Every value behind a reference or contained in an array is put in a `table[value] = nextIdx()` where the idx is a number that increments. If the value is already in the table it is skipped.
+* From now on, any references will use the idx to refer to the value.
+* The values in this table are then serialized from idx high->low. Each value is prefixed by its ity (the types must be a known constant size)
 * The remaining (non indirect) values are serialized.
 
 Serialization is the reverse:
-* items are deserialized into a table keyed by index.
-* any references use the index to lookup the value.
-* the result is the ginal root values.
+* items are deserialized into a table keyed by idx
+* any references use the idx to lookup the value to determine the actual reference.
+* the result is the final root values.
 
 **rework the below**
 
@@ -111,7 +113,7 @@ The type can be named (for debug only) with `b64Key=name/n`. The type is specifi
 * `S` struct, the spec is the fields in-order.
 * `E` enum, the spec is the variants in-order.
 
-Additionally, the following extensions to packfmt are available:
+Additionally, the spec may contain following extensions to packfmt are available:
 * `&ref` specifies a reference type, aka a primary key which can be zero (nil/missing).
 * `{key}` specifies a b64 type id.
 
