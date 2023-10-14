@@ -87,8 +87,8 @@ enum   ZTy        [
 > This section details how serialization is implemented in Lua. For other
 > languages it will be very similar.
 
-The simplest version of serialization will not be of a type with no references
-or arrays:
+The simplest version of serialization is
+of a type with no references or arrays:
 
 * Recursively unwrap the record's fields+subfields (all of which reduce to
   native types) into a flat table.
