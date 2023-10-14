@@ -79,30 +79,25 @@ It is composed of two sections: (1) communicating the header containing type
 information and (2) communicating the data. If the type information is already
 known then it can be skipped.
 
-The HEADER is first and contains the length of the header followed by the data.
+The HEADER is first and contains the length of the header followed by the type specs.
 The data defines the struct types, and uses the same format as  Lua's [packfmt],
-with the extensions of `[array]`, `&ref;` and `#key;`. The first elements must be
+with the extensions below. The first elements must be
 the endian and alignment values. **The maximum primary key value must fit inside the
 maximum alignment**.
 
 * `@array` specifies an array type, aka a length and a primary key
 * `&ref` specifies a reference type, aka a primary key which can be zero (nil/missing).
-* `#key;` specifies a name
+* `'key'` specifies a name
 
 All Ids are encoded in base64-url ([base64])
 
 Examples:
 ```
-  ab:@B;        decode'ab' type is array of unsigned bytes
-  ab:@i2;       decode'ab' type is array of signed 2 byte integers
-  ab:@(adf);    decode'ab' type is array of typeid=decode'adf' (defined elsewhere)
-  ab=(my.Name)  decode'ab' type has string/debug name of "my.Name"
+  ab:@B;        b64'ab' type is array of unsigned bytes
+  ab:@i2;       b64'ab' type is array of signed 2 byte integers
+  ab:@'adf';    b64'ab' type is array of typeid=decode'adf' (defined elsewhere)
+  ab="my.Name"  b64'ab' type has string/debug name of "my.Name"
 ```
-
-pack-mode:
-* align = aligned, as if all fields and sub-fields were joined for `string.pack`
-* alignC = align C, intentionally wasting space for C struct compliance
-* packed = no alignment
 
 ## Constants
 
@@ -117,8 +112,7 @@ const NAME: D2 = "zoa"
 
 The syntax is restrictive: numbers are only decimal or hex (`0x...`).
 
-Strings are only `"my c\nstyle string"` Multiple strings can be put
-next to eachother.
+Strings are only `"my c\nstyle string"`.
 
 Constants can refer to other previously defined constants via `$`. Joining a
 string and a number is allowed, but it will be done verbatim, i.e.
@@ -129,8 +123,10 @@ const HEX = 0x4
 const JOINED = "dec=" $DEC " hex=" $HEX --> "dec=4 hex=0x4"
 ```
 
-This is intentionally restrictive: it is not good to get too clever with
-constants.
+This is intentionally restrictive: it is not good to get too clever with cross-language constants in a format like this.
+If you want dynamic computation, use
+a sandboxed Lua or your favorite
+config language.
 
 ## Lua Implementation
 
