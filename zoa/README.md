@@ -36,8 +36,12 @@ Zoa supports the following native types, which match Lua's [packfmt][packfmt]
   ' ': (empty space) ignored
 ```
 
+> For Lua, `require'zoa'` adds the above types as metaty native types. This means
+> they typecheck with "number", "string", etc.
+
 In addition to native types, users can define their own `struct` (aka C struct)
-and `enum` (aka C tagged union) types. The syntax is:
+and `enum` (aka C tagged union) types. This can be done in Lua by just calling
+`zoa(myMetaType)` (from a metaty record or enum that uses only native types), or via zty syntax in a .zty file:
 
 ```
 struct Point [x:i4, y:i4]
@@ -53,8 +57,7 @@ struct Data [
 ]
 ```
 
-Types are encoded as integer ids. Ids 0-63 are reserved for zoa native types (i.e. b, i3, s2),
-Ids 64-255 are used for Zoa standard types defined below. 
+Zoa also defines a few standard types:
 
 ```
 enum   ZTy         [ ... all native+standard zoa types ... ]
@@ -69,8 +72,8 @@ struct ZDate       [ I8 year, U2 day,               ]
 struct ZYear       [ I8 year ]
 ```
 
-All zoa types (except ZTy) require a maximum of 8 bytes of space so the ZTy enum requires
-wordsize+8.
+> All zoa concrete types (not ZTy or ZPair) require a maximum of 16 bytes of space so the ZTy enum requires
+wordsize+16 in storage.
 
 ## Serialization
 
@@ -79,8 +82,8 @@ It is composed of two sections: (1) communicating the header containing type
 information and (2) communicating the data. If the type information is already
 known then it can be skipped.
 
-The HEADER is first and contains the length of the header followed by the type specs.
-The data defines the struct types, and uses the same format as  Lua's [packfmt],
+The HEADER is first and contains the length in bytes of the header followed by the type specs.
+The specs defkne the struct types, and use the same format as  Lua's [packfmt],
 with the extensions below. The first elements must be
 the endian and alignment values. **The maximum primary key value must fit inside the
 maximum alignment**.
