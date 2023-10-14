@@ -88,18 +88,26 @@ with the extensions below. The first elements must be
 the endian and alignment values. **The maximum primary key value must fit inside the
 maximum alignment**.
 
-* `@array` specifies an array type, aka a length and a primary key
+The type can be named (for debug only) with `b64Key=name/n`. The type is specified with `b64Key:X<tyspec>\n`.  where `X` is one of:
+
+* `A` an array, the next value must be a single type
+* `S` struct, the spec is the fields in-order.
+* `E` enum, the spec is the variants in-order.
+
+Additionally, the following extensions to packfmt are available:
 * `&ref` specifies a reference type, aka a primary key which can be zero (nil/missing).
-* `'key'` specifies a name
+* `{key}` specifies a b64 type id.
 
 All Ids are encoded in base64-url ([base64])
 
 Examples:
 ```
-  ab:@B;        b64'ab' type is array of unsigned bytes
-  ab:@i2;       b64'ab' type is array of signed 2 byte integers
-  ab:@'adf';    b64'ab' type is array of typeid=decode'adf' (defined elsewhere)
-  ab="my.Name"  b64'ab' type has string/debug name of "my.Name"
+  ab:AB        b64'ab' type is array of unsigned bytes
+  ab:Ai2       b64'ab' type is array of signed 2 byte integers
+  ab:A{adf}    b64'ab' type is array of typeid=decode'adf' (defined elsewhere)
+  ab=my.Name  b64'ab' type has string/debug name of "my.Name"
+  zf:&{ab} i2 I2   struct [&my.Name,i2,I2]
+  zf=my.structName name signed unsigned;  struct and field names separated by whitespace
 ```
 
 ## Constants
