@@ -26,6 +26,7 @@ Zoa supports the following native types, which mimick Lua's [packfmt][packfmt]
   i[n]: a signed int with n=2,4,8 bytes
   I[n]: a unsigned int with n=2,4,8 bytes
   n[n]: a number(float) with n=4,8 bytes (IEEE single,double)
+  c[n]: a bytearray with size n bytes
   s[n]: a counted string with n=1,2,4 byte count.
 ```
 
@@ -65,16 +66,20 @@ has these types, then your `zoa` library should implement a serializer interface
 (or similar) for them. Below is their structure when serialized:
 
 ```
-enum ZTy; struct ZPair; -- declared, defined below
+enum ZTy; -- declared, defined below
+struct Error [ code:U2 mlen:B msg:c13 ]
+struct List       [ Arr[ZTy]                       ]
+struct ZPair      [ key: ZTy  value: ZTy           ]
+struct Map        [ Arr[ZPair]                     ]
+struct Range [ start:I8  count:U4  period: I4 ]
 struct Duration   [ I8 sec , U4 ns                 ]
 struct Time       [ I8 sec , U4 ns                 ] -- unix Epoch
 struct DateTime   [ I4 year, U2 day, U4 sec, U4 ns ]
 struct Date       [ I8 year, U2 day,               ]
 struct Year       [ I8 year ]
-struct List       [ Arr[ZTy]                       ]
-struct Map        [ Arr[ZPair]                     ]
+struct IPV4       [ addr:c4  port:U2  hasPort:U1  ]
+struct IPV6       [ i1:I2 i2:I2 ... i8:I2 ]
 
-struct ZPair      [ key: ZTy  value: ZTy           ]
 enum   ZTy        [
   t_b:b  t_B:B  t_i1:i1  t_i2:i2, ... native types
   duration:Duration  time:Time,   ... pre-defined types (except ZPair)
@@ -158,6 +163,13 @@ Examples:
   zf=other.Name f1 f2 f3 -- b64'zf' name "other.Name" w/fields "f1" ...
 ```
 
+itys start at 1023. The following ity's are reserved
+* 0 is the root type
+* 1 is Arr type (encodes length)
+* 2-63 for native types
+* 64-127 for zoa std (Range, Duration, etc)
+* 128-1023 reserved
+
 ## Constants
 
 ZTy files also permit specifying constants. Unified constants are a common need
@@ -183,13 +195,37 @@ const JOINED:s = "dec=" $DEC " hex=" $HEX;
 
 ## Lua Implementation
 
-The `zoa` module will also act as a function, `zoa(myRecord)` will type
-check all fields and add a `string.pack` format string to `myRecord.__zoaf`
+The `zoa` module will also act as a function, `zoa(myRecord)` will type-check all fields and add a `string.pack` format string to `myRecord.__zoaf`
 Any fields marked as an array will have `__zoaArr[field] = true`.
 
 zoa will have functions for packing/unpacking zoa types with options for
 encoding (alignment, endianness, etc). This can be built on top of to
 create databases/etc.
+
+## File Database Architect (rough)
+zoa is intended for use in a file-database. The basic architecture is:
+
+* The Op type below will be ity=0, the "real" root type is `&Root`
+* Appending non-Op (ity~=0) to the database does not change it.
+* appending an Op (ity=0) modifies the database (i.e. it is a single transaction)
+
+```
+struct Op [
+  add: Arr[&Root],
+  del: Arr[&Root],
+]
+```
+
+That is how data is STORED. A separate file and/or in-memory process then keeps an index of:
+* which idx's are root values and alive
+* specific fields it wants to lookup performantly
+* a file can be used for all indexes and an inmemory store can cache recent lookups and mutations. Details on the specific design of indexing a mutable database is another discussion.
+
+Cleanup of a zoa file database (i.e. eliminating unused idx's) is done by
+* constructing a bitmap of all idx's
+* perform a mark-and sweep GC uaing the bitmap to find dead ones
+* keep a lookup table of live -> new and rebuild the file without dead indexea
+* additional compactness can be gained with a separate hash table to dedup idx+ity values.
 
 [Civboot]: http://civboot.org
 [packfmt]: https://www.lua.org/manual/5.3/manual.html#6.4.2
