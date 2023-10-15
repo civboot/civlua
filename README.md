@@ -25,7 +25,7 @@ $ , ff -r %recursive
 These libraries and tools are developed together but kept in separate modules so
 that others can pick and choose the pieces they want to use for their own
 projects. Together they (will) form a complete development environment with some
-awesome shell/lua commandline scripting tools. See [Installation](#Installation)
+awesome shell/lua commandline scripting tools, and even form the basis of both assemblers and a Lua compiler written in Lua. See [Installation](#Installation)
 for how to install (just copy this directory).
 
 Each sub-directory has individual documentation. A suggested reading order
