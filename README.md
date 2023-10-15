@@ -74,6 +74,9 @@ unix and it will work.
 Running tests currently requires [luaposix], but most libraries work without it.
 
 [luaposix]: https://github.com/luaposix/luaposix
+## Future
+I blog about future goals and design ideas at
+https://github.com/civboot/civboot/tree/main/blog
 
 ## LICENSE
 
