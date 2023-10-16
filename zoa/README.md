@@ -110,30 +110,25 @@ infinite recursion would be possible if we attempt to recursively copy through
 references.
 
 To handle references, every referred value must be given an index (we call it an
-`idx`), and when serialized all references will instead use the `idx`. For
-serializing, we must also prefix every value with the type (so that we can know
-its size) and if it's an array we must know its length as well. To accomplish
-this there will be a HEADER that contains all the type specs, each of which will
-have an `ity` (type id). See HEADER for that structure.
+`idx`), and when serialized all references will instead use the `idx`. The `idx`
+is simply the byte-position of the referenced value in the data stream starting
+from `1` (`0==null`). For serializing, we must also prefix every value with the
+type (so that we can know its size) and if it's an array we must know its length
+as well.  To accomplish this there will be a HEADER that contains all the type
+specs, each of which will have an `ity` (type id). See HEADER for that
+structure.
 
 The basic serialization is:
 
 * walk all values recursively. Every value behind a reference is put in a
-  `table[value] = nextIdx()` where the idx is a number that increments from `1`
-  (`0` is reserved as `null`). If the value is already in the table it is skipped.
-  * Every field _within_ a value (for a struct or enum) gets its own idx (but is
-    not prefixed by a tid since that is already known).  Enum's always consume
-    the maximum number of idxs any of their variants would consume.
-  * For arrays, the whole array uses the first idx, and each value gets its own
-    set of idxs (again not prefixed by tid). This allows fields to reference
-    either the whole array OR values within the array.
-  * s (strings) cannot have references to their internal values (they are given
-    exactly one idx)
-* From now on, any references will use the idx to refer to the value.
-* The values in this table are then serialized from idx high->low. Each value is
-  prefixed by its ity (the types must be a known constant size) and if it's an
-  Array it's encoded length.
-* The remaining root values are serialized using `ity=0`, which is reserved
+  `tableK[value] = true and also `table.insert(tableI, value)`. If the value is
+  already in `tableK` then it is skipped.
+* The values in `tableI` are then serialized in reverse order, with their byte
+  position stored in `tableK`. When serialized, each value is prefixed by its
+  `ity` (the types must be a known constant size) and if it's an Array it also
+  has the encoded length.
+* From now on, any references will use the `idx` to refer to the value.
+* The remaining root values are serialized using `ity=0`
 
 Deserialization is the reverse:
 * Items are deserialized into a table keyed by idx
@@ -143,9 +138,9 @@ Deserialization is the reverse:
 ### HEADER of itys (type ids)
 
 The HEADER is structured as a series of `ity:packfmt\n` to define the type and
-`ity=name field1name field2name\n` to define the name. `ity` is an integer
-encoded as [base64url], `packfmt` is the same as that defined in the **Zoa Types**
-section with the following additions:
+`ity=name field1name field2name\n` to define the name and field/variant names.
+`ity` is an integer encoded as [base64url], `packfmt` is the same as that
+defined in the **Zoa Types** section with the following additions:
 
 * `{ity}` a base64 ity, i.e. a field with user-defined type
 * `A[t]` an array of type `[t]
