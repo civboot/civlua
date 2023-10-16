@@ -197,11 +197,12 @@ zoa will have functions for packing/unpacking zoa types with options for
 encoding (alignment, endianness, etc). This can be built on top of to
 create databases/etc.
 
-## File Database Architect (rough)
+## File Database Architecture (rough)
 zoa is intended for use in a file-database. The basic architecture is:
 
 * The Op type below will be ity=0, the "real" root type is `&Root`
-* Appending non-Op (ity~=0) to the database does not change it.
+* Appending non-Op (`ity~=0`) to the database effectively causes no change
+  (to the columns).
 * appending an Op (ity=0) modifies the database (i.e. it is a single transaction)
 
 ```
@@ -212,15 +213,19 @@ struct Op [
 ```
 
 That is how data is STORED. A separate file and/or in-memory process then keeps an index of:
-* which idx's are root values and alive
-* specific fields it wants to lookup performantly
-* a file can be used for all indexes and an inmemory store can cache recent lookups and mutations. Details on the specific design of indexing a mutable database is another discussion.
+* An in-order list of root values and whether they are alive (`.zbi`)
+* specific fields it wants to lookup performantly (details TBD but basically a
+  large hash table pointing to the root idx's which match).
 
 Cleanup of a zoa file database (i.e. eliminating unused idx's) is done by
-* constructing a bitmap of all idx's
-* perform a mark-and sweep GC uaing the bitmap to find dead ones
-* keep a lookup table of live -> new and rebuild the file without dead indexea
-* additional compactness can be gained with a separate hash table to dedup idx+ity values.
+* constructing a bitmap of all idx's (all values and sub-values), as well as
+  their types
+  * note: the types are necessary since the type information may be embedded
+    in a field/etc.
+* perform a mark-and sweep GC using the bitmap to find dead ones
+* keep a lookup table of live -> new and rebuild the file without dead indexes
+* additional compactness can be gained with a separate hash table to dedup
+  idx+ity values.
 
 [Civboot]: http://civboot.org
 [packfmt]: https://www.lua.org/manual/5.3/manual.html#6.4.2
