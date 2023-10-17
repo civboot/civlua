@@ -123,7 +123,7 @@ local function _fileFn(path, args, out) -- got a file from walk
   -- if no patterns exit early
   if #pat == 0 then
     if files and log   then wln(log, to or path, pre) end
-    if files           then add(out.files, to or path) end
+    if out.files       then add(out.files, to or path) end
     if args.mut and to then civix.mv(path, to) end
     return
   end
