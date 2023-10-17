@@ -21,7 +21,7 @@ local function assertEq(expect, result)
   add(f, "! Values not equal:")
   add(f, "\n! EXPECT: "); f:fmt(expect)
   add(f, "\n! RESULT: "); f:fmt(result); add(f, '\n')
-  error(f:toStr())
+  error(table.concat(f))
 end
 
 local function assertMatch(expectPat, result)
@@ -218,4 +218,12 @@ assertMatch(([=[
     __tostring %s+%(DOC%) : function %b[]
 ]=]):sub(1, -2), -- remove newline
 M.help(A))
+end)
+
+test('fmtFile', function()
+  local f = Fmt{file=io.open('out/TEST', 'w+')}
+  f:fmt{1, 2, z='bob', a='hi'}
+  f.file:flush(); f.file:seek'set'
+  assertEq('{1,2 :: a="hi" z="bob"}', f.file:read'a')
+  f.file:close()
 end)

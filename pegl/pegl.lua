@@ -75,7 +75,7 @@ M.specToStr = function(s, set)
   local set = set or mty.FmtSpec{}
   if set.pretty == nil then set.pretty = true end
   local f = mty.Fmt{set=set}; M.fmtSpec(s, f)
-  return f:toStr()
+  return table.concat(f)
 end
 
 local function newSpec(name, fields)

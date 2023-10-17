@@ -88,7 +88,7 @@ file substitute for fpat (rename files).
   :field('plain', 'boolean', false):fdoc'no line numbers'
 
 local f = mty.helpFmter(); mty.helpFields(M.FF, f)
-M.DOC = DOC..'\n'..f:toStr(); f = nil; DOC = nil
+M.DOC = DOC..'\n'..table.concat(f); f = nil; DOC = nil
 
 local function wln(f, msg, pre, i)
   if pre then f:write(pre) end

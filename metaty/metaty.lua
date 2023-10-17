@@ -485,21 +485,25 @@ M.FmtSet.__missing = M._recordMissing
 M.DEFAULT_FMT_SET = M.FmtSet{}
 
 M.Fmt = M.doc[[Fmt anything.
-
-Fmt uses __fmt or __tostring methods on table metatables.
-Otherwise, it formats by sorting the table keys.
-
-It is highly configurable, see FmtSet.]]
-(M.record('Fmt', {
-  __call=function(ty_, t)
-    t.done = t.done or {}
-    t.level = t.level or 0
-    return M.FMT_NEW(ty_, t)
-  end}))
+  Override __fmt(self, fmt) of your type to customize formatting.
+  Use table.insert(fmt, 'whatever') for raw strings or the
+  formatting API for other values.
+]](M.record'Fmt')
+:new(function(ty_, t)
+  t.done, t.level = t.done or {}, t.level or 0
+  return M.FMT_NEW(ty_, t)
+end)
   :field('done', 'table')
   :field('level', 'number', 0)
-  :field('set', M.FmtSet, M.DEFAULT_FMT_SET)
-M.Fmt.__newindex = nil
+  :field('set', M.FmtSet, M.DEFAULT_FMT_SET):fdoc'main settings'
+  :fieldMaybe'file':fdoc'write directly to a file'
+M.Fmt.__len = function(f) return f.file and 0 or rawlen(f) end
+M.Fmt.__newindex = function(f, k, v)
+  if f.file then
+    assert(k == 1, 'filemode must only append strings')
+    f.file:write(v)
+  else rawset(f, k, v) end
+end
 M.Fmt.__missing = function(ty_, k)
   if type(k) == 'number' then return nil end
   return M._recordMissing(ty_, k)
@@ -507,7 +511,6 @@ end
 
 -----------
 -- Fmt Utilities
-
 M.orderedKeys = M.doc[[(t, max) -> keyList
   max (or metaty.KEYS_MAX) specifies the maximum number
   of keys to order.]]
@@ -577,7 +580,7 @@ end
 
 M.safeToStr = function(v, set) --> string
   local f = M.Fmt{set=set}; NATIVE_TY_FMT[type(v)](v, f)
-  return f:toStr()
+  return table.concat(f)
 end
 
 M.tblFmtKeys = function(t, f, keys)
@@ -591,6 +594,7 @@ M.tblFmtKeys = function(t, f, keys)
   end
   if lenI > 0 and lenK > 0 then f:sep(f.set.tblSep) end
   for i, k in ipairs(keys) do
+    print('!! fmt keys', k)
     if type(k) == 'number' and 0<k and k<=lenI then -- already added
     else
       if     type(k) == 'table' then f:fmt(k)
@@ -673,28 +677,19 @@ M.Fmt.fmt = M.doc'(f, v): Format the value and store the result in `f`'
   return f
 end)
 
-M.Fmt.toStr = function(f) return table.concat(f) end
-M.Fmt.write = M.doc'(fmt, file)'(function(f, fd)
-  for _, s in ipairs(f) do fd:write(s) end
+M.fmt = M.doc[[fmt(v, set, file) -> string
+  The output is nil if file is specified.
+]](function(v, set, file)
+  local f = M.Fmt{set=set, file=file}:fmt(v)
+  if not file then return table.concat(f) end
 end)
-M.Fmt.writeLn = function(f, fd) f:write(fd); fd:write'\n' end
-M.Fmt.pnt = M.doc'print to io.stdout'(function(f)
-  f:write(io.stdout)
-  io.stdout:write('\n')
-  io.stdout:flush()
-end)
-
-M.fmt = M.doc'Format anything. See Fmt'
-(function(v, set) return M.Fmt{set=set}:fmt(v):toStr() end)
 
 M.pntset = function(set, ...)
   local args = {...}
+  local f = M.Fmt{set=set, file=io.stdout}
   for i, arg in ipairs(args) do
-    if type(arg) ~= 'table' then
-      io.stdout:write(tostring(arg))
-    else
-      io.stdout:write(M.fmt(arg, set))
-    end
+    if type(arg) == 'table' then f:fmt(arg)
+    else io.stdout:write(tostring(arg)) end
     if i < #args then io.stdout:write('\t') end
   end
   io.stdout:write('\n')
@@ -814,7 +809,7 @@ M.help = M.doc'(v) -> string: Get help'
   local f = M.helpFmter()
   if type(v) == 'table' then helpTy(v, f, name)
   else NATIVE_TY_DOC[type(v)](v, f) end
-  return M.trim(f:toStr())
+  return M.trim(table.concat(f))
 end)
 
 return M

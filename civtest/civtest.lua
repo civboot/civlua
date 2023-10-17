@@ -37,7 +37,7 @@ M.assertEq = function(expect, result, pretty)
   if type(expect) == 'string' and type(result) == 'string' then
     M.diffFmt(f, expect, result)
   end
-  error(f:toStr())
+  error(table.concat(f))
 end
 
 M.assertErrorPat = function(errPat, fn, plain)
