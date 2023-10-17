@@ -35,6 +35,105 @@ documentation is for the civboot.org project and will
 make small references to other civboot libraries.
 ]=])
 
+---------------------
+-- Keywords
+M['for'] = [[
+for is a looping construct with two forms:
+
+Numeric:
+  for: for i=si,ei,period do
+    -- code using [si -> ei] (inclusive) with period --
+  end
+
+Generic:
+  for i, v, etc in explist do
+      -- code using a, b, etc here --
+  end
+
+A Generic for destructures to:
+  do -- Note: $vars are not accessible
+    local $fn, $state, $index = explist
+    while true do
+      local $index, i, v, etc = $f($state, $index)
+      if $index == nil then break end
+      i = $index
+      -- code using i, v, etc here
+    end
+  end
+
+The goal in writing a stateless iterator function is to match this
+loop's API as much as possible. Note that $index and $state are
+names reflecting how the variables are used for i/pairs.
+
+Example rewriting ipairs:
+
+  local function rawipairs(t, i)
+    i = i + 1
+    if i > #t then return nil end
+    return i, t[i]
+  end
+
+  local function ipairs_(t)
+    return rawipairs, t, 0
+  end
+
+Example rewriting pairs using next(t, key)
+
+  function pairs(t)
+    return next, t, nil
+  end
+
+See also:
+  metaty.split is a more complex example.
+]]
+
+--------------------
+-- Global Functions
+d(next, [[next(tbl, key): return next key in table.
+Special:
+  key=nil      return first key in the table
+  key=lastKey  return nil
+]])
+
+d(pcall, [[pcall(fn, ...inp): handle errors.
+  calls fn(...inp) and returns:
+    ok=false, error    for errors
+    ok=true, ...out    for success]])
+
+d(select, [[select(index, ...inp) -> inp[index:]
+removes index-1 items from inp stack.
+If index='#' returns #inp.]])
+
+d(type, [[type(v) -> typeString. Possible values:
+
+  "nil" number string boolean table
+  function thread userdata
+
+See also: metaty.ty(v) for metatypes]])
+
+d(setmetatable, [[setmetatable(t, mt) -> t
+Sets the metatable on table which adds context (metatype)
+as well as affects behavior of operators (metamethods)
+
+    t[k]     t[k]=v      NOTE: ONLY CALLED WHEN KEY
+    __index  __newindex        IS MISSING
+
+    +         -        *        /       //        %
+    __add     __sub    __mul    __div   __idiv    __mod
+              __unm
+
+    &         |        ~        <<      >>        ^
+    __band    __bor    __bnot   __shl   __shr     __pow
+
+    ==        <        <=       #        ..
+    __eq      __lt     __le     __len    __concat
+
+    t()       __tostring
+    __call    __name
+
+metaty: __fields  __maybes  __missing  __fmt  __doc]])
+d(getmetatable, [[getmetatable(t) -> mt  See setmetatable.]])
+
 -------------------------------
 -- string
 d(string.find, [[
@@ -79,8 +178,14 @@ assert(    find('yes bob yes',  '(%w+) bob %1'))
 assert(not find('yes bob no',   '(%w+) bob %1'))
 ]])
 
-d(string.sub, [[
-get substring by index (NOT pattern matching).
+d(string.match, [[match(subj, pat, init) return the capture groups of pat
+or the whole match if no capture groups.
+
+See also: string.find.]])
+
+d(string.gmatch, [[gmatch(subj, pat, init) match iterator function.]])
+
+d(string.sub, [[substring by index (NOT pattern matching).
 
   string.sub(subject: str, start: num, end: num) -> str[s:e]
 
@@ -130,6 +235,38 @@ Directive control structure:
 
   % <fill character>? <fill count> directive
 ]])
+
+d(string.byte, [[byte(s [i, j]) -> number: get numberic code/s for s[i:j] ]])
+
+d(string.char, [[char(c1, c2, ...) -> string
+convert character codes to string and concatenate]])
+
+d(string.rep, [[rep(s, n, sep) -> string -- repeat s n times with separator.]])
+
+d(string.pack, [[pack(packfmt, ...values) -> string
+pack the values into the string using the packfmt.
+
+Packfmt:
+  <  >  =      little / big / native endian
+  ![n]         max alignment = n bytes
+  b B          signed / unsigned byte
+  h H l L      native short(h) and long(l) + unsigned vers
+  i[n] I[n]    signed/unsigned int with n bytes
+  f d          native float / double
+  T            size_t
+  c[n]         fixed-sized string of n bytes (unaligned)
+  z            zero-terminated string        (unaligned)
+  s[n]         counted string of size n count
+  x            one byte of padding
+  X[op]        align to option op, i.e. Xi4
+  j J n        lua Integer / Unsigned / Number
+]])
+
+d(string.unpack, [[unpack(fmt, str) -> ...
+See string.pack for the fmt.]])
+
+d(string.packsize, [[string.packsize(fmt) -> int
+Get the size which is used by fmt.]])
 
 -------------------------------
 -- table
@@ -269,35 +406,5 @@ Reference:
 Note: as of Lua5.4 it is not possible to have stderr or both stdin&stdout.
 ]])
 
-
-M.lang = {}
-M.lang['for'] = [[
-for is a looping construct with two forms:
-
-Numeric:
-  for: for i=si,ei,period do
-    -- code using [si -> ei] (inclusive) with period --
-  end
-
-Generic:
-  for i, v, etc in explist do
-      -- code using a, b, etc here --
-  end
-
-A Generic for destructures to:
-  do -- Note: $vars are not accessible
-    local $fn, $state, $index = explist
-    while true do
-      local $index, i, v, etc = $f($state, $index)
-      if $index == nil then break end
-      i = $index
-      -- code using i, v, etc here
-    end
-  end
-
-The goal in writing a stateless iterator function is to match this 
-loop's API as much as possible.
-
-]]
 
 return M

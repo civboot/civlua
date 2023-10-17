@@ -105,8 +105,21 @@ test("table", function()
   setPath(t, {'a', 'a', 'a'}, 5);   assertEq(5, t.a.a.a)
   setPath(t, {'a', 'a', 'a'}, nil); assertEq(nil, t.a.a.a)
   setPath(t, {'a', 'b'}, 4); assertEq(4, t.a.b)
-end)
 
+  t = {}; for i, v in M.inext, {4, 5, 8}, 0 do t[i] = v end
+  assertEq({4, 5, 8}, t)
+  t = {}; for i, v in M.iprev, {4, 5, 8}, 4 do t[i] = v end
+  assertEq({4, 5, 8}, t)
+  t = {}; for i, v in M.ireverse{4, 5, 8} do t[i] = v end
+  assertEq({4, 5, 8}, t)
+
+  t = {}
+  M.walk(
+    {1, 2, a=3, inner={b=9, c='hi'}},
+    function(k, v) t[k] = v end,
+    function(k, v) t[k] = true end)
+  assertEq({1, 2, a=3, b=9, c='hi', inner=true}, t)
+end)
 
 test('list', function()
   local l = {'a', 'b', 'c', 1, 2, 3}

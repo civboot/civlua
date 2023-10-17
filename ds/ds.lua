@@ -6,6 +6,8 @@ local M = {
   steal = mty.steal, trim = mty.trim,
 }
 
+M.SKIP = 'skip'
+
 ---------------------
 -- Order checking functions
 M.isWithin = function(v, min, max)
@@ -172,11 +174,17 @@ end)
 
 ---------------------
 -- Table Functions
+M.inext = mty.doc'next(t, key) but with indexes'(ipairs{})
+
+M.iprev = mty.doc'inext but reversed.'
+(function(t, i) if i > 1 then return i - 1, t[i - 1] end end)
+
+M.ireverse = mty.doc'ipairs reversed'
+(function(t) return M.iprev, t, #t + 1 end)
 
 -- reverse a list-like table in-place
 M.reverse = function(t)
-  local l = #t;
-  for i=1, l/2 do
+  local l = #t; for i=1, l/2 do
     t[i], t[l-i+1] = t[l-i+1], t[i]
   end
   return t
@@ -241,6 +249,32 @@ end
 function M.indexOfPat(strs, pat)
   for i, s in ipairs(strs) do if s:find(pat) then return i end end
 end
+
+M.walk = mty.doc[[walk(tbl, fieldFn, tableFn, maxDepth, state)
+Walk the table up to depth maxDepth (or infinite if nil).
+
+fieldFn(key, value, state)  -> stop  is called for every non-table value.
+tableFn(key, tblValue, state) -> stop is called for every table value
+
+If tableFn stop==ds.SKIP (i.e. 'skip') then that table is not recursed.
+Else if stop then the walk is halted immediately
+]](function(t, fieldFn, tableFn, maxDepth, state)
+  if maxDepth then
+    maxDepth = maxDepth - 1; if maxDepth < 0 then return end
+  end
+  for k, v in pairs(t) do
+    if type(v) == 'table' then
+      if tableFn then
+        k = tableFn(k, v, state); if k then
+          if k == M.SKIP then goto skip end
+          return
+        end
+      end
+      M.walk(v, fieldFn, tableFn, maxDepth, state)
+    elseif fieldFn and fieldFn(k, v, state) then return end
+    ::skip::
+  end
+end)
 
 ---------------------
 -- Untyped Functions
