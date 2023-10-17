@@ -509,17 +509,17 @@ end
 -- Fmt Utilities
 
 M.orderedKeys = M.doc[[(t, max) -> keyList
-
-max (or metaty.KEYS_MAX) specifies the maximum number
-of keys to order.]]
+  max (or metaty.KEYS_MAX) specifies the maximum number
+  of keys to order.]]
 (function(t, max) --> table (ordered list of keys)
-  local keys, len, max = {}, 0, max or M.KEYS_MAX
+  local keys, len, tlen, max = {}, 0, #t, max or M.KEYS_MAX
   for k in pairs(t) do
     if len >= max then break end
-    len = len + 1
-    add(keys, k)
+    if type(k) ~= 'number' or k > tlen then
+      add(keys, k); len = len + 1
+    end
   end
-  pcall(function() table.sort(keys) end)
+  pcall(table.sort, keys)
   return keys
 end)
 
@@ -582,15 +582,14 @@ end
 
 M.tblFmtKeys = function(t, f, keys)
   assert(type(t) == 'table', type(t))
-  local mt, lenI = getmetatable(t), #t
+  local mt, lenI, lenK = getmetatable(t), #t, #keys
   add(f, M.metaName(mt))
   f:levelEnter('{')
   for i=1,lenI do
     f:fmt(t[i])
     if i < lenI then f:sep(f.set.listSep) end
   end
-  local lenK = #keys
-  if lenI > 0 and lenK - lenI > 0 then f:sep(f.set.tblSep) end
+  if lenI > 0 and lenK > 0 then f:sep(f.set.tblSep) end
   for i, k in ipairs(keys) do
     if type(k) == 'number' and 0<k and k<=lenI then -- already added
     else
