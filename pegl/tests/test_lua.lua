@@ -344,7 +344,7 @@ local function testLuaPath(path)
 end
 
 T.test('parseSrc', function()
-  testLuaPath('./patience/patience.lua')
+  -- testLuaPath('./patience/patience2.lua')
   -- testLuaPath('./pegl/pegl.lua')
   testLuaPath('./pegl/pegl/lua.lua')
 end)

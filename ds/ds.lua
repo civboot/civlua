@@ -51,8 +51,12 @@ M.matches = function(s, m)
   return out
 end
 
--- work with whitespace in strings
+-- split strings
 M.split = mty.split
+M.splitList = function(...)
+  local t = {}; for _, v in mty.split(...) do add(t, v) end
+  return t
+end
 M.explode = function(s) return M.matches(s, '.') end
 M.concatToStrs = function(t, sep)
   local o = {}; for _, v in ipairs(t) do add(o, tostring(v)) end

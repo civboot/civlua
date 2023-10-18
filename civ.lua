@@ -13,11 +13,12 @@ function M.load(name, path)
 end
 
 local initG = {}; for k in pairs(_G) do initG[k] = true end
-local shim    = M.load('shim',    'shim/shim.lua')
-local mty     = M.load('metaty',  'metaty/metaty.lua')
-local doc     = M.load('doc',     'doc/doc.lua')
-local ds      = M.load('ds',      'ds/ds.lua')
-local civtest = M.load('civtest', 'civtest/civtest.lua')
+local shim    = M.load('shim',     'shim/shim.lua')
+local mty     = M.load('metaty',   'metaty/metaty.lua')
+local doc     = M.load('doc',      'doc/doc.lua')
+local ds      = M.load('ds',       'ds/ds.lua')
+local patience= M.load('patience', 'patience/patience.lua')
+local civtest = M.load('civtest',  'civtest/civtest.lua')
 
 M.load('pegl',       'pegl/pegl.lua')
 M.load('pegl.lua',   'pegl/pegl/lua.lua')
