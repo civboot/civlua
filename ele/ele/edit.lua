@@ -1,9 +1,9 @@
 -- #####################
 -- # Edit struct
 local ds = require'ds'
-local gap = require'ele.gap'
+local gap = require'rebuf.gap'
 local T = require'ele.types'
-local motion = require'ele.motion'
+local motion = require'rebuf.motion'
 local Edit, CursorChange = T.Edit, T.CursorChange
 
 local add = table.insert

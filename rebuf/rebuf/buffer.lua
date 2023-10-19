@@ -1,13 +1,35 @@
 local mty = require'metaty'
 local ds = require'ds'
-local motion  = require'ele.motion'
-local gap  = require'ele.gap'
-local T = require'ele.types'
+local motion  = require'rebuf.motion'
+local gap  = require'rebuf.gap'
 
 local M = {}
-local add = table.insert
-local ty = mty.ty
-local Buffer, Change, ChangeStart = T.Buffer, T.Change, T.ChangeStart
+local add, ty = table.insert, mty.ty
+
+M.ChangeId = 0
+M.nextChangeId = function() M.ChangeId = M.ChangeId + 1; return M.ChangeId end
+
+M.ChangeStart = mty.record'ChangeStart'
+  :field('l1', NUM)       :field('c1', NUM)
+  :fieldMaybe('l2', NUM)  :fieldMaybe('c2', NUM)
+
+M.Change = mty.record'Change'
+  :field('k', 'string')
+  :field('s', 'string')
+  :field('l', NUM) :field('c', NUM)
+
+M.Buffer = mty.record'Buffer'
+  :field('id', NUM)
+  :field('gap', gap.Gap)
+
+  -- recorded changes from update (for undo/redo)
+  :field'changes'
+  :field('changeMax', NUM)
+  :field('changeStartI', NUM)
+  :field('changeI', NUM)
+  :fieldMaybe'mdl'
+
+local Buffer, Change, ChangeStart = M.Buffer, M.Change, M.ChangeStart
 
 local function redoRm(ch, b)
   local len = #ch.s - 1; if len < 0 then return ch end
@@ -26,7 +48,7 @@ local CHANGE_UNDO = { ins=redoRm, rm=redoIns, }
 
 Buffer.new=function(s)
   return Buffer{
-    gap=T.Gap.new(s),
+    gap=gap.Gap.new(s),
     changes={}, changeMax=0,
     changeStartI=0, changeI=0,
   }

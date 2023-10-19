@@ -18,6 +18,7 @@ dependencies = {
   "metaty ~> 0.1",
   "ds ~> 0.1",
   "civix ~> 0.1",
+  "rebuf ~> 0.1",
   "luaposix ~> 36.2",
 }
 test_dependencies = {
@@ -29,13 +30,10 @@ build = {
     ele = "ele.lua",
     ["ele.action"] = "ele/action.lua",
     ["ele.bindings"] = "ele/bindings.lua",
-    ["ele.buffer"] = "ele/buffer.lua",
     ["ele.data"] = "ele/data.lua",
     ["ele.edit"] = "ele/edit.lua",
-    ["ele.gap"] = "ele/gap.lua",
     ["ele.keys"] = "ele/keys.lua",
     ["ele.model"] = "ele/model.lua",
-    ["ele.motion"] = "ele/motion.lua",
     ["ele.types"] = "ele/types.lua",
     ["ele.window"] = "ele/window.lua",
     ["ele.FakeTerm"] = "ele/FakeTerm.lua",

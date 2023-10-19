@@ -26,6 +26,9 @@ M.load('civix',      'civix/civix.lua')
 M.load('civix.term', 'civix/civix/term.lua')
 
 local ff  = M.load('ff',   'ff/ff.lua')
+            M.load('rebuf.motion', 'rebuf/rebuf/motion.lua')
+            M.load('rebuf.gap', 'rebuf/rebuf/gap.lua')
+            M.load('rebuf.buffer', 'rebuf/rebuf/buffer.lua')
 local ele = M.load('ele',  'ele/ele.lua')
 civtest.assertGlobals(initG)
 

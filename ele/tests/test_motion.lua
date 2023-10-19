@@ -7,7 +7,7 @@ mty.lrequire'civtest'
 local decDistance, lcLe, lcGe, lcWithin
 local forword, backword, findBack
 local wordKind
-mty.lrequire'ele.motion'
+mty.lrequire'rebuf.motion'
 
 
 test('distance', function()

@@ -5,6 +5,7 @@ local test, assertEq
 mty.lrequire'civtest'
 
 local ds = require'ds'
+local buffer = require'rebuf.buffer'
 local keys = require'ele.keys'
 local model = require'ele.model'
 local term = require'civix.term'
@@ -34,7 +35,7 @@ end
 
 test('edit (only)', function()
   local t = FakeTerm(1, 4); assert(t)
-  local e = T.Edit.new(nil, T.Buffer.new("1234567\n123\n12345\n"))
+  local e = T.Edit.new(nil, buffer.Buffer.new("1234567\n123\n12345\n"))
   e.tl, e.tc, e.th, e.tw = 1, 1, 1, 4
   e:draw(t, true); assertEq({'1234'}, e.canvas)
   e.th, e.tw = 2, 4; t:init(2, 4)

@@ -1,7 +1,7 @@
 
 local mty = require'metaty'
 local test, assertEq; mty.lrequire'civtest'
-local gap = require'ele.gap'
+local gap = require'rebuf.gap'
 local Gap = gap.Gap
 
 test('set', function()

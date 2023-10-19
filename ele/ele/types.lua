@@ -1,5 +1,5 @@
 local mty = require'metaty'
-local gap  = require'ele.gap'
+local gap  = require'rebuf.gap'
 
 local record = mty.record
 
@@ -10,30 +10,7 @@ local NUM = 'number'
 M.Chain = mty.rawTy'Chain'
 
 M.ViewId = 0
-M.ChangeId = 0
 M.nextViewId   = function() M.ViewId   = M.ViewId   + 1; return M.ViewId   end
-M.nextChangeId = function() M.ChangeId = M.ChangeId + 1; return M.ChangeId end
-
--- Buffer and sub-types
-M.ChangeStart = record'ChangeStart'
-  :field('l1', NUM)       :field('c1', NUM)
-  :fieldMaybe('l2', NUM)  :fieldMaybe('c2', NUM)
-
-M.Change = record'Change'
-  :field('k', 'string')
-  :field('s', 'string')
-  :field('l', NUM) :field('c', NUM)
-
-M.Buffer = record'Buffer'
-  :field('id', NUM)
-  :field('gap', gap.Gap)
-
-  -- recorded changes from update (for undo/redo)
-  :field'changes'
-  :field('changeMax', NUM)
-  :field('changeStartI', NUM)
-  :field('changeI', NUM)
-  :fieldMaybe'mdl'
 
 -- Window container
 -- Note: Window also acts as a list for it's children

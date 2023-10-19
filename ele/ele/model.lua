@@ -6,11 +6,11 @@ local mty = require'metaty'
 local ds = require'ds'
 local civix = require'civix'
 local posix = require'posix'
-local gap  = require'ele.gap'
+local gap  = require'rebuf.gap'
 local T = require'ele.types'
 local action = require'ele.action'
 local edit = require'ele.edit'
-local buffer = require'ele.buffer'
+local buffer = require'rebuf.buffer'
 local bindings = require'ele.bindings'
 local data = require'ele.data'
 local window = require'ele.window'
@@ -19,12 +19,12 @@ local yld = coroutine.yield
 local concat = table.concat
 local pnt, ty = mty.pnt, mty.ty
 
-local M = {} -- module
+local M = {}
 
 local DRAW_PERIOD = ds.Duration(0.03)
 local MODE = { command='command', insert='insert' }
 local Actions = action.Actions
-local Model, Edit, Buffer, Bindings = T.Model, T.Edit, T.Buffer, T.Bindings
+local Model, Edit, Buffer, Bindings = T.Model, T.Edit, buffer.Buffer, T.Bindings
 
 Model.__tostring=function(m)
   return string.format('Model[%s %s.%w]', m.mode, m.h, m.w)

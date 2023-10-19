@@ -13,10 +13,7 @@ end
 load('ele.FakeTerm', 'ele/FakeTerm.lua')
 load('ele.data',     'ele/data.lua')
 
-load('ele.motion',   'ele/motion.lua')
-load('ele.gap',      'ele/gap.lua')
 load('ele.types',    'ele/types.lua')
-load('ele.buffer',   'ele/buffer.lua')
 
 load('ele.keys',     'ele/keys.lua')
 load('ele.window',   'ele/window.lua')
