@@ -550,6 +550,46 @@ end
 
 ---------------------
 -- Linked List
+-- module `ll` is for handling a linked-lists as a table
+-- and is more performant.
+-- LL is a data object for LL's and may be removed.
+
+M.ll = mty.doc[[Tiny linked-list module.
+  This uses indexes to track linked-lists, making it
+  extremely memory efficient and fairly performant.
+
+-- 1 [-> ...]            linked list with just root
+local llp, lln, llv = {0}, {0}, {}
+
+-- 1 -> 2 [-> 1...]      append 2 to root
+ll.push(llp, lln, 1, 2); llv[2] = 'value@2'
+
+-- 3 -> 1 -> 2 [-> 3...] prepend 3 to root
+ll.budge(llp, lln, 1, 3); llv[3] = 'value@3'
+
+-- 3 -> 1 [-> 3...]      pop 2
+ll.pop(llp, lln, 2)
+]]({})
+
+-- a -> node -> b  ==> a -> b
+function M.ll.pop(prev, nxt, node)
+  local a, b = prev[node], nxt[node]
+  nxt[a], prev[b] = b, a
+end
+
+-- node -> b  ==>  node -> a -> b
+function M.ll.push(prev, nxt, node, a)
+  local b = nxt[node]
+  nxt[node],  nxt[a]  = assert(a), b
+  prev[b],    prev[a] = a, node
+end
+
+-- b -> node ==>  b -> a -> node
+function M.ll.budge(prev, nxt, node, a)
+  local b = prev[node]
+  nxt[b],     nxt[a]  = a, node
+  prev[node], prev[a] = a, b
+end
 
 M.LL = record('LL')
   :fieldMaybe('front', 'table')
