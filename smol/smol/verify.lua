@@ -16,9 +16,9 @@ M.VERIFY_ENC = 'out/verify.enc'
 M.VERIFY_DEC = 'out/verify.dec'
 
 M.verify = mty.doc[[verify an encoder.
-]](function(inpIsPath, inp, bits, encoder, decoder)
+]](function(name, bits, inpIsPath, inp, encoder, decoder)
   local inpPath
-  if inpIsPath then inpPath, inp = inp, io.open(inp, 'wb+')
+  if inpIsPath then inpPath, inp = inp, io.open(inp, 'rb')
   else
     inpPath = M.VERIFY_TXT
     local f = io.open(inpPath, 'w+b')
@@ -54,8 +54,9 @@ M.verify = mty.doc[[verify an encoder.
   encw:finish(); decf:flush()
   local inpSize, encSize = inp:seek(), encf:seek()
   M.assertFilesEq(inpPath, M.VERIFY_DEC)
-  mty.pntf('EFFICIENT: %s:   %i / %i   (%%%f)',
-    inpPath, encSize, inpSize, 100 * encSize / inpSize)
+  mty.pntf('REPORT %s % 3ibits: %s:  %.1f%%  %i/%i kiB',
+    name, bits, inpPath, 100 * encSize / inpSize, encSize//1024, inpSize//1024
+  )
 
   -- mty.pntf('!! Decoding from encoded file bits')
   -- This tests that we can decode the file itself

@@ -25,12 +25,12 @@ Example:
 (mty.record'WriteBits')
   :field('file', 'userdata')
   :fieldMaybe('bits', 'number')
-  :fieldMaybe('_data',     'number') -- max 0xFF
-  :fieldMaybe('_dataBits', 'number') -- 1-8
+  :field('_data',     'number', 0) -- max 0xFF
+  :field('_dataBits', 'number', 0) -- 1-8
 
 M.WriteBits.__call = function(wb, n, bits)
   bits = assert(bits or wb.bits, 'no bits'); assert(bits > 0)
-  local data, dataBits = wb._data or 0, wb._dataBits or 0
+  local data, dataBits = wb._data or 0, wb._dataBits
   while bits > 0 do
     local mbits = math.min(8 - dataBits, bits) -- minBits
     assert(mbits > 0, mbits)
@@ -63,12 +63,12 @@ M.ReadBits = mty.doc[[Read bits as big-endian
 (mty.record'ReadBits')
   :field('file', 'userdata')
   :fieldMaybe('bits', 'number')
-  :fieldMaybe('_data',     'number') -- max 0xFF
-  :fieldMaybe('_dataBits', 'number') -- 1-8
+  :field('_data',     'number', 0) -- max 0xFF
+  :field('_dataBits', 'number', 0) -- 1-8
 
 M.ReadBits.__call = function(rb, bits)
   bits = assert(bits or rb.bits, 'no bits')
-  local n, data, dataBits = 0, rb._data, rb._dataBits or 0
+  local n, data, dataBits = 0, rb._data, rb._dataBits
   while bits > 0 do
     if dataBits == 0 then
       data, dataBits = rb.file:read(1), 8
