@@ -261,3 +261,7 @@ test('Imm', function()
 
   assertEq({kind='Empty'}, M.Imm{kind='Empty'})
 end)
+
+test('ReadString', function()
+
+end)

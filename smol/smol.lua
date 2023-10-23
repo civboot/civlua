@@ -22,7 +22,7 @@ Example:
   wb(1055)
   wb.file:flush(); wb.file:close()
 ]]
-(mty.record'ReadBits')
+(mty.record'WriteBits')
   :field('file', 'userdata')
   :fieldMaybe('bits', 'number')
   :fieldMaybe('_data',     'number') -- max 0xFF
@@ -45,6 +45,15 @@ M.WriteBits.__call = function(wb, n, bits)
   end
   wb._data, wb._dataBits = data, dataBits
 end
+
+M.WriteBits.finish = mty.doc[[write any leftover data and flush.]]
+(function(wb)
+  if wb._dataBits > 0 then
+    wb.file:write(char(wb._data << (8 - wb._dataBits)))
+  end
+  wb._data, wb._dataBits = nil, nil
+  wb.file:flush()
+end)
 
 M.ReadBits = mty.doc[[Read bits as big-endian
 
@@ -89,10 +98,10 @@ Example:
     ... do something with code like WriteBits
   end
 ]](function(file, bits)
-  -- TODO: use max
   local max = M.bitsmax(assert(bits))
   local dict = {}; for b=0,0xFF do dict[char(b)] = b end
-  local word, nextCode = nil, 0x100
+  local word, nextCode = '', 0x100
+  co.yield()
   while true do
     local c = file:read(1); if not c then break end
     local wordc = word..c
@@ -101,9 +110,18 @@ Example:
       co.yield(dict[word])
       dict[wordc] = nextCode; nextCode = nextCode + 1
       word = c
+      if nextCode > max then break end
     end
   end
-  if word then return dict[word] end
+  if nextCode > max then
+    while true do
+      local c = file:read(1); if not c then break end
+      local wordc = word..c
+      if dict[wordc] then word = wordc
+      else co.yield(dict[word]); word = c end
+    end
+  end
+  if #word > 0 then co.yield(dict[word]) end
 end)
 
 M.lzw.decode = mty.doc[[decode(codestream, bits) -> yield string
@@ -114,23 +132,30 @@ Example:
     ... do something with str like write to file.
   end
 ]](function(codes, bits)
-  -- TODO: use max
   local max, nextCode = M.bitsmax(assert(bits)), 0x100
-  local dict = {}; for b=0,0xFF do dict[char(b)] = b end
+  local dict = {}; for b=0,0xFF do dict[b] = char(b) end
+  co.yield()
   local word = codes() if not word then return end
   word = char(word); co.yield(word)
-  for code in codes() do
+  for code in codes do
     local entry = dict[code]
     if entry then -- pass, found code
     elseif code == nextCode then -- special case #3 (see README)
       entry = word..word:sub(1,1)
-    else error('invalid code: '..code) end
+    else mty.errorf('invalid code: 0x%X', code) end
     co.yield(entry)
-    dict[nextCode] = word..entry:sub(1,1); nextCode = nextCode + 1
+    dict[nextCode] = word..entry:sub(1,1)
+    nextCode = nextCode + 1
     word = entry
+    if nextCode > max then break end
   end
-  assert(#word > 0)
-  return word
+  if nextCode > max then
+    for code in codes do
+      local entry = assert(dict[code])
+      co.yield(entry)
+    end
+  end
 end)
+
 
 return M

@@ -1,6 +1,9 @@
 
 local T = require'civtest'
+local mty = require'metaty'
 local M = require'smol'
+local V = require'smol.verify'
+local civix = require'civix'
 
 local push = table.insert
 local test, assertEq = T.test, T.assertEq
@@ -23,14 +26,14 @@ local function testbits(exp, bits, str)
     bt, wb.bits, rb.bits = nil, bits, bits
   end
   for i, v in ipairs(exp) do wb(v, bt and bt[i]) end
-  wb.file:flush(); wb.file:close()
+  wb:finish(); wb.file:close()
+  assertEq(str, rb.file:read'a')
+  rb.file:seek'set'
   local res = {}
-  while true do
-    v = rb(bt and bt[i]); if not v then break end
-    push(res, v)
+  for _ in ipairs(exp) do
+    local v = rb(bt and bt[i]); push(res, assert(v))
   end
   assertEq(exp, res)
-  rb.file:seek'set'; assertEq(str, rb.file:read'a')
   rb.file:close()
 end
 
@@ -48,11 +51,22 @@ test('bits', function()
   testbits(e, 2, 'hi\n')
 
   -- 'hi\n' in 3bit values
-  local e = {}; for _, b12 in ipairs{0x686,         0x90A} do
-    push(e,  b12 >> 9        ) -- high
-    push(e, (b12 >> 6) & 0x7 ) -- midhigh
-    push(e, (b12 >> 3) & 0x7 ) -- midlow
-    push(e, b12         & 0x7) -- low
+  local e = {}; for _, b12 in ipairs{0x686, 0x90A } do
+    push(e,  b12 >> 9       ) -- high
+    push(e, (b12 >> 6) & 0x7) -- midhigh
+    push(e, (b12 >> 3) & 0x7) -- midlow
+    push(e,  b12       & 0x7) -- low
   end
   testbits(e, 3, 'hi\n')
+  push(e, 4)
+  testbits(e, 3, 'hi\n'..string.char(0x80))
+end)
+
+test('lzw', function()
+  V.verify(false, 'abbbaba', 12, M.lzw.encode, M.lzw.decode)
+  V.verify(false, 'abbbaba', 9, M.lzw.encode, M.lzw.decode)
+
+  -- V.verify(true, 'out/enwik8_1MiB')
+  print('EXITING')
+  os.exit(1)
 end)

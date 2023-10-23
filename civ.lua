@@ -18,6 +18,7 @@ local mty     = M.load('metaty',   'metaty/metaty.lua')
 local doc     = M.load('doc',      'doc/doc.lua')
 local ds      = M.load('ds',       'ds/ds.lua')
 local smol    = M.load('smol',     'smol/smol.lua')
+         M.load('smol.verify',     'smol/smol/verify.lua')
 local patience= M.load('patience', 'patience/patience.lua')
 local civtest = M.load('civtest',  'civtest/civtest.lua')
 
