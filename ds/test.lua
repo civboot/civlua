@@ -1,6 +1,8 @@
 METATY_CHECK = true
 
 local mty = require'metaty'
+local push = table.insert
+
 local test, assertEq, assertErrorPat; mty.lrequire'civtest'
 
 local min, max, bound, isWithin, sort2, decAbs
@@ -262,6 +264,26 @@ test('Imm', function()
   assertEq({kind='Empty'}, M.Imm{kind='Empty'})
 end)
 
-test('ReadString', function()
+local heap = require'ds.heap'
 
+local function pushh(h, t)
+  for i, v in ipairs(t) do h:add(v) end
+end
+
+local function assertPops(expect, h)
+  local t = {}; while #h > 0 do
+    push(t, h:pop())
+  end
+  assertEq(expect, t)
+end
+test('heap', function()
+  local h = heap.Heap{1, 5, 9, 10, 3, 2}
+  assertPops({1, 2, 3, 5, 9, 10}, h)
+  assertEq(0, #h)
+  pushh(h, {8, 111, -1, 333, 42})
+  assertEq(heap.Heap{-1, 42, 8, 333, 111}, h)
+  assertPops({-1, 8, 42, 111, 333}, h)
+
+  h = heap.Heap({1, 5, 9, 10, 3, 2}, M.gt)
+  assertPops({10, 9, 5, 3, 2, 1}, h)
 end)

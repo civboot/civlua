@@ -16,6 +16,8 @@ M.isWithin = function(v, min, max)
 end
 M.min = math.min -- TODO: remove these
 M.max = math.max
+M.lt = function(a, b) return a < b end
+M.gt = function(a, b) return a > b end
 M.bound = function(v, min, max)
   return ((v>max) and max) or ((v<min) and min) or v
 end
@@ -631,12 +633,16 @@ M.LL.popBack = function(self)
   return o.v
 end
 
-M.bt = mty.doc[[ds.bt: Binary Tree Table.
+M.bt = mty.docTy({}, [[
+ds.bt: Table as Binary Tree.
 These functions treat an indexed table as a binary tree
 where root is at index=1.
-]]{}
+]])
 function M.bt.left(t, i)    return t[i * 2]     end
 function M.bt.right(t, i)   return t[i * 2 + 1] end
 function M.bt.parent(t, i)  return t[i // 2]    end
+function M.bt.lefti(t, i)   return   i * 2      end
+function M.bt.righti(t, i)  return   i * 2 + 1  end
+function M.bt.parenti(t, i) return   i // 2     end
 
 return M

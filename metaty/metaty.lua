@@ -31,7 +31,7 @@ end
 function M.steal(t, k) local v = t[k]; t[k] = nil; return v end
 function M.nativeEq(a, b) return a == b end
 function M.docTy(ty_, doc)
-  if not DOC then return end
+  if not DOC then return ty_ end
   doc = M.trim(doc)
   if type(ty_) == 'function' then  M.FN_DOCS[ty_] = doc
   elseif type(ty_) == 'table' then ty_.__doc = doc
@@ -594,7 +594,6 @@ M.tblFmtKeys = function(t, f, keys)
   end
   if lenI > 0 and lenK > 0 then f:sep(f.set.tblSep) end
   for i, k in ipairs(keys) do
-    print('!! fmt keys', k)
     if type(k) == 'number' and 0<k and k<=lenI then -- already added
     else
       if     type(k) == 'table' then f:fmt(k)
