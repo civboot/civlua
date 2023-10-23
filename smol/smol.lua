@@ -1,7 +1,11 @@
 
+local mty = require'metaty'
+local ds = require'ds'
+local heap = require'ds.heap'
+
 local char, byte = string.char, string.byte
 local co         = coroutine
-local mty = require'metaty'
+local push = table.insert
 
 local M = mty.docTy({}, [[smol: data compression algorithms to make data smaller.]])
 
@@ -165,18 +169,37 @@ Huffman Coding: use less data by making commonly used codes smaller and less
 commonly used codes larger.
 ]])
 
--- See create. table.sort "return true when l should be before r"
-local function cmpFreq(l, r) return l[1] > r[1] end
+-- create a minheap on weights
+local function huffcmp(p, c) return p.weight < c.weight end
 
-M.create = mty.doc[[(encoder, bits) -> bins]]
-(function(encoder, bits)
-  local max = M.bitsmax(assert(bits))
-
-  local freq = {} -- each item has {code, weight, huffcode, hufflen}
+M.huff.codes = mty.doc[[(encoder, bits) -> bins]]
+(function(encoder)
+  local freq, lo, hi = {}, nil, nil
   for code in encoder do
-    local v = freq[code] or {code, weight, 0, 0}
-    v[1] = v[1] + 1
+    local v = freq[code]; if not v then
+      v = {weight=0, {code=code, huff=0, bits=0}}
+      freq[code] = v
+    end
+    v.weight = v.weight + 1
   end
+  local hp = {}; for _, v in pairs(freq) do push(hp, v) end
+  hp = heap.Heap(hp, huffcmp)
+  mty.pnt('!! heap', hp)
+  assert(#hp > 0)
+  while #hp > 1 do
+    lo = hp:pop(); hi = hp:pop()
+    for _, v in ipairs(lo) do -- left
+      v.bits = v.bits + 1             -- 0 bit at bits+1
+    end
+    for _, v in ipairs(hi) do -- right
+      v.huff = (1 << v.bits) | v.huff -- 1 bit at bits+1
+      v.bits = v.bits + 1
+    end
+    lo.weight = lo.weight + hi.weight
+    ds.extend(lo, hi)
+    hp:add(lo)
+  end
+  return hp:pop()
 end)
 
 return M

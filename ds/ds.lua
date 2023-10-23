@@ -329,6 +329,13 @@ function M.writePath(path, text)
   return out
 end
 
+function M.fileWithText(path, text, mode)
+  local f = mty.assertf(
+    io.open(path, mode or 'w+'), 'invalid %s', path)
+  f:write(text); f:flush(); f:seek'set'
+  return f
+end
+
 M.fdMv = mty.doc[[fdMv(fdTo, fdFrom): memonic fdTo = fdFrom
 Read data from fdFrom and write to fdTo, then flush.
 ]](function(fdTo, fdFrom)

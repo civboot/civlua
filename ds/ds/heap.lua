@@ -20,8 +20,10 @@ end
 -- percolate n (node index) down the tree (left -> right)
 -- n starts at a high index (start of heap) and we fix it.
 local function percDown(h, li, hi, n, cmp)
+  mty.pnt('!! percDown start')
   local i = cmpi(h, li, hi, n, cmp)
   while i ~= n do
+    mty.pnt('!! percDown', i, h)
     h[n], h[i] = h[i], h[n] -- swap, parent is largest
     -- keep following the path of i
     n, i = i, cmpi(h, li, hi, i, cmp)
@@ -42,11 +44,14 @@ local function percUp(h, li, hi, n, cmp)
 end
 
 -- Initialize heap from unstructured table h
-local function init(h, li, hi, cmp)
-  li, hi = li or 1, hi or #h
+local function init(h, cmp)
+  local li, hi = 1, #h
+  print('!! heap init', li, hi)
   if hi - li <= 0 then return end -- length 1 or 0
   local n = bt.parenti(h, hi) -- parent of right-most node
+  print('!! heap init n start', n)
   while n >= li do -- keep fixing nodes until it is a heap
+    print('!! heap init n', n)
     percDown(h, li, hi, n, cmp)
     n = n - 1
   end
@@ -68,7 +73,7 @@ priority queues and similar problems.
   :field('cmp', 'function')
 :new(function(ty_, t, cmp)
   t.cmp = cmp or ds.lt
-  init(t, 1, #t, t.cmp)
+  init(t, t.cmp)
   return mty.new(ty_, t)
 end)
 
