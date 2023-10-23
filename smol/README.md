@@ -1,21 +1,26 @@
-# Compression algorithms in Lua
+# Smol: compression algorithms in Lua
+Small is a collection of public domain compression algorithms written in pure
+Lua.
 
 ## LZW
-LZW is a fantastically simple compression algorithm. A high level description is
-simply:
+LZW is a fantastically simple compression algorithm. Basically the encoder
+builds a dictionary of codes mapped to words it has seen one character at a
+time. The decoder uses the same process to build the dictionary from the
+codes emitted.
 
-1. start with a dict of all possible char -> code, where code=byte(char)
+A high level architecture is:
+1. start with a dict of all possible byte values (0-0xFF)
 2. set word=''
-3. walk the input bytes `b`. Keep building `word = word..b` until it is not in dict.
-4. Each time `word..b` is not in dict:
-  1. emit the known `dict[word]` (code of word w/out b)
-  2. set `dict[word..b] = nextCode; nextCode++`
-  2. set word = b
+3. walk the input char `c`. Keep building `word = word..c` until it is not in dict.
+4. Each time `word..c` is not in dict:
+  1. emit the known `dict[word]` (code of word w/out c)
+  2. set `dict[word..c] = nextCode; nextCode++`
+  2. set word = c
 
 This means that the ONLY codes emitted are:
 1. the base codes 0-255
 2. codes previously emitted
-3. special case: see below.
+3. special case: nextCode, see below.
 
 The special case 3 is this: a non-previously emitted code will be emitted
 without ever having been emitted before in the case where we have re-built the

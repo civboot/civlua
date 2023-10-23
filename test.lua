@@ -10,6 +10,7 @@ T.test('[[core]]', function()
   dofile(dir..'ds/test.lua')
   dofile(dir..'civtest/test.lua')
   dofile(dir..'doc/test.lua')
+  dofile(dir..'smol/test.lua')
 end)
 
 T.test('[[libs]]', function()

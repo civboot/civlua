@@ -569,7 +569,7 @@ ll.budge(llp, lln, 1, 3); llv[3] = 'value@3'
 
 -- 3 -> 1 [-> 3...]      pop 2
 ll.pop(llp, lln, 2)
-]]({})
+]]{}
 
 -- a -> node -> b  ==> a -> b
 function M.ll.pop(prev, nxt, node)
@@ -630,5 +630,13 @@ M.LL.popBack = function(self)
                      else self.front = nil end
   return o.v
 end
+
+M.bt = mty.doc[[ds.bt: Binary Tree Table.
+These functions treat an indexed table as a binary tree
+where root is at index=1.
+]]{}
+function M.bt.left(t, i)    return t[i * 2]     end
+function M.bt.right(t, i)   return t[i * 2 + 1] end
+function M.bt.parent(t, i)  return t[i // 2]    end
 
 return M
