@@ -80,7 +80,7 @@ test('time', function()
 end)
 
 test('mkTree', function()
-  local d = 'out/civix/'
+  local d = '.out/civix/'
   if civix.exists(d) then civix.rmDir(d, true) end
   civix.mkTree(d, {
     ['a.txt'] = 'for civix a test',
@@ -89,9 +89,9 @@ test('mkTree', function()
       ['b2.txt'] = '2 in dir b/',
     },
   }, true)
-  assertEq(ds.readPath'out/civix/a.txt', 'for civix a test')
-  assertEq(ds.readPath'out/civix/b/b1.txt', '1 in dir b/')
-  assertEq(ds.readPath'out/civix/b/b2.txt', '2 in dir b/')
+  assertEq(ds.readPath'.out/civix/a.txt', 'for civix a test')
+  assertEq(ds.readPath'.out/civix/b/b1.txt', '1 in dir b/')
+  assertEq(ds.readPath'.out/civix/b/b2.txt', '2 in dir b/')
 end)
 
 test('walk', function()

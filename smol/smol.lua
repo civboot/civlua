@@ -157,5 +157,50 @@ Example:
   end
 end)
 
+---------------------
+-- Bin Coding
+--
+
+M.bin = mty.docTy({}, [[
+Bin Coding: organize most used codes into small-prefix bins
+]])
+
+-- See create. table.sort "return true when l should be before r"
+local function cmpFreq(l, r) return l[1] > r[1] end
+
+local function sumFreq(freq, li, hi)
+  local s = 0; for i=li,hi do s = s + freq[i][1] end
+  return s
+end
+
+-- recursively sum the quadrants from low-index to hi-index
+local function sumQuads(freq, li, hi)
+  local mi  = (li + hi) // 2
+  local miq = (li + mi) // 2
+  if hi - li < 16 then
+    return {
+      sumFreq(freq, 1, miq),    -- quarter 1
+      sumFreq(freq, miq+1, mi), -- quarter 2
+      sumFreq(freq, mi+1, hi)   -- half 2
+    }
+  end
+  return {
+    sumQuads(freq, 1,     miq), -- quarter 1
+    sumQuads(freq, miq+1, mi),  -- quarter 2
+    sumFreq(freq, mi+1, hi)     -- half 2
+  }
+end
+
+M.create = mty.doc[[(encoder, bits) -> bins]]
+(function(encoder, bits)
+  local max = M.bitsmax(assert(bits))
+
+  local freq = {} -- contains {count, code}, will sort
+  for code in encoder do
+    local v = freq[code] or {0, code}
+    v[1] = v[1] + 1
+  end
+  table.sort(freq, cmpFreq)
+end)
 
 return M

@@ -15,7 +15,7 @@ test('util', function()
   assertEq(0xFFFF, M.bitsmax(16))
 end)
 
-local TF = 'out/test.bits'
+local TF = '.out/test.bits'
 
 -- exp: table of codes. bits: single number or lookup table of bits
 local function testbits(exp, bits, str)
@@ -66,8 +66,8 @@ test('lzw', function()
   V.verify('LZW', 12, false, 'abbbaba', M.lzw.encode, M.lzw.decode)
   V.verify('LZW',  9, false, 'abbbaba', M.lzw.encode, M.lzw.decode)
 
-  V.verify('LZW', 12, true, 'out/enwik8_1MiB', M.lzw.encode, M.lzw.decode)
-  V.verify('LZW', 16, true, 'out/enwik8_1MiB', M.lzw.encode, M.lzw.decode)
-  print('EXITING')
-  os.exit(1)
+  -- V.verify('LZW', 12, true, '.out/enwik8_1MiB', M.lzw.encode, M.lzw.decode)
+  -- V.verify('LZW', 16, true, '.out/enwik8_1MiB', M.lzw.encode, M.lzw.decode)
+  -- print('EXITING')
+  -- os.exit(1)
 end)

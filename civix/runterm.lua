@@ -9,7 +9,7 @@ local mode = arg[1] or 'view'
 print(string.format('runterm mode=%s', mode))
 local period = tonumber(arg[2] or '0.5')
 
-local outpath = './out/out.txt'
+local outpath = '.out/out.txt'
 local out = assert(io.open(outpath, 'w'), 'could not open '..outpath)
 print('Logs in', outpath)
 

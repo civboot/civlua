@@ -6,7 +6,7 @@ LP = "./?/?.lua;./pegl/?.lua;./civix/?.lua;./ele/?.lua;${LUA_PATH}"
 all: test
 
 test:
-	mkdir -p out/
+	mkdir -p ./.out/
 	lua test.lua
 	LUA_PATH=${LP} lua civix/runterm.lua view 0.05
 	# Tests complete

@@ -221,7 +221,7 @@ M.help(A))
 end)
 
 test('fmtFile', function()
-  local f = Fmt{file=io.open('out/TEST', 'w+')}
+  local f = Fmt{file=io.open('.out/TEST', 'w+')}
   f:fmt{1, 2, z='bob', a='hi'}
   f.file:flush(); f.file:seek'set'
   assertEq('{1,2 :: a="hi" z="bob"}', f.file:read'a')

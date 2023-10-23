@@ -11,9 +11,9 @@ function M.assertFilesEq(p1, p2)
   assert(p:close(), msg)
 end
 
-M.VERIFY_TXT = 'out/verify.txt'
-M.VERIFY_ENC = 'out/verify.enc'
-M.VERIFY_DEC = 'out/verify.dec'
+M.VERIFY_TXT = '.out/verify.txt'
+M.VERIFY_ENC = '.out/verify.enc'
+M.VERIFY_DEC = '.out/verify.dec'
 
 M.verify = mty.doc[[verify an encoder.
 ]](function(name, bits, inpIsPath, inp, encoder, decoder)
