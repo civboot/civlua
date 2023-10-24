@@ -2,6 +2,7 @@
 local T = require'civtest'
 local mty = require'metaty'
 local M = require'smol'
+local lzw = require'smol.lzw'
 local V = require'smol.verify'
 local civix = require'civix'
 
@@ -63,12 +64,12 @@ test('bits', function()
 end)
 
 test('lzw', function()
-  V.verify('LZW', 12, false, 'abbbaba', M.lzw.Encoder, M.lzw.Decoder)
-  V.verify('LZW',  9, false, 'abbbaba', M.lzw.Encoder, M.lzw.Decoder)
+  V.verify('LZW', 12, false, 'abbbaba', lzw.Encoder, lzw.Decoder)
+  V.verify('LZW',  9, false, 'abbbaba', lzw.Encoder, lzw.Decoder)
 
   V.verify('LZW', 12, true, '.out/enwik8_1MiB',
-           M.lzw.Encoder, M.lzw.Decoder)
-  -- V.verify('LZW', 16, true, '.out/enwik8_1MiB', M.lzw.encode, M.lzw.decode)
+           lzw.Encoder, lzw.Decoder)
+  -- V.verify('LZW', 16, true, '.out/enwik8_1MiB', lzw.encode, lzw.decode)
   -- print('EXITING')
   -- os.exit(1)
 end)
