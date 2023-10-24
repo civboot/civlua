@@ -1,7 +1,8 @@
 local mty = require'metaty'
 local smol = require'smol'
 
-local sfmt = string.format
+local sfmt, push = string.format, table.insert
+local co = coroutine
 
 local M = {}
 
@@ -32,9 +33,7 @@ M.verify = mty.doc[[verify an encoder.
     file=encf,
     bits=bits,
   }
-  local enc = coroutine.wrap(encoder)
-  enc(inp, bits)
-
+  local enc = encoder(inp, bits)
   local numCodes = 0
   local encAndStore = function()
     local code = enc(); if not code then return end
@@ -45,8 +44,7 @@ M.verify = mty.doc[[verify an encoder.
   end
 
   -- This tests direct pass-through
-  local dec = coroutine.wrap(decoder)
-  dec(encAndStore, bits)
+  local dec = decoder(encAndStore, bits)
   for str in dec do
     -- mty.pntf('!! decoded          -> %q', str)
     decf:write(str)
@@ -64,8 +62,7 @@ M.verify = mty.doc[[verify an encoder.
   local readCodes = smol.ReadBits{
     file=encf, bits=bits,
   }
-  local dec = coroutine.wrap(decoder)
-  dec(readCodes, bits)
+  local dec = decoder(readCodes, bits)
   for _=1,numCodes do
     local str = assert(dec())
     -- mty.pntf('!! decoded2 -> %q', str)
@@ -78,5 +75,21 @@ M.verify = mty.doc[[verify an encoder.
 
   return inpSize, encSize
 end)
+
+local function _dbgnode(t, node, hcode)
+  if node.code then
+    push(t, {hcode=hcode, code=node.code, freq=node.freq})
+  else
+    if node[1] then _dbgnode(t, node[1], '0'..hcode) end
+    if node[2] then _dbgnode(t, node[2], '1'..hcode) end
+  end
+end
+
+-- debug a huffman tree
+function M.huffdbg(root)
+  local t = {}; _dbgnode(t, root, '')
+  table.sort(t, function(l, r) return #l.hcode < #r.hcode end)
+  return t
+end
 
 return M

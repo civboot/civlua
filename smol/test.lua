@@ -63,40 +63,24 @@ test('bits', function()
 end)
 
 test('lzw', function()
-  V.verify('LZW', 12, false, 'abbbaba', M.lzw.encode, M.lzw.decode)
-  V.verify('LZW',  9, false, 'abbbaba', M.lzw.encode, M.lzw.decode)
+  V.verify('LZW', 12, false, 'abbbaba', M.lzw.Encoder, M.lzw.Decoder)
+  V.verify('LZW',  9, false, 'abbbaba', M.lzw.Encoder, M.lzw.Decoder)
 
-  -- V.verify('LZW', 12, true, '.out/enwik8_1MiB', M.lzw.encode, M.lzw.decode)
+  V.verify('LZW', 12, true, '.out/enwik8_1MiB',
+           M.lzw.Encoder, M.lzw.Decoder)
   -- V.verify('LZW', 16, true, '.out/enwik8_1MiB', M.lzw.encode, M.lzw.decode)
   -- print('EXITING')
   -- os.exit(1)
 end)
 
-local function sortHuff(h)
-  table.sort(h, function(p, c)
-    if p.bits > c.bits then return false end
-    return p.huff < c.huff
-  end)
-  return h
-end
-
-local function istring(s)
-  local i = 0; return function()
-    i = i + 1; if i > #s then return end
-    return b(s:sub(i,i))
-  end
-end
-
 test('huff', function()
-  local c = M.huff.codes(
-    istring'this is to test huffman encoding.')
-  sortHuff(c)
-  mty.pnt('!!!! GOT:', c)
+  local H = M.huff
+  local s = 'this is to test huffman encoding.'
+  local ht = H.tree(s:gmatch'.', '$')
+  local dbg = V.huffdbg(ht)
 
-  for i, v in ipairs(c) do
-    mty.pntf('%3i,%s,0x%X,%s',
-      i, string.char(v.code), v.huff, v.bits)
-    -- mty.pntf('%3i,%s', i, string.char(v.code))
+  for i, v in ipairs(dbg) do
+    mty.pntf('%3i,%s,%q,%s', i, v.freq, v.code, v.hcode)
   end
 
   print('EXITING')

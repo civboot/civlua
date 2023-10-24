@@ -3,6 +3,7 @@ Small is a collection of public domain compression algorithms written in pure
 Lua.
 
 ## LZW
+
 LZW is a fantastically simple compression algorithm. Basically the encoder
 builds a dictionary of codes mapped to words it has seen one character at a
 time. The decoder uses the same process to build the dictionary from the
@@ -79,3 +80,21 @@ A few important points while building the dictionary:
 The above is kind of profound: there is never a wasted code, every code
 contributes to the dictionary until the dictionary is full. It also makes the
 algorithm incredibly simple to implement.
+
+## Huffman Encoding
+Orthogonal to LZW is Huffman encoding. While LZW compresses common sequences
+into single codes, Huffman represents common codes as short bitprefixes
+and less-common codes as long bit-prefixes.
+
+Huffman works by constructing an unbalanced binary tree where the leaves are
+the codes. The "huffman code" is then the bits needed to get from the root
+to the leaf, where `0` represents left and `1` represents right. We will call
+this the `bitpath`.
+
+To construct the tree so that the end codes take up the least number of bits,
+the Huffman technique uses a priority queue (a minheap) where the value is the
+frequency of the code. Each time nodes are added to the tree, their bitpath
+is increased by one. The node that is the sum of their frequencies is then
+put back into the minheap and the process continued until there is only
+a single node in the minheap.
+
