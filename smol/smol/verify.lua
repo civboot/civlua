@@ -1,8 +1,7 @@
-local mty = require'metaty'
+local mty  = require'metaty'
 local smol = require'smol'
 
 local sfmt, push = string.format, table.insert
-local co = coroutine
 
 local M = {}
 
@@ -16,8 +15,38 @@ M.VERIFY_TXT = '.out/verify.txt'
 M.VERIFY_ENC = '.out/verify.enc'
 M.VERIFY_DEC = '.out/verify.dec'
 
-M.verify = mty.doc[[verify an encoder.
-]](function(name, bits, inpIsPath, inp, encoder, decoder)
+local function encodeDirect(inpPath, bits, encw, enc)
+  for code, cbits in enc do
+    -- mty.pnt('!! encodeDirect', code, cbits)
+    encw(code, cbits)
+  end
+  encw:finish()
+end
+
+-- Gives nice debug info but is impossible for huffman
+local function encodeWatch(inpPath, bits, encw, enc, decf, decoder)
+  local encAndStore = function()
+    local code, cbits = enc(); if not code then return end
+    mty.pntf('## encoded %8X ->%s', code or -1,
+             cbits and ('  ('..cbits..'bits)') or '')
+    encw(code, cbits or bits)
+    return code, cbits
+  end
+
+  -- This tests direct pass-through
+  local dec = decoder(encAndStore, bits, encState)
+  for str in dec do
+    mty.pntf('## decoded          -> %q', str)
+    decf:write(str)
+  end
+  encw:finish(); decf:flush()
+  M.assertFilesEq(inpPath, M.VERIFY_DEC)
+end
+
+M.verify = mty.doc[[Verify encoding.
+]](function(name, bits, inpIsPath, inp, encoder, decoder, set)
+  set = set or {}
+  local finalDecode = set.finalDecode or mty.identity
   local inpPath
   if inpIsPath then inpPath, inp = inp, io.open(inp, 'rb')
   else
@@ -30,29 +59,19 @@ M.verify = mty.doc[[verify an encoder.
   local decf = io.open(M.VERIFY_DEC, 'w+b') -- decoded file
   local encf = io.open(M.VERIFY_ENC, 'w+b')
   local encw = smol.WriteBits{                 -- encoded bits
-    file=encf,
+    file=assert(encf),
     bits=bits,
   }
   local inpc = smol.FileCodes(inp)
-  local enc = encoder(inpc, bits)
-  local numCodes = 0
-  local encAndStore = function()
-    local code = enc(); if not code then return end
-    numCodes = numCodes + 1
-    -- mty.pntf('!! encoded %8X -> ', code or -1)
-    encw(code, bits)
-    return code
+  local enc, encExtra = encoder(inpc, bits)
+
+  if set.watch then
+    encodeWatch(inpPath, bits, encw, enc, decf, decoder)
+  else
+    encodeDirect(inpPath, bits, encw, enc)
   end
 
-  -- This tests direct pass-through
-  local dec = decoder(encAndStore, bits)
-  for str in dec do
-    -- mty.pntf('!! decoded          -> %q', str)
-    decf:write(str)
-  end
-  encw:finish(); decf:flush()
   local inpSize, encSize = inp:seek(), encf:seek()
-  M.assertFilesEq(inpPath, M.VERIFY_DEC)
   mty.pntf('REPORT %s % 3ibits: %s:  %.1f%%  %i/%i kiB',
     name, bits, inpPath, 100 * encSize / inpSize, encSize//1024, inpSize//1024
   )
@@ -63,34 +82,18 @@ M.verify = mty.doc[[verify an encoder.
   local readCodes = smol.ReadBits{
     file=encf, bits=bits,
   }
-  local dec = decoder(readCodes, bits)
-  for _=1,numCodes do
-    local str = assert(dec())
+  local dec = decoder(readCodes, bits, encExtra)
+  for code in dec do
+    local str = finalDecode(code)
     -- mty.pntf('!! decoded2 -> %q', str)
     decf:write(str)
   end
 
-  inp:close();  readCodes.file:close();
-  decf:flush(); decf:close()
+  decf:flush()
+  inp:close(); decf:close(); readCodes.file:close();
   M.assertFilesEq(inpPath, M.VERIFY_DEC)
 
   return inpSize, encSize
 end)
-
-local function _dbgnode(t, node, hcode)
-  if node.code then
-    push(t, {hcode=hcode, code=node.code, freq=node.freq})
-  else
-    if node[1] then _dbgnode(t, node[1], '0'..hcode) end
-    if node[2] then _dbgnode(t, node[2], '1'..hcode) end
-  end
-end
-
--- debug a huffman tree
-function M.huffdbg(root)
-  local t = {}; _dbgnode(t, root, '')
-  table.sort(t, function(l, r) return #l.hcode < #r.hcode end)
-  return t
-end
 
 return M

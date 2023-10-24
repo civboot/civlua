@@ -2,12 +2,17 @@
 Small is a collection of public domain compression algorithms written in pure
 Lua.
 
+**WARNING**: currently these are VERY non-performant and are primarily for
+educational purposes. Likely some version of them will eventually be included in
+Civboot, but will probably require some pieces to be re-written in a more
+low-level language.
+
 ## LZW
 
 LZW is a fantastically simple compression algorithm. Basically the encoder
 builds a dictionary of codes mapped to words it has seen one character at a
-time. The decoder uses the same process to build the dictionary from the
-codes emitted.
+time. The decoder uses the same process to build the dictionary from the codes
+emitted.
 
 A high level architecture is:
 1. start with a dict of all possible byte values (0-0xFF)
@@ -25,7 +30,7 @@ This means that the ONLY codes emitted are:
 
 The special case 3 is this: a non-previously emitted code will be emitted
 without ever having been emitted before in the case where we have re-built the
-previous word plus it's first character. In that case we never actually emitted
+previous word plus its first character. In that case we never actually emitted
 the code of prevWord!! Fortunately for us, this will simply cause us to emit
 `nextCode-1` so we can handle this special case in the decoder!
 
@@ -83,8 +88,8 @@ algorithm incredibly simple to implement.
 
 ## Huffman Encoding
 Orthogonal to LZW is Huffman encoding. While LZW compresses common sequences
-into single codes, Huffman represents common codes as short bitprefixes
-and less-common codes as long bit-prefixes.
+into single codes, Huffman represents common codes as short bitprefixes and
+less-common codes as long bit-prefixes.
 
 Huffman works by constructing an unbalanced binary tree where the leaves are
 the codes. The "huffman code" is then the bits needed to get from the root

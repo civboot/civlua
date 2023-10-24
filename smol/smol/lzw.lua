@@ -18,7 +18,7 @@ local function lzwDecDict()
   local d = {}; for b=0,0xFF do d[b] = char(b) end; return d
 end
 
-M.Encoder = mty.doc[[(file, bits) -> codesIter
+M.Encoder = mty.doc[[(codes, bits) -> codesIter
 Example:
   for code in lzw.Encoder(io.open(path, 'rb'), 12) do
     ... do something with code like WriteBits
@@ -103,9 +103,9 @@ M.Decoder.__call = function(dec)
       -- special case #3 (see README)
       entry = word..word:sub(1,1)
     else mty.errorf('invalid code: 0x%X', code) end
-    dict[dec.nextCode] = word..entry:sub(1,1)
-    dec.nextCode = dec.nextCode + 1
     dec.word = entry
+    word = word..entry:sub(1,1)
+    dict[dec.nextCode] = word; dec.nextCode = dec.nextCode + 1
     return entry
   end
   return assert(dict[code])

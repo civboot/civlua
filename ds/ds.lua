@@ -580,6 +580,9 @@ ll.budge(llp, lln, 1, 3); llv[3] = 'value@3'
 ll.pop(llp, lln, 2)
 ]]{}
 
+-- get initial llp, lln, llv
+function M.ll.empty() return {1}, {1}, {} end
+
 -- a -> node -> b  ==> a -> b
 function M.ll.pop(prev, nxt, node)
   local a, b = prev[node], nxt[node]
