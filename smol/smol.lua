@@ -16,6 +16,16 @@ local B8 = {
 
 function M.bitsmax(bits) assert(bits <= 32); return (1 << bits) - 1 end
 
+M.FileCodes = mty.doc[[FileCodes(file): file as 8bit codes.]]
+(mty.record'FileCodes')
+  :field('file', 'userdata')
+:new(function(ty_, file) return mty.new(ty_, {file=file}) end)
+M.FileCodes.reset = function(fc) fc.file:seek'set' end
+M.FileCodes.__call = function(fc)
+  local c = fc.file:read(1)
+  return c and byte(c) or nil
+end
+
 ---------------------
 -- Bits: writing and reading packed bits to/from a file-like object.
 -- Compression is all about making things as small as possible, so there is a
@@ -94,43 +104,55 @@ lzw: implementation of Lempel–Ziv–Welch compresion algorithm.
   See README for a full description of the algorithm.
 ]])
 
+local function lzwEncDict()
+  local d = {}; for b=0,0xFF do d[char(b)] = b end; return d
+end
+
+local function lzwDecDict()
+  local d = {}; for b=0,0xFF do d[b] = char(b) end; return d
+end
+
 M.lzw.Encoder = mty.doc[[(file, bits) -> codesIter
 Example:
   for code in lzw.Encoder(io.open(path, 'rb'), 12) do
     ... do something with code like WriteBits
   end
 ]](mty.record'lzw.Encoder')
-  :field'file'
+  :field'codes'
   :field('dict',     'table')
   :field('max',      'number')
   :field('word',     'string')
   :field('nextCode', 'number')
-:new(function(ty_, file, bits)
-  local dict = {}; for b=0,0xFF do dict[char(b)] = b end
+:new(function(ty_, codes, bits)
   return mty.new(ty_, {
-    file=file, dict=dict,
+    codes=codes, dict=lzwEncDict(),
     max=M.bitsmax(assert(bits)), word='', nextCode=0x100,
   })
 end)
+M.lzw.Encoder.reset = function(enc)
+  enc.codes:reset()
+  enc.dict = lzwEncDict()
+  enc.word, enc.nextCode = '', 0x100
+end
 M.lzw.Encoder.__call = function(enc)
-  local word, dict, file = enc.word, enc.dict, enc.file
-  if enc.nextCode <= enc.max then while true do
-    local c = file:read(1); if not c then break end
-    local wordc = word..c
-    if dict[wordc] then word = wordc
-    else
-      dict[wordc] = enc.nextCode; enc.nextCode = enc.nextCode + 1
-      enc.word = c; return dict[word]
+  local word, dict = enc.word, enc.dict
+  if enc.nextCode <= enc.max then
+    for b in enc.codes do
+      local c = char(b)
+      local wordc = word..c
+      if dict[wordc] then word = wordc
+      else
+        dict[wordc] = enc.nextCode; enc.nextCode = enc.nextCode + 1
+        enc.word = c; return dict[word]
+      end
     end
-  end end
-
-  while true do
-    local c = file:read(1); if not c then break end
+  end
+  for b in enc.codes do
+    local c = char(b)
     local wordc = word..c
     if dict[wordc] then word = wordc
     else enc.word = c; return dict[word] end
   end
-
   if #word > 0 then enc.word = ''; return dict[word] end
 end
 
@@ -149,15 +171,21 @@ Example:
   :field('i',        'number')
   :fieldMaybe('word', 'string')
 :new(function(ty_, codes, bits)
-  local dict = {}; for b=0,0xFF do dict[b] = char(b) end
   local word = codes()
   return mty.new(ty_, {
-    codes=codes, dict=dict,
+    codes=codes, dict=lzwDecDict(),
     max=M.bitsmax(assert(bits)),
     word=word and char(word) or nil,
     i=0, nextCode=0x100,
   })
 end)
+M.lzw.Decoder.reset = function(dec)
+  dec.codes:reset()
+  local word = codes()
+  dec.dict = lzwDecDict()
+  dec.word = word and char(word) or nil
+  dec.i = 0; dec.nextCode = 0x100
+end
 M.lzw.Decoder.__call = function(dec)
   local word, dict = dec.word, dec.dict
   dec.i = dec.i + 1;      if dec.i == 1 then return word end
@@ -184,6 +212,8 @@ M.huff = mty.docTy({}, [[
 Huffman Coding: use less data by making commonly used codes smaller and less
 commonly used codes larger.
 ]])
+
+M.huff.eof = function(bits) return 1 << bits end
 
 local function huffcmp(p, c) return p.freq < c.freq end
 
@@ -214,8 +244,9 @@ end)
 local function treeNode(d, node, hcode, bits)
   if node.code then d[node.code] = {hcode, bits}
   else
-    if node[1] then treeNode(d,node[1],          hcode, bits+1)end
-    if node[2] then treeNode(d,node[2],(1<<bits)|hcode, bits+1)end
+    assert(node[1] and node[2])
+    treeNode(d,node[1],          hcode, bits+1) -- 0=left
+    treeNode(d,node[2],(1<<bits)|hcode, bits+1) -- 1=right
   end
 end
 local function treeDict(root)
@@ -223,54 +254,129 @@ local function treeDict(root)
   return t
 end
 
--- write the tree using pre-order traversal.
---    leaf: write 1 + code bits
---    else: write 0
-local function treeWrite(wb, node, bits)
+-- leaf: write 1 + code bits
+-- else: write 0
+local function writeTree(wb, node, bits)
   if node.code then wb(1, 1); wb(node.code, bits)
   else              wb(0, 1)
-    if assert(node[1]) then treeWrite(wb, node[1], bits) end
-    if assert(node[2]) then treeWrite(wb, node[2], bits) end
+    assert(node[1] and node[2])
+    writeTree(wb, node[1], bits)
+    writeTree(wb, node[2], bits)
   end
 end
-
--- load the tree from rb=ReadBits.
--- Nodes are {left,right}, leaves are the code number.
-local function treeRead(rb, bits)
+local function readTree(rb, bits)
   if rb(1) == 1 then return rb(bits)
-  else return {treeRead(rb, bits), treeRead(rb, bits)} end
+  else return {readTree(rb, bits), readTree(rb, bits)} end
 end
 
-M.huff.encode = mty.doc[[
-Encode data to outf using a code generator and a huffman tree.
-  huff.encode(inpf, outf, encoder, bits, writeTree) -> tree
+M.huff.writeTree = mty.doc[[
+write the tree using pre-order traversal.
+  writeTree(writeBits, tree, bits)
 
-If writeTree then write the tree to outf first -> nil
-else the tree is not written but is returned.
+]](writeTree)
+M.huff.readTree = mty.doc[[
+read the tree from writeTree.
+  readTree(readBits, bits) -> tree
 
-set is:
-  writeTree: if true, write tree to outf first
-  retTree: if true, return tree
-]]
-(function(inpf, outf, encoder, bits, set)
-  assert(not writeTree, 'todo')
-  local eof = 1 << bits
-  -- Generate codes twice, once to create the tree
-  -- and once to write the codes
-  local enc = co.wrap(encoder); enc(inpf, bits)
-  local tree = M.huff.tree(enc, eof)
-  local wb = M.WriteBits{f=outf}
-  if set.writeTree then treeWrite(wb, tree, bits) end
+Nodes are {left,right}, leaves are the code number.
+]](readTree)
 
-  inpf:seek'set'
-  local dict = treeDict(tree)
-  enc = co.wrap(encoder); enc(inpf, bits)
-  for code in enc do
-    wb(table.unpack(dict[code]))
+function M.huff.readTree(rb, bits)
+  if rb(1) == 1 then return rb(bits)
+  else return {readTree(rb, bits), readTree(rb, bits)} end
+end
+
+M.huff.Encoder = mty.doc[[
+Encoder using huffman codes.
+
+  huff.Encoder(codes, eof [,tree]) -> encoder, tree
+
+Each call to the encoder returns {hcode, bits}
+where `bits` is the size of the hcode in bits.
+
+Example:
+  local fc = smol.FileCodes(io.open(read, 'rb'))
+  local enclzw    = lzw.Encoder(fc, bits)
+  local enc, tree = huff.Encoder(enclzw, huff.eof(bits))
+  local wb = smol.WriteBytes(io.open(write, 'wb'))
+  huff.writeTree(wb, tree, bits) -- encode the tree
+  for cb in enc do
+    local code, bits = cb
+    wb(code, bits)
   end
-  wb(eof, bits+1)
-  return tree
-end)
 
+Note: If tree is not provided this constructs the tree
+      then calls codes:reset().
+]](mty.record'huff.Encoder')
+  :field'codes'
+  :field('eof', 'number')
+  :field('dict', 'table')
+  :field('done', 'boolean', false)
+:new(function(ty_, codes, eof, tree)
+  assert(eof, 'must provide eof')
+  if not tree then
+    tree = M.huff.tree(codes, eof)
+    codes:reset()
+  end
+  return mty.new(ty_, {
+    codes=codes, eof=eof,
+    dict=treeDict(tree),
+  }), tree
+end)
+M.huff.reset = function(he)
+  he.codes:reset()
+  he.done = nil
+end
+M.huff.Encoder.__call = function(he)
+  local code = he.codes(); if not code then
+    if he.done then return end
+    he.done = true; return he.dict[he.eof]
+  end
+  return mty.assertf(he.dict[code], 'unknown code %s', code)
+end
+
+M.huff.Decoder = mty.doc[[
+Decoder from huffman codes.
+
+  huff.Decoder(rb, eof, tree) -> stringIter
+
+Example:
+  local rb = smol.ReadBits(io.open(read, 'rb'))
+  local tree = huff.readTree(rb, bits) -- or from Encoder(...)
+  local hdec = huff.Decoder(rb, bits, tree)
+  local lzdec = lzw.Decoder(hdec, bits)
+  local outf = io.open(write, 'wb')
+  for str in lzdec do
+    outf:write(str)
+  end
+  outf:flush()
+]](mty.record'huff.Decoder')
+  :field'readBits'
+  :field('bits', 'number')
+  :field'tree'
+  :field('eof', 'number')
+  :field('done', 'boolean', false)
+:new(function(ty_, rb, bits, tree, eof)
+  return mty.new(ty_, {
+    readBits=rb, bits=bits, tree=tree,
+    eof=eof or M.huff.eof(bits),
+  })
+end)
+M.huff.Decoder.reset = function(hd)
+  hd.codes:reset()
+  hd.done = false
+end
+M.huff.Decoder.__call = function(hd)
+  if hd.done then return end
+  local rb, node = hd.readBits, hd.tree
+  while type(node) ~= 'number' do
+    local bit = assert(rb(1), 'readBits empty before EOF')
+    if bit == 0 then node = node[1]     -- go left
+    else             node = node[2] end -- go right
+    assert(node)
+  end
+  if node == hd.eof then hd.done = true
+  else return node end
+end
 
 return M

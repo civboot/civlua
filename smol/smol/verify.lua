@@ -33,7 +33,8 @@ M.verify = mty.doc[[verify an encoder.
     file=encf,
     bits=bits,
   }
-  local enc = encoder(inp, bits)
+  local inpc = smol.FileCodes(inp)
+  local enc = encoder(inpc, bits)
   local numCodes = 0
   local encAndStore = function()
     local code = enc(); if not code then return end
