@@ -13,6 +13,7 @@ local eval
 local Set, LL, Duration, Epoch
 local lines
 local M = mty.lrequire'ds'
+local df = require'ds.file'
 
 test('bool and none', function()
   local none = M.none
@@ -286,4 +287,28 @@ test('heap', function()
 
   h = heap.Heap({1, 5, 9, 10, 3, 2}, M.gt)
   assertPops({10, 9, 5, 3, 2, 1}, h)
+end)
+
+
+test('LinesFile_small', function()
+  local lf = df.LinesFile{io.open('testdata/small.txt'), cache=2}
+  assertEq('This is a small file', lf[1])
+  assertEq('it is for testing.',   lf[2])
+  assertEq('',                     lf[3])
+  assertEq(0, lf.cacheMiss)
+  assertEq('This is a small file', lf[1])
+  assertEq(1, lf.cacheMiss)
+  assertEq(nil, rawget(lf, 2))
+  assertEq('it is for testing.',   lf[2])
+  assertEq(1, lf.cacheMiss)
+
+  assertEq('',                     lf[5])
+  assertEq('It ends in a newline', lf[4])
+  assertEq(1, lf.cacheMiss)
+
+  assertEq(math.maxinteger, lf.len)
+  assertEq(nil,                     lf[6])
+  assertEq(5, lf.len)
+  assertEq(nil,                     lf[7])
+  assertEq(5, lf.len)
 end)
