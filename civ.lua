@@ -29,6 +29,7 @@ local civtest = M.load('civtest',  'civtest/civtest.lua')
 
 M.load('pegl',       'pegl/pegl.lua')
 M.load('pegl.lua',   'pegl/pegl/lua.lua')
+M.load('cxt',        'cxt/cxt.lua')
 M.load('civix',      'civix/civix.lua')
 M.load('civix.term', 'civix/civix/term.lua')
 
