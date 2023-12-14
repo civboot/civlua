@@ -55,5 +55,4 @@ M.Model = record'Model'
   :fieldMaybe'chain'
   :field'inputCo'  :field'term'
 
-
 return M

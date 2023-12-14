@@ -1,8 +1,8 @@
 local mty = require'metaty'
 
-
 ------------------------------------------------------------------------
 -- Fake: a fake terminal for testing
+
 local FakeTerm = mty.rawTy'FakeTerm'
 getmetatable(FakeTerm).__call = function(ty_, h, w)
   local t = setmetatable({}, ty_); FakeTerm.init(t, h, w)

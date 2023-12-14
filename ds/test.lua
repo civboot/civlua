@@ -58,7 +58,6 @@ test("number", function()
   local a, b = sort2(2, 1); assert(a == 1); assert(b == 2)
 end)
 
-
 test("str", function()
   assertEq("12 34 56", strInsert("1256", 3, " 34 "))
   assertEq("78 1256", strInsert("1256", 1, "78 "))
@@ -289,9 +288,12 @@ test('heap', function()
   assertPops({10, 9, 5, 3, 2, 1}, h)
 end)
 
-
 test('LinesFile_small', function()
-  local lf = df.LinesFile{io.open('testdata/small.txt'), cache=2}
+  assertEq(5, df.readLen'testdata/small.txt')
+  local f = io.open('testdata/small.txt')
+  assertEq(5, df.readLen(f)); f:seek'set'
+
+  local lf = df.LinesFile{f, cache=2}
   assertEq('This is a small file', lf[1])
   assertEq('it is for testing.',   lf[2])
   assertEq('',                     lf[3])
@@ -307,8 +309,22 @@ test('LinesFile_small', function()
   assertEq(1, lf.cacheMiss)
 
   assertEq(math.maxinteger, lf.len)
-  assertEq(nil,                     lf[6])
-  assertEq(5, lf.len)
-  assertEq(nil,                     lf[7])
-  assertEq(5, lf.len)
+  assertEq(nil,             lf[6])
+  assertEq(5,               lf.len)
+  assertEq(nil,             lf[7])
+  assertEq(5,               lf.len)
+end)
+
+test('LinesFile_append', function()
+  local fname = os.tmpname()
+  local lf = df.LinesFile:appendTo{fname, cache=3}
+  lf[1] = 'first line'
+  lf[2] = 'second line'
+  lf:flush()
+  assertEq('first line',  lf[1])
+  assertEq('second line', lf[2])
+  lf[3] = 'third line'
+  assertEq('second line', lf[2])
+  assertEq('third line',  lf[3])
+  assertEq(3,             #lf)
 end)

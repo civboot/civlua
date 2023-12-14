@@ -4,7 +4,6 @@ local mty = require'metaty'
 local test, assertEq; mty.lrequire'civtest'
 
 local buffer = require'rebuf.buffer'
-local T = require'ele.types'
 local Buffer = buffer.Buffer
 local C, CS = buffer.Change, buffer.ChangeStart
 

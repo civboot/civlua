@@ -9,7 +9,6 @@ local forword, backword, findBack
 local wordKind
 mty.lrequire'rebuf.motion'
 
-
 test('distance', function()
   assertEq(3, decDistance(1, 4))
   assertEq(2, decDistance(5, 1))
