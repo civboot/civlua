@@ -324,7 +324,50 @@ test('LinesFile_append', function()
   assertEq('first line',  lf[1])
   assertEq('second line', lf[2])
   lf[3] = 'third line'
+  lf:flush()
   assertEq('second line', lf[2])
   assertEq('third line',  lf[3])
   assertEq(3,             #lf)
+  lf.file:seek'set'
+  assertEq([[
+first line
+second line
+third line
+]], lf.file:read'a')
+end)
+
+test('IndexedFile_append', function()
+  local f = io.tmpfile()
+  local orig = [[
+hi there
+this file
+
+is indexed
+for speed.
+]]
+  f:write(orig)
+  local fx = df.IndexedFile{f}
+  local idxf = fx.idx.file
+  idxf:flush()
+  assertEq(0,  fx.idx:getPos(1))
+  assertEq(9,  fx.idx:getPos(2))
+  assertEq(0,  fx.idx:getPos(1))
+  assertEq(19, fx.idx:getPos(3))
+  assertEq('hi there',   fx[1])
+  assertEq('this file',  fx[2])
+  assertEq('',           fx[3])
+  assertEq('is indexed', fx[4])
+  assertEq('for speed.', fx[5])
+  assertEq(nil,          fx[0])
+  assertEq(nil,          fx[6])
+
+  assertEq({'hi there', 'this file', ''}, lines.sub(fx, 1, 3))
+  assertEq('there\nthis file\n', lines.sub(fx, 1, 4, 3, 0))
+
+  local appended = 'and can be appended to'
+  fx[6] = appended
+  fx:flush()
+  assertEq(appended, fx[6])
+  f:seek'set'
+  assertEq(orig..appended..'\n', f:read'a')
 end)
