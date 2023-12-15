@@ -418,17 +418,21 @@ M.Parser.skipEmpty=function(p)
 end
 M.Parser.state   =function(p) return {l=p.l, c=p.c, line=p.line} end
 M.Parser.setState=function(p, st) p.l, p.c, p.line = st.l, st.c, st.line end
+-- TODO: rename toStrNodes
 M.Parser.toStrTokens=function(p, n--[[node]])
   if not n then return nil end
   if ty(n) == M.Token then
-    local l, c = n:lc1(p)
-    local t = lines.sub(p.dat, l, c, n:lc2(p))
+    local t = p:tokenStr(n)
     return n.kind and {t, kind=n.kind} or t
   elseif #n == 0 then return n end
   local t={} for _, n in ipairs(n) do add(t, p:toStrTokens(n)) end
   t.kind=n.kind; return t
 end
-
+M.Parser.tokenStr = function(p, t--[[Token]])
+  assert(mty.ty(t) == M.Token)
+  local l, c = t:lc1(p)
+  return lines.sub(p.dat, l, c, t:lc2(p))
+end
 M.Parser.fmtSetDefault = function(p) return mty.FmtSet{
   data=p, pretty=true, listSep=', ', tblSep=', ',
 }end
@@ -455,16 +459,15 @@ local function fmtStack(p)
 end
 M.Parser.checkPin=function(p, pin, expect)
   if not pin then return end
-  local stk = fmtStack(p)
-  if p.line then
-    mty.errorf(
-      "ERROR %s.%s\nstack: %s\nparser expected: %s\nGot: %s",
-      p.l, p.c, stk, mty.fmt(expect), p.line:sub(p.c))
-  else
-    mty.errorf(
-      "ERROR %s.%s\nstack: %s\nparser reached EOF but expected: %s",
-      p.l, p.c, stk, mty.fmt(expect))
-  end
+  if p.line then p:error(sfmt(
+    "parser expected: %s\nGot: %s",
+    mty.fmt(expect), p.line:sub(p.c))
+  )else p:error(sfmt(
+    "parser reached EOF but expected: %s", ty.fmt(expect)
+  ))end
+end
+M.Parser.error=function(p, msg)
+  mty.errorf("ERROR %s.%s\nstack: %s\n%s", p.l, p.c, fmtStack(p), msg)
 end
 
 M.Token.__fmt = function(t, f)
