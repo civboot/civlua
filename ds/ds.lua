@@ -180,6 +180,15 @@ end)
 
 ---------------------
 -- Table Functions
+M.isEmpty = mty.doc'return whether a table is empty'
+(function(t) return (#t == 0) and (next(t) == nil) end)
+
+M.only = mty.doc'get the first and only element of the list'
+(function(t)
+  mty.assertf(#t == 1, 'len ~= 1: %s', #t)
+  return t[1]
+end)
+
 M.inext = mty.doc'next(t, key) but with indexes'(ipairs{})
 
 M.iprev = mty.doc'inext but reversed.'

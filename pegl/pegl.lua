@@ -23,11 +23,15 @@ M.decodeLCTbl = table.unpack
 
 M.Token = mty.record'Token'
   :fieldMaybe'kind'
-M.Token.lc1=function(t, p) return p.root.decodeLC(t[1]) end
-M.Token.lc2=function(t, p) return p.root.decodeLC(t[2]) end
+M.Token.lc1=function(t, dec) return dec(t[1]) end
+M.Token.lc2=function(t, dec) return dec(t[2]) end
 M.Token.encode=function(ty_, p, l, c, l2, c2, kind)
   local e = p.root.encodeLC
   return M.Token{e(l, c), e(l2, c2), kind=kind}
+end
+M.Token.decode = function(t, dat, dec)
+  local l, c = t:lc1(dec)
+  return lines.sub(dat, l, c, t:lc2(dec))
 end
 
 M.RootSpec = mty.record'RootSpec'
@@ -176,9 +180,16 @@ M.RootSpec.skipEmpty = function(p)
         cL = p.commentLC[p.l]
         if not cL then cL = {}; p.commentLC[p.l] = cL end
         cL[p.c] = cmt
-        p.l, p.c = cmt:lc2(p); p.c = p.c + 1
+        p.l, p.c = cmt:lc2(p.root.decodeLC); p.c = p.c + 1
       end
     end
+  end
+end
+
+M.skipEmptyMinimal = function(p)
+  while not p:isEof() do
+    if p.c > #p.line then p:incLine()
+    else return end
   end
 end
 
@@ -214,7 +225,7 @@ end
 -- Key
 
 M.Key.parse = function(key, p)
-  p:skipEmpty();
+  p:skipEmpty()
   local c, keys, found = p.c, key.keys, false
   while true do
     local k = p.root.tokenizer(p); if not k    then break end
@@ -400,12 +411,12 @@ M.Parser.peek = function(p, pat)
 end
 M.Parser.consume = function(p, pat, plain)
   local t = p:peek(pat, plain)
-  if t then p.c = select(2, t:lc2(p)) + 1 end
+  if t then p.c = select(2, t:lc2(p.root.decodeLC)) + 1 end
   return t
 end
 M.Parser.sub =function(p, t) -- t=token
-  local l, c = t:lc1(p)
-  return lines.sub(p.dat, l, c, t:lc2(p))
+  local l, c = t:lc1(p.root.decodeLC)
+  return lines.sub(p.dat, l, c, t:lc2(p.root.decodeLC))
 end
 M.Parser.incLine=function(p)
   p.l, p.c = p.l + 1, 1
@@ -426,12 +437,11 @@ M.Parser.toStrTokens=function(p, n--[[node]])
     return n.kind and {t, kind=n.kind} or t
   elseif #n == 0 then return n end
   local t={} for _, n in ipairs(n) do add(t, p:toStrTokens(n)) end
-  t.kind=n.kind; return t
+  t.kind=n.kind
+  return t
 end
 M.Parser.tokenStr = function(p, t--[[Token]])
-  assert(mty.ty(t) == M.Token)
-  local l, c = t:lc1(p)
-  return lines.sub(p.dat, l, c, t:lc2(p))
+  return t:decode(p.dat, p.root.decodeLC)
 end
 M.Parser.fmtSetDefault = function(p) return mty.FmtSet{
   data=p, pretty=true, listSep=', ', tblSep=', ',
@@ -468,6 +478,13 @@ M.Parser.checkPin=function(p, pin, expect)
 end
 M.Parser.error=function(p, msg)
   mty.errorf("ERROR %s.%s\nstack: %s\n%s", p.l, p.c, fmtStack(p), msg)
+end
+M.Parser.parseAssert=function(p, spec)
+  local n = p:parse(spec); if not n then p:error(sfmt(
+    "parser expected: %s\nGot: %s",
+    mty.fmt(spec), p.line:sub(p.c))
+  )end
+  return n
 end
 
 M.Token.__fmt = function(t, f)

@@ -465,19 +465,20 @@ M.FmtSet = M.doc[[Fmt settings]]
 -- Fields with constructor defaults
 M.FmtSet
   :field('safe',      'boolean')
-  :field('keysMax',   'number')
-  :field('itemSep',   'string')
-  :field('levelSep',  'string')
+  :field('keysMax',   'number'):fdoc'used for display and sorting'
+  :field('itemSep',   'string'):fdoc'separator in map'
+  :field('levelSep',  'string'):fdoc'separator for new tables'
 
 -- Fields with normal defaults
 M.FmtSet
-  :field('pretty',    'boolean', false)
-  :field('recurse', 'boolean', true)
+  :field('pretty',  'boolean', false)
+  :field('recurse', 'boolean', true)  :fdoc'make recursion safe'
   :field('indent',  'string',  '  ')
-  :field('listSep', 'string',  ',')
-  :field('tblSep',  'string',  ' :: ')
-  :field('num',     'string',  '%i')
-  :field('str',     'string',  '%q')
+  :field('listSep', 'string',  ',')   :fdoc'separator in list'
+  :field('tblSep',  'string',  ' :: '):fdoc'list / map separator'
+  :field('num',     'string',  '%i')  :fdoc'number format'
+  :field('str',     'string',  '%q')  :fdoc'stirng format'
+  :field('raw',     'boolean', false) :fdoc'ignore __fmt/__tostring'
   :field('tblFmt',  'function')
   :fieldMaybe'data' -- arbitrary data, use carefully!
 M.FmtSet.__missing = M._recordMissing
@@ -641,10 +642,10 @@ end
 -- Note: may be called inside pcall
 local function doFmt(f, v, mt)
   assert(type(v) == 'table', type(v))
-  if not mt or mt == 'table' then f.set.tblFmt(v, f)
-  elseif mt.__fmt then mt.__fmt(v, f)
-  elseif mt.__tostring ~= M.fmt then
-    add(f, tostring(v))
+  if f.set.raw or not mt or mt == 'table' then
+    f.set.tblFmt(v, f)
+  elseif mt.__fmt               then mt.__fmt(v, f)
+  elseif mt.__tostring ~= M.fmt then add(f, tostring(v))
   else f.set.tblFmt(v, f) end
 end
 
