@@ -5,6 +5,7 @@ local cxt  = require'cxt'
 local shim = require'shim'
 local civtest = require'civtest'
 local add, sfmt = table.insert, string.format
+local ds = require'ds'; local lines = ds.lines
 local df = require'ds.file'
 
 local M = mty.docTy({}, DOC)
@@ -13,6 +14,9 @@ local function nodeKind(n)
   if mty.ty(n) == pegl.Token then return 'token' end
   if n.code                  then return 'pre' end
   if n.br                    then return 'br'  end
+  if n.h1                    then return 'h1'  end
+  if n.h2                    then return 'h2'  end
+  if n.h3                    then return 'h3'  end
   for a in pairs(n) do if cxt.htmlAttr[a] then
     return 'div'
   end end
@@ -45,19 +49,24 @@ local function endNode(n, kind, line)
   add(line, '</'..kind..'>');
 end
 
+local function addLine(out, line)
+  ds.extend(out, ds.lines(table.concat(line)))
+end
+
 local function _serialize(p, out, line, node)
   local kind = nodeKind(node)
   if kind == 'token' then
     local s = p:tokenStr(node)
     if s:sub(#s,#s) == '\n' then
       add(line, s:sub(1, #s-1))
-      add(out, table.concat(line))
+      mty.pnt('?? serialize line: ', line)
+      addLine(out, line)
       line = {}
     else add(line, s) end
     return line
   elseif kind == 'br' then
     add(line, '<br>')
-    add(out, table.concat(line))
+    addLine(out, line)
     return {}
   end
   mty.pnt('?? node kind='..tostring(kind)..':', node)
@@ -73,18 +82,18 @@ M.serialize = function(p, out, node)
   local line = {}; for _, n in ipairs(node) do
     line = _serialize(p, out, line, n)
   end
-  if #line > 0 then add(out, table.concat(line)) end
+  if #line > 0 then addLine(out, line) end
 end
 M.serializeDoc = function(p, out, node)
   mty.pnt('?? serialize:', node)
-  add(out, '<!DOCTYPE html>\n<html><body>')
+  addLine(out, {'<!DOCTYPE html>\n<html><body>'})
   M.serialize(p, out, node)
-  add(out, '</body></html>')
+  addLine(out, {'</body></html>'})
 end
 
 M.convert = function(dat, out)
   local out, node, p = out or {}, cxt.parse(dat)
-  M.serialize(p, out, node)
+  M.serializeDoc(p, out, node)
   return out, p
 end
 

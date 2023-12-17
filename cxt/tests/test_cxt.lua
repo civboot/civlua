@@ -39,7 +39,7 @@ This is a bit
 ]##
 ]], {
     "Some code:\n",
-    {"This is a bit\n  of code.", code=true},
+    {"\nThis is a bit\n  of code.\n", code=true},
     '\n',
     {br=true},
   })

@@ -31,7 +31,7 @@ M.keyval = {kind='keyval',
   Pat'[_.%-%w]+',
   Maybe{'=', '[^%s%[%]]+', kind='value'},
 }
-M.attr  = Or{Pat(RAW..'+'), M.attrSym, M.keyval}
+M.attr  = Or{Pat{RAW..'+', kind='raw'}, M.attrSym, M.keyval}
 M.attrs =   {PIN, Many{M.attr}, '}', kind='attrs'}
 
 -- find the end of a [##raw block]##
@@ -44,10 +44,11 @@ local function bracketedStrRaw(p, raw)
     local c1, c2 = p.line:find(closePat, p.c)
     if c2 then
       p.c = c2 + 1
-      local lt, ct = p.l, c1 - 1; if ct == 0 then
-        -- ignore last newline if end is at start
-        lt, ct = p.l - 1, #p.dat[p.l - 1]
-      end
+      local lt, ct = p.l, c1 - 1
+      -- if ct == 0 then
+      --   -- ignore last newline if end is at start
+      --   lt, ct = p.l - 1, #p.dat[p.l - 1]
+      -- end
       return Token:encode(p, l, c, lt, ct)
     end
     p:incLine()
@@ -90,10 +91,14 @@ local directKinds = ds.Set{
 local function parseAttrs(p, node)
   local l, c, raw = p.l, p.c, nil
   print('?? attrs:', p.line:sub(c))
-  for _, attr in ipairs(p:parse(M.attrs)) do
-    if attr.kind == '}' then
-    elseif attr.kind == 'attrSym' then
-      node[assert(fmtAttr[attr[1]])] = true
+  local attrs = p:parse(M.attrs)
+  for _, attr in ds.islice(attrs, 1, #attrs-1) do
+    print('?? attr:', attr)
+    if attr.kind == 'attrSym' then
+      mty.pnt('?? attrSym:', attr, mty.ty(attr))
+      local attr = p:tokenStr(attr)
+      mty.pnt('?? attrSym:', attr)
+      node[assert(fmtAttr[attr] or strAttr[attr])] = true
     elseif attr.kind == 'keyval' then
       local val = attr[2]
       if val == pegl.EMPTY then val = true
@@ -104,7 +109,8 @@ local function parseAttrs(p, node)
       if raw then
         p.l, p.c = l, c; p:error'multiple raw (##...) attributes'
       end
-      local _, c1 = attr:lc1(p); local _, c2 = attr:lc2(p)
+      local _, c1 = attr:lc1(p.root.decodeLC)
+      local _, c2 = attr:lc2(p.root.decodeLC)
       raw = c2 - c1 + 1
     end
   end
@@ -176,7 +182,9 @@ M.content = function(p, node, isRoot)
     p.c, raw = c2 + 1, c2 - c1 + 1
   end
   p.c = p.c + 1
-  if p.c > #p.line then p:incLine(); skipWs(p) end
+  -- if p.c > #p.line then
+  --   p:incLine(); skipWs(p)
+  -- end
   local sub = {}
   if     raw           then sub.raw, sub.code       = raw, true
   elseif fmtAttr[ctrl] then sub[fmtAttr[ctrl]]      = true
