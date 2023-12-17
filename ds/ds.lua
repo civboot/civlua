@@ -197,6 +197,19 @@ M.iprev = mty.doc'inext but reversed.'
 M.ireverse = mty.doc'ipairs reversed'
 (function(t) return M.iprev, t, #t + 1 end)
 
+M.rawislice = mty.doc'for i, v in rawislice({t, endi}, starti)'
+(function(state, i)
+  i = i + 1; if i > state[2] then return end
+  return i, state[1][i]
+end)
+M.islice = mty.doc[[
+islice(t, starti, endi): iterate over slice.
+
+Unlike other i* functions, this ignores length.
+]](function(t, starti, endi)
+  return M.rawislice, {t, endi or #t}, (starti or 1) - 1
+end)
+
 -- reverse a list-like table in-place
 M.reverse = function(t)
   local l = #t; for i=1, l/2 do

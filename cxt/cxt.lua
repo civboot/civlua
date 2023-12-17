@@ -100,7 +100,7 @@ local function parseAttrs(p, node)
       else                      val = ds.only(val) end
       node[p:tokenStr(attr[1])] = val
     else
-      assert(attr.kind == 'raw', attr.kind)
+      mty.assertf(attr.kind == 'raw', 'kind: %s', attr.kind)
       if raw then
         p.l, p.c = l, c; p:error'multiple raw (##...) attributes'
       end

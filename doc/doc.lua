@@ -54,9 +54,9 @@ A Generic for destructures to:
   do -- Note: $vars are not accessible
     local $fn, $state, $index = explist
     while true do
-      local $index, i, v, etc = $f($state, $index)
-      if $index == nil then break end
-      i = $index
+      local i, v, etc = $f($state, $index)
+      if i == nil then break end
+      $index = i
       -- code using i, v, etc here
     end
   end

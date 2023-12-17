@@ -115,6 +115,12 @@ test("table", function()
   t = {}; for i, v in M.ireverse{4, 5, 8} do t[i] = v end
   assertEq({4, 5, 8}, t)
 
+  t = {}; for i, v in M.islice({5, 6, 7, 8, 9}, 2, 4) do
+    push(t, v)
+  end
+  assertEq({6, 7, 8}, t)
+
+
   t = {}
   M.walk(
     {1, 2, a=3, inner={b=9, c='hi'}},
