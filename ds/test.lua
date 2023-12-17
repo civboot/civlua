@@ -204,6 +204,7 @@ test('lines.sub', function()
   assertEq({'ab', 'c'}, lsub(l, 1, 2))
   assertEq({'c', ''},   lsub(l, 2, 3))
   assertEq('ab\n',      lsub(l, 1, 1, 1, 3))
+  assertEq('ab\n',      lsub(l, 1, 1, 2, 0))
   assertEq('b\nc',      lsub(l, 1, 2, 2, 1))
 
   l = lines"4     It's nice to have some real data"

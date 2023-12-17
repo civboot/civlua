@@ -12,56 +12,44 @@ local pegl = mty.lrequire'pegl'
 
 local KW, N, NUM, HEX; mty.lrequire(testing)
 
-local root, T, BLANK
-local M = mty.lrequire'cxt'
+local M = require'cxt'
 
 
-test('pegl easy', function()
-  assertParse{dat='hi there', spec=M.src, expect={
-    T'hi there', EOF
-  }, root=root, dbg=true}
-
-  assertParse{dat='hi there [*bob]', spec=M.src, expect={
-    T'hi there ',
-    {kind='blk',
-      '[', KW'*', T'bob', ']'
-    },
-    EOF
-  }, root=root, dbg=true}
-
-  assertParse{dat='some [#inline code]', spec=M.src, expect={
-    T'some ',
-    {kind='blk',
-      '[', {kind='code', KW'#', 'inline code'}, ']'
-    },
-    EOF
-  }, root=root, dbg=true}
-
+test('simple', function()
+  M.assertParse('hi there', {'hi there'})
+  M.assertParse('hi there [*bob]', {
+    'hi there ', {'bob', b=true},
+  })
+  M.assertParse('inline [ code]', {
+    'inline ', {'code', code=true},
+  })
+  M.assertParse('multiple\n [_lines]\n\n  with [*break]', {
+    'multiple\n', {'lines', u=true},
+    '\n', {br=true},
+    'with ', {'break', b=true},
+  })
 end)
 
-test('pegl multiline', function()
-  assertParse{dat=[[
-This text
-  has multiple lines
-with [*some inline] blocks.
-
-Done.
-]], spec=M.src, expect={
-    T'This text',
-    T'  has multiple lines',
-    T'with ', {kind='blk',
-      '[', KW'*', T'some inline', ']',
-    }, T' blocks.',
-    BLANK, T'Done.', BLANK,
-    EOF,
-  }, root=root}
+test('block', function()
+  M.assertParse([[
+Some code:
+[##
+This is a bit
+  of code.
+]##
+]], {
+    "Some code:\n",
+    {"This is a bit\n  of code.", code=true},
+    '\n',
+    {br=true},
+  })
 end)
 
-test('parse', function()
-  local dat = ds.lines([[
-text and [*some inline] blocks.
-]])
-  local cxt, p = M.parse(dat)
-  -- assertEq({}, p:toStrTokens(cxt))
-  assert(false)
-end)
+-- test('parse', function()
+--   local dat = ds.lines([[
+-- text and [*some inline] blocks.
+-- ]])
+--   local cxt, p = M.parse(dat)
+--   -- assertEq({}, p:toStrTokens(cxt))
+--   assert(false)
+-- end)
