@@ -30,6 +30,7 @@ local civtest = M.load('civtest',  'civtest/civtest.lua')
 M.load('pegl',       'pegl/pegl.lua')
 M.load('pegl.lua',   'pegl/pegl/lua.lua')
 M.load('cxt',        'cxt/cxt.lua')
+M.load('cxt.html',   'cxt/cxt/html.lua')
 M.load('civix',      'civix/civix.lua')
 M.load('civix.term', 'civix/civix/term.lua')
 
@@ -63,6 +64,7 @@ shim{
     help = M.helpShim,
     ele  = ele.main,
     ff   = ff.shim,
+    ['cxt.html'] = require'cxt.html'.shim,
   },
 }
 

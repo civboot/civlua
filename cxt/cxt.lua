@@ -1,3 +1,6 @@
+-- TODO:
+--   ["quote block]
+--   [1Header block]
 
 local mty = require'metaty'
 local ds  = require'ds'; local lines = ds.lines
@@ -25,11 +28,11 @@ M.attrSym = Key{kind='attrSym', {
   ':',             -- define node name
 }}
 M.keyval = {kind='keyval',
-  Pat'[_.-%w]+',
+  Pat'[_.%-%w]+',
   Maybe{'=', '[^%s%[%]]+', kind='value'},
 }
 M.attr  = Or{Pat(RAW..'+'), M.attrSym, M.keyval}
-M.attrs =   {Many{M.attr}, '}', kind='attrs'}
+M.attrs =   {PIN, Many{M.attr}, '}', kind='attrs'}
 
 -- find the end of a [##raw block]##
 local function bracketedStrRaw(p, raw)
@@ -72,7 +75,7 @@ local function bracketedStr(p, raw)
   return Token:encode(p, l, c, p.l, p.c - 2)
 end
 
-local symAttr = {
+local fmtAttr = {
   ['*'] = 'b', ['/'] = 'i', ['_'] ='u',
 }
 local strAttr = {
@@ -86,9 +89,11 @@ local directKinds = ds.Set{
 
 local function parseAttrs(p, node)
   local l, c, raw = p.l, p.c, nil
+  print('?? attrs:', p.line:sub(c))
   for _, attr in ipairs(p:parse(M.attrs)) do
-    if attr.kind == 'attrSym' then
-      node[assert(symAttr[attr[1]])] = true
+    if attr.kind == '}' then
+    elseif attr.kind == 'attrSym' then
+      node[assert(fmtAttr[attr[1]])] = true
     elseif attr.kind == 'keyval' then
       local val = attr[2]
       if val == pegl.EMPTY then val = true
@@ -174,11 +179,11 @@ M.content = function(p, node, isRoot)
   if p.c > #p.line then p:incLine(); skipWs(p) end
   local sub = {}
   if     raw           then sub.raw, sub.code       = raw, true
-  elseif symAttr[ctrl] then sub[symAttr[ctrl]]      = true
+  elseif fmtAttr[ctrl] then sub[fmtAttr[ctrl]]      = true
   elseif strAttr[ctrl] then sub[strAttr[ctrl]], raw = true, 0
   elseif ctrl == '{'   then raw = parseAttrs(p, sub)
   elseif ctrl == '<' then
-    sub.url = assert(p:parse{PIN, Pat'[^>]*', '>'}[1])
+    sub.href = assert(p:parse{PIN, Pat'[^>]*', '>'}[1])
   end
   if raw then add(sub, bracketedStr(p, raw))
   else        M.content(p, sub) end
@@ -218,5 +223,8 @@ function M.assertParse(dat, expected, dbg)
   civtest.assertEq(expected, M.parsedStrings(p, node))
 end
 
+M.fmtAttr = fmtAttr
+M.htmlFmt  = ds.Set{'b', 'i', 'u'}
+M.htmlAttr = ds.Set{'href'}
 
 return M

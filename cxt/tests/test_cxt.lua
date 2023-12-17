@@ -7,13 +7,13 @@ local test, assertEq
 mty.lrequire'civtest'
 
 local RootSpec, Token
-local testing, EMPTY, EOF, assertParse, assertParseError
+local testing, EMPTY, EOF
 local pegl = mty.lrequire'pegl'
 
 local KW, N, NUM, HEX; mty.lrequire(testing)
 
 local M = require'cxt'
-
+local html = require'cxt.html'
 
 test('simple', function()
   M.assertParse('hi there', {'hi there'})
@@ -45,11 +45,28 @@ This is a bit
   })
 end)
 
--- test('parse', function()
---   local dat = ds.lines([[
--- text and [*some inline] blocks.
--- ]])
---   local cxt, p = M.parse(dat)
---   -- assertEq({}, p:toStrTokens(cxt))
---   assert(false)
--- end)
+test('attrs', function()
+  pegl.assertParse{dat='i', spec=M.attr, expect={
+      'i', pegl.EMPTY, kind='keyval',
+    },
+    dbg=true
+  }
+  pegl.assertParse{dat='i}', spec=M.attrs,
+    expect={kind='attrs',
+      {'i', pegl.EMPTY, kind='keyval'},
+      KW'}',
+    },
+    dbg=true
+  }
+  M.assertParse('[{i}italic] block', {
+    {'italic', i=true}, ' block'
+  }, true)
+end)
+
+test('html', function()
+  html.assertHtml('hi [*there] bob', {'hi <b>there</b> bob'})
+  html.assertHtml('hi [*there]\n  newline', {
+    'hi <b>there</b>', 'newline'
+  })
+end)
+
