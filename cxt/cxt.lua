@@ -129,6 +129,48 @@ local function addToken(p, node, l1, c1, l2, c2)
   end
 end
 
+local ITEM = {
+  ['^%s*%* ']      = 'bullet',
+  ['^%s*%(%d+%) '] = 'numbered',
+}
+local LIST_ITEM_ERR = [[
+expected bullet item followed by whitespace. Examples:\n
+      *   bullet
+      (1) numbered
+      [ ] unchecked
+      [x] checked
+]]
+local function parseList(p, list)
+  mty.pnt'?? parsing list'
+  p:skipEmpty()
+  if p:isEof() then p:error'Expected a list got EOF' end
+  local ipat, ikind; for ip, i in pairs(ITEM) do
+    if p:consume(ip) then ipat, ikind = ip, i
+      break
+    end
+  end
+  if not ipat then p:error(LIST_ITEM_ERR) end
+  mty.pntf('?? list ipat %q', ipat)
+  local altEnd = function(p, node, l, c)
+    local c1, c2 = p.line:find(ipat)
+    mty.pntf('?? altEnd call %s.%s: %s => %s', p.l, p.c, p.line:sub(p.c), c1)
+    return c2 and (p.c <= c2) and 'listStart' or false, l, c
+  end
+  while true do
+    local item = {}
+    mty.pntf('?? list item %s.%s: %s', p.l, p.c, p.line:sub(p.c))
+    local r, l, c = M.content(p, item, false, altEnd)
+    mty.pntf('?? list content returned: %s %s %s', r, l, c)
+    if r == 'listStart' then
+      addToken(p, item, l, c, p.l, p.c - 1)
+      local c1, c2 = p.line:find(ipat, p.c)
+      p.c = c2 + 1
+    end
+    add(list, item)
+    if not r then break end
+  end
+end
+
 -- skip whitespace, return whether it was skipped
 local function skipWs(p)
   if not p.line then return end
@@ -145,7 +187,7 @@ local function incLine(p, node, l1, c1)
   return p.l, p.c
 end
 
-M.content = function(p, node, isRoot)
+M.content = function(p, node, isRoot, altEnd)
   local l, c = p.l, p.c
   ::loop::
   mty.pntf('?? l=%s: %s', l, p.line)
@@ -163,6 +205,14 @@ M.content = function(p, node, isRoot)
     mty.pnt('?? inc line')
     l, c = incLine(p, node, l, c)
     goto loop
+  end
+  if altEnd then
+    local e = table.pack(altEnd(p, node, l, c))
+    if e[1] then
+      mty.pnt('?? content hit altEnd: ', e)
+      return table.unpack(e)
+    end
+    print'?? not alt end'
   end
   local c1, c2 = p.line:find('[%[%]]', p.c); if not c2 then
     l, c = incLine(p, node, l, c)
@@ -189,12 +239,14 @@ M.content = function(p, node, isRoot)
   if     raw           then sub.raw, sub.code       = raw, true
   elseif fmtAttr[ctrl] then sub[fmtAttr[ctrl]]      = true
   elseif strAttr[ctrl] then sub[strAttr[ctrl]], raw = true, 0
+  elseif ctrl == '+'   then sub.list                = true
   elseif ctrl == '{'   then raw = parseAttrs(p, sub)
   elseif ctrl == '<' then
     sub.href = assert(p:parse{PIN, Pat'[^>]*', '>'}[1])
   end
-  if raw then add(sub, bracketedStr(p, raw))
-  else        M.content(p, sub) end
+  if raw          then add(sub, bracketedStr(p, raw))
+  elseif sub.list then parseList(p, sub)
+  else                 M.content(p, sub) end
   sub.pos = {posL,posC,p.l,p.c-1}
   add(node, sub)
   l, c = p.l, p.c

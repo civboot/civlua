@@ -168,8 +168,7 @@ M.skipWs1 = function(p)
   return true
 end
 
--- Default skipEmpty function.
-M.RootSpec.skipEmpty = function(p)
+M.skipEmpty = function(p)
   local loop, sc, cmt, cL = true, p.root.skipComment
   while loop and not p:isEof() do
     loop = not M.skipWs1(p)
@@ -185,6 +184,7 @@ M.RootSpec.skipEmpty = function(p)
     end
   end
 end
+M.RootSpec.skipEmpty = M.skipEmpty
 
 M.skipEmptyMinimal = function(p)
   while not p:isEof() do

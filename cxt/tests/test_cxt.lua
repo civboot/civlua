@@ -63,6 +63,38 @@ test('attrs', function()
   }, true)
 end)
 
+-- * second item:[+
+--   * sub first
+--   * sub second
+--   ]
+-- ]
+
+test('list', function()
+  M.assertParse([[
+A list:[+
+* first item
+* second item:[+
+  * sub first
+  * sub second
+  ]
+]
+]],
+  {
+    'A list:', {list=true,
+      {'first item\n'},
+      {
+        'second item:',
+        { list=true,
+          {'sub first\n'},
+          {'sub second\n'},
+        },
+        '\n'
+      },
+    }, '\n', {br=true},
+  }, true)
+
+end)
+
 test('html', function()
   html.assertHtml('hi [*there] bob', {'hi <b>there</b> bob'})
   html.assertHtml('hi [*there]\n  newline', {
