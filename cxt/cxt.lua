@@ -29,7 +29,7 @@ M.attrSym = Key{kind='attrSym', {
 }}
 M.keyval = {kind='keyval',
   Pat'[_.%-%w]+',
-  Maybe{'=', '[^%s%[%]]+', kind='value'},
+  Maybe{'=', Pat'[^%s{}]+', kind='value'},
 }
 M.attr  = Or{Pat{RAW..'+', kind='raw'}, M.attrSym, M.keyval}
 M.attrs =   {PIN, Many{M.attr}, '}', kind='attrs'}
@@ -58,18 +58,18 @@ end
 -- A string that ends in a closed bracket and handles balanced brackets.
 -- Returns: Token, which does NOT include the closePat
 local function bracketedStr(p, raw)
+  mty.pntf('?? bracketedStr %s %s.%s: %s', raw, p.l, p.c, p.line:sub(p.c))
   if raw > 0 then return bracketedStrRaw(p, raw) end
   local l, c, nested = p.l, p.c, 1
   while nested > 0 do
     if p:isEof() then p:error"Got EOF, expected matching ']'" end
     if p.c > #p.line then p:incLine(); goto continue end
-    local c1, c2 = p.line:find('%[', p.c); if c2 then
-      p.c = c2 + 1; nested = nested + 1
-      goto continue
-    end
-    c1, c2 = p.line:find('%]', p.c); if c2 then
-      p.c = c2 + 1; nested = nested - 1
-      goto continue
+    local c1, c2 = p.line:find('[%[%]]', p.c); if c2 then
+      if p.line:sub(c1,c2) == '[' then
+        p.c = c2 + 1; nested = nested + 1
+      else
+        p.c = c2 + 1; nested = nested - 1
+      end
     end
     ::continue::
   end
@@ -90,7 +90,7 @@ local function parseAttrs(p, node)
   print('?? attrs:', p.line:sub(c))
   local attrs = p:parse(M.attrs)
   for _, attr in ds.islice(attrs, 1, #attrs-1) do
-    print('?? attr:', attr)
+    mty.pnt('?? attr:', attr)
     if attr.kind == 'attrSym' then
       mty.pnt('?? attrSym:', attr, mty.ty(attr))
       local attr = p:tokenStr(attr)
@@ -99,7 +99,7 @@ local function parseAttrs(p, node)
     elseif attr.kind == 'keyval' then
       local val = attr[2]
       if val == pegl.EMPTY then val = true
-      else                      val = ds.only(val) end
+      else                      val = p:tokenStr(val[2]) end
       node[p:tokenStr(attr[1])] = val
     else
       mty.assertf(attr.kind == 'raw', 'kind: %s', attr.kind)
@@ -219,7 +219,13 @@ M.content = function(p, node, isRoot, altEnd)
   mty.pnt('?? Adding @[]')
   addToken(p, node, l, c, p.l, c2-1)
   local posL, posC = p.l, p.c
-  if p.line:sub(c1,c2) == ']' then return end
+  if p.line:sub(c1,c2) == ']' then
+    if p.line:sub(c2+1, c2+1) == ']' then
+      l, c = p.l, p.c; p.c = p.c + 1
+      goto loop
+    end
+    return
+  end
   local raw, ctrl = nil, p.line:sub(p.c, p.c)
   if ctrl == '' then
     p:error("expected control char after '['")
@@ -238,6 +244,7 @@ M.content = function(p, node, isRoot, altEnd)
   elseif strAttr[ctrl] then sub[strAttr[ctrl]], raw = true, 0
   elseif ctrl == '+'   then sub.list                = true
   elseif ctrl == '{'   then raw = parseAttrs(p, sub)
+  elseif ctrl == '['   then l, c = p.l, p.c - 1; goto loop
   elseif ctrl == '<' then
     sub.href = assert(p:parse{PIN, Pat'[^>]*', '>'}[1])
   end
@@ -282,7 +289,6 @@ end
 
 M.fmtAttr = fmtAttr
 M.htmlFmt  = ds.Set{'b', 'i', 'u'}
-M.htmlAttr = ds.Set{'href'}
 
 M.Writer = mty.doc[[
 A Writer for cxt serializers (terminal, http, etc) to use.

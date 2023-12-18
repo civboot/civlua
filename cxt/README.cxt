@@ -1,16 +1,15 @@
 [{h1}cxt: text markup for civilization]
-
 ["[*Note:] This file is created using cxt. The source is at
   [$./README.cxt]
 ]
-
 It should not take more than a few minutes to know how to read and write
 documentation.
 
-cxt is an ultra-simple markup language which is designed
-to be as easy as possible to parse (for computers [/and] humans) while
-still using as few characters as possible to express format for common
-cases.
+
+cxt is an ultra-simple markup language which is designed to be as easy as
+possible to parse (for computers [/and] humans) while still using as few
+characters as possible to express format for common cases.
+
 
 cxt is designed to: [+
  * Make document writing easy.
@@ -18,3 +17,103 @@ cxt is designed to: [+
  * Make reading of raw (text) documents easy.
  * Make consuming structured data from documents easy.
 ]
+CXT contains only two special characters for deliniating formatting controls:
+[[*A surrounded block]], where '*' (the first character) indicates the block
+control.
+
+
+The following block kinds are currently supported:
+
+[###
+  $      [$inline code]. Note that [$balanced[brackets] are allowed]
+
+  * / _  [*bold], [/italic] and [_underlined]
+
+  {...}  allows named attributes on the block like
+         i.e: [{b i href=http://civboot.org}bold italic link]
+         Note that * is 'b', etc.
+
+  +      list with a special first-nonwitespace parser which looks for '*'
+        (unordered list). Other list types will be supported in the future.
+
+  "      quote block
+
+  !      hidden block, used for comments and/or assigning attributes
+
+  #...   any number of # characters create a "raw" block that must
+         have the same number of # characters closing it.
+
+         [##
+         some code
+         ]##
+
+         [{## lang=html}
+         <b>example html</b>
+         ]##
+]###
+
+There are some future features planned as well, such as [$[@name]] for
+copying/fetching named blocks or attribute values.
+
+[{h2}Demos]
+[*Inline Code]
+
+[$inline code]. Note that [$balanced[brackets] are allowed]
+[##
+  [$inline code]. Note that [$balanced[brackets] are allowed]
+]##
+
+[*Code block]
+[##
+function example()
+  print'Hello world'
+end
+]##
+[###
+  [##
+  function example()
+    print'Hello world'
+  end
+  ]##
+]###
+
+[*Text Formatting]
+
+[*bold], [/italic] and [_underlined]
+[##
+  [*bold], [/italic] and [_underlined]
+]##
+
+[{b i href=http://civboot.org}bold italic link]
+[##
+  [{b i href=http://civboot.org}bold italic link]
+]##
+
+[*List] [+
+  * example list
+  * with sub list:[+
+    * sub item
+    * multi-line
+
+      sub item.
+  ]
+]
+[##
+  [+
+    * example list
+    * with sub list:[+
+      * sub item
+      * multi-line
+
+        sub item.
+      ]
+  ]
+]##
+
+[*Hidden]
+
+Hidden block: [! this is hidden]
+[##
+  Hidden block: [! this is hidden]
+]##
+

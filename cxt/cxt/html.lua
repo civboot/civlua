@@ -12,18 +12,23 @@ local M = mty.docTy({}, DOC)
 
 local function nodeKind(n)
   if mty.ty(n) == pegl.Token then return 'token' end
-  if n.code                  then return 'pre' end
-  if n.list                  then return 'ul' end
-  if n.br                    then return 'br'  end
-  for a in pairs(n) do if cxt.htmlAttr[a] then
-    return 'div'
-  end end
+  if n.code                  then return 'samp'  end
+  if n.list                  then return 'ul'    end
+  if n.br                    then return 'br'    end
 end
 
 local fmtAttrs = {'quote', 'h1', 'h2', 'h3', 'b', 'i', 'u'}
 local cxtRename = {quote='blockquote'}
 
+local function addAttr(attrs, k, v)
+  -- TODO: html encode
+  add(attrs, sfmt('%s="%s"', k, v))
+end
+
 local function startFmt(n, line)
+  if n.href then
+    add(line, '<a '); addAttr(line, 'href', n.href); add(line, '>')
+  end
   for _, f in ipairs(fmtAttrs) do
     if n[f] then add(line, '<'..(cxtRename[f] or f)..'>') end
   end
@@ -32,19 +37,11 @@ local function endFmt(n, line)
   for _, f in ds.ireverse(fmtAttrs) do
     if n[f] then add(line, '</'..(cxtRename[f] or f)..'>') end
   end
+  if n.href then add(line, '</a>') end
 end
 local function startNode(n, kind, line)
   if not kind then return end
-  add(line, '<')
-  local attrs = {kind}
-  for k in pairs(cxt.htmlAttr) do
-    if n[k] then
-      -- TODO: html encode
-      add(attrs, sfmt('%s="%s"', k, n[k]))
-    end
-  end
-  add(line, table.concat(attrs, ' '))
-  add(line, '>')
+  add(line, '<'..kind..'>')
 end
 local function endNode(n, kind, line)
   if not kind then return end
@@ -55,8 +52,14 @@ local function addLine(w, line)
   ds.extend(w, ds.lines(table.concat(line)))
 end
 
+local CODE_REPL = {
+  [' '] = '&nbsp;', ['\n'] = '<br>\n', ['\t'] = '&Tab;',
+  ['<'] = '&lt;',   ['>']  = '&gt;',
+}
+
 local function _serialize(w, line, node)
   local kind = nodeKind(node)
+  mty.pnt('?? node kind', sfmt('%q', kind), node)
   if kind == 'token' then
     local s = w:tokenStr(node)
     if s:sub(#s,#s) == '\n' then
@@ -66,7 +69,7 @@ local function _serialize(w, line, node)
       line = {}
     else add(line, s) end
     return line
-  elseif node.hidden  then return
+  elseif node.hidden  then return line
   elseif kind == 'br' then
     add(line, '<br>')
     addLine(w, line)
@@ -84,6 +87,16 @@ local function _serialize(w, line, node)
       addLine(w, line)
     end
     line = {}; w.indent = w.indent - 2
+  elseif node.code then
+    print'?? Got in node.code'
+    for _, sub in ipairs(node) do
+      assert(mty.ty(sub) == pegl.Token)
+      local s = w:tokenStr(sub)
+      mty.pnt('?? node.code token:', s)
+      s = s:gsub('[ \n\t&<>]', CODE_REPL)
+      mty.pnt('?? node.code after gsub:', s)
+      add(line, s)
+    end
   else
     for _, sub in ipairs(node) do
       line = _serialize(w, line, sub)

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html><body>
+<h1>cxt: text markup for civilization</h1>
+<blockquote><b>Note:</b> This file is created using cxt. The source is at
+<samp>./README.cxt</samp>
+</blockquote>
+It should not take more than a few minutes to know how to read and write
+documentation.
+<br>
+<br>
+cxt is an ultra-simple markup language which is designed to be as easy as
+possible to parse (for computers <i>and</i> humans) while still using as few
+characters as possible to express format for common cases.
+<br>
+<br>
+cxt is designed to: <ul>
+  <li>Make document writing easy.
+  </li>
+  <li>Make document parsing easy.
+  </li>
+  <li>Make reading of raw (text) documents easy.
+  </li>
+  <li>Make consuming structured data from documents easy.
+  </li>
+</ul>
+CXT contains only two special characters for deliniating formatting controls:
+[*A surrounded block], where '*' (the first character) indicates the block
+control.
+<br>
+<br>
+The following block kinds are currently supported:
+<br>
+<samp><br>
+&nbsp;&nbsp;$&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[$inline&nbsp;code].&nbsp;Note&nbsp;that&nbsp;[$balanced[brackets]&nbsp;are&nbsp;allowed]<br>
+<br>
+&nbsp;&nbsp;*&nbsp;/&nbsp;_&nbsp;&nbsp;[*bold],&nbsp;[/italic]&nbsp;and&nbsp;[_underlined]<br>
+<br>
+&nbsp;&nbsp;{...}&nbsp;&nbsp;allows&nbsp;named&nbsp;attributes&nbsp;on&nbsp;the&nbsp;block&nbsp;like<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;i.e:&nbsp;[{b&nbsp;i&nbsp;href=http://civboot.org}bold&nbsp;italic&nbsp;link]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Note&nbsp;that&nbsp;*&nbsp;is&nbsp;'b',&nbsp;etc.<br>
+<br>
+&nbsp;&nbsp;+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;list&nbsp;with&nbsp;a&nbsp;special&nbsp;first-nonwitespace&nbsp;parser&nbsp;which&nbsp;looks&nbsp;for&nbsp;'*'<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(unordered&nbsp;list).&nbsp;Other&nbsp;list&nbsp;types&nbsp;will&nbsp;be&nbsp;supported&nbsp;in&nbsp;the&nbsp;future.<br>
+<br>
+&nbsp;&nbsp;"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;quote&nbsp;block<br>
+<br>
+&nbsp;&nbsp;!&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hidden&nbsp;block,&nbsp;used&nbsp;for&nbsp;comments&nbsp;and/or&nbsp;assigning&nbsp;attributes<br>
+<br>
+&nbsp;&nbsp;#...&nbsp;&nbsp;&nbsp;any&nbsp;number&nbsp;of&nbsp;#&nbsp;characters&nbsp;create&nbsp;a&nbsp;"raw"&nbsp;block&nbsp;that&nbsp;must<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;have&nbsp;the&nbsp;same&nbsp;number&nbsp;of&nbsp;#&nbsp;characters&nbsp;closing&nbsp;it.<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[##<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;some&nbsp;code<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]##<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[{##&nbsp;lang=html}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;b&gt;example&nbsp;html&lt;/b&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]##<br>
+</samp>
+<br>
+There are some future features planned as well, such as <samp>[@name]</samp> for
+copying/fetching named blocks or attribute values.
+<br>
+<h2>Demos</h2>
+<b>Inline Code</b>
+<br>
+<samp>inline&nbsp;code</samp>. Note that <samp>balanced[brackets]&nbsp;are&nbsp;allowed</samp>
+<samp><br>
+&nbsp;&nbsp;[$inline&nbsp;code].&nbsp;Note&nbsp;that&nbsp;[$balanced[brackets]&nbsp;are&nbsp;allowed]<br>
+</samp>
+<br>
+<b>Code block</b>
+<samp><br>
+function&nbsp;example()<br>
+&nbsp;&nbsp;print'Hello&nbsp;world'<br>
+end<br>
+</samp>
+<samp><br>
+&nbsp;&nbsp;[##<br>
+&nbsp;&nbsp;function&nbsp;example()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;print'Hello&nbsp;world'<br>
+&nbsp;&nbsp;end<br>
+&nbsp;&nbsp;]##<br>
+</samp>
+<br>
+<b>Text Formatting</b>
+<br>
+<b>bold</b>, <i>italic</i> and <u>underlined</u>
+<samp><br>
+&nbsp;&nbsp;[*bold],&nbsp;[/italic]&nbsp;and&nbsp;[_underlined]<br>
+</samp>
+<br>
+<a href="http://civboot.org"><b><i>bold italic link</i></b></a>
+<samp><br>
+&nbsp;&nbsp;[{b&nbsp;i&nbsp;href=http://civboot.org}bold&nbsp;italic&nbsp;link]<br>
+</samp>
+<br>
+<b>List</b> <ul>
+  <li>example list
+  </li>
+  <li>with sub list:<ul>
+    <li>sub item
+    </li>
+    <li>multi-line
+    <br>
+    sub item.
+    </li>
+  </ul>
+  </li>
+</ul>
+<samp><br>
+&nbsp;&nbsp;[+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;example&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;with&nbsp;sub&nbsp;list:[+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;sub&nbsp;item<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;multi-line<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sub&nbsp;item.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]<br>
+&nbsp;&nbsp;]<br>
+</samp>
+<br>
+<b>Hidden</b>
+<br>
+Hidden block: 
+<samp><br>
+&nbsp;&nbsp;Hidden&nbsp;block:&nbsp;[!&nbsp;this&nbsp;is&nbsp;hidden]<br>
+</samp>
+<br>
+</body></html>

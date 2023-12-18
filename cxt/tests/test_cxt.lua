@@ -20,13 +20,24 @@ test('simple', function()
   M.assertParse('hi there [*bob]', {
     'hi there ', {'bob', b=true},
   })
-  M.assertParse('inline [$code]', {
-    'inline ', {'code', code=true},
+  M.assertParse('The [$inline code]', {
+    'The ', {'inline code', code=true},
   })
+  M.assertParse('For [$inline], [$balanced[brackets] are okay]', {
+    'For ', {code=true, 'inline'}, ', ', { code=true,
+      'balanced[brackets] are okay'
+    },
+  })
+--   M.assertParse(
+-- '[$inline code]. [$balanced[brackets] are allowed]', {})
+
   M.assertParse('multiple\n [_lines]\n\n  with [*break]', {
     'multiple\n', {'lines', u=true},
     '\n', {br=true},
     'with ', {'break', b=true},
+  })
+  M.assertParse('has [[ and ]] in it\nand [[foo', {
+    'has ', '[ and ', '] in it\n', 'and ', '[foo',
   })
 end)
 
