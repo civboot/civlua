@@ -20,7 +20,7 @@ test('simple', function()
   M.assertParse('hi there [*bob]', {
     'hi there ', {'bob', b=true},
   })
-  M.assertParse('inline [ code]', {
+  M.assertParse('inline [$code]', {
     'inline ', {'code', code=true},
   })
   M.assertParse('multiple\n [_lines]\n\n  with [*break]', {
@@ -113,11 +113,11 @@ listing:[+
     "  <li>one",
     "  </li>",
     "  <li>two<ul>",
-      "  <li>three",
-      "  </li>",
-      "  <li>four",
-      "  </li>",
-      "</ul>",
+    "    <li>three",
+    "    </li>",
+    "    <li>four",
+    "    </li>",
+    "  </ul>",
     "  </li>",
     "</ul>",
     "<br>"

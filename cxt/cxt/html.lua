@@ -50,69 +50,71 @@ local function endNode(n, kind, line)
   add(line, '</'..kind..'>');
 end
 
-local function addLine(out, line)
-  ds.extend(out, ds.lines(table.concat(line)))
+local function addLine(w, line)
+  ds.extend(w, ds.lines(table.concat(line)))
 end
 
-local function _serialize(p, out, line, node)
+local function _serialize(w, line, node)
   local kind = nodeKind(node)
   if kind == 'token' then
-    local s = p:tokenStr(node)
+    local s = w:tokenStr(node)
     if s:sub(#s,#s) == '\n' then
       add(line, s:sub(1, #s-1))
       mty.pnt('?? serialize line: ', line)
-      addLine(out, line)
+      addLine(w, line)
       line = {}
     else add(line, s) end
     return line
   elseif kind == 'br' then
     add(line, '<br>')
-    addLine(out, line)
+    addLine(w, line)
     return {}
   end
   mty.pnt('?? node kind='..tostring(kind)..':', node)
   startFmt(node, line)
   startNode(node, kind, line)
   if kind == 'ul' then
-    addLine(out, line)
+    addLine(w, line); w.indent = w.indent + 2
     for _, item in ipairs(node) do
-      line = {'  <li>'}
-      line = _serialize(p, out, line, item)
-      add(line, '  </li>')
-      addLine(out, line)
+      line = {'<li>'}
+      line = _serialize(w, line, item)
+      add(line, '</li>')
+      addLine(w, line)
     end
-    line = {}
+    line = {}; w.indent = w.indent - 2
   else
     for _, sub in ipairs(node) do
-      line = _serialize(p, out, line, sub)
+      line = _serialize(w, line, sub)
     end
   end
   endNode(node, kind, line); endFmt(node, line)
   return line
 end
-M.serialize = function(p, out, node)
+M.serialize = function(w, node)
   local line = {}; for _, n in ipairs(node) do
-    line = _serialize(p, out, line, n)
+    line = _serialize(w, line, n)
   end
-  if #line > 0 then addLine(out, line) end
+  if #line > 0 then addLine(w, line) end
 end
-M.serializeDoc = function(p, out, node)
+M.serializeDoc = function(w, node)
   mty.pnt('?? serialize:', node)
-  addLine(out, {'<!DOCTYPE html>\n<html><body>'})
-  M.serialize(p, out, node)
-  addLine(out, {'</body></html>'})
+  addLine(w, {'<!DOCTYPE html>\n<html><body>'})
+  M.serialize(w, node)
+  addLine(w, {'</body></html>'})
 end
 
-M.convert = function(dat, out)
-  local out, node, p = out or {}, cxt.parse(dat)
-  M.serializeDoc(p, out, node)
-  return out, p
+M.convert = function(dat, to)
+  local node, p = cxt.parse(dat)
+  local w = cxt.Writer:fromParser(p, to)
+  M.serializeDoc(w, node)
+  return w.to, p, w
 end
 
 M.assertHtml = function(cxtDat, expectedHtml, dbg)
-  local out, node, p = {}, cxt.parse(cxtDat, dbg)
-  M.serialize(p, out, node)
-  civtest.assertEq(expectedHtml, out)
+  local node, p = cxt.parse(cxtDat, dbg)
+  local w = cxt.Writer:fromParser(p)
+  M.serialize(w, node)
+  civtest.assertEq(expectedHtml, w.to)
 end
 
 M.Args = mty.doc[[Convert cxt doc to html]]
@@ -127,9 +129,9 @@ setmetatable(M, {
       io.open(args[1]), cache=10,
       len=df.readLen(args[1]),
     }
-    local out = df.LinesFile{io.open(args[2], 'w'), len=0}
-    M.convert(inp, out)
-    inp:close(); out:flush(); out:close()
+    local to = df.LinesFile{io.open(args[2], 'w'), len=0}
+    M.convert(inp, to)
+    inp:close(); to:flush(); to:close()
   end,
 })
 M.shim = shim {

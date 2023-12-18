@@ -80,7 +80,7 @@ local fmtAttr = {
   ['*'] = 'b', ['/'] = 'i', ['_'] ='u',
 }
 local strAttr = {
-  ['!'] = 'comment',  [' '] = 'code',
+  ['!'] = 'comment',  ['$'] = 'code',
   ['.'] = 'path',     ['@'] = 'fetch',
 }
 
@@ -286,5 +286,30 @@ end
 M.fmtAttr = fmtAttr
 M.htmlFmt  = ds.Set{'b', 'i', 'u'}
 M.htmlAttr = ds.Set{'href'}
+
+M.Writer = mty.doc[[
+A Writer for cxt serializers (terminal, http, etc) to use.
+
+The writer contains:
+* The src lines and token decoder for getting pegl.Token values.
+* The destination lines and current indent level.
+]](mty.record'cxt.Writer')
+  :field'src'
+  :field'decodeLC'
+  :field'to'
+  :field('indent', 'number')
+M.Writer.fromParser = function(ty_, p, to)
+  return ty_{src=p.dat, decodeLC=p.root.decodeLC, to=to or {}, indent=0}
+end
+M.Writer.tokenStr = function(w, t) return t:decode(w.src, w.decodeLC) end
+M.Writer.__index = function(w, l)
+  local m = getmetatable(w)[l]; if m then return m end
+  mty.errorf('index cxt.Writer: %s', l)
+end
+M.Writer.__newindex = function(w, l, line)
+  if w.indent > 0 then line = string.rep(' ', w.indent)..line end
+  w.to[l] = line
+end
+M.Writer.__len = function(w) return #w.to end
 
 return M

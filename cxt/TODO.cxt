@@ -1,0 +1,25 @@
+
+[{h1}TODO list for CXT]
+
+[{h2}Whitespace aware quote block]
+I would like to allow the following to strip preceeding whitespace
+and FAIL if anything exists in said whitespace
+
+[###
+
+[+
+  * This is a normal list item
+  * This is a list item with some code:
+    [##
+    This is a bit of code
+    for the above
+    ]##
+  * Another normal list item
+]
+]###
+
+The code block above should NOT have any preceeding whitespace.
+
+This should be relatively easy, since we just have to detect leading
+whitespace for [$raw] blocks and check+strip them.
+
