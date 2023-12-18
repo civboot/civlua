@@ -13,6 +13,7 @@ local M = mty.docTy({}, DOC)
 local function nodeKind(n)
   if mty.ty(n) == pegl.Token then return 'token' end
   if n.code                  then return 'pre' end
+  if n.list                  then return 'ul' end
   if n.br                    then return 'br'  end
   if n.h1                    then return 'h1'  end
   if n.h2                    then return 'h2'  end
@@ -72,8 +73,19 @@ local function _serialize(p, out, line, node)
   mty.pnt('?? node kind='..tostring(kind)..':', node)
   startFmt(node, line)
   startNode(node, kind, line)
-  for _, sub in ipairs(node) do
-    line = _serialize(p, out, line, sub)
+  if kind == 'ul' then
+    addLine(out, line)
+    for _, item in ipairs(node) do
+      line = {'  <li>'}
+      line = _serialize(p, out, line, item)
+      add(line, '  </li>')
+      addLine(out, line)
+    end
+    line = {}
+  else
+    for _, sub in ipairs(node) do
+      line = _serialize(p, out, line, sub)
+    end
   end
   endNode(node, kind, line); endFmt(node, line)
   return line

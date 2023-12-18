@@ -13,11 +13,9 @@ to be as easy as possible to parse (for computers [/and] humans) while
 still using as few characters as possible to express format for common
 cases.
 
-[##
 cxt is designed to: [+
  * Make document writing easy.
  * Make document parsing easy.
  * Make reading of raw (text) documents easy.
  * Make consuming structured data from documents easy.
 ]
-]##

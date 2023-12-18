@@ -100,5 +100,27 @@ test('html', function()
   html.assertHtml('hi [*there]\n  newline', {
     'hi <b>there</b>', 'newline'
   })
+  html.assertHtml([[
+listing:[+
+* one
+* two[+
+  * three
+  * four
+  ]
+]
+]],{
+    "listing:<ul>",
+    "  <li>one",
+    "  </li>",
+    "  <li>two<ul>",
+      "  <li>three",
+      "  </li>",
+      "  <li>four",
+      "  </li>",
+      "</ul>",
+    "  </li>",
+    "</ul>",
+    "<br>"
+  })
 end)
 
