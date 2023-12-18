@@ -23,7 +23,7 @@ local RAW = '#'
 -- in cxt, and handling whitespace in PEGL would be a complete hack.
 
 M.attrSym = Key{kind='attrSym', {
-  '!',             -- comment
+  '!',             -- hidden
   '*', '/', '_',   -- bold, italic, underline
   ':',             -- define node name
 }}
@@ -78,14 +78,11 @@ end
 
 local fmtAttr = {
   ['*'] = 'b', ['/'] = 'i', ['_'] ='u',
+  ['"'] = 'quote',
 }
 local strAttr = {
-  ['!'] = 'comment',  ['$'] = 'code',
+  ['!'] = 'hidden',   ['$'] = 'code',
   ['.'] = 'path',     ['@'] = 'fetch',
-}
-
-local directKinds = ds.Set{
-  'comment', 'code', 'path', 'fetch', 'blank'
 }
 
 local function parseAttrs(p, node)

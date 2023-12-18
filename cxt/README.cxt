@@ -1,9 +1,8 @@
 [{h1}cxt: text markup for civilization]
 
-[##
 ["[*Note:] This file is created using cxt. The source is at
-  [./README.cxt]]
-]##
+  [$./README.cxt]
+]
 
 It should not take more than a few minutes to know how to read and write
 documentation.

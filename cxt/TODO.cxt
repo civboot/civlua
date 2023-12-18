@@ -23,3 +23,41 @@ The code block above should NOT have any preceeding whitespace.
 This should be relatively easy, since we just have to detect leading
 whitespace for [$raw] blocks and check+strip them.
 
+[{h2}Html]
+First of all I need to handle special characters:
+[##
+ &   &amp;
+ <   &lt;
+ >   &gt;
+]##
+
+Inline code for html is a bit more complicated. I should use 'samp' (sample)
+instead of 'code' or 'pre', since 'samp' works for inline code and I already
+handle adding [$<br>] to relevant points.
+
+Also: all spaces should become '&nbsp;' and all newlines become '<br>'
+
+So a before and after:
+
+[###
+CXT:
+function foo()
+  a   = "hi"
+  abc = "hi there"
+  return a .. abc
+end
+
+HTML:
+<samp>
+function <b>foo</b>()<br>
+&nbsp; a &nbsp; = "hi"<br>
+&nbsp; abc = "hi there"<br>
+&nbsp; return a .. abc<br>
+end<br>
+</samp>
+]###
+
+It's not pretty... but it just goes to show how HTML is not pretty. Also, I
+threw in the [$<b>foo</b>] to show that you can still add formatting in code
+blocks. I will utilize this for syntax highlighting.
+

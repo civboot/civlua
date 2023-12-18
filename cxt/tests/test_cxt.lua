@@ -63,11 +63,26 @@ test('attrs', function()
   }, true)
 end)
 
--- * second item:[+
---   * sub first
---   * sub second
---   ]
--- ]
+test('quote', function()
+  M.assertParse([[
+A quote:
+["We work with being,
+  but non-being is what we use.
+
+  -- Tao De Ching, Stephen Mitchel
+]
+]], {
+    'A quote:\n',
+    { quote=true,
+      "We work with being,\n",
+      "but non-being is what we use.\n",
+      {br=true},
+      "-- Tao De Ching, Stephen Mitchel\n",
+    },
+    '\n',
+    {br=true},
+  }, true)
+end)
 
 test('list', function()
   M.assertParse([[

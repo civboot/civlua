@@ -15,21 +15,22 @@ local function nodeKind(n)
   if n.code                  then return 'pre' end
   if n.list                  then return 'ul' end
   if n.br                    then return 'br'  end
-  if n.h1                    then return 'h1'  end
-  if n.h2                    then return 'h2'  end
-  if n.h3                    then return 'h3'  end
   for a in pairs(n) do if cxt.htmlAttr[a] then
     return 'div'
   end end
 end
+
+local fmtAttrs = {'quote', 'h1', 'h2', 'h3', 'b', 'i', 'u'}
+local cxtRename = {quote='blockquote'}
+
 local function startFmt(n, line)
-  for _, f in pairs(cxt.fmtAttr) do
-    if n[f] then add(line, '<'..f..'>') end
+  for _, f in ipairs(fmtAttrs) do
+    if n[f] then add(line, '<'..(cxtRename[f] or f)..'>') end
   end
 end
 local function endFmt(n, line)
-  for _, f in pairs(cxt.fmtAttr) do
-    if n[f] then add(line, '</'..f..'>') end
+  for _, f in ds.ireverse(fmtAttrs) do
+    if n[f] then add(line, '</'..(cxtRename[f] or f)..'>') end
   end
 end
 local function startNode(n, kind, line)
@@ -65,6 +66,7 @@ local function _serialize(w, line, node)
       line = {}
     else add(line, s) end
     return line
+  elseif node.hidden  then return
   elseif kind == 'br' then
     add(line, '<br>')
     addLine(w, line)
