@@ -290,6 +290,11 @@ end
 <p>
 <b>Named Nodes and Values</b>
 <p>
+<blockquote> <b>Note</b>: all visible named blocks have a 🕮 link next to them. Therefore they
+serve dual purpose of being referenced within the cxt file using <code>[@name]</code> and
+by local and external links (<code>href=#name</code>)
+</blockquote>
+<p>
 A hidden named block: ""
 <p>
 A visible named block: <a id="civlua" href="#civlua">🕮</a><a href="https://github.com/civboot/civlua">civlua</a>
@@ -300,16 +305,16 @@ A visible named block: <a id="civlua" href="#civlua">🕮</a><a href="https://gi
 You can also link to named blocks with <code>href=#name</code>, for instance the "Demos"
 header is named <a href="#Demos">Demos</a>.
 <p>
-Note that all visible named blocks have a 🕮 link next to them. Therefore
-they serve dual purpose of being referenced within the cxt file using
-<code>[@name]</code> and by local and external links (<code>href=#name</code>)
-<p>
 <code class="block">A hidden named block: "[{!:href=http://civboot.org}Civboot]"
+
+A visible named block: [{:href=https://github.com/civboot/civlua}civlua]
 
 [@Civboot] clones the hidden block above.
 [&lt;@Civboot&gt;Civboot Project] has [$href=http://civboot.org].
+
+You can also link to named blocks with [$href=#name], for instance the "Demos"
+header is named [&lt;#Demos&gt;Demos].
 </code>
-<p>
 <p>
 <h2>UNLICENSE</h2>
 Cxt is in the the public domain, see the <a href="../UNLICENSE">UNLICENSE</a> for details.
