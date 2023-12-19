@@ -29,7 +29,19 @@ code {
   margin-top: 0.5em;
   background-color: snow;  display: block;
   padding: 5px;
-}</style>]]
+}
+table, th, td {
+    vertical-align: top;
+    text-align: left;
+    border-collapse: collapse;
+    border: 1px solid grey;
+    margin: 0.5em 0.5em;
+    padding: 12px 15px;
+}
+table { min-width: 400px;         }
+th    { background-color: LightCyan; }
+td    { background-color: azure; }
+</style>]]
 
 local function nodeKind(n)
   if mty.ty(n) == pegl.Token then return 'token' end
