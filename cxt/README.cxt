@@ -20,7 +20,7 @@ CXT contains only two special characters for deliniating formatting controls:
 control.
 
 There are two ways to specify attributes for a block: [+
-* full attributes: [[${attr1 attr2 attr3=value}block text]]
+* full attributes: [$[{attr1 attr2 attr3=value}block text]]
 * shortcut: [$[*block text]] where '*' is one of the shortcut values below]
 
 The following attributes and shortcuts are supported
@@ -41,19 +41,19 @@ The following attributes and shortcuts are supported
 
   table   table syntax, see demos
 
-  !      hidden block, used for comments and/or assigning attributes
-         shortcut: [!hidden block]
+  !       hidden block, used for comments and/or assigning attributes
+          shortcut: [!hidden block]
 
-  #...   any number of # characters create a "raw" block that must
-         have the same number of # characters closing it.
+  #...    any number of # characters create a "raw" block that must
+          have the same number of # characters closing it.
 
-         [##
-         some code
-         ]##
+          [##
+          some code
+          ]##
 
-         [{## code=html}
-         <b>example html</b>
-         ]##
+          [{## code=html}
+          <b>example html</b>
+          ]##
 
   href    hyper reference, aka a url.
           shortcut: [<href>text]

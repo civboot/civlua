@@ -27,14 +27,11 @@ table, th, td {
     border-collapse: collapse;
     border: 1px solid grey;
     margin: 0.5em 0.5em;
-    min-width: 400px;
     padding: 12px 15px;
 }
-th { background-color: LightCyan; }
-td { background-color: azure; }
-
-
-
+table { min-width: 400px;         }
+th    { background-color: LightCyan; }
+td    { background-color: azure; }
 </style>
 </head>
 <h1>cxt: text markup for civilization</h1>
@@ -63,7 +60,7 @@ CXT contains only two special characters for deliniating formatting controls:
 control.
 <p>
 There are two ways to specify attributes for a block: <ul>
-<li>full attributes: [${attr1 attr2 attr3=value}block text]
+<li>full attributes: <code>[{attr1 attr2 attr3=value}block text]</code>
 </li>
 <li>shortcut: <code>[*block text]</code> where '*' is one of the shortcut values below</li>
 </ul>
@@ -85,19 +82,19 @@ The following attributes and shortcuts are supported
 
   table   table syntax, see demos
 
-  !      hidden block, used for comments and/or assigning attributes
-         shortcut: [!hidden block]
+  !       hidden block, used for comments and/or assigning attributes
+          shortcut: [!hidden block]
 
-  #...   any number of # characters create a "raw" block that must
-         have the same number of # characters closing it.
+  #...    any number of # characters create a "raw" block that must
+          have the same number of # characters closing it.
 
-         [##
-         some code
-         ]##
+          [##
+          some code
+          ]##
 
-         [{## code=html}
-         &lt;b&gt;example html&lt;/b&gt;
-         ]##
+          [{## code=html}
+          &lt;b&gt;example html&lt;/b&gt;
+          ]##
 
   href    hyper reference, aka a url.
           shortcut: [&lt;href&gt;text]
