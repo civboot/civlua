@@ -1,18 +1,38 @@
 <!DOCTYPE html>
 <html><body>
+<head>
+<style>
+p  { margin-top: 0.5em; margin-bottom: 0.0em; }
+ul { margin-top: 0.0em; margin-bottom: 0.5em; }
+li { margin-top: 0.0em; margin-bottom: 0.0em; }
+blockquote {
+  border: 1px solid #999;  border-radius: 0.1em;
+  padding: 5px;            background-color: mintcream;
+}
+code {
+  background-color: whitesmoke;
+  border: 1px solid #999;  border-radius: 0.3em;
+  font-family: Monaco, monospace;
+  padding: 0px;
+  white-space: pre
+}
+.block {
+  margin-top: 0.5em;
+  background-color: snow;  display: block;
+  padding: 5px;
+}</style>
+</head>
 <h1>cxt: text markup for civilization</h1>
 <blockquote><b>Note:</b> This file is created using cxt. The source is at
-<samp>./README.cxt</samp>
+<code>./README.cxt</code>
 </blockquote>
 It should not take more than a few minutes to know how to read and write
 documentation.
-<br>
-<br>
+<p>
 cxt is an ultra-simple markup language which is designed to be as easy as
 possible to parse (for computers <i>and</i> humans) while still using as few
 characters as possible to express format for common cases.
-<br>
-<br>
+<p>
 cxt is designed to: <ul>
   <li>Make document writing easy.
   </li>
@@ -26,75 +46,79 @@ cxt is designed to: <ul>
 CXT contains only two special characters for deliniating formatting controls:
 [*A surrounded block], where '*' (the first character) indicates the block
 control.
-<br>
-<br>
+<p>
 The following block kinds are currently supported:
-<br>
-<samp><br>
-&nbsp;&nbsp;$&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[$inline&nbsp;code].&nbsp;Note&nbsp;that&nbsp;[$balanced[brackets]&nbsp;are&nbsp;allowed]<br>
-<br>
-&nbsp;&nbsp;*&nbsp;/&nbsp;_&nbsp;&nbsp;[*bold],&nbsp;[/italic]&nbsp;and&nbsp;[_underlined]<br>
-<br>
-&nbsp;&nbsp;{...}&nbsp;&nbsp;allows&nbsp;named&nbsp;attributes&nbsp;on&nbsp;the&nbsp;block&nbsp;like<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;i.e:&nbsp;[{b&nbsp;i&nbsp;href=http://civboot.org}bold&nbsp;italic&nbsp;link]<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Note&nbsp;that&nbsp;*&nbsp;is&nbsp;'b',&nbsp;etc.<br>
-<br>
-&nbsp;&nbsp;+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;list&nbsp;with&nbsp;a&nbsp;special&nbsp;first-nonwitespace&nbsp;parser&nbsp;which&nbsp;looks&nbsp;for&nbsp;'*'<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(unordered&nbsp;list).&nbsp;Other&nbsp;list&nbsp;types&nbsp;will&nbsp;be&nbsp;supported&nbsp;in&nbsp;the&nbsp;future.<br>
-<br>
-&nbsp;&nbsp;"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;quote&nbsp;block<br>
-<br>
-&nbsp;&nbsp;!&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hidden&nbsp;block,&nbsp;used&nbsp;for&nbsp;comments&nbsp;and/or&nbsp;assigning&nbsp;attributes<br>
-<br>
-&nbsp;&nbsp;#...&nbsp;&nbsp;&nbsp;any&nbsp;number&nbsp;of&nbsp;#&nbsp;characters&nbsp;create&nbsp;a&nbsp;"raw"&nbsp;block&nbsp;that&nbsp;must<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;have&nbsp;the&nbsp;same&nbsp;number&nbsp;of&nbsp;#&nbsp;characters&nbsp;closing&nbsp;it.<br>
-<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[##<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;some&nbsp;code<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]##<br>
-<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[{##&nbsp;lang=html}<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;b&gt;example&nbsp;html&lt;/b&gt;<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]##<br>
-</samp>
-<br>
-There are some future features planned as well, such as <samp>[@name]</samp> for
-copying/fetching named blocks or attribute values.
-<br>
+<code class="block">  $      [$inline code]. Note that [$balanced[brackets] are allowed]
+
+  * / _  [*bold], [/italic] and [_underlined]
+
+  {...}  allows named attributes on the block like
+         i.e: [{b i href=http://civboot.org}bold italic link]
+         Note that * is 'b', etc.
+
+  +      list with a special first-nonwitespace parser which looks for '*'
+        (unordered list). Other list types will be supported in the future.
+
+  "      quote block
+
+  !      hidden block, used for comments and/or assigning attributes
+
+  #...   any number of # characters create a "raw" block that must
+         have the same number of # characters closing it.
+
+         [##
+         some code
+         ]##
+
+         [{## code=html}
+         &lt;b&gt;example html&lt;/b&gt;
+         ]##
+
+The following are not yet supported
+
+  :      sets the "name" attribute to the content of the block.
+         [{: href=http://civboot.org}Civboot] creates a block
+         named "Civboot"
+
+  @      copies a block of the name. [@Civboot] would copy the above
+         named block.
+
+The following named attributes are supported:
+
+  b i u   bold, italic and underlined. You can use {*/_} instead.
+
+  {table} to create a table, see the demos.
+</code>
+<p>
 <h2>Demos</h2>
 <b>Inline Code</b>
-<br>
-<samp>inline&nbsp;code</samp>. Note that <samp>balanced[brackets]&nbsp;are&nbsp;allowed</samp>
-<samp><br>
-&nbsp;&nbsp;[$inline&nbsp;code].&nbsp;Note&nbsp;that&nbsp;[$balanced[brackets]&nbsp;are&nbsp;allowed]<br>
-</samp>
-<br>
+<p>
+<code>inline code</code>. Note that <code>balanced[brackets] are allowed</code>
+<code class="block">  [$inline code]. Note that [$balanced[brackets] are allowed]
+</code>
+<p>
 <b>Code block</b>
-<samp><br>
-function&nbsp;example()<br>
-&nbsp;&nbsp;print'Hello&nbsp;world'<br>
-end<br>
-</samp>
-<samp><br>
-&nbsp;&nbsp;[##<br>
-&nbsp;&nbsp;function&nbsp;example()<br>
-&nbsp;&nbsp;&nbsp;&nbsp;print'Hello&nbsp;world'<br>
-&nbsp;&nbsp;end<br>
-&nbsp;&nbsp;]##<br>
-</samp>
-<br>
+<code class="block">function example()
+  print'Hello world'
+end
+</code>
+<code class="block">[##
+function example()
+  print'Hello world'
+end
+]##
+</code>
+<p>
 <b>Text Formatting</b>
-<br>
+<p>
 <b>bold</b>, <i>italic</i> and <u>underlined</u>
-<samp><br>
-&nbsp;&nbsp;[*bold],&nbsp;[/italic]&nbsp;and&nbsp;[_underlined]<br>
-</samp>
-<br>
+<code class="block">[*bold], [/italic] and [_underlined]
+</code>
+<p>
 <a href="http://civboot.org"><b><i>bold italic link</i></b></a>
-<samp><br>
-&nbsp;&nbsp;[{b&nbsp;i&nbsp;href=http://civboot.org}bold&nbsp;italic&nbsp;link]<br>
-</samp>
-<br>
+<code class="block">[{b i href=http://civboot.org}bold italic link]
+</code>
+<p>
 <b>List</b> <ul>
   <li>example list
   </li>
@@ -102,29 +126,64 @@ end<br>
     <li>sub item
     </li>
     <li>multi-line
-    <br>
+    <p>
     sub item.
     </li>
   </ul>
   </li>
 </ul>
-<samp><br>
-&nbsp;&nbsp;[+<br>
-&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;example&nbsp;list<br>
-&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;with&nbsp;sub&nbsp;list:[+<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;sub&nbsp;item<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;multi-line<br>
-<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sub&nbsp;item.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]<br>
-&nbsp;&nbsp;]<br>
-</samp>
-<br>
+<code class="block">[+
+  * example list
+  * with sub list:[+
+    * sub item
+    * multi-line
+
+      sub item.
+    ]
+]
+</code>
+<p>
 <b>Hidden</b>
-<br>
+<p>
 Hidden block: 
-<samp><br>
-&nbsp;&nbsp;Hidden&nbsp;block:&nbsp;[!&nbsp;this&nbsp;is&nbsp;hidden]<br>
-</samp>
-<br>
+<code class="block">Hidden block: [! this is hidden]
+</code>
+<p>
+<h2>Future Features</h2>
+<b>Table</b>
+<p>
+A table is created by the 'table' attribute. the row deliminiter
+is set by 'row' and defaults to '+' (with whitespace), where the column
+deliminter is set by 'col' and defaults to '|'. The row deliminiter
+must be at the start of line and the column delimiter consumes any
+surounding whitespace.
+<code class="block">[{table}
++ col 1      | col 2   | col 3
++ row [*1.1] | row 1.2 | row 1.3
++ row [*1.1] | row 1.2 | row 1.3
+]
+</code>
+<p>
+For very large or multi-lined columns, you can organize them similar to
+sub-lists:
+<code class="block">[{table}
++ 1st named column
+| 2nd named column
+| 3rd named column
++ long row 1.1
+| long row 1.2
+
+  Even includes new line!
+| long row 1.3
+  [{## code=lua}
+  function example()
+    return "code block"
+  end
+  ]##
++ row 2.1
+| row 2.2
+| row 2.3
+]
+</code>
+<p>
 </body></html>

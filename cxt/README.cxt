@@ -5,11 +5,9 @@
 It should not take more than a few minutes to know how to read and write
 documentation.
 
-
 cxt is an ultra-simple markup language which is designed to be as easy as
 possible to parse (for computers [/and] humans) while still using as few
 characters as possible to express format for common cases.
-
 
 cxt is designed to: [+
  * Make document writing easy.
@@ -21,9 +19,7 @@ CXT contains only two special characters for deliniating formatting controls:
 [[*A surrounded block]], where '*' (the first character) indicates the block
 control.
 
-
 The following block kinds are currently supported:
-
 [###
   $      [$inline code]. Note that [$balanced[brackets] are allowed]
 
@@ -47,13 +43,25 @@ The following block kinds are currently supported:
          some code
          ]##
 
-         [{## lang=html}
+         [{## code=html}
          <b>example html</b>
          ]##
-]###
 
-There are some future features planned as well, such as [$[@name]] for
-copying/fetching named blocks or attribute values.
+The following are not yet supported
+
+  :      sets the "name" attribute to the content of the block.
+         [{: href=http://civboot.org}Civboot] creates a block
+         named "Civboot"
+
+  @      copies a block of the name. [@Civboot] would copy the above
+         named block.
+
+The following named attributes are supported:
+
+  b i u   bold, italic and underlined. You can use {*/_} instead.
+
+  {table} to create a table, see the demos.
+]###
 
 [{h2}Demos]
 [*Inline Code]
@@ -70,23 +78,23 @@ function example()
 end
 ]##
 [###
-  [##
-  function example()
-    print'Hello world'
-  end
-  ]##
+[##
+function example()
+  print'Hello world'
+end
+]##
 ]###
 
 [*Text Formatting]
 
 [*bold], [/italic] and [_underlined]
 [##
-  [*bold], [/italic] and [_underlined]
+[*bold], [/italic] and [_underlined]
 ]##
 
 [{b i href=http://civboot.org}bold italic link]
 [##
-  [{b i href=http://civboot.org}bold italic link]
+[{b i href=http://civboot.org}bold italic link]
 ]##
 
 [*List] [+
@@ -99,21 +107,60 @@ end
   ]
 ]
 [##
-  [+
-    * example list
-    * with sub list:[+
-      * sub item
-      * multi-line
+[+
+  * example list
+  * with sub list:[+
+    * sub item
+    * multi-line
 
-        sub item.
-      ]
-  ]
+      sub item.
+    ]
+]
 ]##
 
 [*Hidden]
 
 Hidden block: [! this is hidden]
 [##
-  Hidden block: [! this is hidden]
+Hidden block: [! this is hidden]
 ]##
+
+[{h2}Future Features]
+[*Table]
+
+A table is created by the 'table' attribute. the row deliminiter
+is set by 'row' and defaults to '+' (with whitespace), where the column
+deliminter is set by 'col' and defaults to '|'. The row deliminiter
+must be at the start of line and the column delimiter consumes any
+surounding whitespace.
+[##
+[{table}
++ col 1      | col 2   | col 3
++ row [*1.1] | row 1.2 | row 1.3
++ row [*1.1] | row 1.2 | row 1.3
+]
+]##
+
+For very large or multi-lined columns, you can organize them similar to
+sub-lists:
+[###
+[{table}
++ 1st named column
+| 2nd named column
+| 3rd named column
++ long row 1.1
+| long row 1.2
+
+  Even includes new line!
+| long row 1.3
+  [{## code=lua}
+  function example()
+    return "code block"
+  end
+  ]##
++ row 2.1
+| row 2.2
+| row 2.3
+]
+]###
 

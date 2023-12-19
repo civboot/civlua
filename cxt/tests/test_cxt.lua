@@ -50,7 +50,7 @@ This is a bit
 ]##
 ]], {
     "Some code:\n",
-    {"\nThis is a bit\n  of code.\n", code=true},
+    {"\nThis is a bit\n  of code.\n", code=true, block=true},
     '\n',
     {br=true},
   })
@@ -146,7 +146,7 @@ listing:[+
     "  </ul>",
     "  </li>",
     "</ul>",
-    "<br>"
+    "<p>",
   })
 end)
 

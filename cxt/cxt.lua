@@ -248,7 +248,10 @@ M.content = function(p, node, isRoot, altEnd)
   elseif ctrl == '<' then
     sub.href = assert(p:parse{PIN, Pat'[^>]*', '>'}[1])
   end
-  if raw          then add(sub, bracketedStr(p, raw))
+  if raw          then
+    local s = bracketedStr(p, raw)
+    sub.block = p:tokenStr(s):find'\n' and true or nil
+    add(sub, s)
   elseif sub.list then parseList(p, sub)
   else                 M.content(p, sub) end
   sub.pos = {posL,posC,p.l,p.c-1}
@@ -307,9 +310,11 @@ end
 M.Writer.tokenStr = function(w, t) return t:decode(w.src, w.decodeLC) end
 M.Writer.__index = function(w, l)
   local m = getmetatable(w)[l]; if m then return m end
+  if type(l) ~= 'number' then return end
   mty.errorf('index cxt.Writer: %s', l)
 end
 M.Writer.__newindex = function(w, l, line)
+  if type(l) ~= 'number' then return rawset(w, l, line) end
   if w.indent > 0 then line = string.rep(' ', w.indent)..line end
   w.to[l] = line
 end
