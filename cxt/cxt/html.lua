@@ -51,8 +51,9 @@ local function nodeKind(n)
   if n.br                    then return 'br'    end
 end
 
-local fmtAttrs = {'quote', 'h1', 'h2', 'h3', 'b', 'i', 'u'}
-local cxtRename = {quote='blockquote'}
+local preNameAttrs = {'h1', 'h2', 'h3'}
+local fmtAttrs = {'quote', 'b', 'i', 'u'}
+local cxtRename = {quote='blockquote', name='id'}
 
 local function addAttr(attrs, k, v)
   -- TODO: html encode
@@ -66,6 +67,12 @@ local function addLine(w, line)
 end
 
 local function startFmt(w, n, kind, line)
+  for _, f in ipairs(preNameAttrs) do
+    if n[f] then add(line, '<'..(cxtRename[f] or f)..'>') end
+  end
+  if n.name then
+    add(line, sfmt('<a id="%s" href="#%s">🕮</a>', n.name, n.name))
+  end
   if n.href then
     add(line, '<a '); addAttr(line, 'href', n.href); add(line, '>')
   end
@@ -74,16 +81,20 @@ local function startFmt(w, n, kind, line)
   end
 end
 local function endFmt(n, line)
+  for _, f in ds.ireverse(preNameAttrs) do
+    if n[f] then add(line, '</'..(cxtRename[f] or f)..'>') end
+  end
   for _, f in ds.ireverse(fmtAttrs) do
     if n[f] then add(line, '</'..(cxtRename[f] or f)..'>') end
   end
   if n.href then add(line, '</a>') end
 end
 local function startNode(n, kind, line)
-  if not kind then return end
-  add(line, '<'..kind)
-  if n.block then add(line, ' class="block"') end
-  add(line, '>')
+  if kind then
+    add(line, '<'..kind)
+    if n.block then add(line, ' class="block"')         end
+    add(line, '>')
+  end
 end
 local function endNode(n, kind, line)
   if not kind then return end
@@ -91,18 +102,15 @@ local function endNode(n, kind, line)
 end
 
 local CODE_REPL = {
-  -- [' '] = '&nbsp;', ['\n'] = '<br>\n', ['\t'] = '&Tab;',
   ['<'] = '&lt;',   ['>']  = '&gt;',
 }
 
 local function _serialize(w, line, node)
   local kind = nodeKind(node)
-  mty.pnt('?? node kind', sfmt('%q', kind), node)
   if kind == 'token' then
     local s = w:tokenStr(node)
     if s:sub(#s,#s) == '\n' then
       add(line, s:sub(1, #s-1))
-      mty.pnt('?? serialize line: ', line)
       addLine(w, line)
       line = {}
     else add(line, s) end
@@ -112,7 +120,6 @@ local function _serialize(w, line, node)
     add(line, '<p>'); addLine(w, line)
     return {}
   end
-  mty.pnt('?? node kind='..tostring(kind)..':', node)
   startFmt(w, node, kind, line)
   startNode(node, kind, line)
   if kind == 'table' then
@@ -142,9 +149,7 @@ local function _serialize(w, line, node)
     local s = {}; for _, n in ipairs(node) do add(s, w:tokenStr(n)) end
     s = table.concat(s)
     if s:sub(1, 1) == '\n' then s = s:sub(2) end
-    mty.pnt('?? node.code token:', s)
     s = s:gsub('[&<>]', CODE_REPL)
-    mty.pnt('?? node.code after gsub:', s)
     add(line, s)
   else
     for _, sub in ipairs(node) do
@@ -163,7 +168,6 @@ M.serialize = function(w, node)
   end
 end
 M.serializeDoc = function(w, node, head)
-  mty.pnt('?? serialize:', node)
   addLine(w, {'<!DOCTYPE html>\n<html><body>'})
   if head == nil then head = M.htmlHead end
   if head then addLine(w, {'<head>\n', head, '\n</head>'}) end
@@ -192,7 +196,6 @@ M.Args = mty.doc[[Convert cxt doc to html]]
 
 setmetatable(M, {
   __call = function(_, args, isExe)
-    mty.pnt('?? html args:', args, 'isExe:', isExe)
     local inp = df.LinesFile{
       io.open(args[1]), cache=10,
       len=df.readLen(args[1]),

@@ -2,6 +2,7 @@
 ["[*Note:] This file is created using cxt. The source is at
   [$./README.cxt]
 ]
+
 It should not take more than a few minutes to know how to read and write
 documentation.
 
@@ -26,23 +27,26 @@ There are two ways to specify attributes for a block: [+
 The following attributes and shortcuts are supported
 [###
   b i u   bold (*), italic (/) and underlined (_)
-          shortcut: [*bold] [/italic] [_underlined]
-                    [{*/_}bold italic and underlined]
+  * / _   Example: [*bold] [/italic] [_underlined]
+                   [{*/_}bold italic and underlined]
 
   code    inline or block code (depending on whether newlines exist)
-          shortcut: [$inline code]
-          See also: '[#... ]#...' which sets the code attribute.
+   $       shortcut: [$inline code]
+   #...   See also: '[#... ]#...' which sets the code attribute.
 
   quote   create a quote block
-          shortcut: ["quote block]
+   "      Example: ["quote block]
 
   list    list syntax, see demos
-          shortcut: [+ * list item]
+   +      Example: [+
+            * list item 1
+            * list item 2
+          ]
 
   table   table syntax, see demos
 
-  !       hidden block, used for comments and/or assigning attributes
-          shortcut: [!hidden block]
+  hidden  hidden block, used for comments and/or assigning attributes
+   !      Example: [!hidden block]
 
   #...    any number of # characters create a "raw" block that must
           have the same number of # characters closing it.
@@ -56,24 +60,28 @@ The following attributes and shortcuts are supported
           ]##
 
   href    hyper reference, aka a url.
-          shortcut: [<href>text]
-
-Not yet supported:
+  <href>
 
   name    sets the name of the block.
-          Used with: [@name]  href=#name  anyAttr=@name
-          shortcut: [{: ...}name]
+   n      Used with: [@name]  href=#name  anyAttr=@name
+   :      shortcut: [{: ...}name]
           Example: [{name=Civboot href=http://civboot.org}Civboot]
           Example: [{: href=http://civboot.org}Civboot]
 
-  @       copies a block with given name. When used as an attr value
-          uses the block's text as the value.
-          Example: [@Civboot] copies the block with name=Civboot
-          Example: [{href=@civurl}Civboot Project]
-          Note: Not allowed as an attribute name.
+  value   when @ is used for an attr value, it will get this attribute.
+   v      defaults to "href" if the node has one, else "text" which
+          is the node's text.
+
+   @      copies a block with given name. When used as an attr value
+          it gets the attribute referenced by "value"
+          Example:
+            [{!:href=http://civboot.org}Civboot] creates a hidden named block
+            [@Civboot] clones the block (removing name and hidden)
+            [<@Civboot>Civboot Project] has href=http://civboot.org
+              note: the default for "value" is "href" if it exists.
 ]###
 
-[{h2}Demos]
+[{:h2}Demos]
 [*Inline Code]
 
 [$inline code]. Note that [$balanced[brackets] are allowed]
@@ -147,9 +155,9 @@ end
 
 [*Hidden]
 
-Hidden block: [! this is hidden]
+Hidden block: "[! this is hidden]"
 [##
-Hidden block: [! this is hidden]
+Hidden block: "[! this is hidden]"
 ]##
 
 [*Table]
@@ -213,3 +221,31 @@ sub-lists:
 ]
 ]###
 
+[*Named Nodes and Values]
+
+A hidden named block: "[{!:href=http://civboot.org}Civboot]"
+
+A visible named block: [{:href=https://github.com/civboot/civlua}civlua]
+
+[@Civboot] clones the hidden block above.
+[<@Civboot>Civboot Project] has [$href=http://civboot.org].
+
+You can also link to named blocks with [$href=#name], for instance the "Demos"
+header is named [<#Demos>Demos].
+
+Note that all visible named blocks have a 🕮 link next to them. Therefore
+they serve dual purpose of being referenced within the cxt file using
+[$[@name]] and by local and external links ([$href=#name])
+
+[##
+A hidden named block: "[{!:href=http://civboot.org}Civboot]"
+
+[@Civboot] clones the hidden block above.
+[<@Civboot>Civboot Project] has [$href=http://civboot.org].
+]##
+
+
+[{h2}UNLICENSE]
+Cxt is in the the public domain, see the [<../UNLICENSE>UNLICENSE] for details.
+
+It was originally created by Rett Berg as part of the [@Civboot] project.

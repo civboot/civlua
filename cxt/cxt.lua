@@ -41,6 +41,17 @@ local function addToken(p, node, l1, c1, l2, c2)
   end
 end
 
+local function nodeText(p, node, errNode)
+  local txt = {}; for _, t in ipairs(node) do
+    if mty.ty(t) ~= Token then
+      p.c, p.l = (errNode or t).pos
+      p:error(sfmt('text must be of node with only strings %q', ctrl))
+    end
+    add(txt, p:tokenStr(t))
+  end
+  return table.concat(txt)
+end
+
 -- find the end of a [##raw block]##
 local function bracketedStrRaw(p, node, raw, ws)
   local l, c, closePat = p.l, p.c, '%]'..string.rep(RAW, raw)
@@ -87,11 +98,14 @@ end
 local fmtAttr = {
   ['*'] = 'b', ['/'] = 'i', ['_'] ='u',
   ['"'] = 'quote',
+  [':'] = 'name', -- both here and txtCtrl. This sets node.name=true
 }
 local strAttr = {
   ['!'] = 'hidden',   ['$'] = 'code',
-  ['.'] = 'path',     ['@'] = 'fetch',
+  ['.'] = 'path',
 }
+local txtCtrl = {[':'] = 'name', ['@'] = 'clone'}
+local shortAttrs = {n='name', v='value'}
 
 local function parseAttrs(p, node)
   local l, c, raw = p.l, p.c, nil
@@ -102,8 +116,7 @@ local function parseAttrs(p, node)
       node[assert(fmtAttr[attr] or strAttr[attr])] = true
     elseif attr.kind == 'keyval' then
       local val = attr[2]
-      if val == pegl.EMPTY then val = true
-      else                      val = p:tokenStr(val[2]) end
+      val = (val == pegl.EMPTY) and true or p:tokenStr(val[2])
       node[p:tokenStr(attr[1])] = val
     else
       mty.assertf(attr.kind == 'raw', 'kind: %s', attr.kind)
@@ -214,8 +227,8 @@ M.content = function(p, node, isRoot, altEnd)
     assert(isRoot, "Expected ']' but reached end of file")
     return addToken(p, node, l, c, p.l - 1, #p.dat[p.l - 1])
   elseif #p.line == 0 then
-    add(node, {pos={l}, br=true}); p:incLine(); skipWs(p)
-    l, c = p.l, p.c
+    add(node, {pos={l}, br=true})
+    p:incLine(); skipWs(p); l, c = p.l, p.c
     goto loop
   elseif p.c > #p.line then l, c = incLine(p, node, l, c); goto loop end
   if altEnd then
@@ -253,30 +266,87 @@ M.content = function(p, node, isRoot, altEnd)
   -- end
   local sub = {}
   if     raw           then sub.raw, sub.code       = raw, true
+  elseif txtCtrl[ctrl] then -- handled after content
   elseif fmtAttr[ctrl] then sub[fmtAttr[ctrl]]      = true
   elseif strAttr[ctrl] then sub[strAttr[ctrl]], raw = true, 0
   elseif ctrl == '+'   then sub.list                = true
   elseif ctrl == '{'   then raw = parseAttrs(p, sub)
   elseif ctrl == '['   then l, c = p.l, p.c - 1; goto loop
   elseif ctrl == '<' then
-    sub.href = assert(p:parse{PIN, Pat'[^>]*', '>'}[1])
-  end
+    sub.href = p:tokenStr(assert(p:parse{PIN, Pat'[^>]*', '>'}[1]))
+  else p:error"Unrecognized control character after '['" end
+  -- parse table depending on kind
   if raw           then bracketedStr(p, sub, raw, ws)
   elseif sub.table then parseTable(p, sub)
   elseif sub.list  then parseList(p, sub)
-  else                 M.content(p, sub) end
+  else                  M.content(p, sub) end
+  -- clean up attributes
+  local txtAttr = txtCtrl[ctrl] or (sub.name == true) and 'name'
+  if txtAttr then
+    sub[txtAttr] = nodeText(p, sub):gsub('%s', '_')
+  end
+  for s, a in pairs(shortAttrs) do
+    if sub[s] then sub[a] = sub[s]; sub[s] = nil end
+  end
   sub.pos = {posL,posC,p.l,p.c-1}
   add(node, sub)
   l, c = p.l, p.c
   goto loop
 end
 
+local function extractNamed(node, named)
+  if rawget(node, 'name') then
+    if named[node.name] then
+      local l, c = table.unpack(named[node.name].pos)
+      error(sfmt('ERROR node %q is named twice: %s.%s and %s.%s',
+        node.name, l, c, table.unpack(node.pos)))
+    end
+    named[node.name] = node
+  end
+  for _, n in ipairs(node) do
+    if mty.ty(n) ~= Token then extractNamed(n, named) end
+  end
+end
+
+local function getNamed(node, named, name)
+  local n = named[name]; if not n then
+   local l, c = node.pos; error(sfmt(
+     'ERROR %s.%s: name %q not found', l, c, name))
+  end
+  return n
+end
+
+local function resolveFetches(p, node, named)
+  if mty.ty(node) == Token then return node end
+  if node.clone then
+    local n = ds.copy(getNamed(node, named, node.clone))
+    n.hidden, n.name, n.value = nil, nil, nil
+    return n
+  end
+  -- replace all @attr values
+  for k, v in pairs(node) do
+    mty.pnt('?? replace attr', k, v)
+    if type(k) ~= 'number' and type(v) == 'string' and v:sub(1,1) == '@' then
+      local n = getNamed(node, named, v:sub(2))
+      local attr = n.value or (n.href and 'href') or 'text'
+      if attr == 'text' then v = nodeText(p, n, v)
+      else                   v = n[attr] end
+      mty.pnt('?? replacing attr='..attr, k, v, n)
+      node[k] = v
+    end
+  end
+  for i, n in ipairs(node) do node[i] = resolveFetches(p, n, named) end
+  return node
+end
+
 M.parse = function(dat, dbg)
   local p = pegl.Parser:new(dat, pegl.RootSpec{dbg=dbg})
   skipWs(p)
-  local node = {}
-  M.content(p, node, true)
-  return node, p
+  local root, named = {}, {}
+  M.content(p, root, true)
+  extractNamed(root, named)
+  resolveFetches(p, root, named)
+  return root, p
 end
 
 ---------------------------

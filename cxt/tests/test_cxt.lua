@@ -176,6 +176,32 @@ test('table', function()
   })
 end)
 
+test('named', function()
+
+  M.assertParse([[
+[{n=n1 href=hi.com}N1]
+[@n1]
+]],
+  { -- src
+    {'N1', name='n1', href='hi.com'},
+    '\n',
+    {'N1', href='hi.com'},
+    '\n', {br=true},
+  })
+
+  M.assertParse([[
+[{: href=hi.com}N 2]
+see [@N_2], I like [<@N_2>links]
+]],
+  { -- src
+    {'N 2', name='N_2', href='hi.com'},
+    '\n', 'see ',
+    {'N 2', href='hi.com'}, ', I like ',
+    {'links', href='hi.com'},
+    '\n', {br=true},
+  })
+end)
+
 test('html', function()
   html.assertHtml('hi [*there] bob', {'hi <b>there</b> bob'})
   html.assertHtml('hi [*there]\n  newline', {
