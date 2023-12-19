@@ -34,46 +34,75 @@ M.keyval = {kind='keyval',
 M.attr  = Or{Pat{RAW..'+', kind='raw'}, M.attrSym, M.keyval}
 M.attrs =   {PIN, Many{M.attr}, '}', kind='attrs'}
 
+local function addToken(p, node, l1, c1, l2, c2)
+  if l2 >= l1 and (l2>l1 or c2>=c1) then
+    mty.pntf('?? add token: %q', lines.sub(p.dat, l1, c1, l2, c2))
+    add(node, Token:encode(p, l1, c1, l2, c2))
+  end
+end
+
+local function trimTokenStart(p, t)
+  if mty.ty(t) ~= Token then return t end
+  local l1, c1 = t:lc1(p.root.decodeLC)
+  local l2, c2 = t:lc2(p.root.decodeLC)
+  local line = p.dat[l1]
+  mty.pntf('?? trim front: %q', lines.sub(p.dat, l1, c1, l2, c2))
+  local s = p:tokenStr(t); c1 = line:find('[^ ]', c1)
+  return Token:encode(p, l1, c1, l2, c2)
+end
+
+local function trimTokenLast(p, t)
+  if mty.ty(t) ~= Token then return t end
+  local l1, c1 = t:lc1(p.root.decodeLC)
+  local l2, c2 = t:lc2(p.root.decodeLC)
+  local line = p.dat[l2]
+  mty.pntf('?? trim back: %q', lines.sub(p.dat, l1, c1, l2, c2))
+  while line:sub(c2,c2) == ' ' do c2 = c2 - 1 end
+  return Token:encode(p, l1, c1, l2, c2)
+end
+
 -- find the end of a [##raw block]##
-local function bracketedStrRaw(p, raw)
+local function bracketedStrRaw(p, node, raw, ws)
   local l, c, closePat = p.l, p.c, '%]'..string.rep(RAW, raw)
+  local closePatStart = '^'..closePat
+  if p.c > #p.line then p:incLine() end
   while true do
     if p:isEof() then p:error(sfmt(
       "Got EOF, expected %q", closePat:sub(2)
     ))end
+    if ws and p.c == 1 then -- strip leading whitespace
+      addToken(p, node, l, c, p.l, p.c - 1)
+      local w1, w2 = p.line:find(ws); if w1 ~= 1 then
+        p:error(sfmt('Expected leading %q', ws))
+      end
+      l, c, p.c = p.l, w2+1, w2+1
+    end
     local c1, c2 = p.line:find(closePat, p.c)
     if c2 then
-      p.c = c2 + 1
-      local lt, ct = p.l, c1 - 1
-      -- if ct == 0 then
-      --   -- ignore last newline if end is at start
-      --   lt, ct = p.l - 1, #p.dat[p.l - 1]
-      -- end
-      return Token:encode(p, l, c, lt, ct)
+      p.c = c2 + 1; local lt, ct = p.l, c1 - 1
+      return addToken(p, node, l, c, lt, ct)
     end
-    p:incLine()
+    p:incLine(); node.block = true
+    ::continue::
   end
 end
 
 -- A string that ends in a closed bracket and handles balanced brackets.
 -- Returns: Token, which does NOT include the closePat
-local function bracketedStr(p, raw)
+local function bracketedStr(p, node, raw, ws, c)
   mty.pntf('?? bracketedStr %s %s.%s: %s', raw, p.l, p.c, p.line:sub(p.c))
-  if raw > 0 then return bracketedStrRaw(p, raw) end
+  if raw > 0 then return bracketedStrRaw(p, node, raw, ws) end
   local l, c, nested = p.l, p.c, 1
   while nested > 0 do
-    if p:isEof() then p:error"Got EOF, expected matching ']'" end
+    if p:isEof()     then p:error"Got EOF, expected matching ']'" end
     if p.c > #p.line then p:incLine(); goto continue end
     local c1, c2 = p.line:find('[%[%]]', p.c); if c2 then
-      if p.line:sub(c1,c2) == '[' then
-        p.c = c2 + 1; nested = nested + 1
-      else
-        p.c = c2 + 1; nested = nested - 1
-      end
-    end
+      if p.line:sub(c1,c2) == '[' then p.c = c2 + 1; nested = nested + 1
+      else                             p.c = c2 + 1; nested = nested - 1 end
+    else p:incLine() end
     ::continue::
   end
-  return Token:encode(p, l, c, p.l, p.c - 2)
+  add(node, Token:encode(p, l, c, p.l, p.c - 2))
 end
 
 local fmtAttr = {
@@ -114,22 +143,11 @@ local function parseAttrs(p, node)
   return raw
 end
 
-local function addToken(p, node, l1, c1, l2, c2)
-  print('?? addToken', l1, c1, l2, c2)
-  if l2 >= l1 and (l2>l1 or c2>=c1) then
-    local t = Token:encode(p, l1, c1, l2, c2)
-    print('?? added token:', p:tokenStr(t))
-    mty.pnt('?? dat      :', p.dat)
-    print('?? added sub  :', lines.sub(p.dat, l1, c1, l2, c2))
-    add(node, t)
-  else print("?? token=no")
-  end
-end
-
 local ITEM = {
   ['^%s*%* ']      = 'bullet',
   ['^%s*%(%d+%) '] = 'numbered',
 }
+
 local LIST_ITEM_ERR = [[
 expected bullet item followed by whitespace. Examples:\n
       *   bullet
@@ -138,7 +156,6 @@ expected bullet item followed by whitespace. Examples:\n
       [x] checked
 ]]
 local function parseList(p, list)
-  mty.pnt'?? parsing list'
   p:skipEmpty()
   if p:isEof() then p:error'Expected a list got EOF' end
   local ipat, ikind; for ip, i in pairs(ITEM) do
@@ -150,21 +167,48 @@ local function parseList(p, list)
   mty.pntf('?? list ipat %q', ipat)
   local altEnd = function(p, node, l, c)
     local c1, c2 = p.line:find(ipat)
-    mty.pntf('?? altEnd call %s.%s: %s => %s', p.l, p.c, p.line:sub(p.c), c1)
-    return c2 and (p.c <= c2) and 'listStart' or false, l, c
+    if c2 and (p.c <= c2) then return {l, c} end
   end
   while true do
     local item = {}
-    mty.pntf('?? list item %s.%s: %s', p.l, p.c, p.line:sub(p.c))
-    local r, l, c = M.content(p, item, false, altEnd)
-    mty.pntf('?? list content returned: %s %s %s', r, l, c)
-    if r == 'listStart' then
-      addToken(p, item, l, c, p.l, p.c - 1)
+    local r = M.content(p, item, false, altEnd)
+    if r then
+      addToken(p, item, r[1], r[2], p.l, p.c - 1)
       local c1, c2 = p.line:find(ipat, p.c)
       p.c = c2 + 1
     end
     add(list, item)
     if not r then break end
+  end
+end
+
+local function parseTable(p, tbl)
+  p:skipEmpty(); if p:isEof() then p:error'Expected a table got EOF' end
+  local rowDel, colDel = '+', '|'
+  local altEnd = function(p, node, l, c)
+    local c1, c2 = p.line:find(rowDel, 1, true)
+    if c2 and (p.c <= c2) then return {rowDel, l, c} end
+    c1, c2 = p.line:find(colDel, p.c, true)
+    if c2 then return {colDel, l, c} end
+  end
+  local row, r = {}, true while r do
+    local col = {}; r = M.content(p, col, false, altEnd)
+    if r then
+      local delim, l, c = table.unpack(r)
+      local c1, c2 = p.line:find(delim, p.c, true)
+      addToken(p, col, l, c, p.l, c1 - 1); p.c = c2 + 1
+      if #col > 0 then add(row, col) end
+      if delim == rowDel then
+        if #row > 0 then add(tbl, row); row = {} end
+      end
+    elseif #col > 0 then add(row, col) end
+  end
+  if #row > 0 then add(tbl, row) end
+  for _, row in ipairs(tbl) do
+    for _, col in ipairs(row) do
+      col[1]    = pegl.trimTokenStart(p, col[1])
+      col[#col] = pegl.trimTokenLast (p, col[#col])
+    end
   end
 end
 
@@ -189,32 +233,23 @@ M.content = function(p, node, isRoot, altEnd)
   ::loop::
   mty.pntf('?? l=%s: %s', l, p.line)
   if p.line == nil then
-    mty.pnt('?? adding @EOF', l, c)
     assert(isRoot, "Expected ']' but reached end of file")
     return addToken(p, node, l, c, p.l - 1, #p.dat[p.l - 1])
   elseif #p.line == 0 then
-    mty.pnt('?? Adding @br')
-    add(node, {pos={l}, br=true})
-    p:incLine(); skipWs(p)
+    add(node, {pos={l}, br=true}); p:incLine(); skipWs(p)
     l, c = p.l, p.c
     goto loop
-  elseif p.c > #p.line then
-    mty.pnt('?? inc line')
-    l, c = incLine(p, node, l, c)
-    goto loop
-  end
+  elseif p.c > #p.line then l, c = incLine(p, node, l, c); goto loop end
   if altEnd then
-    local e = table.pack(altEnd(p, node, l, c))
-    if e[1] then
-      mty.pnt('?? content hit altEnd: ', e)
-      return table.unpack(e)
-    end
-    print'?? not alt end'
+    local e = altEnd(p, node, l, c); if e then return e end
   end
   local c1, c2 = p.line:find('[%[%]]', p.c); if not c2 then
     l, c = incLine(p, node, l, c)
     goto loop
   end
+  -- detect leading whitespace
+  local ws, w1 = p.line:find'^%s+'
+  ws = ws and p.line:sub(ws, w1) or nil
   p.c = c2 + 1
   mty.pnt('?? Adding @[]')
   addToken(p, node, l, c, p.l, c2-1)
@@ -248,11 +283,9 @@ M.content = function(p, node, isRoot, altEnd)
   elseif ctrl == '<' then
     sub.href = assert(p:parse{PIN, Pat'[^>]*', '>'}[1])
   end
-  if raw          then
-    local s = bracketedStr(p, raw)
-    sub.block = p:tokenStr(s):find'\n' and true or nil
-    add(sub, s)
-  elseif sub.list then parseList(p, sub)
+  if raw           then bracketedStr(p, sub, raw, ws)
+  elseif sub.table then parseTable(p, sub)
+  elseif sub.list  then parseList(p, sub)
   else                 M.content(p, sub) end
   sub.pos = {posL,posC,p.l,p.c-1}
   add(node, sub)
@@ -315,7 +348,6 @@ M.Writer.__index = function(w, l)
 end
 M.Writer.__newindex = function(w, l, line)
   if type(l) ~= 'number' then return rawset(w, l, line) end
-  if w.indent > 0 then line = string.rep(' ', w.indent)..line end
   w.to[l] = line
 end
 M.Writer.__len = function(w) return #w.to end

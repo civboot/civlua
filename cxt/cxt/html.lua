@@ -34,6 +34,7 @@ code {
 local function nodeKind(n)
   if mty.ty(n) == pegl.Token then return 'token' end
   if n.code                  then return 'code'  end
+  if n.table                 then return 'table' end
   if n.list                  then return 'ul'    end
   if n.br                    then return 'br'    end
 end
@@ -102,7 +103,21 @@ local function _serialize(w, line, node)
   mty.pnt('?? node kind='..tostring(kind)..':', node)
   startFmt(w, node, kind, line)
   startNode(node, kind, line)
-  if kind == 'ul' then
+  if kind == 'table' then
+    addLine(w, line); w.indent = w.indent + 2
+    for ri, row in ipairs(node) do
+      addLine(w, {'<tr>'})
+      for _, col in ipairs(row) do
+        local el = (ri == 1) and 'th' or 'td'
+        line = {'<'..el..'>'}
+        line = _serialize(w, line, col)
+        add(line, '</'..el..'>')
+        addLine(w, line)
+      end
+      addLine(w, {'</tr>'})
+    end
+    line = {}; w.indent = w.indent - 2
+  elseif kind == 'ul' then
     addLine(w, line); w.indent = w.indent + 2
     for _, item in ipairs(node) do
       line = {'<li>'}
@@ -112,8 +127,8 @@ local function _serialize(w, line, node)
     end
     line = {}; w.indent = w.indent - 2
   elseif node.code then
-    assert(#node == 1)
-    local s = w:tokenStr(node[1])
+    local s = {}; for _, n in ipairs(node) do add(s, w:tokenStr(n)) end
+    s = table.concat(s)
     if s:sub(1, 1) == '\n' then s = s:sub(2) end
     mty.pnt('?? node.code token:', s)
     s = s:gsub('[&<>]', CODE_REPL)

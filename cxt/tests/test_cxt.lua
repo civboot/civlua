@@ -54,6 +54,7 @@ This is a bit
     '\n',
     {br=true},
   })
+
 end)
 
 test('attrs', function()
@@ -121,6 +122,60 @@ A list:[+
 
 end)
 
+test('nested', function()
+  M.assertParse([[
+[+
+* list item
+
+  [##
+  with inner code
+  ]##
+]
+]],
+  {
+    {list=true,
+      {
+        "list item\n", {br=true}, {
+          code=true, block=true,
+          "\n",
+          "with inner code\n",
+        }, "\n",
+      },
+    }, "\n", {br=true},
+  }, true)
+end)
+
+
+test('table', function()
+  M.assertParse([[
+[{table}
++ h1   | h2   | h3
++ r1.1 | r1.2 | r1.3
++ r2.1 | r2.2 | r2.3
+]
+]],
+  { -- src
+    { table=true,
+      { -- header
+        {"h1"},
+        {"h2"},
+        {"h3\n"},
+      },
+      { -- row 1
+        {"r1.1"},
+        {"r1.2"},
+        {"r1.3\n"},
+      },
+      { -- row 2
+        {"r2.1"},
+        {"r2.2"},
+        {"r2.3\n"},
+      },
+    },
+    '\n', {br=true},
+  })
+end)
+
 test('html', function()
   html.assertHtml('hi [*there] bob', {'hi <b>there</b> bob'})
   html.assertHtml('hi [*there]\n  newline', {
@@ -136,15 +191,15 @@ listing:[+
 ]
 ]],{
     "listing:<ul>",
-    "  <li>one",
-    "  </li>",
-    "  <li>two<ul>",
-    "    <li>three",
-    "    </li>",
-    "    <li>four",
-    "    </li>",
-    "  </ul>",
-    "  </li>",
+      "<li>one",
+      "</li>",
+      "<li>two<ul>",
+        "<li>three",
+        "</li>",
+        "<li>four",
+        "</li>",
+      "</ul>",
+      "</li>",
     "</ul>",
     "<p>",
   })

@@ -19,22 +19,30 @@ CXT contains only two special characters for deliniating formatting controls:
 [[*A surrounded block]], where '*' (the first character) indicates the block
 control.
 
-The following block kinds are currently supported:
+There are two ways to specify attributes for a block: [+
+* full attributes: [[${attr1 attr2 attr3=value}block text]]
+* shortcut: [$[*block text]] where '*' is one of the shortcut values below]
+
+The following attributes and shortcuts are supported
 [###
-  $      [$inline code]. Note that [$balanced[brackets] are allowed]
+  b i u   bold (*), italic (/) and underlined (_)
+          shortcut: [*bold] [/italic] [_underlined]
+                    [{*/_}bold italic and underlined]
 
-  * / _  [*bold], [/italic] and [_underlined]
+  code    inline or block code (depending on whether newlines exist)
+          shortcut: [$inline code]
+          See also: '[#... ]#...' which sets the code attribute.
 
-  {...}  allows named attributes on the block like
-         i.e: [{b i href=http://civboot.org}bold italic link]
-         Note that * is 'b', etc.
+  quote   create a quote block
+          shortcut: ["quote block]
 
-  +      list with a special first-nonwitespace parser which looks for '*'
-        (unordered list). Other list types will be supported in the future.
+  list    list syntax, see demos
+          shortcut: [+ * list item]
 
-  "      quote block
+  table   table syntax, see demos
 
   !      hidden block, used for comments and/or assigning attributes
+         shortcut: [!hidden block]
 
   #...   any number of # characters create a "raw" block that must
          have the same number of # characters closing it.
@@ -47,20 +55,22 @@ The following block kinds are currently supported:
          <b>example html</b>
          ]##
 
-The following are not yet supported
+  href    hyper reference, aka a url.
+          shortcut: [<href>text]
 
-  :      sets the "name" attribute to the content of the block.
-         [{: href=http://civboot.org}Civboot] creates a block
-         named "Civboot"
+Not yet supported:
 
-  @      copies a block of the name. [@Civboot] would copy the above
-         named block.
+  name    sets the name of the block.
+          Used with: [@name]  href=#name  anyAttr=@name
+          shortcut: [{: ...}name]
+          Example: [{name=Civboot href=http://civboot.org}Civboot]
+          Example: [{: href=http://civboot.org}Civboot]
 
-The following named attributes are supported:
-
-  b i u   bold, italic and underlined. You can use {*/_} instead.
-
-  {table} to create a table, see the demos.
+  @       copies a block with given name. When used as an attr value
+          uses the block's text as the value.
+          Example: [@Civboot] copies the block with name=Civboot
+          Example: [{href=@civurl}Civboot Project]
+          Note: Not allowed as an attribute name.
 ]###
 
 [{h2}Demos]
@@ -97,26 +107,43 @@ end
 [{b i href=http://civboot.org}bold italic link]
 ]##
 
-[*List] [+
-  * example list
-  * with sub list:[+
-    * sub item
-    * multi-line
-
-      sub item.
-  ]
-]
-[##
+[*List]
 [+
-  * example list
-  * with sub list:[+
-    * sub item
-    * multi-line
+* example list
+* with sub list:[+
+  * sub item
+  * multi-line
 
-      sub item.
-    ]
+    sub item.
+  * inner code block
+    [##
+    function example()
+      print'example inner block'
+    end
+    ]##
+  * final sub
 ]
-]##
+* final item
+]
+[###
+[+
+* example list
+* with sub list:[+
+  * sub item
+  * multi-line
+
+    sub item.
+  * inner code block
+    [##
+    function example()
+      print'example inner block'
+    end
+    ]##
+  * final sub
+]
+* final item
+]
+]###
 
 [*Hidden]
 
@@ -125,14 +152,17 @@ Hidden block: [! this is hidden]
 Hidden block: [! this is hidden]
 ]##
 
-[{h2}Future Features]
 [*Table]
 
 A table is created by the 'table' attribute. the row deliminiter
-is set by 'row' and defaults to '+' (with whitespace), where the column
-deliminter is set by 'col' and defaults to '|'. The row deliminiter
-must be at the start of line and the column delimiter consumes any
-surounding whitespace.
+is set by 'row' and defaults to '+', the column deliminter is set by 'col' and
+defaults to '|'. The row deliminiter is only recognized at the start of a line.
+
+[{table}
++ col 1      | col 2   | col 3
++ row [*1.1] | row 1.2 | row 1.3
++ row [*1.1] | row 1.2 | row 1.3
+]
 [##
 [{table}
 + col 1      | col 2   | col 3
@@ -143,6 +173,25 @@ surounding whitespace.
 
 For very large or multi-lined columns, you can organize them similar to
 sub-lists:
+[{table}
++ 1st named column
+| 2nd named column
+| 3rd named column
++ long row 1.1
+| long row 1.2
+
+  Even includes new line!
+| long row 1.3
+  [{## code=lua}
+  function example()
+    return "code block"
+  end
+  ]##
++ row 2.1
+| row 2.2
+| row 2.3
+]
+
 [###
 [{table}
 + 1st named column

@@ -34,6 +34,24 @@ M.Token.decode = function(t, dat, dec)
   return lines.sub(dat, l, c, t:lc2(dec))
 end
 
+M.trimTokenStart = function(p, t)
+  if mty.ty(t) ~= M.Token then return t end
+  local l1, c1 = t:lc1(p.root.decodeLC)
+  local l2, c2 = t:lc2(p.root.decodeLC)
+  local line = p.dat[l1]
+  local s = p:tokenStr(t); c1 = line:find('[^ ]', c1)
+  return M.Token:encode(p, l1, c1, l2, c2)
+end
+
+M.trimTokenLast = function(p, t)
+  if mty.ty(t) ~= M.Token then return t end
+  local l1, c1 = t:lc1(p.root.decodeLC)
+  local l2, c2 = t:lc2(p.root.decodeLC)
+  local line = p.dat[l2]
+  while line:sub(c2,c2) == ' ' do c2 = c2 - 1 end
+  return M.Token:encode(p, l1, c1, l2, c2)
+end
+
 M.RootSpec = mty.record'RootSpec'
   -- function(p): skip empty space
   -- default: skip whitespace
