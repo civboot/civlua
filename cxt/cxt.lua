@@ -41,26 +41,6 @@ local function addToken(p, node, l1, c1, l2, c2)
   end
 end
 
-local function trimTokenStart(p, t)
-  if mty.ty(t) ~= Token then return t end
-  local l1, c1 = t:lc1(p.root.decodeLC)
-  local l2, c2 = t:lc2(p.root.decodeLC)
-  local line = p.dat[l1]
-  mty.pntf('?? trim front: %q', lines.sub(p.dat, l1, c1, l2, c2))
-  local s = p:tokenStr(t); c1 = line:find('[^ ]', c1)
-  return Token:encode(p, l1, c1, l2, c2)
-end
-
-local function trimTokenLast(p, t)
-  if mty.ty(t) ~= Token then return t end
-  local l1, c1 = t:lc1(p.root.decodeLC)
-  local l2, c2 = t:lc2(p.root.decodeLC)
-  local line = p.dat[l2]
-  mty.pntf('?? trim back: %q', lines.sub(p.dat, l1, c1, l2, c2))
-  while line:sub(c2,c2) == ' ' do c2 = c2 - 1 end
-  return Token:encode(p, l1, c1, l2, c2)
-end
-
 -- find the end of a [##raw block]##
 local function bracketedStrRaw(p, node, raw, ws)
   local l, c, closePat = p.l, p.c, '%]'..string.rep(RAW, raw)
@@ -90,7 +70,6 @@ end
 -- A string that ends in a closed bracket and handles balanced brackets.
 -- Returns: Token, which does NOT include the closePat
 local function bracketedStr(p, node, raw, ws, c)
-  mty.pntf('?? bracketedStr %s %s.%s: %s', raw, p.l, p.c, p.line:sub(p.c))
   if raw > 0 then return bracketedStrRaw(p, node, raw, ws) end
   local l, c, nested = p.l, p.c, 1
   while nested > 0 do
@@ -116,14 +95,10 @@ local strAttr = {
 
 local function parseAttrs(p, node)
   local l, c, raw = p.l, p.c, nil
-  print('?? attrs:', p.line:sub(c))
   local attrs = p:parse(M.attrs)
   for _, attr in ds.islice(attrs, 1, #attrs-1) do
-    mty.pnt('?? attr:', attr)
     if attr.kind == 'attrSym' then
-      mty.pnt('?? attrSym:', attr, mty.ty(attr))
       local attr = p:tokenStr(attr)
-      mty.pnt('?? attrSym:', attr)
       node[assert(fmtAttr[attr] or strAttr[attr])] = true
     elseif attr.kind == 'keyval' then
       local val = attr[2]
@@ -164,7 +139,6 @@ local function parseList(p, list)
     end
   end
   if not ipat then p:error(LIST_ITEM_ERR) end
-  mty.pntf('?? list ipat %q', ipat)
   local altEnd = function(p, node, l, c)
     local c1, c2 = p.line:find(ipat)
     if c2 and (p.c <= c2) then return {l, c} end
@@ -183,15 +157,20 @@ local function parseList(p, list)
 end
 
 local function parseTable(p, tbl)
-  p:skipEmpty(); if p:isEof() then p:error'Expected a table got EOF' end
+  if p.line and p.c > #p.line then p:incLine() end
   local rowDel, colDel = '+', '|'
   local altEnd = function(p, node, l, c)
-    local c1, c2 = p.line:find(rowDel, 1, true)
-    if c2 and (p.c <= c2) then return {rowDel, l, c} end
-    c1, c2 = p.line:find(colDel, p.c, true)
-    if c2 then return {colDel, l, c} end
+    if p.c == 1 then
+      local c1, c2 = p.line:find'%S'; if c2 then
+        if p.line:sub(c2,c2) == rowDel then return {rowDel, l, c} end
+      end
+    end
+    local c1, c2 = p.line:find(colDel, p.c, true); if not c1 then return end
+    local b1, b2 = p.line:find('[', p.c, true)
+    if not b1 or b1 > c1 then return {colDel, l, c} end
   end
   local row, r = {}, true while r do
+    if p:isEof() then p:error'Expected a table got EOF' end
     local col = {}; r = M.content(p, col, false, altEnd)
     if r then
       local delim, l, c = table.unpack(r)
@@ -231,7 +210,6 @@ end
 M.content = function(p, node, isRoot, altEnd)
   local l, c = p.l, p.c
   ::loop::
-  mty.pntf('?? l=%s: %s', l, p.line)
   if p.line == nil then
     assert(isRoot, "Expected ']' but reached end of file")
     return addToken(p, node, l, c, p.l - 1, #p.dat[p.l - 1])
@@ -241,7 +219,8 @@ M.content = function(p, node, isRoot, altEnd)
     goto loop
   elseif p.c > #p.line then l, c = incLine(p, node, l, c); goto loop end
   if altEnd then
-    local e = altEnd(p, node, l, c); if e then return e end
+    local e = altEnd(p, node, l, c); if e then
+    return e end
   end
   local c1, c2 = p.line:find('[%[%]]', p.c); if not c2 then
     l, c = incLine(p, node, l, c)
@@ -251,7 +230,6 @@ M.content = function(p, node, isRoot, altEnd)
   local ws, w1 = p.line:find'^%s+'
   ws = ws and p.line:sub(ws, w1) or nil
   p.c = c2 + 1
-  mty.pnt('?? Adding @[]')
   addToken(p, node, l, c, p.l, c2-1)
   local posL, posC = p.l, p.c
   if p.line:sub(c1,c2) == ']' then

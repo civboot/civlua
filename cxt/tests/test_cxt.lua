@@ -149,15 +149,15 @@ end)
 test('table', function()
   M.assertParse([[
 [{table}
-+ h1   | h2   | h3
-+ r1.1 | r1.2 | r1.3
-+ r2.1 | r2.2 | r2.3
++ [*h]1 | h2   | h3
++ r1.1  | r1.2 | r1.3
++ r2.1  | r2.2 | r2.3
 ]
 ]],
   { -- src
     { table=true,
       { -- header
-        {"h1"},
+        {"", {b=true, 'h'}, '1'},
         {"h2"},
         {"h3\n"},
       },
