@@ -13,13 +13,15 @@ local pegl = mty.lrequire'pegl'
 
 local KW, N = testing.KW, testing.N
 
+local function testEncode(d, e, ...)
+  T.assertEq({...}, {d(e(...))})
+end
+
 T.test('lc encode', function()
-  local e, d = pegl.encodeLCNum, pegl.decodeLCNum
-  T.assertEq({1, 2},        {d(e(1, 2))})
-  T.assertEq({1000, 255},   {d(e(1000, 255))})
-  T.assertEq({0x7FFF, 255}, {d(e(0x7FFF, 255))})
-  T.assertErrorPat('possible line/col overflow',
-          function() e(0x8000, 255) end)
+  local e, d = pegl.encodeSpan, pegl.decodeSpan
+  testEncode(d, e, 1, 2, 3, 4)
+  local bigL = 0x1FFFF
+  testEncode(d, e, bigL, 1, bigL+100, 20)
 end)
 
 T.test('keywords', function()

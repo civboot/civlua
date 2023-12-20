@@ -10,6 +10,8 @@ local df = require'ds.file'
 
 local M = mty.docTy({}, DOC)
 
+local NAME_SYM = '☍'
+
 M.htmlHead = [[<style>
 p  { margin-top: 0.5em; margin-bottom: 0.0em; }
 ul { margin-top: 0.0em; margin-bottom: 0.5em; }
@@ -71,7 +73,7 @@ local function startFmt(w, n, kind, line)
     if n[f] then add(line, '<'..(cxtRename[f] or f)..'>') end
   end
   if n.name then
-    add(line, sfmt('<a id="%s" href="#%s">🕮</a>', n.name, n.name))
+    add(line, sfmt('<a id="%s" href="#%s">%s</a>', n.name, n.name, NAME_SYM))
   end
   if n.href then
     add(line, '<a '); addAttr(line, 'href', n.href); add(line, '>')

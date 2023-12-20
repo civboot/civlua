@@ -123,8 +123,7 @@ local function parseAttrs(p, node)
       if raw then
         p.l, p.c = l, c; p:error'multiple raw (##...) attributes'
       end
-      local _, c1 = attr:lc1(p.root.decodeLC)
-      local _, c2 = attr:lc2(p.root.decodeLC)
+      local _, c1, _, c2 = attr:span()
       raw = c2 - c1 + 1
     end
   end
@@ -382,13 +381,12 @@ The writer contains:
 * The destination lines and current indent level.
 ]](mty.record'cxt.Writer')
   :field'src'
-  :field'decodeLC'
   :field'to'
   :field('indent', 'number')
 M.Writer.fromParser = function(ty_, p, to)
-  return ty_{src=p.dat, decodeLC=p.root.decodeLC, to=to or {}, indent=0}
+  return ty_{src=p.dat, to=to or {}, indent=0}
 end
-M.Writer.tokenStr = function(w, t) return t:decode(w.src, w.decodeLC) end
+M.Writer.tokenStr = function(w, t) return t:decode(w.src) end
 M.Writer.__index = function(w, l)
   local m = getmetatable(w)[l]; if m then return m end
   if type(l) ~= 'number' then return end

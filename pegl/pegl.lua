@@ -8,36 +8,27 @@ local add, sfmt = table.insert, string.format
 
 local M = {}
 
--- a 32bit float has 23 bits of fraction.
--- We use 8 for the column (0-255) and 15
--- for the line (0-32767).
-M.encodeLCNum = function(l, c)
-  assert((l <= 0x7FFF) and (c <= 0xFF), 'possible line/col overflow')
-  return (l << 8) + c
+-- Tokens use a packed span to preserve space.
+-- Maximums: line start|len = 2^24|2^16. cols=255
+M.SPAN_FMT = '>I3I2BB'
+M.encodeSpan = function(l1, c1, l2, c2)
+  return string.pack(M.SPAN_FMT, l1, c1, l2-l1, c2)
 end
-M.decodeLCNum= function(lc)
-  return lc >> 8, 0xFF & lc
+M.decodeSpan = function(s)
+  local l, c, l2, c2 = string.unpack(M.SPAN_FMT, s)
+  return l, c, l + l2, c2
 end
-M.encodeLCTbl = function(l, c) return {l, c} end
-M.decodeLCTbl = table.unpack
 
-M.Token = mty.record'Token'
-  :fieldMaybe'kind'
-M.Token.lc1=function(t, dec) return dec(t[1]) end
-M.Token.lc2=function(t, dec) return dec(t[2]) end
+M.Token = mty.record'Token':fieldMaybe'kind'
+M.Token.span = function(t, dec) return M.decodeSpan(t[1]) end
 M.Token.encode=function(ty_, p, l, c, l2, c2, kind)
-  local e = p.root.encodeLC
-  return M.Token{e(l, c), e(l2, c2), kind=kind}
+  return M.Token{M.encodeSpan(l, c, l2, c2), kind=kind}
 end
-M.Token.decode = function(t, dat, dec)
-  local l, c = t:lc1(dec)
-  return lines.sub(dat, l, c, t:lc2(dec))
-end
+M.Token.decode = function(t, dat) return lines.sub(dat, M.decodeSpan(t[1])) end
 
 M.trimTokenStart = function(p, t)
   if mty.ty(t) ~= M.Token then return t end
-  local l1, c1 = t:lc1(p.root.decodeLC)
-  local l2, c2 = t:lc2(p.root.decodeLC)
+  local l1, c1, l2, c2 = t:span()
   local line = p.dat[l1]
   local s = p:tokenStr(t); c1 = line:find('[^ ]', c1)
   return M.Token:encode(p, l1, c1, l2, c2)
@@ -45,24 +36,18 @@ end
 
 M.trimTokenLast = function(p, t)
   if mty.ty(t) ~= M.Token then return t end
-  local l1, c1 = t:lc1(p.root.decodeLC)
-  local l2, c2 = t:lc2(p.root.decodeLC)
+  local l1, c1, l2, c2 = t:span()
   local line = p.dat[l2]
   while line:sub(c2,c2) == ' ' do c2 = c2 - 1 end
   return M.Token:encode(p, l1, c1, l2, c2)
 end
 
 M.RootSpec = mty.record'RootSpec'
-  -- function(p): skip empty space
-  -- default: skip whitespace
-  :field('skipEmpty', 'function')
-  -- skipComment: return Token for found comment.
-  :fieldMaybe('skipComment', 'function')
+  :field('skipEmpty', 'function'):fdoc'fn(p) default=skip whitespace'
+  :fieldMaybe('skipComment', 'function'):fdoc'fn(p) -> Token for found comment'
   :field('tokenizer', 'function')
   :field('dbg', 'boolean', false)
   :field('fmtKind', 'table') -- default set at bottom
-  :field('encodeLC', 'function', M.encodeLCNum)
-  :field('decodeLC', 'function', M.decodeLCNum)
 
 M.Parser = mty.record'Parser'
   :field'dat'
@@ -197,7 +182,7 @@ M.skipEmpty = function(p)
         cL = p.commentLC[p.l]
         if not cL then cL = {}; p.commentLC[p.l] = cL end
         cL[p.c] = cmt
-        p.l, p.c = cmt:lc2(p.root.decodeLC); p.c = p.c + 1
+        p.l, p.c = select(3, cmt:span()); p.c = p.c + 1
       end
     end
   end
@@ -429,12 +414,11 @@ M.Parser.peek = function(p, pat)
 end
 M.Parser.consume = function(p, pat, plain)
   local t = p:peek(pat, plain)
-  if t then p.c = select(2, t:lc2(p.root.decodeLC)) + 1 end
+  if t then p.c = select(4, t:span()) + 1 end
   return t
 end
 M.Parser.sub =function(p, t) -- t=token
-  local l, c = t:lc1(p.root.decodeLC)
-  return lines.sub(p.dat, l, c, t:lc2(p.root.decodeLC))
+  return lines.sub(p.dat, t:span())
 end
 M.Parser.incLine=function(p)
   p.l, p.c = p.l + 1, 1
@@ -459,7 +443,7 @@ M.Parser.toStrTokens=function(p, n--[[node]])
   return t
 end
 M.Parser.tokenStr = function(p, t--[[Token]])
-  return t:decode(p.dat, p.root.decodeLC)
+  return t:decode(p.dat)
 end
 M.Parser.fmtSetDefault = function(p) return mty.FmtSet{
   data=p, pretty=true, listSep=', ', tblSep=', ',

@@ -223,7 +223,7 @@ sub-lists:
 
 [*Named Nodes and Values]
 
-[" [*Note]: all visible named blocks have a 🕮 link next to them. Therefore they
+[" [*Note]: all visible named blocks have a ☍ link next to them. Therefore they
    serve dual purpose of being referenced within the cxt file using [$[@name]] and
    by local and external links ([$href=#name])
 ]

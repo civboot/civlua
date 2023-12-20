@@ -102,9 +102,7 @@ local doubleStr = function(p) return quoteImpl(p, '"', '(\\*)"', 'doubleStr') en
 local bracketStrImpl = function(p)
   local l, c = p.l, p.c
   local start = p:consume('%[=*%['); if not start then return end
-  local cs, cs2 =
-    select(2, start:lc1(p.root.decodeLC)),
-    select(2, start:lc2(p.root.decodeLC))
+  local _, cs, _, cs2 = start:span()
   local pat = '%]'..string.rep('=', cs2 - cs - 1)..'%]'
   l, c = p.l, p.c
   while true do
@@ -235,8 +233,8 @@ local function skipComment(p)
   local l = p.l; p.c = c2+1
   local t = bracketStrImpl(p)
   if t and mty.ty(t) ~= Token then
-    local l1, c1 = t[1]:lc1(p.root.decodeLC)
-    return Token:encode(p, l1, c1, t[#t]:lc2(p.root.decodeLC))
+    local l1, c1 = t[1]:span()
+    return Token:encode(p, l1, c1, select(3, t[#t]:span()))
   end
   if t then t.c = c; return t
   else
