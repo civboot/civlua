@@ -1,4 +1,4 @@
-local mty = require 'metaty'
+local mty = require'metaty'
 local record, Any = mty.record, mty.Any
 local add, sfmt = table.insert, string.format
 
@@ -375,13 +375,64 @@ M.callerSource = function()
   return string.format('%s:%s', info.source, info.currentline)
 end
 
-M.eval = function(s, env, name) -- Note: not typed
-  assert(type(s) == 'string'); assert(type(env) == 'table')
+M.eval = function(chunk, env, name) -- Note: not typed
+  assert(type(env) == 'table')
   name = name or M.callerSource()
-  local e, err = load(s, name, 't', env)
+  local e, err = load(chunk, name, 't', env)
   if err then return false, err end
   return pcall(e)
 end
+
+
+M.LITERAL_ENV = {
+  sfmt=string.format, push=table.insert,
+
+  string=string, table=table, utf8=utf8,
+  type=type,   select=select,
+  pairs=pairs, ipairs=ipairs, next=next,
+  error=error, assert=assert,
+
+  -- Note: cannot include math because of random
+  abs=math.abs, ceil=math.ceil, floor=math.floor,
+  max=math.max, min=math.min,
+  maxinteger=math.maxinteger, tonumber=tonumber,
+
+  __metatable = 'LITERAL_ENV',
+}
+M.LITERAL_ENV.__index = function(e, i) return M.LITERAL_ENV[i] end
+
+M.literal_eval = function(chunk, env)
+  local env = setmetatable(env or {}, M.LITERAL_ENV)
+  local e, err = load(chunk, M.callerSource(), 'bt', env)
+  if err then error(err) end
+  e()
+  return env
+end
+
+M.literal_load = mty.doc[[
+load a file as lua literals. There are two forms:
+literal_load(fpath)      -- load the path to a file
+literal_load(dir, fname) -- load the fname in the given directory
+
+The second form is common when used from within a literal file.
+Commonly it is called with:
+
+  literal_load(DIR,  'example.lud')
+]](function(a, b)
+  assert(a, 'must call with either (fpath) or (dir, fname)')
+  local dir, fpath
+  if b then dir, fpath = a, M.path.concat(a, b)
+  else      dir, fpath = M.path.last(a), a end
+  local f   = io.open(fpath) if not f then error(
+    'failed to open: '..fpath
+  )end
+  local fn  = function() return f:read(4096) end
+  local env = { PATH = fpath, DIR = dir }
+  local out = M.literal_eval(fn, env)
+  print('?? literal_load: ', out)
+  return out
+end)
+M.LITERAL_ENV.literal_load = M.literal_load
 
 ---------------------
 -- Sentinal, none type and bool()
