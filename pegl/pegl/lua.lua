@@ -261,4 +261,5 @@ return ds.update(M, {
   field=field,
   explist=explist,
   varset=varset,
+  name=name, call=call,
 })

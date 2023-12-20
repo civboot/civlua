@@ -243,7 +243,7 @@ end
 
 M.getOrSet = function(t, k, newFn)
   local v = t[k]; if v then return v end
-  if newFn then v = newFn(t, k); t[k] = v end
+  v = newFn(t, k); t[k] = v
   return v
 end
 
@@ -382,57 +382,6 @@ M.eval = function(chunk, env, name) -- Note: not typed
   if err then return false, err end
   return pcall(e)
 end
-
-
-M.LITERAL_ENV = {
-  sfmt=string.format, push=table.insert,
-
-  string=string, table=table, utf8=utf8,
-  type=type,   select=select,
-  pairs=pairs, ipairs=ipairs, next=next,
-  error=error, assert=assert,
-
-  -- Note: cannot include math because of random
-  abs=math.abs, ceil=math.ceil, floor=math.floor,
-  max=math.max, min=math.min,
-  maxinteger=math.maxinteger, tonumber=tonumber,
-
-  __metatable = 'LITERAL_ENV',
-}
-M.LITERAL_ENV.__index = function(e, i) return M.LITERAL_ENV[i] end
-
-M.literal_eval = function(chunk, env)
-  local env = setmetatable(env or {}, M.LITERAL_ENV)
-  local e, err = load(chunk, M.callerSource(), 'bt', env)
-  if err then error(err) end
-  e()
-  return env
-end
-
-M.literal_load = mty.doc[[
-load a file as lua literals. There are two forms:
-literal_load(fpath)      -- load the path to a file
-literal_load(dir, fname) -- load the fname in the given directory
-
-The second form is common when used from within a literal file.
-Commonly it is called with:
-
-  literal_load(DIR,  'example.lud')
-]](function(a, b)
-  assert(a, 'must call with either (fpath) or (dir, fname)')
-  local dir, fpath
-  if b then dir, fpath = a, M.path.concat(a, b)
-  else      dir, fpath = M.path.last(a), a end
-  local f   = io.open(fpath) if not f then error(
-    'failed to open: '..fpath
-  )end
-  local fn  = function() return f:read(4096) end
-  local env = { PATH = fpath, DIR = dir }
-  local out = M.literal_eval(fn, env)
-  print('?? literal_load: ', out)
-  return out
-end)
-M.LITERAL_ENV.literal_load = M.literal_load
 
 ---------------------
 -- Sentinal, none type and bool()
@@ -717,7 +666,7 @@ M.LL.popBack = function(self)
 end
 
 M.bt = mty.docTy({}, [[
-ds.bt: Table as Binary Tree.
+ds.bt: indexed table as Binary Tree.
 These functions treat an indexed table as a binary tree
 where root is at index=1.
 ]])
@@ -727,5 +676,61 @@ function M.bt.parent(t, i)  return t[i // 2]    end
 function M.bt.lefti(t, i)   return   i * 2      end
 function M.bt.righti(t, i)  return   i * 2 + 1  end
 function M.bt.parenti(t, i) return   i // 2     end
+
+M.dag = mty.docTy({}, "Functions for working with directed acyclic graphs.")
+
+local function _dagSort(st, name, parents)
+  if st.visited[name] then return end; st.visited[name] = true
+  if parents then for _, pname in ipairs(parents) do
+    _dagSort(st, pname, st.depsMap[pname])
+  end end
+  add(st.out, name)
+end
+
+M.dag.sort = mty.doc[[
+dag.sort(depsMap) -> sortedDeps
+
+Sort the directed acyclic graph. depsMap must behave like a table which:
+
+  for pairs(depsMap) -> nodeName, ...
+  depsMap[nodeName]  -> nodeDeps (list)
+
+If depsMap is a map of pkg -> depPkgs then the result is the order the pkgs
+should be built.
+
+Note: this function does NOT detect cycles.
+]](function(depsMap)
+  local state = {depsMap=depsMap, out={}, visited={}}
+  for name, parents in pairs(depsMap) do
+    _dagSort(state, name, parents)
+  end
+  return state.out
+end)
+
+M.dag.reverseMap = mty.doc[[
+dag.reverseMap(childrenMap) -> parentsMap (or vice-versa)
+]](function(childrenMap)
+  local pmap = {}
+  for pname, children in pairs(childrenMap) do
+    M.getOrSet(pmap, pname, M.emptyTable)
+    if children then for _, cname in ipairs(children) do
+      add(M.getOrSet(pmap, cname, M.emptyTable), pname)
+    end end
+  end
+  return pmap
+end)
+
+M.dag.missing = mty.doc[[
+dag.missing(depsMap) -> missingDeps
+
+Given a depsMap return missing deps (items in a deps with no name).
+]](function(depsMap)
+  local missing = {}; for n, deps in pairs(depsMap) do
+    for _, dep in ipairs(deps) do
+      if not depsMap[dep] then missing[dep] = true end
+    end
+  end
+  return missing
+end)
 
 return M

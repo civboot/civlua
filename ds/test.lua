@@ -9,7 +9,7 @@ local min, max, bound, isWithin, sort2, decAbs
 local indexOf, copy, deepcopy
 local strInsert, strDivide, trim
 local steal, getOrSet, getPath, setPath, drain, reverse
-local eval, literal_eval, literal_load
+local eval
 local Set, LL, Duration, Epoch
 local lines
 local M = mty.lrequire'ds'
@@ -156,25 +156,6 @@ test("eval", function()
   assert(not seven) -- did not modify globals
 end)
 
-test("literal_eval", function()
-  assertEq(3,         literal_eval'r=3'.r)
-  assertEq({1, 2, 3}, literal_eval'r={1, 2, 3}'.r)
-  assertEq(nil, literal_eval''.r)
-  assertErrorPat("attempt to index a nil value %(global 'io'%)",
-    function() literal_eval'io.open("bad", "w")' end)
-  assertEq(
-    "LITERAL_ENV",
-    literal_eval('r=getmetatable(_ENV)', {getmetatable=getmetatable}).r
-  )
-  local f = io.tmpfile(); f:write'value = 77'; f:seek'set'
-  assertEq(77, literal_eval(function() return f:read(1) end).value)
-  f:close()
-  assertEq(4,          literal_eval'r = ("foo bar"):find"%s"'.r)
-  assertEq(9,          literal_eval'r = max(3, 9)'.r)
-  assertEq('helloF',   literal_eval'r = sfmt("hello%X", 15)'.r)
-  assertEq(nil,        literal_eval'r = _G'.r)
-end)
-
 test('Set', function()
   local s = Set{'a', 'b', 'c'}
   assertEq(Set{'a', 'c', 'b'}, s)
@@ -312,6 +293,26 @@ test('heap', function()
 
   h = heap.Heap({1, 5, 9, 10, 3, 2}, M.gt)
   assertPops({10, 9, 5, 3, 2, 1}, h)
+end)
+
+test('dag', function()
+  local childrenMap = {
+    a = {'b', 'c'},
+    b = {'c', 'd'},
+    c = {'d'}, d = {},
+  }
+  local parentsMap = M.dag.reverseMap(childrenMap)
+  for _, v in pairs(parentsMap) do table.sort(v) end
+  assertEq({
+    d = {'b', 'c'}, c = {'a', 'b'},
+    b = {'a'},      a = {},
+  }, parentsMap)
+
+  local result = M.dag.reverseMap(parentsMap)
+  for _, v in pairs(result) do table.sort(v) end
+  assertEq(childrenMap, result)
+
+  assertEq({'d', 'c', 'b', 'a'}, M.dag.sort(childrenMap))
 end)
 
 test('LinesFile_small', function()

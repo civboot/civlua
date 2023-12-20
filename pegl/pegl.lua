@@ -493,8 +493,11 @@ M.Token.__fmt = function(t, f)
   local p = f.set.data
   if ty(f.set.data) == M.Parser then
     M.tblFmtParsedTokens(t, f)
-  elseif t.kind then add(f, sfmt('<%s>', t.kind))
-  else add(f, 'Tkn'); mty.tblFmt(t, f) end
+  else
+    add(f, 'Tkn')
+    if t.kind then add(f, sfmt('<%s>', t.kind)) end
+    add(f, sfmt('(%s.%s %s.%s)', t:span()))
+  end
 end
 
 function M.isKeyword(t) return #t == 1 and t.kind == t[1] end
@@ -588,5 +591,29 @@ M.RootSpec.fmtKind = {
   n10   = function(t, f) fmtKindNum('NUM', t, f) end,
   n16   = function(t, f) fmtKindNum('HEX', t, f) end,
 }
+
+M.firstToken = function(t)
+  if mty.ty(t) == M.Token then return t end
+  while true do
+    for _, v in ipairs(t) do
+      v = M.firstToken(v); if v then return v end
+    end
+  end
+end
+
+M.lastToken = function(t)
+  if mty.ty(t) == M.Token then return t end
+  while true do
+    for _, v in ds.ireverse(t) do
+      v = M.lastToken(v); if v then return v end
+    end
+  end
+end
+
+M.nodeSpan = function(t)
+  local fst, lst = M.firstToken(t), M.lastToken(t)
+  local l1, c1 = fst:span()
+  return l1, c1, select(3, lst:span())
+end
 
 return M

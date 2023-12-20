@@ -655,7 +655,6 @@ M.Fmt.fmt = M.doc'(f, v): Format the value and store the result in `f`'
 (function(f, v)
   local ty_ = M.ty(v)
   if type(ty_) == 'string' and ty_ ~= 'table' then
-    print('?? fmting', ty_)
     NATIVE_TY_FMT[ty_](v, f); return f
   end
   assert(type(v) == 'table')

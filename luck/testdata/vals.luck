@@ -1,0 +1,5 @@
+luck { 'test.vals' }
+
+val1 = 'first val'
+val2 = 222
+val3 = 7

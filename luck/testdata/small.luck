@@ -1,3 +1,4 @@
+meta { 'small' }
 i = 8
 s = "hello"
 t = {1, 2, v=3}

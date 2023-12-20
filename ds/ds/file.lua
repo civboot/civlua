@@ -55,6 +55,9 @@ settings.
 :new(function(ty_, t)
   if t[1] then t.file = t[1]; t[1] = nil end
   t.cache, t.len = math.max(1, t.cache or 1), t.len or math.maxinteger
+  if t.len == true then
+    t.file:seek'set'; t.len = M.readLen(t.file); t.file:seek'set'
+  end
   t.cacheMiss, t._line, t._pos = 0, 0, -1
   return mty.new(ty_, t)
 end)
