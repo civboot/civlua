@@ -1,0 +1,263 @@
+[{h1}RNV: return nested values]
+
+RNV is a concise data serialization format primarily for machines to read and
+write but which is still inspectable by humans.
+
+Features:
+
+* Supports extremely concise nested data
+* Human readable and writeable
+* Supported types: none, boolean, number, string, table (list/map hybrid)
+* Design supports (future) fast serialization and deserialization implementation
+
+[!--------------------------------]
+[{:h2}Starting Example]
+[! Recommendation for text editors: increase your tab size
+
+  vim            :set ts=20
+]
+
+[##
+local out = ds.file.LinesFile(io.open('some/path.rnv', 'w'))
+local data = {
+  {a=5, b='hi there', 7,  8,  9},
+  {a=6, b='nested',   10, 11, 12, c={'nested table', v=7}}
+  {a=7, b='done',     13, 14, 'fifteen'}
+}
+printlines(rnv.serialize {
+  out, data,
+  header={'a', 'b'},
+  topComment = 'this is a line comment',
+  description='this is a "description" block',
+})
+]##
+
+Would print:
+
+[##
+- this is a line comment
+""this is a "description" block""
+#0 "a	"b
+, 5	"hi there	7	8	9
+, 6	"nested	10	11	12	.c
+1 "nested table	.v	7
+, 7	"done	13	14	"fifteen
+]##
+
+Let's break down the above line by line
+
+[" [*Note]: leading whitespace before control characters is ignored]
+
+[{table}
++ [#- This is a line comment]
+| a line comment, ignored by the parser until a newline.
+
++ [#- ""this is a "description block""
+| Any number of [$"] characters start the "description" block and must
+  be closed by the same number of [$"] characters. The first and last
+  newlines are ignored, so this is the same as the above:
+  [##
+  ""
+  This is a "description" block
+  ""
+  ]##
+
++ [##0"a	"b]
+| The header.
+
+  The header works similarly to csv in that it causes the first headerLen
+  columns of the specified indent (in this case [$'0'], we'll get to what that
+  means) to corespond to those keys. If they are not specified then they will
+  be empty.
+]
+
+The remaining two columns are "rows" of data. Let's look at the structure of
+a data row character by character.
+
+At the end of the header there is a return/newline ([$\n]) character. In RNV
+the first character after a newline has special significance: [+
+* If it has an codepoints < '0' then it's a control character, such as the
+  ones you saw: [$-] for comments, [$"] for description and [$#] for the
+  header. There are a few others specified later.
+
+Any codepoint >= '0' is nest-aware data. Typically this means that it is a
+new row (item) for for the output, but it can also "concatenate" onto a previous
+value if the nest value is followed by '+'. Let's look at an example:
+
+The above allows for abitrarily deep nested data with extreme conciceness.
+For instance, 
+
+[##
+printlines(rnv.serialize {
+  out, {1, 2, {{{3, 4}}}, 5, 6}
+})
+]##
+
+Would print:
+[#
+0 1	2
+3 3	4
+0+5	6
+]#
+
+Note: the first '3' on the second line indicates a nesting level of 3.
+The '0' on the third line returns the nesting level to 0 and the
+'+' type causes a "continuation" (concatanation) with the previous value.
+
+[!--------------------------------]
+[{:h2}Demos]
+
+[*Multi line string]
+[##
+text=[[
+This is a
+multiline string
+\twith a tab
+]]
+serialize{
+  {1, 2, text, 4, 5},
+  {6, 7, 8},
+}
+----
+0 1	2	"
+ 'this is a
+ 'multiline string
+ '\twith a tab
+ '
+0+4	5
+
+0 6	7	8
+]##
+
+[" [*Note]: when the serializer outputs multi-line tables
+   the default is to add an empty line
+]
+
+[!--------------------------------]
+[{:h2}RNV Spec]
+The following is a more complete specification for RNV.
+
+[!-------------]
+[{h3}Table]
+Tables are perhaps the main point of discrepency between RNV and serialization
+formats like JSON or its siblings. This is because a Table is composed of BOTH
+list-like indexes and string-keyed values [/in the same Table].
+
+This makes perfect sense for Lua, where that is already what tables do. For
+other languages, their deserialization type needs to handle this
+double-purpose. It is therefore recommended that libraries for those languages
+include both a [$map] and a [$list] component of their [$Table] type.
+
+Only string typed keys are permitted. Integer type keys are NOT permitted to
+avoid any kind of confusion between keys and indexes. One main reason for
+this is that in many languages (C/Python/Java/etc) the index of a list starts at
+0, whereas in Lua and a few languages it starts at 1. RNV specifies no index,
+only an ordering of elements which should be deserialized as a native list
+with native indexes.
+
+[" If your application requires a more complex key type then the intent is that
+   it is YOUR job to properly encode those string keys into something you then
+   decode into your complex key type.
+]
+
+[!-------------]
+[{:h3}Types]
+Types specify the type of the value and MUST follow a tab [$\t] or indent
+specifier.
+
+[{table}
++ [$''] (i.e. empty string)
+  | header-specified value only, specifies a missing key from the header.
+  Invalid otherwise: for a map simply don't specify the key for the same
+  effect.
+
++ [$n] | none
+
+  language dependent: [+
+  * lua: [$ds.none]
+  * python: [$None]
+  * most others (C, java, json, etc): [$null]
+  ]
+
++ [$t] / [$f] | boolean true / false
+
++ [$0-9 A-F a-f] or [$$] | number type
+
+  Parsed using the [<#nbase>nbase] attribute.
+
+  If the control character is [$$] it forces the parsing of a number unti
+  [$\t]. The [$$] is optional if the leading character is a valid hexadecimal
+  digit (for concieness)
+
++ [$"] | utf8 string.
+
+  Special characters are escaped with [$\], i.e. [$\t] is a tab.
+
+  [$\n] (return/newline) characters are not escaped for long (len>12 by default)
+  strings. Instead the line is continued with the [$'] type.
+
++ [$'] | utf8 string continuation.
+
+    The last value before the return MUST have been a
+    string. That string is continued. It is continued with a newline unless
+    the previous string ended with [$\].
+
++ [$.] | key
+  Specifies a key for a map. The following item is the associated value.
+  Example: [$.myKey\t"my string value]
+
+  Keys are always strings and support [$'] string continutation.
+
++ [$+] | table continuation at specified nesting level.
+
++ [$\n] (return/newline) in non-string
+| [*Note]: must be followed by ctrl character or nesting level)
+
+  starts a new value at the newly specified nesting level unless
+  one of the following: [+
+    * ctrl=$['] will cuase the previous string to be continued. This is a ctrl
+      character, a nesting level must NOT be given.
+    * type=$[+] will cause the previous table at the given level to be
+    * continued. The next character is used as the type.
+  ]
+]##
+
+[!-------------]
+[{:h3}Ctrl characters]
+
+One of the following "ctrl" (control) characters must follow ALL newlines.
+A $[<L>] means that it expects a nesting level character which is a unicode
+$[codepoint >= '0'] (0x30).
+
+[{table}
++ $[''] (i.e. empty line) | ignored by the deserializer
++ $[-]                    | line comment, ignored by the deserializer
+
++ $["...]
+  | description block until equivalent number of [$"] characters.
+
+  Note: The first and last newline characters are stripped.
+
++ $[#<L>] | Header specification.
+
+  The header specification which must be a series of strings. Any data at this
+  level must be prefixed with headerLen number of values which will be assigned
+  to the specified keys.
+
+  Header levels are global. An empty header clears the header at that level.
+
++ $[@] | Attribute
+
+  Must be a [$.key\tvalue] deliniated row of attributes. The following attributes
+  are supported: [+
+  * [{:$}nbase] (default=10): global number base. Supported values: [+
+    * [$10]: decimal
+    * [$16]: hexadecimal
+    * [$64]: base64url
+    ]
+
++ codepoint >= $['0'] (aka ASCII 0x30) | The nesting level
+
+  The level is equal to $[codepoint - 0x30]. The rest of the line follows
+  [<#Types>Types] for the new (or [$+] concatenated) value at that level.
+]
