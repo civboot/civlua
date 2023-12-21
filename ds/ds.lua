@@ -189,6 +189,18 @@ M.only = mty.doc'get the first and only element of the list'
   return t[1]
 end)
 
+M.values = mty.doc'get only the values of pairs(t) as a list'
+(function(t)
+  local vals = {}; for _, v in pairs(t) do add(vals, v) end
+  return vals
+end)
+
+M.keys = mty.doc'get only the keys of pairs(t) as a list'
+(function(t)
+  local keys = {}; for k in pairs(t) do add(keys, k) end
+  return keys
+end)
+
 M.inext = mty.doc'next(t, key) but with indexes'(ipairs{})
 
 M.iprev = mty.doc'inext but reversed.'
@@ -375,6 +387,16 @@ M.callerSource = function()
   return string.format('%s:%s', info.source, info.currentline)
 end
 
+M.lineschunk = mty.doc'convert lines-like table into chunk for eval'
+(function(dat)
+  local i = 1
+  return function() -- alternates between next line and newline
+    local o = '\n'; if i < 0 then i = 1 - i
+    else  o = dat[i];             i =   - i end
+    if o == '' then assert(i < 0); o = '\n'; i = 1 - i end
+    return o
+  end
+end)
 M.eval = function(chunk, env, name) -- Note: not typed
   assert(type(env) == 'table')
   name = name or M.callerSource()

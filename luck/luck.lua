@@ -31,13 +31,9 @@ end
 
 M.loadraw = function(dat, env)
   local i = 1
-  local fn = function() -- alternates between next line and newline
-    local o = '\n'; if i < 0 then i = 1 - i
-    else  o = dat[i];             i =   - i end
-    return o
-  end
   local res = setmetatable({}, env and M.createEnv(env) or M.LUCK)
-  local e, err = load(fn, path, 'bt', res); if err then error(err) end
+  local e, err = load(ds.lineschunk(dat), path, 'bt', res)
+  if err then error(err) end
   e()
   setmetatable(res, nil)
   return res
@@ -96,14 +92,17 @@ M.loadMetas = function(paths)
   return lucks
 end
 
-M.load = function(paths)
+M.loadall = function(paths)
   local lucks = M.loadMetas(paths)
-  local depsMap = {}; for n, l in pairs(lucks) do depsMap[n] = l.deps end
+  local depsMap = {}
+  for n, l in pairs(lucks) do depsMap[n] = ds.values(l.deps) end
   local missing = ds.dag.missing(depsMap)
   if not ds.isEmpty(missing) then error(
     'Unknown dependencies: '..mty.fmt(missing)
   )end
   local sorted = ds.dag.sort(depsMap)
+  mty.pnt('?? depsMap', depsMap)
+  mty.pnt('?? sorted', sorted)
   local built = {}
   for _, name in ipairs(sorted) do
     local env, l = {}, lucks[name]
@@ -111,7 +110,9 @@ M.load = function(paths)
       'Cyclic dependency detected involving %q. Sorted: %s',
       name, mty.fmt(sorted)
     ))end
-    for localName, depName in ipairs(l.deps) do
+    mty.pnt('?? loading:', l)
+    for localName, depName in pairs(l.deps) do
+      mty.pntf('?? %s dep %s=%s', name, localName, depName)
       local dep = built[depName]
       if not dep then error(sfmt(
         'Cyclic dependency detected involving %q and %q. Sorted: %s',
@@ -119,19 +120,21 @@ M.load = function(paths)
       ))end
       env[localName] = ds.deepcopy(dep)
     end
+    mty.pnt('?? with env:', name, env)
     built[name] = assert(M.loadraw(l.dat, env))
   end
   return built, lucks, sorted
 end
 
-M.single = mty.doc[[
-luck.single(path) -> data
+M.load = mty.doc[[
+luck.load(path) -> data
 
 Load a single path which has no dependencies.
 ]](function(path)
   local dat = df.LinesFile{io.open(path), len=true}
   local meta = M.loadMeta(dat, path)
   assert(not meta or not meta.deps, 'single must have no deps')
+  mty.pnt('?? single', meta)
   return assert(M.loadraw(dat))
 end)
 

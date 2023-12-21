@@ -1,4 +1,4 @@
-luck { 'test.vals' }
+meta { 'test.vals' }
 
 val1 = 'first val'
 val2 = 222

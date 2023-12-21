@@ -1,11 +1,16 @@
 -- this is a luck file with metadata
 
 meta {
-  'test.withmeta',
+  'test.withdeps',
   deps = {
     vals = 'test.vals',
+    small = 'small',
   }
 }
 
 gotVal1   = 'got: '..vals.val1
 val2Plus3 = vals.val2 + vals.val3
+small = small -- rexport
+
+vals.val1 = "only modified here, not test.vals"
+modVal1 = vals.val1
