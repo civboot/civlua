@@ -27,6 +27,7 @@ local smol    = M.load('smol',     'smol/smol.lua')
    M.load('smol.lzhuff',  'smol/smol/lzhuff.lua')
    M.load('smol.verify',  'smol/smol/verify.lua')
 
+M.load('rnv',        'rnv/rnv.lua')
 M.load('pegl',       'pegl/pegl.lua')
 M.load('pegl.lua',   'pegl/pegl/lua.lua')
 M.load('luck',     'luck/luck.lua')

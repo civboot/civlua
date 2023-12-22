@@ -18,16 +18,16 @@ Features:
 ]
 
 [##
-local out = ds.file.LinesFile(io.open('some/path.rnv', 'w'))
+local out = 
 local data = {
   {a=5, b='hi there', 7,  8,  9},
   {a=6, b='nested',   10, 11, 12, c={'nested table', v=7}}
   {a=7, b='done',     13, 14, 'fifteen'}
 }
 printlines(rnv.serialize {
-  out, data,
+  data, ds.stdout,
   header={'a', 'b'},
-  topComment = 'this is a line comment',
+  comment = 'this is a line comment',
   description='this is a "description" block',
 })
 ]##
@@ -181,13 +181,22 @@ specifier.
 
 + [$t] / [$f] | boolean true / false
 
-+ [$0-9 A-F a-f] or [$$] | number type
++ [$0-9 A-F a-f] or [$$] | integer
 
-  Parsed using the [<#nbase>nbase] attribute.
+  Parsed using the [<#ibase>ibase] attribute.
 
-  If the control character is [$$] it forces the parsing of a number unti
+  If the control character is [$$] it forces the parsing of a number until
   [$\t]. The [$$] is optional if the leading character is a valid hexadecimal
   digit (for concieness)
+
++ [$^] | float
+
+  A hexadecimal floating point number in the form -0x1.86a343p+16
+
+  Must also support: inf, -inf, NaN
+
+  All floating point (non-integer) numbers MUST be encoded as hex to preserve
+  as much information as possible.
 
 + [$"] | utf8 string.
 
@@ -250,7 +259,7 @@ $[codepoint >= '0'] (0x30).
 
   Must be a [$.key\tvalue] deliniated row of attributes. The following attributes
   are supported: [+
-  * [{:$}nbase] (default=10): global number base. Supported values: [+
+  * [{:$}ibase] (default=10): global integer base. Supported values: [+
     * [$10]: decimal
     * [$16]: hexadecimal
     * [$64]: base64url
