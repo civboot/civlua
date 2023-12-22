@@ -1,7 +1,8 @@
 [{h1}RNV: return nested values]
 
 RNV is a concise data serialization format primarily for machines to read and
-write but which is still inspectable by humans.
+write but which is still inspectable by humans. If JSON and CSV had a baby then
+their prodigal child would be something like RNV.
 
 Features:
 
@@ -11,14 +12,33 @@ Features:
 * Design supports (future) fast serialization and deserialization implementation
 
 [!--------------------------------]
+[{:h2}Why?]
+Why another data serialization format?
+
+Because there is nothing sitting in that sweet spot of being [/mostly] for
+machine parsers but still human readable. CSV is [/almost] at that place, but
+it doesn't support nested data and doesn't have a specification. JSON on the
+other hand is overly verbose to be a serious concise data representation, as
+well as missing essential components like comments and metadata.
+
+[" Did you know that CSV is both faster to parse and almost as compressed as
+   protobufs? [<@compare>I was surprised too].]
+
+[{!:href=https://blog.mbedded.ninja/programming/serialization-formats/a-comparison-of-serialization-formats/}
+compare]
+
+[!--------------------------------]
 [{:h2}Starting Example]
+RNV's big features are type safety and extremely concise (and readable IMO)
+nested data.
+
 [! Recommendation for text editors: increase your tab size
 
   vim            :set ts=20
 ]
 
+For example, if you did this:
 [##
-local out = 
 local data = {
   {a=5, b='hi there', 7,  8,  9},
   {a=6, b='nested',   10, 11, 12, c={'nested table', v=7}}
@@ -32,8 +52,7 @@ printlines(rnv.serialize {
 })
 ]##
 
-Would print:
-
+It would print:
 [##
 - this is a line comment
 ""this is a "description" block""
