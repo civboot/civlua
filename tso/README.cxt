@@ -3,9 +3,9 @@
 TSO is a concise and expressive data serialization format. If JSON and CSV had
 a baby then their prodigal child would be something like TSO.
 
-Unlike CSV, TSO has an actual spec. Unlike JSON, TSO is concise and large
-lists of records (one of the most common kinds of data that needs to be
-serialized) can be made very readable.
+Unlike CSV, TSO supports nested records and has an actual spec. Unlike JSON,
+TSO is concise and large lists of records (one of the most common kinds of data
+that needs to be serialized) can be made very readable.
 
 Features:
 
@@ -17,8 +17,7 @@ Features:
 [" Did you know that CSV is both faster to parse and almost as compressed as
    protobufs? [<@compare>I was surprised too].]
 
-[{!:href=https://blog.mbedded.ninja/programming/serialization-formats/a-comparison-of-serialization-formats/}
-compare]
+[{!:href=https://blog.mbedded.ninja/programming/serialization-formats/a-comparison-of-serialization-formats/}compare]
 
 [!--------------------------------]
 [{:h2}Starting Example]
@@ -41,7 +40,8 @@ the type, [$.keys] are strings.
 .name	"John	.birthday	"1999-10-31
 ]##
 
-[$#] specifies a header which extracts specific keys as indexes:
+[$#] specifies a header which extracts specific keys as indexes in the
+tab-separated column.
 
 [##
 -- JSON: [
@@ -88,3 +88,72 @@ Unlike CSV, TSO supports nested data:
  }
 }
 ]##
+
+Other quality of life features will be added as well
+[##
+-- line comments
+"""
+Add a "description" as metadata
+"""
+@name	"my.data.name	-- set the doc name
+@ibase	10	-- change the integer base (10 is default)
+]##
+
+[{:h2}Types]
+The type of an item is determined by the first character after the tab.
+Whitespace is ignored. All values except tables end with a tab [$\t] character.
+Tables end with a newline (though they can be continued on the next line with
+the [$+] character).
+
+[{table}
++ [$n] | none.
+
+  lua [$ds.none], python [$None], C/java/etc [$null])
+
++ [$t] [$f] | boolean true and false
++ [$$] or [$0-9 a-f A-F] | integer parsed using attr [$ibase]
++ [$^] | floating point parsed using attr [$fbase]
++ [$"] | string (binary data)
+
+  Examples
+  [##
+  3, "a string	42	-- 3, "a string", 42
+  
+  "a multiline string\t <-- that's a tab
+  'see, this is on the next line. The next line is empty:
+  '
+  ]##
+
+  A tab [$\t] or newline [$\n] end the string. To continue the string
+  after a newline use a [$'] as the first non-whitespace character
+  following the newline.
+
+  To encode a tab use [$"\t"]. To encode a [$\] character use [$"\\"] or
+  simply use [$'\'] followed by
+  neither [$'\'] or [$'t'].
+
+
++ [${] | nested table until [$}]
++ [$.] | key, the following item is a value
+
+  Only string (binary) keys are supported. If you need other kinds of
+  keys then encode whatever type you want in the string
+
++ [$\n] | newline.
+
+  Conceptually this ends the current row (non bracketed [${}] table) and
+  starts a new row
+]
+
+[*A note on Tables]
+
+Tables can contain both indexed values (like a traditional list) as well
+as string-keyed values (like a map). This is more similar to a
+serialization format like XML which contain both attributes and data.
+
+[" [*Recommendation:] this is the native behavior of Lua tables. In
+   python or javascript you would want to key off the list vs index
+   depending on the type of the key. In compiled languages, just offer
+   different [$get] methods.
+]
+
