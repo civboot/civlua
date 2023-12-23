@@ -1,0 +1,90 @@
+[{h1}TSO: tab separated objects]
+
+TSO is a concise and expressive data serialization format. If JSON and CSV had
+a baby then their prodigal child would be something like TSO.
+
+Unlike CSV, TSO has an actual spec. Unlike JSON, TSO is concise and large
+lists of records (one of the most common kinds of data that needs to be
+serialized) can be made very readable.
+
+Features:
+
+* Serialize nested arbitrary data
+* Human readable and writeable. Favors readability over writeability.
+* Supported types: none, boolean, number, string, table (list/map hybrid)
+* Design supports (future) fast serialization and deserialization implementation
+
+[" Did you know that CSV is both faster to parse and almost as compressed as
+   protobufs? [<@compare>I was surprised too].]
+
+[{!:href=https://blog.mbedded.ninja/programming/serialization-formats/a-comparison-of-serialization-formats/}
+compare]
+
+[!--------------------------------]
+[{:h2}Starting Example]
+[! Recommendation for text editors: increase your tab size
+vim	:set ts=12
+]
+
+TSO represents the items in a table as a series of tab separated values.
+Similar to CSV, newlines start a new table. The first character specifies
+the type, [$.keys] are strings.
+
+[##
+-- JSON: [
+--   [1, 2, 3],
+--   {"name": "John", "birthday": "1999-10-31"}
+-- ]
+
+-- TSO:
+1	2	3
+.name	"John	.birthday	"1999-10-31
+]##
+
+[$#] specifies a header which extracts specific keys as indexes:
+
+[##
+-- JSON: [
+--   {"id": 1, "name": "John",   "birthday": "1999-10-31"},
+--   {"id": 2, "name": "Maxine", "birthday": "1998-12-25"}
+-- ]
+
+-- TSO
+#"id	"name	"birthday
+1	"John	1999-10-31
+2	"Maxine	1998-12-25
+]##
+
+Unlike CSV, TSO supports nested data:
+
+[##
+-- JSON: [
+--   users = [
+--     {"id": 1, "name": "John",   "birthday": "1999-10-31"},
+--     {"id", 2, "name": "Maxine", "birthday": "1998-12-25"}
+--   ],
+--   accounts = [
+--     {"userId": 1, "ammount": 1000, "kind": "savings"},
+--     {"userId": 1, "ammount": 100,  "kind": "checking"},
+--     {"userId": 2, "ammount": 120,  "kind": "checking", "notes": [
+--       "2020-01-03: wants investment advice", "2019-11-05: yelled at clerk"
+--     ],
+--   ],
+-- ]
+
+-- TSO
+.users	{
+ #"name	"birthday
+ John	1999-10-31
+ Maxine	1998-12-25
+}
+
+.accounts	{
+ #"userId	"ammount	"kind
+ 1	1000	"savings
+ 1	100	"checking
+ 2	120	"checking	.notes	{
+  "2020-01-03: wants investment advice	"2019-11-05: yelled at clerk
+ }
+}
+]##
