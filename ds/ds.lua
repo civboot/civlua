@@ -24,6 +24,7 @@ end
 M.sort2 = function(a, b)
   if a <= b then return a, b end; return b, a
 end
+M.repr = function(v) return sfmt('%q', v) end
 
 ---------------------
 -- Number Functions
