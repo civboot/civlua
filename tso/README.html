@@ -36,6 +36,11 @@ td    { background-color: azure; }
 </head>
 <h1>TSO: tab separated objects</h1>
 <p>
+<blockquote> <b>WARNING:</b> TSO is currently incomplete.
+<p>
+A serializer is implemented. Deserializer coming soon.
+</blockquote>
+<p>
 TSO is a concise and expressive data serialization format. If JSON and CSV had
 a baby then their prodigal child would be something like TSO.
 <p>
@@ -43,12 +48,16 @@ Unlike CSV, TSO supports nested records and has an actual spec. Unlike JSON,
 TSO is concise and large lists of records (one of the most common kinds of data
 that needs to be serialized) can be made very readable.
 <p>
-Features:
-<p>
-* Serialize nested arbitrary data
-* Human readable and writeable. Favors readability over writeability.
-* Supported types: none, boolean, number, string, table (list/map hybrid)
-* Design supports (future) fast serialization and deserialization implementation
+Features: <ul>
+<li>Serialize nested arbitrary data
+</li>
+<li>Human readable and writeable. Favors readability over writeability.
+</li>
+<li>Supported types: none, boolean, number, string, table (list/map hybrid)
+</li>
+<li>Design supports (future) fast serialization and deserialization implementation
+</li>
+</ul>
 <p>
 <blockquote> Did you know that CSV is both faster to parse and almost as compressed as
 protobufs? <a href="https://blog.mbedded.ninja/programming/serialization-formats/a-comparison-of-serialization-formats/">I was surprised too</a>.</blockquote>
@@ -137,12 +146,17 @@ the <code>+</code> character).
 <p>
 <table>
 <tr>
-<th><code>n</code></th>
-<th>none.
-<p>
-lua <code>ds.none</code>, python <code>None</code>, C/java/etc <code>null</code>)
-<p>
+<th>character</th>
+<th>description
 </th>
+</tr>
+<tr>
+<td><code>n</code></td>
+<td>none.
+<p>
+lua <code>ds.none</code>, python <code>None</code>, C/java/etc <code>null</code>
+<p>
+</td>
 </tr>
 <tr>
 <td><code>t</code> <code>f</code></td>
@@ -151,12 +165,12 @@ lua <code>ds.none</code>, python <code>None</code>, C/java/etc <code>null</code>
 </tr>
 <tr>
 <td><code>$</code> or <code>0-9 a-f A-F</code></td>
-<td>integer parsed using attr <code>ibase</code>
+<td>integer parsed using (base = attr <code>ibase</code>)
 </td>
 </tr>
 <tr>
 <td><code>^</code></td>
-<td>floating point parsed using attr <code>fbase</code>
+<td>floating point parsed using (base = attr <code>fbase</code>)
 </td>
 </tr>
 <tr>
@@ -164,11 +178,12 @@ lua <code>ds.none</code>, python <code>None</code>, C/java/etc <code>null</code>
 <td>string (binary data)
 <p>
 Examples
-<code class="block">3, "a string	42	-- 3, "a string", 42
+<code class="block">-- 3, "a string", 42
+3, "a string	42	
 
-"a multiline string\t &lt;-- that's a tab
-'see, this is on the next line. The next line is empty:
-'
+"a multiline string\t &lt;-- that's a tab.
+'This is on the next line. The next line is empty:
+'	3 -- after the string there is a 3 integer
 </code>
 <p>
 A tab <code>\t</code> or newline <code>\n</code> end the string. To continue the string
@@ -198,7 +213,7 @@ keys then encode whatever type you want in the string
 </tr>
 <tr>
 <td><code>\n</code></td>
-<td>newline.
+<td>row (nested table) delimiter
 <p>
 Conceptually this ends the current row (non bracketed <code>{}</code> table) and
 starts a new row
@@ -217,5 +232,4 @@ python or javascript you would want to key off the list vs index
 depending on the type of the key. In compiled languages, just offer
 different <code>get</code> methods.
 </blockquote>
-<p>
 </body></html>
