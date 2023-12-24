@@ -47,6 +47,7 @@ local escTo = { t='\t', ['\\']='\\' }
 -- Serializer
 
 M.SER_TY = {}
+M.HEADER = '__tsoh'
 
 M.Ser = mty.record'tso.Ser'
   :field'dat'    :fdoc'output lines'
@@ -56,10 +57,11 @@ M.Ser = mty.record'tso.Ser'
   :field('r', 'number', 0) :field('c', 'number', 0)
   :field('ti', 'number', 1)
   :field('needSep',  'boolean', true)
+  :field'headers'
 M.Ser:new(function(ty_, t)
   t.dat = t.dat or t[1] or {}; t[1] = nil
   t.attrs = t.attrs or {}
-  t.line = {};
+  t.line, t.headers = {}, {}
   return mty.new(ty_, t)
 end)
 
@@ -86,39 +88,59 @@ M.Ser.nextValue = function(ser, skipCont)
   ser.needSep = true
 end
 
-M.Ser.tableEnter = function(ser, bracket)
+local function tableHeader(header)
+  ser:finishLine(); ser:push'#'
+  if header.name then ser:nextValue(); ser:push(header.name) end
+  local written = header.name and ser.headers[header.name]
+  if written then
+    mty.assertf(mty.eq(header, written),
+      'header name %s differs', header.name)
+    ser:nextValue(); ser:push(header.name)
+  else
+    if header.name then ser.headers[header.name] = header end
+    for _, h in ipairs(header) do
+      assert(type(h) == 'string', 'header must be list of strings')
+      ser:string(h)
+    end
+  end
+  ser:finishLine()
+end
+
+M.Ser.tableEnter = function(ser, isRows, header)
   ser.level = ser.level + 1
-  if bracket then
+  if isRows then
     ser:nextValue(); ser:push'{'; ser.needSep = false
+    if header then tableHeader(ser, header) end
   else
     ser:finishLine()
   end
 end
-M.Ser.tableExit = function(ser, bracket)
+M.Ser.tableExit = function(ser, isRows)
   ser.level = ser.level - 1
-  if bracket then
+  if isRows then
     ser:nextValue(true); ser:push'}'; ser.needSep = false
   else ser:finishLine() end
 end
 
-M.Ser.table = function(ser, t, pBracket)
+M.Ser.table = function(ser, t, pIsRows, header)
   -- can skip bracket (use newline) if parent has bracket
-  local bracket = not pBracket
-  mty.pntf('?? table c=%s ti=%s pBracket=%s bracket=%s: %s',
-    ser.c, ser.ti, pBracket, bracket, mty.fmt(t))
-  ser:tableEnter(bracket)
+  local isRows = not pIsRows
+  if isRows then header = t[M.HEADER] end
+  mty.pntf('?? table c=%s ti=%s pIsRows=%s isRows=%s: %s',
+    ser.c, ser.ti, pIsRows, isRows, mty.fmt(t))
+  ser:tableEnter(isRows)
   local ti = 1
   for i, v in ipairs(t) do
     mty.pnt('?? _row i='..i..' v:', v)
-    ser.ti = ti; ser:any(v, bracket); ti = ti + 1
+    ser.ti = ti; ser:any(v, isRows); ti = ti + 1
   end
   local keys = extractKeys(t, len); table.sort(keys)
   for _, k in ipairs(keys) do
     ser:nextValue(); ser:push'.'
     ser.ti = ti; ser:_string(k);     ti = ti + 1
-    ser.ti = ti; ser:any(t[k], bracket); ti = ti + 1
+    ser.ti = ti; ser:any(t[k], isRows, header); ti = ti + 1
   end
-  ser:tableExit(bracket)
+  ser:tableExit(isRows)
 end
 M.Ser['nil'] = function(ser) ser:error'serializing nil is not permitted. Use none' end
 M.Ser.none   = function(ser) ser:nextValue(); push(ser.line, 'n') end
@@ -179,12 +201,12 @@ M.Ser.any = function(ser, v, ...)
   local fn = mty.assertf(M.SER_TY[ty], 'can not serialize type %s', ty)
   return fn(ser, v, ...)
 end
-M.Ser.row  = function(ser, row)
+M.Ser.row  = function(ser, row, header)
   assert((#ser.line == 0) and (ser.c == 0) and (ser.level == -1),
     "Ser:row/s must only be called directly at base level")
   mty.assertf(type(row) == 'table',
     'rows must be table of tables (index %s)', ri)
-  ser.ti = 1; ser:table(row, true)
+  ser.ti = 1; ser:table(row, true, header)
   ser:finishLine()
   assert(ser.level == -1, 'internal error: level not reset properly')
 end
@@ -193,7 +215,8 @@ M.Ser.rows = function(ser, rows)
      mty.assertf(ty == 'table', 'rows is table[table], got %s', ty)
   end
   ser.needSep = true
-  for _, row in ipairs(rows) do ser:row(row) end
+  local header = rows[M.HEADER]
+  for _, row in ipairs(rows) do ser:row(row, header) end
 end
 
 ds.updateKeys(M.SER_TY, M.Ser, {
@@ -219,7 +242,7 @@ M.De:new(function(ty_, t)
   return mty.new(ty_, t)
 end)
 function M.De.errorf(d, ...)
-  error(sfmt('ERROR %s.%s: ', d.l, d.c, sfmt(...)), 2)
+  error(sfmt('ERROR %s.%s: %s', d.l, d.c, sfmt(...)), 2)
 end
 function M.De.assertf(d, v, ...) if not v then d:errorf(...) end end
 function M.De.pnt(d, ...)
@@ -241,27 +264,23 @@ local function deInt(d)
 end
 local function deStr(d)
   d:pnt('deStr start:', d.line:sub(d.c))
-  assert(d.line:sub(d.c,d.c) == '"')
-  d.c = d.c + 1
   local s, c = {}, d.c
   while true do
     local c1, c2 = d.line:find(escPat, d.c)
     d:pnt('?? str loop', c1, c2)
     push(s, lines.sub(d.dat,
       d.l, c, d.l, (c2 and (c2 - 1)) or #d.line))
-    if not c1 then -- no escape in line
-      local line = d.line; d:nextLine(); d:skipWs()
-      if d.line and ("'" == d.line:sub(d.c,d.c)) then
-        -- line continuation
-        push(s, '\n')
-        l, c, d.c = d.l, d.c + 1, d.c + 1
-      else break end
+    if not c1 then -- no escape in line, look for continuation
+      local nxt = d.dat[d.l + 1]
+      local c1, c2 = nxt and nxt:find("%s*'")
+      if c2 then push(s, '\n'); d.l, d.c = d.l + 1, c2 + 1
+      else       d.c = #d.line + 1; break end
     else
       local ch = d.line:sub(c2,c2); d.c = c2 + 1;
       if ch == '\t' then break
       elseif ch == '\\' then -- check for '\t' and '\\'
         ch = escTo[d.line:sub(c2+1,c2+1)]; push(s, ch or '\\')
-        if ch then d.c = c2 + 2 end
+        if ch then d.c = c2 + 1 end
       else p:error'newline character in line' end
     end
   end
@@ -288,12 +307,10 @@ local function deTableBracketed(d)
     d:nextLine(); isRow = true
     goto loop
   end
-
   local c = d.line:sub(d.c,d.c)
   if c == '}' then d.c = d.c + 1; goto done end
-  if isRow then push(t, deTableUnbracketed(d))
+  if isRow then push(t, deTableUnbracketed(d)); isRow = false
   else          deTableVal(d, t, c) end
-  isRow = false
   goto loop; ::done::
   d:pnt('tableBrack return', t)
   return t
@@ -302,7 +319,7 @@ end
 deTableUnbracketed = function(d)
   local t, i, ch = {}, 1
   ::loop::
-  d:pnt('tableUnb loop', ds.repr(d.line:sub(d.c)))
+  d:pnt('tableUnb loop', d.line and ds.repr(d.line:sub(d.c)))
   d:toNext()
   if not d.line or d.c > #d.line then goto done end
   ch = d.line:sub(d.c,d.c)
@@ -311,7 +328,6 @@ deTableUnbracketed = function(d)
     d:errorf("found unexpected '}'. Did you mean to use a newline?")
   end
   deTableVal(d, t, ch);
-  d:pnt('tableUnb end i='..i, ds.repr(d.line:sub(d.c)))
   i = i + 1
   goto loop;
   ::done::
@@ -325,8 +341,19 @@ local DE_CH = {
   f = deConst(false,  "f (false)"),
   ['$'] = deInt, -- also 0-9 (see below)
   ['^'] = function(d) error'not impl' end, -- float
-  ['"'] = deStr,
-  ['.'] = function(d) local k = deStr(d); return k, d() end,
+  ['"'] = function(d)
+    assert(d.line:sub(d.c,d.c) == '"'); d.c = d.c + 1
+    return deStr(d)
+  end,
+  ['.'] = function(d) -- key/value
+    assert(d.line:sub(d.c,d.c) == '.'); d.c = d.c + 1
+    d:pnt('start key')
+    local k = deStr(d)
+    d:pnt('got key', k)
+    d:toNext(); d:assertf(d.line and d.c <= #d.line,
+      '.key must be followed by value')
+    return k, d:getFn(d.line:sub(d.c,d.c))(d)
+  end,
   ['{'] = deTableBracketed,
   ['@'] = function(d) error'not impl' end,
 }
@@ -334,34 +361,37 @@ local DE_CH = {
 for b=byte'0',byte'9' do DE_CH[char(b)] = deInt end
 
 M.De.nextLine = function(d)
+  d:pnt('nextLine start:', d.line:sub(d.c))
   d.l, d.c = d.l + 1, 1; d.line = d.dat[d.l]
+  d:pnt('nextLine end', d.line:sub(d.c))
 end
 M.De.skipWs = function(d)
   while true do
-    d:pnt('skipWs start:', d.line:sub(d.c))
     if not d.line then break end
     while #d.line == 0 do
       d:nextLine(); if not d.line then d:pnt'EOF'; return end
     end
     if d.c > #d.line then -- if EOL check for '+' on next line
-      d:pnt'skipWs EoL'
-      local nxt = d.dat[d.l + 1]; local c1 = nxt:find'%S'
+      local nxt = d.dat[d.l + 1]
+      local c1 = nxt:find'%S'
       if c1 and (nxt:sub(c1,c1) == '+') then
+        d:pnt'found + cont'
         d.l, d.c = d.l + 1, c1 + 1
       else break end
     else
       local c1 = d.line:find('[%S\t]', d.c)
       d.c = c1 or (#d.line + 1)
-      -- check for line comment
-      if d.line:find('%s*-', d.c) then d:nextLine()
-      else break end
+      if d.line:find('^%s*-', d.c) then d.c = #d.line + 1 end
+      break
     end
   end
-  d:pnt('skipWs done:', d.line:sub(d.c))
 end
 M.De.toNext = function(d)
-  d:skipWs(); if not d.line then return end
-  d.c = d.line:find('%S', d.c) or (#d.line + 1)
+  d:pnt'toNext start'
+  d:skipWs()
+  d:pnt'toNext after skipWs'
+  ; if not d.line then return end
+  d.c = (d.line:find('%S', d.c)) or (#d.line + 1)
 end
 M.De.assertEnd = function(d, fmt, ...)
   local l = d.l; d:skipWs()
@@ -370,12 +400,20 @@ M.De.assertEnd = function(d, fmt, ...)
   error(sfmt('ERROR: %s.%s: %s', d.l, d.c, msg))
 end
 M.De.getFn = function(d, c)
+  d:pnt(sfmt('getting fn for %q', c))
   local fn = DE_CH[c]; if not fn then
-    local o = {}; for k in pairs(DE_CH) do push(o, ds.repr(k)) end
-    d:errorf('got %q\nExpected: %s', d.l, d.c, c, concat(o, ' '))
+    local o = {}; for k in pairs(DE_CH) do
+      push(o, ds.repr(k):sub(2,-2))
+    end
+    d:errorf('got %q\nExpected one: %s', c, concat(o, ' '))
   end
   return fn
 end
+M.De.next = function(d, c)
+  d:toNext(); if not d.line or d.c > #d.line then return end
+  return d:getFn(d.line:sub(d.c,d.c))(d)
+end
+
 M.De.__call = function(d)
   local t = deTableUnbracketed(d)
   return (next(t) ~= nil) and t or nil
