@@ -48,6 +48,7 @@ local escTo = { t='\t', ['\\']='\\' }
 
 M.SER_TY = {}
 M.HEADER = '__tsoh'
+M.INVISIBLE_KEY = {[M.HEADER] = "header key"}
 
 M.Ser = mty.record'tso.Ser'
   :field'dat'    :fdoc'output lines'
@@ -88,8 +89,10 @@ M.Ser.nextValue = function(ser, skipCont)
   ser.needSep = true
 end
 
-local function tableHeader(header)
-  ser:finishLine(); ser:push'#'
+local function tableHeader(ser, header)
+  ser.level = ser.level + 1 -- header is for NEXT level
+  ser:finishLine(); ser.needSep = false
+  ser:nextValue(); ser.needSep = false; ser:push'#'
   if header.name then ser:nextValue(); ser:push(header.name) end
   local written = header.name and ser.headers[header.name]
   if written then
@@ -103,45 +106,103 @@ local function tableHeader(header)
       ser:string(h)
     end
   end
-  ser:finishLine()
-end
-
-M.Ser.tableEnter = function(ser, isRows, header)
-  ser.level = ser.level + 1
-  if isRows then
-    ser:nextValue(); ser:push'{'; ser.needSep = false
-    if header then tableHeader(ser, header) end
-  else
-    ser:finishLine()
-  end
-end
-M.Ser.tableExit = function(ser, isRows)
   ser.level = ser.level - 1
-  if isRows then
-    ser:nextValue(true); ser:push'}'; ser.needSep = false
-  else ser:finishLine() end
+  ser:finishLine(); ser.needSep = false
 end
 
-M.Ser.table = function(ser, t, pIsRows, header)
-  -- can skip bracket (use newline) if parent has bracket
-  local isRows = not pIsRows
-  if isRows then header = t[M.HEADER] end
-  mty.pntf('?? table c=%s ti=%s pIsRows=%s isRows=%s: %s',
-    ser.c, ser.ti, pIsRows, isRows, mty.fmt(t))
-  ser:tableEnter(isRows)
-  local ti = 1
+M.Ser.tableEnter = function(ser) ser.level = ser.level + 1 end
+M.Ser.tableExit = function(ser)
+  ser.level = ser.level - 1
+end
+
+M.Ser._tableValues = function(ser, t, ti, headerDone, subHeader)
   for i, v in ipairs(t) do
     mty.pnt('?? _row i='..i..' v:', v)
     ser.ti = ti; ser:any(v, isRows); ti = ti + 1
   end
   local keys = extractKeys(t, len); table.sort(keys)
   for _, k in ipairs(keys) do
-    ser:nextValue(); ser:push'.'
-    ser.ti = ti; ser:_string(k);     ti = ti + 1
-    ser.ti = ti; ser:any(t[k], isRows, header); ti = ti + 1
+    if M.INVISIBLE_KEY[k]               then -- skip
+    elseif headerDone and headerDone[k] then -- skip
+    else
+      ser:nextValue(); ser:push'.'
+      ser.ti = ti; ser:_string(k);     ti = ti + 1
+      ser.ti = ti; ser:any(t[k], isRows, header); ti = ti + 1
+    end
   end
-  ser:tableExit(isRows)
+  return ti
 end
+
+local function rowValue(ser, v, header, l)
+  if type(v) == 'table' then ser:tableRow(v, header)
+  elseif header then mty.errorf(
+    'All rows must be tables: %q with header %s', v, mty.fmt(header)
+  )else
+    if l ~= #ser.dat then
+      ser:finishLine()
+      ser:nextValue(true); ser:push'*'; ser.needSep = false;
+      l = #ser.dat
+    end
+    ser:any(v)
+  end
+  return l
+end
+-- table bracketed (i.e. with explicit '{ ... }', can be rows)
+M.Ser.table = function(ser, t, header)
+  mty.pntf('?? table(non-row) header=%s: %s', mty.fmt(header), mty.fmt(t))
+  header = header or t[M.HEADER]
+  local l = #ser.dat
+  ser:tableEnter(); ser:nextValue(); ser:push'{'; ser.needSep = false
+  local ti, l = 1, #ser.dat
+  if header then tableHeader(ser, header) end
+  for i, v in ipairs(t) do
+    mty.pnt('?? _row i='..i..' v:', v)
+    ser.ti = ti; l = rowValue(ser, v, header, l); ti = ti + 1
+  end
+  local keys = extractKeys(t, len); table.sort(keys)
+  for _, k in ipairs(keys) do
+    if M.INVISIBLE_KEY[k]               then -- skip
+    else
+      ser:nextValue(); ser:push'.'
+      ser.ti = ti; ser:_string(k);     ti = ti + 1
+      ser.ti = ti; l = rowValue(ser, v, header); ti = ti + 1
+    end
+  end
+  ser:tableExit()
+  if l == #ser.dat then ser:nextValue(true) else ser:finishLine() end
+  ser:push'}'; ser.needSep = false
+end
+
+-- a table row, i.e. a table ended with a newline
+M.Ser.tableRow = function(ser, t, header)
+  mty.pntf('?? tableRow header=%s: %s', mty.fmt(header), mty.fmt(t))
+  ser:tableEnter(); ser:finishLine()
+  local l, ti = #ser.dat, 1
+  local headerDone = {}; if header then for _, k in ipairs(header) do
+    mty.pnt('?? _header', k)
+    mty.assertf(not headerDone[k], 'invalid header: multiple %s', k)
+    local v = t[k]; mty.assertf(v ~= nil, 'missing header key %s', k)
+    ser.ti = ti; ser:any(v); ti = ti + 1
+    headerDone[k] = true
+  end end
+  for i, v in ipairs(t) do
+    mty.pnt('?? _row i='..i..' v:', v)
+    ser.ti = ti; ser:any(v, isRows); ti = ti + 1
+  end
+  local keys = extractKeys(t, len); table.sort(keys)
+  for _, k in ipairs(keys) do
+    if M.INVISIBLE_KEY[k] then -- skip
+    elseif headerDone[k]  then -- skip
+    else
+      ser:nextValue(); ser:push'.'
+      ser.ti = ti; ser:_string(k);     ti = ti + 1
+      ser.ti = ti; ser:any(t[k], isRows, header); ti = ti + 1
+    end
+  end
+  ser:tableExit()
+  ser:finishLine()
+end
+
 M.Ser['nil'] = function(ser) ser:error'serializing nil is not permitted. Use none' end
 M.Ser.none   = function(ser) ser:nextValue(); push(ser.line, 'n') end
 M.Ser.boolean = function(ser, b)
@@ -196,26 +257,28 @@ M.Ser.string = function(ser, s)
   local multiline = ser:_string(s)
   if multiline then ser:cont() end
 end
-M.Ser.any = function(ser, v, ...)
+M.Ser.any = function(ser, v)
   local ty = type(v)
   local fn = mty.assertf(M.SER_TY[ty], 'can not serialize type %s', ty)
-  return fn(ser, v, ...)
+  return fn(ser, v)
 end
 M.Ser.row  = function(ser, row, header)
   assert((#ser.line == 0) and (ser.c == 0) and (ser.level == -1),
     "Ser:row/s must only be called directly at base level")
   mty.assertf(type(row) == 'table',
     'rows must be table of tables (index %s)', ri)
-  ser.ti = 1; ser:table(row, true, header)
+  ser.ti = 1; ser:tableRow(row, header)
   ser:finishLine()
   assert(ser.level == -1, 'internal error: level not reset properly')
 end
-M.Ser.rows = function(ser, rows)
+M.Ser.rows = function(ser, rows, header)
   do local ty = type(rows)
      mty.assertf(ty == 'table', 'rows is table[table], got %s', ty)
   end
   ser.needSep = true
-  local header = rows[M.HEADER]
+  local header = header or rows[M.HEADER]
+  mty.pnt('?? ser rows. Header', header)
+  if header then tableHeader(ser, header) end
   for _, row in ipairs(rows) do ser:row(row, header) end
 end
 
@@ -234,6 +297,7 @@ De: tso deserializer.
   :fieldMaybe('line', 'string'):fdoc'current line'
   :field('l', 'number', 1) :field('c', 'number', 1)
   :field('level', 'number', -1)
+  :fieldMaybe'header':fdoc'root header'
 M.De:new(function(ty_, t)
   t.dat = t.dat or t[1] or {}; t[1] = nil
   assert(t.dat, 'must provide input dat lines')
@@ -295,10 +359,23 @@ local function deTableVal(d, t, c)
 end
 
 local deTableUnbracketed = nil
+local deHeader = function(d)
+  d:pnt('deHeader', d.line and d.line:sub(d.c))
+  assert(d.line:sub(d.c,d.c) == '#')
+  d.c = d.c + 1
+  local header = deTableUnbracketed(d)
+  for _, h in ipairs(header) do
+    d:assertf(type(h) == 'string', 'header must be only strings')
+  end
+  d:nextLine()
+  d:pnt('deHeader got:', header)
+  return header
+end
 
 local function deTableBracketed(d)
   assert(d.line:sub(d.c,d.c) == '{'); d.c = d.c + 1
   local t, isRow = {}, false
+  local ti, header = 0, nil
   ::loop::
   d:toNext();
   d:pnt(sfmt('tableBrack loop isRow=%s: %s', isRow, ds.repr(d.line:sub(d.c))))
@@ -307,17 +384,29 @@ local function deTableBracketed(d)
     d:nextLine(); isRow = true
     goto loop
   end
-  local c = d.line:sub(d.c,d.c)
-  if c == '}' then d.c = d.c + 1; goto done end
-  if isRow then push(t, deTableUnbracketed(d)); isRow = false
-  else          deTableVal(d, t, c) end
+  local ch = d.line:sub(d.c,d.c)
+  if ch == '}' then d.c = d.c + 1; goto done end
+  if ch == '#' then
+    d:assertf(ti == 0 and not header,
+      'only single header at top allowed in nested rows')
+    header = deHeader(d)
+    t[M.HEADER] = header
+    goto loop
+  end
+  if isRow then push(t, deTableUnbracketed(d, header)); isRow = false
+  else
+    local v1, v2 = d:getFn(ch)(d)
+    d:pnt('table Val', v1, v2)
+    if v2 then t[v1] = v2 else assert(v1); push(t, v1) end
+  end
+  ti = ti + 1
   goto loop; ::done::
   d:pnt('tableBrack return', t)
   return t
 end
 
-deTableUnbracketed = function(d)
-  local t, i, ch = {}, 1
+deTableUnbracketed = function(d, header)
+  local t, i, ch, v1, v2 = {}, 1
   ::loop::
   d:pnt('tableUnb loop', d.line and ds.repr(d.line:sub(d.c)))
   d:toNext()
@@ -327,7 +416,13 @@ deTableUnbracketed = function(d)
     if d.c == 1 then goto done end
     d:errorf("found unexpected '}'. Did you mean to use a newline?")
   end
-  deTableVal(d, t, ch);
+  v1, v2 = d:getFn(ch)(d); if v2 then
+    d:assertf(not header or i > #header, 'key %q found before end of header', v1)
+    t[v1] = v2
+  else d:assertf(v1 ~= nil, 'invalid nil returned')
+    if header and i <= #header then t[header[i]] = v1
+    else                            push(t, v1) end
+  end
   i = i + 1
   goto loop;
   ::done::
@@ -363,7 +458,7 @@ for b=byte'0',byte'9' do DE_CH[char(b)] = deInt end
 M.De.nextLine = function(d)
   d:pnt('nextLine start:', d.line:sub(d.c))
   d.l, d.c = d.l + 1, 1; d.line = d.dat[d.l]
-  d:pnt('nextLine end', d.line:sub(d.c))
+  d:pnt('nextLine end', d.line and d.line:sub(d.c))
 end
 M.De.skipWs = function(d)
   while true do
@@ -415,7 +510,12 @@ M.De.next = function(d, c)
 end
 
 M.De.__call = function(d)
-  local t = deTableUnbracketed(d)
+  d:toNext(); while d.line and d.c > #d.line do d:nextLine() end
+  if not d.line then return end
+  local ch = d.line and d.line:sub(d.c, d.c)
+  if ch == '#' then d.header = deHeader(d) end
+  local t = deTableUnbracketed(d, d.header)
+  d:pnt('De() returns:', t)
   return (next(t) ~= nil) and t or nil
 end
 
