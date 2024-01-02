@@ -125,3 +125,37 @@ test('nested header', function()
     },
   })
 end)
+
+test('named header', function()
+  local root = {name='root', 'a', 'b', 't'}
+  assertRows([[
+#root	"a	"b	"t
+1	2	{3	}
+]], {
+    {a=1, b=2, t={3},}
+  }, root)
+
+  local inner = {name='inner', 'c', 'd'}
+  assertRows([[
+#root	"a	"b	"t
+1	2	{
+  #inner	"c	"d
+  3	4
+}
+5	6	{
+  #inner
+  7	8
+  9	10
+}
+]], {
+    {a=1, b=2, t={
+      [M.HEADER]=inner,
+      {c=3, d=4},
+    }},
+    {a=5, b=6, t={
+      [M.HEADER]=inner,
+      {c=7, d=8},
+      {c=9, d=10},
+    }},
+  }, root)
+end)

@@ -58,22 +58,20 @@ M.Ser = mty.record'tso.Ser'
   :field('r', 'number', 0) :field('c', 'number', 0)
   :field('ti', 'number', 1)
   :field('needSep',  'boolean', true)
-  :field'headers'
+  :field'headers' :field'headersWritten'
 M.Ser:new(function(ty_, t)
   t.dat = t.dat or t[1] or {}; t[1] = nil
   t.attrs = t.attrs or {}
-  t.line, t.headers = {}, {}
+  t.line, t.headers, t.headersWritten = {}, {}, {}
   return mty.new(ty_, t)
 end)
 
 M.Ser.push = function(ser, s)
-  mty.pntf('?? ser push: %q', s)
   push(ser.line, s)
 end
 M.Ser.finishLine = function(ser)
   if #ser.line == 0 then return end
   push(ser.dat, concat(ser.line))
-  mty.pntf('?? ser line: %q', concat(ser.line))
   ser.line = {}; ser.c = 0; ser.needSep = true
 end
 
@@ -93,14 +91,21 @@ local function tableHeader(ser, header)
   ser.level = ser.level + 1 -- header is for NEXT level
   ser:finishLine(); ser.needSep = false
   ser:nextValue(); ser.needSep = false; ser:push'#'
-  if header.name then ser:nextValue(); ser:push(header.name) end
-  local written = header.name and ser.headers[header.name]
+  local name = header.name
+  if name then ser:nextValue(); ser:push(name) end
+  local written = name and ser.headersWritten[name]
   if written then
     mty.assertf(mty.eq(header, written),
-      'header name %s differs', header.name)
-    ser:nextValue(); ser:push(header.name)
+      'header name %s differs', name)
   else
-    if header.name then ser.headers[header.name] = header end
+    if name then
+      if ser.headers[name] then
+        mty.assertf(mty.eq(ser.headers[name], header),
+          "different headers detected for %q", name)
+        ser.headers[name] = header
+      end
+      ser.headersWritten[name] = header
+    end
     for _, h in ipairs(header) do
       assert(type(h) == 'string', 'header must be list of strings')
       ser:string(h)
@@ -117,7 +122,6 @@ end
 
 M.Ser._tableValues = function(ser, t, ti, headerDone, subHeader)
   for i, v in ipairs(t) do
-    mty.pnt('?? _row i='..i..' v:', v)
     ser.ti = ti; ser:any(v, isRows); ti = ti + 1
   end
   local keys = extractKeys(t, len); table.sort(keys)
@@ -149,14 +153,12 @@ local function rowValue(ser, v, header, l)
 end
 -- table bracketed (i.e. with explicit '{ ... }', can be rows)
 M.Ser.table = function(ser, t, header)
-  mty.pntf('?? table(non-row) header=%s: %s', mty.fmt(header), mty.fmt(t))
   header = header or t[M.HEADER]
   local l = #ser.dat
   ser:tableEnter(); ser:nextValue(); ser:push'{'; ser.needSep = false
   local ti, l = 1, #ser.dat
   if header then tableHeader(ser, header) end
   for i, v in ipairs(t) do
-    mty.pnt('?? _row i='..i..' v:', v)
     ser.ti = ti; l = rowValue(ser, v, header, l); ti = ti + 1
   end
   local keys = extractKeys(t, len); table.sort(keys)
@@ -175,18 +177,15 @@ end
 
 -- a table row, i.e. a table ended with a newline
 M.Ser.tableRow = function(ser, t, header)
-  mty.pntf('?? tableRow header=%s: %s', mty.fmt(header), mty.fmt(t))
   ser:tableEnter(); ser:finishLine()
   local l, ti = #ser.dat, 1
   local headerDone = {}; if header then for _, k in ipairs(header) do
-    mty.pnt('?? _header', k)
     mty.assertf(not headerDone[k], 'invalid header: multiple %s', k)
     local v = t[k]; mty.assertf(v ~= nil, 'missing header key %s', k)
     ser.ti = ti; ser:any(v); ti = ti + 1
     headerDone[k] = true
   end end
   for i, v in ipairs(t) do
-    mty.pnt('?? _row i='..i..' v:', v)
     ser.ti = ti; ser:any(v, isRows); ti = ti + 1
   end
   local keys = extractKeys(t, len); table.sort(keys)
@@ -277,7 +276,6 @@ M.Ser.rows = function(ser, rows, header)
   end
   ser.needSep = true
   local header = header or rows[M.HEADER]
-  mty.pnt('?? ser rows. Header', header)
   if header then tableHeader(ser, header) end
   for _, row in ipairs(rows) do ser:row(row, header) end
 end
@@ -298,11 +296,13 @@ De: tso deserializer.
   :field('l', 'number', 1) :field('c', 'number', 1)
   :field('level', 'number', -1)
   :fieldMaybe'header':fdoc'root header'
+  :field'headers':fdoc'named headers'
 M.De:new(function(ty_, t)
   t.dat = t.dat or t[1] or {}; t[1] = nil
   assert(t.dat, 'must provide input dat lines')
   t.attrs = t.attrs or {}
   t.line = t.dat[1]
+  t.headers = t.headers or {}
   return mty.new(ty_, t)
 end)
 function M.De.errorf(d, ...)
@@ -318,7 +318,6 @@ local function deConst(v, msg) return function(d)
 end end
 
 local function deInt(d)
-  d:pnt('deInt', d.line:sub(d.c))
   if d.line:sub(d.c,d.c) == '$' then d.c = d.c + 1 end
   local c1, c2 = d.line:find('%S+', d.c); assert(c1)
   local n = tonumber(d.line:sub(c1, c2), d.attrs.ibase or 10)
@@ -327,11 +326,9 @@ local function deInt(d)
   return n
 end
 local function deStr(d)
-  d:pnt('deStr start:', d.line:sub(d.c))
   local s, c = {}, d.c
   while true do
     local c1, c2 = d.line:find(escPat, d.c)
-    d:pnt('?? str loop', c1, c2)
     push(s, lines.sub(d.dat,
       d.l, c, d.l, (c2 and (c2 - 1)) or #d.line))
     if not c1 then -- no escape in line, look for continuation
@@ -348,27 +345,38 @@ local function deStr(d)
       else p:error'newline character in line' end
     end
   end
-  d:pnt('deStr got:', table.concat(s))
   return table.concat(s)
 end
 
 local function deTableVal(d, t, c)
   local v1, v2 = d:getFn(c)(d)
-  d:pnt('table Val', v1, v2)
   if v2 then t[v1] = v2 else assert(v1); push(t, v1) end
 end
 
 local deTableUnbracketed = nil
+
+local deHeaderName = function(d)
+  d:toNext(); if d.line:sub(d.c,d.c) ~= '"' then return deStr(d) end
+end
 local deHeader = function(d)
-  d:pnt('deHeader', d.line and d.line:sub(d.c))
   assert(d.line:sub(d.c,d.c) == '#')
   d.c = d.c + 1
-  local header = deTableUnbracketed(d)
-  for _, h in ipairs(header) do
+  local check = true
+  local hname, header = deHeaderName(d); if hname then
+    header = deTableUnbracketed(d)
+    header.name = hname
+    if d.headers[hname] then
+      check = false
+      mty.assertf((#header == 0) or mty.eq(header, d.headers[hname]),
+        "header %q has different values:\nprev: %s\n new: %s",
+        hname, mty.fmt(d.headers[name]), mty.fmt(header))
+      header = d.headers[hname]
+    else d.headers[hname] = header end
+  else header = deTableUnbracketed(d) end
+  if check then for _, h in ipairs(header) do
     d:assertf(type(h) == 'string', 'header must be only strings')
-  end
+  end end
   d:nextLine()
-  d:pnt('deHeader got:', header)
   return header
 end
 
@@ -377,9 +385,7 @@ local function deTableBracketed(d)
   local t, isRow = {}, false
   local ti, header = 0, nil
   ::loop::
-  d:toNext();
-  d:pnt(sfmt('tableBrack loop isRow=%s: %s', isRow, ds.repr(d.line:sub(d.c))))
-  d:assertf(d.line, "reached EOF, expected closing '}'")
+  d:toNext(); d:assertf(d.line, "reached EOF, expected closing '}'")
   if d.c > #d.line then
     d:nextLine(); isRow = true
     goto loop
@@ -396,19 +402,16 @@ local function deTableBracketed(d)
   if isRow then push(t, deTableUnbracketed(d, header)); isRow = false
   else
     local v1, v2 = d:getFn(ch)(d)
-    d:pnt('table Val', v1, v2)
     if v2 then t[v1] = v2 else assert(v1); push(t, v1) end
   end
   ti = ti + 1
   goto loop; ::done::
-  d:pnt('tableBrack return', t)
   return t
 end
 
 deTableUnbracketed = function(d, header)
   local t, i, ch, v1, v2 = {}, 1
   ::loop::
-  d:pnt('tableUnb loop', d.line and ds.repr(d.line:sub(d.c)))
   d:toNext()
   if not d.line or d.c > #d.line then goto done end
   ch = d.line:sub(d.c,d.c)
@@ -426,7 +429,6 @@ deTableUnbracketed = function(d, header)
   i = i + 1
   goto loop;
   ::done::
-  d:pnt('tableUnb return', t)
   return t
 end
 
@@ -442,9 +444,7 @@ local DE_CH = {
   end,
   ['.'] = function(d) -- key/value
     assert(d.line:sub(d.c,d.c) == '.'); d.c = d.c + 1
-    d:pnt('start key')
     local k = deStr(d)
-    d:pnt('got key', k)
     d:toNext(); d:assertf(d.line and d.c <= #d.line,
       '.key must be followed by value')
     return k, d:getFn(d.line:sub(d.c,d.c))(d)
@@ -456,9 +456,7 @@ local DE_CH = {
 for b=byte'0',byte'9' do DE_CH[char(b)] = deInt end
 
 M.De.nextLine = function(d)
-  d:pnt('nextLine start:', d.line:sub(d.c))
   d.l, d.c = d.l + 1, 1; d.line = d.dat[d.l]
-  d:pnt('nextLine end', d.line and d.line:sub(d.c))
 end
 M.De.skipWs = function(d)
   while true do
@@ -482,10 +480,7 @@ M.De.skipWs = function(d)
   end
 end
 M.De.toNext = function(d)
-  d:pnt'toNext start'
-  d:skipWs()
-  d:pnt'toNext after skipWs'
-  ; if not d.line then return end
+  d:skipWs(); if not d.line then return end
   d.c = (d.line:find('%S', d.c)) or (#d.line + 1)
 end
 M.De.assertEnd = function(d, fmt, ...)
@@ -495,7 +490,6 @@ M.De.assertEnd = function(d, fmt, ...)
   error(sfmt('ERROR: %s.%s: %s', d.l, d.c, msg))
 end
 M.De.getFn = function(d, c)
-  d:pnt(sfmt('getting fn for %q', c))
   local fn = DE_CH[c]; if not fn then
     local o = {}; for k in pairs(DE_CH) do
       push(o, ds.repr(k):sub(2,-2))
@@ -515,7 +509,6 @@ M.De.__call = function(d)
   local ch = d.line and d.line:sub(d.c, d.c)
   if ch == '#' then d.header = deHeader(d) end
   local t = deTableUnbracketed(d, d.header)
-  d:pnt('De() returns:', t)
   return (next(t) ~= nil) and t or nil
 end
 
