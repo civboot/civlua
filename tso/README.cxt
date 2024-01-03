@@ -16,6 +16,7 @@ Features: [+
 * Serialize nested arbitrary data
 * Human readable and writeable. Favors readability over writeability.
 * Supported types: none, boolean, number, string, table (list/map hybrid)
+* Named headers support something like type tagging.
 * Design supports (future) fast serialization and deserialization implementation
 ]
 
@@ -60,7 +61,7 @@ tab-separated column.
 2	"Maxine	1998-12-25
 ]##
 
-Unlike CSV, TSO supports nested data:
+Unlike CSV, TSO supports nested data with named headers:
 
 [##
 -- JSON: [
@@ -77,15 +78,16 @@ Unlike CSV, TSO supports nested data:
 --   ],
 -- ]
 
--- TSO
-.users	{
- #"name	"birthday
+-- note: headers are specified first, then cleared, then used by name
+#user	"name	"birthday
+#account "userId	"ammount	"kind
+#
+.users	{#user
  John	1999-10-31
  Maxine	1998-12-25
 }
 
-.accounts	{
- #"userId	"ammount	"kind
+.accounts	{#account
  1	1000	"savings
  1	100	"checking
  2	120	"checking	.notes	{
@@ -94,21 +96,23 @@ Unlike CSV, TSO supports nested data:
 }
 ]##
 
-Other quality of life features will be added as well
+Other quality of life features:
 [##
--- line comments
-"""
-Add a "description" as metadata
-"""
+-- line comment, can appear at start of line or after any tab
+-- @ defines global attributes. Some of them (ibase, fbase) affect
+-- parsing. All attributes can be read by the deserializer
 @name	"my.data.name	-- set the doc name
+@doc
++"This is a multiline string
+ 'documenting the purpose of this data
+ 'and how it should be used
 @ibase	10	-- change the integer base (10 is default)
 ]##
 
 [{:h2}Types]
-The type of an item is determined by the first character after the tab.
-Whitespace is ignored. All values except tables end with a tab [$\t] character.
-Tables end with a newline (though they can be continued on the next line with
-the [$+] character).
+The type of an item is determined by the first non-whitespace character after
+the newline or tab. All values except tables end with a tab [$\t] character,
+the behavior of tables is documented below.
 
 [{table}
 + character | description
@@ -140,16 +144,38 @@ the [$+] character).
   neither [$'\'] or [$'t'].
 
 
-+ [${] | nested table until [$}]
++ [${] | nested table until [$}].
 + [$.] | key, the following item is a value
 
   Only string (binary) keys are supported. If you need other kinds of
   keys then encode whatever type you want in the string
 
-+ [$\n] | row (nested table) delimiter
++ [$\n] | row (inner table) delimiter
 
   Conceptually this ends the current row (non bracketed [${}] table) and
   starts a new row
+
++ [$+] | row continuation
+
+  This continues the previous row and is commonly used for multiple key/values
+  [##
+  .key1	"value1
+  +.key2	"value2
+  ]##
+
++ [$*] | bracket table continutation (very rare)
+
+  This is necessary to represent a table of the form [$rows={{1,2},{3,4}, 5, 6}]
+  (note that 5 and 6 are NOT part of a row)
+  [##
+  .rows	{
+    1	2	-- row 1
+    3	4	-- row 2
+    *5	6	-- note: NOT a row, individual values
+  }
+  ]##
+
+  It is available mostly so that arbitrary data can be represented.
 ]
 
 [*A note on Tables]
@@ -162,4 +188,13 @@ serialization format like XML which contain both attributes and data.
    python or javascript you would want to key off the list vs index
    depending on the type of the key. In compiled languages, just offer
    different [$get] methods.
+]
+
+[{:h2}Special Keys]
+
+[{table}
++ [$__header] | causes a nested table (or rows) to have the given header added,
+  which is effectively a list of keys with a name.
+
+  In lua the [$header.name] will be used for the name of the header.
 ]

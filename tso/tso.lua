@@ -36,6 +36,7 @@ M.SER_TY = {}
 local escPat = '[\t\\]'
 local INF, NEG_INF = 1/0, -1/0
 local NAN_STR, INF_STR, NEG_INF = 'nan', 'inf', '-inf'
+local IBASE_FMT = {[10] = '%d', [16] = '$%X'}
 
 -- valid escapes (in a string)
 -- a '\' will only be serialized as '\\' if it is followed
@@ -47,8 +48,13 @@ local escTo = { t='\t', ['\\']='\\' }
 -- Serializer
 
 M.SER_TY = {}
-M.HEADER = '__tsoh'
+M.HEADER = '__header'
 M.INVISIBLE_KEY = {[M.HEADER] = "header key"}
+
+M.ATTR_ASSERTS = {
+  ibase = function(b) mty.assertf(IBASE_FMT[b], 'invalid ibase: %q', b) end,
+  fbase = function(f) mty.assertf(IBASE_FMT[f], 'invalid fbase: %q', f) end,
+}
 
 M.Ser = mty.record'tso.Ser'
   :field'dat'    :fdoc'output lines'
@@ -58,7 +64,9 @@ M.Ser = mty.record'tso.Ser'
   :field('r', 'number', 0) :field('c', 'number', 0)
   :field('ti', 'number', 1)
   :field('needSep',  'boolean', true)
+  :field('enableAttrs', 'boolean', true)
   :field'headers' :field'headersWritten'
+  :fieldMaybe'_header' -- current root header
 M.Ser:new(function(ty_, t)
   t.dat = t.dat or t[1] or {}; t[1] = nil
   t.attrs = t.attrs or {}
@@ -120,23 +128,6 @@ M.Ser.tableExit = function(ser)
   ser.level = ser.level - 1
 end
 
-M.Ser._tableValues = function(ser, t, ti, headerDone, subHeader)
-  for i, v in ipairs(t) do
-    ser.ti = ti; ser:any(v, isRows); ti = ti + 1
-  end
-  local keys = extractKeys(t, len); table.sort(keys)
-  for _, k in ipairs(keys) do
-    if M.INVISIBLE_KEY[k]               then -- skip
-    elseif headerDone and headerDone[k] then -- skip
-    else
-      ser:nextValue(); ser:push'.'
-      ser.ti = ti; ser:_string(k);     ti = ti + 1
-      ser.ti = ti; ser:any(t[k], isRows, header); ti = ti + 1
-    end
-  end
-  return ti
-end
-
 local function rowValue(ser, v, header, l)
   if type(v) == 'table' then ser:tableRow(v, header)
   elseif header then mty.errorf(
@@ -151,6 +142,7 @@ local function rowValue(ser, v, header, l)
   end
   return l
 end
+
 -- table bracketed (i.e. with explicit '{ ... }', can be rows)
 M.Ser.table = function(ser, t, header)
   header = header or t[M.HEADER]
@@ -165,9 +157,10 @@ M.Ser.table = function(ser, t, header)
   for _, k in ipairs(keys) do
     if M.INVISIBLE_KEY[k]               then -- skip
     else
+      ser:finishLine()
       ser:nextValue(); ser:push'.'
       ser.ti = ti; ser:_string(k);     ti = ti + 1
-      ser.ti = ti; l = rowValue(ser, v, header); ti = ti + 1
+      ser.ti = ti; l = rowValue(ser, v, header, l); ti = ti + 1
     end
   end
   ser:tableExit()
@@ -175,8 +168,13 @@ M.Ser.table = function(ser, t, header)
   ser:push'}'; ser.needSep = false
 end
 
+M.Ser.writeHeader = function(ser, header)
+
+end
+
 -- a table row, i.e. a table ended with a newline
 M.Ser.tableRow = function(ser, t, header)
+  mty.pnt('tableRow', t, header)
   ser:tableEnter(); ser:finishLine()
   local l, ti = #ser.dat, 1
   local headerDone = {}; if header then for _, k in ipairs(header) do
@@ -193,9 +191,10 @@ M.Ser.tableRow = function(ser, t, header)
     if M.INVISIBLE_KEY[k] then -- skip
     elseif headerDone[k]  then -- skip
     else
+      ser:finishLine()
       ser:nextValue(); ser:push'.'
       ser.ti = ti; ser:_string(k);     ti = ti + 1
-      ser.ti = ti; ser:any(t[k], isRows, header); ti = ti + 1
+      ser.ti = ti; ser:any(t[k]); ti = ti + 1
     end
   end
   ser:tableExit()
@@ -209,8 +208,8 @@ M.Ser.boolean = function(ser, b)
 end
 M.Ser.number  = function(ser, n)
   ser:nextValue()
-  if n == math.floor(n) then -- integer
-    local ibase = ser.attrs.ibase or 10
+  if math.type(n) == 'integer' then
+    local ibase = ser.enableAttrs and ser.attrs.ibase or 10
     if ibase == 10     then push(ser.line, sfmt('%d', n))
     elseif ibase == 16 then push(ser.line, sfmt('$%X', n))
     else error('invalid ibase: '..ibase) end
@@ -218,7 +217,7 @@ M.Ser.number  = function(ser, n)
     push(ser.line, '^')
     if n ~= n then push(ser.line, 'NaN')
     else
-      local fbase = ser.attrs.fbase or 10
+      local fbase = ser.enableAttrs and ser.attrs.fbase or 10
       if     fbase == 10 then push(ser.line, sfmt('%f', n))
       elseif fbase == 16 then
         local f = sfmt('%a', n); if f:sub(1, 2) == '0x' then f = f:sub(3) end
@@ -270,14 +269,34 @@ M.Ser.row  = function(ser, row, header)
   ser:finishLine()
   assert(ser.level == -1, 'internal error: level not reset properly')
 end
+M.Ser.header = function(ser, header)
+  if mty.eq(ser._header, header) then return end
+  tableHeader(ser, header)
+  ser._header = header
+end
+M.Ser.clearHeader = function(ser)
+  ser:finishLine(); ser:push'#'; ser:finishLine()
+  ser._header = nil
+end
+M.Ser.attr = function(ser, key, value)
+  mty.assertf(type(key) == 'string', 'attr key must be string')
+  local a = M.ATTR_ASSERTS[key]; if a then a(value) end
+  ser.enableAttrs = false
+  ser.attrs[key] = value
+  ser:finishLine(); ser.needSep = false
+  ser:push'@'; ser:_string(key)
+  ser:nextValue(); ser:any(value)
+  ser:finishLine(); ser.needSep = false
+  ser.enableAttrs = nil
+end
+
 M.Ser.rows = function(ser, rows, header)
   do local ty = type(rows)
      mty.assertf(ty == 'table', 'rows is table[table], got %s', ty)
   end
   ser.needSep = true
-  local header = header or rows[M.HEADER]
-  if header then tableHeader(ser, header) end
-  for _, row in ipairs(rows) do ser:row(row, header) end
+  if header then ser:header(header) end
+  for _, row in ipairs(rows) do ser:row(row, ser._header) end
 end
 
 ds.updateKeys(M.SER_TY, M.Ser, {
@@ -297,6 +316,7 @@ De: tso deserializer.
   :field('level', 'number', -1)
   :fieldMaybe'header':fdoc'root header'
   :field'headers':fdoc'named headers'
+  :field('enableAttrs', 'boolean', true)
 M.De:new(function(ty_, t)
   t.dat = t.dat or t[1] or {}; t[1] = nil
   assert(t.dat, 'must provide input dat lines')
@@ -308,7 +328,7 @@ end)
 function M.De.errorf(d, ...)
   error(sfmt('ERROR %s.%s: %s', d.l, d.c, sfmt(...)), 2)
 end
-function M.De.assertf(d, v, ...) if not v then d:errorf(...) end end
+function M.De.assertf(d, v, ...) if not v then d:errorf(...) end; return v end
 function M.De.pnt(d, ...)
   mty.pnt(sfmt('De.pntf %s.%s:', d.l, d.c), ...)
 end
@@ -320,8 +340,8 @@ end end
 local function deInt(d)
   if d.line:sub(d.c,d.c) == '$' then d.c = d.c + 1 end
   local c1, c2 = d.line:find('%S+', d.c); assert(c1)
-  local n = tonumber(d.line:sub(c1, c2), d.attrs.ibase or 10)
-  -- TODO: still need to skip whitespace
+  local n = tonumber(d.line:sub(c1, c2),
+    d.enableAttrs and d.attrs.ibase or 10)
   d.c = c2 + 1
   return n
 end
@@ -356,13 +376,14 @@ end
 local deTableUnbracketed = nil
 
 local deHeaderName = function(d)
-  d:toNext(); if d.line:sub(d.c,d.c) ~= '"' then return deStr(d) end
+  if d.line:sub(d.c,d.c) ~= '"' then return deStr(d) end
 end
 local deHeader = function(d)
-  assert(d.line:sub(d.c,d.c) == '#')
-  d.c = d.c + 1
+  assert(d.line:sub(d.c,d.c) == '#'); d.c = d.c + 1
   local check = true
-  local hname, header = deHeaderName(d); if hname then
+  d:toNext(); if d.c > #d.line then d:nextLine(); return end
+  local hname, header; if d.line:sub(d.c,d.c) ~= '"' then hname = deStr(d) end
+  if hname then
     header = deTableUnbracketed(d)
     header.name = hname
     if d.headers[hname] then
@@ -395,10 +416,11 @@ local function deTableBracketed(d)
   if ch == '#' then
     d:assertf(ti == 0 and not header,
       'only single header at top allowed in nested rows')
-    header = deHeader(d)
+    header = d:assertf(deHeader(d), 'nested empty header not permitted')
     t[M.HEADER] = header
     goto loop
   end
+  if ch == '*' then isRow = false; d.c = d.c + 1; goto loop end
   if isRow then push(t, deTableUnbracketed(d, header)); isRow = false
   else
     local v1, v2 = d:getFn(ch)(d)
@@ -450,7 +472,16 @@ local DE_CH = {
     return k, d:getFn(d.line:sub(d.c,d.c))(d)
   end,
   ['{'] = deTableBracketed,
-  ['@'] = function(d) error'not impl' end,
+  ['@'] = function(d)
+    d.c = d.c + 1; local k = deStr(d)
+    d:toNext(); d:assertf(d.line and d.c <= #d.line,
+      '@attr must be followed by value')
+    d.enableAttrs = false
+    local v = d:getFn(d.line:sub(d.c,d.c))(d)
+    d.enableAttrs = nil
+    local a = M.ATTR_ASSERTS[k]; if a then a(v) end
+    d.attrs[k] = v
+  end,
 }
 
 for b=byte'0',byte'9' do DE_CH[char(b)] = deInt end
@@ -464,12 +495,12 @@ M.De.skipWs = function(d)
     while #d.line == 0 do
       d:nextLine(); if not d.line then d:pnt'EOF'; return end
     end
-    if d.c > #d.line then -- if EOL check for '+' on next line
+    if d.c > #d.line and d.l < #d.dat then -- if EOL check for '+' on next line
       local nxt = d.dat[d.l + 1]
-      local c1 = nxt:find'%S'
-      if c1 and (nxt:sub(c1,c1) == '+') then
+      local c1,c2 = nxt:find'%s*%+'
+      if c2 then
         d:pnt'found + cont'
-        d.l, d.c = d.l + 1, c1 + 1
+        d:nextLine(); d.c = c2 + 1
       else break end
     else
       local c1 = d.line:find('[%S\t]', d.c)
@@ -504,10 +535,13 @@ M.De.next = function(d, c)
 end
 
 M.De.__call = function(d)
+  ::loop::
   d:toNext(); while d.line and d.c > #d.line do d:nextLine() end
   if not d.line then return end
+  d:toNext()
   local ch = d.line and d.line:sub(d.c, d.c)
-  if ch == '#' then d.header = deHeader(d) end
+  if ch == '#' then d.header = deHeader(d); goto loop end
+  if ch == '@' then DE_CH['@'](d);          goto loop end
   local t = deTableUnbracketed(d, d.header)
   return (next(t) ~= nil) and t or nil
 end

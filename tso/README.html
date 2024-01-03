@@ -55,6 +55,8 @@ Features: <ul>
 </li>
 <li>Supported types: none, boolean, number, string, table (list/map hybrid)
 </li>
+<li>Named headers support something like type tagging.
+</li>
 <li>Design supports (future) fast serialization and deserialization implementation
 </li>
 </ul>
@@ -96,7 +98,7 @@ tab-separated column.
 2	"Maxine	1998-12-25
 </code>
 <p>
-Unlike CSV, TSO supports nested data:
+Unlike CSV, TSO supports nested data with named headers:
 <p>
 <code class="block">-- JSON: [
 --   users = [
@@ -112,15 +114,16 @@ Unlike CSV, TSO supports nested data:
 --   ],
 -- ]
 
--- TSO
-.users	{
- #"name	"birthday
+-- note: headers are specified first, then cleared, then used by name
+#user	"name	"birthday
+#account "userId	"ammount	"kind
+#
+.users	{#user
  John	1999-10-31
  Maxine	1998-12-25
 }
 
-.accounts	{
- #"userId	"ammount	"kind
+.accounts	{#account
  1	1000	"savings
  1	100	"checking
  2	120	"checking	.notes	{
@@ -129,20 +132,22 @@ Unlike CSV, TSO supports nested data:
 }
 </code>
 <p>
-Other quality of life features will be added as well
-<code class="block">-- line comments
-"""
-Add a "description" as metadata
-"""
+Other quality of life features:
+<code class="block">-- line comment, can appear at start of line or after any tab
+-- @ defines global attributes. Some of them (ibase, fbase) affect
+-- parsing. All attributes can be read by the deserializer
 @name	"my.data.name	-- set the doc name
+@doc
++"This is a multiline string
+ 'documenting the purpose of this data
+ 'and how it should be used
 @ibase	10	-- change the integer base (10 is default)
 </code>
 <p>
 <h2><a id="Types" href="#Types">☍</a>Types</h2>
-The type of an item is determined by the first character after the tab.
-Whitespace is ignored. All values except tables end with a tab <code>\t</code> character.
-Tables end with a newline (though they can be continued on the next line with
-the <code>+</code> character).
+The type of an item is determined by the first non-whitespace character after
+the newline or tab. All values except tables end with a tab <code>\t</code> character,
+the behavior of tables is documented below.
 <p>
 <table>
 <tr>
@@ -164,7 +169,7 @@ lua <code>ds.none</code>, python <code>None</code>, C/java/etc <code>null</code>
 </td>
 </tr>
 <tr>
-<td><code>$</code> or <code>0-9 a-f A-F</code></td>
+<td><code>$</code> or <code>0-9</code></td>
 <td>integer parsed using (base = attr <code>ibase</code>)
 </td>
 </tr>
@@ -199,7 +204,7 @@ neither <code>'\'</code> or <code>'t'</code>.
 </tr>
 <tr>
 <td><code>{</code></td>
-<td>nested table until <code>}</code>
+<td>nested table until <code>}</code>.
 </td>
 </tr>
 <tr>
@@ -213,10 +218,38 @@ keys then encode whatever type you want in the string
 </tr>
 <tr>
 <td><code>\n</code></td>
-<td>row (nested table) delimiter
+<td>row (inner table) delimiter
 <p>
 Conceptually this ends the current row (non bracketed <code>{}</code> table) and
 starts a new row
+<p>
+</td>
+</tr>
+<tr>
+<td><code>+</code></td>
+<td>row continuation
+<p>
+This continues the previous row and is commonly used for multiple key/values
+<code class="block">.key1	"value1
++.key2	"value2
+</code>
+<p>
+</td>
+</tr>
+<tr>
+<td><code>*</code></td>
+<td>bracket table continutation (very rare)
+<p>
+This is necessary to represent a table of the form <code>rows={{1,2},{3,4}, 5, 6}</code>
+(note that 5 and 6 are NOT part of a row)
+<code class="block">.rows	{
+  1	2	-- row 1
+  3	4	-- row 2
+  *5	6	-- note: NOT a row, individual values
+}
+</code>
+<p>
+It is available mostly so that arbitrary data can be represented.
 </td>
 </tr>
 </table>
@@ -232,4 +265,17 @@ python or javascript you would want to key off the list vs index
 depending on the type of the key. In compiled languages, just offer
 different <code>get</code> methods.
 </blockquote>
+<p>
+<h2><a id="Special_Keys" href="#Special_Keys">☍</a>Special Keys</h2>
+<p>
+<table>
+<tr>
+<th><code>__header</code></th>
+<th>causes a nested table (or rows) to have the given header added,
+which is effectively a list of keys with a name.
+<p>
+In lua the <code>header.name</code> will be used for the name of the header.
+</th>
+</tr>
+</table>
 </body></html>
