@@ -128,7 +128,7 @@ test('nested header', function()
 }
 ]], {
     { nested = {
-        [M.HEADER] = {'a', 'b', 'c'},
+        [M.FIELDH] = {'a', 'b', 'c'},
         {a=1, b="hi",  c=2},
         {a=3, b="bye", c=4},
       }
@@ -177,11 +177,11 @@ test('named header', function()
 }
 ]], {
     {a=1, b=2, t={
-      [M.HEADER]=inner,
+      [M.FIELDH]=inner,
       {c=3, d=4},
     }},
     {a=5, b=6, t={
-      [M.HEADER]=inner,
+      [M.FIELDH]=inner,
       {c=7, d=8},
       {c=9, d=10},
     }},
@@ -207,19 +207,19 @@ test('named header', function()
 ]], {
     {
       accounts = {
-        [M.HEADER] = account,
+        [M.FIELDH] = account,
         {i=1, a=1000, t="savings"},
         {i=1, a=100,  t="checking"},
         {i=2, a=120,  t="checking"},
       },
       users = {
-        [M.HEADER] = user,
+        [M.FIELDH] = user,
         {n="John",   b="1999-10-31"},
         {n="Maxine", b="1998-12-25"},
       },
     },
   }, {user, account, false})
-  assertEq({user=user, account=account}, de.headers)
+  assertEq({user=user, account=account}, de.specs)
 
 end)
 

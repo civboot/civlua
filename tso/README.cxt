@@ -79,9 +79,9 @@ Unlike CSV, TSO supports nested data with named headers:
 -- ]
 
 -- note: headers are specified first, then cleared, then used by name
-#user	"name	"birthday
-#account "userId	"ammount	"kind
-#
+:user	"name	"birthday
+:account	"userId	"ammount	"kind
+
 .users	{#user
  John	1999-10-31
  Maxine	1998-12-25
@@ -176,6 +176,28 @@ the behavior of tables is documented below.
   ]##
 
   It is available mostly so that arbitrary data can be represented.
+
++ [$:] | field specification
+
+  This specifies the "fields" for a single table. It can also be used at the root
+  level to create a named field specification.
+
+  [##
+  JSON: [0, {"field1": 1, "field2": 2}, 3]
+  TSO:
+  :ty1	"field1	"field2
+  0	{:ty1
+    1	2
+  }	3
+  ]##
+
+  This is kind of like "type tagging" and is useful when you have lots of data
+  with lots of embedded types.
+
++ [$#] | field header specification
+
+  This specifies the fields for the list of tables. See the "users" and "accounts"
+  example for how it is used.
 ]
 
 [*A note on Tables]
@@ -192,9 +214,15 @@ serialization format like XML which contain both attributes and data.
 
 [{:h2}Special Keys]
 
-[{table}
-+ [$__header] | causes a nested table (or rows) to have the given header added,
-  which is effectively a list of keys with a name.
+The following are reserved keys for the table. Serializing a table with these
+keys will result in the specified behavior. Deserializing that table will
+result in the specified field being set.
 
-  In lua the [$header.name] will be used for the name of the header.
+[{table}
++ [$__field]    | field specification table.
+
+  This means that the first N indexes use the keys specified.
+
++ [$__fieldh] | specifies the field specification for the "rows" (table items
+  in the list)
 ]

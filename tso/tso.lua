@@ -48,8 +48,8 @@ local escTo = { t='\t', ['\\']='\\' }
 -- Serializer
 
 M.SER_TY = {}
-M.HEADER = '__header'
-M.INVISIBLE_KEY = {[M.HEADER] = "header key"}
+M.FIELDH = '__FIELDH'
+M.INVISIBLE_KEY = {[M.FIELDH] = "field header key"}
 
 M.ATTR_ASSERTS = {
   ibase = function(b) mty.assertf(IBASE_FMT[b], 'invalid ibase: %q', b) end,
@@ -65,12 +65,12 @@ M.Ser = mty.record'tso.Ser'
   :field('ti', 'number', 1)
   :field('needSep',  'boolean', true)
   :field('enableAttrs', 'boolean', true)
-  :field'headers' :field'headersWritten'
+  :field'specs' :field'specsWritten'
   :fieldMaybe'_header' -- current root header
 M.Ser:new(function(ty_, t)
   t.dat = t.dat or t[1] or {}; t[1] = nil
   t.attrs = t.attrs or {}
-  t.line, t.headers, t.headersWritten = {}, {}, {}
+  t.line, t.specs, t.specsWritten = {}, {}, {}
   return mty.new(ty_, t)
 end)
 
@@ -95,30 +95,34 @@ M.Ser.nextValue = function(ser, skipCont)
   ser.needSep = true
 end
 
-local function tableHeader(ser, header)
-  ser.level = ser.level + 1 -- header is for NEXT level
-  ser:finishLine(); ser.needSep = false
-  ser:nextValue(); ser.needSep = false; ser:push'#'
-  local name = header.name
+M.Ser.fieldSpec = function(ser, spec, char)
+  ser:nextValue(); ser.needSep = false; ser:push(char or ':')
+  local name = spec.name
   if name then ser:nextValue(); ser:push(name) end
-  local written = name and ser.headersWritten[name]
+  local written = name and ser.specsWritten[name]
   if written then
-    mty.assertf(mty.eq(header, written),
-      'header name %s differs', name)
+    mty.assertf(mty.eq(spec, written),
+      'spec name %s differs', name)
   else
     if name then
-      if ser.headers[name] then
-        mty.assertf(mty.eq(ser.headers[name], header),
-          "different headers detected for %q", name)
-        ser.headers[name] = header
+      if ser.specs[name] then
+        mty.assertf(mty.eq(ser.specs[name], spec),
+          "different specs detected for %q", name)
+        ser.specs[name] = spec
       end
-      ser.headersWritten[name] = header
+      ser.specsWritten[name] = spec
     end
-    for _, h in ipairs(header) do
-      assert(type(h) == 'string', 'header must be list of strings')
+    for _, h in ipairs(spec) do
+      assert(type(h) == 'string', 'spec must be list of strings')
       ser:string(h)
     end
   end
+end
+
+local function tableHeader(ser, header)
+  ser.level = ser.level + 1 -- header is for NEXT level
+  ser:finishLine(); ser.needSep = false
+  ser:fieldSpec(header, '#')
   ser.level = ser.level - 1
   ser:finishLine(); ser.needSep = false
 end
@@ -143,65 +147,54 @@ local function rowValue(ser, v, header, l)
   return l
 end
 
--- table bracketed (i.e. with explicit '{ ... }', can be rows)
-M.Ser.table = function(ser, t, header)
-  header = header or t[M.HEADER]
-  local l = #ser.dat
-  ser:tableEnter(); ser:nextValue(); ser:push'{'; ser.needSep = false
+local function serTable(ser, t, spec, header, serValueFn)
   local ti, l = 1, #ser.dat
-  if header then tableHeader(ser, header) end
+  local specDone = {}; if spec then for _, k in ipairs(spec) do
+    mty.assertf(not specDone[k], 'invalid spec: multiple %s', k)
+    local v = t[k]; mty.assertf(v ~= nil, 'missing spec key %s', k)
+    ser.ti = ti; serValueFn(ser, v, nil, l); ti = ti + 1
+    specDone[k] = true
+  end end
   for i, v in ipairs(t) do
-    ser.ti = ti; l = rowValue(ser, v, header, l); ti = ti + 1
+    ser.ti = ti; l = serValueFn(ser, v, header, l); ti = ti + 1
   end
   local keys = extractKeys(t, len); table.sort(keys)
   for _, k in ipairs(keys) do
-    if M.INVISIBLE_KEY[k]               then -- skip
+    if M.INVISIBLE_KEY[k] then -- skip
+    elseif specDone[k]    then -- skip
     else
       ser:finishLine()
       ser:nextValue(); ser:push'.'
       ser.ti = ti; ser:_string(k);     ti = ti + 1
-      ser.ti = ti; l = rowValue(ser, v, header, l); ti = ti + 1
+      ser.ti = ti; l = serValueFn(ser, t[k], header, l); ti = ti + 1
     end
   end
+  return l
+end
+
+-- table bracketed (i.e. with explicit '{ ... }', can be rows)
+M.Ser.table = function(ser, t, header)
+  header = header or t[M.FIELDH]; local spec = t[M.FIELD]
+  mty.assertf(not (spec and header), "both spec and header specified")
+  ser:tableEnter(); ser:nextValue(); ser:push'{'; ser.needSep = false
+  if header then tableHeader(ser, header)              end
+  if spec   then ser:fieldSpec(spec); ser:finishLine() end
+  local l = serTable(ser, t, spec, header, rowValue)
   ser:tableExit()
   if l == #ser.dat then ser:nextValue(true) else ser:finishLine() end
   ser:push'}'; ser.needSep = false
-end
-
-M.Ser.writeHeader = function(ser, header)
-
 end
 
 -- a table row, i.e. a table ended with a newline
 M.Ser.tableRow = function(ser, t, header)
   mty.pnt('tableRow', t, header)
   ser:tableEnter(); ser:finishLine()
-  local l, ti = #ser.dat, 1
-  local headerDone = {}; if header then for _, k in ipairs(header) do
-    mty.assertf(not headerDone[k], 'invalid header: multiple %s', k)
-    local v = t[k]; mty.assertf(v ~= nil, 'missing header key %s', k)
-    ser.ti = ti; ser:any(v); ti = ti + 1
-    headerDone[k] = true
-  end end
-  for i, v in ipairs(t) do
-    ser.ti = ti; ser:any(v, isRows); ti = ti + 1
-  end
-  local keys = extractKeys(t, len); table.sort(keys)
-  for _, k in ipairs(keys) do
-    if M.INVISIBLE_KEY[k] then -- skip
-    elseif headerDone[k]  then -- skip
-    else
-      ser:finishLine()
-      ser:nextValue(); ser:push'.'
-      ser.ti = ti; ser:_string(k);     ti = ti + 1
-      ser.ti = ti; ser:any(t[k]); ti = ti + 1
-    end
-  end
+  serTable(ser, t, header, nil, ser.any) -- header IS the spec
   ser:tableExit()
   ser:finishLine()
 end
 
-M.Ser['nil'] = function(ser) ser:error'serializing nil is not permitted. Use none' end
+M.Ser['nil'] = function(ser) error'serializing nil is not permitted. Use none' end
 M.Ser.none   = function(ser) ser:nextValue(); push(ser.line, 'n') end
 M.Ser.boolean = function(ser, b)
   ser:nextValue(); push(ser.line, b and 't' or 'f')
@@ -315,14 +308,14 @@ De: tso deserializer.
   :field('l', 'number', 1) :field('c', 'number', 1)
   :field('level', 'number', -1)
   :fieldMaybe'header':fdoc'root header'
-  :field'headers':fdoc'named headers'
+  :field'specs':fdoc'named specs'
   :field('enableAttrs', 'boolean', true)
 M.De:new(function(ty_, t)
   t.dat = t.dat or t[1] or {}; t[1] = nil
   assert(t.dat, 'must provide input dat lines')
   t.attrs = t.attrs or {}
   t.line = t.dat[1]
-  t.headers = t.headers or {}
+  t.specs = t.specs or {}
   return mty.new(ty_, t)
 end)
 function M.De.errorf(d, ...)
@@ -386,13 +379,13 @@ local deHeader = function(d)
   if hname then
     header = deTableUnbracketed(d)
     header.name = hname
-    if d.headers[hname] then
+    if d.specs[hname] then
       check = false
-      mty.assertf((#header == 0) or mty.eq(header, d.headers[hname]),
+      mty.assertf((#header == 0) or mty.eq(header, d.specs[hname]),
         "header %q has different values:\nprev: %s\n new: %s",
-        hname, mty.fmt(d.headers[name]), mty.fmt(header))
-      header = d.headers[hname]
-    else d.headers[hname] = header end
+        hname, mty.fmt(d.specs[name]), mty.fmt(header))
+      header = d.specs[hname]
+    else d.specs[hname] = header end
   else header = deTableUnbracketed(d) end
   if check then for _, h in ipairs(header) do
     d:assertf(type(h) == 'string', 'header must be only strings')
@@ -417,7 +410,7 @@ local function deTableBracketed(d)
     d:assertf(ti == 0 and not header,
       'only single header at top allowed in nested rows')
     header = d:assertf(deHeader(d), 'nested empty header not permitted')
-    t[M.HEADER] = header
+    t[M.FIELDH] = header
     goto loop
   end
   if ch == '*' then isRow = false; d.c = d.c + 1; goto loop end
