@@ -128,7 +128,7 @@ test('nested header', function()
 }
 ]], {
     { nested = {
-        [M.FIELDH] = {'a', 'b', 'c'},
+        [M.SPECH] = {'a', 'b', 'c'},
         {a=1, b="hi",  c=2},
         {a=3, b="bye", c=4},
       }
@@ -177,11 +177,11 @@ test('named header', function()
 }
 ]], {
     {a=1, b=2, t={
-      [M.FIELDH]=inner,
+      [M.SPECH]=inner,
       {c=3, d=4},
     }},
     {a=5, b=6, t={
-      [M.FIELDH]=inner,
+      [M.SPECH]=inner,
       {c=7, d=8},
       {c=9, d=10},
     }},
@@ -207,13 +207,13 @@ test('named header', function()
 ]], {
     {
       accounts = {
-        [M.FIELDH] = account,
+        [M.SPECH] = account,
         {i=1, a=1000, t="savings"},
         {i=1, a=100,  t="checking"},
         {i=2, a=120,  t="checking"},
       },
       users = {
-        [M.FIELDH] = user,
+        [M.SPECH] = user,
         {n="John",   b="1999-10-31"},
         {n="Maxine", b="1998-12-25"},
       },
@@ -290,4 +290,37 @@ $10	$20
   }, result)
 end)
 
--- TODO: test multiline strings and attributes
+test('field', function()
+  local expect = [[#a	"a1	"a2
+#b	"b1	"b2
+#
+:a	1	2
+:b	3	4
+]]
+  local ser = M.Ser{}
+  local tyA, tyB = {name='a', 'a1', 'a2'}, {name='b', 'b1', 'b2'}
+  ser:header(tyA); ser:header(tyB)
+  ser:clearHeader()
+  local row1, row2 =
+    {[M.SPEC] = 'a', a1=1, a2=2},
+    {[M.SPEC] = 'b', b1=3, b2=4}
+  ser:row(row1)
+  ser:row(row2)
+  push(ser.dat, '')
+  assertEq(expect, l2str(ser.dat))
+
+  local de = M.De{ds.lines(expect)}
+  local result = {}; for r in de do push(result, r) end
+  assertEq({row1, row2}, result)
+end)
+
+
+test('multiline', function()
+  local ser, de = assertRows([[
+1	"hi
+'this is
+'a multiline string	2
+]], {
+  {1, "hi\nthis is\na multiline string", 2},
+})
+end)

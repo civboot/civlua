@@ -1,8 +1,10 @@
 [{h1}TSO: tab separated objects]
 
-[" [*WARNING:] TSO is currently incomplete.
+[" [*Note:] The initial Lua implementation of TSO is complete and is minimally
+   tested. The spec may change at any time, though I don't expect major changes.
 
-   A serializer is implemented. Deserializer coming soon.
+   Major usage has not yet been done. Use at your own risk and expect some
+   bugs.
 ]
 
 TSO is a concise and expressive data serialization format. If JSON and CSV had
@@ -16,7 +18,7 @@ Features: [+
 * Serialize nested arbitrary data
 * Human readable and writeable. Favors readability over writeability.
 * Supported types: none, boolean, number, string, table (list/map hybrid)
-* Named headers support something like type tagging.
+* Single and "row" table specifications supported, similar to CSV headers
 * Design supports (future) fast serialization and deserialization implementation
 ]
 
@@ -32,8 +34,8 @@ vim	:set ts=12
 ]
 
 TSO represents the items in a table as a series of tab separated values.
-Similar to CSV, newlines start a new table. The first character specifies
-the type, [$.keys] are strings.
+Similar to CSV, newlines start a new table (aka "row"). The first character
+specifies the type, all map keys are strings.
 
 [##
 -- JSON: [
@@ -46,8 +48,8 @@ the type, [$.keys] are strings.
 .name	"John	.birthday	"1999-10-31
 ]##
 
-[$#] specifies a header which extracts specific keys as indexes in the
-tab-separated column.
+[$#] is a header specification which extracts specific keys for the first
+columns:
 
 [##
 -- JSON: [
@@ -73,26 +75,33 @@ Unlike CSV, TSO supports nested data with named headers:
 --     {"userId": 1, "ammount": 1000, "kind": "savings"},
 --     {"userId": 1, "ammount": 100,  "kind": "checking"},
 --     {"userId": 2, "ammount": 120,  "kind": "checking", "notes": [
---       "2020-01-03: wants investment advice", "2019-11-05: yelled at clerk"
---     ],
---   ],
+--       {"date": "2020-01-03", "text": "wants investment advice"},
+--       {"date": "2019-11-05,  "text": "yelled at clerk"}
+--     ]}
+--   ]
 -- ]
 
 -- note: headers are specified first, then cleared, then used by name
-:user	"name	"birthday
-:account	"userId	"ammount	"kind
+#note	"date	"text
+#user	"name	"birthday
+#account	"userId	"ammount	"kind
+#
 
-.users	{#user
- John	1999-10-31
- Maxine	1998-12-25
+.users	{
+  #user
+  John	1999-10-31
+  Maxine	1998-12-25
 }
 
-.accounts	{#account
- 1	1000	"savings
- 1	100	"checking
- 2	120	"checking	.notes	{
-  "2020-01-03: wants investment advice	"2019-11-05: yelled at clerk
- }
+.accounts	{
+  #account
+  1	1000	"savings
+  1	100	"checking
+  2	120	"checking	.notes	{
+    #note
+    "2020-01-03	"wants investment advice
+    "2019-11-05	"yelled at clerk
+  }
 }
 ]##
 
@@ -177,27 +186,33 @@ the behavior of tables is documented below.
 
   It is available mostly so that arbitrary data can be represented.
 
-+ [$:] | field specification
++ [$#] | field header
 
-  This specifies the "fields" for a single table. It can also be used at the root
-  level to create a named field specification.
-
+  This specifies the fields for the list of tables.
   [##
-  JSON: [0, {"field1": 1, "field2": 2}, 3]
-  TSO:
-  :ty1	"field1	"field2
-  0	{:ty1
-    1	2
-  }	3
+  -- header named "person" with fields "name" and "age"
+  #person	"name	"age
+  "Rob Clark	33
+  "Jane Gelerard	27
   ]##
 
-  This is kind of like "type tagging" and is useful when you have lots of data
-  with lots of embedded types.
+  The header can be either named or unnamed. A header is named (like above)via
+  it's first value being the name, which must start with anything besides [$"].
 
-+ [$#] | field header specification
++ [$:] | field spec
 
-  This specifies the fields for the list of tables. See the "users" and "accounts"
-  example for how it is used.
+  Specifies the "fields" for a single table by name, which must have been
+  previously defined by a header (often at root level)
+
+  [##
+  -- JSON: [0, {"field1": 1, "field2": 2}, 3]
+  #ty1	"field1	"field2	-- specify ty1 spec
+  #			-- clear headers
+  0	{:ty1	1	2	}	3
+  ]##
+
+  This is kind of like (and can be used for) "type tagging" and is useful when
+  you have data with embedded types.
 ]
 
 [*A note on Tables]
@@ -219,10 +234,71 @@ keys will result in the specified behavior. Deserializing that table will
 result in the specified field being set.
 
 [{table}
-+ [$__field]    | field specification table.
++ Key | Description
++ [$__spec]    | field specification table.
 
   This means that the first N indexes use the keys specified.
 
-+ [$__fieldh] | specifies the field specification for the "rows" (table items
++ [$__spech] | specifies the field specification for the "rows" (table items
   in the list)
 ]
+
+[{:h2}Extensions]
+An astute observer may notice that TSO defines no specific object model: no way
+for a Pyton/Lua/Java/etc user to convert an object from a defined language type
+("class") into their given language's type.
+
+This is not defined directly. However, two features make such an extension
+relatively straightforward for a library: [+
+
+* [$attrs] allow specifying a type mapping with field spec ids:
+  [##
+  @types	{
+    #"spec	"type
+    0	"graphics.Point
+    1	"graphics.Line
+    2	"graphics.Quad
+  }
+  ]##
+* header/field specs can now be used as needed for encoding the data
+  [##
+  #0	"x	"y	-- Point: 2 coordinates
+  #1	"start	"end	-- Line: 2 Points
+  #2	"left	"right	-- Quad: 2 Lines
+  #2	-- each row is a Quad
+  {:1	{:0	10	10}	{:0	10	20}}
+  +{:1	{:0	20	10}	{:0	20	20}}
+  -- ... other quads
+  ]##
+]
+
+In the above imagination, the "spec" refers to the TSO header/field spec and the "type"
+refers to some library name. A few things to note: [+
+* Assuming a reasonably large amount of data, the type specification takes up very little room:
+  two bytes per object on average. However, the header encoding makes it
+  relatively easy for even a human to read the document (and especially easy
+  for a program to do so).
+* In the example above, conciceness was chosen instead of human
+  read/writeability. The library could choose to instead use more human
+  readable spec names (i.e. use "Point" instead of "0")
+]
+
+When the deserializer library reads the above document, they will have access
+not only the the [$@types] but also to the [$#field] specs. They can use
+this metadata for multiple purposes, including comparing against their library
+(to check for changes to the types) and even to support backwards-compatibility
+(i.e. adding fields or changing field types).
+
+They are also free to create an alternative type schema or include other attributes
+which specify versioning information/etc. TSO supports these features without specifying
+them.
+
+[{:h2 name=with-luck}Integration with Luck]
+TSO will be integrated with [@luck]. Specifically the [$@name] attribute will be used
+as when resolving luck dependency names and luck will automatically deserialize
+tso files.
+
+Like luck files, the default name is the file name without the [$.tso] extension.
+
+[{!:href=https://github.com/civboot/civlua/tree/main/luck}luck]
+
