@@ -37,7 +37,7 @@ td    { background-color: azure; }
 <h1>TSO: tab separated objects</h1>
 <p>
 <blockquote> <b>Note:</b> The initial Lua implementation of TSO is complete and is minimally
-tested. The spec may change at any time, though I don't expect manor changes.
+tested. The spec may change at any time, though I don't expect major changes.
 <p>
 Major usage has not yet been done. Use at your own risk and expect some
 bugs.
@@ -57,7 +57,7 @@ Features: <ul>
 </li>
 <li>Supported types: none, boolean, number, string, table (list/map hybrid)
 </li>
-<li>Named headers support something like type tagging.
+<li>Single and "row" table specifications supported, similar to CSV headers
 </li>
 <li>Design supports (future) fast serialization and deserialization implementation
 </li>
@@ -73,8 +73,8 @@ protobufs? <a href="https://blog.mbedded.ninja/programming/serialization-formats
 
 <p>
 TSO represents the items in a table as a series of tab separated values.
-Similar to CSV, newlines start a new table. The first character specifies
-the type, <code>.keys</code> are strings.
+Similar to CSV, newlines start a new table (aka "row"). The first character
+specifies the type, all map keys are strings.
 <p>
 <code class="block">-- JSON: [
 --   [1, 2, 3],
@@ -86,8 +86,8 @@ the type, <code>.keys</code> are strings.
 .name	"John	.birthday	"1999-10-31
 </code>
 <p>
-<code>#</code> specifies a header which extracts specific keys as indexes in the
-tab-separated column.
+<code>#</code> is a header specification which extracts specific keys for the first
+columns:
 <p>
 <code class="block">-- JSON: [
 --   {"id": 1, "name": "John",   "birthday": "1999-10-31"},
@@ -111,9 +111,10 @@ Unlike CSV, TSO supports nested data with named headers:
 --     {"userId": 1, "ammount": 1000, "kind": "savings"},
 --     {"userId": 1, "ammount": 100,  "kind": "checking"},
 --     {"userId": 2, "ammount": 120,  "kind": "checking", "notes": [
---       "2020-01-03: wants investment advice", "2019-11-05: yelled at clerk"
---     ],
---   ],
+--       {"date": "2020-01-03", "text": "wants investment advice"},
+--       {"date": "2019-11-05,  "text": "yelled at clerk"}
+--     ]}
+--   ]
 -- ]
 
 -- note: headers are specified first, then cleared, then used by name
