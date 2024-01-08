@@ -28,23 +28,23 @@ projects. Together they (will) form a complete development environment with some
 awesome shell/lua commandline scripting tools, and even form the basis of both assemblers and a Lua compiler written in Lua. See [Installation](#Installation)
 for how to install (just copy this directory).
 
-Each sub-directory has individual documentation. A suggested reading order
-might be:
+This directory is split into `cmd` for user-executable commands and `lib` for
+libraries.
 
 * [civ.lua](./civ.lua): a self-loading lua module which acts as
     a hub for civboot scripts.
-* [shim](./shim/README.md): write scripts for Lua, execute from shell (57 LoC)
-* [metaty](./metaty/README.md): runtime type specification and checking (457 LoC)
+* [shim](./lib/shim/README.md): write scripts for Lua, execute from shell (57 LoC)
+* [metaty](./lib/metaty/README.md): runtime type specification and checking (457 LoC)
   * `help()` function for viewing documentation on any module or type
   * Auto type formatting
   * Auto type equality (depth comparison)
-* [ds](./ds/README.md): absurdly necessary data structures and algorithms (341 LoC)
-* [civtest](./civtest/README.md): absurdly simple test libray (66 Loc)
-* [civix](./civix/README.md): Lua linux and shell library (392 LoC) 
-* [pegl](./pegl/README.md): recursive descent parsing language (430 LoC `pegl.lua`)
+* [ds](./lib/ds/README.md): absurdly necessary data structures and algorithms (341 LoC)
+* [civtest](./lib/civtest/README.md): absurdly simple test libray (66 Loc)
+* [civix](./lib/civix/README.md): Lua linux and shell library (392 LoC) 
+* [pegl](./lib/pegl/README.md): recursive descent parsing language (430 LoC `pegl.lua`)
   * PEG-like but Lua-only syntax
   * 214 LoC for Lua's syntax definition (`./pegl/pegl/lua.lua`)
-* [ff](./civ.lua): find and fix files. Kind of like a supercharged
+* [ff](./cmd/ff/README.md): find and fix files. Kind of like a supercharged
   `find`, `grep` and pattern subtitution all rolled into a simple
   203 line script.
   * `ff -r --pat='OldTest([Cc]lass)' --sub='NewTesting%1' --mut`
@@ -55,7 +55,7 @@ might be:
 
 ## Work In Progress
 
-* [ele](./ele/README.md): Extendable Lua Editor
+* [ele](./cmd/ele/README.md): Extendable Lua Editor
   * Modal, similar to Vim
   * Currently incomplete, but 2181 LoC with core functionality
 * `patience/` is to implement a patience diff, be patient!

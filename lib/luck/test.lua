@@ -1,17 +1,17 @@
 METATY_CHECK = true
-
 local mty = require'metaty'
 local test, assertEq, assertErrorPat; mty.lrequire'civtest'
 local df  = require'ds.file'
 local M = require'luck'
+local D = 'lib/luck/'
 
 test("meta", function()
-  local path = 'luck/testdata/small.luck'
+  local path = D..'testdata/small.luck'
   local f = df.LinesFile{io.open(path), len=true}
   local meta = M.loadMeta(f, path)
   assertEq({'small'}, meta); f:close()
 
-  local path = 'luck/testdata/withdeps.luck'
+  local path = D..'testdata/withdeps.luck'
   local f = df.LinesFile{io.open(path), len=true}
   local meta = M.loadMeta(f, path)
   assertEq({
@@ -25,13 +25,13 @@ test("meta", function()
 end)
 
 test("load", function()
-  local smallPath = 'luck/testdata/small.luck'
-  local valsPath  = 'luck/testdata/vals.luck'
+  local smallPath = D..'testdata/small.luck'
+  local valsPath  = D..'testdata/vals.luck'
   local res = M.load(smallPath)
   local small = {i=8, s="hello", t={1, 2, v=3}}
   assertEq(small, res)
 
-  local res = M.loadall{'luck/testdata/small.luck'}
+  local res = M.loadall{D..'testdata/small.luck'}
   assertEq({small=small}, res)
 
   local resVals = M.load(valsPath)
@@ -39,7 +39,7 @@ test("load", function()
   assertEq(vals, resVals)
 
   local withDeps = M.loadall{
-    'luck/testdata/withdeps.luck',
+    D..'testdata/withdeps.luck',
     smallPath, valsPath,
   }
   assertEq({

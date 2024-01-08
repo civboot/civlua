@@ -11,6 +11,7 @@ local pegl = mty.lrequire'pegl'
 local num, str, exp1, exp, field, varset
 local root, src
 local M = mty.lrequire'pegl.lua'
+local D = 'lib/pegl/'
 
 local KW, N, NUM, HEX; mty.lrequire(testing)
 local SRC = function(...) return {..., EMPTY, EMPTY, EOF} end
@@ -344,7 +345,7 @@ local function testLuaPath(path)
 end
 
 T.test('parseSrc', function()
-  -- testLuaPath('./patience/patience2.lua')
-  -- testLuaPath('./pegl/pegl.lua')
-  testLuaPath('./pegl/pegl/lua.lua')
+  -- testLuaPath('/patience/patience2.lua')
+  testLuaPath(D..'pegl.lua')
+  testLuaPath(D..'pegl/lua.lua')
 end)

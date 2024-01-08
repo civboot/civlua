@@ -6,6 +6,7 @@ local test, assertEq; mty.lrequire'civtest'
 
 local posix = require'posix'
 local civix  = require'civix'
+local D = 'lib/civix/'
 
 test('fork', function()
   local fork = civix.Fork(true, true)
@@ -95,15 +96,15 @@ test('mkTree', function()
 end)
 
 test('walk', function()
-  local f, d = civix.ls{'civix/'}
+  local f, d = civix.ls{D}
   table.remove(f, ds.indexOfPat(f, '%.rockspec'))
   table.sort(f); table.sort(d)
   local expected = {
-      "civix/README.md",      "civix/civix.lua",
-      "civix/civix/term.lua", "civix/runterm.lua",
-      "civix/test.lua",       "civix/test_term.lua"
+      D.."README.md",      D.."civix.lua",
+      D.."civix/term.lua", D.."runterm.lua",
+      D.."test.lua",       D.."test_term.lua"
   }
   assertEq(expected, f)
-  assertEq({'civix/', 'civix/civix/'}, d)
+  assertEq({D, D..'civix/'}, d)
 end)
 
