@@ -1,10 +1,10 @@
 
 local mty = require'metaty'
 local ds = require'ds'
-local T = require'civtest'
+local test, assertEq; local T = mty.lrequire'civtest'
+local Keep, Chng;     local patch = mty.lrequire'patch'
 local M = require'patience'
 
-local test, assertEq = T.test, T.assertEq
 
 local add, concat = table.insert, table.concat
 
@@ -52,6 +52,14 @@ test('example', function()
 
   local diff = M.diff(linesA, linesB)
   assertEq(EXPECT, '\n'..ds.concatToStrs(diff, '\n')..'\n')
+
+  local pch = M.patches(diff)
+  assertEq({
+    Chng{rem=0, add={'slits', 'gil'}},
+    Keep{num=2},
+    Chng{rem=2, add=nil},
+    Keep{num=3},
+  }, pch)
 end)
 
 local EXPECT = '\n'..[[
@@ -72,6 +80,13 @@ T.test('complex', function()
   local lis = M.patienceLIS(matches)
   assertEq({{3,3}, {2,2}}, lis)
 
-  local result = M.diff(linesA, linesB)
-  T.assertEq(EXPECT, '\n'..ds.concatToStrs(result, '\n')..'\n')
+  local diff = M.diff(linesA, linesB)
+  T.assertEq(EXPECT, '\n'..ds.concatToStrs(diff, '\n')..'\n')
+
+  local pch = M.patches(diff)
+  assertEq({
+    Chng{rem=1, add={'X'}},
+    Keep{num=2},
+    Chng{rem=1, add={'X'}},
+  }, pch)
 end)
