@@ -2,7 +2,7 @@
 local mty = require'metaty'
 local ds = require'ds'
 local test, assertEq; local T = mty.lrequire'civtest'
-local Keep, Chng;     local patch = mty.lrequire'patch'
+local Keep, Chng;     local patch = mty.lrequire'ds.patch'
 local M = require'patience'
 
 

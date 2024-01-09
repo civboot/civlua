@@ -3,7 +3,7 @@
 
 local mty = require'metaty'
 local ds  = require'ds'
-local Keep, Chng; local patch = mty.lrequire'patch'
+local Keep, Chng; local patch = mty.lrequire'ds.patch'
 local push = table.insert
 local M = {}
 
