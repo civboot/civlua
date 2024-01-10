@@ -19,7 +19,7 @@ local doc     = M.load('doc',      'lib/doc/doc.lua')
 local ds      = M.load('ds',       'lib/ds/ds.lua')
    M.load('ds.heap',  'lib/ds/ds/heap.lua')
    M.load('ds.file',  'lib/ds/ds/file.lua')
-   M.load('ds.patch', 'lib/ds/ds/patch.lua')
+   M.load('ds.diff',  'lib/ds/ds/diff.lua')
 local patience= M.load('patience', 'lib/patience/patience.lua')
 local civtest = M.load('civtest',  'lib/civtest/civtest.lua')
 

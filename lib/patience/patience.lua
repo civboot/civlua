@@ -3,9 +3,16 @@
 
 local mty = require'metaty'
 local ds  = require'ds'
-local Keep, Chng; local patch = mty.lrequire'ds.patch'
+local Keep, Change, Diff; local diff = mty.lrequire'ds.diff'
 local push = table.insert
 local M = {}
+
+local DiffI = mty.record'patience.DiffI'
+  :field('sym', 'string'):fdoc'{" " + -}'
+  :fieldMaybe('b', 'number'):fdoc'base (original) line num'
+  :fieldMaybe('c', 'number'):fdoc'change (new) line num'
+  :new(function(ty_, sym, b, c) return mty.new(ty_, {sym=sym, b=b, c=c}) end)
+DiffI.__tostring = function(di) return string.format('DI(%s|%s)', di.b, di.c) end
 
 local function ensureCount(t, line)
   local v = t[line]; if v then return v end
@@ -14,28 +21,28 @@ local function ensureCount(t, line)
   return v
 end
 
-function M.uniqueMatches(aLines, bLines, a, a2, b, b2)
-  local counts, matches, line, c = {}, {}
-  for i=a,a2 do
-    line = aLines[i]; c = ensureCount(counts, line)
-    c[1] = c[1] + 1; c[3] = i
-  end
+function M.uniqueMatches(aLines, bLines, b, b2, c, c2)
+  local counts, matches, line, ct = {}, {}
   for i=b,b2 do
-    line = bLines[i]; c = ensureCount(counts, line)
-    c[2] = c[2] + 1; c[4] = i
+    line = aLines[i]; ct = ensureCount(counts, line)
+    ct[1] = ct[1] + 1; ct[3] = i
   end
-  for _, c in ipairs(counts) do
-    if c[1] == 1 and c[2] == 1 then push(matches, {c[3], c[4]}) end
+  for i=c,c2 do
+    line = bLines[i]; ct = ensureCount(counts, line)
+    ct[2] = ct[2] + 1; ct[4] = i
+  end
+  for _, ct in ipairs(counts) do
+    if ct[1] == 1 and ct[2] == 1 then push(matches, {ct[3], ct[4]}) end
   end
   return matches
 end
 
 -- find the stack to the left of where we should place b=match[2]
-function M.findLeftStack(stacks, b)
+function M.findLeftStack(stacks, c)
   local low, high, mid = 0, #stacks + 1
   while low + 1 < high do
     mid = (low + high) // 2
-    if stacks[mid][2] < b then low  = mid
+    if stacks[mid][2] < c then low  = mid
     else                       high = mid end
   end
   return low
@@ -59,91 +66,64 @@ end
 ----------------------------
 -- Compute the diff
 
-M.DiffI = mty.record'patience.DiffI'
-  :field('sym', 'string')
-  :fieldMaybe('a', 'number')
-  :fieldMaybe('b', 'number')
-  :new(function(ty_, sym, a, b) return mty.new(ty_, {sym=sym, a=a, b=b}) end)
-M.DiffI.__tostring = function(di) return string.format('DI(%s|%s)', di.a, di.b) end
-
-
-M.skipEqLinesTop = function(linesA, linesB, a, a2, b, b2)
-  while a <= a2 and b <= b2 do
-    if linesA[a] ~= linesB[b] then return a, b end
-    a = a+1; b = b+1
+M.skipEqLinesTop = function(linesB, linesC, b, b2, c, c2)
+  while b <= b2 and c <= c2 do
+    if linesB[b] ~= linesC[c] then return b, c end
+    b = b+1; c = c+1
   end
-  return a, b
+  return b, c
 end
 
-M.skipEqLinesBot = function(linesA, linesB, a, a2, b, b2)
-  while a <= a2 and b <= b2 do
-    if linesA[a2] ~= linesB[b2] then return a2, b2 end
-    a2 = a2-1; b2 = b2-1
+M.skipEqLinesBot = function(linesB, linesC, b, b2, c, c2)
+  while b <= b2 and c <= c2 do
+    if linesB[b2] ~= linesC[c2] then return b2, c2 end
+    b2 = b2-1; c2 = c2-1
   end
-  return a2, b2
+  return b2, c2
 end
 
-local function addIs(out, sym, a1, b1, b2)
-  for b=b1, b2 do push(out, M.DiffI(sym, a1, b)); a1 = a1 + 1 end
+local function addIs(out, sym, b1, c1, c2)
+  for c=c1, c2 do push(out, DiffI(sym, b1, c)); b1 = b1 + 1 end
 end
 
-M.diffI = function(diff, linesA, linesB, a, a2, b, b2)
-  local aSt, a2St = a, a2
-  local bSt, b2St = b, b2 -- for unchanged top bot lines
-  a,  b  = M.skipEqLinesTop(linesA, linesB, a, a2, b, b2)
-  a2, b2 = M.skipEqLinesBot(linesA, linesB, a, a2, b, b2)
-  assert((b - bSt) == (a - aSt))
+M.diffI = function(diff, linesB, linesC, b, b2, c, c2)
+  local bSt, b2St = b, b2
+  local cSt, c2St = c, c2 -- for unchanged top bot lines
+  b,  c  = M.skipEqLinesTop(linesB, linesC, b, b2, c, c2)
+  b2, c2 = M.skipEqLinesBot(linesB, linesC, b, b2, c, c2)
+  assert((c - cSt) == (b - bSt))
 
-  addIs(diff, ' ', aSt, bSt, b-1) -- unchanged lines (top)
-  local matches = M.uniqueMatches(linesA, linesB, a, a2, b, b2)
+  addIs(diff, ' ', bSt, cSt, c-1) -- unchanged lines (top)
+  local matches = M.uniqueMatches(linesB, linesC, b, b2, c, c2)
   local lis = M.patienceLIS(matches)
   if not lis or #lis == 0 then
-    for i=b,b2 do push(diff, M.DiffI('+', nil, i)) end
-    for i=a,a2 do push(diff, M.DiffI('-', i, nil)) end
+    for i=c,c2 do push(diff, DiffI('+', nil, i)) end
+    for i=b,b2 do push(diff, DiffI('-', i, nil)) end
     return
   end
 
   for i=#lis,0,-1 do
-    m = lis[i]; local aNext, bNext
-    if m then aNext, bNext = m[1]-1, m[2]-1
-    else      aNext, bNext = a2, b2 end
-    M.diffI(diff, linesA, linesB, a, aNext, b, bNext)
+    m = lis[i]; local bNext, cNext
+    if m then bNext, cNext = m[1]-1, m[2]-1
+    else      bNext, cNext = b2, c2 end
+    M.diffI(diff, linesB, linesC, b, bNext, c, cNext)
     if not m then break end
-    push(diff, M.DiffI(' ', m[1], m[2]))
-    a, b = m[1] + 1, m[2] + 1
+    push(diff, DiffI(' ', m[1], m[2]))
+    b, c = m[1] + 1, m[2] + 1
   end
-  addIs(diff, ' ', a2+1, b2+1, b2St) -- unchanged lines (bot)
+  addIs(diff, ' ', b2+1, c2+1, c2St) -- unchanged lines (bot)
 end
 
 ----------------------------
 -- Format the Diff
-local function nw(n) -- numwidth
-  if n == nil then return '        ' end
-  n = tostring(n); return n..string.rep(' ', 8-#n)
-end
-
-M.Diff = mty.record'patience.Diff'
-  :field('text', 'string')
-  :fieldMaybe('a', 'number')
-  :fieldMaybe('b', 'number')
-  :new(function(ty_, text, a, b)
-    return mty.new(ty_, {text=text, a=a, b=b})
-  end)
-
-M.Diff.__tostring = function(di)
- return
-   ((not di.a and '+') or (not di.b and '-') or ' ')
-   ..nw(di.a)..nw(di.b)..'| '..di.text
-end
-
-M.diff = function(linesA, linesB)
+M.diff = function(linesB, linesC)
   local idx = {}
-  M.diffI(idx, linesA, linesB, 1, #linesA, 1, #linesB)
+  M.diffI(idx, linesB, linesC, 1, #linesB, 1, #linesC)
   local diff = {}
   for _, ki in ipairs(idx) do
-    if     not ki.a then push(diff, M.Diff(linesB[ki.b], ki.a, ki.b))
-    elseif not ki.b then push(diff, M.Diff(linesA[ki.a], ki.a, ki.b))
-    else                 push(diff, M.Diff(linesB[ki.b], ki.a, ki.b)) end
+    if     not ki.b then push(diff, Diff(linesC[ki.c], ki.b, ki.c))
+    elseif not ki.c then push(diff, Diff(linesB[ki.b], ki.b, ki.c))
+    else                 push(diff, Diff(linesC[ki.c], ki.b, ki.c)) end
   end
   return diff
 end
@@ -157,13 +137,13 @@ end
 M.patches = function(diff)
   local patches, p = {}, nil
   for _, d in ipairs(diff) do
-    if d.a and d.b then -- keep
+    if d.b and d.c then -- keep
       if not p or mty.ty(p) ~= Keep then push(patches, p); p = Keep{num=0} end
       p.num = p.num + 1
     else
-      if not p or mty.ty(p) ~= Chng then push(patches, p); p = Chng{rem=0} end
-      if not d.a                    then pushAdd(p, d.text)
-      else assert(not d.b);              p.rem = p.rem + 1 end
+      if not p or mty.ty(p) ~= Change then push(patches, p); p = Change{rem=0} end
+      if not d.b                      then pushAdd(p, d.text)
+      else assert(not d.c);                p.rem = p.rem + 1 end
     end
   end
   if p then push(patches, p) end

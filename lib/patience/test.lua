@@ -2,11 +2,9 @@
 local mty = require'metaty'
 local ds = require'ds'
 local test, assertEq; local T = mty.lrequire'civtest'
-local Keep, Chng;     local patch = mty.lrequire'ds.patch'
-local M = require'patience'
-
-
+local Keep, Change; mty.lrequire'ds.diff'
 local add, concat = table.insert, table.concat
+local M = require'patience'
 
 local function B(b) return {-1, b} end
 
@@ -55,9 +53,9 @@ test('example', function()
 
   local pch = M.patches(diff)
   assertEq({
-    Chng{rem=0, add={'slits', 'gil'}},
+    Change{rem=0, add={'slits', 'gil'}},
     Keep{num=2},
-    Chng{rem=2, add=nil},
+    Change{rem=2, add=nil},
     Keep{num=3},
   }, pch)
 end)
@@ -85,8 +83,8 @@ T.test('complex', function()
 
   local pch = M.patches(diff)
   assertEq({
-    Chng{rem=1, add={'X'}},
+    Change{rem=1, add={'X'}},
     Keep{num=2},
-    Chng{rem=1, add={'X'}},
+    Change{rem=1, add={'X'}},
   }, pch)
 end)
