@@ -2,7 +2,7 @@
 local mty = require'metaty'
 local ds = require'ds'
 local test, assertEq; local T = mty.lrequire'civtest'
-local Keep, Change; mty.lrequire'ds.diff'
+local Keep, Change, toChanges; mty.lrequire'ds.diff'
 local add, concat = table.insert, table.concat
 local M = require'patience'
 
@@ -27,15 +27,15 @@ end
 
 
 local EXPECT = '\n'..[[
-+        1       | slits
-+        2       | gil
- 1       3       | david
- 2       4       | electric
--3               | gil
--4               | slits
- 5       5       | faust
- 6       6       | sonics
- 7       7       | sonics
+   +    1|slits
+   +    2|gil
+   1    3|david
+   2    4|electric
+   3    -|gil
+   4    -|slits
+   5    5|faust
+   6    6|sonics
+   7    7|sonics
 ]]
 test('example', function()
   --                          1     2        3     4        5     6      7
@@ -51,22 +51,22 @@ test('example', function()
   local diff = M.diff(linesA, linesB)
   assertEq(EXPECT, '\n'..ds.concatToStrs(diff, '\n')..'\n')
 
-  local pch = M.patches(diff)
+  local chngs = toChanges(diff)
   assertEq({
     Change{rem=0, add={'slits', 'gil'}},
     Keep{num=2},
     Change{rem=2, add=nil},
     Keep{num=3},
-  }, pch)
+  }, chngs)
 end)
 
 local EXPECT = '\n'..[[
-+        1       | X
--1               | b
- 2       2       | c
- 3       3       | d
-+        4       | X
--4               | e
+   +    1|X
+   1    -|b
+   2    2|c
+   3    3|d
+   +    4|X
+   4    -|e
 ]]
 T.test('complex', function()
   local linesA = ds.splitList'b c d e'
@@ -81,10 +81,10 @@ T.test('complex', function()
   local diff = M.diff(linesA, linesB)
   T.assertEq(EXPECT, '\n'..ds.concatToStrs(diff, '\n')..'\n')
 
-  local pch = M.patches(diff)
+  local chngs = toChanges(diff)
   assertEq({
     Change{rem=1, add={'X'}},
     Keep{num=2},
     Change{rem=1, add={'X'}},
-  }, pch)
+  }, chngs)
 end)

@@ -3,7 +3,7 @@
 
 local mty = require'metaty'
 local ds  = require'ds'
-local Keep, Change, Diff; local diff = mty.lrequire'ds.diff'
+local diff = mty.lrequire'ds.diff'
 local push = table.insert
 local M = {}
 
@@ -115,39 +115,16 @@ M.diffI = function(diff, linesB, linesC, b, b2, c, c2)
 end
 
 ----------------------------
--- Format the Diff
+-- Convert to diff.Diff
 M.diff = function(linesB, linesC)
-  local idx = {}
+  local idx, Diff, ADD, REM = {}, diff.Diff, diff.ADD, diff.REM
   M.diffI(idx, linesB, linesC, 1, #linesB, 1, #linesC)
-  local diff = {}
-  for _, ki in ipairs(idx) do
-    if     not ki.b then push(diff, Diff(linesC[ki.c], ki.b, ki.c))
-    elseif not ki.c then push(diff, Diff(linesB[ki.b], ki.b, ki.c))
-    else                 push(diff, Diff(linesC[ki.c], ki.b, ki.c)) end
+  local diff = {}; for _, ki in ipairs(idx) do
+    if     not ki.b then push(diff, Diff(linesC[ki.c], ADD, ki.c))
+    elseif not ki.c then push(diff, Diff(linesB[ki.b], ki.b,  REM))
+    else                 push(diff, Diff(linesC[ki.c], ki.b,  ki.c)) end
   end
   return diff
-end
-
-local function pushAdd(ch, text)
-  mty.pntf('??   pushAdd %q', text)
-  if not ch.add then ch.add = {} end
-  push(ch.add, text)
-end
-
-M.patches = function(diff)
-  local patches, p = {}, nil
-  for _, d in ipairs(diff) do
-    if d.b and d.c then -- keep
-      if not p or mty.ty(p) ~= Keep then push(patches, p); p = Keep{num=0} end
-      p.num = p.num + 1
-    else
-      if not p or mty.ty(p) ~= Change then push(patches, p); p = Change{rem=0} end
-      if not d.b                      then pushAdd(p, d.text)
-      else assert(not d.c);                p.rem = p.rem + 1 end
-    end
-  end
-  if p then push(patches, p) end
-  return patches
 end
 
 return M
