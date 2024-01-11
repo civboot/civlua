@@ -115,11 +115,8 @@ test("table", function()
   t = {}; for i, v in M.ireverse{4, 5, 8} do t[i] = v end
   assertEq({4, 5, 8}, t)
 
-  t = {}; for i, v in M.islice({5, 6, 7, 8, 9}, 2, 4) do
-    push(t, v)
-  end
+  t = {}; for i, v in M.islice({5, 6, 7, 8, 9}, 2, 4) do push(t, v) end
   assertEq({6, 7, 8}, t)
-
 
   t = {}
   M.walk(
@@ -127,6 +124,16 @@ test("table", function()
     function(k, v) t[k] = v end,
     function(k, v) t[k] = true end)
   assertEq({1, 2, a=3, b=9, c='hi', inner=true}, t)
+
+  t = {} for _, v in M.ilast({1, 2, 3, 4, 5}, -3, -1) do push(t, v) end
+  assertEq({3, 4, 5}, t)
+  t = {} for _, v in M.ilast({1, 2, 3, 4, 5}, -3, -2) do push(t, v) end
+  assertEq({3, 4}, t)
+  t = {} for _, v in M.ilast({1, 2, 3, 4, 5}, -2, -2) do push(t, v) end
+  assertEq({4}, t)
+  t = {} for _, v in M.ilast({1, 2, 3, 4, 5}, -2) do push(t, v) end
+  assertEq({4, 5}, t)
+
 end)
 
 test('list', function()

@@ -146,6 +146,14 @@ function M.lines.diff(linesL, linesR)
   return nil
 end
 
+M.lines.map = mty.doc[[create a table of lineText -> {lineNums}]]
+(function(lines)
+  local map = {}; for l, line in ipairs(lines) do
+    add(M.getOrSet(map, line, M.emptyTable), l)
+  end
+  return map
+end)
+
 --------------------
 -- Working with file paths
 M.path = {}
@@ -217,11 +225,24 @@ M.rawislice = mty.doc'for i, v in rawislice({t, endi}, starti)'
 end)
 M.islice = mty.doc[[
 islice(t, starti, endi): iterate over slice.
-
-Unlike other i* functions, this ignores length.
+  Unlike other i* functions, this ignores length.
 ]](function(t, starti, endi)
   return M.rawislice, {t, endi or #t}, (starti or 1) - 1
 end)
+
+M.ilast = mty.doc[[
+iend(t, starti, endi=-1): get islice from the end.
+  starti and endi must be negative.
+
+Example:
+  iend({1, 2, 3, 4, 5}, -3, -2) -> 3, 4
+]](function(t, starti, endi)
+  local len = #t; endi = endi and math.min(len, len + endi + 1) or len
+  return M.rawislice, {t, endi}, math.min(len - 1, len + starti)
+end)
+
+M.itable = mty.doc[[convert (_, v) iterator into a table by pushing]]
+(function(it) local o = {}; for _, v in it do add(o, v) end; return o end)
 
 -- reverse a list-like table in-place
 M.reverse = function(t)
