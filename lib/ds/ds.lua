@@ -214,7 +214,7 @@ Example:
 end)
 
 M.itable = mty.doc[[convert (_, v) iterator into a table by pushing]]
-(function(it) 
+(function(it)
   local o = {}; for _, v in table.unpack(it) do add(o, v) end;
   return o
 end)
@@ -223,6 +223,21 @@ M.kvtable = mty.doc[[convert (k, v) iterator into a table by setting]]
 (function(it)
   local o = {}; for k, v in table.unpack(it) do o[k] = v end;
   return o
+end)
+
+M.ieq = mty.doc[[
+Determine if two iterators are equal (ignores indexes)
+
+Example:
+  ieq({ipairs(a)}, {islice(b, 3, 7)})
+]](function(aiter, biter)
+  local afn, astate, ai, a = table.unpack(aiter)
+  local bfn, bstate, bi, b = table.unpack(biter)
+  while true do
+    ai, a = afn(astate, ai); bi, b = bfn(bstate, bi)
+    if not mty.eq(a, b) then return false end
+    if a == nil         then return true end
+  end
 end)
 
 -- reverse a list-like table in-place

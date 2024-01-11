@@ -4,7 +4,7 @@
 local pkg = require'pkg'
 local mty = pkg'metaty'
 local ds  = pkg'ds'
-local diff = pkg'ds.diff'
+local vcds = pkg'vcds'
 local push = table.insert
 local M = {}
 
@@ -116,9 +116,9 @@ M.diffI = function(diff, linesB, linesC, b, b2, c, c2)
 end
 
 ----------------------------
--- Convert to diff.Diff
+-- Convert to vcds.Diff
 M.diff = function(linesB, linesC)
-  local idx, Diff, ADD, REM = {}, diff.Diff, diff.ADD, diff.REM
+  local idx, Diff, ADD, REM = {}, vcds.Diff, vcds.ADD, vcds.REM
   M.diffI(idx, linesB, linesC, 1, #linesB, 1, #linesC)
   local diff = {}; for _, ki in ipairs(idx) do
     if     not ki.b then push(diff, Diff(ADD,  ki.c, linesC[ki.c]))

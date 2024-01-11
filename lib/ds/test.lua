@@ -135,6 +135,8 @@ test("table", function()
   t = {} for _, v in M.ilast({1, 2, 3, 4, 5}, -2) do push(t, v) end
   assertEq({4, 5}, t)
 
+  assert(    M.ieq({ipairs({2, 3, 4})}, {M.islice({1, 2, 3, 4, 5}, 2, 4)}))
+  assert(not M.ieq({ipairs({2, 3, 4})}, {M.islice({1, 2, 3, 4, 5}, 2, 3)}))
 end)
 
 test('list', function()

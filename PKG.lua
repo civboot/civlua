@@ -10,6 +10,7 @@ dirs    = {
   'lib/doc',
   'lib/ds',
   'lib/tso',
+  'lib/vcds',
   'lib/civix',
   'lib/pegl',
   'lib/luck',
