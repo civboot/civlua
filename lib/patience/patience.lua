@@ -120,9 +120,9 @@ M.diff = function(linesB, linesC)
   local idx, Diff, ADD, REM = {}, diff.Diff, diff.ADD, diff.REM
   M.diffI(idx, linesB, linesC, 1, #linesB, 1, #linesC)
   local diff = {}; for _, ki in ipairs(idx) do
-    if     not ki.b then push(diff, Diff(linesC[ki.c], ADD, ki.c))
-    elseif not ki.c then push(diff, Diff(linesB[ki.b], ki.b,  REM))
-    else                 push(diff, Diff(linesC[ki.c], ki.b,  ki.c)) end
+    if     not ki.b then push(diff, Diff(ADD,  ki.c, linesC[ki.c]))
+    elseif not ki.c then push(diff, Diff(ki.b, REM,  linesB[ki.b]))
+    else                 push(diff, Diff(ki.b, ki.c, linesC[ki.c])) end
   end
   return diff
 end
