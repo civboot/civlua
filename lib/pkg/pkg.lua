@@ -1,4 +1,8 @@
 -- pkg: better lua pkg creation and importing
+-- usage:
+--   local pkg = require'pkg'
+--   local myMod = pkg'myMod'
+--   local fallbackIfNotFound = pkg('thing', true)
 
 local push, sfmt = table.insert, string.format
 local M = {}
@@ -133,27 +137,40 @@ M.auto = function(mod, i)
   return mod, i
 end
 
--- load the pkg
-local MT = {}
-MT.__call = function(_, name)
+-- Load the package or get nil and and errorMsg
+-- fallback will be called on failure (use true for `require`), the error
+-- message will still be returned even if fallback is called.
+--
+-- Usage:
+--   pkg.maybe'foo' -> fooPkg, errorMsg
+M.maybe = function(name, fallback)
+  if fallback == true then fallback = require end
   if M.PKGS[name] then return M.PKGS[name] end
   local luapkgs = assert(os.getenv'LUA_PKGS', 'must export LUA_PKGS')
   local dirs = {}; for d in luapkgs:gmatch'[^;]+' do push(dirs, d) end
   local pkgdir, pkg = M.findpkg(nil, dirs, name)
-  if not pkg then error('PKG '..name..' not found') end
+  if not pkg then return fallback and fallback(name) or nil,
+                         'PKG '..name..' not found' end
   for k, v in ipairs(pkg.srcs) do
     local mpath, mname; if type(k) == 'string' then
       mpath, mname = v, k
     elseif type(k) == 'number' then
       mpath, mname = v, v:gsub('.%lua$', ''):gsub('/', '.')
-    else error('invalid srcs key: '..tostring(k)) end
+    else error('invalid srcs key type: '..type(k)) end
     if mname == name then
       M.PKG, M.PATH = pkg, M.path.concat{pkgdir, mpath}
       M.PKGS[mname] = dofile(M.PATH)
       return M.PKGS[mname]
     end
   end
-  error('PKG found but not sub-module: '..name)
+  return fallback and fallback(name) or nil,
+         'PKG found but not sub-module: '..name
+end
+
+local MT = {}
+MT.__call = function(_, name, fallback)
+  local pkg, errMsg = M.maybe(name, fallback); if pkg then return pkg end
+  error(errMsg)
 end
 
 return setmetatable(M, MT)
