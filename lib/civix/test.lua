@@ -2,8 +2,8 @@ METATY_CHECK = true
 
 local pkg = require'pkg'
 local mty = pkg'metaty'
-local ds = require'ds'
-local test, assertEq; mty.lrequire'civtest'
+local ds = pkg'ds'
+local test, assertEq; pkg.auto'civtest'
 
 local posix = require'posix'
 local civix  = require'civix'

@@ -2,8 +2,8 @@ METATY_CHECK = true
 
 local pkg = require'pkg'
 local mty = pkg'metaty'
-local ds = require'ds'
-local T = require'civtest'
+local ds = pkg'ds'
+local T = pkg'civtest'
 
 local RootSpec, Token
 local testing, EMPTY, EOF, assertParse, assertParseError

@@ -104,14 +104,12 @@ end
 
 -- recursively find a package in dirs
 M.findpkg = function(base, dirs, name)
-  print(sfmt('?? finding %s in one of %s dirs', name, #dirs))
-  local pat = '^'..name..'%.'
+  local root = name:match'(.*)%.' or name
   for _, dir in ipairs(dirs) do
-    print(sfmt('?? looking in %s', dir))
     local pkgdir = base and M.path.concat{base, dir} or dir
     local path = M.path.concat{pkgdir, 'PKG.lua'}
     local ok, pkg = M.load(path); if not ok then error(pkg) end
-    if (pkg.name == name) or pkg.name:match(pat) then return pkgdir, pkg end
+    if (pkg.name == root) then return pkgdir, pkg end
     if pkg.dirs then
       local subdir, subpkg = M.findpkg(pkgdir, pkg.dirs, name)
       if subpkg then return subdir, subpkg end
@@ -140,7 +138,6 @@ local MT = {}
 MT.__call = function(_, name)
   if M.PKGS[name] then return M.PKGS[name] end
   local luapkgs = assert(os.getenv'LUA_PKGS', 'must export LUA_PKGS')
-  print('?? luapkgs:', luapkgs)
   local dirs = {}; for d in luapkgs:gmatch'[^;]+' do push(dirs, d) end
   local pkgdir, pkg = M.findpkg(nil, dirs, name)
   if not pkg then error('PKG '..name..' not found') end

@@ -1,8 +1,8 @@
 
 local pkg = require'pkg'
 local mty = pkg'metaty'
-local ds = require'ds'
-local heap = require'ds.heap'
+local ds = pkg'ds'
+local heap = pkg'ds.heap'
 
 local char, byte = string.char, string.byte
 local push = table.insert

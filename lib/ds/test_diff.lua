@@ -1,8 +1,8 @@
 local pkg = require'pkg'
 local mty = pkg'metaty'
-local ds  = require'ds'
-local test, assertEq; mty.lrequire'civtest'
-local Diff, Keep, Change; local M = mty.lrequire'ds.diff'
+local ds  = pkg'ds'
+local test, assertEq; pkg.auto'civtest'
+local Diff, Keep, Change; local M = pkg.auto'ds.diff'
 local push = table.insert
 
 test('basic', function()

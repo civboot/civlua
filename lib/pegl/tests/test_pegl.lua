@@ -2,8 +2,8 @@ METATY_CHECK = true
 
 local pkg = require'pkg'
 local mty = pkg'metaty'
-local T = require'civtest'
-local ds = require'ds'
+local T = pkg'civtest'
+local ds = pkg'ds'
 local Set = ds.Set
 
 local RootSpec, Key

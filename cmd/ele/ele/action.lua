@@ -1,6 +1,6 @@
 local pkg = require'pkg'
 local mty = pkg'metaty'
-local ds = require'ds'
+local ds = pkg'ds'
 local gap = require'rebuf.gap'
 local T = require'ele.types'
 local keys = require'ele.keys'

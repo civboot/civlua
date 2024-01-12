@@ -11,7 +11,7 @@
 
 local pkg = require'pkg'
 local mty = pkg'metaty'
-local ds  = require'ds'
+local ds  = pkg'ds'
 
 local add, pop, concat = table.insert, table.remove, table.concat
 local sub = string.sub

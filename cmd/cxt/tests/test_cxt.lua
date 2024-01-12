@@ -2,10 +2,10 @@ METATY_CHECK = true
 
 local pkg = require'pkg'
 local mty = pkg'metaty'
-local ds = require'ds'
+local ds = pkg'ds'
 
 local test, assertEq
-mty.lrequire'civtest'
+pkg.auto'civtest'
 
 local RootSpec, Token
 local testing, EMPTY, EOF

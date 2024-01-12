@@ -4,8 +4,8 @@
 
 local pkg = require'pkg'
 local mty = pkg'metaty'
-local ds  = require'ds'; local lines = ds.lines
-local civtest = require'civtest'
+local ds  = pkg'ds'; local lines = ds.lines
+local civtest = pkg'civtest'
 local add, sfmt = table.insert, string.format
 
 local Key

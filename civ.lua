@@ -17,15 +17,11 @@ local pkg     = M.load('pkg',      'lib/pkg/pkg.lua')
 
 local shim    = pkg'shim'
 local mty     = pkg'metaty'
-local doc     = M.load('doc',      'lib/doc/doc.lua')
-local ds      = M.load('ds',       'lib/ds/ds.lua')
-   M.load('ds.heap',  'lib/ds/ds/heap.lua')
-   M.load('ds.file',  'lib/ds/ds/file.lua')
-   M.load('ds.diff',  'lib/ds/ds/diff.lua')
+local civtest = pkg'civtest'
+local doc     = pkg'doc'
+local ds      = pkg'ds'
 local patience= M.load('patience', 'lib/patience/patience.lua')
-local civtest = M.load('civtest',  'lib/civtest/civtest.lua')
 
-M.load('tso',        'lib/tso/tso.lua')
 M.load('pegl',       'lib/pegl/pegl.lua')
 M.load('pegl.lua',   'lib/pegl/pegl/lua.lua')
 M.load('luck',       'lib/luck/luck.lua')

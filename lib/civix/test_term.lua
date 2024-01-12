@@ -1,6 +1,7 @@
 METATY_CHECK = true
 
-local T = require'civtest'
+local pkg = require'pkg'
+local T = pkg'civtest'
 local term = require'civix.term'
 
 local function testU8(expect, chrs)

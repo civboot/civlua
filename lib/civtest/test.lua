@@ -2,7 +2,7 @@
 local pkg = require'pkg'
 local mty = pkg'metaty'
 local test, assertEq, assertErrorPat, diffFmt;
-mty.lrequire'civtest'
+pkg.auto'civtest'
 
 test('civtest', function()
   assertEq(1, 1)

@@ -1,6 +1,7 @@
 -- #####################
 -- # Edit struct
-local ds = require'ds'
+local pkg = require'pkg'
+local ds = pkg'ds'
 local gap = require'rebuf.gap'
 local T = require'ele.types'
 local motion = require'rebuf.motion'

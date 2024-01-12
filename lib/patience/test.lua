@@ -1,9 +1,9 @@
 
 local pkg = require'pkg'
 local mty = pkg'metaty'
-local ds = require'ds'
-local test, assertEq; local T = mty.lrequire'civtest'
-local Keep, Change, toChanges; mty.lrequire'ds.diff'
+local ds = pkg'ds'
+local test, assertEq; local T = pkg.auto'civtest'
+local Keep, Change, toChanges; pkg.auto'ds.diff'
 local add, concat = table.insert, table.concat
 local M = require'patience'
 

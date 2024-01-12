@@ -1,7 +1,8 @@
 
 METATY_CHECK = true
 
-local T = require'civtest'
+local pkg = require'pkg'
+local T = pkg'civtest'
 
 T.test('pairs', function()
   local function rawipairs(t, i)

@@ -1,8 +1,7 @@
 METATY_CHECK = true
 
-local test, assertEq
 local pkg = require'pkg'
-pkg'metaty'.lrequire'civtest'
+local test, assertEq; pkg.auto'civtest'
 
 local action = require'ele.action'
 local A = action.Actions

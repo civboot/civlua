@@ -3,7 +3,7 @@ METATY_CHECK = true
 local pkg = require'pkg'
 local mty = pkg'metaty'
 local test, assertEq
-mty.lrequire'civtest'
+pkg.auto'civtest'
 
 local decDistance, lcLe, lcGe, lcWithin
 local forword, backword, findBack

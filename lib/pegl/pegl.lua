@@ -2,8 +2,8 @@
 
 local pkg = require'pkg'
 local mty, ty = pkg'metaty'; ty = mty.ty
-local ds      = require'ds'
-local civtest = require'civtest'
+local ds      = pkg'ds'
+local civtest = pkg'civtest'
 local extend, lines = ds.extend, ds.lines
 local add, sfmt = table.insert, string.format
 

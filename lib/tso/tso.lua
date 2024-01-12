@@ -1,6 +1,6 @@
 local pkg = require'pkg'
 local mty = pkg'metaty'
-local ds  = require'ds'; local lines = ds.lines
+local ds  = pkg'ds'; local lines = ds.lines
 local concat, push, sfmt = table.concat, table.insert, string.format
 local byte, char = string.byte, string.char
 

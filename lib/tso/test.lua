@@ -3,11 +3,11 @@ METATY_CHECK = true
 local push = table.insert
 local pkg = require'pkg'
 local mty = pkg'metaty'
-local ds = require'ds'
+local ds = pkg'ds'
 
-local test, assertEq; mty.lrequire'civtest'
+local test, assertEq; pkg.auto'civtest'
 
-local M = require'tso'
+local M = pkg'tso'
 
 local function l2str(t) return table.concat(t, '\n') end
 local function serialize(t)

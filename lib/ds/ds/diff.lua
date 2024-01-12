@@ -1,6 +1,6 @@
 local pkg = require'pkg'
 local mty = pkg'metaty'
-local ds  = require'ds'
+local ds  = pkg'ds'
 local push = table.insert
 local sfmt = string.format
 

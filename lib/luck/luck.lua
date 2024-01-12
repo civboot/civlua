@@ -1,7 +1,7 @@
 local pkg = require'pkg'
 local mty = pkg'metaty'
-local ds  = require'ds'
-local df  = require'ds.file'
+local ds  = pkg'ds'
+local df  = pkg'ds.file'
 local pegl = require'pegl'
 local lua = require'pegl.lua'
 

@@ -1,6 +1,6 @@
 
 local pkg = require'pkg'
-local T = require'civtest'
+local T = pkg'civtest'
 local M = pkg'shim'
 local p, ps = M.parse, M.parseStr
 

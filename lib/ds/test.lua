@@ -4,7 +4,7 @@ local pkg = require'pkg'
 local mty = pkg'metaty'
 local push = table.insert
 
-local test, assertEq, assertErrorPat; mty.lrequire'civtest'
+local test, assertEq, assertErrorPat; pkg.auto'civtest'
 
 local min, max, bound, isWithin, sort2, decAbs
 local indexOf, copy, deepcopy
@@ -13,8 +13,8 @@ local steal, getOrSet, getPath, setPath, drain, reverse
 local eval
 local Set, LL, Duration, Epoch
 local lines
-local M = mty.lrequire'ds'
-local df = require'ds.file'
+local M = pkg.auto'ds'
+local df = pkg'ds.file'
 
 test('bool and none', function()
   local none = M.none
@@ -279,7 +279,7 @@ test('Imm', function()
   assertEq({kind='Empty'}, M.Imm{kind='Empty'})
 end)
 
-local heap = require'ds.heap'
+local heap = pkg'ds.heap'
 
 local function pushh(h, t)
   for i, v in ipairs(t) do h:add(v) end

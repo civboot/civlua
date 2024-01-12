@@ -3,8 +3,8 @@
 
 local pkg = require'pkg'
 local mty = pkg'metaty'
-local ds  = require'ds'
-local diff = mty.lrequire'ds.diff'
+local ds  = pkg'ds'
+local diff = pkg'ds.diff'
 local push = table.insert
 local M = {}
 

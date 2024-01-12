@@ -4,7 +4,7 @@
 
 local pkg = require'pkg'
 local mty = pkg'metaty'
-local ds = require'ds'
+local ds = pkg'ds'
 local civix = require'civix'
 local posix = require'posix'
 local gap  = require'rebuf.gap'

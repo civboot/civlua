@@ -2,7 +2,8 @@ METATY_CHECK = true
 METATY_DOC   = true
 
 local civ = dofile'civ.lua'
-local T, dir = require'civtest', civ.dir
+local pkg = require'pkg'
+local T, dir = pkg'civtest', civ.dir
 
 T.test('[[core]]', function()
   os.execute('LUA_PATH=?/?.lua lua shim/test.lua --test=test.lua')

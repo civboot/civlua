@@ -3,9 +3,9 @@ METATY_CHECK = true
 local pkg = require'pkg'
 local mty = pkg'metaty'
 local test, assertEq
-mty.lrequire'civtest'
+pkg.auto'civtest'
 
-local ds = require'ds'
+local ds = pkg'ds'
 local buffer = require'rebuf.buffer'
 local keys = require'ele.keys'
 local model = require'ele.model'

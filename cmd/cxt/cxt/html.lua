@@ -4,10 +4,10 @@ local mty  = pkg'metaty'
 local pegl = require'pegl'
 local cxt  = require'cxt'
 local shim = pkg'shim'
-local civtest = require'civtest'
+local civtest = pkg'civtest'
 local add, sfmt = table.insert, string.format
-local ds = require'ds'; local lines = ds.lines
-local df = require'ds.file'
+local ds = pkg'ds'; local lines = ds.lines
+local df = pkg'ds.file'
 
 local M = mty.docTy({}, DOC)
 
