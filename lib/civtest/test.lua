@@ -1,4 +1,5 @@
 
+local pkg = require'pkg'
 local mty = require'metaty'
 local test, assertEq, assertErrorPat, diffFmt;
 mty.lrequire'civtest'

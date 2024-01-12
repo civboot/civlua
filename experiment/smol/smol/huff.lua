@@ -1,4 +1,5 @@
 -- Huffman Coding
+local pkg = require'pkg'
 local mty = require'metaty'
 local ds = require'ds'
 local heap = require'ds.heap'

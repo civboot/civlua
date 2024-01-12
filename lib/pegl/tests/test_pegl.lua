@@ -1,5 +1,6 @@
 METATY_CHECK = true
 
+local pkg = require'pkg'
 local mty = require'metaty'
 local T = require'civtest'
 local ds = require'ds'

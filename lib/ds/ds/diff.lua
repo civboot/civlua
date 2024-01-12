@@ -1,3 +1,4 @@
+local pkg = require'pkg'
 local mty = require'metaty'
 local ds  = require'ds'
 local push = table.insert

@@ -1,6 +1,7 @@
 -- Patience diff implemented in Lua. Special thanks to:
 -- https://blog.jcoglan.com/2017/09/19/the-patience-diff-algorithm/
 
+local pkg = require'pkg'
 local mty = require'metaty'
 local ds  = require'ds'
 local diff = mty.lrequire'ds.diff'

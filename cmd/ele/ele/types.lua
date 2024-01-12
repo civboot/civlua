@@ -1,3 +1,4 @@
+local pkg = require'pkg'
 local mty = require'metaty'
 local gap  = require'rebuf.gap'
 

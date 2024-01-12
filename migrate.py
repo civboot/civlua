@@ -9,7 +9,7 @@ def readpath(path):
 def writepath(path, text):
   with open(path, 'w') as f: f.write(text)
 
-exp = re.compile(r"^.*'metaty.*$")
+exp = re.compile(r"^.*require'metaty'.*$", re.M)
 def repl(m):
   print('  ?? replacing', m)
   return "local pkg = require'pkg'\n" + m.group(0)

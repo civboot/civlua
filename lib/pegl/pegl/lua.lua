@@ -3,6 +3,7 @@
 -- I used http://parrot.github.io/parrot-docs0/0.4.7/html/languages/lua/doc/lua51.bnf.html
 -- as a reference
 
+local pkg = require'pkg'
 local mty = require'metaty'
 local ds  = require'ds'
 local add, sfmt = table.insert, string.format

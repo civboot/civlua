@@ -1,3 +1,4 @@
+local pkg = require'pkg'
 local mty = require'metaty'
 local record, Any = mty.record, mty.Any
 local add, sfmt = table.insert, string.format

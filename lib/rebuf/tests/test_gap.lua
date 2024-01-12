@@ -1,4 +1,5 @@
 
+local pkg = require'pkg'
 local mty = require'metaty'
 local test, assertEq; mty.lrequire'civtest'
 local gap = require'rebuf.gap'

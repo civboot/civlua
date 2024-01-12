@@ -2,6 +2,7 @@
 --   ["quote block]
 --   [1Header block]
 
+local pkg = require'pkg'
 local mty = require'metaty'
 local ds  = require'ds'; local lines = ds.lines
 local civtest = require'civtest'

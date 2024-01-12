@@ -1,11 +1,13 @@
 METATY_CHECK = true
 
 local ge = {}; for k in pairs(_G) do table.insert(ge, k) end
+local pkg = require'pkg'
 local M = require'metaty'
 assert(M.getCheck())
 
 local ty, tyName, tyCheck, record;
 local fmt, Fmt, FmtSet, split
+local pkg = require'pkg'
 M.lrequire'metaty' -- includes undefined locals
 
 local add, sfmt = table.insert, string.format
