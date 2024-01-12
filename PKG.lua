@@ -10,7 +10,7 @@ dirs    = {
   'lib/doc',
   'lib/ds',
   'lib/tso',
-  -- 'lib/civix',
+  'lib/civix',
   -- 'lib/luck',
   -- 'lib/patience',
   -- 'lib/pegl',

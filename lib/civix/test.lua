@@ -6,7 +6,7 @@ local ds = pkg'ds'
 local test, assertEq; pkg.auto'civtest'
 
 local posix = require'posix'
-local civix  = require'civix'
+local civix  = pkg'civix'
 local D = 'lib/civix/'
 
 test('fork', function()
@@ -101,6 +101,7 @@ test('walk', function()
   table.remove(f, ds.indexOfPat(f, '%.rockspec'))
   table.sort(f); table.sort(d)
   local expected = {
+      D.."PKG.lua",
       D.."README.md",      D.."civix.lua",
       D.."civix/term.lua", D.."runterm.lua",
       D.."test.lua",       D.."test_term.lua"

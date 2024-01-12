@@ -27,8 +27,6 @@ M.load('pegl.lua',   'lib/pegl/pegl/lua.lua')
 M.load('luck',       'lib/luck/luck.lua')
 M.load('cxt',        'cmd/cxt/cxt.lua')
 M.load('cxt.html',   'cmd/cxt/cxt/html.lua')
-M.load('civix',      'lib/civix/civix.lua')
-M.load('civix.term', 'lib/civix/civix/term.lua')
 
 local ff  = M.load('ff',   'cmd/ff/ff.lua')
             M.load('rebuf.motion', 'lib/rebuf/rebuf/motion.lua')

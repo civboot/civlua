@@ -46,7 +46,7 @@ local pkg = require'pkg'
 local shim = pkg'shim'
 local mty = pkg'metaty'
 local ds = pkg'ds'
-local civix = require'civix'
+local civix = pkg'civix'
 local add = table.insert
 
 local M = {}

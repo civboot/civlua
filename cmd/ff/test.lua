@@ -5,7 +5,7 @@
 local pkg = require'pkg'
 local mty = pkg'metaty'
 local ds = pkg'ds'
-local civix  = require'civix'
+local civix  = pkg'civix'
 local test, assertEq; pkg.auto'civtest'
 local ff = require'ff'
 

@@ -9,7 +9,7 @@ local huff   = require'smol.huff'
 local lzhuff = require'smol.lzhuff'
 local V = require'smol.lzhuff'
 local V = require'smol.verify'
-local civix = require'civix'
+local civix = pkg'civix'
 
 local push = table.insert
 local test, assertEq = T.test, T.assertEq

@@ -2,7 +2,7 @@ METATY_CHECK = true
 
 local pkg = require'pkg'
 local T = pkg'civtest'
-local term = require'civix.term'
+local term = pkg'civix.term'
 
 local function testU8(expect, chrs)
   local c = table.remove(chrs, 1)

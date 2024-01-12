@@ -1,7 +1,7 @@
 local pkg = require'pkg'
 local shim = pkg'shim'
 local mty = pkg'metaty'
-local term = require'civix.term'
+local term = pkg'civix.term'
 local sfmt = string.format
 
 local dir = debug.getinfo(1).source:sub(2, -1-#'ele.lua')
