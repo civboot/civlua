@@ -1,5 +1,5 @@
 package = "pkg"
-version = "0.1-0"
+version = "0.1-1"
 source = {
   url = "git+ssh://git@github.com/civboot/civlua.git",
   dir = "lib/pkg/",
