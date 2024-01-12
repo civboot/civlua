@@ -6,16 +6,16 @@ local test, assertEq
 pkg.auto'civtest'
 
 local ds = pkg'ds'
-local buffer = require'rebuf.buffer'
-local keys = require'ele.keys'
-local model = require'ele.model'
+local buffer = pkg'rebuf.buffer'
+local keys = pkg'ele.keys'
+local model = pkg'ele.model'
 local term = pkg'civix.term'
-local T = require'ele.types'
-local window = require'ele.window'
-local data = require'ele.data'
-local action = require'ele.action'
+local T = pkg'ele.types'
+local window = pkg'ele.window'
+local data = pkg'ele.data'
+local action = pkg'ele.action'
 local A = action.Actions
-local FakeTerm = require'ele.FakeTerm'
+local FakeTerm = pkg'ele.FakeTerm'
 
 local add = table.insert
 

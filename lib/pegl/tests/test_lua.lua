@@ -7,11 +7,11 @@ local T = pkg'civtest'
 
 local RootSpec, Token
 local testing, EMPTY, EOF, assertParse, assertParseError
-local pegl = mty.lrequire'pegl'
+local pegl = pkg.auto'pegl'
 
 local num, str, exp1, exp, field, varset
 local root, src
-local M = mty.lrequire'pegl.lua'
+local M = pkg.auto'pegl.lua'
 local D = 'lib/pegl/'
 
 local KW, N, NUM, HEX; mty.lrequire(testing)

@@ -5,7 +5,7 @@ local ds = pkg'ds'
 local test, assertEq; local T = pkg.auto'civtest'
 local Keep, Change, toChanges; pkg.auto'ds.diff'
 local add, concat = table.insert, table.concat
-local M = require'patience'
+local M = pkg'patience'
 
 local function B(b) return {-1, b} end
 

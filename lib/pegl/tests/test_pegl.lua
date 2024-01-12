@@ -10,7 +10,7 @@ local RootSpec, Key
 local Pat, Or, Not, Many, Maybe, Seq
 local Empty, Eof, PIN, UNPIN
 local testing, EMPTY, EOF, assertParse, assertParseError
-local pegl = mty.lrequire'pegl'
+local pegl = pkg.auto'pegl'
 
 local KW, N = testing.KW, testing.N
 

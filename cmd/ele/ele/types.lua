@@ -1,6 +1,6 @@
 local pkg = require'pkg'
 local mty = pkg'metaty'
-local gap  = require'rebuf.gap'
+local gap  = pkg'rebuf.gap'
 
 local record = mty.record
 

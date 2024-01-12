@@ -2,7 +2,7 @@
 local pkg = require'pkg'
 local mty = pkg'metaty'
 local test, assertEq; pkg.auto'civtest'
-local gap = require'rebuf.gap'
+local gap = pkg'rebuf.gap'
 local Gap = gap.Gap
 
 test('set', function()

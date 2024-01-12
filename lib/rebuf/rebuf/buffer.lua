@@ -1,8 +1,8 @@
 local pkg = require'pkg'
 local mty = pkg'metaty'
 local ds = pkg'ds'
-local motion  = require'rebuf.motion'
-local gap  = require'rebuf.gap'
+local motion  = pkg'rebuf.motion'
+local gap  = pkg'rebuf.gap'
 
 local M = {}
 local add, ty = table.insert, mty.ty

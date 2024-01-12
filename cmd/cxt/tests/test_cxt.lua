@@ -9,12 +9,12 @@ pkg.auto'civtest'
 
 local RootSpec, Token
 local testing, EMPTY, EOF
-local pegl = mty.lrequire'pegl'
+local pegl = pkg.auto'pegl'
 
 local KW, N, NUM, HEX; mty.lrequire(testing)
 
-local M = require'cxt'
-local html = require'cxt.html'
+local M = pkg'cxt'
+local html = pkg'cxt.html'
 
 test('simple', function()
   M.assertParse('hi there', {'hi there'})

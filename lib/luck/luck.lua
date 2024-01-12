@@ -2,8 +2,8 @@ local pkg = require'pkg'
 local mty = pkg'metaty'
 local ds  = pkg'ds'
 local df  = pkg'ds.file'
-local pegl = require'pegl'
-local lua = require'pegl.lua'
+local pegl = pkg'pegl'
+local lua = pkg'pegl.lua'
 
 local sfmt, push = string.format, table.insert
 local M = {}

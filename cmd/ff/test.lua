@@ -7,7 +7,7 @@ local mty = pkg'metaty'
 local ds = pkg'ds'
 local civix  = pkg'civix'
 local test, assertEq; pkg.auto'civtest'
-local ff = require'ff'
+local ff = pkg'ff'
 
 local add, sfmt = table.insert, string.format
 

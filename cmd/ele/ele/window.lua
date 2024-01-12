@@ -1,7 +1,7 @@
 local pkg = require'pkg'
 local mty = pkg'metaty'
 local ds = pkg'ds'
-local T = require'ele.types'
+local T = pkg'ele.types'
 
 local Window, Edit = T.Window, T.Edit
 local ty = mty.ty

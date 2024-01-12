@@ -3,7 +3,7 @@ METATY_CHECK = true
 local pkg = require'pkg'
 local test, assertEq; pkg.auto'civtest'
 
-local action = require'ele.action'
+local action = pkg'ele.action'
 local A = action.Actions
 
 test('spaces', function()

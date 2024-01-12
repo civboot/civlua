@@ -12,7 +12,7 @@ local Key
 local Pat, Or, Not, Many, Maybe
 local Token, Empty, Eof, PIN, UNPIN
 local EMPTY, common
-local pegl = mty.lrequire'pegl'
+local pegl = pkg.auto'pegl'
 
 local M = {}
 local RAW = '#'

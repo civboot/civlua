@@ -8,7 +8,7 @@ pkg.auto'civtest'
 local decDistance, lcLe, lcGe, lcWithin
 local forword, backword, findBack
 local wordKind
-mty.lrequire'rebuf.motion'
+pkg.auto'rebuf.motion'
 
 test('distance', function()
   assertEq(3, decDistance(1, 4))

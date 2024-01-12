@@ -3,7 +3,7 @@ local pkg = require'pkg'
 local mty = pkg'metaty'
 local test, assertEq, assertErrorPat; pkg.auto'civtest'
 local df  = pkg'ds.file'
-local M = require'luck'
+local M = pkg'luck'
 local D = 'lib/luck/'
 
 test("meta", function()

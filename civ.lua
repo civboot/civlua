@@ -20,19 +20,9 @@ local mty     = pkg'metaty'
 local civtest = pkg'civtest'
 local doc     = pkg'doc'
 local ds      = pkg'ds'
-local patience= M.load('patience', 'lib/patience/patience.lua')
 
-M.load('pegl',       'lib/pegl/pegl.lua')
-M.load('pegl.lua',   'lib/pegl/pegl/lua.lua')
-M.load('luck',       'lib/luck/luck.lua')
-M.load('cxt',        'cmd/cxt/cxt.lua')
-M.load('cxt.html',   'cmd/cxt/cxt/html.lua')
-
-local ff  = M.load('ff',   'cmd/ff/ff.lua')
-            M.load('rebuf.motion', 'lib/rebuf/rebuf/motion.lua')
-            M.load('rebuf.gap',    'lib/rebuf/rebuf/gap.lua')
-            M.load('rebuf.buffer', 'lib/rebuf/rebuf/buffer.lua')
-local ele = M.load('ele',  'cmd/ele/ele.lua')
+local ff  = pkg'ff'
+local ele = pkg'ele'
 civtest.assertGlobals(initG)
 
 M.HELP = [[help module.any.object
@@ -42,7 +32,7 @@ function M.help(args, isExe)
   if #args == 0 then print(M.HELP) return end
   local path = ds.copy(args)
   local mname = table.remove(path, 1);
-  local mod = package.loaded[mname] or require(mname)
+  local mod = package.loaded[mname] or pkg.PKGS[mname] or pkg(mname)
   local obj = ds.getPath(mod, path); if not obj then print(
     'ERROR: '..table.concat(path, '.')..' not found'
   )end
@@ -58,7 +48,7 @@ shim{
     help = M.helpShim,
     ele  = ele.main,
     ff   = ff.shim,
-    ['cxt.html'] = require'cxt.html'.shim,
+    ['cxt.html'] = pkg'cxt.html'.shim,
   },
 }
 
