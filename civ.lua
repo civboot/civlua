@@ -32,7 +32,7 @@ function M.help(args, isExe)
   if #args == 0 then print(M.HELP) return end
   local path = ds.copy(args)
   local mname = table.remove(path, 1);
-  local mod = package.loaded[mname] or pkg.PKGS[mname] or pkg(mname)
+  local mod = package.loaded[mname] or pkg(mname)
   local obj = ds.getPath(mod, path); if not obj then print(
     'ERROR: '..table.concat(path, '.')..' not found'
   )end

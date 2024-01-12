@@ -2,7 +2,6 @@
 -- usage:
 --   local pkg = require'pkg'
 --   local myMod = pkg'myMod'
---   local fallbackIfNotFound = pkg('thing', true)
 
 local push, sfmt = table.insert, string.format
 local M = {}
@@ -144,10 +143,10 @@ end
 -- Usage:
 --   pkg.maybe'foo' -> fooPkg, errorMsg
 M.maybe = function(name, fallback)
-  if fallback == true then fallback = require end
-  if M.PKGS[name] then return M.PKGS[name] end
+  if (fallback == nil) or (fallback == true) then fallback = require end
+  if package.loaded[name] then return package.loaded[name] end
   local luapkgs = assert(os.getenv'LUA_PKGS', 'must export LUA_PKGS')
-  local dirs = {}; for d in luapkgs:gmatch'[^;]+' do push(dirs, d) end
+  local dirs = {''}; for d in luapkgs:gmatch'[^;]+' do push(dirs, d) end
   local pkgdir, pkg = M.findpkg(nil, dirs, name)
   if not pkg then return fallback and fallback(name) or nil,
                          'PKG '..name..' not found' end
@@ -159,8 +158,8 @@ M.maybe = function(name, fallback)
     else error('invalid srcs key type: '..type(k)) end
     if mname == name then
       M.PKG, M.PATH = pkg, M.path.concat{pkgdir, mpath}
-      M.PKGS[mname] = dofile(M.PATH)
-      return M.PKGS[mname]
+      package.loaded[mname] = dofile(M.PATH)
+      return package.loaded[mname]
     end
   end
   return fallback and fallback(name) or nil,
