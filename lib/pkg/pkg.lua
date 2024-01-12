@@ -1,6 +1,6 @@
 -- pkg: better lua pkg creation and importing
 
-local push = table.insert
+local push, sfmt = table.insert, string.format
 local M = {}
 
 M.PKGS = {} -- loaded pkgs
@@ -58,13 +58,13 @@ end
 
 -- load a path with env metatable M.ENV
 M.load = function(path, env)
-  local f = io.open(path)
+  local f =io.open(path); if not f then error(
+    'failed to open: '..path
+  )end
   local function chunk() return f:read(M.CHUNK_SIZE) end
   local ok, res = M.loadraw(chunk, M.createEnv(M.ENV, env or {}), path)
   f:close(); return ok, res
 end
-
-M.split = function(pathstr) return pathstr:gmatch'[^;]+' end
 
 --------------------
 -- Working with file paths
@@ -78,7 +78,7 @@ M.path.concat = function(t)
   local out = {}
   for i, p in ipairs(t) do
     p = string.match(p, '^/*(.-)/*$')
-    if p ~= '' then add(out, p) end
+    if p ~= '' then push(out, p) end
   end; return root..table.concat(out, '/')..dir
 end
 
@@ -104,9 +104,11 @@ end
 
 -- recursively find a package in dirs
 M.findpkg = function(base, dirs, name)
+  print(sfmt('?? finding %s in one of %s dirs', name, #dirs))
   local pat = '^'..name..'%.'
-  for dir in ipairs(dirs) do
-    local pkgdir = M.path.concat{base, dir}
+  for _, dir in ipairs(dirs) do
+    print(sfmt('?? looking in %s', dir))
+    local pkgdir = base and M.path.concat{base, dir} or dir
     local path = M.path.concat{pkgdir, 'PKG.lua'}
     local ok, pkg = M.load(path); if not ok then error(pkg) end
     if (pkg.name == name) or pkg.name:match(pat) then return pkgdir, pkg end
@@ -118,10 +120,13 @@ M.findpkg = function(base, dirs, name)
 end
 
 -- load the pkg
-M.__call = function(name)
+local MT = {}
+MT.__call = function(_, name)
   if M.PKGS[name] then return M.PKGS[name] end
-  local dirs = {}; for _, d in M.split(os.getenv'LUA_PKGS') do push(dirs, d) end
-  local pkgdir, pkg = M.findpkg('', dirs, name)
+  local luapkgs = assert(os.getenv'LUA_PKGS', 'must export LUA_PKGS')
+  print('?? luapkgs:', luapkgs)
+  local dirs = {}; for d in luapkgs:gmatch'[^;]+' do push(dirs, d) end
+  local pkgdir, pkg = M.findpkg(nil, dirs, name)
   if not pkg then error('PKG '..name..' not found') end
   for k, v in ipairs(pkg.srcs) do
     local mpath, mname; if type(k) == 'string' then
@@ -130,7 +135,7 @@ M.__call = function(name)
       mpath, mname = v, v:gsub('.%lua$', ''):gsub('/', '.')
     else error('invalid srcs key: '..tostring(k)) end
     if mname == name then
-      M.PKG, M.PATH = pkg, path.concat(pkgdir, mpath)
+      M.PKG, M.PATH = pkg, M.path.concat{pkgdir, mpath}
       M.PKGS[mname] = dofile(M.PATH)
       return M.PKGS[mname]
     end
@@ -138,4 +143,4 @@ M.__call = function(name)
   error('PKG found but not sub-module: '..name)
 end
 
-return M
+return setmetatable(M, MT)

@@ -1,6 +1,7 @@
 
+local pkg = require'pkg'
 local T = require'civtest'
-local M = require'shim'
+local M = pkg'shim'
 local p, ps = M.parse, M.parseStr
 
 T.test('parse', function()

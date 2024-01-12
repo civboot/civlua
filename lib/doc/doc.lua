@@ -1,4 +1,5 @@
-local shim = require'shim'
+local pkg = require'pkg'
+local shim = pkg'shim'
 local mty = require 'metaty'
 local d = mty.docTy
 local M = d({doc=mty.doc, docTy=mty.docTy, help=mty.help}, [=[

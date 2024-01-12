@@ -42,8 +42,9 @@ Short:
 ]]
 
 METATY_DOC = true
+local pkg = require'pkg'
+local shim = pkg'shim'
 local mty = require'metaty'
-local shim = require'shim'
 local ds = require'ds'
 local civix = require'civix'
 local add = table.insert
