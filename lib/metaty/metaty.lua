@@ -3,6 +3,7 @@
 -- See README.md for documentation.
 
 local M = {}
+local pkg = require'pkg'
 
 -- isEnv: returns boolean for below values, else nil
 local IS_ENV = { ['true']=true,   ['1']=true,
@@ -720,7 +721,6 @@ M.want = M.doc'Alternative to "require" when the module is optional'
 end)
 
 M.lrequire = M.doc[[
-local x, y, z; lrequire'mm' -- sets x=mm.x; y=mm.y; z=mm.z
 ]](function(mod, i)
   i, mod = i or 1, type(mod) == 'string' and require(mod) or mod
   while true do

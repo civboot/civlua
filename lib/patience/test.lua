@@ -1,6 +1,6 @@
 
 local pkg = require'pkg'
-local mty = require'metaty'
+local mty = pkg'metaty'
 local ds = require'ds'
 local test, assertEq; local T = mty.lrequire'civtest'
 local Keep, Change, toChanges; mty.lrequire'ds.diff'

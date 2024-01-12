@@ -10,7 +10,7 @@
 --    moved to a previous line then data is moved from top to bot
 
 local pkg = require'pkg'
-local mty = require'metaty'
+local mty = pkg'metaty'
 local ds  = require'ds'
 
 local add, pop, concat = table.insert, table.remove, table.concat

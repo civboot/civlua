@@ -1,7 +1,7 @@
 -- LZW + Huffman
 
 local pkg = require'pkg'
-local mty = require'metaty'
+local mty = pkg'metaty'
 local lzw  = require'smol.lzw'
 local huff = require'smol.huff'
 

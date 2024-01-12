@@ -1,6 +1,6 @@
 local pkg = require'pkg'
 local shim = pkg'shim'
-local mty = require'metaty'
+local mty = pkg'metaty'
 local term = require'civix.term'
 local sfmt = string.format
 

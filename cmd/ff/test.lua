@@ -3,7 +3,7 @@
 -- and then using it to
 
 local pkg = require'pkg'
-local mty = require'metaty'
+local mty = pkg'metaty'
 local ds = require'ds'
 local civix  = require'civix'
 local test, assertEq; mty.lrequire'civtest'

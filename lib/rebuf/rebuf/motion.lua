@@ -1,5 +1,5 @@
 local pkg = require'pkg'
-local mty = require'metaty'
+local mty = pkg'metaty'
 local min, max, sort2, bound, isWithin
 mty.lrequire'ds'
 

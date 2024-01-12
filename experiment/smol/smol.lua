@@ -1,6 +1,6 @@
 
 local pkg = require'pkg'
-local mty = require'metaty'
+local mty = pkg'metaty'
 local ds = require'ds'
 local heap = require'ds.heap'
 

@@ -16,7 +16,7 @@ local initG = {}; for k in pairs(_G) do initG[k] = true end
 local pkg     = M.load('pkg',      'lib/pkg/pkg.lua')
 
 local shim    = pkg'shim'
-local mty     = M.load('metaty',   'lib/metaty/metaty.lua')
+local mty     = pkg'metaty'
 local doc     = M.load('doc',      'lib/doc/doc.lua')
 local ds      = M.load('ds',       'lib/ds/ds.lua')
    M.load('ds.heap',  'lib/ds/ds/heap.lua')

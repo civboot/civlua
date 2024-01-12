@@ -3,7 +3,7 @@
 --   [1Header block]
 
 local pkg = require'pkg'
-local mty = require'metaty'
+local mty = pkg'metaty'
 local ds  = require'ds'; local lines = ds.lines
 local civtest = require'civtest'
 local add, sfmt = table.insert, string.format

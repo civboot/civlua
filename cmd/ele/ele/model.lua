@@ -3,7 +3,7 @@
 -- Implements the core app
 
 local pkg = require'pkg'
-local mty = require'metaty'
+local mty = pkg'metaty'
 local ds = require'ds'
 local civix = require'civix'
 local posix = require'posix'

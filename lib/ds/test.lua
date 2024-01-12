@@ -1,7 +1,7 @@
 METATY_CHECK = true
 
 local pkg = require'pkg'
-local mty = require'metaty'
+local mty = pkg'metaty'
 local push = table.insert
 
 local test, assertEq, assertErrorPat; mty.lrequire'civtest'

@@ -1,6 +1,6 @@
 METATY_CHECK = true
 local pkg = require'pkg'
-local mty = require'metaty'
+local mty = pkg'metaty'
 local test, assertEq, assertErrorPat; mty.lrequire'civtest'
 local df  = require'ds.file'
 local M = require'luck'

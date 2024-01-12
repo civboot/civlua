@@ -1,5 +1,5 @@
 local pkg = require'pkg'
-local mty  = require'metaty'
+local mty  = pkg'metaty'
 local smol = require'smol'
 
 local sfmt, push = string.format, table.insert

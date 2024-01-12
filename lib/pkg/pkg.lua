@@ -119,6 +119,22 @@ M.findpkg = function(base, dirs, name)
   end
 end
 
+-- auto-set nil locals using mod
+-- local x, y, z; pkg.auto'mm' -- sets x=mm.x; y=mm.y; z=mm.z
+M.auto = function(mod, i)
+  mod, i = type(mod) == 'string' and M(mod) or mod, i or 1
+  while true do
+    local n, v = debug.getlocal(2, i)
+    if not n then break end
+    if nil == v then
+      if not mod[n] then error(n.." not in module") end
+      debug.setlocal(2, i, mod[n])
+    end
+    i = i + 1
+  end
+  return mod, i
+end
+
 -- load the pkg
 local MT = {}
 MT.__call = function(_, name)

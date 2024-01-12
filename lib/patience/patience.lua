@@ -2,7 +2,7 @@
 -- https://blog.jcoglan.com/2017/09/19/the-patience-diff-algorithm/
 
 local pkg = require'pkg'
-local mty = require'metaty'
+local mty = pkg'metaty'
 local ds  = require'ds'
 local diff = mty.lrequire'ds.diff'
 local push = table.insert

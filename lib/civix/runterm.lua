@@ -1,7 +1,7 @@
 METATY_CHECK = true
 
 local pkg = require'pkg'
-local mty = require'metaty'
+local mty = pkg'metaty'
 local civix = require 'civix'
 local term = require 'civix.term'
 local sfmt = string.format

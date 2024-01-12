@@ -5,7 +5,7 @@ url     = 'git+http://github.com/civboot/civlua'
 srcs = { 'civ.lua' }
 dirs    = {
   'lib/shim',
-  -- 'lib/metaty',
+  'lib/metaty',
   -- 'lib/civtest',
   -- 'lib/ds',
   -- 'lib/doc',
