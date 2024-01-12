@@ -13,6 +13,8 @@ function M.load(name, path)
 end
 
 local initG = {}; for k in pairs(_G) do initG[k] = true end
+local pkg     = M.load('pkg',      'lib/pkg/pkg.lua')
+
 local shim    = M.load('shim',     'lib/shim/shim.lua')
 local mty     = M.load('metaty',   'lib/metaty/metaty.lua')
 local doc     = M.load('doc',      'lib/doc/doc.lua')
