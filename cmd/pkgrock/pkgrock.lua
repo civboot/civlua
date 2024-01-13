@@ -59,6 +59,7 @@ end
 
 local function execute(...)
   local cmd = string.format(...)
+  print('executing:', cmd)
   if not os.execute(cmd) then error('execute failed: '..cmd) end
 end
 
@@ -80,8 +81,6 @@ M.exe = function(t)
       'tags already exist: '..table.concat(ds.orderedKeys(exist), ' ')
     )end
   end
-  mty.pnt('?? gitops', gitops)
-
   if gitops.add then for _, rp in ipairs(rpaths) do
     execute([[git add %s]], rp)
   end end
@@ -92,7 +91,7 @@ M.exe = function(t)
     execute([[git tag '%s']], tag)
   end end
   if t.gitpush then
-    execute([[git push %s%s]], t.gitpush, gittag and ' --tags' or '')
+    execute([[git push %s]], t.gitpush)
   end
   if t.upload then for _, rp in ipairs(rpaths) do
     execute(UPLOAD, rp, t.upload)
