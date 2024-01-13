@@ -66,7 +66,7 @@ M.exe = function(t)
   if t.gitops then
     assert(os.execute'git diff --quiet --exit-code', 'git repo has diffs')
   end
-  local gitops = ds.Set(shim.list(t.gitops))
+  local gitops = ds.Set(shim.listSplit(t.gitops))
   local tags, rpaths = {}, {}
   if t.create then for _, dir in ipairs(t) do
     local rock, rpath = M.makerock(dir)
@@ -80,6 +80,7 @@ M.exe = function(t)
       'tags already exist: '..table.concat(ds.orderedKeys(exist), ' ')
     )end
   end
+  mty.pnt('?? gitops', gitops)
 
   if gitops.add then for _, rp in ipairs(rpaths) do
     execute([[git add %s]], rp)
