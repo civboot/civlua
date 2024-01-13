@@ -41,7 +41,7 @@ srcs    = {
 
 ## Why?
 Because `LUA_PATH` is clumsy and annoying.
-Luarocks is awesome, but it doens't solve local path management. Also,
+Luarocks is awesome, but it doesn't solve local path management. Also,
 `rockspec` is very opinionated on file names and I wanted a way to auto
 generate the `.rockspec` files.
 
@@ -52,6 +52,6 @@ cmd utility to help me.
 ## How?
 `PKG.lua` files are executed in a sandbox. Their environment has access to only:
 `string table select pairs ipairs next error assert
-math.abs math.ceil math.foor math.max math.min math.maxinteger math.tonumber`
+math.abs math.ceil math.floor math.max math.min math.maxinteger math.tonumber`
 
 The globals they create are then read as the configuration.
