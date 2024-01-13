@@ -98,7 +98,8 @@ end)
 
 test('walk', function()
   local f, d = civix.ls{D}
-  table.remove(f, ds.indexOfPat(f, '%.rockspec'))
+  local rspec = ds.indexOfPat(f, '%.rockspec')
+  if rspec then table.remove(f, rspec) end
   table.sort(f); table.sort(d)
   local expected = {
       D.."PKG.lua",

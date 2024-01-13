@@ -16,11 +16,7 @@ M.ARGS = mty.docTy(mty.record'pkgrock', [[
 pkgrock dir1 dir2 ...args
 ]])
   :fieldMaybe('create', 'boolean'):fdoc[[creates the rocks from PKG.lua files]]
-  :fieldMaybe('gitops',  'string'):fdoc[[one or more: add,commit,tag,clean
-
-  clean happens at the end and involves deleting the rocks and commiting
-  (but not pushing)
-  ]]
+  :fieldMaybe('gitops',  'string'):fdoc[[one or more: add,commit,tag]]
   :fieldMaybe('gitpush', 'string'):fdoc[[where to push, i.e: 'origin main']]
   :fieldMaybe('upload',  'string'):fdoc[[
     must be set to the luarocks api key to upload with
@@ -44,7 +40,7 @@ M.makerock = function(dir)
   d.summary  = d.summary  or p.summary
   d.homepage = d.homepage or p.homepage
   d.license  = d.license  or p.license
-  rock.dependencies = rock.dependencies or d.deps
+  rock.dependencies = rock.dependencies or p.deps
   rock.build = rock.build or {
     type = 'builtin',
     modules = ds.kvtable{pkg.isrcs(p.srcs)},
@@ -53,7 +49,8 @@ M.makerock = function(dir)
   local f = io.open(rpath, 'w'); for _, key in ipairs(ds.orderedKeys(rock)) do
     local val = rock[key]
     f:write(key, ' = ')
-    mty.fmt(val, mty.FmtSet{pretty=true, itemSep = ',\n', tblSep=''}, f)
+    local fset = mty.FmtSet{pretty=true, itemSep = ',\n', listSep=',\n', tblSep=''}
+    mty.fmt(val, fset, f)
     f:write'\n'
   end
   f:close()
@@ -75,7 +72,14 @@ M.exe = function(t)
     push(rpaths, rpath); push(tags, assert(rock.source.tag))
   end end
   mty.pnt('?? tags:', tags)
-  local gittag = false
+  local gittag = t.gitops:find'tag'; if gittag then
+    local exist = ds.Set(ds.lines(civix.sh'git tag'.out))
+      :union(ds.Set(tags))
+    if not ds.isEmpty(exist) then error(
+      'tags already exist: '..table.concat(ds.orderedKeys(exist), ' ')
+    )end
+  end
+
   if t.gitops then
     if t.gitops:find'add' then for _, rp in ipairs(rpaths) do
       execute([[git add %s]], rp)
@@ -83,10 +87,9 @@ M.exe = function(t)
     if t.gitops:find'commit' then
       execute([[git commit -am 'pkgrock: %s']], table.concat(tags, ' '))
     end
-    if t.gitops:find'tag' then
-      gittag = true
-      for _, tag in ipairs(tags) do execute([[git tag '%s']], tag) end
-      end
+    if gittag then for _, tag in ipairs(tags) do
+      execute([[git tag '%s']], tag)
+    end end
   end
   if t.gitpush then
     execute([[git push %s%s]], t.gitpush, gittag and ' --tags' or '')
@@ -94,10 +97,6 @@ M.exe = function(t)
   if t.upload then for _, rp in ipairs(rpaths) do
     execute(UPLOAD, rp, t.upload)
   end end
-  if t.gitops and t.gitops:find'clean' then
-    execute('rm %s', table.concat(rpaths, ' '))
-    execute[[git commit -am 'pkgrock: clean']]
-  end
 end
 
 M.shim = shim{help = M.DOC, exe = M.exe}

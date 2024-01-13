@@ -1,3 +1,6 @@
+-- civix: civboot unix utilites.
+--
+-- Note: You probably want civix.sh
 local pkg = require'pkg'
 local mty = pkg'metaty'
 local ds = pkg'ds'
