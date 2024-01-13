@@ -536,7 +536,7 @@ M.strIsAmbiguous = M.doc'return whether a string needs %q'
   return (
     STR_IS_AMBIGUOUS[s]
     or tonumber(s)
-    or s:find('[%s\'"={}%[%]]')
+    or s:find('[%s.\'"={}%[%]]')
   )
 end)
 
