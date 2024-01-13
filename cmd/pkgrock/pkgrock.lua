@@ -9,7 +9,7 @@ local shim = pkg'shim'
 local civix = pkg'civix'
 local push, sfmt = table.insert, string.format
 
-local UPLOAD = [[luarocks upload %s --api-key=${ROCKAPI}]]
+local UPLOAD = [[luarocks upload %s --api-key=%s]]
 
 local M = {DOC=DOC}
 M.ARGS = mty.docTy(mty.record'pkgrock', [[
@@ -22,10 +22,9 @@ pkgrock dir1 dir2 ...args
   (but not pushing)
   ]]
   :fieldMaybe('gitpush', 'string'):fdoc[[where to push, i.e: 'origin main']]
-  :fieldMaybe('upload',  'boolean'):fdoc(sfmt([[
-  executes the following for every dir given
-    %s
-  ]], UPLOAD))
+  :fieldMaybe('upload',  'string'):fdoc[[
+    must be set to the luarocks api key to upload with
+  ]]
 
 -- make a rock and return rock, rockpath, PKG
 M.makerock = function(dir)
@@ -93,7 +92,7 @@ M.exe = function(t)
     execute([[git push %s%s]], t.gitpush, gittag and ' --tags' or '')
   end
   if t.upload then for _, rp in ipairs(rpaths) do
-    execute(UPLOAD, rp)
+    execute(UPLOAD, rp, t.upload)
   end end
   if t.gitops and t.gitops:find'clean' then
     execute('rm %s', table.concat(rpaths, ' '))
