@@ -1,5 +1,5 @@
 name     = 'civtest'
-version  = '0.1-1'
+version  = '0.1-2'
 url      = 'git+http://github.com/civboot/civlua'
 summary  = "Ultra simple testing library"
 homepage = "https://github.com/civboot/civlua/blob/main/lib/civtest/README.md"
