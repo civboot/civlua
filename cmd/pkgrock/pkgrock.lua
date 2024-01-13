@@ -66,13 +66,14 @@ M.exe = function(t)
   if t.gitops then
     assert(os.execute'git diff --quiet --exit-code', 'git repo has diffs')
   end
+  local gitops = ds.Set(shim.list(t.gitops))
   local tags, rpaths = {}, {}
   if t.create then for _, dir in ipairs(t) do
     local rock, rpath = M.makerock(dir)
     push(rpaths, rpath); push(tags, assert(rock.source.tag))
   end end
   mty.pnt('?? tags:', tags)
-  local gittag = t.gitops:find'tag'; if gittag then
+  if gitops.tag then
     local exist = ds.Set(ds.lines(civix.sh'git tag'.out))
       :union(ds.Set(tags))
     if not ds.isEmpty(exist) then error(
@@ -80,17 +81,15 @@ M.exe = function(t)
     )end
   end
 
-  if t.gitops then
-    if t.gitops:find'add' then for _, rp in ipairs(rpaths) do
-      execute([[git add %s]], rp)
-    end end
-    if t.gitops:find'commit' then
-      execute([[git commit -am 'pkgrock: %s']], table.concat(tags, ' '))
-    end
-    if gittag then for _, tag in ipairs(tags) do
-      execute([[git tag '%s']], tag)
-    end end
+  if gitops.add then for _, rp in ipairs(rpaths) do
+    execute([[git add %s]], rp)
+  end end
+  if gitops.commit then
+    execute([[git commit -am 'pkgrock: %s']], table.concat(tags, ' '))
   end
+  if gitops.tag then for _, tag in ipairs(tags) do
+    execute([[git tag '%s']], tag)
+  end end
   if t.gitpush then
     execute([[git push %s%s]], t.gitpush, gittag and ' --tags' or '')
   end
