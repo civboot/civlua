@@ -58,7 +58,7 @@ M.loadraw = function(chunk, env, name)
   return true, setmetatable(res, nil)
 end
 
--- load a path with env metatable M.ENV
+-- load(path) -> ok, PKG
 M.load = function(path)
   local f =io.open(path); if not f then error(
     'failed to open: '..path
@@ -137,7 +137,7 @@ end
 
 M.rawisrcs = function(state)
   local k, v = next(state.srcs, state.k)
-  state.k = k
+  state.k = k; if not k then return end
   if type(k) == 'string' then return k, v
   elseif type(k) == 'number' then
     return v:gsub('.%lua$', ''):gsub('/', '.'), v

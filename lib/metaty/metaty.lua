@@ -625,7 +625,7 @@ end
 -- Fmt Methods
 M.Fmt.sep = M.doc'handle possible newlines'
 (function(f, sep)
-  add(f, sep); if sep == '\n' then
+  add(f, sep); if sep:find'\n' then
     add(f, string.rep(f.set.indent, f.level))
   end
 end)
