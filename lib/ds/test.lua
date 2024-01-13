@@ -77,6 +77,11 @@ four
   assertEq('  one\n\nthree\nfour\n\n', multi)
   assertEq('one\n\nthree\nfour', trim(multi))
 
+  assertEq('  a b c', M.trimEnd'  a b c')
+  assertEq('  a b c', M.trimEnd'  a b c\n  ')
+
+  assertEq(' a bc d e ', M.squash'  a   bc \td\te ')
+
   assertEq([['hello']], M.q1str[[hello]])
   assertEq([['\'hello\'']], M.q1str[['hello']])
   assertEq([['"hello"']], M.q1str[["hello"]])

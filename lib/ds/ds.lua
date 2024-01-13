@@ -82,6 +82,17 @@ M.q1str = function(s)
   return "'"..sfmt("%q", s):sub(2, -2)
     :gsub("'", "\\'"):gsub('\\"', '"').."'"
 end
+
+M.trimEnd = mty.doc[[trim the end of the string by removing pat (default='%s')]]
+(function(subj, pat, index)
+  pat = pat and ('^(.-)'..pat..'*$') or '^(.-)%s*$'
+  return subj:match(pat, index)
+end)
+
+M.squash = mty.doc[[
+Squash a string: convert all whitespace to repl (default=' ').
+]](function(s, repl) return s:gsub('%s+', repl or ' ') end)
+
 ---------------------
 -- lines module
 
