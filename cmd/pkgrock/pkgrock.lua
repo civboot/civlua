@@ -1,5 +1,9 @@
 local DOC = [[
 pkgrock: utility for publishing PKG.lua directories
+
+Example (sh):
+  , rock lib/pkg --create --gitops='add commit tag' \
+    --gitpush='origin main --tags' --upload=$ROCKAPI
 ]]
 
 local pkg = require'pkg'
