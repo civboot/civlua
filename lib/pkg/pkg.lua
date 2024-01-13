@@ -29,7 +29,6 @@ M.math = setmetatable(M.MATH, {
   __newindex= function() error'cannot modify math' end,
 })
 
-
 M.ENV = {
   string=string, table=table, utf8=utf8,
   type=type,   select=select,
@@ -53,19 +52,19 @@ end
 M.loadraw = function(chunk, env, name)
   name = name or M.callerSource()
   local res = setmetatable({}, env)
-  local e, err = load(chunk, path, 'bt', res)
+  local e, err = load(chunk, name, 'bt', res)
   if err then return false, err end
   e()
   return true, setmetatable(res, nil)
 end
 
 -- load a path with env metatable M.ENV
-M.load = function(path, env)
+M.load = function(path)
   local f =io.open(path); if not f then error(
     'failed to open: '..path
   )end
   local function chunk() return f:read(M.CHUNK_SIZE) end
-  local ok, res = M.loadraw(chunk, M.createEnv(M.ENV, env or {}), path)
+  local ok, res = M.loadraw(chunk, M.createEnv(M.ENV, {}), path)
   f:close(); return ok, res
 end
 
@@ -85,7 +84,6 @@ M.path.concat = function(t)
   end; return root..table.concat(out, '/')..dir
 end
 
-
 M.path.first = function(path)
   if path:sub(1,1) == '/' then return '/', path:sub(2) end
   local a, b = path:match('^(.-)/(.*)$')
@@ -101,14 +99,15 @@ end
 
 -- return whether a path has any '..' components
 M.path.hasBacktrack = function(path)
-  return string.match'^%.%.$' or string.match'^%.%./'
-      or string.match'/%.%./' or string.match'/%.%.$'
+  return path:match'^%.%.$' or path:match'^%.%./'
+      or path:match'/%.%./' or path:match'/%.%.$'
 end
 
 -- recursively find a package in dirs
 M.findpkg = function(base, dirs, name)
   local root = name:match'(.*)%.' or name
   for _, dir in ipairs(dirs) do
+    if M.path.hasBacktrack(dir) then error('detected ../backtrack: '..dir) end
     local pkgdir = base and M.path.concat{base, dir} or dir
     local path = M.path.concat{pkgdir, 'PKG.lua'}
     local ok, pkg = M.load(path); if not ok then error(pkg) end
@@ -136,6 +135,20 @@ M.auto = function(mod, i)
   return mod, i
 end
 
+M.rawisrcs = function(state)
+  local k, v = next(state.srcs, state.k)
+  state.k = k
+  if type(k) == 'string' then return k, v
+  elseif type(k) == 'number' then
+    return v:gsub('.%lua$', ''):gsub('/', '.'), v
+  else error('invalid srcs key type: '..type(k)) end
+end
+
+-- iterate over PKG.srcs as name, path pairs.
+M.isrcs = function(srcs)
+  return M.rawisrcs, {srcs=srcs, k=nil}
+end
+
 -- Load the package or get nil and and errorMsg
 -- fallback will be called on failure (use true for `require`), the error
 -- message will still be returned even if fallback is called.
@@ -145,17 +158,13 @@ end
 M.maybe = function(name, fallback)
   if (fallback == nil) or (fallback == true) then fallback = require end
   if package.loaded[name] then return package.loaded[name] end
-  local luapkgs = assert(os.getenv'LUA_PKGS', 'must export LUA_PKGS')
+  local luapkgs = assert(os.getenv'LUA_PKGS' or '', 'must export LUA_PKGS')
   local dirs = {''}; for d in luapkgs:gmatch'[^;]+' do push(dirs, d) end
   local pkgdir, pkg = M.findpkg(nil, dirs, name)
   if not pkg then return fallback and fallback(name) or nil,
                          'PKG '..name..' not found' end
-  for k, v in ipairs(pkg.srcs) do
-    local mpath, mname; if type(k) == 'string' then
-      mpath, mname = v, k
-    elseif type(k) == 'number' then
-      mpath, mname = v, v:gsub('.%lua$', ''):gsub('/', '.')
-    else error('invalid srcs key type: '..type(k)) end
+  for mname, mpath in M.isrcs(pkg.srcs) do
+    if M.path.hasBacktrack(mpath) then error('detected ../backtrack: '..dir) end
     if mname == name then
       M.PKG, M.PATH = pkg, M.path.concat{pkgdir, mpath}
       package.loaded[mname] = dofile(M.PATH)

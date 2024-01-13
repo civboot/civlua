@@ -157,36 +157,7 @@ end)
 
 --------------------
 -- Working with file paths
-M.path = {}
-M.path.concat = mty.doc[[concat a table of path elements.
-This preserves the first and last '/'.
-a, b, c/d/e   -> a/b/c/d/e
-/a/, /b, c/d/ -> /a/b/c/d/
-]](function(t)
-  if #t == 0 then return '' end
-  local root = (t[1]:sub(1,1)=='/') and '/' or ''
-  local dir  = (t[#t]:sub(-1)=='/') and '/' or ''
-  local out = {}
-  for i, p in ipairs(t) do
-    p = string.match(p, '^/*(.-)/*$')
-    if p ~= '' then add(out, p) end
-  end; return root..table.concat(out, '/')..dir
-end)
-
-M.path.first = mty.doc[[split the path into (first, rest)]]
-(function(path)
-  if path:sub(1,1) == '/' then return '/', path:sub(2) end
-  local a, b = path:match('^(.-)/(.*)$')
-  if not a or a == '' or b == '' then return path, '' end
-  return a, b
-end)
-
-M.path.last = mty.doc[[split the path into (start, last)]]
-(function(path)
-  local a, b = path:match('^(.*)/(.+)$')
-  if not a or a == '' or b == '' then return '', path end
-  return a, b
-end)
+M.path = pkg.path
 
 ---------------------
 -- Table Functions
@@ -243,7 +214,16 @@ Example:
 end)
 
 M.itable = mty.doc[[convert (_, v) iterator into a table by pushing]]
-(function(it) local o = {}; for _, v in it do add(o, v) end; return o end)
+(function(it) 
+  local o = {}; for _, v in table.unpack(it) do add(o, v) end;
+  return o
+end)
+
+M.kvtable = mty.doc[[convert (k, v) iterator into a table by setting]]
+(function(it)
+  local o = {}; for k, v in table.unpack(it) do o[k] = v end;
+  return o
+end)
 
 -- reverse a list-like table in-place
 M.reverse = function(t)
@@ -262,6 +242,7 @@ end
 M.updateKeys = function(t, add, keys)
   for _, k in ipairs(keys) do t[k] = add[k] end; return t
 end
+M.orderedKeys = mty.orderedKeys
 
 -- pop multiple keys, pops(t, {'a', 'b'})
 M.pops = function(t, keys)
@@ -405,11 +386,6 @@ end)
 
 ---------------------
 -- Source Code Functions
-M.callerSource = function()
-  local info = debug.getinfo(3)
-  return string.format('%s:%s', info.source, info.currentline)
-end
-
 M.lineschunk = mty.doc'convert lines-like table into chunk for eval'
 (function(dat)
   local i = 1
@@ -422,7 +398,7 @@ M.lineschunk = mty.doc'convert lines-like table into chunk for eval'
 end)
 M.eval = function(chunk, env, name) -- Note: not typed
   assert(type(env) == 'table')
-  name = name or M.callerSource()
+  name = name or pkg.callerSource()
   local e, err = load(chunk, name, 't', env)
   if err then return false, err end
   return pcall(e)

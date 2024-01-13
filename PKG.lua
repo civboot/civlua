@@ -15,11 +15,9 @@ dirs    = {
   'lib/luck',
   'lib/patience',
   'lib/rebuf',
-  -- 'lib/shim',
-  -- 'lib/tso',
 
   'cmd/cxt',
   'cmd/ele',
   'cmd/ff',
-  -- 'cmd/pkg',
+  'cmd/pkgrock',
 }

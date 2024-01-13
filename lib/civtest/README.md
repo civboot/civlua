@@ -11,5 +11,5 @@ This is a no-frills test library (<100 LoC). It simply builds on `metaty` and
   * Ensures no global variables were added
 * `grequire'myModule'` allows you to quickly import your module contents as
   global. Don't do it except when you're lazily prototyping stuff. Prefer
-  `metaty.lrequire` for fast and easy imports
+  `pkg.auto` for fast and easy imports
 

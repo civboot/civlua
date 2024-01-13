@@ -30,8 +30,7 @@ M.createEnv = function(env)
   return env
 end
 
-M.loadraw = function(dat, env)
-  local i = 1
+M.loadraw = function(dat, env, path)
   local res = setmetatable({}, env and M.createEnv(env) or M.LUCK)
   local e, err = load(ds.lineschunk(dat), path, 'bt', res)
   if err then error(err) end

@@ -21,8 +21,9 @@ local civtest = pkg'civtest'
 local doc     = pkg'doc'
 local ds      = pkg'ds'
 
-local ff  = pkg'ff'
-local ele = pkg'ele'
+local ff    = pkg'ff'
+local ele   = pkg'ele'
+local rock  = pkg'pkgrock'
 civtest.assertGlobals(initG)
 
 M.HELP = [[help module.any.object
@@ -48,6 +49,7 @@ shim{
     help = M.helpShim,
     ele  = ele.main,
     ff   = ff.shim,
+    rock = rock.shim,
     ['cxt.html'] = pkg'cxt.html'.shim,
   },
 }

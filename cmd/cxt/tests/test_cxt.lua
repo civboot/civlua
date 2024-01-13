@@ -11,7 +11,7 @@ local RootSpec, Token
 local testing, EMPTY, EOF
 local pegl = pkg.auto'pegl'
 
-local KW, N, NUM, HEX; mty.lrequire(testing)
+local KW, N, NUM, HEX; pkg.auto(testing)
 
 local M = pkg'cxt'
 local html = pkg'cxt.html'

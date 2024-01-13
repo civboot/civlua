@@ -47,7 +47,7 @@ test('exec', function()
 end)
 
 test('sh', function()
-  local sh, shCmd; mty.lrequire(civix)
+  local sh, shCmd; pkg.auto(civix)
   assertEq('on stdout\n', sh[[ echo 'on' stdout ]].out)
   assertEq(''           , sh[[ echo '<stderr from test>' 1>&2 ]].out)
   local result = sh('false', {check=false})

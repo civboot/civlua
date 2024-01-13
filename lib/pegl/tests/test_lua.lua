@@ -14,7 +14,7 @@ local root, src
 local M = pkg.auto'pegl.lua'
 local D = 'lib/pegl/'
 
-local KW, N, NUM, HEX; mty.lrequire(testing)
+local KW, N, NUM, HEX; pkg.auto(testing)
 local SRC = function(...) return {..., EMPTY, EMPTY, EOF} end
 
 T.test('easy', function()

@@ -478,7 +478,7 @@ M.FmtSet
   :field('recurse', 'boolean', true)  :fdoc'make recursion safe'
   :field('indent',  'string',  '  ')
   :field('listSep', 'string',  ',')   :fdoc'separator in list'
-  :field('tblSep',  'string',  ' :: '):fdoc'list / map separator'
+  :field('tblSep',  'string',  ' :: '):fdoc'separator between list :: map'
   :field('num',     'string',  '%i')  :fdoc'number format'
   :field('str',     'string',  '%q')  :fdoc'stirng format'
   :field('raw',     'boolean', false) :fdoc'ignore __fmt/__tostring'
@@ -718,20 +718,6 @@ M.want = M.doc'Alternative to "require" when the module is optional'
 (function(mod)
   local ok, mod = pcall(function() return require(mod) end)
   if ok then return mod else return nil, mod end
-end)
-
-M.lrequire = M.doc[[
-]](function(mod, i)
-  i, mod = i or 1, type(mod) == 'string' and require(mod) or mod
-  while true do
-    local n, v = debug.getlocal(2, i)
-    if not n then break end
-    if nil == v then
-      debug.setlocal(2, i, M.assertf(mod[n], "%s not in module", n))
-    end
-    i = i + 1
-  end
-  return mod, i
 end)
 
 function M.helpFields(mt, fmt)
