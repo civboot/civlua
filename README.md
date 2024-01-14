@@ -1,6 +1,6 @@
 # Civboot Lua Modules
 
-This is the repository for civboot-owned Lua modules and software.
+This is the repository for [Civboot]-owned Lua modules and software.
 
 ```bash
 cd civlua/
@@ -22,18 +22,21 @@ $ , ff -r %recursive
 ... etc
 ```
 
-These libraries and tools are developed together but kept in separate modules so
-that others can pick and choose the pieces they want to use for their own
-projects. Together they (will) form a complete development environment with some
-awesome shell/lua commandline scripting tools, and even form the basis of both assemblers and a Lua compiler written in Lua. See [Installation](#Installation)
-for how to install (just copy this directory).
+These libraries and tools are developed together but kept in separate modules
+(individually uploaded to [LuaRocks]) so that others can pick and choose the
+pieces they want to use for their own projects. Together they (will) form a
+complete development environment with some awesome shell/lua commandline
+scripting tools, and even form the basis of both assemblers and a Lua compiler
+written in Lua. See [Installation](#Installation) for ways to install the
+command utilities.
 
 This directory is split into `cmd` for user-executable commands and `lib` for
 libraries.
 
-* [civ.lua](./civ.lua): a self-loading lua module which acts as
-    a hub for civboot scripts.
-* [shim](./lib/shim/README.md): write scripts for Lua, execute from shell (57 LoC)
+* [civ.lua](./civ.lua): a self-loading lua module which acts as a hub for
+  civboot scripts.
+* [shim](./lib/shim/README.md): write scripts for Lua, execute from shell (57
+  LoC)
 * [metaty](./lib/metaty/README.md): runtime type specification and checking (457 LoC)
   * `help()` function for viewing documentation on any module or type
   * Auto type formatting
@@ -61,23 +64,56 @@ libraries.
 * `patience/` is to implement a patience diff, be patient!
 
 ## Installation
-[civ.lua](./civ.lua) is a self-contained, self-loading Lua module.
-Simply copy this `civlua` directory anywhere and execute it on
-unix and it will work.
+Some civlua packages are uploaded to [LuaRocks] and can be installed with:
 
-> Bash recommendation: `alias ,=/path/to/civ.lua`
->
-> Now execute sub-commands like:
->
-> `, ff -r --pat=recursive`
+```
+luarocks install <some-pkg> --local
+```
 
-Running tests currently requires [luaposix], but most libraries work without it.
+An alternative (recommended even) method is to simply download this directory
+and add it to the following paths in your shell's `rc` file:
 
-[luaposix]: https://github.com/luaposix/luaposix
+```
+LUA_PATH="/path/to/civlua/lib/pkg/pkg.lua;...rest-of-your-LUA_PATH"
+LUA_PKGS="/path/to/civlua;...rest-of-your-LUA_PKGS"
+```
+
+> If you use [LuaRocks] you can replace the `LUA_PATH` above with
+> `luarocks install pkg --local`
+
+### Bash recommendation:
+
+```
+alias ,=/path/to/civ.lua
+```
+
+Now execute sub-commands like:
+
+```
+, ff -r --pat=recursive
+```
+
 ## Future
 I blog about future goals and design ideas at
 https://github.com/civboot/civboot/tree/main/blog
 
-## LICENSE
+## Development
+Run tests with
+```
+make test
+```
 
+Running tests currently requires [luaposix], but most libraries work without it.
+
+**All contributors must agree to license their contributions into the public
+domain.**
+
+## LICENSE
 This software is released into the public domain, see LICENSE (aka UNLICENSE).
+
+Attribution is appreciated but not required.
+
+[Civboot]: http://civboot.org
+[pkg.lua]: https://luarocks.org/modules/vitiral/pkg
+[LuaRocks]: https://luarocks.org/
+[luaposix]: https://github.com/luaposix/luaposix
