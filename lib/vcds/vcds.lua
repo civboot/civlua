@@ -14,7 +14,6 @@ Version control data structures and algorithms.
 ]])
 M.ADD = '+'
 M.REM = '-'
-M.ANC = '@'
 
 -- TODO: I want to use this when applying patches
 M.normalize = mty.doc[[normalize a line for comparing (anchoring).
@@ -24,16 +23,19 @@ This just squashes and trims the end.]]
 ---------------------
 -- Single Line Diff
 -- This type is good for displaying differences to a user.
-M.Diff = mty.record'patience.Diff'
+M.Diff = mty.record'vcds.Diff'
   :field('b', 'number'):fdoc"base: orig file.  '+'=added"
-  :field('c', 'number'):fdoc"change: new file. '-'=removed, '@'=anchor (ignore)"
+  :field('c', 'number'):fdoc"change: new file. '-'=removed"
   :field('text', 'string')
   :new(function(ty_, b, c, text)
     return mty.new(ty_, {b=b, c=c, text=assert(text)})
   end)
 
-M.Diff.__tostring = function(di)
-  return string.format("%4s %4s|%s", di.b, di.c, di.text)
+M.Diff.__tostring = function(d)
+  return string.format("%4s %4s|%s", d.b, d.c, d.text)
+end
+M.Diff.isKeep = function(d)
+  return (d.b ~= M.ADD) and (d.c ~= M.REM)
 end
 
 local function pushAdd(ch, text)
@@ -44,10 +46,10 @@ end
 -- ChangeList composed of Keep and Change directives
 -- This is how diffs are often serialized
 
-M.Keep = mty.record'patch.Keep':field('num',  'number')
-M.Keep.len = function(k) return k.num end
+M.Keep = mty.record'vcds.Keep':fieldMaybe('num',  'number')
+M.Keep.len = function(k) return k.num and k.num or #k end
 
-M.Change = mty.record'patch.Change'
+M.Change = mty.record'vcds.Change'
   :field'rem':fdoc'removed lines. Can be number or list'
   :fieldMaybe'add':fdoc'text to add'
 M.Change.len = function(ch)
@@ -64,8 +66,8 @@ Apply changes to base (TableLines)
   for _, p in ipairs(changes) do
     local pty = mty.ty(p)
     if pty == M.Keep then
-      for i=l, l + p.num - 1 do push(out, assert(base[i], 'base OOB')) end
-      l = l + p.num
+      for i=l, l + p:len() - 1 do push(out, assert(base[i], 'base OOB')) end
+      l = l + p:len()
     else
       mty.assertf(pty == M.Change, 'patch type must be Keep|Change: %s', pty)
       if p.add then for _, a in ipairs(p.add) do push(out, a) end end
@@ -78,20 +80,23 @@ end)
 ----------------------
 -- Conversion
 
-M.toChanges = function(diffs, base)
+M.toChanges = function(diffs, full)
   local changes, p = {}, nil
   for _, d in ipairs(diffs) do
-    if d.c == M.ANCHOR then -- skip
-    elseif d.b ~= M.ADD and d.c ~= M.REM then -- keep
-      if not p or mty.ty(p) ~= M.Keep then push(changes, p); p = M.Keep{num=0} end
-      p.num = p.num + 1
+    mty.pnt('?? toChanges', d)
+    if d:isKeep() then
+      mty.pnt('  ? isKeep:', d)
+      if not p or mty.ty(p) ~= M.Keep then
+        push(changes, p); p = M.Keep{num=not full and 0 or nil}
+      end
+      if full then push(p, d.text) else p.num = p.num + 1 end
     else
       if not p or mty.ty(p) ~= M.Change then
-        push(changes, p); p = M.Change{rem=base and {} or 0}
+        push(changes, p); p = M.Change{rem=full and {} or 0}
       end
       if d.b == M.ADD then pushAdd(p, d.text)
       else assert(d.c == M.REM)
-        if base then push(p.rem, d.text)
+        if full then push(p.rem, d.text)
         else         p.rem = p.rem + 1 end
       end
     end
@@ -107,10 +112,10 @@ local DiffsExtender = setmetatable({
   __call = function(de, ch, keepMax) -- extend change to diffs
     local chTy, base, diffs = mty.ty(ch), de.base, de.diffs
     if chTy == M.Keep then
-      for l = de.bl, de.bl + ch.num - 1 do
+      for l = de.bl, de.bl + ch:len() - 1 do
         push(diffs, M.Diff(l, de.cl, base[l]))
         de.cl = de.cl + 1
-      end; de.bl = de.bl + ch.num
+      end; de.bl = de.bl + ch:len()
     else
       mty.assertf(chTy == M.Change, "changes must be Keep|Change: %s", chTy)
       for _, a in ipairs(ch.add) do
@@ -178,7 +183,7 @@ above and below (unless they are start/end of file).
   end,
 
   -- Get which changes to include in a patch group.
-  -- A group is a series of patches with Keep.num < anchorLen (default=3)
+  -- A group is a series of patches with Keep:len() < anchorLen (default=3)
   -- between them.
   groupChanges = function(p, ci)
     local len, aLen = #p.changes, p.set.anchorLen
@@ -191,7 +196,7 @@ above and below (unless they are start/end of file).
         if chTy == M.Keep then ci = ci - 1 end
         return starti, ci
       end
-      if (chTy == M.Keep) and (ch.num >= aLen) then
+      if (chTy == M.Keep) and (ch:len() >= aLen) then
         return starti, ci - 1 end
     end; error'unreachable'
   end,
@@ -221,18 +226,18 @@ end
 
 -- iterFn = ds.ireverse to find the top, ipairs to find bottom.
 M.findAnchor = mty.doc[[
-findAnchor(base, lineMap, anchors: {Diff}, above: boolean)
+findAnchor(base, baseLineMap, anchors: {Diff}, above: boolean)
   -> line, anchorTextLines
 
 Find the actual anchor by searching for uniqueness in the anchors:
 * above=true:  find above (search up)
 * above=false: find below (search down)
-]](function(base, lineMap, anchors, above)
+]](function(base, baseMap, anchors, above)
   mty.pntf('?? findAnchor len=%s above=%s', #anchors, above)
   local iterFn = above and ds.ireverse or ipairs
   local alines = {}
   for ai, anchor in iterFn(anchors) do
-    local bls = lineMap[anchor.text]; if not bls then return end
+    local bls = baseMap[anchor.text]; if not bls then return end
     mty.pnt('?? find anchor loop:', ai, anchor, bls)
     if #bls == 1 then
       -- in this case below needs to subtract previous lines
@@ -252,30 +257,61 @@ Find the actual anchor by searching for uniqueness in the anchors:
 end)
 
 M.Patch = mty.record'vcds.Patch'
-  :fieldMaybe('error', 'string')
-  :fieldMaybe('bl',    'number')
+  :fieldMaybe('conflict', 'string')
+  :fieldMaybe('bl',       'number')
 
 -- return isSoF, anchors
 M.pickAnchorsTop = function(pick)
   local anchors = {}; for _, d in ipairs(pick) do
-    if d.c ~= '@' then break end; push(anchors, d)
+    if not d:isKeep() then break end; push(anchors, d)
   end
-  return pick[1].b == 1, anchors
+  return pick[1].c == 1, anchors
 end
 
 -- return isEoF, anchors
-M.pickAnchorsBottom = function(base, pick)
+M.pickAnchorsBot = function(base, pick)
   local anchors = {}; for _, d in ds.ireverse(pick) do
-    if d.c ~= '@' then break end; push(anchors, d)
+    if not d:isKeep() then break end; push(anchors, d)
   end
   return pick[#pick].b == #base, ds.reverse(anchors)
 end
 
-local function patchError(pick, ...)
-  local p = M.Patch{error=sfmt(...)}
-  ds.extend(p, pick)
+local function patchConflict(pick, conflict)
+  local p = M.Patch{conflict=conflict}; ds.extend(p, pick)
   return p
 end
+
+local function patchApplyKeep(p, base, keep)
+  mty.pnt('?? applyKeep', keep)
+  for _, kline in ipairs(keep) do
+    if base[bl] ~= kline then return false end
+    push(p, base[bl])
+    bl = bl + 1
+  end
+  return true
+end
+
+-- attempt to apply the change.
+--   -> bl, clean, err
+local function patchApplyChange(p, base, ch)
+  mty.pnt('?? applyChange', ch)
+  local remAnc, addAnc, iadd, irem = true, true, 1, 1
+  while (iadd <= #ch.add) or (irem <= #ch.rem) do
+    local bline = base[p.bl]
+    local aline, rline = ch.add[iadd], ch.rem[irem]
+    mty.assertf(rline ~= aline, '!removed == added: %s', rline)
+    mty.pntf('?? bline=%q rline=%q aline=%q', bline, rline, aline)
+    mty.pntf('?? iadd=%s chlen=%s', iadd, #ch.add)
+    if bline == rline then irem = irem + 1
+    elseif iadd <= #ch.add then
+      mty.pnt('?? adding aline', aline)
+      if bline == aline then p.bl = p.bl + 1 end
+      push(p, aline); iadd = iadd + 1
+    else return false end
+  end
+  return true
+end
+
 --[[
 Create a patch item from a pick
 
@@ -296,22 +332,42 @@ There are some strategies to fix common anchor misses:
   try to continue the change with or without them (dynamic programming)
 * empty lines are entirely ignored and are not considered an anchor
 ]]
-M.createPatch = function(base, pick)
+M.createPatch = function(base, baseMap, pick)
   mty.pnt('?? createPatch', pick)
-  local first, last = pick[1], pick[#pick]
-  local isSof, topA = M.pickAnchorsTop(first)
-  local isEof, botA = M.pickAnchorsBottom(base, last)
-  local top, topLines = M.findAnchor(base, lineMap, topA, true)
-  local bot, botLines = M.findAnchor(base, lineMap, botA, false)
+  local isSof, topA = M.pickAnchorsTop(pick)
+  local isEof, botA = M.pickAnchorsBot(base, pick)
+  local top, topLines = M.findAnchor(base, baseMap, topA, true)
+  local bot, botLines = M.findAnchor(base, baseMap, botA, false)
   top = (isSof and 1)           or (top and (top + topLines))
   bot = (isEof and (#base + 1)) or (bot and (bot + botLines))
   mty.pntf('?? top=%s bot=%s', top, bot)
-  if not top then return patchError(pick,
+  -- TODO: use next change or bot as anchor
+  if not top then return patchConflict(pick,
     '%s anchor not found',
     (not top and not bot) and 'top and bot' or 'top'
   )end
-  local bl = top
-  -- for _, ch in M.toChanges(
+  local pch, clean = M.Patch{bl=top}, top and true
+  local clean2, conflict
+  local function checkDirty(dirtyErr)
+    if not conflict and not (clean or clean2) then
+      conflict = dirtyErr
+    end
+  end
+  for _, ch in ipairs(M.toChanges(pick, true)) do
+    mty.pnt('?? createPatch change:', ch)
+    if mty.ty(ch) == M.Keep then
+      clean2, conflict = patchApplyKeep(pch, base, ch)
+      checkDirty'missing Keep after unanchored remove'
+    else assert(mty.ty(ch) == M.Change)
+      clean2, conflict = patchApplyChange(pch, base, ch)
+      checkDirty'removed lines missing without anchor'
+    end
+    if conflict then return patchConflict(pick, err) end
+    clean = clean2
+  end
+  mty.pnt('?? createPatch result:', new)
+  pch.bl = (isSof and 0) or top
+  return pch
 end
 
 

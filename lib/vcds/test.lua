@@ -69,15 +69,15 @@ test('patch', function()
 
   local changesB = M.toChanges(diffs, true)
   assertEq({
-    Change{rem={}, add={'1'}},                -- 1
-    Keep{num=3},                             -- 2,2,2
-    Change{rem={}, add={'3', '4'}},           -- 3
-    Keep{num=1},                             -- 4
+    Change{rem={}, add={'1'}},
+    Keep{'2', '2', '2'},
+    Change{rem={}, add={'3', '4'}},
+    Keep{'5'},
     Change{
       rem={'5_', '7_'},
       add={'6', '7', '8', '9'}
     },
-    Keep{num=1},
+    Keep{'9'},
   }, changesB)
   assertEq(diffs, M.toDiffs(base, changesB))
 
@@ -127,4 +127,14 @@ test('find anchor', function()
 
   findAnchorTest(nil, nil, tl, {'a'},       false)
   findAnchorTest(nil, nil, tl, {'b'},       false)
+end)
+
+test('create patch', function()
+  local base = {'1', '2', '3', '4', '5', '6', '7'}
+  local baseMap = ds.lines.map(base)
+   assertEq(M.Patch{bl=0,
+     '0.a',
+   }, M.createPatch(base, baseMap,
+     { Diff('+', 1, '0.a') }
+   ))
 end)

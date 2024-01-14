@@ -598,12 +598,13 @@ M.tblFmtKeys = function(t, f, keys)
   end
   if lenI > 0 and lenK > 0 then f:sep(f.set.tblSep) end
   for i, k in ipairs(keys) do
-    if type(k) == 'number' and 0<k and k<=lenI then -- already added
+    local v = t[k]; if v == nil then -- skip, happens for fields
+    elseif type(k) == 'number' and 0<k and k<=lenI then -- already added
     else
       if     type(k) == 'table' then f:fmt(k)
       elseif type(k) == 'string' and not M.strIsAmbiguous(k) then add(f, k)
       else   add(f, '['); add(f, sfmt('%q', k)); add(f, ']') end
-      add(f, '='); f:fmt(t[k])
+      add(f, '='); f:fmt(v)
       if i < lenK then f:sep(f.set.itemSep) end
     end
   end
