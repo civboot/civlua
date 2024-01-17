@@ -92,7 +92,7 @@ M.toChanges = function(diffs, full)
       if full then push(p, d.text) else p.num = p.num + 1 end
     else
       if not p or mty.ty(p) ~= M.Change then
-        push(changes, p); p = M.Change{rem=full and {} or 0}
+        push(changes, p); p = M.Change{add={}, rem=full and {} or 0}
       end
       if d.b == M.ADD then pushAdd(p, d.text)
       else assert(d.c == M.REM)
@@ -258,7 +258,15 @@ end)
 
 M.Patch = mty.record'vcds.Patch'
   :fieldMaybe('conflict', 'string')
-  :fieldMaybe('bl',       'number')
+  :fieldMaybe('bl', 'number')
+  :fieldMaybe('bl2', 'number')
+M.Patch.__lt = function(self, other)
+  if self.conflict then
+    return not other.conflict or ds.ltNative(self.b, other.b)
+  end
+  if other.conflict then return false end
+  return self.bl < other.bl
+end
 
 -- return isSoF, anchors
 M.pickAnchorsTop = function(pick)
@@ -281,7 +289,7 @@ local function patchConflict(pick, conflict)
   return p
 end
 
-local function patchApplyKeep(p, base, keep)
+local function createPatchKeep(p, base, keep)
   mty.pnt('?? applyKeep', keep)
   for _, kline in ipairs(keep) do
     if base[bl] ~= kline then return false end
@@ -293,7 +301,7 @@ end
 
 -- attempt to apply the change.
 --   -> bl, clean, err
-local function patchApplyChange(p, base, ch)
+local function createPatchChange(p, base, ch)
   mty.pnt('?? applyChange', ch)
   local remAnc, addAnc, iadd, irem = true, true, 1, 1
   while (iadd <= #ch.add) or (irem <= #ch.rem) do
@@ -302,7 +310,8 @@ local function patchApplyChange(p, base, ch)
     mty.assertf(rline ~= aline, '!removed == added: %s', rline)
     mty.pntf('?? bline=%q rline=%q aline=%q', bline, rline, aline)
     mty.pntf('?? iadd=%s chlen=%s', iadd, #ch.add)
-    if bline == rline then irem = irem + 1
+    if bline == rline then
+      p.bl = p.bl + 1; irem = irem + 1
     elseif iadd <= #ch.add then
       mty.pnt('?? adding aline', aline)
       if bline == aline then p.bl = p.bl + 1 end
@@ -312,27 +321,8 @@ local function patchApplyChange(p, base, ch)
   return true
 end
 
---[[
-Create a patch item from a pick
-
-At it's most basic it would just be:
-• find line position via top and/or bottom anchor. We want at least 2 lines
-• convert pick to change. Walk the text applying the change.
-
-There are some strategies to fix common anchor misses:
-• If an anchor is missing, the nearby change can be used instead. Use either
-  the removed or added lines. For instance, if we are supposed to remove lines
-  then try and find them. Conversely if the patch was already applied then the
-  supposed-to-be added lines will already be there!
-• When adding, existing identical text is okay.
-• When removing, missing text is okay as long as it's followed by an anchor of
-  some kind
-• Keep lines act as an anchor (for above) but are otherwise not required - they
-  are "free" to change or be removed. If they are missing then the algorithm will
-  try to continue the change with or without them (dynamic programming)
-* empty lines are entirely ignored and are not considered an anchor
-]]
-M.createPatch = function(base, baseMap, pick)
+-- Create a patch from a pick (list of Diffs)
+M.createPatch = function(base, avail, baseMap, pick)
   mty.pnt('?? createPatch', pick)
   local isSof, topA = M.pickAnchorsTop(pick)
   local isEof, botA = M.pickAnchorsBot(base, pick)
@@ -356,19 +346,57 @@ M.createPatch = function(base, baseMap, pick)
   for _, ch in ipairs(M.toChanges(pick, true)) do
     mty.pnt('?? createPatch change:', ch)
     if mty.ty(ch) == M.Keep then
-      clean2, conflict = patchApplyKeep(pch, base, ch)
+      clean2, conflict = createPatchKeep(pch, base, ch)
       checkDirty'missing Keep after unanchored remove'
     else assert(mty.ty(ch) == M.Change)
-      clean2, conflict = patchApplyChange(pch, base, ch)
+      clean2, conflict = createPatchChange(pch, base, ch)
       checkDirty'removed lines missing without anchor'
     end
     if conflict then return patchConflict(pick, err) end
     clean = clean2
   end
-  mty.pnt('?? createPatch result:', new)
-  pch.bl = (isSof and 0) or top
+  pch.bl, pch.bl2 = top, pch.bl - 1
+  for i=pch.bl, pch.bl2 do
+    if not avail[i] then
+      patchConflict(pick, 'conflict with another patch')
+    end
+  end
+  for i=pch.bl, pch.bl2 do avail[i] = nil end
+  mty.pnt('?? createPatch result:', pch)
   return pch
 end
+
+M.avail = function(base)
+  local a = {}; for i=1,#base do a[i] = true end; return a
+end
+
+M.patch = mty.doc[[
+Apply picks to base as a patch.
+
+M.patch(base, ipicks, out?) -> out
+]](function(base, ipicks, out)
+  local avail, baseMap = M.avail(base), ds.lines.map(base)
+  local patches = {}
+  for _, pick in table.unpack(picks) do
+    push(patches, M.createPatch(base, avail, baseMap, pick))
+  end
+  table.sort(patches, M.Patch.__lt)
+  local bl = 1
+  for _, p in ipairs(patches) do
+    if p.conflict then
+      push(out, '!---! CONFLICT: '..p.conflict)
+      for _, d in ipairs(p) do
+        push(out, sfmt('%s\t%s\t%s', p.b, p.c, p.text))
+      end
+      push(out, '!---! END')
+    else
+      while bl < p.bl do push(out, base[bl]) end
+      for _, line in ipairs(p) do push(out, line) end
+      bl = p.bl2 + 1
+    end
+  end
+  return out
+end)
 
 
 return M

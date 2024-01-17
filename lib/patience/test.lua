@@ -56,7 +56,7 @@ test('example', function()
   assertEq({
     Change{rem=0, add={'slits', 'gil'}},
     Keep{num=2},
-    Change{rem=2, add=nil},
+    Change{rem=2, add={}},
     Keep{num=3},
   }, chngs)
 end)

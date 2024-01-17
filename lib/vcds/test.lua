@@ -132,9 +132,39 @@ end)
 test('create patch', function()
   local base = {'1', '2', '3', '4', '5', '6', '7'}
   local baseMap = ds.lines.map(base)
-   assertEq(M.Patch{bl=0,
-     '0.a',
-   }, M.createPatch(base, baseMap,
-     { Diff('+', 1, '0.a') }
-   ))
+  local function a() return M.avail(base) end
+
+  -- adds
+  local a0 = M.createPatch(base, a(), baseMap,
+    { Diff('+', 1, '0.a') }
+  )
+  assertEq(M.Patch{bl=1, bl2=0, '0.a'}, a0)
+  local a3 = M.createPatch(base, a(), baseMap,
+    { Diff(3, '@', '3'), Diff('+', 4, '3.a') }
+  )
+  assertEq(M.Patch{bl=4, bl2=3, '3.a'}, a3)
+
+  -- remove
+  local r2 = M.createPatch(base, a(), baseMap,
+    { Diff(2, '@', '2'), -- TODO: use removed as own anchor
+      Diff(3, '-', '3'), Diff(4, '-', '4'), Diff(5, '-', '5') }
+  )
+  assertEq(M.Patch{bl=3, bl2=5}, r2) -- note: no added lines
+
+  -- add and remove at end
+  local ar1 = M.createPatch(base, a(), baseMap,
+    {
+      Diff(6, '@', '6'),
+      Diff('+', 8, '0.a'),
+      Diff(7, '-', '1'),
+    }
+  )
+  -- testing end not yet working
+  assertEq(M.Patch{bl=7, bl2=7,
+    '0.a',
+  }, ar1)
 end)
+
+test('apply patch', function()
+end)
+

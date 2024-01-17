@@ -26,6 +26,16 @@ M.sort2 = function(a, b)
   if a <= b then return a, b end; return b, a
 end
 M.repr = function(v) return sfmt('%q', v) end
+M.ltAny = mty.doc[[
+Less than for comparing any types.
+
+If the values are different types then the comparison
+of the types themselves is used.
+]](function(a, b)
+  local tyA, tyB = mty.ty(a), mty.ty(b)
+  if tyA == tyB then return a < b end
+  return tyA < tyB
+end)
 
 ---------------------
 -- Number Functions
