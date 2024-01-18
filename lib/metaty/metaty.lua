@@ -3,7 +3,6 @@
 -- See README.md for documentation.
 
 local M = {}
-local pkg = require'pkg'
 
 -- isEnv: returns boolean for below values, else nil
 local IS_ENV = { ['true']=true,   ['1']=true,

@@ -185,7 +185,7 @@ end)
 
 test('doc', function()
    assertEq([[
-function [Fn@lib/metaty/metaty.lua:11]
+function [Fn@lib/metaty/metaty.lua:10]
   isEnv"MY_VAR" -> boolean (environment variable)
     true: 'true' '1'    false: 'false' '0' '']],
 M.help(M.isEnv))
