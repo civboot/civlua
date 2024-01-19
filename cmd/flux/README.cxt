@@ -1,0 +1,17 @@
+[{h1}flux: simple change management software]
+
+flux is change management similar to git except for a whole project. It supports
+not only tracking files but also issues, discussions, chat, etc all unified
+under the "thread" data model. It supports both the command line and (through
+flux-web (future) which uses [@pearid]) a web frontend. It is part of the
+[@Civboot] tech stack which aims to create a self-building and understandable
+tech stack.
+
+flux is written entirely in Lua and the total lines of code required to
+build it is very minimal (~3000 LoC for all Lua code, Lua itself is ~15,000
+lines of C).
+
+[*This project is WIP and not yet finished]
+
+[{!: href=http://civboot.org}Civboot]
+[{!: href=https://github.com/civboot/pearid}pearid]

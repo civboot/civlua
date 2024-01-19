@@ -117,6 +117,7 @@ local function invalid(msg)
 end
 
 local function checkHelp(sh, args)
+  print('?? help', sh.help, args.help)
   if sh.help and args.help == true then
     print(sh.help);
     if sh.subs then
@@ -130,23 +131,20 @@ local function checkHelp(sh, args)
 end
 
 local function shimcall(sh)
-  local args = M.parse(arg)
-  ::restart::
+  local args = M.parse(_G.arg)
+  ::loop::
+  print('?? sh', tostring(sh), args[1], sh.help)
   if sh.exe then
     checkHelp(sh, args)
-    sh.exe(args, true)
-  else
-    if not args[1] then
-      checkHelp(sh, args)
-      invalid'Error: must specify a subcommand.'
-    end
-    sh = sh.subs[args[1]]
-    if not sh then invalid(sfmt(
-      'Error: unknown subcommand %q', args[1]
-    ))end
-    table.remove(args, 1)
-    goto restart
+    return sh.exe(args, true)
   end
+  local sub = args[1] and sh.subs[args[1]]; if not sub then
+    print('?? missing sub', sh)
+    checkHelp(sh, args)
+    invalid('Missing or unknown subcommand, use --help for usage')
+  end
+  sh = sub; table.remove(args, 1)
+  goto loop
 end
 
 return setmetatable(M, {

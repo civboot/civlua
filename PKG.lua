@@ -21,4 +21,5 @@ dirs    = {
   'cmd/ele',
   'cmd/ff',
   'cmd/pkgrock',
+  'cmd/flux',
 }
