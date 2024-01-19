@@ -24,11 +24,11 @@ This just squashes and trims the end.]]
 -- Single Line Diff
 -- This type is good for displaying differences to a user.
 M.Diff = mty.record'vcds.Diff'
-  :field('b', 'number'):fdoc"base: orig file.  '+'=added"
-  :field('c', 'number'):fdoc"change: new file. '-'=removed"
+  :field'b':fdoc"base: orig file.  '+'=added"
+  :field'c':fdoc"change: new file. '-'=removed"
   :field('text', 'string')
   :new(function(ty_, b, c, text)
-    return mty.new(ty_, {b=b, c=c, text=assert(text)})
+    return mty.new(ty_, {b=b, c=c, text=text})
   end)
 
 M.Diff.__tostring = function(d)

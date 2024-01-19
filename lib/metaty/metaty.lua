@@ -128,11 +128,8 @@ local NATIVE_TY_GET = {
   thread       = function()  return 'thread'   end,
 }
 
-M.checkNative = function(_chk, anchor, reqTy, giveTy)
-  return reqTy == giveTy
-end
 local NATIVE_TY_CHECK = {}; for k in pairs(NATIVE_TY_GET) do
-  NATIVE_TY_CHECK[k] = M.checkNative
+  NATIVE_TY_CHECK[k] = M.nativeEq
 end; NATIVE_TY_CHECK['nil'] = nil
 
 local NATIVE_TY_EQ = {
@@ -316,8 +313,8 @@ M.newindexChecked = function(self, k, v)
   if not fields[k] then M.errorf(
     '%s does not have field %s', M.tyName(mt), k
   )end
-  if not M.tyCheck(fields[k], M.ty(v), mt.__maybes[k]) then
-    M.errorf('%s: %s', M.tyName(mt), M.tyCheckMsg(fields[k], ty(v)))
+  if not M.tyCheck(fields[k], M.ty(v), mt[k] ~= nil or mt.__maybes[k]) then
+    M.errorf('[%s.%s] %s', M.tyName(mt), k, M.tyCheckMsg(fields[k], M.ty(v)))
   end
   rawset(self, k, v)
 end
@@ -325,17 +322,19 @@ end
 -- These are the default constructor functions
 M.newUnchecked = function(ty_, t) return setmetatable(t or {}, ty_) end
 
-M.newChecked   = function(ty_, t)
+M.newChecked = function(ty_, t)
   t = t or {}
   local fields, maybes = ty_.__fields, ty_.__maybes
   for field, v in pairs(t) do
     if type(field) == 'number' then goto continue end
     M.assertf(fields[field], 'unknown field: %s', field)
-    local vTy = M.ty(v)
-    if not M.tyCheck(fields[field], vTy, maybes[field]) then
+    ::continue::
+  end
+  for _, field in ipairs(fields) do
+    local v = t[field]; local vTy = M.ty(v)
+    if not M.tyCheck(fields[field], vTy, ty_[field] ~= nil or maybes[field]) then
       M.errorf('[%s] %s', field, M.tyCheckMsg(fields[field], vTy))
     end
-    ::continue::
   end
   return setmetatable(t, ty_)
 end
@@ -481,7 +480,7 @@ M.FmtSet
   :field('num',     'string',  '%i')  :fdoc'number format'
   :field('str',     'string',  '%q')  :fdoc'stirng format'
   :field('raw',     'boolean', false) :fdoc'ignore __fmt/__tostring'
-  :field('tblFmt',  'function')
+  :fieldMaybe('tblFmt',  'function')
   :fieldMaybe'data' -- arbitrary data, use carefully!
 M.FmtSet.__missing = M._recordMissing
 
@@ -500,6 +499,7 @@ end)
   :field('level', 'number', 0)
   :field('set', M.FmtSet, M.DEFAULT_FMT_SET):fdoc'main settings'
   :fieldMaybe'file':fdoc'write directly to a file'
+
 M.Fmt.__len = function(f) return f.file and 0 or rawlen(f) end
 M.Fmt.__newindex = function(f, k, v)
   if f.file then

@@ -93,6 +93,17 @@ test('tyName', function()
            M._isTyErrMsg(true))
 end)
 
+test('Fmt', function()
+  -- Fmt is required for debugging. Test thouroughly
+  local f, m = Fmt.__fields, Fmt.__maybes
+  assert(f.done  == 'table')
+  assert(f.level == 'number')
+  assert(f.set   == FmtSet)
+  assert(f.file  == M.Any)
+  assert(m.file  == true)
+  FmtSet{}; Fmt{}
+end)
+
 test('record', function()
   local A = record('A')
     :field('a2', 'number')
@@ -126,7 +137,9 @@ test('record', function()
     function() local x = a.a3 end)
   assertErrorPat('A does not have field a3',
     function() a.a3 = 7 end)
-
+  assertErrorPat(
+    '[a2] Type error: require=number given=nil',
+    function() A{} end, true)
 end)
 
 test('record maybe', function()

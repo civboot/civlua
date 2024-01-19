@@ -67,7 +67,7 @@ List arguments:
 content pattern/s which searches inside of files and prints the results.
     Any match will include the file/line in the output in order.
     sub will use the first match found.]]
-  :fieldMaybe('dpat', 'string'):fdoc[[
+  :fieldMaybe'dpat':fdoc[[
 directory name patterns to include, can specify multiple times.
     ANY matches will include the directory.]]
   :fieldMaybe('excl', 'table'):fdoc[[
