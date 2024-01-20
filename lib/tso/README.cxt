@@ -11,8 +11,7 @@ TSO is a concise and expressive data serialization format. If JSON and CSV had
 a baby then their prodigal child would be something like TSO.
 
 Unlike CSV, TSO supports nested records and has an actual spec. Unlike JSON,
-TSO is concise and large lists of records (one of the most common kinds of data
-that needs to be serialized) can be made very readable.
+TSO is concise and large lists of records can be made very readable.
 
 Features: [+
 * Serialize nested arbitrary data
@@ -48,8 +47,8 @@ specifies the type, all map keys are strings.
 .name	"John	.birthday	"1999-10-31
 ]##
 
-[$#] is a header specification which extracts specific keys for the first
-columns:
+[$!] specifies a header spec and [$#] uses it The header extracts the keys for
+the first columns specified:
 
 [##
 -- JSON: [
@@ -58,7 +57,8 @@ columns:
 -- ]
 
 -- TSO
-#"id	"name	"birthday
+!person	"id	"name	"birthday
+#person
 1	"John	1999-10-31
 2	"Maxine	1998-12-25
 ]##
@@ -81,11 +81,11 @@ Unlike CSV, TSO supports nested data with named headers:
 --   ]
 -- ]
 
--- note: headers are specified first, then cleared, then used by name
-#note	"date	"text
-#user	"name	"birthday
-#account	"userId	"ammount	"kind
-#
+-- '!' creates spec definitions, which are used for headers (row specs) 
+-- and table specs.
+!note	"date	"text
+!user	"name	"birthday
+!account	"userId	"ammount	"kind
 
 .users	{
   #user
@@ -186,29 +186,40 @@ the behavior of tables is documented below.
 
   It is available mostly so that arbitrary data can be represented.
 
-+ [$#] | field header
++ [$!] | spec definition: define a header/table spec
 
-  This specifies the fields for the list of tables.
+  This allows TSO to be highly concise both for rows of data (using [$#header])
+  and single tables (using [$:single]) (unlike JSON which requires repeating
+  the schema).
+
   [##
-  -- header named "person" with fields "name" and "age"
-  #person	"name	"age
+  -- spec named "person" with fields "name" and "age"
+  !person	"name	"age
+  ]##
+
+  > Note: spec definitions must come before any data
+
+  TSO does not [/require] that the specs are part of the document (they can be
+  provided externally in the library's API). However, it is recommended for
+  MOST cases as it makes the document self-documenting as well as ensuring that
+  the specs don't drift. If your application has some other rock-solid
+  mechanism of ensuring the types don't drift (i.e. a version attribute you
+  ensure) then you may ommit spec definitions.
+
+
++ [$#] | header spec: specify the spec for rows
+
+  [##
+  #person	-- previously defined spec
   "Rob Clark	33
   "Jane Gelerard	27
   ]##
 
-  The header can be either named or unnamed. A header is named (like above)via
-  it's first value being the name, which must start with anything besides [$"].
-
-+ [$:] | field spec
-
-  Specifies the "fields" for a single table by name, which must have been
-  previously defined by a header (often at root level)
++ [$:] | single spec: specify the spec for a single table.
 
   [##
-  -- JSON: [0, {"field1": 1, "field2": 2}, 3]
-  #ty1	"field1	"field2	-- specify ty1 spec
-  #			-- clear headers
-  0	{:ty1	1	2	}	3
+  -- JSON: [0, {"name": "Joe", "age": 22}, 3]
+  0	{:person	"Joe	22	}	3
   ]##
 
   This is kind of like (and can be used for) "type tagging" and is useful when
@@ -221,26 +232,14 @@ Tables can contain both indexed values (like a traditional list) as well
 as string-keyed values (like a map). This is more similar to a
 serialization format like XML which contain both attributes and data.
 
-[" [*Recommendation:] this is the native behavior of Lua tables. In
+[" [*Recommendation]: this is the native behavior of Lua tables. In
    python or javascript you would want to key off the list vs index
    depending on the type of the key. In compiled languages, just offer
    different [$get] methods.
 ]
 
-[{:h2}Special Keys]
-
-The following are reserved keys for the table. Serializing a table with these
-keys will result in the specified behavior. Deserializing that table will
-result in the specified field being set.
-
-[{table}
-+ Key | Description
-+ [$__spec]    | field specification table.
-
-  This means that the first N indexes use the keys specified.
-
-+ [$__spech] | specifies the field specification for the "rows" (table items
-  in the list)
+[" [*Note]: Because TSO only allows string keys there is no conflict between languages
+   languages with different starting indexes.
 ]
 
 [{:h2}Extensions]
@@ -262,9 +261,9 @@ relatively straightforward for a library: [+
   ]##
 * header/field specs can now be used as needed for encoding the data
   [##
-  #0	"x	"y	-- Point: 2 coordinates
-  #1	"start	"end	-- Line: 2 Points
-  #2	"left	"right	-- Quad: 2 Lines
+  :0	"x	"y	-- Point: 2 coordinates
+  :1	"start	"end	-- Line: 2 Points
+  :2	"left	"right	-- Quad: 2 Lines
   #2	-- each row is a Quad
   {:1	{:0	10	10}	{:0	10	20}}
   +{:1	{:0	20	10}	{:0	20	20}}

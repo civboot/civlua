@@ -1,3 +1,5 @@
+-- FIXME: use "define" instead of "spec" for defining
+--        types.
 local pkg = require'pkg'
 local mty = pkg'metaty'
 local ds  = pkg'ds'; local lines = ds.lines
@@ -10,18 +12,33 @@ local function onlyNonTable(t)
   return type(fst) ~= 'table' and fst or nil
 end
 
-local function extractKeys(t)
+local function defaultSpecs(specs)
+  specs = specs or {}
+  if not getmetatable(specs) then
+    specs = ds.BiMap(specs)
+  end
+  return specs
+end
+
+local function getSpec(t)
+  local mt = getmetatable(t)
+  if mt == 'table' then return nil end -- pretend native table
+  return mt
+end
+
+local function extractKeys(t, skip)
   local keys, len = {}, #t
   for k, v in pairs(t) do
     local kty = type(k)
     if kty == 'number' then mty.assertf(
-      k <= len, 'nil in list at %s (len=%s)', k, len
+      k <= len, 'nil in list before %s (len=%s)', k, len
     )else
       mty.assertf(kty == 'string',
         'only string keys supported, got %s', kty)
-      push(keys, k)
+      if not skip[k] then push(keys, k) end
     end
   end
+  table.sort(keys)
   return keys
 end
 
@@ -61,22 +78,24 @@ M.ATTR_ASSERTS = {
 M.Ser = mty.record'tso.Ser'
   :field'dat'    :fdoc'output lines'
   :field'attrs'
+  :field('specs', ds.BiMap):fdoc'bimap of name <--> type'
   :field'line'   :fdoc'current line'
   :field('level', 'number', -1)
   :field('r', 'number', 0) :field('c', 'number', 0)
   :field('ti', 'number', 1)
   :field('needSep',  'boolean', true)
   :field('enableAttrs', 'boolean', true)
-  :field'specs'
   :fieldMaybe'_header' -- current root header
+  :fieldMaybe('_hasRows', 'boolean')
 M.Ser:new(function(ty_, t)
   t.dat = t.dat or t[1] or {}; t[1] = nil
-  t.attrs = t.attrs or {}
-  t.line, t.specs = {}, {}
+  t.attrs, t.line = t.attrs or {}, {}
+  t.specs = defaultSpecs(t.specs)
   return mty.new(ty_, t)
 end)
 
 M.Ser.push = function(ser, s)
+  assert(type(s) == 'string')
   push(ser.line, s)
 end
 M.Ser.finishLine = function(ser)
@@ -97,108 +116,106 @@ M.Ser.nextValue = function(ser, skipCont)
   ser.needSep = true
 end
 
-local function tableHeader(ser, spec)
-  ser.level = ser.level + 1 -- header is for NEXT level
-  ser:finishLine(); ser.needSep = false
-  ser:nextValue(); ser.needSep = false; ser:push'#'
-  local name, written = spec.name, false
-  mty.pnt('?? tableHeader', name, spec)
-  if name then
-    ser:nextValue(); ser:push(name)
-    if ser.specs[name] then
-      written = true
-      mty.assertf(mty.eq(ser.specs[name], spec),
-        "different specs detected for %q", name)
-    else ser.specs[name] = spec end
-  end
-  if not written then for _, h in ipairs(spec) do
-    assert(type(h) == 'string', 'spec must be list of strings')
-    ser:string(h)
-  end end
-  ser.level = ser.level - 1
-  ser:finishLine(); ser.needSep = false
-end
-
-local function tableSpec(ser, name)
-  if type(name) ~= 'string' then mty.errorf(
-    'field spec name must be string: %s', type(name)
-  )end
-  local spec = mty.assertf(ser.specs[name], 'spec %q not defined', name)
-  ser:nextValue(); ser:push':'; ser:push(name)
-  return spec
-end
-
 M.Ser.tableEnter = function(ser) ser.level = ser.level + 1 end
-M.Ser.tableExit = function(ser)
-  ser.level = ser.level - 1
+M.Ser.tableExit  = function(ser) ser.level = ser.level - 1 end
+
+-- table "rows" contain tables, but are followed by non-tables
+M.Ser._tableCont = function(ser)
+  ser:finishLine()
+  ser:nextValue(true); ser:push'*'; ser.needSep = false;
 end
 
-local function rowValue(ser, v, header, l)
-  if type(v) == 'table' then ser:tableRow(v, header)
-  elseif header then mty.errorf(
-    'All rows must be tables: %q with header %s', v, mty.fmt(header)
-  )else
-    if l ~= #ser.dat then
-      ser:finishLine()
-      ser:nextValue(true); ser:push'*'; ser.needSep = false;
-      l = #ser.dat
-    end
+M.Ser.spec = function(ser, spec)
+  mty.assertf(not ser.specs[spec],
+    'spec %s already registered', spec)
+  mty.assertf(not ser.specs[spec.__name],
+    'different spec named %s already registered', spec.__name)
+  assert(not ser._hasRows, 'specs must come before rows')
+  ser:finishLine(); ser:nextValue(); ser:push'!' ser:push(spec.__name)
+  for _, k in ipairs(spec.__fields) do
+    mty.assertf(type(k) == 'string',
+      'all fields must be a string: %s', k)
+    ser:string(k)
+  end
+  ser:finishLine(); ser.specs[spec.__name] = spec
+end
+
+local function serHeader(s, spec)
+  local name = mty.assertf(s.specs[spec],
+    '%s not a registered spec', spec.__name)
+  s:nextValue(); s:push'#'; s:push(name)
+  s:finishLine()
+end
+M.Ser._spec   = function(s, spec)
+  local name = mty.assertf(s.specs[spec],
+    '%s not a registered spec', spec.__name)
+  s:nextValue(); s:push':'; s:push(name)
+end
+
+M.Ser._tableKeys = function(ser, t, keys, ti)
+  for _, k in ipairs(keys) do
+    ser:finishLine(); ser:nextValue(); ser:push'.'
+    ser.ti = ti; ser:_string(k);     ti = ti + 1
+    ser.ti = ti; l = ser:any(t[k]);  ti = ti + 1
+  end
+end
+
+-- serialize a row, i.e. table ended by newline
+-- header is the current spec, tracked by the parent.
+-- We return the header (possibly new)
+M.Ser.tableRow = function(ser, t, header)
+  ser:tableEnter(); ser:finishLine()
+  local ti, spec = 1, getSpec(t)
+  local specDone = spec and {} or ds.empty
+  if spec and (spec ~= header) then serHeader(ser, spec); header = spec end
+  if spec then for _, k in ipairs(spec.__fields) do -- serialize spec
+    local v = t[k]; mty.assertf(v ~= nil, 'missing spec key %s', k)
+    ser.ti = ti; ser:any(v); ti = ti + 1; specDone[k] = true
+  end end
+  for _, v in ipairs(t) do -- serialize list items
+    ser.ti = ti; ser:any(v); ti = ti + 1
+  end
+  ser:_tableKeys(t, extractKeys(t, specDone), ti)
+  ser:tableExit()
+  return header
+end
+
+local function rowValue(ser, v, l, header)
+  if type(v) == 'table' then header = ser:tableRow(v, header)
+  else
+    if l ~= #ser.dat then ser:_tableCont(); l = #ser.dat end
     ser:any(v)
   end
-  return l
+  return l, header
 end
 
-local function serTable(ser, t, spec, header, serValueFn)
-  mty.pntf('?? serTable spec=%s head=%s t=%s',
-    mty.fmt(spec), mty.fmt(header), mty.fmt(t))
-  local ti, l = 1, #ser.dat
-  local specDone = {}; if spec then for _, k in ipairs(spec) do
-    mty.assertf(not specDone[k], 'invalid spec: multiple %s', k)
-    local v = t[k]; mty.assertf(v ~= nil, 'missing spec key %s', k)
-    ser.ti = ti; serValueFn(ser, v, nil, l); ti = ti + 1
-    specDone[k] = true
-  end end
-  mty.pnt('?? specDone', specDone)
-  for i, v in ipairs(t) do
-    ser.ti = ti; l = serValueFn(ser, v, header, l); ti = ti + 1
-  end
-  local keys = extractKeys(t, len); table.sort(keys)
-  for _, k in ipairs(keys) do
-    if M.INVISIBLE_KEY[k] then -- skip
-    elseif specDone[k]    then -- skip
-    else
-      ser:finishLine()
-      ser:nextValue(); ser:push'.'
-      ser.ti = ti; ser:_string(k);     ti = ti + 1
-      ser.ti = ti; l = serValueFn(ser, t[k], header, l); ti = ti + 1
+M.Ser.table = function(ser, t)
+  ser:tableEnter();
+  ser:nextValue(); ser:push'{'; ser.needSep = false
+  local ti, spec, l, header = 1, getSpec(t), #ser.dat, nil
+  local specDone = spec and {} or ds.empty
+  if spec then
+    ser:_spec(spec)
+    for _, k in ipairs(spec.__fields) do -- serialize spec
+      local v = t[k]; mty.assertf(v ~= nil, 'missing spec key %s', k)
+      ser.ti = ti
+      l, header = rowValue(ser, v, l, header)
+      ti = ti + 1; specDone[k] = true
     end
   end
-  return l
-end
-
--- table bracketed (i.e. with explicit '{ ... }', can be rows)
-M.Ser.table = function(ser, t, header)
-  header = header or t[M.SPECH]; local spec = t[M.SPEC]
-  mty.assertf(not (spec and header), "both spec and header specified")
-  ser:tableEnter(); ser:nextValue(); ser:push'{'; ser.needSep = false
-  if header   then tableHeader(ser, header)
-  elseif spec then spec = tableSpec(ser, spec) end
-  local l = serTable(ser, t, spec, header, rowValue)
+  for _, v in ipairs(t) do -- serialize list items
+    ser.ti = ti
+    l, header = rowValue(ser, v, l, header)
+    ti = ti + 1
+  end
+  local keys = extractKeys(t, specDone)
+  if not ds.isEmpty(keys) then
+    if l ~= #ser.dat then ser:_tableCont(); l = #ser.dat end
+    ser:_tableKeys(t, keys, ti)
+  end
   ser:tableExit()
   if l == #ser.dat then ser:nextValue(true) else ser:finishLine() end
   ser:push'}'; ser.needSep = false
-end
-
--- a table row, i.e. a table ended with a newline
-M.Ser.tableRow = function(ser, t, header)
-  header = header or t[M.SPECH]; local spec = t[M.SPEC]
-  mty.assertf(not (spec and header), "both spec and header specified")
-  mty.pnt('tableRow', t, header)
-  ser:tableEnter(); ser:finishLine()
-  if spec then spec = tableSpec(ser, spec) end
-  serTable(ser, t, spec or header, nil, ser.any) -- header IS the spec
-  ser:tableExit()
-  ser:finishLine()
 end
 
 M.Ser['nil'] = function(ser) error'serializing nil is not permitted. Use none' end
@@ -260,12 +277,13 @@ M.Ser.any = function(ser, v)
   local fn = mty.assertf(M.SER_TY[ty], 'can not serialize type %s', ty)
   return fn(ser, v)
 end
-M.Ser.row  = function(ser, row, header)
+M.Ser.row = function(ser, row)
   assert((#ser.line == 0) and (ser.c == 0) and (ser.level == -1),
     "Ser:row/s must only be called directly at base level")
+  ser._hasRows = true
   mty.assertf(type(row) == 'table',
     'rows must be table of tables (index %s)', ri)
-  ser.ti = 1; ser:tableRow(row, header)
+  ser.ti = 1; ser._header = ser:tableRow(row, ser._header)
   ser:finishLine()
   assert(ser.level == -1, 'internal error: level not reset properly')
 end
@@ -290,13 +308,8 @@ M.Ser.attr = function(ser, key, value)
   ser.enableAttrs = nil
 end
 
-M.Ser.rows = function(ser, rows, header)
-  do local ty = type(rows)
-     mty.assertf(ty == 'table', 'rows is table[table], got %s', ty)
-  end
-  ser.needSep = true
-  if header then ser:header(header) end
-  for _, row in ipairs(rows) do ser:row(row, ser._header) end
+M.Ser.rows = function(ser, rows)
+  for _, row in ipairs(rows) do ser:row(row) end
 end
 
 ds.updateKeys(M.SER_TY, M.Ser, {
@@ -311,18 +324,18 @@ De: tso deserializer.
 ]](mty.record'tso.De')
   :field'dat':fdoc'input lines'
   :field'attrs'
+  :field('specs', ds.BiMap):fdoc'named specs'
   :fieldMaybe('line', 'string'):fdoc'current line'
   :field('l', 'number', 1) :field('c', 'number', 1)
   :field('level', 'number', -1)
   :fieldMaybe'header':fdoc'root header'
-  :field'specs':fdoc'named specs'
   :field('enableAttrs', 'boolean', true)
 M.De:new(function(ty_, t)
   t.dat = t.dat or t[1] or {}; t[1] = nil
   assert(t.dat, 'must provide input dat lines')
   t.attrs = t.attrs or {}
   t.line = t.dat[1]
-  t.specs = t.specs or {}
+  t.specs = defaultSpecs(t.specs)
   return mty.new(ty_, t)
 end)
 function M.De.errorf(d, ...)
@@ -348,14 +361,12 @@ end
 local function deStr(d)
   local s, c = {}, d.c
   while true do
-    mty.pntf("?? deStr line: %q", d.line:sub(d.c))
     local c1, c2 = d.line:find('[\t\\]', d.c)
     push(s, lines.sub(d.dat,
       d.l, c, d.l, (c2 and (c2 - 1)) or #d.line))
     if not c1 then -- no escape in line, look for continuation
       local nxt = d.dat[d.l + 1]
       local c2 = nxt and select(2, nxt:find"%s*'")
-      mty.pntf('?? deStr multiline %q %s', nxt, c2)
       if c2 then push(s, '\n'); d:nextLine(); c = c2 + 1; d.c = c
       else       d.c = #d.line + 1; break end
     else
@@ -376,6 +387,16 @@ local deHeaderName = function(d)
   if d.line:sub(d.c,d.c) ~= '"' then return deStr(d) end
 end
 
+local function deDefine(d)
+  assert(d.line:sub(d.c,d.c) == '!'); d.c = d.c + 1
+  local name = deStr(d); local fields = deTableUnbracketed(d)
+  d:nextLine()
+  -- TODO: store fields for assertion
+  mty.assertf(
+    d.specs[name],
+    'unrecognized spec %s', name)
+end
+
 local function deSpec(d)
   assert(d.line:sub(d.c,d.c) == ':'); d.c = d.c + 1
   local name = deStr(d)
@@ -384,42 +405,32 @@ end
 
 local deHeader = function(d)
   assert(d.line:sub(d.c,d.c) == '#'); d.c = d.c + 1
-  local check = true
-  d:toNext(); if d.c > #d.line then d:nextLine(); return end
-  local hname, header; if d.line:sub(d.c,d.c) ~= '"' then hname = deStr(d) end
-  if hname then
-    header = deTableUnbracketed(d)
-    header.name = hname
-    if d.specs[hname] then
-      check = false
-      mty.assertf((#header == 0) or mty.eq(header, d.specs[hname]),
-        "header %q has different values:\nprev: %s\n new: %s",
-        hname, mty.fmt(d.specs[name]), mty.fmt(header))
-      header = d.specs[hname]
-    else d.specs[hname] = header end
-  else header = deTableUnbracketed(d) end
-  if check then for _, h in ipairs(header) do
-    d:assertf(type(h) == 'string', 'header must be only strings')
-  end end
-  d:nextLine()
-  return header
+  local name = deStr(d)
+  return mty.assertf(d.specs[name], 'header spec %s not registered', name)
 end
 
 local function deTableValue(d, t, i, ch, spec)
-  local v1, v2 = d:getFn(ch)(d); if v2 then
-    d:assertf(not spec or i > #spec, 'key %q found before end of header/spec', v1)
+  local v1, v2 = d:getFn(ch)(d)
+  assert(v1 ~= nil, 'invalid nil returned')
+  if v2 then
+    d:assertf(not spec or i > #spec.__fields,
+      'key %q found before end of header/spec', v1)
     t[v1] = v2
   else d:assertf(v1 ~= nil, 'invalid nil returned')
-    if spec and i <= #spec then t[spec[i]] = v1
-    else                        push(t, v1) end
+    if spec and i <= #spec.__fields then t[spec.__fields[i]] = v1
+    else                                 push(t, v1) end
   end
+end
+
+local function deSpec(t, spec)
+  if not spec then return t end
+  return spec(t)
 end
 
 local function deTableBracketed(d)
   assert(d.line:sub(d.c,d.c) == '{'); d.c = d.c + 1
   local t, isRow = {}, false
   local ti, header, spec = 0, nil, nil
-  assert(not (header and spec), "cannot specify both header and spec")
   ::loop::
   d:toNext(); d:assertf(d.line, "reached EOF, expected closing '}'")
   if d.c > #d.line then
@@ -427,17 +438,10 @@ local function deTableBracketed(d)
     goto loop
   end
   local ch = d.line:sub(d.c,d.c)
-  if ch == '}' then d.c = d.c + 1; goto done end
-  if ch == '#' then
-    d:assertf(ti == 0 and not (header or spec),
-      'only single header/spec at top allowed in nested rows')
-    header = d:assertf(deHeader(d), 'nested empty header not permitted')
-    t[M.SPECH] = header
-    goto loop
-  end
+  if ch == '}' then d.c = d.c + 1;        goto done end
+  if ch == '#' then header = deHeader(d); goto loop end
   if ch == ':' then
-    d:assertf(ti == 0 and not (header or spec),
-      'only single header/spec at top allowed in nested rows')
+    d:assertf(ti == 0 and not spec, 'spec can only appear once at start')
     spec = deSpec(d)
     goto loop
   end
@@ -446,30 +450,29 @@ local function deTableBracketed(d)
   else deTableValue(d, t, ti, ch, spec) end
   ti = ti + 1
   goto loop; ::done::
-  return t
+  return deSpec(t, spec)
 end
 
-deTableUnbracketed = function(d, header)
-  local t, i, ch, spec = {}, 1, nil, nil
+deTableUnbracketed = function(d, spec)
+  local t, i, ch = {}, 1, nil
   ::loop::
   d:toNext()
   if not d.line or d.c > #d.line then goto done end
   ch = d.line:sub(d.c,d.c)
   if ch == ':' then
     d:assertf(i == 1, 'header/spec must be at start of table')
-    d:assertf(not (header and spec), 'only single header/spec allowed')
-    spec = deSpec(d); t[M.SPEC] = spec.name
+    spec = deSpec(d)
     goto loop
   end
   if ch == '}' then
     if d.c == 1 then goto done end
     d:errorf("found unexpected '}'. Did you mean to use a newline?")
   end
-  deTableValue(d, t, i, ch, header or spec)
+  deTableValue(d, t, i, ch, spec)
   i = i + 1
   goto loop;
   ::done::
-  return t
+  return deSpec(t, spec)
 end
 
 local DE_CH = {
@@ -480,7 +483,8 @@ local DE_CH = {
   ['^'] = function(d) error'not impl' end, -- float
   ['"'] = function(d)
     assert(d.line:sub(d.c,d.c) == '"'); d.c = d.c + 1
-    return deStr(d)
+    local s = deStr(d)
+    return s
   end,
   ['.'] = function(d) -- key/value
     assert(d.line:sub(d.c,d.c) == '.'); d.c = d.c + 1
@@ -510,14 +514,11 @@ end
 M.De.skipWs = function(d)
   while true do
     if not d.line then break end
-    while #d.line == 0 do
-      d:nextLine(); if not d.line then d:pnt'EOF'; return end
-    end
+    while #d.line == 0 do d:nextLine() end
     if d.c > #d.line and d.l < #d.dat then -- if EOL check for '+' on next line
       local nxt = d.dat[d.l + 1]
       local c1,c2 = nxt:find'%s*%+'
       if c2 then
-        d:pnt'found + cont'
         d:nextLine(); d.c = c2 + 1
       else break end
     else
@@ -560,6 +561,7 @@ M.De.__call = function(d)
   local ch = d.line and d.line:sub(d.c, d.c)
   if ch == '#' then d.header = deHeader(d); goto loop end
   if ch == '@' then DE_CH['@'](d);          goto loop end
+  if ch == '!' then deDefine(d);            goto loop end
   local t = deTableUnbracketed(d, d.header)
   return (next(t) ~= nil) and t or nil
 end

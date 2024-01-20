@@ -220,10 +220,8 @@ M.ty = M.doc[[Get the type of the value.
   other: type(v)]]
 (function(obj) return NATIVE_TY_GET[type(obj)](obj) end)
 
--- Ultra-simple index function
-M.indexUnchecked = function(self, k)
-  return getmetatable(self)[k]
-end
+-- Ultra-simple index function (for methods)
+M.indexUnchecked = function(self, k) return getmetatable(self)[k] end
 
 -- Check returns the constrained type or nil if the types don't check.
 --

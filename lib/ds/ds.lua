@@ -431,7 +431,7 @@ M.eval = function(chunk, env, name) -- Note: not typed
 end
 
 ---------------------
--- Sentinal, none type and bool()
+-- Sentinal, none type, bool() and empty table
 
 local _si=function() error('invalid operation on sentinel', 2) end
 M.newSentinel = mty.doc[[newSentinel(name, ty_, metatable)
@@ -461,6 +461,12 @@ mty.addNativeTy(M.none, {doc=noneDoc})
 
 M.bool = mty.doc[[convert to boolean (none aware)]]
 (function(v) return not rawequal(M.none, v) and v and true or false end)
+
+-- An immutable empty table
+M.empty = setmetatable({}, {
+  __newindex = function() error('mutate ds.empty', 2) end,
+  __metatable = 'table',
+})
 
 ---------------------
 -- imm(myTy) and Imm{...} table
@@ -712,6 +718,9 @@ M.LL.popBack = function(self)
   return o.v
 end
 
+---------------------
+-- Binary Tree
+
 M.bt = mty.docTy({}, [[
 ds.bt: indexed table as Binary Tree.
 These functions treat an indexed table as a binary tree
@@ -723,6 +732,9 @@ function M.bt.parent(t, i)  return t[i // 2]    end
 function M.bt.lefti(t, i)   return   i * 2      end
 function M.bt.righti(t, i)  return   i * 2 + 1  end
 function M.bt.parenti(t, i) return   i // 2     end
+
+---------------------
+-- Directed Acyclic Graph
 
 M.dag = mty.docTy({}, "Functions for working with directed acyclic graphs.")
 
@@ -779,5 +791,30 @@ Given a depsMap return missing deps (items in a deps with no name).
   end
   return missing
 end)
+
+---------------------
+-- Bidirectional Map
+-- maps both key -> value and value -> key
+-- must use `:remove` to handle deletions
+--
+-- Note that pairs() will return both directions in
+-- an unspecified order
+M.BiMap = mty.record'BiMap'
+:new(function(ty_, t)
+  local keys = {}; for k, v in pairs(t) do
+    if not t[v] then add(keys, k) end
+  end
+  for _, k in pairs(keys) do t[t[k]] = k end
+  return mty.newUnchecked(ty_, t)
+end)
+M.BiMap.__index = mty.indexUnchecked
+M.BiMap.__newindex = function(t, k, v)
+  mty.pnt('?? BiMap newindex', k, v)
+  rawset(t, k, v); rawset(t, v, k)
+end
+M.BiMap.__fmt = nil
+M.BiMap.remove = function(t, k)
+  local v = t[k]; t[k] = nil; t[v] = nil
+end
 
 return M

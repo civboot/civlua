@@ -330,6 +330,25 @@ test('dag', function()
   assertEq({'d', 'c', 'b', 'a'}, M.dag.sort(childrenMap))
 end)
 
+test('bimap', function()
+  local bm = M.BiMap{'one', 'two'}
+  assertEq(bm[1], 'one');   assertEq(bm.one, 1)
+  assertEq(bm[2], 'two');   assertEq(bm.two, 2)
+  bm[3] = 'three'
+  assertEq(bm[3], 'three'); assertEq(bm.three, 3)
+  assertEq(
+    'BiMap{"one","two","three"'
+    ..' :: one=1 three=3 two=2}',
+    mty.fmt(bm))
+
+  local bm = M.BiMap{a='A'}
+  assertEq(bm.a, 'A'); assertEq(bm.A, 'a')
+  bm.b = 'B'
+  assertEq(bm.b, 'B'); assertEq(bm.B, 'b')
+  assertEq(
+    'BiMap{A="a" B="b" a="A" b="B"}', mty.fmt(bm))
+end)
+
 test('LinesFile_small', function()
   assertEq(5, df.readLen'testdata/small.txt')
   local f = io.open('testdata/small.txt')
