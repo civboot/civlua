@@ -17,8 +17,9 @@ M.isWithin = function(v, min, max)
 end
 M.min = math.min -- TODO: remove these
 M.max = math.max
-M.lt = function(a, b) return a < b end
-M.gt = function(a, b) return a > b end
+M.lt  = function(a, b) return a < b end
+M.gt  = function(a, b) return a > b end
+M.lte = function(a, b) return a <= b end
 M.bound = function(v, min, max)
   return ((v>max) and max) or ((v<min) and min) or v
 end
@@ -717,6 +718,35 @@ M.LL.popBack = function(self)
                      else self.front = nil end
   return o.v
 end
+
+---------------------
+-- Binary Search
+
+local function _bs(t, v, cmp, si, ei)
+  if ei <= si + 1 then -- cannot narrow further
+    return cmp(t[ei], v) and ei
+        or cmp(t[si], v) and si or (si - 1)
+  end
+  local mi = (si + ei) // 2
+  if cmp(t[mi], v) then return _bs(t, v, cmp, mi, ei)
+  else                  return _bs(t, v, cmp, si, mi - 1) end
+end
+
+M.binarySearch = mty.doc[[
+binarySearch(t, v, cmp, si, ei) -> i
+  cmp = ds.lte by default
+  si = start index, default=1
+  ei = end index,   default=#t
+
+Search the sorted table, return i such that:
+* cmp(t[i], v) returns true  for indexes <= i
+* cmp(t[i], v) returns false for indexes >  i
+
+If you want a value perfectly equal then check equality
+on the resulting index.
+]](function(t, v, cmp, si, ei)
+  return _bs(t, v, cmp or M.lte, si or 1, ei or #t)
+end)
 
 ---------------------
 -- Binary Tree

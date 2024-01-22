@@ -198,6 +198,16 @@ test('LL', function()
   assertEq(ll.front.nxt, ll.back)
 end)
 
+test('binary-search', function()
+  local bs = M.binarySearch
+  local t = {1, 5, 8, 10, 12, 33}
+  assertEq(0,   bs(t, -1))
+  assertEq(1,   bs(t, 1))  assertEq(1,   bs(t, 4))
+  assertEq(2,   bs(t, 5))  assertEq(2,   bs(t, 7))
+  assertEq(5,   bs(t, 12)) assertEq(5,   bs(t, 32))
+  assertEq(6,   bs(t, 33)) assertEq(6,   bs(t, 1024))
+end)
+
 test('time', function()
   local N = Duration.NANO
   local d = Duration(3, 500)

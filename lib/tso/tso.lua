@@ -1,5 +1,6 @@
--- FIXME: use "define" instead of "spec" for defining
---        types.
+-- tso: tab separated objects
+-- Main classes: Ser (serializer), De (deserializer)
+
 local pkg = require'pkg'
 local mty = pkg'metaty'
 local ds  = pkg'ds'; local lines = ds.lines
