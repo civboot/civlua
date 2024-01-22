@@ -130,7 +130,7 @@ the behavior of tables is documented below.
   lua [$ds.none], python [$None], C/java/etc [$null]
 
 + [$t] [$f] | boolean true and false
-+ [$$] or [$0-9] | integer parsed using (base = attr [$ibase])
++ [$$] or [$(-)0-9] | integer parsed using (base = attr [$ibase])
 + [$^] | floating point parsed using (base = attr [$fbase])
 + [$"] | string (binary data)
 

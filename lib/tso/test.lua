@@ -24,24 +24,19 @@ local function assertRow(expected, row)
   assertEq(nil, de())
 end
 local function assertRows(expected, rows, specs, only)
-  local ser, de, specMap
-  if specs then specMap = {}
-    for _, s in ipairs(specs) do specMap[s.__name] = s end
-  end
+  local ser, de
   if not only or only == 'ser' then
     ser = M.Ser{}
     if specs then for _, spec in ipairs(specs) do
-      ser:spec(spec)
+      ser:define(spec)
     end end
     mty.pnt('?? test specs', specs, ser.specs)
     ser:rows(rows); push(ser.dat, '')
     assertEq(expected, l2str(ser.dat))
-    specs = ser.specs
   end
 
   if not only or only == 'de' then
-    mty.pnt('?? test de specs', specs, specMap)
-    de = M.De{ds.lines(expected), specs=specMap}
+    de = M.De{ds.lines(expected), specs=specs}
     local resRows = {}; for r in de do push(resRows, r) end
     assertEq(rows, resRows)
   end
@@ -52,8 +47,10 @@ test('step_by_step', function()
   local ser = M.Ser{dat=out or {}}
   local expected = '2\t3\t"hi there\t5'
   ser:any(2); ser:any(3); ser:any'hi there'; ser:any(5)
-  ser:finishLine()
+  ser:_finishLine()
   assertEq(expected, l2str(ser.dat))
+  print('?? expected')
+  print(expected)
   assertRow(expected..'\n', {2, 3, 'hi there', 5})
 
   local expected = [[
@@ -61,10 +58,11 @@ test('step_by_step', function()
 ]]
   local ser = M.Ser{dat=out or {}}
   ser:any'table'; ser:table{1, 2}
-  ser:finishLine(); push(ser.dat, '')
+  ser:_finishLine(); push(ser.dat, '')
   assertEq(expected, l2str(ser.dat))
   assertRow(expected, {'table', {1, 2}})
 
+local comments = '; some line\n; comments\n'
   local expected = [[
 "nested	{
   1	2
@@ -72,10 +70,11 @@ test('step_by_step', function()
 }5	6
 ]]
   local ser = M.Ser{dat=out or {}}
+  ser:comment'some line\ncomments'
   local row = {'nested', {{1, 2}, {3, 4}}, 5, 6}
-  ser:tableRow(row)
-  ser:finishLine(); push(ser.dat, '')
-  assertEq(expected, l2str(ser.dat))
+  ser:_tableRow(row)
+  ser:_finishLine(); push(ser.dat, '')
+  assertEq(comments..expected, l2str(ser.dat))
   assertRow(expected, row)
 end)
 
@@ -254,14 +253,14 @@ end)
 
 test('comment', function()
   assertRows([[
-!Cd	"c	"d	-- used
+!Cd	"c	"d	; used
 #Cd
-1	2	    -- just a comment
-"three	"four	--another comment
+1	2	    ; just a comment
+"three	"four	;another comment
 
 
--- above and below, empty lines
---
+; above and below, empty lines
+;
 
 
 
@@ -284,7 +283,7 @@ $10	$20	$30
   local ser = M.Ser{}
   ser:attr('name', 'testname')
   ser:attr('doc', 'the doc')
-  ser:spec(Abc)
+  ser:define(Abc)
   ser:row(Abc{a=10,   b=20,   c=30})
   ser:attr('ibase', 16)
   ser:row(Abc{a=0x10, b=0x20, c=0x30})
