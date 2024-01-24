@@ -1,11 +1,19 @@
--- tso: tab separated objects
--- Main classes: Ser (serializer), De (deserializer)
+local DOC = [[
+TSO: Tab Separated Objects
+
+see: Ser (serializer)
+     De (deserializer)
+
+README has in-depth documentation.
+]]
 
 local pkg = require'pkg'
 local mty = pkg'metaty'
 local ds  = pkg'ds'; local lines = ds.lines
 local concat, push, sfmt = table.concat, table.insert, string.format
 local byte, char = string.byte, string.char
+
+local M = mty.docTy({}, DOC)
 
 local function defaultSpecs(specs)
   if specs and mty.ty(specs) ~= 'table' then
@@ -40,12 +48,6 @@ local function extractKeys(t, skip)
   table.sort(keys)
   return keys
 end
-
-local M = mty.docTy({}, [[
-TSO: Tab Separated Objects
-
-See README for in-depth documentation.
-]])
 
 local escPat = '[\t\n\\]'
 local INF, NEG_INF = 1/0, -1/0
@@ -346,7 +348,10 @@ end)
 function M.De._errorf(d, ...)
   error(sfmt('ERROR %s.%s: %s', d._l, d._c, sfmt(...)), 2)
 end
-function M.De._assertf(d, v, ...) if not v then d:_errorf(...) end; return v end
+function M.De._assertf(d, v, ...)
+  if not v then d:_errorf(...) end
+  return v
+end
 function M.De.pnt(d, ...)
   mty.pnt(sfmt('De.pntf %s.%s:', d._l, d._c), ...)
 end
@@ -396,16 +401,18 @@ local function deDefine(d)
   assert(d._line:sub(d._c,d._c) == '!'); d._c = d._c + 1
   local name = deStr(d); local fields = deTableUnbracketed(d)
   d:_nextLine()
-  -- TODO: store fields for assertion
-  mty.assertf(
-    d.specs[name],
-    'unrecognized spec %s', name)
+  if not d.specs[name] then
+    local spec = mty.record('!'..name); getmetatable(spec).tso = true
+    for _, f in ipairs(fields) do spec:field(f) end
+    mty.pnt('?? setting spec', name, spec)
+    d.specs[name] = spec
+  end
 end
 
 local function deSpec(d)
   assert(d._line:sub(d._c,d._c) == ':'); d._c = d._c + 1
-  local name = deStr(d)
-  return d:_assertf(d.specs[name], 'field spec %q not specified', name)
+  local name = deStr(d); local spec = d.specs[name]
+  return d:_assertf(spec, 'field spec %q not specified', name)
 end
 
 local deHeader = function(d)
@@ -422,12 +429,15 @@ local function deTableValue(d, t, i, ch, spec)
       'key %q found before end of header/spec', v1)
     t[v1] = v2
   else d:_assertf(v1 ~= nil, 'invalid nil returned')
+    if spec then
+      mty.pnt('?? deTableValue', i, spec, spec.__fields)
+    end
     if spec and i <= #spec.__fields then t[spec.__fields[i]] = v1
     else                                 push(t, v1) end
   end
 end
 
-local function deSpec(t, spec)
+local function applySpec(t, spec)
   if not spec then return t end
   return spec(t)
 end
@@ -443,6 +453,7 @@ local function deTableBracketed(d)
     goto loop
   end
   local ch = d._line:sub(d._c,d._c)
+  mty.pnt("?? deTableBracketed", ti, ch, spec)
   if ch == '}' then d._c = d._c + 1;        goto done end
   if ch == '#' then header = deHeader(d); goto loop end
   if ch == ':' then
@@ -451,11 +462,11 @@ local function deTableBracketed(d)
     goto loop
   end
   if ch == '*' then isRow = false; d._c = d._c + 1; goto loop end
+  ti = ti + 1
   if isRow then push(t, deTableUnbracketed(d, header)); isRow = false
   else deTableValue(d, t, ti, ch, spec) end
-  ti = ti + 1
   goto loop; ::done::
-  return deSpec(t, spec)
+  return applySpec(t, spec)
 end
 
 deTableUnbracketed = function(d, spec)
@@ -477,7 +488,7 @@ deTableUnbracketed = function(d, spec)
   i = i + 1
   goto loop;
   ::done::
-  return deSpec(t, spec)
+  return applySpec(t, spec)
 end
 
 local DE_CH = {
@@ -568,5 +579,11 @@ M.De.__call = function(d)
   local t = deTableUnbracketed(d, d._header)
   return (next(t) ~= nil) and t or nil
 end
+
+M.De.all = mty.doc[[Deserialize all (remaining) rows as a table.]]
+(function(d)
+  local t = {}; for r in d do push(t, r) end
+  return t
+end)
 
 return M

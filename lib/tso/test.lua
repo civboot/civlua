@@ -37,8 +37,7 @@ local function assertRows(expected, rows, specs, only)
 
   if not only or only == 'de' then
     de = M.De{ds.lines(expected), specs=specs}
-    local resRows = {}; for r in de do push(resRows, r) end
-    assertEq(rows, resRows)
+    assertEq(rows, de:all())
   end
   return ser, de
 end
@@ -270,6 +269,30 @@ test('comment', function()
 }, {Cd}, 'de')
 end)
 
+test('autospec', function()
+  local de = M.De{ds.lines[[
+  !0	"a	"b
+  !1	"c	"d
+  #0
+  1	2 3 4
+  "five	{:1	"six	"seven	}
+  ]]}
+  local res = de:all()
+  mty.pnt('?? de.specs', de.specs)
+  mty.pnt('?? res', res)
+  local t0 = assert(de.specs['0'])
+  local t1 = assert(de.specs['1'])
+  assertEq('!0', t0.__name)
+  assertEq({'a', 'b', a=mty.Any, b=mty.Any}, t0.__fields)
+  assertEq({
+    t0{a=1, b=2, 3, 4},
+    t0{a='five', b = t1{
+      c='six', d='seven',
+    }},
+  }, res)
+
+end)
+
 test('attrs', function()
   local expect = [[
 @name	"testname
@@ -291,11 +314,10 @@ $10	$20	$30
   assertEq(expect, l2str(ser.dat))
 
   local de = M.De{ds.lines(expect), specs={Abc=Abc}}
-  local result = {}; for r in de do push(result, r) end
   assertEq({
     Abc{a=10,   b=20,   c=30},
     Abc{a=0x10, b=0x20, c=0x30},
-  }, result)
+  }, de:all())
 end)
 
 test('multiline', function()
