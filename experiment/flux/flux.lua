@@ -96,29 +96,33 @@ User post. Is list of vcds.Change
 -------------------------
 -- Flux Operations
 
-M.openSer = function(path)
-  local lf = df.LinesFile{
-    file = io.open(x:mainPath(), 'w'),
-    cache = 5,
-    len = true,
-  }
-  return tso.Ser{dat=lf}
+local function linesFile(path, mode)
+  local f = io.open(path, mode or 'r')
+  mty.assertf(f, 'failed to open %s', path)
+  return df.LinesFile{ file = f, cache = 5, len = true }
 end
 
 M.Flux = mty.record'Flux'
   :field('path', 'string', './')
+  :field('branch', 'string', 'main')
+  :fieldMaybe('_id', 'number')
 
 M.Flux.dir    = function(x)       return pc{x.path, '.flux'} end
-M.Flux.brPath = function(x, name) return pc{x:dir(), name..'.br'} end
+M.Flux.branchPath = function(x, branch)
+  return pc{x:dir(), branch or x.branch..'.tso'}
+end
 
-M.Flux.createBranch = function(x, name, base)
-  local path = x:brPath(name)
-  local ser = M.openSer(x:brPath(name))
+M.Flux.newBranch = function(x, name, base)
+  local xb = M.Flux{path=x.path, branch=name}
+  local path = xb:branchPath()
+  mty.assertf(civix.exists(path),
+    "branch %s already exists", name)
+  local ser = tso.Ser{linesFile(path, 'w')}
   ser:attr('flux', {
     version = '0.0.1',
   })
   ser:attr('branch', name)
-  ser:attr('base', base or ds.none)
+  ser:attr('base', base and base.branch or ds.none)
 end
 
 M.Flux.init = function(x)
