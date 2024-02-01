@@ -1,8 +1,5 @@
 local DOC = [[
 Types for indexing data stored on disk.
-
-Used to build minimalistic databases. For example, indexing TSO
-data so it can be searched quickly.
 ]]
 
 local pkg = require'pkg'
@@ -18,6 +15,23 @@ end
 
 local function readU8(f) return string.unpack('>U8', f:read(8)) end
 local function writeU8(f, i8) f:write(string.pack('>U8', i8)) end
+
+M.getU8 = function(f, idx)
+  assert(idx > 0, 'idx must be > 0')
+  local pos = idx * 8
+  assert(f:seek('set', pos) == pos, 'idx out of range')
+  return readU8(f)
+end
+
+M.setU8 = function(f, idx)
+  assert(idx > 0, 'idx must be > 0')
+  local pos = idx * 8
+  assert(f:seek('set', pos) == pos, 'idx out of range')
+  return writeU8(f)
+end
+
+----------------
+-- AscIndex
 
 M.AscIndex = mty.doc[[
 A simple index of ascending 64bit integers with a starting value.
@@ -51,5 +65,11 @@ end
 M.AscIndex.push = mty.doc[[push a position onto the AscIndex]]
 (function(ai, pos) ai.f:seek'end'; writeU8(ai.f, pos) end)
 
+----------------
+-- HashU64
 
-return M
+M.HashU64 = mty.doc[[
+A HashMap of U64 -> U64 values
+]](mty.record'fileidx.HashU64')
+
+
