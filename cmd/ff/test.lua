@@ -93,19 +93,19 @@ test('ff fsub', function()
   local expected = {'', ".out/ff/b/b1.txt", ".out/ff/b/b2.txt"}
   assertEq(expected, result)
 
-  ff.findfix{dir, r=true, fpat='b(%d.txt)', fsub='B%1', log=f}
+  ff.findfix{dir, r=true, fpat='b(%d.txt)', fsub='bb%1', log=f}
   local result = ds.lines(seekRead(f)); table.sort(result)
-  local expected = {'', ".out/ff/b/B1.txt", ".out/ff/b/B2.txt"}
+  local expected = {'', ".out/ff/b/bb1.txt", ".out/ff/b/bb2.txt"}
   assertEq(expected, result)
   assertEq('mostly empty', ds.readPath(".out/ff/b/b2.txt"))
 
-  ff.findfix{dir, m=true, r=true, fpat='b(%d.txt)', fsub='B%1',
+  ff.findfix{dir, m=true, r=true, fpat='b(%d.txt)', fsub='bb%1',
              log=f}
   local result = ds.lines(seekRead(f)); table.sort(result)
-  local expected = {'', ".out/ff/b/B1.txt", ".out/ff/b/B2.txt"}
+  local expected = {'', ".out/ff/b/bb1.txt", ".out/ff/b/bb2.txt"}
   assertEq(expected, result)
   assert(not civix.exists".out/ff/b/b1.txt")
   assert(not civix.exists".out/ff/b/b2.txt")
-  assertEq('mostly empty', ds.readPath(".out/ff/b/B2.txt"))
-  assertEq(table.concat(b, '\n'), ds.readPath(".out/ff/b/B1.txt"))
+  assertEq('mostly empty', ds.readPath(".out/ff/b/bb2.txt"))
+  assertEq(table.concat(b, '\n'), ds.readPath(".out/ff/b/bb1.txt"))
 end)

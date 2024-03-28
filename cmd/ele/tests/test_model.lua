@@ -2,8 +2,7 @@ METATY_CHECK = true
 
 local pkg = require'pkg'
 local mty = pkg'metaty'
-local test, assertEq
-pkg.auto'civtest'
+local test, assertEq; pkg.auto'civtest'
 
 local ds = pkg'ds'
 local buffer = pkg'rebuf.buffer'
@@ -18,6 +17,12 @@ local A = action.Actions
 local FakeTerm = pkg'ele.FakeTerm'
 
 local add = table.insert
+
+local posix = pkg.maybe'posix'
+local function skipTest() if not posix then
+  print'Skipping: install posix'
+  return true
+end end
 
 test('keypress', function()
   assertEq({'a', 'b'},  keys.parseKeys('a b'))
@@ -73,6 +78,8 @@ local function testModel(h, w)
   mdl:init()
   return mdl, status, eTest
 end
+
+if skipTest() then return end
 
 test('insert', function()
   local m = mockedModel(

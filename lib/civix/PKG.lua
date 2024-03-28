@@ -8,6 +8,9 @@ srcs = {
   'civix.lua',
   'civix/term.lua',
 }
+libs = {
+  ['civix.lib'] = 'civix/lib'..LIB_EXT,
+}
 deps = {
   "lua ~> 5.3",
   "metaty ~> 0.1",

@@ -13,6 +13,9 @@ local M = {
   PIPE_W = io.stdout,
   PIPE_LW = io.stderr,
 }
+
+local lib = pkg'civix.lib'
+
 M.posix = mty.want'posix'
 if M.posix then
   assert(M.std_r  == M.posix.fileno(io.stdin))
@@ -34,6 +37,7 @@ M.lsh = mty.doc[[execute via io.popen(c, 'r')
 returns stdout, {ok, msg, rc} aka fd:close()
 If allowError is false asserts that ok == true
 ]](function(c, allowError)
+  mty.pnt('!! lsh', c)
   local f = assert(io.popen(c, 'r'), c)
   local o, r = f:read('*a'), {f:close()}
   assert(r[1] or allowError, r[2])
@@ -57,11 +61,7 @@ end
 
 -- Return the Epoch time
 M.epoch = function()
-  if M.posix then
-    local s, ns, errnum = M.posix.clock_gettime(M.posix.CLOCK_REALTIME)
-    assert(s); assert(ns)
-    return ds.Epoch(s, ns)
-  else return ds.Epoch(tonumber((M.lsh'date +%s.%N'))) end
+  return ds.Epoch(lib.epoch())
 end
 
 -------------------------------------
@@ -88,7 +88,9 @@ function M.walk(paths, fileFn, dirFn, maxDepth)
   ds.reverse(dirs); ds.reverse(depths)
   while #dirs > 0 do      -- dirs is a stack that we grow with depth
     local dir, depth = table.remove(dirs), table.remove(depths)
-    dir = (dir:sub(-1)=='/') and dir or (dir..'/') -- always dir/
+    -- fdir never has trailing '/', dir always has trailing '/'
+    local fdir = (#dir == 1 or (dir:sub(-1) ~= '/')) and dir or dir:sub(1, #dir - 1)
+    dir = (dir:sub(-1)=='/') and dir or (dir..'/')
     if dirFn then
       local o = dirFn(dir, depth)
       if o == true then return end
@@ -97,15 +99,15 @@ function M.walk(paths, fileFn, dirFn, maxDepth)
     if not maxDepth or depth < maxDepth then
       -- find and call files
       if fileFn then
-        local cmd = 'find '..qp(dir)..' -maxdepth 1 -type f -print0'
+        local cmd = 'find '..qp(fdir)..' -maxdepth 1 -type f -print0'
         for f in M.lsh(cmd):gmatch'%Z+' do
           if fileFn(f, depth) then return end
         end
       end
       -- find sub-dirs and add to stack
-      local cmd = 'find '..qp(dir)..' -maxdepth 1 -type d -print0'
+      local cmd = 'find '..qp(fdir)..' -maxdepth 1 -type d -print0'
       for d in M.lsh(cmd):gmatch'%Z+' do
-        if d ~= dir then add(dirs, d); add(depths, depth + 1) end
+        if d ~= fdir then add(dirs, d); add(depths, depth + 1) end
       end
     end
     ::skip::

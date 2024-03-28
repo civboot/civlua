@@ -5,11 +5,19 @@ local mty = pkg'metaty'
 local ds = pkg'ds'
 local test, assertEq; pkg.auto'civtest'
 
-local posix = require'posix'
+local posix = pkg.maybe'posix'
 local civix  = pkg'civix'
 local D = 'lib/civix/'
 
+local function shouldSkip()
+  if not posix then
+    print" (skipping: install luaposix)"
+    return true
+  end
+end
+
 test('fork', function()
+  if shouldSkip() then return end
   local fork = civix.Fork(true, true)
   local p = fork.pipes
   assert(not p.lr and not p.lw)
@@ -28,6 +36,7 @@ test('fork', function()
 end)
 
 test('exec', function()
+  if shouldSkip() then return end
   local fork = civix.Fork(true, false, true)
   local p = fork.pipes
   if not fork.isParent then
@@ -47,6 +56,7 @@ test('exec', function()
 end)
 
 test('sh', function()
+  if shouldSkip() then return end
   local sh, shCmd; pkg.auto(civix)
   assertEq('on stdout\n', sh[[ echo 'on' stdout ]].out)
   assertEq(''           , sh[[ echo '<stderr from test>' 1>&2 ]].out)
@@ -65,6 +75,7 @@ test('sh', function()
 end)
 
 local function testTime()
+  if shouldSkip() then return end
   local period, e1 = ds.Duration(0.001), civix.epoch()
   for i=1,10 do
     civix.sleep(period)
@@ -100,12 +111,17 @@ test('walk', function()
   local f, d = civix.ls{D}
   local rspec = ds.indexOfPat(f, '%.rockspec')
   if rspec then table.remove(f, rspec) end
+  ::clean::
+  rspec = ds.indexOfPat(f, '%..?o') or ds.indexOfPat(f, '%.dylib')
+  if rspec then table.remove(f, rspec); goto clean end
   table.sort(f); table.sort(d)
   local expected = {
-      D.."PKG.lua",
-      D.."README.md",      D.."civix.lua",
-      D.."civix/term.lua", D.."runterm.lua",
-      D.."test.lua",       D.."test_term.lua"
+      D..".gitignore",     D.."Makefile",
+      D.."PKG.lua",        D.."README.md",
+      D.."civix.lua",
+      D..'civix/lib.c',    D..'civix/term.lua',
+      D.."runterm.lua",
+      D.."test.lua",       D.."test_term.lua",
   }
   assertEq(expected, f)
   assertEq({D, D..'civix/'}, d)

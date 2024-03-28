@@ -6,7 +6,6 @@ local pkg = require'pkg'
 local mty = pkg'metaty'
 local ds = pkg'ds'
 local civix = pkg'civix'
-local posix = require'posix'
 local gap  = pkg'rebuf.gap'
 local buffer = pkg'rebuf.buffer'
 
