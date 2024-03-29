@@ -9,7 +9,7 @@ srcs = {
   'civix/term.lua',
 }
 libs = {
-  ['civix.lib'] = 'civix/lib'..LIB_EXT,
+  ['civix.lib'] = 'civix/lib.so',
 }
 deps = {
   "lua ~> 5.3",

@@ -1,15 +1,32 @@
-FILES = civix/lib.c
+# Copy/pastable Makefile for Lua C sources.
+#
+# Note: `luarocks make` puts the shared library files next to the C file,
+#       which is the convention followed here.
 
-UNAME    := $(shell uname)
-LUA_ARGS := $(shell pkg-config --cflags --libs lua)
+# Modify these for a new library
+NAME  = civix
+FILES = $(NAME)/lib.c
+OUT   = $(NAME)/lib
+test: build
+	lua test.lua
 
-ifeq ($(UNAME), Linux)
-  LIBTYPE = shared
-  LIBEXT  = so
-else ifeq ($(UNAME), Darwin)
-  LIBTYPE = dynamiclib
-  LIBEXT  = dylib
-endif
+UNAME := $(shell uname)
+build:  $(UNAME)
+Linux:  $(OUT).so
+Darwin: $(OUT).so
+# Windows: $(OUT).dll
 	
-build: $(FILES)
-	$(CC) -$(LIBTYPE) $(FILES) -o civix/lib.$(LIBEXT) $(LUA_ARGS)
+$(OUT).so: $(FILES)
+	make Build$(UNAME)
+
+BuildLinux: $(FILES)
+	$(CC) $(FILES) $(shell pkg-config lua --cflags --libs) -shared -o $(OUT).so
+
+BuildDarwin:
+	$(CC) $(FILES) $(shell pkg-config lua --cflags) -c -O2 -fPIC   -o $(OUT).o
+	$(CC) $(OUT).o -bundle -undefined dynamic_lookup -all_load     -o $(OUT).so
+
+# BuildWindows: TODO
+
+clean:
+	rm -f $(OUT).o $(OUT).so $(OUT).dll

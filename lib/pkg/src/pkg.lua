@@ -14,10 +14,7 @@ else
 end
 
 -- Helper for PKG.lua files loading compiled dynamic libraries
-M.LIB_EXT = (M.UNAME == 'Linux'   and '.so') 
-         or (M.UNAME == 'Darwin'  and '.dylib')
-         or (M.UNAME == 'Windows' and '.dll')
-         or nil
+M.LIB_EXT = '.so'; if M.UNAME == 'Windows' then M.UNAME = '.dll' end
 
 M.PKGS = {} -- loaded pkgs
 
