@@ -123,7 +123,7 @@ test('walk', function()
       D.."runterm.lua",
       D.."test.lua",       D.."test_term.lua",
   }
-  assertEq(expected, f)
+  assertEq(expected,         f)
   assertEq({D, D..'civix/'}, d)
 end)
 

@@ -6,15 +6,23 @@ local mty = pkg'metaty'
 local ds = pkg'ds'
 local path = ds.path
 local add, concat, sfmt = table.insert, table.concat, string.format
+local lib = pkg'civix.lib'
+local pc = path.concat
 
 local M = {
   std_r = 0, std_w = 1, std_lw = 2,
   PIPE_R = io.stdin,
   PIPE_W = io.stdout,
   PIPE_LW = io.stderr,
-}
 
-local lib = pkg'civix.lib'
+	-- file types
+	SOCK = "sock", LINK = "link",
+	FILE = "file", BLK  = "blk",
+	DIR  = "dir",  CHR  = "chr",
+	FIFO = "fifo",
+
+	dir = lib.dir, ftype = lib.ftype,
+}
 
 M.posix = mty.want'posix'
 if M.posix then
@@ -71,57 +79,47 @@ local function qp(p)
   return mty.assertf(M.quote(p), 'path cannot contain "\'": %s', p)
 end
 
+local function handleFtype(ftypeFns, path, ftype)
+  local fn = ftypeFns[ftype] or ftypeFns.default
+  if fn then return fn(path, ftype) end
+end
+
+local function _walk(base, ftypeFns, maxDepth, depth)
+  if maxDepth and depth >= maxDepth then return end
+  for fname, ftype in M.dir(base) do
+    local path = pc{base, fname}
+    if ftype == 'unknown' then ftype = M.ftype(path) end
+    local o = handleFtype(ftypeFns, path, ftype)
+    if o == true then return end
+    if o ~= 'skip' and ftype == 'dir' then
+      _walk(path, ftypeFns, maxDepth, depth + 1)
+    end
+ 	end
+end
+
+
 -- walk the paths up to depth, calling fileFn for each file and dirFn for each
 -- directory. If depth is nil/false then it is infinite.
 --
 -- The Fn signatures are: (path, depth) -> stopWalk
 -- If either return true then the walk is ended immediately
 -- If dirFn returns 'skip' then the directory is skipped
-function M.walk(paths, fileFn, dirFn, maxDepth)
-  local dirs, depths, cmd = {}, {}
+function M.walk(paths, ftypeFns, maxDepth)
   for _, path in ipairs(paths) do
     assert('' ~= path, 'empty path')
-    if '' ~= M.lsh('find '..qp(path)..' -maxdepth 0 -type d') then
-      add(dirs, path); add(depths, 0)
-    elseif fileFn and fileFn(path, 0) then return end
-  end
-  ds.reverse(dirs); ds.reverse(depths)
-  while #dirs > 0 do      -- dirs is a stack that we grow with depth
-    local dir, depth = table.remove(dirs), table.remove(depths)
-    -- fdir never has trailing '/', dir always has trailing '/'
-    local fdir = (#dir == 1 or (dir:sub(-1) ~= '/')) and dir or dir:sub(1, #dir - 1)
-    dir = (dir:sub(-1)=='/') and dir or (dir..'/')
-    if dirFn then
-      local o = dirFn(dir, depth)
-      if o == true then return end
-      if o == 'skip' then goto skip end
-    end
-    if not maxDepth or depth < maxDepth then
-      -- find and call files
-      if fileFn then
-        local cmd = 'find '..qp(fdir)..' -maxdepth 1 -type f -print0'
-        for f in M.lsh(cmd):gmatch'%Z+' do
-          if fileFn(f, depth) then return end
-        end
-      end
-      -- find sub-dirs and add to stack
-      local cmd = 'find '..qp(fdir)..' -maxdepth 1 -type d -print0'
-      for d in M.lsh(cmd):gmatch'%Z+' do
-        if d ~= fdir then add(dirs, d); add(depths, depth + 1) end
-      end
-    end
-    ::skip::
+    local ftype = M.ftype(path); handleFtype(ftypeFns, path, ftype)
+    if ftype == 'dir' then _walk(path, ftypeFns, maxDepth, 0) end
   end
 end
-
 
 -- A very simple ls (list paths) implementation
 -- Returns (files, dirs) tables
 M.ls = function(paths, maxDepth)
   local files, dirs = {}, {}
-  local function addF(f) add(files, f) end
-  local function addD(f) add(dirs,  f) end
-  M.walk(paths, addF, addD, maxDepth)
+  M.walk(paths, {
+    dir     = function(p) add(dirs,  pc{p, '/'}) end,
+    default = function(p) add(files, p) end,
+  }, maxDepth)
   return files, dirs
 end
 

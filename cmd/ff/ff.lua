@@ -158,6 +158,10 @@ local function _fileFn(path, args, out) -- got a file from walk
   end
 end
 
+local function _defaultFn(path, ftype, args) if args.log then
+  wln(args.log, sfmt('!! Unknown ftype=%s: %s', ftype, path))
+end end
+
 local function argPats(args)
   if args.F then return shim.list(args.pat) end
   local pat = {}; for i=#args,1,-1 do local a=args[i];
@@ -204,9 +208,11 @@ function M.findfix(args, out, isExe)
   }
   out.log = args.log
   civix.walk(
-    args,
-    function(path, depth) return _fileFn(path, args, out) end,
-    function(path, depth) return _dirFn(path, args, out.dirs) end,
+    args, {
+      file=function(path, _ftype)   return _fileFn(path, args, out)      end,
+      dir =function(path, _ftype)   return _dirFn(path, args, out.dirs)  end,
+      default=function(path, ftype) return _defaultFn(path, ftype, args) end,
+    },
     args.depth
   )
   if args.log then args.log:flush() end
