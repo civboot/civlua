@@ -1,13 +1,23 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
+#include <stdbool.h>
+
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
 
-#include <time.h>   // Time
-#include <string.h> // Dir
-#include <dirent.h> // Dir
-#include <errno.h>  // Dir
+#include <time.h>     // Time
+#include <dirent.h>   // Dir
 #include <sys/stat.h> // Dir
-#include <stdio.h>
+#include <unistd.h>   // Shell
+#include <signal.h>   // Shell
+
+#if __APPLE__
+#include <crt_externs.h>
+#define environ (*_NSGetEnviron())
+#endif
 
 // see luaL_Stream
 #ifndef LUA_FILEHANDLE
@@ -16,6 +26,23 @@
 
 #define ASSERT(L, OK, ...) \
   if(!(OK)) { luaL_error(L, __VA_ARGS__); }
+
+#define L_setmethod(L, KEY, FN)                     \
+  lua_pushstring(L, KEY); lua_pushcfunction(L, FN); \
+  lua_settable(L, -3);
+
+
+// Return a string array with null-terminated end.
+// Note: you MUST free it.
+static const char** checkstringarray(lua_State *L, int index, int* lenOut) {
+  lua_len(L, index); int len = luaL_checkinteger(L, -1); lua_pop(L, 1);
+  const char** arr = malloc(sizeof(char*) * (len + 1));
+  for(int i = 0; i < len; i++) {
+    lua_geti(L, index, i + 1); arr[i] = luaL_checkstring(L, -1); lua_pop(L, 1);
+  }
+  arr[len] = NULL; *lenOut = len;
+  return arr;
+}
 
 // ---------------------
 // -- Time
@@ -31,33 +58,27 @@ int gettime(lua_State *L, clockid_t clk_id) {
 // ---------------------
 // -- Dir
 const char* DIR_META = "civix.Dir";
+const char* SH_META  = "civix.Sh";
+#define toldir(L) (DIR**)luaL_checkudata(L, 1, DIR_META)
 
-typedef DIR** UdDir; // Userdata which handles GC
-  static void UdDir_gc(UdDir dir) {
-    if(*dir) { closedir(*dir); *dir = NULL; }
-  }
-  static int l_dir_gc(lua_State *L) {
-    UdDir_gc((UdDir)lua_touserdata(L, 1)); return 0;
-  }
+static void DIR_gc(DIR** dir) {
+  if(*dir) { closedir(*dir); *dir = NULL; }
+}
+static int l_dir_gc(lua_State *L) {
+  DIR_gc(toldir(L)); return 0;
+}
 
 // Each time called return next: (name, ftype) or nil
 static int dir_iter(lua_State *L) {
-	UdDir dir = (UdDir) lua_touserdata(L, lua_upvalueindex(1));
+	DIR** dir = (DIR**) luaL_checkudata(L, lua_upvalueindex(1), DIR_META);
   if(*dir == NULL) return 0; // already freed
   struct dirent* ent;
-  do {
-    if((ent = readdir(*dir)) == NULL) {
-      printf("!! dir_iter readdir==NULL\n");
-      UdDir_gc(dir);
-      return 0; // free early and return done
-    }
-    printf("!! dir_iter %s\n", ent->d_name);
-    if((0==strcmp(".", ent->d_name)) || (0==strcmp("..", ent->d_name))) {
-      printf("!!   is . or ..\n");
-      continue;
-    }
-    break;
-  } while(1);
+skip:
+  if((ent = readdir(*dir)) == NULL) {
+    DIR_gc(dir); return 0; // done, free *DIR immediately
+  }
+  if((0==strcmp(".", ent->d_name)) || (0==strcmp("..", ent->d_name)))
+    { goto skip; }
   lua_pushstring(L, ent->d_name);
   switch(ent->d_type) {
     case DT_BLK:     lua_pushstring(L, "blk");     break;
@@ -73,15 +94,14 @@ static int dir_iter(lua_State *L) {
   return 2;
 }
 
-// return (name, isDir) iterator
+// return (name, ftype) iterator. Skips "." and ".."
 static int l_dir(lua_State *L) {
   const char* path = luaL_checkstring(L, 1);
   printf("!! dir %s\n", path);
-  UdDir dir = (UdDir)lua_newuserdata(L, sizeof(UdDir)); // stack: dir
-  luaL_getmetatable(L, DIR_META);                       // stack: dir, Dir
-  lua_setmetatable(L, -2);                              // stack: dir
+  DIR** dir = (DIR**)lua_newuserdata(L, sizeof(DIR*)); // stack: dir
+  luaL_setmetatable(L, DIR_META);
   ASSERT(L, *dir = opendir(path), "cannot open %s: %s", path, strerror(errno));
-  lua_pushcclosure(L, dir_iter, 1); 										// stack: (empty)
+  lua_pushcclosure(L, dir_iter, 1);                    // stack: (empty)
   return 1;
 }
 
@@ -105,10 +125,118 @@ static int l_ftype(lua_State *L) {
 }
 
 // ---------------------
+// -- Shell
+
+// For some reason these are not exported (???)
+// https://www.lua.org/source/5.2/liolib.c.html
+typedef luaL_Stream LStream;
+#define tolstream(L)    ((LStream *)luaL_checkudata(L, 1, LUA_FILEHANDLE))
+static int io_fclose(lua_State *L) {
+  LStream *p = tolstream(L);
+  int res = 0; if(p->f) res = fclose(p->f);
+  return luaL_fileresult(L, (res == 0), NULL);
+}
+static LStream *newfile (lua_State *L, FILE* f) {
+  LStream *p = (LStream *)lua_newuserdata(L, sizeof(LStream));
+  p->f = f; p->closef = &io_fclose;
+  luaL_setmetatable(L, LUA_FILEHANDLE);
+  return p;
+}
+
+struct sh {
+  pid_t pid; const char** env; // note: env only set if needs freeing
+  int rc;
+};
+#define tolsh(L) ((struct sh*)luaL_checkudata(L, 1, SH_META))
+struct sh* sh_wait(struct sh* sh, int flags) {
+  printf("!! sh_wait %i rc=%i\n", sh->pid, sh->rc);
+  if(sh->pid) {
+    siginfo_t infop = {0}; waitid(P_PID, sh->pid, &infop, WEXITED | flags);
+    if(infop.si_pid == sh->pid) { sh->pid = 0; sh->rc = infop.si_status; }
+  }
+  printf("!!     end %i rc=%i\n", sh->pid, sh->rc);
+  return sh;
+}
+
+static void sh_gc(struct sh* sh) {
+  if(sh->pid) { kill(sh->pid, SIGKILL); sh_wait(sh, 0); }
+  if(sh->env) { free(sh->env); sh->env = NULL; }
+}
+static int l_sh_gc(lua_State *L) { sh_gc(tolsh(L)); return 0; }
+
+// () -> isDone: asynchronously determine whether Sh is done.
+static int l_sh_isDone(lua_State *L) {
+  lua_pushboolean(L, sh_wait(tolsh(L), WNOHANG)->pid >= 0);
+  return 1;
+}
+
+static int l_sh_rc(lua_State *L) {
+  lua_pushinteger(L, tolsh(L)->rc);
+  return 1;
+}
+
+// () -> : block until Sh is done.
+static int l_sh_wait(lua_State *L) { sh_wait(tolsh(L), 0); return 0; }
+
+// sh(command, {args}, environ=current) -> Sh, r, w, lr
+static int l_sh(lua_State *L) {
+  while(lua_gettop(L) < 3) lua_pushnil(L);
+  int _len; int p[2]; char* err = "";
+  const char** argv = NULL;
+  int pr_r = 0, pr_w = 0, pr_lr = 0, ch_r = 0, ch_w = 0, ch_lw = 0;
+  FILE *r = NULL, *w = NULL, *lr = NULL;
+  struct sh* sh = (struct sh*)lua_newuserdata(L, sizeof(struct sh));
+  sh->pid = 0; sh->rc = -1; sh->env = NULL;
+  const char* command = luaL_checkstring(L, 1);
+  if(!lua_isnil(L, 2)) { argv = checkstringarray(L, 2, &_len); }
+  if(!lua_isnil(L, 3)) { sh->env = checkstringarray(L, 3, &_len); }
+
+  lua_rotate(L, 1, 1); // move sh to bottom of stack
+  lua_settop(L, 1);    // clear stack except for sh
+  luaL_setmetatable(L, SH_META);
+
+  err = "pipe exhaustion";
+  if(pipe(p)) { goto error; } pr_r  = p[0]; ch_w  = p[1];
+  if(pipe(p)) { goto error; } ch_r  = p[0]; pr_w  = p[1];
+  if(pipe(p)) { goto error; } pr_lr = p[0]; ch_lw = p[1];
+
+  err = "fdopen failure";
+  if((r  = fdopen(pr_r,  "r")) == NULL) goto error;
+  if((w  = fdopen(pr_w,  "w")) == NULL) goto error;
+  if((lr = fdopen(pr_lr, "r")) == NULL) goto error;
+
+  err = "fork failure";
+  pid_t pid; if( (pid = fork()) == -1 ) {
+    error:
+  	if(r)  fclose(r);  else if (pr_r)  close(pr_r);
+  	if(w)  fclose(w);  else if (pr_w)  close(pr_w);
+  	if(lr) fclose(lr); else if (pr_lr) close(pr_lr);
+    if(ch_r) close(ch_r);  if(ch_w) close(ch_w);  if(ch_lw) close(ch_lw);
+    if(sh)   sh_gc(sh);
+    luaL_error(L, "failed sh (%s): %s", err, strerror(errno));
+  }
+  if(pid == 0) { // child process
+    // close parent fds on child's side
+    close(pr_r); close(pr_w); close(pr_lr);
+    // replace the std(in/out/err) file descriptors with our pipes
+    dup2(ch_r,  STDIN_FILENO);
+    dup2(ch_w,  STDOUT_FILENO);
+    dup2(ch_lw, STDERR_FILENO);
+    if(sh->env) environ = (char**)sh->env;
+    int err = execvp(command, (char**)argv);
+    exit(errno);
+  } // else parent process
+  sh->pid = pid;
+	newfile(L, r); newfile(L, w); newfile(L, lr);
+  return 4;
+}
+
+// ---------------------
 // -- Registry
 static const struct luaL_Reg civix_lib[] = {
   {"epoch", l_epoch}, {"mono",  l_mono}, // Time
   {"dir", l_dir}, {"ftype", l_ftype},    // Dir
+  {"sh", l_sh},                          // Shell
   {NULL, NULL}, // sentinel
 };
 
@@ -118,9 +246,17 @@ int luaopen_civix_lib(lua_State *L) {
   lua_pushstring(L, "__gc");         // stack: Dir, "__gc"
   lua_pushcfunction(L, l_dir_gc);    // stack: Dir, "__gc", l_dir_gc
   lua_settable(L, -3);               // stack: Dir
-  lua_settop(L, 0);                  // stack: (empty)
 
-  luaL_newlib(L, civix_lib);         // stack: civix.lib (library)
+  // civix.Sh metatable: {__gc=l_sh_gc, __index={...}}
+  luaL_newmetatable(L, SH_META);
+    L_setmethod(L, "__gc", l_sh_gc);
+    lua_pushstring(L, "__index"); lua_createtable(L, 0, 1);
+      L_setmethod(L, "isDone", l_sh_isDone);
+      L_setmethod(L, "wait",   l_sh_wait);
+      L_setmethod(L, "rc",     l_sh_rc);
+    lua_settable(L, -3); // Sh.__index = {isDone=l_sh_isDone ...}
+
+  lua_settop(L, 0); // clear stack
+  luaL_newlib(L, civix_lib);
   return 1;
 }
-
