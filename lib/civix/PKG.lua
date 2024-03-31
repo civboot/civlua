@@ -14,6 +14,6 @@ libs = {
 deps = {
   "lua ~> 5.3",
   "metaty ~> 0.1",
-  "ds ~> 0.1",
-  "luaposix ~> 36.2", -- TODO: would be good to find the minimum version
+  "ds     ~> 0.1",
+  "shim   ~> 0.1",
 }

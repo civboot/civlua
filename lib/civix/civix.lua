@@ -4,9 +4,11 @@
 local pkg = require'pkg'
 local mty = pkg'metaty'
 local ds = pkg'ds'
+local shim = pkg'shim'
+local lib = pkg'civix.lib'
+
 local path = ds.path
 local add, concat, sfmt = table.insert, table.concat, string.format
-local lib = pkg'civix.lib'
 local pc = path.concat
 
 local M = {
@@ -183,6 +185,32 @@ a/a3/a4.txt # content: stuff in a3.txt
   end
 end)
 
-M.sh = function(args, env) return lib.sh(args[1], args, env) end
+M.sh = mty.doc[[
+sh(cmd, inp, env) -> rc, out, log
+Execute the command in another process via execvp (basically the system shell).
+
+This is the synchronous (blocking) version of this command.
+Use async.ash for the async (yielding) version.
+
+Returns the return-code, out (aka stdout), and log (aka stderr).
+
+COMMAND                               BASH
+sh'ls foo/bar'                     -- ls foo/bar
+sh{'ls', 'foo/bar', 'space dir/'}  -- ls foo/bar "space dir/"
+sh('cat', 'sent to stdin')         -- echo "sent to stdin" | cat
+]](function(cmd, inp, env)
+  if type(cmd) == 'string' then cmd = shim.parseStr(cmd) end
+  cmd = shim.expand(cmd)
+  local s, r, w, lr = lib.sh(cmd[1], cmd, env)
+  if inp then w:write(inp) end; w:close()
+  local out, log, o, l = {}, {}
+  while not s:isDone() do
+    o, l = r:read'a', lr:read'a'
+    if o ~= '' then push(out, o) end
+    if l ~= '' then push(log, l) end
+  end
+  r:close(); lr:close(); s:wait()
+  return s:rc(), table.concat(out), table.concat(log)
+end)
 
 return M

@@ -18,14 +18,23 @@ end
 
 test('sh', function()
   local sh = civix.sh
-  do
-    local s = sh{'/usr/bin/false', 'a', 'b'}; assert(s)
-    s:wait(); assertEq(1, s:rc())
-  end
-  -- do
-  --   local s = sh{'true'}; assert(s)
-  --   s:wait(); assertEq(0, s:rc())
-  -- end
+  local rc, o, l = sh'false'; assertEq(1, rc)
+    assertEq('', o); assertEq('', l)
+
+  rc, o, l = sh'true'; assertEq(0, rc)
+    assertEq('', o); assertEq('', l)
+
+  rc, o, l = sh{'echo', 'hi there'};
+  mty.pntf('!! echo rc=%s o=%s', rc, o)
+    assertEq(0, rc)
+    assertEq('hi there', o); assertEq('', l)
+
+  -- rc, o, l = sh'cat PKG.lua'; assertEq(0, rc)
+  --   assertEq('"hello"', o); assertEq('', l)
+
+  -- result = sh([[ echo '<stderr from test>' 1>&2 ]],
+  --             {err=true})
+  -- assert('<stderr from test>', result.err)
 
   -- result = sh([[ echo '<stderr from test>' 1>&2 ]],
   --             {err=true})

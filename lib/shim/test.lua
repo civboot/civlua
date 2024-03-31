@@ -2,20 +2,25 @@
 local pkg = require'pkg'
 local T = pkg'civtest'
 local M = pkg'shim'
-local p, ps = M.parse, M.parseStr
+local p, ps, e = M.parse, M.parseStr, M.expand
 
 T.test('parse', function()
-  T.assertEq({'a', 'b', c='42'}, ps'a --c=42 b')
-  T.assertEq({c={'1', '2'}}, ps'--c=1 --c=2')
+  T.assertEq({'a', 'b', c='42'},  ps'a --c=42 b')
+  T.assertEq({c={'1', '2'}},      ps'--c=1 --c=2')
   T.assertEq({c={'1', '2', '3'}}, ps'--c=1 --c=2 --c=3')
 
-  T.assertEq({a=true, b=true, c='foo'}, ps{'-ab', '--c=foo'})
+  T.assertEq({a=true, b=true, c='foo'}, p{'-ab', '--c=foo'})
 end)
 
 T.test('parseStr', function()
   T.assertEq({'a', 'b', c='42'}, ps'a b --c=42')
   T.assertEq({c={'1', '2'}},     ps'--c=1   --c=2')
   T.assertEq({a=true, b=true, c='foo'}, ps'-ab --c=foo')
+end)
+
+T.test('expand', function()
+  T.assertEq({'a', 'b', '--c=42'},           e{'a', 'b', c=42})
+  T.assertEq({'a', 'b', '--c=42', '--d=hi'}, e(ps'a b --d=hi --c=42'))
 end)
 
 T.test('list', function()
@@ -34,7 +39,7 @@ T.test('duck', function()
 
   T.assertEq(false, M.boolean(false))
   T.assertEq(false, M.boolean'false')
-  T.assertEq(false, M.boolean(nil))
+  T.assertEq(nil, M.boolean(nil))
 
   -- new
   local function add1(v) return v + 1 end

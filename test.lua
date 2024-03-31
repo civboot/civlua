@@ -6,7 +6,9 @@ local pkg = require'pkg'
 local T, dir = pkg'civtest', civ.dir
 
 T.test('[[core]]', function()
-  os.execute('LUA_PATH=?/?.lua lua shim/test.lua --test=test.lua')
+  assert(os.execute(
+    'LUA_PATH=lib/pkg/src/pkg.lua lua lib/shim/test.lua --test=test.lua'
+  ))
   dofile(dir..'lib/metaty/test.lua')
   dofile(dir..'lib/ds/test.lua')
   dofile(dir..'lib/vcds/test.lua')

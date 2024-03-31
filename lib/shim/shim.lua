@@ -1,9 +1,12 @@
-local add, sfmt = table.insert, string.format
+local pkg = require'pkg'
+local ds  = pkg'ds'
+
+local push, sfmt = table.insert, string.format
 local M = {}
 
 local function addKV(t, k, v)
   local e = t[k]; if e then
-    if type(e) == 'table' then add(e, v)
+    if type(e) == 'table' then push(e, v)
     else t[k] = {e, v} end
   else t[k] = v end
 end
@@ -17,9 +20,8 @@ function M.isExe(depth)
 end
 assert(not M.isExe(), "Don't call shim directly")
 
-function M.parse(args)
-  local t = {}
-  for i, arg in ipairs(args) do
+function M.parseList(args)
+  local t = {}; for i, arg in ipairs(args) do
     if arg:find'^%-%w+' then
       for c in arg:sub(2):gmatch('.') do
         addKV(t, c, true)
@@ -28,23 +30,27 @@ function M.parse(args)
       local k, v = arg:match('(.-)=(.*)', 3)
       if k then addKV(t, k, v)
       else      addKV(t, arg:sub(3), true) end
-    else        add(t, arg) end
+    else        push(t, arg) end
   end
   return t
 end
 
--- parses the string by splititng via whitespace.
+-- parses the string by splitting via whitespace.
 -- Asserts the string contains no special chars: '"[]
 -- This is for convinience, use a table if it's not enough.
+--
+-- Note: if the input is already a table it just returns it.
 function M.parseStr(s)
   if type(s) == 'table' then return s end
-  if type(s) ~= 'string' then
-    error('invalid parseStr type: '..type(s))
-  end
   if s:find'[%[%]\'"]' then error(
-    'parseStr is split on whitespace: '..s
+    [[parseStr does not support chars '"[]: ]]..s
   )end
-  return M.parse(s:find'%S+')
+  return M.parseList(ds.splitList(s))
+end
+
+function M.parse(v)
+  if type(v) == 'string' then return M.parseStr(v)
+  else                        return M.parseList(v) end
 end
 
 function M.short(args, short, long, value)
@@ -56,8 +62,8 @@ local BOOLS = {
   [false]=false, ['false']=false, ['no']=false, ['0']=false,
 }
 
--- Duck type: always return a boolean. See BOOLS (above) for mapping.
--- Note: nil -> nil
+-- Duck type: always return a boolean (except for nil).
+-- See BOOLS (above) for mapping.
 function M.boolean(v)
   if v == nil then return nil end
   local b = BOOLS[v] if b ~= nil then return b end
@@ -69,11 +75,23 @@ function M.bools(args, ...)
   end
 end
 
-
 -- Duck type: always return a number
 function M.number(num)
   if num == nil then return nil end
   return (type(num)=='number') and num or tonumber(num)
+end
+
+local TOSTR = {
+  ['nil'] = '', boolean = tostring, number = tostring,
+  string = tostring,
+}
+-- Duck type: always return a string
+-- This is useful for some APIs where you want to convert
+-- number/true/false to strings
+-- Converts nil to ''
+function M.string(v)
+  local f = TOSTR[type(v)]; if f then return f(v) end
+  error('invalid type for shim.string: '..type(v))
 end
 
 -- Duck type: always return a list.
@@ -91,14 +109,29 @@ function M.listSplit(val, sep)
   if val == nil then return {} end
   sep = '[^'..(sep or '%s')..']+'; local t = {}
   if type(val) == 'string' then
-      for m in val:gmatch(sep) do add(t, m) end
+      for m in val:gmatch(sep) do push(t, m) end
   else
     for _, v in ipairs(val) do
-      for m in v:gmatch(sep) do add(t, m) end
+      for m in v:gmatch(sep) do push(t, m) end
     end
   end
   return t
 end
+
+-- expand string keys into --key=value, ordered alphabetically.
+function M.expand(args)
+  local out, keys = {}, {}
+  for k, v in pairs(args) do
+    if type(k) == 'number'     then out[k] = M.string(v)
+    elseif type(k) == 'string' then push(keys, k)
+    else error('non string key: '..k) end
+  end
+  table.sort(keys); for _, k in ipairs(keys) do 
+    push(out, sfmt('--%s=%s', k, M.string(args[k])))
+  end
+  return out
+end
+
 
 -- Duck type: if value does not have a metatable then call ty(val)
 -- Note: strings DO have a metatable.

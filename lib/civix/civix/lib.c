@@ -151,10 +151,14 @@ struct sh {
 struct sh* sh_wait(struct sh* sh, int flags) {
   printf("!! sh_wait %i rc=%i\n", sh->pid, sh->rc);
   if(sh->pid) {
-    siginfo_t infop = {0}; waitid(P_PID, sh->pid, &infop, WEXITED | flags);
+    siginfo_t infop = {0};
+    if(waitid(P_PID, sh->pid, &infop, WEXITED | flags)) {
+      printf("!! sh_wait failed miserably\n");
+      sh->rc = -99; return sh; // TODO: need better error handle here
+    }
     if(infop.si_pid == sh->pid) { sh->pid = 0; sh->rc = infop.si_status; }
   }
-  printf("!!     end %i rc=%i\n", sh->pid, sh->rc);
+  printf("!!  sh end %i rc=%i\n", sh->pid, sh->rc);
   return sh;
 }
 
@@ -166,7 +170,7 @@ static int l_sh_gc(lua_State *L) { sh_gc(tolsh(L)); return 0; }
 
 // () -> isDone: asynchronously determine whether Sh is done.
 static int l_sh_isDone(lua_State *L) {
-  lua_pushboolean(L, sh_wait(tolsh(L), WNOHANG)->pid >= 0);
+  lua_pushboolean(L, sh_wait(tolsh(L), WNOHANG)->pid);
   return 1;
 }
 
@@ -199,6 +203,8 @@ static int l_sh(lua_State *L) {
   if(pipe(p)) { goto error; } pr_r  = p[0]; ch_w  = p[1];
   if(pipe(p)) { goto error; } ch_r  = p[0]; pr_w  = p[1];
   if(pipe(p)) { goto error; } pr_lr = p[0]; ch_lw = p[1];
+  printf("!! ch pipes: %i %i %i\n", ch_r, ch_w, ch_lw);
+  printf("!! pr pipes: %i %i %i\n", pr_r, pr_w, pr_lr);
 
   err = "fdopen failure";
   if((r  = fdopen(pr_r,  "r")) == NULL) goto error;
@@ -206,7 +212,7 @@ static int l_sh(lua_State *L) {
   if((lr = fdopen(pr_lr, "r")) == NULL) goto error;
 
   err = "fork failure";
-  pid_t pid; if( (pid = fork()) == -1 ) {
+  pid_t pid = fork(); if(pid == -1 ) {
     error:
   	if(r)  fclose(r);  else if (pr_r)  close(pr_r);
   	if(w)  fclose(w);  else if (pr_w)  close(pr_w);
@@ -216,16 +222,28 @@ static int l_sh(lua_State *L) {
     luaL_error(L, "failed sh (%s): %s", err, strerror(errno));
   }
   if(pid == 0) { // child process
+    fprintf(stderr, "!! child started\n");
     // close parent fds on child's side
-    close(pr_r); close(pr_w); close(pr_lr);
+    fclose(r); fclose(w); fclose(lr);
+
     // replace the std(in/out/err) file descriptors with our pipes
-    dup2(ch_r,  STDIN_FILENO);
-    dup2(ch_w,  STDOUT_FILENO);
-    dup2(ch_lw, STDERR_FILENO);
+    close(ch_r); close(ch_lw); // FIXME: remove
+    // dup2(ch_r,  STDIN_FILENO);  close(ch_r);
+    dup2(ch_w,  STDOUT_FILENO); close(ch_w);
+    // dup2(ch_lw, STDERR_FILENO); close(ch_lw);
+
+    fprintf(stderr, "!! env: %p\n", sh->env);
     if(sh->env) environ = (char**)sh->env;
+
+    fprintf(stderr, "!! executing: %s\n", command);
+    for(char** arg = (char**)argv; *arg; arg++) {
+      fprintf(stderr, "!!   arg: %s\n", *arg);
+    }
     int err = execvp(command, (char**)argv);
+    fprintf(stderr, "!! after execvp %i\n", errno);
     exit(errno);
   } // else parent process
+  close(ch_r); close(ch_w); close(ch_lw);
   sh->pid = pid;
 	newfile(L, r); newfile(L, w); newfile(L, lr);
   return 4;
