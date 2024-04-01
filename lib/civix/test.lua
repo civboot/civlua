@@ -7,6 +7,8 @@ local test, assertEq; pkg.auto'civtest'
 
 local posix = pkg.maybe'posix'
 local civix  = pkg'civix'
+local lib = pkg'civix.lib'
+local C = lib.consts
 local D = 'lib/civix/'
 
 local function shouldSkip()
@@ -17,6 +19,17 @@ local function shouldSkip()
 end
 
 test('sh', function()
+  do -- direct usage of civ.lib
+    local sh, r, w, lr = lib.sh('true', {'true'})
+    local ftype = r:ftype(); print('!! ftype', ftype)
+    assert(ds.Set{'pipe', 'fifo'}[ftype], ftype)
+    ftype = w:ftype()
+    assert(ds.Set{'pipe', 'fifo'}[ftype], ftype)
+    w:close()
+    assertEq('', lib.read(r)); r:close(); lr:close()
+    sh:wait(); assertEq(0, sh:rc())
+  end
+
   local sh = civix.sh
   local rc, o, l = sh'false'; assertEq(1, rc)
     assertEq('', o)
@@ -24,26 +37,17 @@ test('sh', function()
   rc, o, l = sh'true'; assertEq(0, rc)
     assertEq('', o)
 
-  rc, o, l = sh{'echo', 'hi there'};
-  mty.pntf('!! echo rc=%s o=%s', rc, o); assertEq(0, rc)
+  rc, o, l = sh{'echo', 'hi there'}; assertEq(0, rc)
     assertEq('hi there\n', o)
 
-  -- rc, o, l = sh'cat PKG.lua'; assertEq(0, rc)
-  --   assertEq('"hello"', o); assertEq('', l)
+  rc, o, l = sh('cat', 'from stdin'); assertEq(0, rc)
+    assertEq('from stdin', o);
 
-  -- result = sh([[ echo '<stderr from test>' 1>&2 ]],
-  --             {err=true})
-  -- assert('<stderr from test>', result.err)
+  rc, o, l = sh{'commandDoesNotExist', 'blah', 'blah'};
+    assert(rc ~= 0);
 
-  -- result = sh([[ echo '<stderr from test>' 1>&2 ]],
-  --             {err=true})
-  -- assert('<stderr from test>', result.err)
-
-  -- local cmd = {'echo', foo='bar'}
-  -- assertEq("echo --foo='bar'", shCmd{'echo', foo='bar'})
-  -- assertEq('--foo=bar\n'  ,  sh{'echo', foo='bar'}.out)
-  -- assert(select(3, shCmd{foo="that's bad"})) -- assert error
-  -- assertEq('from pipe', sh([[ cat ]], {inp='from pipe'}).out)
+  rc, o, l = sh{'echo', 'foo', '--abc=ya', aa='bar', bb=42}; assertEq(0, rc)
+    assertEq('foo --abc=ya --aa=bar --bb=42\n', o)
 end)
 
 local function testTime()
@@ -74,9 +78,31 @@ test('mkTree', function()
       ['b2.txt'] = '2 in dir b/',
     },
   }, true)
-  assertEq(ds.readPath'.out/civix/a.txt', 'for civix a test')
+  assertEq(ds.readPath'.out/civix/a.txt', 
+  'for civix a test')
   assertEq(ds.readPath'.out/civix/b/b1.txt', '1 in dir b/')
   assertEq(ds.readPath'.out/civix/b/b2.txt', '2 in dir b/')
+end)
+
+test('fdth', function()
+  do
+    local d = '.out/civix/'; if civix.exists(d) then civix.rmDir(d, true) end
+    civix.mkTree(d, { ['a.txt'] = 'for civix a test' }, true)
+
+    local fdth = lib.fdth()
+    fdth:_fill(d..'a.txt')
+    fdth:_runop(C.FD_OPEN)
+    while not fdth:isDone() do end
+
+    fdth:_runop(C.FD_READ, 0, 128)
+    while not fdth:isDone() do end
+    assertEq('for civix a test', fdth:_buf())
+
+    fdth:_runop(C.FD_CLOSE)
+    while not fdth:isDone() do end
+    fdth:destroy()
+  end
+  do local fdth = lib.fdth() end; collectgarbage()
 end)
 
 test('walk', function()

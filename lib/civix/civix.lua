@@ -23,20 +23,11 @@ local M = {
 	DIR  = "dir",  CHR  = "chr",
 	FIFO = "fifo",
 
-	dir = lib.dir, ftype = lib.ftype,
+	dir = lib.dir,
 }
 
 mty.docTy(M, [[
 civix: unix-like OS utilities.
-]])
-
-mty.docTy(lib.ftype, [[
-ftype(path) -> ftype
-
-ftype is one of:
-  file, dir            : standard file / directory
-  link                 : symbolic link
-  sock, blk, chr, fifo : see unix inode(7) st_mode field
 ]])
 
 M.posix = mty.want'posix'
@@ -93,7 +84,20 @@ local function qp(p)
   return mty.assertf(M.quote(p), 'path cannot contain "\'": %s', p)
 end
 
-local function handleFtype(ftypeFns, path, ftype)
+local C = lib.consts
+M.MODE_STR = {
+  [C.S_IFSOCK] = 'sock', [C.S_IFLNK] = 'link', [C.S_IFREG] = 'file',
+  [C.S_IFBLK]  = 'blk',  [C.S_IFDIR] = 'dir',  [C.S_IFCHR] = 'chr', 
+  [C.S_IFIFO]  = 'fifo',
+}
+lib.methods.Fd.ftype = function(fd)
+  return M.MODE_STR[C.S_IFMT & lib.filenostat(fd:fileno())]
+end
+M.pathtype = function(path)
+  return M.MODE_STR[C.S_IFMT & lib.pathstat(path)]
+end
+
+local function _walkftype(ftypeFns, path, ftype)
   local fn = ftypeFns[ftype] or ftypeFns.default
   if fn then return fn(path, ftype) end
 end
@@ -102,8 +106,8 @@ local function _walk(base, ftypeFns, maxDepth, depth)
   if maxDepth and depth >= maxDepth then return end
   for fname, ftype in M.dir(base) do
     local path = pc{base, fname}
-    if ftype == 'unknown' then ftype = M.ftype(path) end
-    local o = handleFtype(ftypeFns, path, ftype)
+    if ftype == 'unknown' then ftype = M.pathtype(path) end
+    local o = _walkftype(ftypeFns, path, ftype)
     if o == true then return end
     if o ~= 'skip' and ftype == 'dir' then
       _walk(path, ftypeFns, maxDepth, depth + 1)
@@ -121,7 +125,7 @@ end
 function M.walk(paths, ftypeFns, maxDepth)
   for _, path in ipairs(paths) do
     assert('' ~= path, 'empty path')
-    local ftype = M.ftype(path); handleFtype(ftypeFns, path, ftype)
+    local ftype = M.pathtype(path); _walkftype(ftypeFns, path, ftype)
     if ftype == 'dir' then _walk(path, ftypeFns, maxDepth, 0) end
   end
 end
@@ -200,16 +204,13 @@ sh{'ls', 'foo/bar', 'space dir/'}  -- ls foo/bar "space dir/"
 sh('cat', 'sent to stdin')         -- echo "sent to stdin" | cat
 ]](function(cmd, inp, env)
   if type(cmd) == 'string' then cmd = shim.parseStr(cmd) end
-  -- cmd = shim.expand(cmd)
-  -- return lib.sh(cmd[1], cmd, env)
+  cmd = shim.expand(cmd)
   local sh, r, w, lr = lib.sh(cmd[1], cmd, env)
   mty.pnt('!! lib.sh sh=', sh, 'r=', r, 'w=', w, 'lr=', lr);
-  if inp then w:write(inp) end
-  -- w:close()
-	local out, log = r:read'a', lr:read'a'
+  if inp then lib.write(w, inp) end; w:close()
+	local out, log = lib.read(r), lib.read(lr)
   r:close(); lr:close()
-	sh:wait()
-	return sh:rc(), out, log
+	sh:wait(); return sh:rc(), out, log
 end)
 
 return M
