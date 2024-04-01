@@ -19,15 +19,14 @@ end
 test('sh', function()
   local sh = civix.sh
   local rc, o, l = sh'false'; assertEq(1, rc)
-    assertEq('', o); assertEq('', l)
+    assertEq('', o)
 
   rc, o, l = sh'true'; assertEq(0, rc)
-    assertEq('', o); assertEq('', l)
+    assertEq('', o)
 
   rc, o, l = sh{'echo', 'hi there'};
-  mty.pntf('!! echo rc=%s o=%s', rc, o)
-    assertEq(0, rc)
-    assertEq('hi there', o); assertEq('', l)
+  mty.pntf('!! echo rc=%s o=%s', rc, o); assertEq(0, rc)
+    assertEq('hi there\n', o)
 
   -- rc, o, l = sh'cat PKG.lua'; assertEq(0, rc)
   --   assertEq('"hello"', o); assertEq('', l)

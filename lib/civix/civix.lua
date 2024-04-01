@@ -200,17 +200,16 @@ sh{'ls', 'foo/bar', 'space dir/'}  -- ls foo/bar "space dir/"
 sh('cat', 'sent to stdin')         -- echo "sent to stdin" | cat
 ]](function(cmd, inp, env)
   if type(cmd) == 'string' then cmd = shim.parseStr(cmd) end
-  cmd = shim.expand(cmd)
-  local s, r, w, lr = lib.sh(cmd[1], cmd, env)
-  if inp then w:write(inp) end; w:close()
-  local out, log, o, l = {}, {}
-  while not s:isDone() do
-    o, l = r:read'a', lr:read'a'
-    if o ~= '' then push(out, o) end
-    if l ~= '' then push(log, l) end
-  end
-  r:close(); lr:close(); s:wait()
-  return s:rc(), table.concat(out), table.concat(log)
+  -- cmd = shim.expand(cmd)
+  -- return lib.sh(cmd[1], cmd, env)
+  local sh, r, w, lr = lib.sh(cmd[1], cmd, env)
+  mty.pnt('!! lib.sh sh=', sh, 'r=', r, 'w=', w, 'lr=', lr);
+  if inp then w:write(inp) end
+  -- w:close()
+	local out, log = r:read'a', lr:read'a'
+  r:close(); lr:close()
+	sh:wait()
+	return sh:rc(), out, log
 end)
 
 return M

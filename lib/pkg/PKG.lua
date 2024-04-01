@@ -7,7 +7,7 @@ url      = 'git+http://github.com/civboot/civlua'
 summary  = "better lua package creation and importing"
 homepage = "https://github.com/civboot/civlua/blob/main/lib/pkg/README.md"
 license  = "UNLICENSE"
-srcs = { 'pkg.lua' }
+srcs = { 'src/pkg.lua' } -- in src/ for non case-sensitive filesystems
 deps = {
   "lua ~> 5.3",
 }

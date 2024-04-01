@@ -34,11 +34,12 @@
 
 // Return a string array with null-terminated end.
 // Note: you MUST free it.
-static const char** checkstringarray(lua_State *L, int index, int* lenOut) {
+char** checkstringarray(lua_State *L, int index, int* lenOut) {
   lua_len(L, index); int len = luaL_checkinteger(L, -1); lua_pop(L, 1);
-  const char** arr = malloc(sizeof(char*) * (len + 1));
+  char** arr = malloc(sizeof(char*) * (len + 1));
   for(int i = 0; i < len; i++) {
-    lua_geti(L, index, i + 1); arr[i] = luaL_checkstring(L, -1); lua_pop(L, 1);
+    lua_geti(L, index, i + 1); arr[i] = (char*)luaL_checkstring(L, -1);
+    lua_pop(L, 1);
   }
   arr[len] = NULL; *lenOut = len;
   return arr;
@@ -105,22 +106,27 @@ static int l_dir(lua_State *L) {
   return 1;
 }
 
+static char* stmodestring(mode_t st_mode) {
+  switch(S_IFMT & st_mode) {
+		case S_IFSOCK: return "sock";
+		case S_IFLNK:  return "link";
+		case S_IFREG:  return "file";
+		case S_IFBLK:  return "blk";
+		case S_IFDIR:  return "dir";
+		case S_IFCHR:  return "chr";
+		case S_IFIFO:  return "fifo";
+    default:       return NULL;
+  }
+}
+
 // return (ftype)
 static int l_ftype(lua_State *L) {
   struct stat sbuf = {0};
   const char* path = luaL_checkstring(L, 1);
   ASSERT(L, stat(path, &sbuf) == 0,
     "cannot stat %s: %s", path, strerror(errno));
-  switch(S_IFMT & sbuf.st_mode) {
-		case S_IFSOCK: lua_pushstring(L, "sock"); break;
-		case S_IFLNK:  lua_pushstring(L, "link"); break;
-		case S_IFREG:  lua_pushstring(L, "file"); break;
-		case S_IFBLK:  lua_pushstring(L, "blk"); break;
-		case S_IFDIR:  lua_pushstring(L, "dir"); break;
-		case S_IFCHR:  lua_pushstring(L, "chr"); break;
-		case S_IFIFO:  lua_pushstring(L, "fifo"); break;
-    default:       lua_pushnil(L);
-  }
+  char* mode; (mode = stmodestring) ?
+    lua_pushstring(L, mode) : lua_pushnil(L);
   return 1;
 }
 
@@ -131,20 +137,27 @@ static int l_ftype(lua_State *L) {
 // https://www.lua.org/source/5.2/liolib.c.html
 typedef luaL_Stream LStream;
 #define tolstream(L)    ((LStream *)luaL_checkudata(L, 1, LUA_FILEHANDLE))
-static int io_fclose(lua_State *L) {
-  LStream *p = tolstream(L);
-  int res = 0; if(p->f) res = fclose(p->f);
-  return luaL_fileresult(L, (res == 0), NULL);
+static int LStream_close(LStream* p) {
+  int res = 0; if(p->f) { 
+    res = fclose(p->f); p->f = NULL; p->closef = NULL;
+  }
+  return res;
 }
-static LStream *newfile (lua_State *L, FILE* f) {
+static int l_fclose(lua_State *L) {
+  return luaL_fileresult(L, (LStream_close(tolstream(L)) == 0), NULL);
+}
+static LStream *newprefile (lua_State *L) {
   LStream *p = (LStream *)lua_newuserdata(L, sizeof(LStream));
-  p->f = f; p->closef = &io_fclose;
+  p->closef = NULL;  // mark file handle as 'closed'
   luaL_setmetatable(L, LUA_FILEHANDLE);
   return p;
 }
+static void initfile(LStream* ls, FILE* f) {
+  ls->f = f; ls->closef = &l_fclose;
+}
 
 struct sh {
-  pid_t pid; const char** env; // note: env only set if needs freeing
+  pid_t pid; char** env; // note: env only set if needs freeing
   int rc;
 };
 #define tolsh(L) ((struct sh*)luaL_checkudata(L, 1, SH_META))
@@ -153,8 +166,8 @@ struct sh* sh_wait(struct sh* sh, int flags) {
   if(sh->pid) {
     siginfo_t infop = {0};
     if(waitid(P_PID, sh->pid, &infop, WEXITED | flags)) {
-      printf("!! sh_wait failed miserably\n");
-      sh->rc = -99; return sh; // TODO: need better error handle here
+      fprintf(stderr, "ERROR: waitid failed\n");
+      return sh;
     }
     if(infop.si_pid == sh->pid) { sh->pid = 0; sh->rc = infop.si_status; }
   }
@@ -182,72 +195,113 @@ static int l_sh_rc(lua_State *L) {
 // () -> : block until Sh is done.
 static int l_sh_wait(lua_State *L) { sh_wait(tolsh(L), 0); return 0; }
 
-// sh(command, {args}, environ=current) -> Sh, r, w, lr
 static int l_sh(lua_State *L) {
-  while(lua_gettop(L) < 3) lua_pushnil(L);
-  int _len; int p[2]; char* err = "";
-  const char** argv = NULL;
-  int pr_r = 0, pr_w = 0, pr_lr = 0, ch_r = 0, ch_w = 0, ch_lw = 0;
-  FILE *r = NULL, *w = NULL, *lr = NULL;
-  struct sh* sh = (struct sh*)lua_newuserdata(L, sizeof(struct sh));
-  sh->pid = 0; sh->rc = -1; sh->env = NULL;
+  char **argv = NULL, **env = NULL; int _len; lua_settop(L, 3);
   const char* command = luaL_checkstring(L, 1);
   if(!lua_isnil(L, 2)) { argv = checkstringarray(L, 2, &_len); }
-  if(!lua_isnil(L, 3)) { sh->env = checkstringarray(L, 3, &_len); }
+  if(!lua_isnil(L, 3)) { env = checkstringarray(L, 3, &_len); }
 
-  lua_rotate(L, 1, 1); // move sh to bottom of stack
-  lua_settop(L, 1);    // clear stack except for sh
+  struct sh* sh = (struct sh*)lua_newuserdata(L, sizeof(struct sh));
   luaL_setmetatable(L, SH_META);
+  sh->pid = 0; sh->env = env;
+	LStream *s_r = newprefile(L), *s_w = newprefile(L), *s_lr = newprefile(L);
 
-  err = "pipe exhaustion";
-  if(pipe(p)) { goto error; } pr_r  = p[0]; ch_w  = p[1];
-  if(pipe(p)) { goto error; } ch_r  = p[0]; pr_w  = p[1];
-  if(pipe(p)) { goto error; } pr_lr = p[0]; ch_lw = p[1];
-  printf("!! ch pipes: %i %i %i\n", ch_r, ch_w, ch_lw);
-  printf("!! pr pipes: %i %i %i\n", pr_r, pr_w, pr_lr);
+  int rw[2]; int fd; FILE* f = NULL; char* err = "pipes";
+  int ch_r = 0, ch_w = 0, ch_lw = 0;
+  // read    (child stdout)
+  fd = 0; if(pipe(rw)) goto error; else { fd = rw[0]; ch_w  = rw[1]; }
+  if((f = fdopen(fd, "r")) == NULL) goto error; else initfile(s_r, f);
+  // readlog (child stderr)
+  fd = 0; if(pipe(rw)) goto error; else { fd = rw[0]; ch_lw  = rw[1]; }
+  if((f = fdopen(fd, "r")) == NULL) goto error; else initfile(s_lr, f);
+  // write   (child stdin)
+  fd = 0; if(pipe(rw)) goto error; else { ch_r  = rw[0]; fd = rw[1]; }
+  if((f = fdopen(fd, "w")) == NULL) goto error; else initfile(s_w, f);
 
-  err = "fdopen failure";
-  if((r  = fdopen(pr_r,  "r")) == NULL) goto error;
-  if((w  = fdopen(pr_w,  "w")) == NULL) goto error;
-  if((lr = fdopen(pr_lr, "r")) == NULL) goto error;
-
-  err = "fork failure";
-  pid_t pid = fork(); if(pid == -1 ) {
-    error:
-  	if(r)  fclose(r);  else if (pr_r)  close(pr_r);
-  	if(w)  fclose(w);  else if (pr_w)  close(pr_w);
-  	if(lr) fclose(lr); else if (pr_lr) close(pr_lr);
-    if(ch_r) close(ch_r);  if(ch_w) close(ch_w);  if(ch_lw) close(ch_lw);
-    if(sh)   sh_gc(sh);
-    luaL_error(L, "failed sh (%s): %s", err, strerror(errno));
-  }
-  if(pid == 0) { // child process
-    fprintf(stderr, "!! child started\n");
-    // close parent fds on child's side
-    fclose(r); fclose(w); fclose(lr);
-
-    // replace the std(in/out/err) file descriptors with our pipes
-    close(ch_r); close(ch_lw); // FIXME: remove
-    // dup2(ch_r,  STDIN_FILENO);  close(ch_r);
+  int pid = fork(); if(pid == -1) goto error;
+  else if(pid == 0) { // child
+    LStream_close(s_r); LStream_close(s_w); LStream_close(s_lr);
     dup2(ch_w,  STDOUT_FILENO); close(ch_w);
-    // dup2(ch_lw, STDERR_FILENO); close(ch_lw);
-
-    fprintf(stderr, "!! env: %p\n", sh->env);
-    if(sh->env) environ = (char**)sh->env;
-
-    fprintf(stderr, "!! executing: %s\n", command);
-    for(char** arg = (char**)argv; *arg; arg++) {
-      fprintf(stderr, "!!   arg: %s\n", *arg);
-    }
-    int err = execvp(command, (char**)argv);
-    fprintf(stderr, "!! after execvp %i\n", errno);
-    exit(errno);
-  } // else parent process
-  close(ch_r); close(ch_w); close(ch_lw);
+    dup2(ch_lw, STDERR_FILENO); close(ch_lw);
+    dup2(ch_r,  STDIN_FILENO);  close(ch_r);
+    exit(100 + execvp(command, argv)); // note: exit should be unreachable
+  } // else parent
+  close(ch_w); close(ch_r); close(ch_lw);
   sh->pid = pid;
-	newfile(L, r); newfile(L, w); newfile(L, lr);
   return 4;
+error:
+	if (fd)   close(fd);
+  if (ch_w) close(ch_w); if (ch_r) close(ch_r); if (ch_lw) close(ch_lw);
+  luaL_error(L, "failed sh (%s): %s", err, strerror(errno));
+  return 0;
 }
+
+// // sh(command, {args}, environ=current) -> Sh, r, w, lr
+// static int l_sh(lua_State *L) {
+//   while(lua_gettop(L) < 3) lua_pushnil(L);
+//   int _len; int p[2]; char* err = "";
+//   const char** argv = NULL;
+//   int pr_r = 0, pr_w = 0, pr_lr = 0, ch_r = 0, ch_w = 0, ch_lw = 0;
+//   FILE *r = NULL, *w = NULL, *lr = NULL;
+//   struct sh* sh = (struct sh*)lua_newuserdata(L, sizeof(struct sh));
+//   sh->pid = 0; sh->rc = -1; sh->env = NULL;
+//   const char* command = luaL_checkstring(L, 1);
+//   if(!lua_isnil(L, 2)) { argv = checkstringarray(L, 2, &_len); }
+//   if(!lua_isnil(L, 3)) { sh->env = checkstringarray(L, 3, &_len); }
+// 
+//   lua_rotate(L, 1, 1); // move sh to bottom of stack
+//   lua_settop(L, 1);    // clear stack except for sh
+//   luaL_setmetatable(L, SH_META);
+// 
+//   err = "pipe exhaustion";
+//   if(pipe(p)) { goto error; } pr_r  = p[0]; ch_w  = p[1];
+//   if(pipe(p)) { goto error; } ch_r  = p[0]; pr_w  = p[1];
+//   if(pipe(p)) { goto error; } pr_lr = p[0]; ch_lw = p[1];
+//   printf("!! ch pipes: %i %i %i\n", ch_r, ch_w, ch_lw);
+//   printf("!! pr pipes: %i %i %i\n", pr_r, pr_w, pr_lr);
+// 
+//   err = "fdopen failure";
+//   if((r  = fdopen(pr_r,  "r")) == NULL) goto error;
+//   if((w  = fdopen(pr_w,  "w")) == NULL) goto error;
+//   if((lr = fdopen(pr_lr, "r")) == NULL) goto error;
+// 
+//   err = "fork failure";
+//   pid_t pid = fork(); if(pid == -1 ) {
+//     error:
+//   	if(r)  fclose(r);  else if (pr_r)  close(pr_r);
+//   	if(w)  fclose(w);  else if (pr_w)  close(pr_w);
+//   	if(lr) fclose(lr); else if (pr_lr) close(pr_lr);
+//     if(ch_r) close(ch_r);  if(ch_w) close(ch_w);  if(ch_lw) close(ch_lw);
+//     if(sh)   sh_gc(sh);
+//     luaL_error(L, "failed sh (%s): %s", err, strerror(errno));
+//   }
+//   if(pid == 0) { // child process
+//     fprintf(stderr, "!! child started\n");
+//     // close parent fds on child's side
+//     fclose(r); fclose(w); fclose(lr);
+// 
+//     // replace the std(in/out/err) file descriptors with our pipes
+//     close(ch_r); close(ch_lw); // FIXME: remove
+//     // dup2(ch_r,  STDIN_FILENO);  close(ch_r);
+//     dup2(ch_w,  STDOUT_FILENO); close(ch_w);
+//     // dup2(ch_lw, STDERR_FILENO); close(ch_lw);
+// 
+//     fprintf(stderr, "!! env: %p\n", sh->env);
+//     if(sh->env) environ = (char**)sh->env;
+// 
+//     fprintf(stderr, "!! executing: %s\n", command);
+//     for(char** arg = (char**)argv; *arg; arg++) {
+//       fprintf(stderr, "!!   arg: %s\n", *arg);
+//     }
+//     int err = execvp(command, (char**)argv);
+//     fprintf(stderr, "!! after execvp %i\n", errno);
+//     exit(errno);
+//   } // else parent process
+//   close(ch_r); close(ch_w); close(ch_lw);
+//   sh->pid = pid;
+// 	newfile(L, r); newfile(L, w); newfile(L, lr);
+//   return 4;
+// }
 
 // ---------------------
 // -- Registry
