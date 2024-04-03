@@ -98,12 +98,10 @@ I blog about future goals and design ideas at
 https://github.com/civboot/civboot/tree/main/blog
 
 ## Development
-Run tests with
+Build C source and run tests with
 ```
 make test
 ```
-
-Running tests currently requires [luaposix], but most libraries work without it.
 
 **All contributors must agree to license their contributions into the public
 domain.**
@@ -111,9 +109,8 @@ domain.**
 ## LICENSE
 This software is released into the public domain, see LICENSE (aka UNLICENSE).
 
-Attribution is appreciated but not required.
+Attribution is very appreciated (but not required).
 
 [Civboot]: http://civboot.org
 [pkg.lua]: https://luarocks.org/modules/vitiral/pkg
 [LuaRocks]: https://luarocks.org/
-[luaposix]: https://github.com/luaposix/luaposix

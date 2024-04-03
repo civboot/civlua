@@ -401,8 +401,7 @@ io.popen(command, mode='r|w') -> file
 
 Reference:
   os.execute: docs on file:close()
-  luaposix: external lib for more "complete" support
-  civix.sh: more ergonomic shell
+  civix.sh: ergonomic blocking shell.
 
 Note: as of Lua5.4 it is not possible to have stderr or both stdin&stdout.
 ]])

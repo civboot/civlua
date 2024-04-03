@@ -8,6 +8,7 @@ local M = {
 }
 
 M.SKIP = 'skip'
+M.noop = function() end
 
 ---------------------
 -- Order checking functions
@@ -170,6 +171,7 @@ end)
 --------------------
 -- Working with file paths
 M.path = pkg.path
+M.path.splitList = function(path) return M.splitList(path, '/+') end
 
 ---------------------
 -- Table Functions
@@ -527,7 +529,7 @@ local function durationSub(s, ns, s2, ns2)
 end
 
 local function assertTime(t)
-  assert(math.floor(t.s) == t.s, 'non-int seconds')
+  assert(math.floor(t.s) == t.s,   'non-int seconds')
   assert(math.floor(t.ns) == t.ns, 'non-int nano-seconds')
   assert(t.ns < NANO, 'ns too large')
   return t
@@ -556,6 +558,11 @@ M.Duration.asSeconds = asSeconds
 M.Duration.__sub = function(self, r)
   assert(mty.ty(r) == M.Duration)
   local s, ns = durationSub(self.s, self.ns, r.s, r.ns)
+  return M.Duration(s, ns)
+end
+M.Duration.__add = function(self, r)
+  assert(mty.ty(r) == M.Duration)
+  local s, ns = durationSub(self.s, self.ns, -r.s, -r.ns)
   return M.Duration(s, ns)
 end
 M.Duration.__lt = function(self, o)

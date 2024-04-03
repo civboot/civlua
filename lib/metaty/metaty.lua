@@ -39,7 +39,7 @@ function M.docTy(ty_, doc)
   return ty_
 end
 function M.doc(doc)
-  if not DOC then return M.identity end
+  if not DOC then      return M.identity end
   return function(ty_) return M.docTy(ty_, doc) end
 end
 M.docTy(M.isEnvG,  'isEnvG"MY_VAR": isEnv but also checks _G')

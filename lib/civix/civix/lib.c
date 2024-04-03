@@ -8,17 +8,13 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
-#include <time.h>     // Time
-#include <dirent.h>   // Dir
-#include <sys/stat.h> // Dir
-
-#include <unistd.h>   // Shell
-#include <signal.h>   // Shell
+#include <time.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <signal.h>
 #include <pthread.h>
-
-
-#include <fcntl.h>    // Async
-
+#include <fcntl.h>
 
 #if __APPLE__
 #include <crt_externs.h>
@@ -46,6 +42,9 @@ static int sem_destroy(sem_t* sem) {
 // ---------------------
 // -- Utilities
 typedef lua_State LS;
+#define l_intdefault(L, I, DEFAULT) \
+  (lua_isnoneornil(L, I) ? DEFAULT : luaL_checkinteger(L, I))
+
 
 #define ASSERT(L, OK, ...) \
   if(!(OK)) { luaL_error(L, __VA_ARGS__); }
@@ -67,6 +66,10 @@ char** checkstringarray(LS *L, int index, int* lenOut) {
   }
   arr[len] = NULL; *lenOut = len;
   return arr;
+}
+
+static int l_strerrno(LS* L) {
+  lua_pushstring(L, strerror(luaL_checkinteger(L, 1))); return 1;
 }
 
 // ---------------------
@@ -101,15 +104,58 @@ static void initfile(LStream* ls, FILE* f) {
 // -- Time
 int gettime(LS *L, clockid_t clk_id) {
   struct timespec spec = {};
-  clock_gettime(CLOCK_REALTIME, &spec);
+  clock_gettime(clk_id, &spec);
   lua_pushinteger(L, spec.tv_sec);
   lua_pushinteger(L, spec.tv_nsec);
   return 2;
 } int l_epoch(LS *L) { return gettime(L, CLOCK_REALTIME);  }
   int l_mono(LS *L)  { return gettime(L, CLOCK_MONOTONIC); }
 
+int l_nanosleep(LS*L) {
+  struct timespec req, rem;
+  req.tv_sec  = luaL_checkinteger(L, 1); req.tv_nsec = luaL_checkinteger(L, 2);
+  while(nanosleep(&req, &rem)) req = rem;
+  return 0;
+}
+
 // ---------------------
-// -- Dir
+// -- Dir iterator and other functions
+
+// mkdir(path, mode=0777) -> ok, errno
+//   note: 0777 is octal.
+int l_mkdir(LS* L) {
+  const char* path = luaL_checkstring(L, 1);
+  mode_t mode = l_intdefault(L, 2, 0777);
+  if(mkdir(path, mode)) {
+    lua_pushnil(L); lua_pushinteger(L, errno); return 2;
+  }
+  lua_pushboolean(L, true); return 1;
+}
+
+static int rmfn(LS* L, char* name, int fn(const char*)) {
+  const char* path = luaL_checkstring(L, 1);
+  bool rerr = lua_toboolean(L, 2);
+  if(!fn(path)) return 0;
+  ASSERT(L, rerr, "failed to %s: %s (%s)", name, path, SERR);
+  lua_pushinteger(L, errno); return 1;
+}
+// rm(path, reterrno) -> errno: removes path
+// if reterrno just returns errno on failure, else fails
+static int l_rm(LS* L)    { return rmfn(L, "rm",    unlink); }
+static int l_rmdir(LS* L) { return rmfn(L, "rmdir", rmdir); }
+static int l_rename(LS* L) { // rename(old, new, reterrno) -> errno
+  const char* old = luaL_checkstring(L, 1);
+  const char* new = luaL_checkstring(L, 2);
+  bool rerr       = lua_toboolean(L, 3);
+  if(!rename(old, new)) return 0;
+  ASSERT(L, rerr, "failed to rename %s -> %s: %s", old, new, SERR);
+  lua_pushinteger(L, errno); return 1;
+}
+static int l_exists(LS* L) {
+  const char* path = luaL_checkstring(L, 1);
+  lua_pushboolean(L, 0 == access(path, F_OK)); return 1;
+}
+
 const char* DIR_META = "civix.Dir";
 #define toldir(L) (DIR**)luaL_checkudata(L, 1, DIR_META)
 
@@ -201,8 +247,8 @@ static int l_fdtofile(LS *L) {
   return 1;
 }
 
-// VERY basic read
-// Returns {out, error} where only one can be set. EWOULDBLOCK == {}
+// fdread(fd, len) -> (out, error)
+// only one of (out, error) can be set. Both are nil if WOULDBLOCK
 static int l_fdread(LS *L) {
   int* fd = tolfd(L); ASSERT(L, *fd >= 0, "cannot read closed fd");
   int size = lua_isnoneornil(L, 2) ? IO_SIZE : luaL_checkinteger(L, 2);
@@ -220,13 +266,13 @@ static int l_fdread(LS *L) {
 // write(s, start) -> {pos, error}; EWOULDBLOCK == {}
 // pos is nil on error
 // pos and error are nil on EWOULDBLOCK
-// if pos == start it is an EOF
+// if pos < start it is an EOF
 static int l_fdwrite(LS *L) {
   int* fd = tolfd(L); ASSERT(L, *fd >= 0, "cannot write to closed fd");
   size_t len; const char* s = luaL_checklstring(L, 2, &len);
   int start = lua_isnoneornil(L, 3) ? 0 : (luaL_checkinteger(L, 3) - 1);
   ASSERT(L, start >= 0,  "start must be >= 1");
-  ASSERT(L, start < len, "start must be <= len");
+  ASSERT(L, start < len, "start must be < len");
 
   ssize_t c = write(*fd, s + start, len - start); if(c < 0) {
     if(wouldblock()) return 0;
@@ -511,12 +557,15 @@ int l_fdth_runop(LS* L) {
 // ---------------------
 // -- Registry
 static const struct luaL_Reg civix_lib[] = {
+  {"strerrno", l_strerrno},
   {"epoch", l_epoch}, {"mono",  l_mono},
-  {"dir", l_dir},     {"pathstat", l_pathstat},
+  {"nanosleep", l_nanosleep},
+  {"dir", l_dir}, {"pathstat", l_pathstat},
+  {"mkdir", l_mkdir}, {"rm",  l_rm}, {"rmdir", l_rmdir},
+  {"rename", l_rename}, {"exists", l_exists},
   {"sh", l_sh},
-  {"open", l_fdopen},
-  {"read", l_fdread}, {"write", l_fdwrite},
-  {"filenostat", l_filenostat}, {"setblocking", l_fdsetblocking},
+  {"fdopen", l_fdopen}, {"fdread", l_fdread}, {"fdwrite", l_fdwrite},
+  {"filenostat", l_filenostat}, {"fdsetblocking", l_fdsetblocking},
   {"fdth", l_fdth_create},
   {NULL, NULL}, // sentinel
 };
@@ -542,7 +591,7 @@ int luaopen_civix_lib(LS *L) {
       L_setmethod(L, "tofile",   l_fdtofile);
       L_setmethod(L, "fileno",   l_fdfileno);
     lua_settable(L, -3); // Sh.__index = {isDone=l_sh_isDone ...}
-                         //
+
   luaL_newmetatable(L, FDTH_META);
     L_setmethod(L, "__gc", l_fdth_destroy);
     lua_pushstring(L, "__index"); lua_createtable(L, 0, 9);
@@ -558,13 +607,14 @@ int luaopen_civix_lib(LS *L) {
       L_setmethod(L, "_buf",     l_fdth_buf);
     lua_settable(L, -3); // Sh.__index = {isDone=l_sh_isDone ...}
 
-  #define L_setindexas(L, NAME, META) \
+  #define L_setindexasmt(L, NAME, META) \
     luaL_getmetatable(L, META); lua_getfield(L, -1, "__index"); \
     lua_setfield(L, -3, NAME); lua_settop(L, -2);
   luaL_newlib(L, civix_lib); // civix.lib
   lua_createtable(L, 0, 2);  // lib.methods
-    L_setindexas(L, "Sh", SH_META);
-    L_setindexas(L, "Fd", FD_META);
+    L_setindexasmt(L, "Sh",   SH_META);
+    L_setindexasmt(L, "Fd",   FD_META);
+    L_setindexasmt(L, "FdTh", FDTH_META);
   lua_setfield(L, -2, "methods");
 
   #define setconstfield(L, CONST) \
@@ -573,7 +623,8 @@ int luaopen_civix_lib(LS *L) {
     // open constants
     setconstfield(L, O_RDONLY); setconstfield(L, O_WRONLY);
     setconstfield(L, O_RDWR);   setconstfield(L, O_APPEND);
-    setconstfield(L, O_CREAT);  setconstfield(L, O_NONBLOCK);
+    setconstfield(L, O_CREAT);  setconstfield(L, O_TRUNC);
+    setconstfield(L, O_NONBLOCK);
 
     // stmodestring constants
 		setconstfield(L, S_IFMT);
@@ -587,6 +638,10 @@ int luaopen_civix_lib(LS *L) {
     setconstfield(L, FD_CLOSE); setconstfield(L, FD_OPEN);
     setconstfield(L, FD_SEEK);
     setconstfield(L, FD_READ);  setconstfield(L, FD_WRITE);
+    
+    // important errno's
+    setconstfield(L, EEXIST);
+
   lua_setfield(L, -2, "consts");
   return 1;
 }

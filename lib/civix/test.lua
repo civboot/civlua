@@ -5,18 +5,10 @@ local mty = pkg'metaty'
 local ds = pkg'ds'
 local test, assertEq; pkg.auto'civtest'
 
-local posix = pkg.maybe'posix'
 local civix  = pkg'civix'
 local lib = pkg'civix.lib'
 local C = lib.consts
 local D = 'lib/civix/'
-
-local function shouldSkip()
-  if not posix then
-    print" (skipping: install luaposix)"
-    return true
-  end
-end
 
 test('sh', function()
   do -- direct usage of civ.lib
@@ -26,7 +18,7 @@ test('sh', function()
     ftype = w:ftype()
     assert(ds.Set{'pipe', 'fifo'}[ftype], ftype)
     w:close()
-    assertEq('', lib.read(r)); r:close(); lr:close()
+    assertEq('', lib.fdread(r)); r:close(); lr:close()
     sh:wait(); assertEq(0, sh:rc())
   end
 
@@ -48,10 +40,10 @@ test('sh', function()
 
   rc, o, l = sh{'echo', 'foo', '--abc=ya', aa='bar', bb=42}; assertEq(0, rc)
     assertEq('foo --abc=ya --aa=bar --bb=42\n', o)
+  collectgarbage()
 end)
 
-local function testTime()
-  if shouldSkip() then return end
+test('time', function()
   local period, e1 = ds.Duration(0.001), civix.epoch()
   for i=1,10 do
     civix.sleep(period)
@@ -59,18 +51,13 @@ local function testTime()
     local result = e2 - e1; assert((e2 - e1) > period, result)
     e1 = e2
   end
-end
-test('time', function()
-  testTime()
-
-  local posix = civix.posix; civix.posix = nil
-  testTime()
-  civix.posix = posix
+  civix.sleep(-2.3)
+  local m = civix.mono(); civix.sleep(0.001); assert(m < civix.mono())
 end)
 
 test('mkTree', function()
   local d = '.out/civix/'
-  if civix.exists(d) then civix.rmDir(d, true) end
+  if civix.exists(d) then civix.rmRecursive(d, true) end
   civix.mkTree(d, {
     ['a.txt'] = 'for civix a test',
     b = {
@@ -85,8 +72,27 @@ test('mkTree', function()
 end)
 
 test('fdth', function()
+    local d = '.out/civix/';
+    if civix.exists(d) then civix.rmRecursive(d, true) end
+
+    civix.mkTree(d, { ['a.txt'] = 'for civix a test' }, true)
+    do
+      local fd = lib.fdopen(d..'a.txt', 0 | C.O_RDONLY)
+      assertEq('for civix a test', lib.fdread(fd, 42))
+      assert(fd:fileno()); fd:close(); assertEq(nil, fd:fileno())
+    end
+    do
+      local fd = lib.fdopen(d..'b.txt', 0 | C.O_RDWR | C.O_CREAT | C.O_TRUNC)
+      local str = 'writing some bits'
+      local pos, err = lib.fdwrite(fd, str); assert(not err)
+      assertEq(#str, pos); 
+    end
+end)
+
+test('fdth', function()
   do
-    local d = '.out/civix/'; if civix.exists(d) then civix.rmDir(d, true) end
+    local d = '.out/civix/'
+    if civix.exists(d) then civix.rmRecursive(d, true) end
     civix.mkTree(d, { ['a.txt'] = 'for civix a test' }, true)
 
     local fdth = lib.fdth()

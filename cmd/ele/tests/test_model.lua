@@ -18,12 +18,6 @@ local FakeTerm = pkg'ele.FakeTerm'
 
 local add = table.insert
 
-local posix = pkg.maybe'posix'
-local function skipTest() if not posix then
-  print'Skipping: install posix'
-  return true
-end end
-
 test('keypress', function()
   assertEq({'a', 'b'},  keys.parseKeys('a b'))
   assertEq({'a', '^B'}, keys.parseKeys('a ^b'))
@@ -78,8 +72,6 @@ local function testModel(h, w)
   mdl:init()
   return mdl, status, eTest
 end
-
-if skipTest() then return end
 
 test('insert', function()
   local m = mockedModel(

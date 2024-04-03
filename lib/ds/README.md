@@ -24,7 +24,8 @@ It contains the following functions and types. All types use
 - file: `readPath(path)`, `writePath(path, text|lines)`
 
 The following types are also defined:
-- Duration and Epoch for time (must use civix or posix to construct an Epoch)
+- Duration and Epoch for time (must use civix/luaposix/etc to construct an
+  Epoch)
 - Hash Set: `Set{'zebra', 'anchovy'}:union{'corn', 'zebra'}`
 - Linked List: `LL():addFront(1):addBack(2)`
 

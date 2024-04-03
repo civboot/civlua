@@ -23,19 +23,15 @@ local M = {
 	DIR  = "dir",  CHR  = "chr",
 	FIFO = "fifo",
 
-	dir = lib.dir,
+	dir = lib.dir, rm=lib.rm, rmdir = lib.rmdir,
+  exists = lib.exists,
+  -- TODO: probably good to catch return code for cross-filesystem
+  mv = lib.rename, 
 }
 
 mty.docTy(M, [[
 civix: unix-like OS utilities.
 ]])
-
-M.posix = mty.want'posix'
-if M.posix then
-  assert(M.std_r  == M.posix.fileno(io.stdin))
-  assert(M.std_w  == M.posix.fileno(io.stdout))
-  assert(M.std_lw == M.posix.fileno(io.stderr))
-end
 
 -------------------------------------
 -- Utility
@@ -46,36 +42,27 @@ M.quote = function(str)
   return "'" .. str .. "'"
 end
 
--- return (read('*a'), {close()})
-M.lsh = mty.doc[[execute via io.popen(c, 'r')
-returns stdout, {ok, msg, rc} aka fd:close()
-If allowError is false asserts that ok == true
-]](function(c, allowError)
-  local f = assert(io.popen(c, 'r'), c)
-  local o, r = f:read('*a'), {f:close()}
-  assert(r[1] or allowError, r[2])
-  return o, r
-end)
-
 -- "global" shell settings
 M.SH_SET = { debug=false, host=false }
 
 -------------------------------------
 -- Time Functions
+M.sleep = mty.doc[[
+Sleep for the specified duration.
+  sleep(duration)
 
--- Sleep for a duration
-M.sleep = function(duration)
-  if type(duration) == 'number' then
-    duration = ds.Duration:fromSeconds(duration)
-  end
-  if M.posix then M.posix.nanosleep(duration.s, duration.ns)
-  else M.lsh('sleep '..tostring(duration)) end
-end
+time can be a Duration or float (seconds).
+A negative duration results in a noop.
+]](function(d)
+  if type(d) == 'number' then d = ds.Duration:fromSeconds(d) end
+  if d.s >= 0 then lib.nanosleep(d.s, d.ns) end
+end)
 
--- Return the Epoch time
-M.epoch = function()
-  return ds.Epoch(lib.epoch())
-end
+-- Return the Epoch/Mono time
+M.epoch = mty.doc[[Time according to realtime clock]](
+  function() return ds.Epoch(lib.epoch())   end)
+M.mono  = mty.doc[[Duration according to monotomically incrementing clock.]](
+  function() return ds.Duration(lib.mono()) end)
 
 -------------------------------------
 -- Core Filesystem
@@ -97,7 +84,7 @@ M.pathtype = function(path)
   return M.MODE_STR[C.S_IFMT & lib.pathstat(path)]
 end
 
-local function _walkftype(ftypeFns, path, ftype)
+local function _walkcall(ftypeFns, path, ftype)
   local fn = ftypeFns[ftype] or ftypeFns.default
   if fn then return fn(path, ftype) end
 end
@@ -107,17 +94,24 @@ local function _walk(base, ftypeFns, maxDepth, depth)
   for fname, ftype in M.dir(base) do
     local path = pc{base, fname}
     if ftype == 'unknown' then ftype = M.pathtype(path) end
-    local o = _walkftype(ftypeFns, path, ftype)
+    local o = _walkcall(ftypeFns, path, ftype)
     if o == true then return end
     if o ~= 'skip' and ftype == 'dir' then
       _walk(path, ftypeFns, maxDepth, depth + 1)
     end
  	end
+  if ftypeFns.dirDone then ftypeFns.dirDone(base, ftype) end
 end
 
 
--- walk the paths up to depth, calling fileFn for each file and dirFn for each
--- directory. If depth is nil/false then it is infinite.
+-- walk the paths up to depth, calling ftypeFns[ftype] for
+-- each item encountered.
+--
+-- If depth is nil/false then the depth is infinite.
+--
+-- ftypeFns has two special keys:
+--  * default: called if the ftype is not present
+--  * dirDone: called AFTER the directory has been walked
 --
 -- The Fn signatures are: (path, depth) -> stopWalk
 -- If either return true then the walk is ended immediately
@@ -125,7 +119,7 @@ end
 function M.walk(paths, ftypeFns, maxDepth)
   for _, path in ipairs(paths) do
     assert('' ~= path, 'empty path')
-    local ftype = M.pathtype(path); _walkftype(ftypeFns, path, ftype)
+    local ftype = M.pathtype(path); _walkcall(ftypeFns, path, ftype)
     if ftype == 'dir' then _walk(path, ftypeFns, maxDepth, 0) end
   end
 end
@@ -142,19 +136,23 @@ M.ls = function(paths, maxDepth)
   return files, dirs
 end
 
-M.mv = function(from, to) M.lsh(sfmt('mv %s %s', qp(from), qp(to))) end
-M.rm = function(path) M.lsh('rm '..qp(path)) end
-M.rmDir = function(path, children)
-  if children then M.lsh('rm -r '..qp(path))
-  else             M.lsh('rmdir '..qp(path)) end
+local RMR_FNS = {dir = ds.noop, default = M.rm, dirDone = M.rmdir }
+M.rmRecursive = function(path)
+  print('!! rmRecursive', path);
+  M.walk({path}, RMR_FNS, nil)
 end
-M.mkDir = function(path, parents)
-  if parents then M.lsh('mkdir -p '..qp(path))
-  else            M.lsh('mkdir '..qp(path)) end
+M.mkDirs = function(pthArr)
+  local dir = ''; for _, c in ipairs(pthArr) do
+    dir = pc{dir, c}
+    local ok, errno = lib.mkdir(dir)
+    if ok or (errno == C.EEXIST) then -- directory created or exists
+    else mty.errorf('failed to create directory: %s (%s)', 
+                    dir, lib.strerrno(errno)) end
+  end
 end
-M.exists = function(path)
-  local _, r = M.lsh('test -e '..qp(path), true)
-  return r[3] == 0
+M.mkDir = function(pth, parents)
+  if parents then M.mkDirs(path.splitList(pth))
+  else mty.assertf(lib.mkdir(pth), "mkdir failed: %s", pth) end
 end
 
 M.mkTree = mty.doc[[
@@ -207,8 +205,8 @@ sh('cat', 'sent to stdin')         -- echo "sent to stdin" | cat
   cmd = shim.expand(cmd)
   local sh, r, w, lr = lib.sh(cmd[1], cmd, env)
   mty.pnt('!! lib.sh sh=', sh, 'r=', r, 'w=', w, 'lr=', lr);
-  if inp then lib.write(w, inp) end; w:close()
-	local out, log = lib.read(r), lib.read(lr)
+  if inp then lib.fdwrite(w, inp) end; w:close()
+	local out, log = lib.fdread(r), lib.fdread(lr)
   r:close(); lr:close()
 	sh:wait(); return sh:rc(), out, log
 end)

@@ -12,7 +12,7 @@ local ff = pkg'ff'
 local add, sfmt = table.insert, string.format
 
 local dir = '.out/ff/'
-if civix.exists(dir) then civix.rmDir(dir, true) end
+if civix.exists(dir) then civix.rmRecursive(dir) end
 local a = {}; for i=1,100 do add(a, 'a '..i) end
 local b = {}; for i=1,100 do add(b, 'b '..i) end
 
