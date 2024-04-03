@@ -55,7 +55,7 @@ test('time', function()
   local m = civix.mono(); civix.sleep(0.001); assert(m < civix.mono())
 end)
 
-test('mkTree', function()
+local function mkTestTree()
   local d = '.out/civix/'
   if civix.exists(d) then civix.rmRecursive(d, true) end
   civix.mkTree(d, {
@@ -65,6 +65,11 @@ test('mkTree', function()
       ['b2.txt'] = '2 in dir b/',
     },
   }, true)
+  return d
+end
+
+test('mkTree', function()
+  local d = mkTestTree()
   assertEq(ds.readPath'.out/civix/a.txt', 
   'for civix a test')
   assertEq(ds.readPath'.out/civix/b/b1.txt', '1 in dir b/')
@@ -111,23 +116,11 @@ test('fdth', function()
   do local fdth = lib.fdth() end; collectgarbage()
 end)
 
-test('walk', function()
+test('ls', function()
+  local D = mkTestTree()
   local f, d = civix.ls{D}
-  local rspec = ds.indexOfPat(f, '%.rockspec')
-  if rspec then table.remove(f, rspec) end
-  ::clean::
-  rspec = ds.indexOfPat(f, '%..?o') or ds.indexOfPat(f, '%.dylib')
-  if rspec then table.remove(f, rspec); goto clean end
   table.sort(f); table.sort(d)
-  local expected = {
-      D..".gitignore",     D.."Makefile",
-      D.."PKG.lua",        D.."README.md",
-      D.."civix.lua",
-      D..'civix/lib.c',    D..'civix/term.lua',
-      D.."runterm.lua",
-      D.."test.lua",       D.."test_term.lua",
-  }
-  assertEq(expected,         f)
-  assertEq({D, D..'civix/'}, d)
+  assertEq({ D..'a.txt' },   f)
+  assertEq({ D, D..'b/' }, d)
 end)
 

@@ -100,7 +100,7 @@ https://github.com/civboot/civboot/tree/main/blog
 ## Development
 Build C source and run tests with
 ```
-make test
+make test  # on linux you may need: LUA_VERSION=lua5.3
 ```
 
 **All contributors must agree to license their contributions into the public

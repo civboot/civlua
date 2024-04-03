@@ -132,7 +132,7 @@ M.ls = function(paths, maxDepth)
   M.walk(paths, {
     dir     = function(p) add(dirs,  pc{p, '/'}) end,
     default = function(p) add(files, p)          end,
-  }, maxDepth)
+  }, maxDepth or 1)
   return files, dirs
 end
 

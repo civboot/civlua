@@ -1,5 +1,6 @@
 
 LP = "./?/?.lua;./pegl/?.lua;./civix/?.lua;./ele/?.lua;${LUA_PATH}"
+LUA_VERSION = lua
 
 .PHONY: ele
 
@@ -14,7 +15,7 @@ test: build
 build: civix
 
 civix: lib/civix/civix/lib.c
-	cd lib/civix && make build
+	cd lib/civix && make build LUA_VERSION=$(LUA_VERSION)
 
 ele:
 	LUA_PATH=${LP} lua ele/ele.lua

@@ -7,8 +7,7 @@
 NAME  = civix
 FILES = $(NAME)/lib.c
 OUT   = $(NAME)/lib
-test: build
-	lua test.lua
+LUA_VERSION = lua
 
 UNAME := $(shell uname)
 build:  $(UNAME)
@@ -20,7 +19,10 @@ $(OUT).so: $(FILES)
 	make Build$(UNAME)
 
 BuildLinux: $(FILES)
-	$(CC) $(FILES) $(shell pkg-config lua --cflags --libs) -shared -o $(OUT).so
+	# vcmd:       $(_VCMD)
+	# vcmd2:      $(_VCMD2)
+	# lua version $(LUA_VERSION)
+	$(CC) $(FILES) -fPIC -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -shared -o $(OUT).so
 
 BuildDarwin:
 	$(CC) $(FILES) $(shell pkg-config lua --cflags) -c -O2 -fPIC   -o $(OUT).o
