@@ -1,14 +1,24 @@
 local pkg = require'pkg'
 local mty = pkg'metaty'
 local record, Any = mty.record, mty.Any
-local add, sfmt = table.insert, string.format
+local add, pop, sfmt = table.insert, table.remove, string.format
 
 local M = {
   steal = mty.steal, trim = mty.trim,
 }
 
-M.SKIP = 'skip'
-M.noop = function() end
+M.SKIP     = 'skip'
+M.noop     = function() end
+M.retTrue  = function() return true  end
+M.retFalse = function() return false end
+M.newTable = function() return {}    end
+
+M.coroutineErrorMessage = function(cor, err)
+  return table.concat{
+    'Coroutine error: ', debug.stacktraceback(cor, err), '\n',
+    'Coroutine failed!',
+  }
+end
 
 ---------------------
 -- Order checking functions
@@ -273,6 +283,11 @@ M.updateKeys = function(t, add, keys)
 end
 M.orderedKeys = mty.orderedKeys
 
+M.popk = function(t, key) -- pop key
+  local o = t[key]; t[key] = nil; return o
+end
+
+
 -- pop multiple keys, pops(t, {'a', 'b'})
 M.pops = function(t, keys)
   local o = {}
@@ -282,7 +297,7 @@ end
 
 M.drain = function(t, len)
   local out = {}
-  for i=1, M.min(#t, len) do add(out, table.remove(t)) end
+  for i=1, M.min(#t, len) do add(out, pop(t)) end
   return M.reverse(out)
 end
 
@@ -322,6 +337,19 @@ end
 function M.indexOfPat(strs, pat)
   for i, s in ipairs(strs) do if s:find(pat) then return i end end
 end
+
+M.popit = mty.doc[[
+popit(t, i) -> t[i]  -- also, the length of t is reduced by 1
+
+popit (aka pop-index-top) will return the value at t[i], replacing it with the
+value at the end (aka top) of the list.
+
+if i > #t returns nil and doesn't affect the size of the list.
+]](function(t, i)
+  local len = #t; if i > len then return end
+  local o = t[i]; t[i] = t[len]; t[len] = nil
+  return o
+end)
 
 M.walk = mty.doc[[walk(tbl, fieldFn, tableFn, maxDepth, state)
 Walk the table up to depth maxDepth (or infinite if nil).
@@ -572,6 +600,8 @@ end
 M.Duration.__fmt = nil
 M.Duration.__tostring = function(self) return self:asSeconds() .. 's' end
 
+M.DURATION_ZERO = M.Duration(0, 0)
+
 ---------------------
 -- Epoch: time since the unix epoch. Interacts with duration.
 M.Epoch = record('Epoch', {__call=timeNew})
@@ -586,6 +616,10 @@ M.Epoch.__sub = function(self, r)
   if mty.ty(r) == M.Duration then return M.Epoch(s, ns) end
   assert(mty.ty(r) == M.Epoch, 'can only subtract Duration or Epoch')
   return M.Duration(s, ns)
+end
+M.Epoch.__lt = function(self, o)
+  if self.s < o.s then return true end
+  return self.ns < o.ns
 end
 M.Epoch.__fmt = nil
 M.Epoch.__tostring = function(self)

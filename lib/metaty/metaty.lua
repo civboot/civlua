@@ -220,6 +220,13 @@ M.ty = M.doc[[Get the type of the value.
   other: type(v)]]
 (function(obj) return NATIVE_TY_GET[type(obj)](obj) end)
 
+M.callable = M.doc[[callable(obj) -> isCallable
+Return true if the object is a function or table with metatable.__call
+]](function(obj)
+  if type(obj) == 'function' then return true end
+  local m = getmetatable(obj); return m and rawget(m, '__call')
+end)
+
 -- Ultra-simple index function (for methods)
 M.indexUnchecked = function(self, k) return getmetatable(self)[k] end
 

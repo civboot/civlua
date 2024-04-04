@@ -77,9 +77,16 @@ M.MODE_STR = {
   [C.S_IFBLK]  = 'blk',  [C.S_IFDIR] = 'dir',  [C.S_IFCHR] = 'chr', 
   [C.S_IFIFO]  = 'fifo',
 }
-lib.methods.Fd.ftype = function(fd)
-  return M.MODE_STR[C.S_IFMT & lib.filenostat(fd:fileno())]
+local function _ftype(f)
+  return M.MODE_STR[C.S_IFMT & lib.filenostat(f:fileno())]
 end
+local I = lib.indexes
+I.Fd.ftype   = _ftype;
+I.FdTh.ftype = _ftype;
+I.Fd.read = function(fd, num)
+  lib.fdread(fd, ds.min(lib.IO_SIZE, num))
+end
+
 M.pathtype = function(path)
   return M.MODE_STR[C.S_IFMT & lib.pathstat(path)]
 end

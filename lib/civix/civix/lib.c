@@ -53,9 +53,8 @@ typedef lua_State LS;
   if(!(OK)) { luaL_error(L, __VA_ARGS__); }
 #define SERR strerror(errno)
 
-#define L_setmethod(L, KEY, FN)                     \
-  lua_pushstring(L, KEY); lua_pushcfunction(L, FN); \
-  lua_settable(L, -3);
+#define L_setmethod(L, KEY, FN) \
+  lua_pushcfunction(L, FN); lua_setfield(L, -2, KEY);
 
 
 // Return a string array with null-terminated end.
@@ -614,15 +613,17 @@ int luaopen_civix_lib(LS *L) {
     luaL_getmetatable(L, META); lua_getfield(L, -1, "__index"); \
     lua_setfield(L, -3, NAME); lua_settop(L, -2);
   luaL_newlib(L, civix_lib); // civix.lib
-  lua_createtable(L, 0, 2);  // lib.methods
+  lua_createtable(L, 0, 2);  // lib.indexes
     L_setindexasmt(L, "Sh",   SH_META);
     L_setindexasmt(L, "Fd",   FD_META);
     L_setindexasmt(L, "FdTh", FDTH_META);
-  lua_setfield(L, -2, "methods");
+  lua_setfield(L, -2, "indexes");
 
   #define setconstfield(L, CONST) \
     lua_pushinteger(L, CONST); lua_setfield(L, -2, #CONST)
   lua_createtable(L, 0, 6); // lib.consts
+    setconstfield(L, IO_SIZE);
+
     // open constants
     setconstfield(L, O_RDONLY); setconstfield(L, O_WRONLY);
     setconstfield(L, O_RDWR);   setconstfield(L, O_APPEND);
@@ -641,7 +642,7 @@ int luaopen_civix_lib(LS *L) {
     setconstfield(L, FD_CLOSE); setconstfield(L, FD_OPEN);
     setconstfield(L, FD_SEEK);
     setconstfield(L, FD_READ);  setconstfield(L, FD_WRITE);
-    
+
     // important errno's
     setconstfield(L, EEXIST);
 
