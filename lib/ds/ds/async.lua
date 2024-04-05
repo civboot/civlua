@@ -9,15 +9,43 @@ local sfmt = string.format
 local resume, newcor = coroutine.resume, coroutine.create
 
 local M = mt.docTy({}, [[
-Provides standardized types for Await instances and functions for interracting
-with them
+Enables writing simple "blocking style" lua then running asynchronously
+with standard lua coroutines.
 
-Create Await instance
-  awaitKinds: polite  done  mono  poll  any  all
-  The specific requirements differs for each await kind (see documentation)
-  However, they all have the 'stop' field. When set, the stop field will
-  cause the coroutine to be stopped the next time it would have otherwise
-  been run.
+This library is pure lua. The only C code required is to create non-blocking
+versions of system-level objects like files/etc (not part of this module). In
+many cases, this architecture can be used with already written Lua code written
+in a "blocking" style.
+
+## Architecture
+This library provides "types" for communicating with the executeLoop as well as
+a default implementation of the executeLoop. The basic design is that when Lua
+is in "async mode" the blocking APIs (i.e. print, open, read, etc) are replaced
+with versions which `yield someAwait(...)` instead of 
+`return someBlockingCall()`. The executeLoop() will then properly handle this
+value and call the coroutine when it is again ready.
+
+Most code will continue to use `io.open()` and `file:read()` normally, but
+these APIs will yield instead of blocking and the types (i.e. `file`) will be
+slightly different when in async mode.
+
+This is achieved by three separate libraries:
+* ds.async (this library) which provides standard types/interfaces/functions
+* civix (or an equivalent) which provides file/etc types that support truly
+  non-blocking filedescriptors (i.e. pipes/sockets) as well as normally blocking
+  filedescriptors (i.e. a file) backed by a thread.
+* a future library which enables libraries like civix to register themselves
+  and which perform the actual replacement of functions (i.e. replaces
+  the global `print` as well as `io.open` etc with non-blocking equivalents).
+
+
+## ds.async API
+
+Create Await instance of kind = (polite  done  mono  poll  any  all)
+  The specific requirements differs for each await kind (see documentation in
+  function named same thing) However, they all have the 'stop' field. When set,
+  the stop field will cause the coroutine to be stopped the next time it would
+  have otherwise been run.
 
 Interact with Await instance:
   checkAwait  isReady
