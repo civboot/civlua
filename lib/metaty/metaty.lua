@@ -338,7 +338,7 @@ M.newChecked = function(ty_, t)
   for _, field in ipairs(fields) do
     local v = t[field]; local vTy = M.ty(v)
     if not M.tyCheck(fields[field], vTy, ty_[field] ~= nil or maybes[field]) then
-      M.errorf('[%s] %s', field, M.tyCheckMsg(fields[field], vTy))
+      M.errorf('[field:%s] %s', field, M.tyCheckMsg(fields[field], vTy))
     end
   end
   return setmetatable(t, ty_)

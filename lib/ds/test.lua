@@ -2,7 +2,7 @@ METATY_CHECK = true
 
 local pkg = require'pkg'
 local mty = pkg'metaty'
-local push = table.insert
+local push, yield = table.insert, coroutine.yield
 
 local test, assertEq, assertErrorPat; pkg.auto'civtest'
 
@@ -407,7 +407,20 @@ end)
 ---------------------
 -- ds/async.lua
 test('async.schedule', function()
+  da.globalExecutor = da.Executor()
 
+  local sch = da.schedule(function()
+    yield{awaitKind='polite'}
+    return 'done'
+  end)
+  assertEq({awaitKind='polite'}, sch.aw)
+  assertEq('thread', type(sch.cor))
+  local ok, result = coroutine.resume(sch.cor); assert(ok)
+  assertEq({awaitKind='polite'}, result)
+  local ok, result = coroutine.resume(sch.cor); assert(ok)
+  assertEq('done', result)
+
+  da.globalExecutor = false
 end)
 
 ---------------------

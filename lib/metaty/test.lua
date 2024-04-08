@@ -138,7 +138,7 @@ test('record', function()
   assertErrorPat('A does not have field a3',
     function() a.a3 = 7 end)
   assertErrorPat(
-    '[a2] Type error: require=number given=nil',
+    '[field:a2] Type error: require=number given=nil',
     function() A{} end, true)
 end)
 

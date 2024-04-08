@@ -2,7 +2,7 @@
 local pkg = require'pkg'
 local mt  = pkg'metaty'
 local ds  = pkg'ds'
-local heap = ds.heap
+local heap = pkg'ds.heap'
 
 local push, pop = table.insert, table.remove
 local sfmt = string.format
@@ -60,37 +60,36 @@ Global variables:
   ds.async.globalExecutor: used as default executor in ds.async functions
 ]])
 
-
 ----------------------------------
 -- Await instance creation
 -- These aren't real "types" as they don't have a metatable.
 -- However, they DO all have the field 'awaitKind'.
 
-local AWAIT_PARENT = -1
 M.getCor    = function(aw) return aw[0]  end
 M.getParent = function(aw) return aw[-1] end
 
-local function _await(aw, awaitKind, parent)
-  aw.awaitKind = awaitKind; aw[AWAIT_PARENT] = parent
+local function _await(aw, awaitKind)
+  aw.awaitKind = awaitKind
   return aw
 end
 
+local IMM_POLITE = ds.Imm{awaitKind='polite'}
 M.polite = mt.doc[[
-polite(parent) -> Await{kind=polite}
+polite() -> Await{kind=polite}
 Await until next loop. Prevents any sleeps.
 
 Note: it is called "polite" since the coroutine is being polite by yielding
   during it's work. It's also a pun since it allows "polite poll-ing".
-]](function(parent) return _await({}, 'polite', parent) end)
+]](function() return IMM_POLITE end)
 
 M.done = mt.doc[[
-done(isDoneFn, parent) -> Await{kind=done}
+done(isDoneFn) -> Await{kind=done}
 Await until isDone() returns true.
 
 Note: the loop may still sleep for up to it's defaultSleep amount.
-]](function(isDoneFn, parent)
+]](function(isDoneFn)
   assert(ds.callable(isDoneFn), 'isDoneFn must be callable')
-  local aw = _await({isDone=isDoneFn}, 'done', parent)
+  local aw = _await({isDone=isDoneFn}, 'done')
   return aw
 end)
 
@@ -101,54 +100,24 @@ Affects the maximum length of loop sleep.
 ]](function(mono, parent)
   return _await({mono=mono}, 'mono', parent)
 end)
+local monoLt = rawget(ds.Duration, '__lt')
+M.awaitMonoCmp = function(i1, i2) monoLt(i1[1], i2[1]) end -- for Executor
 
 M.poll = mt.doc[[poll(pollTable, parent) -> Await{kind=poll}
 When yielded to an executeLoop, restart the coroutine after the system's
 poll(...). Returns it as a valid fileid. The specific implementation depends on
 the Executor.
-]](function(t, parent)
-  return _await(t, 'poll', parent)
-end)
-
-local function _anyAll(name, awaits, parent)
-  for i, aw in ipairs(awaits) do
-    local err = M.AW_CHECK[aw.awaitKind]; assert(not err, err)
-  end
-  return _await(awaits, name, parent)
-end
-
-M.any = mt.doc[[
-any(awaits, parent) -> Await{kind=any}
-
-Schedule the table of Await instances as an awaitKind="any".
-When yielded to an executeLoop, resume when ANY of the Await instances
-complete.
-]](function(awaits, parent) return _anyAll('any', awaits, parent) end)
-
-M.all = mt.doc[[
-all(awaits, parent) -> Await{kind=any}
-
-Schedule the table of Await instances as an awaitKind="all".
-When yielded to an executeLoop, resume when ALL of the Await instances
-complete.
-]](function(aw) _anyAll('all', awaits, parent) end)
-
-M.shouldStop = function(aw)
-  return aw.stop or (aw.parent and aw.parent.stop)
-end
+]](function(t) return _await(t, 'poll') end)
 
 M.handleErrorDefault = function(err, aw, cor)
   error(ds.coroutineErrorMessage(cor, err), 2)
 end
 
 local checkAnyAll = function(aw)
-  local t = ' must be a table'
-  if type(aw.awaits)     ~= 'table'        then
-    return 'aw.awaits must be a table'     end
-  if type(aw.coroutines) ~= 'table'        then
-    return 'aw.coroutines must be a table' end
-  if type(aw.finished)   ~= 'table'        then
-    return 'aw.finished must be a table'   end
+  return (type(aw.finished) ~= 'table') and 'requires .finished table'
+      or (type(aw.children) ~= 'table') and 'requires children table'
+      or (type(aw.children.count) ~= 'number') and 'requires children.count'
+      or nil
 end
 local AW_CHECK = {
   polite = ds.retFalse, -- no further requirements
@@ -174,56 +143,61 @@ Checks the Await instance for errors and returns error message if one is
 found.
 ]](function(aw)
   if type(aw.awaitKind) ~= 'string' then
-    return 'aw must have string field awaitKind'
+    return 'must have string field awaitKind'
   end
-  local fn = AW_CHECK[aw.awaitKind]
-  if not fn then return sfmt(
+  local fn = AW_CHECK[aw.awaitKind]; if not fn then return sfmt(
     'aw.awaitKind is not a recognized kind: %s', aw.awaitKind
   )end
   return fn(aw)
 end)
 
-local AW_READY = {
-  polite = ds.retTrue, -- always ready
-  done   = function(ex, aw) return aw:isDone()                end,
-  mono   = function(ex, aw) return ex:mono() >= aw.mono       end,
-  poll   = function(ex, aw) return ex:pollSingle(aw, 0)       end,
-  any    = function(ex, aw) return #aw.finished > aw.lastLen  end,
-  all    = function(ex, aw) return #aw.finished >= #aw.awaits end,
-}
+-- Note: when schedule/execute receives an any/all Await instance, it moves the
+-- parent/children to the Scheduled instance and sets aw to an IMM instance.
+local IMM_ANY_ALL = {any=ds.Imm{awaitKind='any'}, all=ds.Imm{awaitKind='all'}}
 
-M.isReady = mty.doc[[
-isReady(await, ex=ds.await.globalExecutor) -> boolean
-Using the executor, returns whether the Await instance is ready.
-]](function(aw, ex)
-  ex = ex or M.globalExecutor; assert(ex, "must provide executor")
-  return AW_READY[aw.awaitKind](ex, aw)
-end)
+local function anyAll(kind, children)
+  local err = kind..' must only be schedule instances'
+  local chs = {count=#children}
+  for _, s in ipairs(children) do
+    assert(mt.ty(s) == M.Scheduled, err)
+    chs[s] = true;
+  end
+  return {awaitKind=kind, children=chs, finished={}}
+end
+
+M.any = mt.doc[[
+any{schedules} -> Await{...schedules...}
+Await a list of schedules, resuming when ANY are finished.
+]](function(schs) return anyAll('any', schs) end)
+
+M.all = mt.doc[[
+all{schedules} -> Await{...schedules...}
+Await a list of schedules, resuming when ALL are finished.
+]](function(schs) return anyAll('all', schs) end)
 
 ----------------------------------
 -- Scheduled
 M.Scheduled = mt.record'Scheduled'
   :field'aw':fdoc'The Await instance we are waiting for'
-  :fieldMaybe('cor', 'thread'):fdoc'Optional coroutine we run'
+  :fieldMaybe('cor', 'thread'):fdoc'Optional coroutine to resume/run'
+  :fieldMaybe'children':fdoc'table of children (keys=Scheduled) and .count'
+  :fieldMaybe'finished':fdoc'list of finished (removed) children in order'
+
 
 M.schedule = mt.doc[[
 schedule(fn, Ex=defaultGlobalExecutor) -> Scheduled
-Create coroutine with fn and resume immediately to get an Await instance.
+Schedule fn on the Executor. The scheduled coroutine will be run
+on the next loop (this function returns without resuming it).
 
-It will be resumed immediately and the result used for the Await instance.
-
-This returns (nil, error) on failure. It is common to assert(schedule(...))
-]](function(cor, ex)
-  assert(type(cor) == 'function', 'can only schedule a function')
-  ex  = assert(ex or M.defaultExecutor, 'must set an executor')
-  cor = coroutine.create(cor)
-  local ok, aw = resume(cor)
-  if not ok then M.handleErrorDefault(aw, nil, cor) end
-  local sh = M.Scheduled{aw=aw, cor=cor}
-  M.EX_UPDATE[aw.awaitKind](ex, sh)
-  return sh
+Note: converts fn to a coroutine if it is not already type=="thread".
+]](function(fn, ex)
+  ex = ex or M.globalExecutor; assert(ex, "must provide executor")
+  if type(fn) == 'function' then fn = coroutine.create(fn) end
+  assert(type(fn) == 'thread', 'can only schedule a fn or coroutine')
+  local sch = M.Scheduled{aw=IMM_POLITE, cor=fn}
+  ex.ready[sch] = true
+  return sch
 end)
-
 
 ----------------------------------
 -- Executor{} and schedule()
@@ -270,7 +244,7 @@ be supported:
 ]](function(ex)
   ex = ex or {}
   for _, f in ipairs {
-    'monoHeap', 'pollMap', 'polite', 'done', 'any', 'all',
+    'monoHeap', 'pollMap', 'ready', 'done', 'any', 'all',
   } do ds.getOrSet(ex, f, ds.newTable) end
   if mt.ty(ex.monoHeap) ~= heap.Heap then
     ex.monoHeap.cmp = M.awaitMonoCmp; ex.monoHeap = heap.Heap(ex.monoHeap)
@@ -283,88 +257,105 @@ be supported:
   return ex
 end)
 
--- (ex, aw, cor) -> (): update executor with Await and coroutine
-M.EX_UPDATE = {
-  mono = function(ex, aw, cor)
-    ex.mono:add({assert(aw.mono), aw, cor})
-  end,
-  poll = function(ex, aw, cor)
-    ex.pollList.insert(aw.fileno, aw.events)
-    ex.pollMapAwaits[aw.fileno] = aw
-    ex.pollMapCors[aw.fileno]   = cor
-  end,
-  polite = function(ex, aw, cor)
-    push(ex.immAwaits, aw); push(ex.immCors, cor)
-  end,
-  done = function(ex, aw, cor)
-    push(ex.doneAwaits, aw); push(ex.doneCors, cor)
-  end,
-  any = function(ex, aw, cor)
-    push(ex.anyAwaits, aw); push(ex.anyCors, cor)
-  end,
-  all = function(ex, aw, cor)
-    push(ex.allAwaits, aw); push(ex.allCors, cor)
+local CHILD_FINISHED = { -- sch is the parent of a finished child
+  any=function(ex, sch) ex.ready[sch] = true end,
+  all=function(ex, sch)
+    if #sch.finished >= sch.children.count then
+      ex.ready[sch] = true
+    end
   end,
 }
+-- finish(Scheduled, Executor=defaultGlobal)
+-- Finish the Scheduled instance.
+-- Clears fields of Sch and notifies parents of completion, moving the parents
+-- to the Executor if they are ready.
+local function finish(sch, ex)
+  ex = ex or M.globalExecutor; assert(ex, "must provide executor")
+  sch.cor = nil; sch.aw = nil
+  if sch.children then sch.children = nil; sch.finished = nil end
+  local p = sch.parent; sch.parent = nil; if not p then return end
+  assert(p.children[sch], 'parent does not have child registered')
+  p.children[sch] = nil; push(p.finished, sch)
+  CHILD_FINISHED[p.aw.awaitKind](ex, p)
+end
+
+-- When a coroutine yields any/all, move the relevant
+-- fields to the sch and replace sch.aw with the immutable
+-- type (that only has awaitKind).
+--
+-- The yielder continues to hold the same object and can track
+-- the progress there.
+local function updateAnyAll(ex, sch)
+  local aw = sch.aw; sch.aw = IMM_ANY_ALL[aw.awaitKind]
+  sch.children = aw.children; sch.finished = aw.finished
+end
+-- (ex, aw, cor) -> (): update executor with Await and coroutine
+M.EX_UPDATE = {
+  polite = function(ex, sch) ex.ready[sch] = true end,
+  done   = function(ex, sch) push(ex.done, sch) end,
+  mono   = function(ex, sch) ex.mono:add{assert(sch.aw.mono), sch} end,
+  poll   = function(ex, sch)
+    local aw = sch
+    ex.pollList:insert(aw.fileno, aw.events)
+    ex.pollMap[aw.fileno] = sch
+  end,
+  any = updateAnyAll, all = updateAnyAll,
+}
+
+-- execute(scheduled, ex) -> isDone, error
+--
+-- Execute (coroutine.resume) the scheduled item, updating the Executor and any
+-- parents depending on result. isDone is returned if the item is done.
+local function execute(ex, sch)
+  local cor = sch.cor
+  if not cor then M.finish(sch, ex); return true     end -- no coroutine
+  local ok, aw = coroutine.resume(cor)
+  if not ok  then M.finish(sch, ex);  return true, aw end -- error
+  if not aw  then M.finish(sch, ex);  return true     end -- isDone
+  sch.aw = aw; EX_UPDATE[aw.awaitKind](ex, sch)
+end
 
 ----------------------------------
 -- executeLoop(ex): default executeLoop implementation for main
-local monoLt = rawget(ds.Duration, '__lt')
-M.awaitMonoCmp = function(i1, i2) monoLt(i1[1], i2[1]) end
 
-local function _ready(isReady, readyAws, readyCors, ex, awaits, cors)
+local function _ready(isReadyFn, ready, ex, schs)
   local popit = ds.popit
   local i = 1; while true do
-    local len = #awaits; if i > len then break end
-    if isReady(awaits[i]) then
-      push(readyAws,  popit(awaits, i))
-      push(readyCors, popit(cors, i))
+    local len = #schs; if i > len then break end
+    if isReadyFn(schs[i]) then
+      push(ready,  popit(schs, i))
     else i = i + 1 end
   end
-end
-
--- res is either error (when ok=false), nil (aka done), or next Await
-local function _awFinish(aw, cor)
-  assert(coroutine.close(cor))
-  local p = aw.parent
-  if p then
-    push(p.finished, assert(p.awaits[aw]))
-    if p.lastLen then p.lastLen = p.lastLen + 1 end
-  end
-end
-local function executeCor(ex, aw, cor)
-  local ok, res = resume(cor)
-  if not ok or not res then -- finished
-    if not ok then ex:handleError(res, aw, cor) end
-    _awFinish(aw, cor)
-  else M.EX_UPDATE[res.awaitKind](ex, res, cor) end
 end
 
 M.executeLoop = mt.doc[[
 executeLoop(ex) -> (): default executeLoop suitable for most applications.
 ]](function(ex)
-  local executeCoroutine = M.executeCoroutine
   local resume, popit, popk = coroutine.resume, ds.popit, ds.popk
   local defaultSleep = ex.defaultSleep or Duration:fromMs(5)
-  local now, till, i, readyCors, readyAws
+  local now, till, i, ready, done, sch, aw, err
 
+  ready = ex.ready; ex.ready = {}
   while true do
-    readyCors = ex.politeCors; ex.politeCors = {}
-    readyAws  = ex.politeAws;  ex.politeAws  = {}
+    -- done: we move any isDone Scheduled to ready
+    done = ex.done; i = 1; while i <= #done do
+      sch = done[i]
+      if sch.aw:isDone() then
+        popit(done, i)
+        ex.ready[sch] = true
+      else i = i + 1 end
+    end
 
-    _ready(AW_READY.done, readyAws, readyCors, ex, ex.doneAwaits, ex.doneCors)
-    _ready(AW_READY.any,  readyAws, readyCors, ex, ex.anyAwaits,  ex.anyCors)
-    _ready(AW_READY.all,  readyAws, readyCors, ex, ex.allAwaits,  ex.allCors)
-
-    -- Execute ready coroutines
-    for i, cor in ipairs(readyCors) do executeCor(ex, readyAws[i], cor) end
+    -- Execute all ready coroutines. This will update
+    -- executor fields.
+    for sch in pairs(ready) do execute(ex, sch) end
+    ready = ex.ready; ex.ready = {}
 
     -- Execute coroutines that need sleeping/polling
-    readyAws, readyCors = {}, {}
     now = ex:mono()
     local mh = ex.monoHeap; local hpop = mh.pop
-    if #ex.politeCors > 0 then till = now -- no sleep when there are polite
-    else                       till = now + defaultSleep end
+    if #ready > 0 then till = now -- no sleep when there are ready
+    else               till = now + defaultSleep end
     while true do -- handle mono (sleep)
       -- keep popping from the minheap until it is before 'now'
       local e = hpop(mh); if not e then break end
@@ -372,21 +363,15 @@ executeLoop(ex) -> (): default executeLoop suitable for most applications.
         mh:add(e); till = math.min(till, e[1])
         break
       end
-      local aw, cor = e[2], e[3]
-      local err = M.checkAwait(aw); assert(not err, err)
-      assert(type(cor) == 'thread')
-      push(readyAws, aw); push(readyCors, cor)
+      ready[e[2]] = true -- e[2] == Schedule
     end
 
     local duration = till - now
     if duration < ds.DURATION_ZERO then duration = ds.DURATION_ZERO end
-    local pl, pmCors, pmAws = ex.pollList, ex.pollMapCors, ex.pollMapAwaits
+    local pl, pm = ex.pollList, ex.pollMap
     for _, fileno in ipairs(pl:ready()) do
-      pl:remove(fileno)
-      push(readyAws,  popk(pmAws,  fileno))
-      push(readyCors, popk(pmCors, fileno))
+      ready[popk(pm, fileno)] = true; pl:remove(fileno)
     end
-    for i, cor in ipairs(readyCors) do executeCor(ex, readyAws[i], cor) end
   end
 end)
 
