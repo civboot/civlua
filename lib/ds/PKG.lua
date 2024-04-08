@@ -11,6 +11,7 @@ deps = {
 }
 srcs = {
   'ds.lua',
+  'ds/async.lua',
   'ds/heap.lua',
   'ds/file.lua',
 }

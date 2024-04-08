@@ -15,6 +15,7 @@ local Set, LL, Duration, Epoch
 local lines
 local M = pkg.auto'ds'
 local df = pkg'ds.file'
+local da = pkg'ds.async'
 
 ---------------------
 -- ds.lua
@@ -401,6 +402,12 @@ test('ch', function()
     assertEq(false, s:isClosed())
   end; collectgarbage()
   assert(s:isClosed())
+end)
+
+---------------------
+-- ds/async.lua
+test('async.schedule', function()
+
 end)
 
 ---------------------
