@@ -390,6 +390,17 @@ test('ch', function()
   s'fourth'; assertEq('fourth', r())
   assertEq(false, r:isDone()); r:close(); assert(r:isDone());
   assert(s:isClosed()); assert(r:isClosed())
+  r = M.Recv(); do
+    local s1 = r:sender(); assertEq(false, r:isDone())
+    s1:send'inner'
+  end; collectgarbage()
+  assertEq('inner', r()); assertEq(true, r:isDone())
+  do
+    local r1 = M.Recv(); s = r1:sender()
+    s'unused'; assertEq(1, #r1)
+    assertEq(false, s:isClosed())
+  end; collectgarbage()
+  assert(s:isClosed())
 end)
 
 ---------------------

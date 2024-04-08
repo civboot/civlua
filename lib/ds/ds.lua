@@ -468,10 +468,10 @@ end
 -- not used directly. See lua documentation on specific
 -- usage.
 
-M.WeakK = mty.doc[[Weak key table, see docs on '__mode']]
+M.WeakKV = mty.doc[[Weak key/value table, see docs on '__mode']]
 (setmetatable(
-  {__name='WeakK', __mode='k'}, {
-  __name='Ty<WeakK>', __call=mty.newUnchecked,
+  {__name='WeakKV', __mode='kv'}, {
+  __name='Ty<WeakKV>', __call=mty.newUnchecked,
 }))
 
 ---------------------
@@ -906,8 +906,14 @@ end
 -- Channel
 M.CH_MAX_HEAD = math.maxinteger -- set here to allow testing
 
-M.Send = mty.record'Send':fieldMaybe'_recv'
-M.Send.__mode = 'v' -- weak values, it doesn't really "own" the recv-end
+M.Send = mty.doc[[
+Sender, created through ds.Recv.sender()
+
+Is considered closed if the receiver is closed.
+The receiver will automatically close if it is garbage collected.
+]](mty.record'Send':fieldMaybe'_recv')
+-- weak keys and values. Receiver can be GC'd (closed) even if sender is alive.
+M.Send.__mode = 'kv'
 M.Send.close   = function(send)
   local r = send._recv; if r then
     assert(r._sends)[send] = nil; send._recv = nil
@@ -931,7 +937,9 @@ M.Send.__len = function(send)
 end
 
 M.Recv = mty.doc[[
-Recv() -> recv: the receive side of channel
+Recv() -> recv: the receive side of channel.
+
+Is considered closed when all senders are closed.
 
 Notes:
 * Use recv:sender() to create a sender. You can create
@@ -942,23 +950,22 @@ Notes:
 * #recv gets number of items buffered.
 * recv:isDone() returns true when either recv is closed
   OR all senders are closed and #recv == 0.
-
 ]](mty.record'Recv')
   :field('head', 'number') :field('tail', 'number')
   -- weak references of Sends. If nil then read is closed.
-  :fieldMaybe('_sends', M.WeakK)
+  :fieldMaybe('_sends', M.WeakKV)
 :new(function(ty_)
-  return mty.new(ty_, {head=0, tail=1, _sends=M.WeakK{}})
+  return mty.new(ty_, {head=0, tail=1, _sends=M.WeakKV{}})
 end)
 M.Recv.close = mty.doc[[Close read side and all associated sends.]]
 (function(r)
   local sends = r._sends; if not sends then return end
-  for s in pairs(sends) do s:close() end
+  for s in pairs(M.copy(sends)) do s:close() end
   r._sends = nil
 end)
 M.Recv.__close = M.Recv.close
-M.Recv.__len = function(r) return r.head - r.tail + 1 end
-M.Recv.isClosed = function(r) return r._sends == nil end
+M.Recv.__len    = function(r) return r.head - r.tail + 1 end
+M.Recv.isClosed = function(r) return r._sends == nil     end
 M.Recv.isDone = function(r)
   local sends = r._sends
   return (not sends) or (M.isEmpty(sends) and (#r == 0))
@@ -978,7 +985,7 @@ end
 M.Recv.__call = M.Recv.recv
 
 M.channel = mty.doc[[
-channel() -> Send, Recv: open sender and receiver.
+channel() -> Send, Recv: helper to open sender and receiver.
 ]](function() local r = M.Recv(); return r, r:sender() end)
 
 return M
