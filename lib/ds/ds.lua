@@ -186,7 +186,7 @@ M.path.splitList = function(path) return M.splitList(path, '/+') end
 ---------------------
 -- Table Functions
 M.isEmpty = mty.doc'return whether a table is empty'
-(function(t) return (#t == 0) and (next(t) == nil) end)
+(function(t) return next(t) == nil end)
 
 M.only = mty.doc'get the first and only element of the list'
 (function(t)
@@ -220,8 +220,9 @@ M.rawislice = mty.doc'for i, v in rawislice({t, endi}, starti)'
   return i, state[1][i]
 end)
 M.islice = mty.doc[[
-islice(t, starti, endi): iterate over slice.
-  Unlike other i* functions, this ignores length.
+islice(t, starti, endi=#t): iterate over slice.
+  Unlike other i* functions, this ignores length
+  except as the default value of endi
 ]](function(t, starti, endi)
   return M.rawislice, {t, endi or #t}, (starti or 1) - 1
 end)
@@ -460,6 +461,18 @@ M.eval = function(chunk, env, name) -- Note: not typed
   if err then return false, err end
   return pcall(e)
 end
+
+---------------------
+-- Low-level Types
+-- These are generally used to create other types and are
+-- not used directly. See lua documentation on specific
+-- usage.
+
+M.WeakK = mty.doc[[Weak key table, see docs on '__mode']]
+(setmetatable(
+  {__name='WeakK', __mode='k'}, {
+  __name='Ty<WeakK>', __call=mty.newUnchecked,
+}))
 
 ---------------------
 -- Sentinal, none type, bool() and empty table
@@ -864,13 +877,14 @@ Given a depsMap return missing deps (items in a deps with no name).
 end)
 
 ---------------------
--- Bidirectional Map
--- maps both key -> value and value -> key
--- must use `:remove` to handle deletions
---
--- Note that pairs() will return both directions in
--- an unspecified order
-M.BiMap = mty.record'BiMap'
+-- BiMap
+M.BiMap = mty.doc[[
+BiMap{} -> biMap: Bidirectional Map
+maps both key -> value and value -> key
+must use `:remove` (instead of `bm[k] = nil` to handle deletions.
+
+Note that pairs() will return BOTH directions (in an unspecified order)
+]](mty.record'BiMap')
 :new(function(ty_, t)
   local keys = {}; for k, v in pairs(t) do
     if not t[v] then add(keys, k) end
@@ -887,5 +901,84 @@ M.BiMap.__fmt = nil
 M.BiMap.remove = function(t, k)
   local v = t[k]; t[k] = nil; t[v] = nil
 end
+
+---------------------
+-- Channel
+M.CH_MAX_HEAD = math.maxinteger -- set here to allow testing
+
+M.Send = mty.record'Send':fieldMaybe'_recv'
+M.Send.__mode = 'v' -- weak values, it doesn't really "own" the recv-end
+M.Send.close   = function(send)
+  local r = send._recv; if r then
+    assert(r._sends)[send] = nil; send._recv = nil
+  end
+end
+M.Send.__close = M.Send.close
+M.Send.isClosed = function(s) return s._recv == nil end
+M.Send.send = function(send, val)
+  local r = assert(send._recv, 'send when closed')
+  local head = r.head; if head > M.CH_MAX_HEAD then
+    local tail, i = r.tail, 1
+    for k, v in M.islice(tail, head) do r[k] = nil; r[i] = v; i = i + 1 end
+    head = head - tail; r.head = head; r.tail = 1
+  end
+  head = head + 1; r[head] = val; r.head = head
+end
+M.Send.__call = M.Send.send
+M.Send.__len = function(send)
+  local r = send._recv
+  return r and #r or 0
+end
+
+M.Recv = mty.doc[[
+Recv() -> recv: the receive side of channel
+
+Notes:
+* Use recv:sender() to create a sender. You can create
+  multiple senders.
+* Use recv:recv() or simply recv() to receive a value.
+* User sender:send() or simply sender() to send a value.
+* recv:close() when done. Also closes all senders.
+* #recv gets number of items buffered.
+* recv:isDone() returns true when either recv is closed
+  OR all senders are closed and #recv == 0.
+
+]](mty.record'Recv')
+  :field('head', 'number') :field('tail', 'number')
+  -- weak references of Sends. If nil then read is closed.
+  :fieldMaybe('_sends', M.WeakK)
+:new(function(ty_)
+  return mty.new(ty_, {head=0, tail=1, _sends=M.WeakK{}})
+end)
+M.Recv.close = mty.doc[[Close read side and all associated sends.]]
+(function(r)
+  local sends = r._sends; if not sends then return end
+  for s in pairs(sends) do s:close() end
+  r._sends = nil
+end)
+M.Recv.__close = M.Recv.close
+M.Recv.__len = function(r) return r.head - r.tail + 1 end
+M.Recv.isClosed = function(r) return r._sends == nil end
+M.Recv.isDone = function(r)
+  local sends = r._sends
+  return (not sends) or (M.isEmpty(sends) and (#r == 0))
+end
+M.Recv.sender = function(r)
+  local s = M.Send{_recv=r}
+  assert(r._sends, 'sender on closed channel')[s] = true
+  return s
+end
+M.Recv.recv = function(r)
+  assert(r._sends, 'recv while closed')
+  local h, t = r.head, r.tail
+  if t > h then return nil end
+  local out = r[t]; r[t] = nil; r.tail = t + 1
+  return out
+end
+M.Recv.__call = M.Recv.recv
+
+M.channel = mty.doc[[
+channel() -> Send, Recv: open sender and receiver.
+]](function() local r = M.Recv(); return r, r:sender() end)
 
 return M

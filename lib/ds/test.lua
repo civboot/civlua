@@ -16,6 +16,9 @@ local lines
 local M = pkg.auto'ds'
 local df = pkg'ds.file'
 
+---------------------
+-- ds.lua
+
 test('bool and none', function()
   local none = M.none
   assertEq(false, M.bool())
@@ -358,6 +361,39 @@ test('bimap', function()
   assertEq(
     'BiMap{A="a" B="b" a="A" b="B"}', mty.fmt(bm))
 end)
+
+test('ch', function()
+  local r, s = M.channel(); assert(r and s)
+  assertEq(nil, r()); assertEq(#r, 0); assertEq(false, r:isDone())
+
+  s'first'; assertEq(1, #r); assertEq(1, r.head); assertEq(1, r.tail)
+  assertEq('first', r()); assertEq(0, #r); -- pop/recv
+    assertEq(1, r.head); assertEq(2, r.tail)
+    assertEq(nil, r());
+    assertEq(1, r.head); assertEq(2, r.tail) -- no change from double r()
+
+  s'second'; s'third'
+  assertEq(2, #r); assertEq(3, r.head); assertEq(2, r.tail)
+
+  assertEq('second', r())
+  assertEq(false, r:isDone())
+  assertEq(false, s:isClosed())
+  s:close(); assertEq(false, r:isDone())
+  assertEq(true, s:isClosed())
+
+  assertEq('third', r())
+  for k, v in pairs(r._sends) do mty.pnt('!! still have', k, v) end
+  assertEq(true, r:isDone())
+  assertEq(nil, r())
+
+  s = r:sender(); assertEq(false, r:isDone())
+  s'fourth'; assertEq('fourth', r())
+  assertEq(false, r:isDone()); r:close(); assert(r:isDone());
+  assert(s:isClosed()); assert(r:isClosed())
+end)
+
+---------------------
+-- ds/file.lua
 
 test('LinesFile_small', function()
   assertEq(5, df.readLen'testdata/small.txt')
