@@ -7,6 +7,7 @@ local heap = pkg'ds.heap'
 local push, pop = table.insert, table.remove
 local sfmt = string.format
 local resume, newcor = coroutine.resume, coroutine.create
+local yield = coroutine.yield
 
 local M = mt.docTy({}, [[
 Enables writing simple "blocking style" lua then running asynchronously
@@ -41,7 +42,7 @@ This is achieved by three separate libraries:
 
 ## ds.async API
 
-Create Await instance of kind = (polite  done  mono  poll  any  all)
+Create Await instance of kind = (ready  done  mono  poll  any  all)
   The specific requirements differs for each await kind (see documentation in
   function named same thing) However, they all have the 'stop' field. When set,
   the stop field will cause the coroutine to be stopped the next time it would
@@ -73,14 +74,37 @@ local function _await(aw, awaitKind)
   return aw
 end
 
-local IMM_POLITE = ds.Imm{awaitKind='polite'}
-M.polite = mt.doc[[
-polite() -> Await{kind=polite}
+local IMM_IGNORE = ds.Imm{awaitKind='ignore'}
+M.ignore = mt.doc[[
+ignore() -> Await{kind=ignore}
+The associated coroutine will be ignored/forgotten but NOT closed.
+This is typically used if there is some mechanism for re-adding
+the Scheduled item later.
+]](function() return IMM_IGNORE end)
+
+local IMM_READY = ds.Imm{awaitKind='ready'}
+M.ready = mt.doc[[
+ready() -> Await{kind=ready}
 Await until next loop. Prevents any sleeps.
 
-Note: it is called "polite" since the coroutine is being polite by yielding
-  during it's work. It's also a pun since it allows "polite poll-ing".
-]](function() return IMM_POLITE end)
+Note: it is called "ready" since the coroutine is already ready to run
+  but is being polite.
+]](function() return IMM_READY end)
+
+M.signal = mt.doc[[
+signal(aw) -> Await{kind=signal}
+
+The executor will call aw:updateSignal(sch, ex) and otherwise forget/ignore
+it.
+
+ds.async.notify(sch, ex) must be later called to resume the scheduled item.
+
+Example: see the implementation of Send and Recv channels.
+]](function(aw)
+  assert(type(aw.updateSignal) == 'function')
+  aw.awaitKind = 'signal'
+  return aw
+end)
 
 M.done = mt.doc[[
 done(isDoneFn) -> Await{kind=done}
@@ -120,7 +144,9 @@ local checkAnyAll = function(aw)
       or nil
 end
 local AW_CHECK = {
-  polite = ds.retFalse, -- no further requirements
+  ignore = ds.retFalse, -- no further requirements
+  ready = ds.retFalse,  -- no further requirements
+  signal = function(aw) aw.sch = aw.sch end,
   done = function(aw)
     return (type(aw.isDone) == 'function')
       or 'aw.isDone must be a function'
@@ -183,6 +209,13 @@ M.Scheduled = mt.record'Scheduled'
   :fieldMaybe'children':fdoc'table of children (keys=Scheduled) and .count'
   :fieldMaybe'finished':fdoc'list of finished (removed) children in order'
 
+M.notify = mt.doc[[
+Notify executor that Schedule instance is ready.
+]](function(sch, ex)
+  if sch.aw ~= IMM_IGNORE then return end
+  ex = ex or M.globalExecutor; assert(ex, "must provide executor")
+  sch.aw = IMM_READY; ex.ready[sch] = true;
+end)
 
 M.schedule = mt.doc[[
 schedule(fn, Ex=defaultGlobalExecutor) -> Scheduled
@@ -194,7 +227,7 @@ Note: converts fn to a coroutine if it is not already type=="thread".
   ex = ex or M.globalExecutor; assert(ex, "must provide executor")
   if type(fn) == 'function' then fn = coroutine.create(fn) end
   assert(type(fn) == 'thread', 'can only schedule a fn or coroutine')
-  local sch = M.Scheduled{aw=IMM_POLITE, cor=fn}
+  local sch = M.Scheduled{aw=IMM_READY, cor=fn}
   ex.ready[sch] = true
   return sch
 end)
@@ -230,7 +263,7 @@ be supported:
   The following fields are added as normal tables if not present. They
   are lists of Scheduled instances to execute with Await instances of
   the named types.
-    polite    done    any    all
+    ready    done    any    all
 
   These are a slightly different type. The default is still an empty instance:
     monoHeap       ds.heap.Heap (minheap) of {Duration, Scheduled}
@@ -291,7 +324,9 @@ local function updateAnyAll(ex, sch)
 end
 -- (ex, aw, cor) -> (): update executor with Await and coroutine
 M.EX_UPDATE = {
-  polite = function(ex, sch) ex.ready[sch] = true end,
+  ignore = ds.noop,
+  signal = function(ex, sch) sch.aw:updateSignal(sch, ex) end,
+  ready  = function(ex, sch) ex.ready[sch] = true end,
   done   = function(ex, sch) push(ex.done, sch) end,
   mono   = function(ex, sch) ex.mono:add{assert(sch.aw.mono), sch} end,
   poll   = function(ex, sch)
@@ -374,5 +409,97 @@ executeLoop(ex) -> (): default executeLoop suitable for most applications.
     end
   end
 end)
+
+----------------------------------
+-- Ch: channel sender and receiver (Send/Recv)
+
+M.Recv = mt.doc[[
+Recv() -> recv: the receive side of channel.
+
+Is considered closed when all senders are closed.
+
+Notes:
+* Use recv:sender() to create a sender. You can create
+  multiple senders.
+* Use recv:recv() or simply recv() to receive a value.
+* User sender:send() or simply sender() to send a value.
+* recv:close() when done. Also closes all senders.
+* #recv gets number of items buffered.
+* recv:isDone() returns true when either recv is closed
+  OR all senders are closed and #recv == 0.
+]](mt.record'Recv')
+  :field('deq', ds.Deq)
+  -- These are set by updateSignal, called by executor
+  :fieldMaybe('sch', M.Scheduled)
+  :fieldMaybe'ex':fdoc'Executor, default is global'
+  -- weak references of Sends. If nil then read is closed.
+  :fieldMaybe('_sends', ds.WeakKV)
+  :field('awaitKind', 'string', 'signal')
+:new(function(ty_)
+  return mt.new(ty_, {deq=ds.Deq(), _sends=ds.WeakKV{}})
+end)
+M.Recv.updateSignal = function(r, sch, ex)
+  r.sch = sch; r.ex = ex
+end
+M.Recv.close = mt.doc[[Close read side and all associated sends.]]
+(function(r)
+  local sends = r._sends; if not sends then return end
+  for s in pairs(ds.copy(sends)) do s:close() end
+  r._sends = nil
+end)
+M.Recv.__close  = M.Recv.close
+M.Recv.__len    = function(r) return #r.deq          end
+M.Recv.isClosed = function(r) return r._sends == nil end
+M.Recv.isDone = function(r)
+  return (#r.deq == 0)
+     and (not r._sends or ds.isEmpty(r._sends))
+end
+M.Recv.sender = function(r, sch, ex)
+  local s = M.Send(r, sch, ex or r.ex)
+  assert(r._sends, 'sender on closed channel')[s] = true
+  return s
+end
+M.Recv.recv = function(r)
+  while (#r.deq == 0) and (r._sends and not ds.isEmpty(r._sends)) do
+    mt.pnt('!! recv loop', #r, r)
+    yield(r)
+  end
+  r.sch, r.ex = nil, nil -- no need to notify anymore
+  return r.deq()
+end
+M.Recv.__call = M.Recv.recv
+
+M.Send = mt.doc[[
+Sender, created through ds.Recv.sender()
+
+Is considered closed if the receiver is closed.  The receiver will
+automatically close if it is garbage collected.
+]](mt.record'Send')
+  :fieldMaybe('_recv', M.Recv)
+:new(function(ty_, recv)
+  return mt.new(ty_, { _recv=assert(recv, 'missing Recv') })
+end)
+M.Send.__mode = 'kv'
+M.Send.close   = function(send)
+  local r = send._recv; if r then
+    assert(r._sends)[send] = nil; send._recv = nil
+  end
+end
+M.Send.__close = M.Send.close
+M.Send.isClosed = function(s) return s._recv == nil end
+M.Send.send = function(send, val)
+  local r = assert(send._recv, 'send when closed')
+  r.deq:push(val)
+  local sch = r.sch; if sch then M.notify(sch, r.ex) end
+end
+M.Send.__call = M.Send.send
+M.Send.__len = function(send)
+  local r = send._recv; return r and #r or 0
+end
+
+M.channel = mt.doc[[
+channel() -> Send, Recv: helper to open sender and receiver.
+]](function() local r = M.Recv(); return r, r:sender() end)
+
 
 return M

@@ -903,89 +903,37 @@ M.BiMap.remove = function(t, k)
 end
 
 ---------------------
--- Channel
-M.CH_MAX_HEAD = math.maxinteger -- set here to allow testing
+-- Fifo Buffer
+M.Deq = mty.doc[[
+Deq() -> Deq, a deque
 
-M.Send = mty.doc[[
-Sender, created through ds.Recv.sender()
+Main methods:
+  pushLeft()  pushRight()
+  popLeft()   popRight()
 
-Is considered closed if the receiver is closed.
-The receiver will automatically close if it is garbage collected.
-]](mty.record'Send':fieldMaybe'_recv')
--- weak keys and values. Receiver can be GC'd (closed) even if sender is alive.
-M.Send.__mode = 'kv'
-M.Send.close   = function(send)
-  local r = send._recv; if r then
-    assert(r._sends)[send] = nil; send._recv = nil
-  end
+Calling it is the same as popLeft (use as iterator)
+]](mty.record'Deq')
+  :field('right', 'number')  :field('left', 'number')
+:new(function(ty_) return mty.new(ty_, {right=0, left=1}) end)
+M.Deq.pushRight = function(deq, val)
+  local r = deq.right + 1; deq[r] = val; deq.right = r
 end
-M.Send.__close = M.Send.close
-M.Send.isClosed = function(s) return s._recv == nil end
-M.Send.send = function(send, val)
-  local r = assert(send._recv, 'send when closed')
-  local head = r.head; if head > M.CH_MAX_HEAD then
-    local tail, i = r.tail, 1
-    for k, v in M.islice(tail, head) do r[k] = nil; r[i] = v; i = i + 1 end
-    head = head - tail; r.head = head; r.tail = 1
-  end
-  head = head + 1; r[head] = val; r.head = head
+M.Deq.pushLeft = function(deq, val)
+  local l = deq.left - 1;  deq[l] = val; deq.left = l
 end
-M.Send.__call = M.Send.send
-M.Send.__len = function(send)
-  local r = send._recv
-  return r and #r or 0
+M.Deq.popLeft = function(deq)
+  local l = deq.left; if l > deq.right then return nil end
+  local val = deq[l]; deq[l] = nil; deq.left = l + 1
+  return val
 end
-
-M.Recv = mty.doc[[
-Recv() -> recv: the receive side of channel.
-
-Is considered closed when all senders are closed.
-
-Notes:
-* Use recv:sender() to create a sender. You can create
-  multiple senders.
-* Use recv:recv() or simply recv() to receive a value.
-* User sender:send() or simply sender() to send a value.
-* recv:close() when done. Also closes all senders.
-* #recv gets number of items buffered.
-* recv:isDone() returns true when either recv is closed
-  OR all senders are closed and #recv == 0.
-]](mty.record'Recv')
-  :field('head', 'number') :field('tail', 'number')
-  -- weak references of Sends. If nil then read is closed.
-  :fieldMaybe('_sends', M.WeakKV)
-:new(function(ty_)
-  return mty.new(ty_, {head=0, tail=1, _sends=M.WeakKV{}})
-end)
-M.Recv.close = mty.doc[[Close read side and all associated sends.]]
-(function(r)
-  local sends = r._sends; if not sends then return end
-  for s in pairs(M.copy(sends)) do s:close() end
-  r._sends = nil
-end)
-M.Recv.__close = M.Recv.close
-M.Recv.__len    = function(r) return r.head - r.tail + 1 end
-M.Recv.isClosed = function(r) return r._sends == nil     end
-M.Recv.isDone = function(r)
-  local sends = r._sends
-  return (not sends) or (M.isEmpty(sends) and (#r == 0))
+M.Deq.popRight = function(deq)
+  local r = deq.right; if deq.left > r then return nil end
+  local val = deq[r]; deq[r] = nil; deq.right = r - 1
+  return val
 end
-M.Recv.sender = function(r)
-  local s = M.Send{_recv=r}
-  assert(r._sends, 'sender on closed channel')[s] = true
-  return s
-end
-M.Recv.recv = function(r)
-  assert(r._sends, 'recv while closed')
-  local h, t = r.head, r.tail
-  if t > h then return nil end
-  local out = r[t]; r[t] = nil; r.tail = t + 1
-  return out
-end
-M.Recv.__call = M.Recv.recv
-
-M.channel = mty.doc[[
-channel() -> Send, Recv: helper to open sender and receiver.
-]](function() local r = M.Recv(); return r, r:sender() end)
+M.Deq.push = M.Deq.pushRight
+M.Deq.__len = function(d) return d.right - d.left + 1 end
+M.Deq.pop = M.Deq.popLeft
+M.Deq.__call = M.Deq.pop
 
 return M

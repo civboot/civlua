@@ -363,18 +363,39 @@ test('bimap', function()
     'BiMap{A="a" B="b" a="A" b="B"}', mty.fmt(bm))
 end)
 
-test('ch', function()
-  local r, s = M.channel(); assert(r and s)
-  assertEq(nil, r()); assertEq(#r, 0); assertEq(false, r:isDone())
+test('deq', function()
+  local d = M.Deq()
+  d:pushRight(4); assertEq(1, #d)
+  d:pushRight(5); assertEq(2, #d)
+  d:pushLeft(3);  assertEq(3, #d)
+  assertEq(3, d());          assertEq(2, #d)
+  assertEq(5, d:popRight()); assertEq(1, #d)
+  assertEq(4, d());          assertEq(0, #d)
+end)
 
-  s'first'; assertEq(1, #r); assertEq(1, r.head); assertEq(1, r.tail)
-  assertEq('first', r()); assertEq(0, #r); -- pop/recv
-    assertEq(1, r.head); assertEq(2, r.tail)
-    assertEq(nil, r());
-    assertEq(1, r.head); assertEq(2, r.tail) -- no change from double r()
+test('ch', function()
+  local r, s = da.channel(); assert(r and s)
+  local deq = r.deq
+  local cor = coroutine.create(function()
+    while true do
+      coroutine.yield(r())
+    end
+  end)
+  local function nxt(cor)
+    return select(2, coroutine.resume(cor))
+  end
+  assertEq(r, nxt(cor))
+  assertEq(#r, 0); assertEq(false, r:isDone())
+
+  s'first'; assertEq(1, #r); assertEq(1, deq.right); assertEq(1, deq.left)
+  assertEq('first', nxt(cor))
+  assertEq(0, #r)
+    assertEq(1, deq.right); assertEq(2, deq.left)
+    assertEq(r, nxt(cor))
+    assertEq(1, deq.right); assertEq(2, deq.left)
 
   s'second'; s'third'
-  assertEq(2, #r); assertEq(3, r.head); assertEq(2, r.tail)
+  assertEq(2, #r); assertEq(3, deq.right); assertEq(2, deq.left)
 
   assertEq('second', r())
   assertEq(false, r:isDone())
@@ -391,13 +412,13 @@ test('ch', function()
   s'fourth'; assertEq('fourth', r())
   assertEq(false, r:isDone()); r:close(); assert(r:isDone());
   assert(s:isClosed()); assert(r:isClosed())
-  r = M.Recv(); do
+  r = da.Recv(); do
     local s1 = r:sender(); assertEq(false, r:isDone())
     s1:send'inner'
   end; collectgarbage()
   assertEq('inner', r()); assertEq(true, r:isDone())
   do
-    local r1 = M.Recv(); s = r1:sender()
+    local r1 = da.Recv(); s = r1:sender()
     s'unused'; assertEq(1, #r1)
     assertEq(false, s:isClosed())
   end; collectgarbage()
@@ -410,13 +431,13 @@ test('async.schedule', function()
   da.globalExecutor = da.Executor()
 
   local sch = da.schedule(function()
-    yield{awaitKind='polite'}
+    yield(da.ready())
     return 'done'
   end)
-  assertEq({awaitKind='polite'}, sch.aw)
+  assertEq({awaitKind='ready'}, sch.aw)
   assertEq('thread', type(sch.cor))
   local ok, result = coroutine.resume(sch.cor); assert(ok)
-  assertEq({awaitKind='polite'}, result)
+  assertEq({awaitKind='ready'}, result)
   local ok, result = coroutine.resume(sch.cor); assert(ok)
   assertEq('done', result)
 
