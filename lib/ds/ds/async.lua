@@ -58,9 +58,11 @@ Other functions (see individual documentation)
   schedule  executeLoop
 
 Global variables:
-  ds.async.globalExecutor: used as default executor in ds.async functions
+  ASYNC_EXECUTOR: should be set to a ds.async.Executor() instance or
+    equivalent.
 ]])
 
+local EXECUTOR_ERR = "must set ASYNC_EXECUTOR"
 ----------------------------------
 -- Await instance creation
 -- These aren't real "types" as they don't have a metatable.
@@ -91,20 +93,14 @@ Note: it is called "ready" since the coroutine is already ready to run
   but is being polite.
 ]](function() return IMM_READY end)
 
-M.signal = mt.doc[[
-signal(aw) -> Await{kind=signal}
+M.listen = mt.doc[[
+listen(aw) -> Await{kind=listen}
+Sets Executor.listen[aw] = Scheduled
 
-The executor will call aw:updateSignal(sch, ex) and otherwise forget/ignore
-it.
-
-ds.async.notify(sch, ex) must be later called to resume the scheduled item.
-
+Note: Typically another coroutine has a way to access the aw instance and
+  call `notify(aw)` which moves the Scheduled instance into ex.ready.
 Example: see the implementation of Send and Recv channels.
-]](function(aw)
-  assert(type(aw.updateSignal) == 'function')
-  aw.awaitKind = 'signal'
-  return aw
-end)
+]](function() return {awaitKind='listen'} end)
 
 M.done = mt.doc[[
 done(isDoneFn) -> Await{kind=done}
@@ -144,9 +140,9 @@ local checkAnyAll = function(aw)
       or nil
 end
 local AW_CHECK = {
-  ignore = ds.retFalse, -- no further requirements
-  ready = ds.retFalse,  -- no further requirements
-  signal = function(aw) aw.sch = aw.sch end,
+  ignore = ds.retFalse,
+  ready = ds.retFalse,
+  listen = ds.retFalse,
   done = function(aw)
     return (type(aw.isDone) == 'function')
       or 'aw.isDone must be a function'
@@ -210,21 +206,23 @@ M.Scheduled = mt.record'Scheduled'
   :fieldMaybe'finished':fdoc'list of finished (removed) children in order'
 
 M.notify = mt.doc[[
-Notify executor that Schedule instance is ready.
-]](function(sch, ex)
-  if sch.aw ~= IMM_IGNORE then return end
-  ex = ex or M.globalExecutor; assert(ex, "must provide executor")
-  sch.aw = IMM_READY; ex.ready[sch] = true;
+notify(aw) -> (), notify ASYNC_EXECUTOR that await instance is ready.
+]](function(aw)
+  assert(aw.awaitKind == 'listen', 'notify on non-listen Await')
+  local ex = assert(ASYNC_EXECUTOR, EXECUTOR_ERR)
+  local sch = ex.listen[aw]; if sch then
+    ex.listen[aw] = nil; ex.ready[sch] = true
+  end
 end)
 
 M.schedule = mt.doc[[
-schedule(fn, Ex=defaultGlobalExecutor) -> Scheduled
-Schedule fn on the Executor. The scheduled coroutine will be run
+schedule(fn) -> Scheduled
+Schedule fn on ASYNC_EXECUTOR. The scheduled coroutine will be run
 on the next loop (this function returns without resuming it).
 
 Note: converts fn to a coroutine if it is not already type=="thread".
-]](function(fn, ex)
-  ex = ex or M.globalExecutor; assert(ex, "must provide executor")
+]](function(fn)
+  local ex = assert(ASYNC_EXECUTOR, EXECUTOR_ERR)
   if type(fn) == 'function' then fn = coroutine.create(fn) end
   assert(type(fn) == 'thread', 'can only schedule a fn or coroutine')
   local sch = M.Scheduled{aw=IMM_READY, cor=fn}
@@ -234,7 +232,6 @@ end)
 
 ----------------------------------
 -- Executor{} and schedule()
-M.globalExecutor = false -- set for global executor
 M.executorUnsuported = function() error('method not supported', 2) end
 
 M.Executor = mt.doc[[
@@ -287,6 +284,7 @@ be supported:
   if not ex.pollAwait   then ex.pollAwait   = eu end
   if not ex.poll        then ex.poll        = eu end
   if not ex.handleError then ex.handleError = M.handleErrorDefault end
+  if not ex.listen      then ex.listen = ds.WeakK() end
   return ex
 end)
 
@@ -298,12 +296,10 @@ local CHILD_FINISHED = { -- sch is the parent of a finished child
     end
   end,
 }
--- finish(Scheduled, Executor=defaultGlobal)
--- Finish the Scheduled instance.
+-- finish(sch) -> (), finish the Scheduled instance.
 -- Clears fields of Sch and notifies parents of completion, moving the parents
 -- to the Executor if they are ready.
 local function finish(sch, ex)
-  ex = ex or M.globalExecutor; assert(ex, "must provide executor")
   sch.cor = nil; sch.aw = nil
   if sch.children then sch.children = nil; sch.finished = nil end
   local p = sch.parent; sch.parent = nil; if not p then return end
@@ -325,9 +321,9 @@ end
 -- (ex, aw, cor) -> (): update executor with Await and coroutine
 M.EX_UPDATE = {
   ignore = ds.noop,
-  signal = function(ex, sch) sch.aw:updateSignal(sch, ex) end,
+  listen = function(ex, sch) ex.listen[sch.aw] = sch  end,
   ready  = function(ex, sch) ex.ready[sch] = true end,
-  done   = function(ex, sch) push(ex.done, sch) end,
+  done   = function(ex, sch) push(ex.done, sch)   end,
   mono   = function(ex, sch) ex.mono:add{assert(sch.aw.mono), sch} end,
   poll   = function(ex, sch)
     local aw = sch
@@ -337,7 +333,7 @@ M.EX_UPDATE = {
   any = updateAnyAll, all = updateAnyAll,
 }
 
--- execute(scheduled, ex) -> isDone, error
+-- execute(ex, sch) -> isDone, error
 --
 -- Execute (coroutine.resume) the scheduled item, updating the Executor and any
 -- parents depending on result. isDone is returned if the item is done.
@@ -429,18 +425,12 @@ Notes:
   OR all senders are closed and #recv == 0.
 ]](mt.record'Recv')
   :field('deq', ds.Deq)
-  -- These are set by updateSignal, called by executor
-  :fieldMaybe('sch', M.Scheduled)
-  :fieldMaybe'ex':fdoc'Executor, default is global'
   -- weak references of Sends. If nil then read is closed.
   :fieldMaybe('_sends', ds.WeakKV)
-  :field('awaitKind', 'string', 'signal')
+  :fieldMaybe'aw'
 :new(function(ty_)
   return mt.new(ty_, {deq=ds.Deq(), _sends=ds.WeakKV{}})
 end)
-M.Recv.updateSignal = function(r, sch, ex)
-  r.sch = sch; r.ex = ex
-end
 M.Recv.close = mt.doc[[Close read side and all associated sends.]]
 (function(r)
   local sends = r._sends; if not sends then return end
@@ -454,18 +444,18 @@ M.Recv.isDone = function(r)
   return (#r.deq == 0)
      and (not r._sends or ds.isEmpty(r._sends))
 end
-M.Recv.sender = function(r, sch, ex)
-  local s = M.Send(r, sch, ex or r.ex)
+M.Recv.sender = function(r)
+  local s = M.Send(r)
   assert(r._sends, 'sender on closed channel')[s] = true
   return s
 end
 M.Recv.recv = function(r)
-  while (#r.deq == 0) and (r._sends and not ds.isEmpty(r._sends)) do
-    mt.pnt('!! recv loop', #r, r)
-    yield(r)
+  local deq = r.deq
+  mt.pnt('!! recv loop', #deq, r._sends, r._sends and ds.isEmpty(r._sends))
+  while (#deq == 0) and (r._sends and not ds.isEmpty(r._sends)) do
+    r.aw = M.listen(); yield(r.aw)
   end
-  r.sch, r.ex = nil, nil -- no need to notify anymore
-  return r.deq()
+  return deq()
 end
 M.Recv.__call = M.Recv.recv
 
@@ -482,15 +472,16 @@ end)
 M.Send.__mode = 'kv'
 M.Send.close   = function(send)
   local r = send._recv; if r then
-    assert(r._sends)[send] = nil; send._recv = nil
+    local sends = assert(r._sends)
+    sends[send] = nil; send._recv = nil
+    if r.aw and ds.isEmpty(sends) then M.notify(r.aw) end
   end
 end
 M.Send.__close = M.Send.close
 M.Send.isClosed = function(s) return s._recv == nil end
 M.Send.send = function(send, val)
   local r = assert(send._recv, 'send when closed')
-  r.deq:push(val)
-  local sch = r.sch; if sch then M.notify(sch, r.ex) end
+  r.deq:push(val); if r.aw then M.notify(r.aw) end
 end
 M.Send.__call = M.Send.send
 M.Send.__len = function(send)

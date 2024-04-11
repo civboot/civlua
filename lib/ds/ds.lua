@@ -468,7 +468,18 @@ end
 -- not used directly. See lua documentation on specific
 -- usage.
 
-M.WeakKV = mty.doc[[Weak key/value table, see docs on '__mode']]
+M.WeakK = mty.doc[[Weak key table, see docs on '__mode']]
+(setmetatable(
+  {__name='WeakK', __mode='k'}, {
+  __name='Ty<WeakK>', __call=mty.newUnchecked,
+}))
+M.WeakV = mty.doc[[Weak value table, see docs on '__mode']]
+(setmetatable(
+  {__name='WeakV', __mode='v'}, {
+  __name='Ty<WeakV>', __call=mty.newUnchecked,
+}))
+
+M.WeakKV = mty.doc[[Weak key+value table, see docs on '__mode']]
 (setmetatable(
   {__name='WeakKV', __mode='kv'}, {
   __name='Ty<WeakKV>', __call=mty.newUnchecked,
