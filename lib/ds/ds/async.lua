@@ -108,7 +108,7 @@ Await until isDone() returns true.
 
 Note: the loop may still sleep for up to it's defaultSleep amount.
 ]](function(isDoneFn)
-  assert(ds.callable(isDoneFn), 'isDoneFn must be callable')
+  assert(mt.callable(isDoneFn), 'isDoneFn must be callable')
   local aw = _await({isDone=isDoneFn}, 'done')
   return aw
 end)
@@ -202,6 +202,7 @@ Await a list of schedules, resuming when ALL are finished.
 M.Scheduled = mt.record'Scheduled'
   :field'aw':fdoc'The Await instance we are waiting for'
   :fieldMaybe('cor', 'thread'):fdoc'Optional coroutine to resume/run'
+  :fieldMaybe'parent':fdoc'parent Scheduled instance'
   :fieldMaybe'children':fdoc'table of children (keys=Scheduled) and .count'
   :fieldMaybe'finished':fdoc'list of finished (removed) children in order'
 
@@ -268,9 +269,16 @@ be supported:
 
   pollList is special and may only be supported on some platforms (else nil).
   It must have the following methods:
+
     insert(fileno, events) insert the fileno+events into the poll list
+
     remove(fileno)         remove the fileno from poll list
+
     len()     -> integer   return the total number of filenos
+
+    ready(self, Duration) -> {filenos}
+      poll for duration, return any ready filenos
+      if there are no filenos this MUST sleep for the given duration.
 ]](function(ex)
   ex = ex or {}
   for _, f in ipairs {
@@ -285,6 +293,7 @@ be supported:
   if not ex.poll        then ex.poll        = eu end
   if not ex.handleError then ex.handleError = M.handleErrorDefault end
   if not ex.listen      then ex.listen = ds.WeakK() end
+  ex.defaultSleep = ex.defaultSleep or ds.Duration:fromMs(5)
   return ex
 end)
 
@@ -324,7 +333,7 @@ M.EX_UPDATE = {
   listen = function(ex, sch) ex.listen[sch.aw] = sch  end,
   ready  = function(ex, sch) ex.ready[sch] = true end,
   done   = function(ex, sch) push(ex.done, sch)   end,
-  mono   = function(ex, sch) ex.mono:add{assert(sch.aw.mono), sch} end,
+  mono   = function(ex, sch) ex.monoHeap:add{assert(sch.aw.mono), sch} end,
   poll   = function(ex, sch)
     local aw = sch
     ex.pollList:insert(aw.fileno, aw.events)
@@ -339,72 +348,12 @@ M.EX_UPDATE = {
 -- parents depending on result. isDone is returned if the item is done.
 local function execute(ex, sch)
   local cor = sch.cor
-  if not cor then M.finish(sch, ex); return true     end -- no coroutine
+  if not cor then finish(sch, ex); return true     end -- no coroutine
   local ok, aw = coroutine.resume(cor)
-  if not ok  then M.finish(sch, ex);  return true, aw end -- error
-  if not aw  then M.finish(sch, ex);  return true     end -- isDone
-  sch.aw = aw; EX_UPDATE[aw.awaitKind](ex, sch)
+  if not ok  then finish(sch, ex);  return true, aw end -- error
+  if not aw  then finish(sch, ex);  return true     end -- isDone
+  sch.aw = aw; M.EX_UPDATE[aw.awaitKind](ex, sch)
 end
-
-----------------------------------
--- executeLoop(ex): default executeLoop implementation for main
-
-local function _ready(isReadyFn, ready, ex, schs)
-  local popit = ds.popit
-  local i = 1; while true do
-    local len = #schs; if i > len then break end
-    if isReadyFn(schs[i]) then
-      push(ready,  popit(schs, i))
-    else i = i + 1 end
-  end
-end
-
-M.executeLoop = mt.doc[[
-executeLoop(ex) -> (): default executeLoop suitable for most applications.
-]](function(ex)
-  local resume, popit, popk = coroutine.resume, ds.popit, ds.popk
-  local defaultSleep = ex.defaultSleep or Duration:fromMs(5)
-  local now, till, i, ready, done, sch, aw, err
-
-  ready = ex.ready; ex.ready = {}
-  while true do
-    -- done: we move any isDone Scheduled to ready
-    done = ex.done; i = 1; while i <= #done do
-      sch = done[i]
-      if sch.aw:isDone() then
-        popit(done, i)
-        ex.ready[sch] = true
-      else i = i + 1 end
-    end
-
-    -- Execute all ready coroutines. This will update
-    -- executor fields.
-    for sch in pairs(ready) do execute(ex, sch) end
-    ready = ex.ready; ex.ready = {}
-
-    -- Execute coroutines that need sleeping/polling
-    now = ex:mono()
-    local mh = ex.monoHeap; local hpop = mh.pop
-    if #ready > 0 then till = now -- no sleep when there are ready
-    else               till = now + defaultSleep end
-    while true do -- handle mono (sleep)
-      -- keep popping from the minheap until it is before 'now'
-      local e = hpop(mh); if not e then break end
-      if e[1] > now then
-        mh:add(e); till = math.min(till, e[1])
-        break
-      end
-      ready[e[2]] = true -- e[2] == Schedule
-    end
-
-    local duration = till - now
-    if duration < ds.DURATION_ZERO then duration = ds.DURATION_ZERO end
-    local pl, pm = ex.pollList, ex.pollMap
-    for _, fileno in ipairs(pl:ready()) do
-      ready[popk(pm, fileno)] = true; pl:remove(fileno)
-    end
-  end
-end)
 
 ----------------------------------
 -- Ch: channel sender and receiver (Send/Recv)
@@ -451,7 +400,6 @@ M.Recv.sender = function(r)
 end
 M.Recv.recv = function(r)
   local deq = r.deq
-  mt.pnt('!! recv loop', #deq, r._sends, r._sends and ds.isEmpty(r._sends))
   while (#deq == 0) and (r._sends and not ds.isEmpty(r._sends)) do
     r.aw = M.listen(); yield(r.aw)
   end
@@ -492,5 +440,53 @@ M.channel = mt.doc[[
 channel() -> Send, Recv: helper to open sender and receiver.
 ]](function() local r = M.Recv(); return r, r:sender() end)
 
+----------------------------------
+-- executeLoop(ex): default executeLoop implementation for main
+M._executeLoop = function(ex)
+  if not ds.isEmpty(ex.ready) do
+    local ready = ex.ready; ex.ready = {}
+    for sch in pairs(ready) do execute(ex, sch) end
+  end
+
+  -- Execute coroutines that need sleeping/polling
+  local mh = ex.monoHeap; local hpop = mh.pop
+  local now, till = ex:mono()
+  if #ex.ready > 0 then till = now -- no sleep when there are ready
+  else                  till = now + ex.defaultSleep end
+  while true do -- handle mono (sleep)
+    -- keep popping from the minheap until it is before 'now'
+    local e = hpop(mh); if not e then break end
+    if e[1] > now then
+      mh:add(e); till = math.min(till, e[1])
+      break
+    end
+    ex.ready[e[2]] = true -- e[2] == Scheduled
+  end
+
+  -- done: we move any isDone Scheduled to ready
+  local i, done = 1, ex.done
+  while i <= #done do
+    local sch = done[i]
+    if sch.aw:isDone() then
+      ds.popit(done, i)
+      ex.ready[sch] = true
+    else i = i + 1 end
+  end
+
+  local duration = till - now
+  if duration < ds.DURATION_ZERO then duration = ds.DURATION_ZERO end
+  local pl, pm = ex.pollList, ex.pollMap
+  for _, fileno in ipairs(pl:ready(duration)) do
+    ex.ready[ds.popk(pm, fileno)] = true; pl:remove(fileno)
+  end
+end
+
+M.executeLoop = mt.doc[[
+executeLoop(ex) -> (): default executeLoop suitable for most applications.
+]](function(ex)
+  while true do
+    M._executeLoop(ex)
+  end
+end)
 
 return M

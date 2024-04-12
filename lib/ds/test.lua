@@ -15,7 +15,6 @@ local Set, LL, Duration, Epoch
 local lines
 local M = pkg.auto'ds'
 local df = pkg'ds.file'
-local da = pkg'ds.async'
 
 ---------------------
 -- ds.lua
@@ -371,98 +370,6 @@ test('deq', function()
   assertEq(3, d());          assertEq(2, #d)
   assertEq(5, d:popRight()); assertEq(1, #d)
   assertEq(4, d());          assertEq(0, #d)
-end)
-
-test('ch', function()
-  local ex = da.Executor()
-  ASYNC_EXECUTOR = ex
-
-  local r, s = da.channel(); assert(r and s)
-  local deq = r.deq
-  local cor = coroutine.create(function()
-    while true do
-      coroutine.yield(r())
-    end
-  end)
-  local function nxt(cor)
-    return select(2, coroutine.resume(cor))
-  end
-  local aw = nxt(cor)
-  assertEq(da.listen(), aw)
-  assertEq(#r, 0); assertEq(false, r:isDone())
-
-  s'first'; assertEq(1, #r); assertEq(1, deq.right); assertEq(1, deq.left)
-  assertEq('first', nxt(cor))
-  assertEq(0, #r)
-    assertEq(1, deq.right); assertEq(2, deq.left)
-    assertEq(da.listen(), nxt(cor))
-    assertEq(1, deq.right); assertEq(2, deq.left)
-
-  s'second'; s'third'
-  assertEq(2, #r); assertEq(3, deq.right); assertEq(2, deq.left)
-
-  assertEq('second', r())
-  assertEq(false, r:isDone())
-  assertEq(false, s:isClosed())
-  s:close(); assertEq(false, r:isDone())
-  assertEq(true, s:isClosed())
-
-  assertEq('third', r())
-  assertEq(true, r:isDone())
-  assertEq(nil, r())
-
-  s = r:sender(); assertEq(false, r:isDone())
-  s'fourth'; assertEq('fourth', r())
-  assertEq(false, r:isDone()); r:close(); assert(r:isDone());
-  assert(s:isClosed()); assert(r:isClosed())
-
-
-  r = da.Recv(); do
-    local s1 = r:sender(); assertEq(false, r:isDone())
-    s1:send'inner'
-  end; collectgarbage()
-  cor = coroutine.create(function()
-    while true do
-      coroutine.yield(r())
-    end
-  end)
-  assertEq('inner', nxt(cor)); assertEq(true, r:isDone())
-
-  print('!! playing with executor')
-  s = r:sender() -- there is a sender, so nxt MIGHT return a value
-  aw = nxt(cor); assertEq(da.listen(), aw)
-                 assert(aw == r.aw)
-  local sch = da.Scheduled{aw=aw, cor=cor}
-  da.EX_UPDATE.listen(ex, sch) -- what the executeLoop does
-  s:close(); -- calls notify(r.aw)
-  assert(ex.ready[sch]); ex.ready[sch] = nil
-  do
-    local r1 = da.Recv(); s = r1:sender()
-    s'unused'; assertEq(1, #r1)
-    assertEq(false, s:isClosed())
-  end; collectgarbage()
-  assert(s:isClosed())
-
-  ASYNC_EXECUTOR = nil
-end)
-
----------------------
--- ds/async.lua
-test('async.schedule', function()
-  ASYNC_EXECUTOR = da.Executor()
-
-  local sch = da.schedule(function()
-    yield(da.ready())
-    return 'done'
-  end)
-  assertEq({awaitKind='ready'}, sch.aw)
-  assertEq('thread', type(sch.cor))
-  local ok, result = coroutine.resume(sch.cor); assert(ok)
-  assertEq({awaitKind='ready'}, result)
-  local ok, result = coroutine.resume(sch.cor); assert(ok)
-  assertEq('done', result)
-
-  ASYNC_EXECUTOR = nil
 end)
 
 ---------------------

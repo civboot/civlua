@@ -285,7 +285,7 @@ end
 M.orderedKeys = mty.orderedKeys
 
 M.popk = function(t, key) -- pop key
-  local o = t[key]; t[key] = nil; return o
+  local val = t[key]; t[key] = nil; return val
 end
 
 
