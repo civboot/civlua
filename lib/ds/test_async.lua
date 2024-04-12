@@ -100,6 +100,7 @@ test('ch', function()
 end)
 
 test('executeLoop', function()
+  local sel = da.singleExecuteLoop
   local ex = da.Executor()
   local monoTime; ex.mono = function() return monoTime end
   monoTime = ds.Duration(5, 0); assertEq(5, ex:mono():asSeconds())
@@ -110,7 +111,7 @@ test('executeLoop', function()
   ASYNC_EXECUTOR = ex
   local out = 5
   da.schedule(function() out = out * 3 end); assertEq(5, out)
-  da._executeLoop(ex, ex.ready); assertEq(15, out)
+  sel(ex, ex.ready); assertEq(15, out)
 
   local isDone = false
   assert(ds.isEmpty(ex.ready))
@@ -123,28 +124,28 @@ test('executeLoop', function()
   assert(not ds.isEmpty(ex.ready))
   print('!! Executing multi yield')
   assertEq(15, out)
-  da._executeLoop(ex); assertEq(21, out)
-  da._executeLoop(ex); assertEq(22, out); assertEq(1, #ex.done)
+  sel(ex); assertEq(21, out)
+  sel(ex); assertEq(22, out); assertEq(1, #ex.done)
   for _=1,10 do -- requires isDone=true
-    da._executeLoop(ex); assertEq(22, out)
+    sel(ex); assertEq(22, out)
   end
   isDone = true
-  da._executeLoop(ex); assertEq(22, out) -- moves done -> ready
-  da._executeLoop(ex); assertEq(23, out)
+  sel(ex); assertEq(22, out) -- moves done -> ready
+  sel(ex); assertEq(23, out)
   assertEq(1, #ex.monoHeap)
   assertEq(ds.Duration(9), ex.monoHeap[1][1])
 
   for _=1,10 do -- requires monotime increase
-    da._executeLoop(ex); assertEq(23, out)
+    sel(ex); assertEq(23, out)
   end; assertEq(ds.Duration(9), ex.monoHeap[1][1])
 
   assert(ds.isEmpty(ex.ready))
   monoTime = ds.Duration(9.1)
 
-  da._executeLoop(ex); assertEq(23, out)
+  sel(ex); assertEq(23, out)
   assertEq(0, #ex.monoHeap)
   assert(not ds.isEmpty(ex.ready))
 
-  da._executeLoop(ex); assertEq(99, out)
+  sel(ex); assertEq(99, out)
   ASYNC_EXECUTOR = nil
 end)

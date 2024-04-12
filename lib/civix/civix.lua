@@ -2,13 +2,16 @@
 --
 -- Note: You probably want civix.sh
 local pkg = require'pkg'
-local mty = pkg'metaty'
+local mt = pkg'metaty'
 local ds = pkg'ds'
+local da = pkg'ds.async'
 local shim = pkg'shim'
 local lib = pkg'civix.lib'
 
 local path = ds.path
-local add, concat, sfmt = table.insert, table.concat, string.format
+local concat, sfmt = table.concat, string.format
+local push, pop = table.insert, table.remove
+local yield = coroutine.yield
 local pc = path.concat
 
 local M = {
@@ -25,11 +28,12 @@ local M = {
 
 	dir = lib.dir, rm=lib.rm, rmdir = lib.rmdir,
   exists = lib.exists,
+
   -- TODO: probably good to catch return code for cross-filesystem
-  mv = lib.rename, 
+  mv = lib.rename,
 }
 
-mty.docTy(M, [[
+mt.docTy(M, [[
 civix: unix-like OS utilities.
 ]])
 
@@ -47,7 +51,7 @@ M.SH_SET = { debug=false, host=false }
 
 -------------------------------------
 -- Time Functions
-M.sleep = mty.doc[[
+M.sleep = mt.doc[[
 Sleep for the specified duration.
   sleep(duration)
 
@@ -59,16 +63,16 @@ A negative duration results in a noop.
 end)
 
 -- Return the Epoch/Mono time
-M.epoch = mty.doc[[Time according to realtime clock]](
+M.epoch = mt.doc[[Time according to realtime clock]](
   function() return ds.Epoch(lib.epoch())   end)
-M.mono  = mty.doc[[Duration according to monotomically incrementing clock.]](
+M.mono  = mt.doc[[Duration according to monotomically incrementing clock.]](
   function() return ds.Duration(lib.mono()) end)
 
 -------------------------------------
 -- Core Filesystem
 
 local function qp(p)
-  return mty.assertf(M.quote(p), 'path cannot contain "\'": %s', p)
+  return mt.assertf(M.quote(p), 'path cannot contain "\'": %s', p)
 end
 
 local C = lib.consts
@@ -137,8 +141,8 @@ end
 M.ls = function(paths, maxDepth)
   local files, dirs = {}, {}
   M.walk(paths, {
-    dir     = function(p) add(dirs,  pc{p, '/'}) end,
-    default = function(p) add(files, p)          end,
+    dir     = function(p) push(dirs,  pc{p, '/'}) end,
+    default = function(p) push(files, p)          end,
   }, maxDepth or 1)
   return files, dirs
 end
@@ -153,16 +157,16 @@ M.mkDirs = function(pthArr)
     dir = pc{dir, c}
     local ok, errno = lib.mkdir(dir)
     if ok or (errno == C.EEXIST) then -- directory created or exists
-    else mty.errorf('failed to create directory: %s (%s)', 
+    else mt.errorf('failed to create directory: %s (%s)', 
                     dir, lib.strerrno(errno)) end
   end
 end
 M.mkDir = function(pth, parents)
   if parents then M.mkDirs(path.splitList(pth))
-  else mty.assertf(lib.mkdir(pth), "mkdir failed: %s", pth) end
+  else mt.assertf(lib.mkdir(pth), "mkdir failed: %s", pth) end
 end
 
-M.mkTree = mty.doc[[
+M.mkTree = mt.doc[[
 mkTree(tree) builds a tree of files and dirs at `dir`.
 Dirs  are tables.
 Files are string or fd -- which are read+closed.
@@ -194,12 +198,166 @@ a/a3/a4.txt # content: stuff in a3.txt
   end
 end)
 
-M.sh = mty.doc[[
+-------------------------------------
+-- PollList
+
+M.PollList = mt.record'PollList'
+  :field'map':fdoc'map of fileno -> pl[index]'
+  :field'avail':fdoc'list of available indexes'
+  :field('size', 'number')
+  :field'_pl'
+:new(function(ty_, size)
+  mt.pnt('!! PollList', ty_, size)
+  local pl = mt.new(ty_, {
+    map={}, avail={}, size=0, _pl=lib.polllist(),
+  })
+  if size then pl:resize(size) end
+  return pl
+end)
+
+M.PollList.__len = function(pl) return pl.size - #pl.avail end
+
+M.PollList.resize = function(pl, newSize)
+  local size = pl.size; assert(newSize >= size, 'attempted shrink')
+  pl._pl:resize(newSize); pl.size = newSize
+  for i=size,newSize-1 do push(pl.avail, i) end
+end
+
+M.PollList.insert = function(pl, fileno, events)
+  local i = pl.map[fileno] or pop(pl.avail)
+  if not i then
+    pl:resize((pl.size == 0) and 8 or pl.size * 2)
+    i = assert(pop(pl.avail))
+  end
+  pl._pl:set(i, fileno, events)
+  pl.map[fileno] = i
+end
+
+M.PollList.remove = function(pl, fileno)
+  local i = assert(pl.map[fileno], 'fileno not tracked')
+  pl._pl:set(i, -1, 0)
+  pl.map[fileno] = nil; push(pl.avail, i)
+end
+
+M.PollList.ready = function(pl) return pl._pl:ready() end
+
+-------------------------------------
+-- File
+
+local function readAll(f, mode)
+  local data = {}
+  while true do
+    local o, err = f:_read(); if err then error(err) end
+    if o then
+      push(data, o)
+      if #o == 0 then break end
+    else yield(da.poll(f:fileno(), C.POLLIN)) end
+  end
+  data = table.concat(data)
+  return #data > 0 and data or nil
+end
+
+local function readAmount(f, amt)
+  local data = {}
+  while amt > 0 do
+    local o, err = f:_read(math.min(amt, C.IO_SIZE))
+    if err then error(err) end
+    if o then
+      push(data, o); amt = amt - #o
+      if #o == 0 then break end
+    else yield(da.poll(f:fileno(), C.POLLIN)) end
+  end
+  data = table.concat(data)
+  return #data > 0 and data or nil
+end
+
+local linesError = function()
+  error'options l/L not supported. Use file:lines()'
+end
+local READ_MODE = {
+  a=readAll, ['a*']=readAll, l=linesError, L=linesError,
+}
+
+M.read = function(f, mode)
+  if type(mode) == 'number' then return readAmount(f, mode) end
+  local fn = mt.assertf(READ_MODE[mode],
+    'unrecognized mode: %s', mode)
+  return fn(f, mode)
+end
+
+M.write = function(f, s)
+  local i = 1; while i <= #s do
+    local pos, err = f:_write(s, i); if err then error(err) end
+    if pos then
+      if pos <= i then break end
+      i = pos
+    else yield(da.poll(f:fileno(), C.POLLOUT)) end
+  end
+end
+
+-- (buf) -> (indexInclude, indexRemain)
+local LINES_END = {l=-1, L=0}
+M.lines = mt.doc[[
+lines(file, mode='l') -> modeIter
+Identical to io.lines but buffers in Lua (meaning the seek position
+will probably be incorrect).
+
+Supported Modes:
+ * 'l' -> iterator of lines with the newline characters omitted
+ * 'L' -> iterator of lines including newline characters
+
+Note: other modes (like 'a' or integers) are not supported.
+]](function(f, mode)
+  mode = assert(LINES_END[mode or 'l'], 'unrecognized mode')
+  local buf, lines = {}, {}
+  return function()
+    if not lines then return end
+    while #lines == 0 do ::loop::
+      local s = f:read(C.IO_SIZE)
+      if not s then -- EOF
+        push(buf, s); s = table.concat(buf)
+        buf, lines = nil, nil
+        return (#s > 0) and s or nil
+      end
+      local nl = s:find'\n'; if not nl then goto loop end
+      push(buf, s:sub(1, nl + mode))
+      push(lines, table.concat(buf)); buf = {}
+      local st = nl + 1
+      while st < #s do
+        nl = s:find('\n', st); if nl then
+          push(lines, s:sub(st, nl + mode))
+          st = nl + 1
+        else break end
+      end
+      push(buf, pop(lines)) -- last item in "lines" had no newline
+      ds.reverse(lines); assert(#lines > 0)
+    end
+    return pop(lines)
+  end
+end)
+
+I.Fd.read   = M.read
+I.Fd.write  = M.read
+I.Fd.lines  = M.lines
+
+-------------------------------------
+-- Async functions
+
+M.async = {}
+M.async.open = function(path, mode)
+
+end
+
+M.block = {
+  open = io.open,
+}
+
+M.block.sh = mt.doc[[
 sh(cmd, inp, env) -> rc, out, log
 Execute the command in another process via execvp (basically the system shell).
 
-This is the synchronous (blocking) version of this command.
-Use async.ash for the async (yielding) version.
+This is the synchronous (blocking) version of this command. Use async.sh for the
+asynchronous version (or see 'si' library).
 
 Returns the return-code, out (aka stdout), and log (aka stderr).
 
@@ -211,11 +369,38 @@ sh('cat', 'sent to stdin')         -- echo "sent to stdin" | cat
   if type(cmd) == 'string' then cmd = shim.parseStr(cmd) end
   cmd = shim.expand(cmd)
   local sh, r, w, lr = lib.sh(cmd[1], cmd, env)
-  mty.pnt('!! lib.sh sh=', sh, 'r=', r, 'w=', w, 'lr=', lr);
-  if inp then lib.fdwrite(w, inp) end; w:close()
-	local out, log = lib.fdread(r), lib.fdread(lr)
+  if inp then w:_write(inp) end; w:close()
+	local out, log = r:_read(), lr:_read()
   r:close(); lr:close()
 	sh:wait(); return sh:rc(), out, log
 end)
+
+-- TODO: this doesn't actually work yet, but
+-- is a sketch of how I WANT the API to work.
+local function howIWantSh(cmd, inp, env)
+  if type(cmd) == 'string' then cmd = shim.parseStr(cmd) end
+  cmd = shim.expand(cmd)
+  local sh, r, w, lr = lib.sh(cmd[1], cmd, env)
+  alwaysNonBlocking(r, w, lr)
+  local out, log = {}, {}
+
+  -- blocking implementation
+  local threads = {
+    [r:fileno()] = function() push(out, r:read'a') end,
+    [w:fileno()] = function() w:write(inp)         end,
+    [l:fileno()] = function() push(log, lr:read'a') end,
+  }
+  local pl = M.PollList(3)
+  pl:insert(r:fileno(),  C.POLLIN); pl:insert(rl:fileno(), C.POLLIN);
+  pl:insert(w:fileno(),  C.POLLOUT);
+  while #pl > 0 do
+    for fno in ipairs(pl:ready(-1)) do
+      threads[fno]()
+    end
+  end
+  return table.concat(out), table.concat(log)
+end
+
+M.sh = M.block.sh
 
 return M

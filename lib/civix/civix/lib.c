@@ -14,6 +14,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <poll.h>
 
 #include <signal.h>
 #include <pthread.h>
@@ -265,10 +266,12 @@ static int l_fdread(LS *L) {
   lua_pushlstring(L, buf, c); return 1;
 }
 
-// write(s, start) -> {pos, error}; EWOULDBLOCK == {}
+// fdwrite(fd, s, start) -> {pos, error}; EWOULDBLOCK == {}
+// note: pos is the position AFTER what was written, the intention
+//   is that you set this to start for the next loop.
 // pos is nil on error
 // pos and error are nil on EWOULDBLOCK
-// if pos < start it is an EOF
+// pos == start is EOF
 static int l_fdwrite(LS *L) {
   int* fd = tolfd(L); ASSERT(L, *fd >= 0, "cannot write to closed fd");
   size_t len; const char* s = luaL_checklstring(L, 2, &len);
@@ -278,11 +281,10 @@ static int l_fdwrite(LS *L) {
 
   ssize_t c = write(*fd, s + start, len - start); if(c < 0) {
     if(wouldblock()) return 0;
-    lua_pushnil(L);
-    lua_pushstring(L, SERR);
+    lua_pushnil(L); lua_pushstring(L, SERR);
     return 2;
   }
-  lua_pushinteger(L, start + c); return 1;
+  lua_pushinteger(L, start + c + 1); return 1;
 }
 
 // retrieve the file descriptors fileno number.
@@ -379,6 +381,9 @@ static int l_sh(LS *L) {
     exit(100 + execvp(command, argv)); // note: exit should be unreachable
   } // else parent
   close(ch_w); close(ch_r); close(ch_lw);
+  // fcntl(*pr_r, F_SETFL, O_NONBLOCK); // make all non-blocking
+  // fcntl(*pr_w, F_SETFL, O_NONBLOCK);
+  // fcntl(*pr_lr, F_SETFL, O_NONBLOCK);
   sh->pid = pid;
   return 4;
   error:
@@ -557,6 +562,73 @@ int l_fdth_runop(LS* L) {
 }
 
 // ---------------------
+// -- polllist
+const char* POLLLIST_META = "civix.polllist";
+#define topolllist(L) \
+  ((polllist *)luaL_checkudata(L, 1, POLLLIST_META))
+
+typedef struct _polllist {
+  int size;
+  struct pollfd* fds;
+} polllist;
+
+static void polllist_realloc(LS* L, polllist* pl, int newSize) {
+  struct pollfd* fds = realloc(pl->fds, newSize);
+  ASSERT(L, fds, "OOM: realloc pollfds size=%I", newSize);
+  for(int i=pl->size; i < newSize; i++) {
+    fds[i].fd = -1; fds[i].revents = 0;
+  }
+  pl->fds = fds; pl->size = newSize;
+}
+
+static int l_polllist_new(LS* L) {
+  polllist* pl = (polllist*)lua_newuserdata(L, sizeof(polllist));
+  pl->size = 0; pl->fds = NULL;
+  luaL_setmetatable(L, POLLLIST_META);
+  return 1;
+}
+
+static int l_polllist_resize(LS* L) {
+  polllist_realloc(L, topolllist(L), luaL_checkinteger(L, 2));
+  return 0;
+}
+
+static int l_polllist_destroy(LS* L) {
+  polllist* pl = topolllist(L);
+  if(pl->fds) { free(pl->fds); pl->size = 0; pl->fds = NULL; }
+  return 0;
+}
+
+// (pl, index, fileno, events)
+// Note: indexes are 0-based
+static int l_polllist_set(LS* L) {
+  polllist* pl = topolllist(L);
+  int index  = luaL_checkinteger(L, 2);
+  int fileno = luaL_checkinteger(L, 3);
+  int events = luaL_checkinteger(L, 4);
+  pl->fds[index].fd      = fileno;
+  pl->fds[index].events  = events;
+  pl->fds[index].revents = 0;
+}
+
+// (pl, timeoutMs) -> {filenos}
+static int l_polllist_ready(LS* L) {
+  polllist* pl = topolllist(L);
+  int timeoutMs = luaL_checkinteger(L, 2);
+  int count = poll(pl->fds, pl->size, timeoutMs);
+  lua_createtable(L, count, 0);
+  int ti = 1;
+  for(int i = 0; i < pl->size; i++) {
+    if(pl->fds[i].revents) {
+      lua_pushinteger(L, pl->fds[i].fd);
+      lua_seti(L, -2, ti); ti++;
+      pl->fds[i].revents = 0;
+    }
+  }
+  return 1;
+}
+
+// ---------------------
 // -- Registry
 static const struct luaL_Reg civix_lib[] = {
   {"strerrno", l_strerrno},
@@ -566,37 +638,38 @@ static const struct luaL_Reg civix_lib[] = {
   {"mkdir", l_mkdir}, {"rm",  l_rm}, {"rmdir", l_rmdir},
   {"rename", l_rename}, {"exists", l_exists},
   {"sh", l_sh},
-  {"fdopen", l_fdopen}, {"fdread", l_fdread}, {"fdwrite", l_fdwrite},
+  {"fdopen", l_fdopen},
   {"filenostat", l_filenostat}, {"fdsetblocking", l_fdsetblocking},
   {"fdth", l_fdth_create},
+  {"polllist", l_polllist_new},
   {NULL, NULL}, // sentinel
 };
 
 int luaopen_civix_lib(LS *L) {
-  // civix.Dir metatable
-  luaL_newmetatable(L, DIR_META);    // stack: Dir
+  luaL_newmetatable(L, DIR_META);
     L_setmethod(L, "__gc", l_dir_gc);
 
-  // civix.Sh metatable: {__gc=l_sh_gc, __index={...}}
   luaL_newmetatable(L, SH_META);
     L_setmethod(L, "__gc", l_sh_gc);
-    lua_pushstring(L, "__index"); lua_createtable(L, 0, 3);
+    lua_createtable(L, 0, 3); // __index table
       L_setmethod(L, "isDone", l_sh_isDone);
       L_setmethod(L, "wait",   l_sh_wait);
       L_setmethod(L, "rc",     l_sh_rc);
-    lua_settable(L, -3); // Sh.__index = {isDone=l_sh_isDone ...}
+    lua_setfield(L, -2, "__index");
 
   luaL_newmetatable(L, FD_META);
     L_setmethod(L, "__gc", l_fdclose);
-    lua_pushstring(L, "__index"); lua_createtable(L, 0, 5);
+    lua_createtable(L, 0, 5); // __index table
       L_setmethod(L, "close",    l_fdclose);
       L_setmethod(L, "tofile",   l_fdtofile);
       L_setmethod(L, "fileno",   l_fdfileno);
-    lua_settable(L, -3); // Sh.__index = {isDone=l_sh_isDone ...}
+      L_setmethod(L, "_read",    l_fdread);
+      L_setmethod(L, "_write",   l_fdwrite);
+    lua_setfield(L, -2, "__index");
 
   luaL_newmetatable(L, FDTH_META);
     L_setmethod(L, "__gc", l_fdth_destroy);
-    lua_pushstring(L, "__index"); lua_createtable(L, 0, 9);
+    lua_createtable(L, 0, 9); // __index table
       L_setmethod(L, "destroy",  l_fdth_destroy);
       L_setmethod(L, "start",    l_fdth_start);
       L_setmethod(L, "end",      l_fdth_end);
@@ -607,16 +680,25 @@ int luaopen_civix_lib(LS *L) {
       L_setmethod(L, "_fill",    l_fdth_fill);
       L_setmethod(L, "_runop",   l_fdth_runop);
       L_setmethod(L, "_buf",     l_fdth_buf);
-    lua_settable(L, -3); // Sh.__index = {isDone=l_sh_isDone ...}
+    lua_setfield(L, -2, "__index");
+
+  luaL_newmetatable(L, POLLLIST_META);
+    L_setmethod(L, "__gc", l_polllist_destroy);
+    lua_createtable(L, 0, 3); // __index table
+      L_setmethod(L, "resize",  l_polllist_resize);
+      L_setmethod(L, "set",     l_polllist_set);
+      L_setmethod(L, "ready",   l_polllist_ready);
+    lua_setfield(L, -2, "__index");
 
   #define L_setindexasmt(L, NAME, META) \
     luaL_getmetatable(L, META); lua_getfield(L, -1, "__index"); \
     lua_setfield(L, -3, NAME); lua_settop(L, -2);
   luaL_newlib(L, civix_lib); // civix.lib
   lua_createtable(L, 0, 2);  // lib.indexes
-    L_setindexasmt(L, "Sh",   SH_META);
-    L_setindexasmt(L, "Fd",   FD_META);
-    L_setindexasmt(L, "FdTh", FDTH_META);
+    L_setindexasmt(L, "Sh",       SH_META);
+    L_setindexasmt(L, "Fd",       FD_META);
+    L_setindexasmt(L, "FdTh",     FDTH_META);
+    L_setindexasmt(L, "polllist", POLLLIST_META);
   lua_setfield(L, -2, "indexes");
 
   #define setconstfield(L, CONST) \
@@ -631,17 +713,20 @@ int luaopen_civix_lib(LS *L) {
     setconstfield(L, O_NONBLOCK);
 
     // stmodestring constants
-		setconstfield(L, S_IFMT);
-		setconstfield(L, S_IFSOCK); setconstfield(L, S_IFLNK);
-		setconstfield(L, S_IFREG);  setconstfield(L, S_IFBLK);
-		setconstfield(L, S_IFDIR);  setconstfield(L, S_IFCHR);
-		setconstfield(L, S_IFIFO);
+    setconstfield(L, S_IFMT);
+    setconstfield(L, S_IFSOCK); setconstfield(L, S_IFLNK);
+    setconstfield(L, S_IFREG);  setconstfield(L, S_IFBLK);
+    setconstfield(L, S_IFDIR);  setconstfield(L, S_IFCHR);
+    setconstfield(L, S_IFIFO);
 
     // fdth._runop constants
     setconstfield(L, FD_EXIT);  setconstfield(L, FD_READY);
     setconstfield(L, FD_CLOSE); setconstfield(L, FD_OPEN);
     setconstfield(L, FD_SEEK);
     setconstfield(L, FD_READ);  setconstfield(L, FD_WRITE);
+
+    // poll constants
+    setconstfield(L, POLLIN);   setconstfield(L, POLLOUT);
 
     // important errno's
     setconstfield(L, EEXIST);

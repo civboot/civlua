@@ -9,6 +9,7 @@ local civix  = pkg'civix'
 local lib = pkg'civix.lib'
 local C = lib.consts
 local D = 'lib/civix/'
+local push = table.insert
 
 test('sh', function()
   do -- direct usage of civ.lib
@@ -18,7 +19,7 @@ test('sh', function()
     ftype = w:ftype()
     assert(ds.Set{'pipe', 'fifo'}[ftype], ftype)
     w:close()
-    assertEq('', lib.fdread(r)); r:close(); lr:close()
+    assertEq('', r:_read()); r:close(); lr:close()
     sh:wait(); assertEq(0, sh:rc())
   end
 
@@ -83,14 +84,14 @@ test('fdth', function()
     civix.mkTree(d, { ['a.txt'] = 'for civix a test' }, true)
     do
       local fd = lib.fdopen(d..'a.txt', 0 | C.O_RDONLY)
-      assertEq('for civix a test', lib.fdread(fd, 42))
+      assertEq('for civix a test', fd:_read(42))
       assert(fd:fileno()); fd:close(); assertEq(nil, fd:fileno())
     end
     do
       local fd = lib.fdopen(d..'b.txt', 0 | C.O_RDWR | C.O_CREAT | C.O_TRUNC)
       local str = 'writing some bits'
-      local pos, err = lib.fdwrite(fd, str); assert(not err)
-      assertEq(#str, pos); 
+      local pos, err = fd:_write(str); assert(not err)
+      assertEq(#str + 1, pos)
     end
 end)
 
@@ -124,3 +125,21 @@ test('ls', function()
   assertEq({ D, D..'b/' }, d)
 end)
 
+test('lines', function()
+  local path, expect = '.out/lines.txt', {}
+  do
+    local f = io.open(path, 'w')
+    for i=1,100 do
+      local l = 'line '..i..' is a really great line'
+      push(expect, l); f:write(l, '\n')
+    end
+    f:flush(); f:close()
+  end
+  do
+    local f = io.open(path)
+    local result = {}
+    for l in civix.lines(f, 'l') do push(result, l) end
+    assertEq(result, expect)
+    f:close()
+  end
+end)

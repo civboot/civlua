@@ -18,48 +18,41 @@ versions of system-level objects like files/etc (not part of this module). In
 many cases, this architecture can be used with already written Lua code written
 in a "blocking" style.
 
-## Architecture
-This library provides "types" for communicating with the executeLoop as well as
-a default implementation of the executeLoop. The basic design is that when Lua
-is in "async mode" the blocking APIs (i.e. print, open, read, etc) are replaced
-with versions which `yield someAwait(...)` instead of 
-`return someBlockingCall()`. The executeLoop() will then properly handle this
-value and call the coroutine when it is again ready.
-
-Most code will continue to use `io.open()` and `file:read()` normally, but
-these APIs will yield instead of blocking and the types (i.e. `file`) will be
-slightly different when in async mode.
-
-This is achieved by three separate libraries:
-* ds.async (this library) which provides standard types/interfaces/functions
-* civix (or an equivalent) which provides file/etc types that support truly
-  non-blocking filedescriptors (i.e. pipes/sockets) as well as normally blocking
-  filedescriptors (i.e. a file) backed by a thread.
-* a future library which enables libraries like civix to register themselves
-  and which perform the actual replacement of functions (i.e. replaces
-  the global `print` as well as `io.open` etc with non-blocking equivalents).
-
-
 ## ds.async API
 
-Create Await instance of kind = (ready  done  mono  poll  any  all)
-  The specific requirements differs for each await kind (see documentation in
-  function named same thing) However, they all have the 'stop' field. When set,
-  the stop field will cause the coroutine to be stopped the next time it would
-  have otherwise been run.
+Create Await instance
+  Kinds: ready  listen  done  mono  poll
+  The specific requirements differs for each await kind, see documentation in
+  each exported function.
 
-Interact with Await instance:
-  checkAwait  isReady
+Other types or pseudo-types:
+  channel (Recv Send)   Executor
 
-Executor (see function docs)
-  Executor  checkExecutor
+Other functions:
+  schedule  notify  executeLoop   checkAwait
 
-Other functions (see individual documentation)
-  schedule  executeLoop
+Await on multiple Scheduled instances:
+  any  all
 
 Global variables:
   ASYNC_EXECUTOR: should be set to a ds.async.Executor() instance or
     equivalent.
+
+## Example
+
+  function main()
+    local da = ds.async
+    local ex = da.Executor()
+    ASYNC_EXECUTOR = ex
+    da.schedule(handleUserInputFn)
+    da.schedule(calculateGameStateFn)
+    da.schedule(drawScreenFn)
+    while true do
+      da.executeLoop(ex)
+    end
+  end
+
+See also: si, civix
 ]])
 
 local EXECUTOR_ERR = "must set ASYNC_EXECUTOR"
@@ -75,14 +68,6 @@ local function _await(aw, awaitKind)
   aw.awaitKind = awaitKind
   return aw
 end
-
-local IMM_IGNORE = ds.Imm{awaitKind='ignore'}
-M.ignore = mt.doc[[
-ignore() -> Await{kind=ignore}
-The associated coroutine will be ignored/forgotten but NOT closed.
-This is typically used if there is some mechanism for re-adding
-the Scheduled item later.
-]](function() return IMM_IGNORE end)
 
 local IMM_READY = ds.Imm{awaitKind='ready'}
 M.ready = mt.doc[[
@@ -123,10 +108,10 @@ end)
 local monoLt = rawget(ds.Duration, '__lt')
 M.awaitMonoCmp = function(i1, i2) monoLt(i1[1], i2[1]) end -- for Executor
 
-M.poll = mt.doc[[poll(pollTable, parent) -> Await{kind=poll}
+M.poll = mt.doc[[poll(...) -> Await{kind=poll}
 When yielded to an executeLoop, restart the coroutine after the system's
-poll(...). Returns it as a valid fileid. The specific implementation depends on
-the Executor.
+poll(...). Returns it as a valid fileid. The specific implementation
+depends on the Executor.
 ]](function(t) return _await(t, 'poll') end)
 
 M.handleErrorDefault = function(err, aw, cor)
@@ -140,7 +125,6 @@ local checkAnyAll = function(aw)
       or nil
 end
 local AW_CHECK = {
-  ignore = ds.retFalse,
   ready = ds.retFalse,
   listen = ds.retFalse,
   done = function(aw)
@@ -269,12 +253,11 @@ be supported:
 
   pollList is special and may only be supported on some platforms (else nil).
   It must have the following methods:
+    __len                  to get length with `#`
 
     insert(fileno, events) insert the fileno+events into the poll list
 
     remove(fileno)         remove the fileno from poll list
-
-    len()     -> integer   return the total number of filenos
 
     ready(self, Duration) -> {filenos}
       poll for duration, return any ready filenos
@@ -329,7 +312,6 @@ local function updateAnyAll(ex, sch)
 end
 -- (ex, aw, cor) -> (): update executor with Await and coroutine
 M.EX_UPDATE = {
-  ignore = ds.noop,
   listen = function(ex, sch) ex.listen[sch.aw] = sch  end,
   ready  = function(ex, sch) ex.ready[sch] = true end,
   done   = function(ex, sch) push(ex.done, sch)   end,
@@ -441,9 +423,10 @@ channel() -> Send, Recv: helper to open sender and receiver.
 ]](function() local r = M.Recv(); return r, r:sender() end)
 
 ----------------------------------
--- executeLoop(ex): default executeLoop implementation for main
-M._executeLoop = function(ex)
-  if not ds.isEmpty(ex.ready) do
+-- singleExecuteLoop(ex): handle a single execute loop
+M.singleExecuteLoop = function(ex)
+  local waiting = false
+  if not ds.isEmpty(ex.ready) then
     local ready = ex.ready; ex.ready = {}
     for sch in pairs(ready) do execute(ex, sch) end
   end
@@ -468,25 +451,17 @@ M._executeLoop = function(ex)
   while i <= #done do
     local sch = done[i]
     if sch.aw:isDone() then
-      ds.popit(done, i)
-      ex.ready[sch] = true
+      ex.ready[sch] = true; ds.popit(done, i)
     else i = i + 1 end
   end
 
   local duration = till - now
   if duration < ds.DURATION_ZERO then duration = ds.DURATION_ZERO end
   local pl, pm = ex.pollList, ex.pollMap
+  -- TODO: sleep if #pl==0
   for _, fileno in ipairs(pl:ready(duration)) do
     ex.ready[ds.popk(pm, fileno)] = true; pl:remove(fileno)
   end
 end
-
-M.executeLoop = mt.doc[[
-executeLoop(ex) -> (): default executeLoop suitable for most applications.
-]](function(ex)
-  while true do
-    M._executeLoop(ex)
-  end
-end)
 
 return M
