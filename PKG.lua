@@ -11,6 +11,7 @@ dirs    = {
   'lib/ds',
   'lib/tso',
   'lib/vcds',
+  'lib/fd',
   'lib/civix',
   'lib/pegl',
   'lib/luck',

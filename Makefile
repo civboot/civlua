@@ -12,7 +12,10 @@ test: build
 	# LUA_PATH=${LP} lua civix/runterm.lua view 0.05
 	# Tests complete
 
-build: civix
+build: fd civix
+
+fd: lib/fd/fd.c
+	cd lib/fd && make build LUA_VERSION=$(LUA_VERSION)
 
 civix: lib/civix/civix/lib.c
 	cd lib/civix && make build LUA_VERSION=$(LUA_VERSION)
