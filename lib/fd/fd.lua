@@ -3,23 +3,28 @@ local sfmt = string.format
 local NL = -string.byte'\n'
 
 local S = pkg'fd.sys'
-local M = {}
+local M = {sync={}, async={}}
 
-print("Some flags", S.O_RDONLY, S.O_WRONLY)
 local MFLAGS = {
   ['r']  = S.O_RDONLY, ['r+']= S.O_RDWR,
-  ['w']  = S.O_WRONLY | S.O_CREAT,
+  ['w']  = S.O_WRONLY | S.O_CREAT | S.O_TRUNC,
   ['a']  = S.O_WRONLY | S.O_CREAT | S.O_APPEND,
   ['w+'] = S.O_RDWR   | S.O_CREAT | S.O_TRUNC,
   ['a+'] = S.O_RDWR   | S.O_CREAT | S.O_APPEND,
 }
+
+local function waitReady(fd, poll)
+  while fd:code() == S.FD_RUNNING do
+    coroutine.yield(si.poll(fd:fileno(), poll))
+  end
+end
 
 local YIELD_CODE = {
   [S.EWOULDBLOCK] = true, [S.EAGAIN] = true,
   [S.FD_RUNNING] = true,
 }
 
-M.open = function(path, mode)
+M.sync.open = function(path, mode)
   local flags = assert(MFLAGS[mode:gsub('b', '')], 'invalid mode')
   local f = S.openFD(path, flags)
   if f:code() ~= 0 then
@@ -27,10 +32,12 @@ M.open = function(path, mode)
   end
   return f
 end
+M.open = M.sync.open
 
 ----------------------------
 -- WRITE
 S.FD.__index.write = function(fd, str)
+  waitReady(fd, S.POLLOUT);
   fd:_writepre(str)
   while true do
     local c = fd:_write()
@@ -47,6 +54,7 @@ end
 -- perform a read, handling WOULDBLOCK.
 -- return true if should be called again.
 local function readYield(fd, till) --> done
+  waitReady(fd, S.POLLIN);
   while true do
     local c = fd:_read(till)
     if YIELD_CODE[c] then

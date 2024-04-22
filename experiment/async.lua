@@ -9,53 +9,8 @@ local sfmt = string.format
 local resume, newcor = coroutine.resume, coroutine.create
 local yield = coroutine.yield
 
-local M = mt.docTy({}, [[
-Enables writing simple "blocking style" lua then running asynchronously
-with standard lua coroutines.
-
-This library is pure lua. The only C code required is to create non-blocking
-versions of system-level objects like files/etc (not part of this module). In
-many cases, this architecture can be used with already written Lua code written
-in a "blocking" style.
-
-## ds.async API
-
-Create Await instance
-  Kinds: ready  listen  done  mono  poll
-  The specific requirements differs for each await kind, see documentation in
-  each exported function.
-
-Other types or pseudo-types:
-  channel (Recv Send)   Executor
-
-Other functions:
-  schedule  notify  executeLoop   checkAwait
-
-Await on multiple Scheduled instances:
-  any  all
-
-Global variables:
-  ASYNC_EXECUTOR: should be set to a ds.async.Executor() instance or
-    equivalent.
-
-## Example
-
-  function main()
-    local da = ds.async
-    local ex = da.Executor()
-    ASYNC_EXECUTOR = ex
-    da.schedule(handleUserInputFn)
-    da.schedule(calculateGameStateFn)
-    da.schedule(drawScreenFn)
-    while true do
-      da.executeLoop(ex)
-    end
-  end
-
-See also: si, civix
-]])
-
 local EXECUTOR_ERR = "must set ASYNC_EXECUTOR"
+
 ----------------------------------
 -- Await instance creation
 -- These aren't real "types" as they don't have a metatable.

@@ -46,21 +46,65 @@ typedef lua_State LS;
 #define ASSERT(L, OK, ...) \
   if(!(OK)) { luaL_error(L, __VA_ARGS__); }
 
+// ----------------------
+// -- FD CREATE / CLOSE
+static void FD_freebuf(FD* fd);
+
+
 // Create a FD object
-FD* FD_create(LS* L) {
-  FD* fd = (FD*)lua_newuserdata(L, sizeof(FD));
+static void FD_init(FD* fd) {
   // note: ctrl+code not set
   fd->fileno = -1; fd->pos = 0;
   fd->size = 0; fd->si = 0; fd->ei = 0;
-  fd->buf = NULL; 
+  fd->buf = NULL;
+}
+FD* FD_create(LS* L) {
+  FD* fd = (FD*)lua_newuserdata(L, sizeof(FD));
+  FD_init(fd);
   luaL_setmetatable(L, LUA_FD);
   return fd;
 }
 
-static void FD_freebuf(FD* fd);
 static void FD_close(FD* fd) {
   if(fd->fileno >= 0) { close(fd->fileno); fd->fileno = -1; }
   FD_freebuf(fd);
+}
+
+// ----------------------
+// -- FDT CREATE / CLOSE
+static void* FDT_run(void* d) {
+  FDT* fdt = (FDT*) d; FD* fd = &fdt->fd;
+  while(true) {
+    if(sem_wait(&fdt->sem)) break;
+    if(fdt->stopped)        break;
+    fdt->meth(fd);
+  }
+  fdt->stopped = 2;
+  return NULL;
+}
+
+FDT* FDT_create(LS* L) {
+  FDT* fdt = (FDT*)lua_newuserdata(L, sizeof(FDT));
+  FD_init(&fdt->fd); fdt->meth = NULL; fdt->stopped = false;
+  luaL_setmetatable(L, LUA_FDT);
+  if(sem_init(&fdt->sem, 0, 1)) goto error;
+  else if (pthread_create(&fdt->th, NULL, FDT_run, (void*)fdt)) {
+    sem_destroy(&fdt->sem);     goto error;
+  }
+  return fdt;
+error:
+  fdt->stopped = 3; fdt->fd.code = errno;
+  return fdt;
+}
+
+static void FDT_close(FDT* fdt) {
+  if(!fdt->stopped) {
+    fdt->stopped = 1;
+    sem_post(&fdt->sem); pthread_join(fdt->th, NULL);
+    sem_post(&fdt->sem); // fails on mac without this
+    sem_destroy(&fdt->sem);
+  }
+  FD_close(&fdt->fd);
 }
 
 // ----------------------
@@ -78,19 +122,32 @@ static void FD_freebuf(FD* fd) {
   fd->buf = NULL; fd->si = 0; fd->ei = 0;
 }
 
-static void FD_realloc(LS* L, FD* fd, int size) {
+static void FD_realloc(FD* fd, int size) {
   if(size < IO_SIZE) size = IO_SIZE;
   if(fd->size == 0) fd->buf = NULL;
-  printf("!! FD_realloc %u\n", size);
   char* buf = realloc(fd->buf, size);
-  ASSERT(L, buf, "OOM: realloc fd size=%I", size);
+  if(!buf) return;
   fd->buf = buf; fd->size = size;
 }
 
 // ----------------------
-// -- READ / WRITE / SEEK
+// -- METHODS
 // FD calls these semi-directly. FDT calls them through
 // the thread.
+
+// open buf, flags=ctrl
+static void FD_open(FD* fd) {
+  fd->fileno = open(fd->buf, fd->ctrl, 0666);
+  int code = 0;
+  if(fd->fileno >= 0) {
+    if(fd->ctrl & O_APPEND) {
+      fd->pos = lseek(fd->fileno, 0, SEEK_END);
+      if(fd->pos < 0) code = errno;
+    } else fd->pos = 0;
+  } else code = errno;
+  fd->code = code;
+}
+
 
 // find character index. If index==ei then not found.
 static size_t FD_findc(FD* fd, size_t si, char c) {
@@ -111,13 +168,13 @@ static void FD_shift(FD* fd) {
 // Read into buffer until EOF or error
 // If ctrl < 0 then breaks at that negated character (i.e. '\n').
 // if ctrl > 0 then stops reading when that amount is read
-static void FD_read(LS* L, FD* fd) {
+static void FD_read(FD* fd) {
   if(fd->size) FD_shift(fd);
-  else         FD_realloc(L, fd, IO_SIZE);
+  else         FD_realloc(fd, IO_SIZE);
   int ctrl = fd->ctrl, code = 0;
   while(true) {
     if((ctrl > 0) && ((fd->ei - fd->si) > ctrl)) break;
-    if(fd->size - fd->ei == 0) FD_realloc(L, fd, fd->size * 2);
+    if(fd->size - fd->ei == 0) FD_realloc(fd, fd->size * 2);
     int c = read(fd->fileno, fd->buf + fd->ei, fd->size - fd->ei);
     if(c >= 0) { fd->ei += c; }
     else         code = errno;
@@ -177,11 +234,6 @@ static FD* asfd(LS* L) {
 
 static void assertReady(LS* L, FD* fd, const char* name) {
   ASSERT(L, fd->code >= 0, "%s while not ready", name);
-}
-
-static int l_FD_close(LS* L) {
-  FD_close((FD*)luaL_checkudata(L, 1, LUA_FD));
-  return 0;
 }
 
 // (fd, till=-1) -> string
@@ -244,8 +296,10 @@ FD_intfield(pos);
 
 // ----------------------
 // -- FD LUA METHODS
-
-#define tofd(L) ((FD*)luaL_checkudata(L, 1, LUA_FD))
+#define toFD(L) ((FD*)luaL_checkudata(L, 1, LUA_FD))
+#define toFDT(L) ((FDT*)luaL_checkudata(L, 1, LUA_FDT))
+#define fdGetFD(V)  (V)
+#define fdGetFDT(V) (&(V)->fd)
 
 // (fd, till=0) -> (code)
 // read from file into buf. The amount depends on `till`
@@ -255,53 +309,91 @@ FD_intfield(pos);
 //
 // Returns the code for convinience.
 // Note: call l_FD_pop() for the read string.
+#define PRE_READ(fd) \
+  assertReady(L, fd, "read");           \
+  (fd)->ctrl = luaL_optnumber(L, 2, 0); \
+  (fd)->code = FD_RUNNING;
 static int l_FD_read(LS* L) {
-  FD* fd = tofd(L); assertReady(L, fd, "read");
-  fd->ctrl = luaL_optnumber(L, 2, 0);
-  fd->code = FD_RUNNING; FD_read(L, fd);
+  FD* fd = toFD(L); PRE_READ(fd);
+  FD_read(fd);
   lua_pushinteger(L, fd->code); return 1;
 }
+static int l_FDT_read(LS* L) {
+  FDT* fdt = toFDT(L); PRE_READ(&fdt->fd);
+  fdt->meth = FD_read; sem_post(&fdt->sem);
+  return 0;
+}
+#undef PRE_READ
 
 // (fd, string) -> (code)
 // Write a string. The code is returned for convienicence.
 static int l_FD_write(LS* L) {
-  FD* fd = tofd(L);
-  fd->code = FD_RUNNING; FD_write(fd);
+  FD* fd = toFD(L); fd->code = FD_RUNNING;
+  FD_write(fd);
   lua_pushinteger(L, fd->code); return 1;
+}
+static int l_FDT_write(LS* L) {
+  FDT* fdt = toFDT(L); fdt->fd.code = FD_RUNNING;
+  fdt->meth = FD_write; sem_post(&fdt->sem);
+  return 0;
 }
 
 // (fd, offset, whence) -> (code)
 // Seek to offset+whence. The code is returned for convienicence.
+#define PRE_SEEK(fd) \
+  assertReady(L, fd, "seek");             \
+  off_t offset = luaL_checkinteger(L, 2); \
+  int whence   = luaL_checkinteger(L, 3); \
+  (fd)->code = FD_RUNNING; \
+  if(FD_seekpre(fd, offset, whence)) (fd)->code = 0;
+
 static int l_FD_seek(LS* L) {
-  FD* fd = tofd(L); assertReady(L, fd, "seek");
-  off_t offset = luaL_checkinteger(L, 2);
-  int whence   = luaL_checkinteger(L, 3);
-  if(FD_seekpre(fd, offset, whence)) fd->code = 0;
-  else { fd->code = FD_RUNNING; FD_seek(fd); }
+  FD* fd = toFD(L); PRE_SEEK(fd)
+  if(fd->code) FD_seek(fd);
   lua_pushinteger(L, fd->code); return 1;
 }
+static int l_FDT_seek(LS* L) {
+  FDT* fdt = toFDT(L); PRE_SEEK(&fdt->fd);
+  if(fdt->fd.code) {
+    fdt->meth = FD_seek; sem_post(&fdt->sem);
+  }
+  return 0;
+}
+#undef PRE_SEEK
 
-// (path, flags) -> FD, errno
+// open(path, flags) -> FD
 static int l_FD_open(LS* L) {
   const char* path = luaL_checkstring(L, 1);
   const int flags = luaL_checkinteger(L, 2);
   FD* fd = FD_create(L);
-  fd->fileno = open(path, flags, 0666);
-  if(fd->fileno >= 0) {
-    fd->code = 0;
-    if(flags & O_APPEND) {
-      fd->pos = lseek(fd->fileno, 0, SEEK_END);
-      if(fd->pos < 0) fd->code = errno;
-    } else fd->pos = 0;
-  } else fd->code = errno;
+  fd->buf = (char*)path; fd->ctrl = flags;
+  fd->code = FD_RUNNING; FD_open(fd);
   return 1;
+}
+static int l_FDT_open(LS* L) {
+  const char* path = luaL_checkstring(L, 1);
+  const int flags = luaL_checkinteger(L, 2);
+  FDT* fdt = FDT_create(L); FD* fd = &fdt->fd;
+  fd->buf = (char*)path; fd->ctrl = flags;
+  fd->code = FD_RUNNING;
+  fdt->meth = FD_open; sem_post(&fdt->sem);
+  return 1;
+}
+
+static int l_FD_close(LS* L) {
+  FD_close(toFD(L));
+  return 0;
+}
+static int l_FDT_close(LS* L) {
+  FDT_close(toFDT(L));
+  return 0;
 }
 
 // ----------------------
 // -- DEFINE LIBRARY
 
 static const struct luaL_Reg fd_sys[] = {
-  {"openFD", l_FD_open},
+  {"openFD", l_FD_open}, {"openFDT", l_FDT_open},
   {NULL, NULL},
 };
 
@@ -312,9 +404,10 @@ int luaopen_fd_sys(LS *L) {
   printf("!! opening fd.c\n");
   luaL_newlib(L, fd_sys);
 
+    #define FD_METHODS  (/*native=*/ 10 + /*lua=*/ 3)
     luaL_newmetatable(L, LUA_FD);
       L_setmethod(L, "__gc", l_FD_close);
-      lua_createtable(L, 0, 5);
+      lua_createtable(L, 0, FD_METHODS);
         // fields
         L_setmethod(L, "code",     l_FD_code);
         L_setmethod(L, "fileno",   l_FD_fileno);
@@ -328,10 +421,27 @@ int luaopen_fd_sys(LS *L) {
         L_setmethod(L, "_read",    l_FD_read);
         L_setmethod(L, "_seek",    l_FD_seek);
         L_setmethod(L, "_pop",     l_FD_pop);
-
       lua_setfield(L, -2, "__index");
-
     lua_setfield(L, -2, "FD");
+
+    luaL_newmetatable(L, LUA_FDT);
+      L_setmethod(L, "__gc", l_FDT_close);
+      lua_createtable(L, 0, FD_METHODS);
+        // fields
+        L_setmethod(L, "code",     l_FD_code);
+        L_setmethod(L, "fileno",   l_FD_fileno);
+        L_setmethod(L, "pos",      l_FD_pos);
+
+        // true methods
+        L_setmethod(L, "close",    l_FDT_close);
+        L_setmethod(L, "codestr",  l_FD_codestr);
+        L_setmethod(L, "_writepre",l_FD_writepre);
+        L_setmethod(L, "_write",   l_FDT_write);
+        L_setmethod(L, "_read",    l_FDT_read);
+        L_setmethod(L, "_seek",    l_FDT_seek);
+        L_setmethod(L, "_pop",     l_FD_pop);
+      lua_setfield(L, -2, "__index");
+    lua_setfield(L, -2, "FDT");
 
   #define setconstfield(L, CONST) \
     lua_pushinteger(L, CONST); lua_setfield(L, -2, #CONST)
