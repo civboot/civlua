@@ -9,6 +9,7 @@ dirs    = {
   'lib/civtest',
   'lib/doc',
   'lib/ds',
+  'lib/lap',
   'lib/tso',
   'lib/vcds',
   'lib/fd',

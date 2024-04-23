@@ -1,8 +1,8 @@
 #!/usr/bin/lua
-METATY_CHECK, METATY_DOC = true, true
-DOC = [[civ: bundled Civboot applications.
+METATY_CHECK, METATY_DOC       = true,  true
+LAP_READY, LAP_SYNC, LAP_ASYNC = false, false, false
 
-]]
+local DOC = [[civ: bundled Civboot applications]]
 local M = {}
 
 M.dir = debug.getinfo(1).source:sub(2, -1-#'civ.lua')

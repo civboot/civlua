@@ -4,7 +4,6 @@
 local pkg = require'pkg'
 local mt = pkg'metaty'
 local ds = pkg'ds'
-local da = pkg'ds.async'
 local shim = pkg'shim'
 local lib = pkg'civix.lib'
 
@@ -251,7 +250,7 @@ local function readAll(f, mode)
     if o then
       push(data, o)
       if #o == 0 then break end
-    else yield(da.poll(f:fileno(), C.POLLIN)) end
+    else yield('poll', f:fileno(), C.POLLIN) end
   end
   data = table.concat(data)
   return #data > 0 and data or nil
@@ -265,7 +264,7 @@ local function readAmount(f, amt)
     if o then
       push(data, o); amt = amt - #o
       if #o == 0 then break end
-    else yield(da.poll(f:fileno(), C.POLLIN)) end
+    else yield('poll', f:fileno(), C.POLLIN) end
   end
   data = table.concat(data)
   return #data > 0 and data or nil
@@ -291,7 +290,7 @@ M.write = function(f, s)
     if pos then
       if pos <= i then break end
       i = pos
-    else yield(da.poll(f:fileno(), C.POLLOUT)) end
+    else yield('poll', f:fileno(), C.POLLOUT) end
   end
 end
 
