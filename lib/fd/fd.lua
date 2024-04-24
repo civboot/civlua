@@ -6,6 +6,8 @@ local NL        = -string.byte'\n'
 local pkg = require'pkg'
 
 local S = pkg'fd.sys'
+S.POLLIO = S.POLLIN | S.POLLOUT
+
 local MFLAGS = {
   ['r']  = S.O_RDONLY, ['r+']= S.O_RDWR,
   ['w']  = S.O_WRONLY | S.O_CREAT | S.O_TRUNC,
@@ -38,8 +40,9 @@ end
 
 ----------------------------
 -- WRITE / SEEK
-S.FD.__index.write = function(fd, str)
+S.FD.__index.write = function(fd, ...)
   M.assertReady(fd, 'write')
+  local str = table.concat{...}
   fd:_writepre(str)
   while true do
     local c = fd:_write()
@@ -54,7 +57,9 @@ local WHENCE = { set=S.SEEK_SET, cur=S.SEEK_CUR, ['end']=S.SEEK_END }
 S.FD.__index.seek = function(fd, whence, offset)
   M.assertReady(fd, 'seek')
   whence = assert(WHENCE[whence or 'cur'], 'unrecognized whence')
-  return fd:_seek(offset or 0, whence)
+  print('!! FD seek', whence, offset)
+  fd:_seek(offset or 0, whence); M.finishRunning(fd, 'poll', S.POLLIO)
+  return fd:pos()
 end
 
 S.FD.__index.flush = function(fd)
@@ -105,7 +110,7 @@ local function iden(x) return x end
 local function noNL(s)
   return s and (s:sub(-1) == '\n') and s:sub(1, -2) or s
 end
-local function readAll(fd) readYield(fd); return fd:_pop() end
+local function readAll(fd) readYield(fd); return fd:_pop() or '' end
 local function readLine(fd, lineFn)
   local s = fd:_pop(NL); if s then return lineFn(s) end
   readYield(fd, NL)
@@ -113,21 +118,29 @@ local function readLine(fd, lineFn)
 end
 local function readLineNoNL(fd)  return readLine(fd, noNL) end
 local function readLineYesNL(fd) return readLine(fd, iden) end
-local READ_MODE = {
-  a=readAll, ['a*']=readAll, l=readLineNoNL, L=readLineYesNL,
-}
 local function readAmt(fd, amt)
   assert(amt > 0, 'read non-positive amount')
   local s = fd:_pop(amt); if s then return s end
   readYield(fd, amt)
-  return lineFn(fd:_pop(amt) or fd:_pop())
+  return fd:_pop(amt) or fd:_pop()
 end
 
+local READ_MODE = {
+  a=readAll, ['*a']=readAll, l=readLineNoNL, L=readLineYesNL,
+}
+local modeFn = function(mode)
+  local fn = (type(mode) == 'number') and readAmt or READ_MODE[mode or 'a']
+  if not fn then error('mode not supported: '..tostring(mode)) end
+  return fn
+end
 S.FD.__index.read = function(fd, mode)
   M.assertReady(fd, 'read')
-  if type(mode) == 'number' then return readAmt(fd, amt) end
-  local fn = assert(READ_MODE[mode or 'a'], 'mode not supported')
-  return fn(fd, mode)
+  return modeFn(mode)(fd, mode)
+end
+
+S.FD.__index.lines = function(fd, mode)
+  local fn = modeFn(mode or 'l')
+  return function() return fn(fd, mode) end
 end
 
 ----------------------------
@@ -138,6 +151,7 @@ end
 S.FDT.__index.write      = S.FD.__index.write
 S.FDT.__index.seek       = S.FD.__index.seek
 S.FDT.__index.read       = S.FD.__index.read
+S.FDT.__index.lines      = S.FD.__index.lines
 S.FDT.__index.flush      = S.FD.__index.flush
 S.FDT.__index.flags      = S.FD.__index.flags
 S.FDT.__index.toNonblock = S.FD.__index.toNonblock
@@ -192,12 +206,13 @@ M.open = function(...)
   return M.openWith((LAP_ASYNC and S.openFDT) or S.openFD, ...)
 end
 M.close   = function(fd) fd:close() end
-M.tmpfile = function(template, sysTmp)
-  sysOpen = sysTmp or (LAP_ASYNC and S.tmpFDT) or S.tmpFD
-  local f = sysTmp(template)
-  M.finishRunning(f, 'sleep', 0.005)
+M.tmpfileFn = function(sysFn)
+  local f = sysFn(template or ''); M.finishRunning(f, 'sleep', 0.005)
   if f:code() ~= 0 then error(sfmt("tmp failed: %s", f:codestr())) end
+  return f
 end
+M._sync.tmpfile  = function() return M.tmpfileFn(S.tmpFD)  end
+M._async.tmpfile = function() return M.tmpfileFn(S.tmpFDT) end
 
 M.read    = function(...) M.input():read(...) end
 M.lines   = function(path, mode)
@@ -248,10 +263,10 @@ end
 if LAP_ASYNC then toAsync() else toSync() end
 
 local IO_KEYS = [[
-open     close   tmpfile
-read     lines   write
-stdout   stderr  stdin
-input    output  flush
+open   close  tmpfile
+read   lines  write
+stdout stderr stdin
+input  output flush
 type
 ]]
 local function copyKeys(keys, from, to)
@@ -261,9 +276,10 @@ end
 copyKeys(IO_KEYS, io, M._io)
 
 M.ioAsync = function()
-  assert(LAP_ASYNC, 'make async before calling ioAsync')
-  copyKeys(IO_KEYS, M, io)
+  assert(LAP_ASYNC);     copyKeys(IO_KEYS, M, io)
 end
-
+M.ioSync = function()
+  assert(not LAP_ASYNC); copyKeys(IO_KEYS, M, io)
+end
 
 return M

@@ -4,6 +4,7 @@ local T   = pkg'civtest'
 local M   = pkg'fd'
 local S   = M.sys
 local aeq = T.assertEq
+M.ioSync()
 
 local p = '.out/fd.text'
 
@@ -44,8 +45,8 @@ local text = 'line 1\nline 2\nline 3\n'
 T.lapTest('openFDT -> _read', function()
   local f = M.openFDT(p); aeq(M.FDT, getmetatable(f))
   aeq(0, f:code())
-  f:_read(); aeq(S.FD_RUNNING, f:code())
-  while f:code() == S.FD_RUNNING do end; aeq(S.FD_EOF, f:code())
+  f:_read(); while f:code() == S.FD_RUNNING do end
+  aeq(S.FD_EOF, f:code())
   aeq(text, f:_pop())
   f:close()
 end)

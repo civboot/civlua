@@ -83,6 +83,7 @@ Example:
   return M.LinesFile(t)
 end)
 M.LinesFile.__index = function(self, l)
+  mty.pntf('!! LF index: l=%s pos=%s', l, self._pos)
   local meth = getmetatable(self)[l]; if meth then return meth end
   -- Note: only called if line is not already cached
   mty.assertf(l >= 1, 'line must be >= 1: %s', l)

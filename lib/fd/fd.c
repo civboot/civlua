@@ -52,7 +52,6 @@ typedef lua_State LS;
 // -- FD CREATE / CLOSE
 static void FD_freebuf(FD* fd);
 
-
 // Create a FD object
 static void FD_init(FD* fd) {
   fd->code = 0; fd->fileno = -1; fd->pos = 0;
@@ -109,7 +108,8 @@ error:
 // free/destroy
 static void FD_freebuf(FD* fd) {
   if(fd->size) {
-    fd->pos += fd->ei - fd->si; // unpopped file pos
+    // ensure pos reflects user state
+    if(fd->ei - fd->si) lseek(fd->fileno, fd->pos, SEEK_SET);
     free((void*)fd->buf); fd->size = 0;
   }
   fd->buf = NULL; fd->si = 0; fd->ei = 0;
@@ -131,22 +131,24 @@ static void FD_realloc(FD* fd, int size) {
 // open buf, flags=ctrl
 static void FD_open(FD* fd) {
   fd->fileno = open((char*)fd->buf, fd->ctrl, 0666);
-  int code = 0;
+  int code = 0, pos = 0;
   if(fd->fileno >= 0) {
     if(fd->ctrl & O_APPEND) {
-      fd->pos = lseek(fd->fileno, 0, SEEK_END);
-      if(fd->pos < 0) code = errno;
-    } else fd->pos = 0;
+      pos = lseek(fd->fileno, 0, SEEK_END);
+      if(pos < 0) { pos = 0; code = errno; }
+    }
   } else code = errno;
-  fd->code = code;
+  fd->pos  = pos; fd->code = code;
 }
 
 static void FD_tmp(FD* fd) {
-  int r = mkstemp((char*)fd->buf);
-  if(r < 0) fd->code = errno;
-  else {
-    fd->fileno = r; fd->code = 0;
-  }
+  FILE* f = tmpfile();         if(!f)             goto error;
+  fd->fileno = dup(fileno(f)); if(fd->fileno < 0) goto error;
+  fclose(f); fd->code = 0;
+  return;
+error:
+  if(f) fclose(f);
+  fd->code = errno;
 }
 
 
@@ -207,9 +209,11 @@ static void FD_write(FD* fd) {
 // attempt to seek using only buffer, else update FD.
 // return true if complete (no syscall needed)
 static bool FD_seekpre(FD* fd, off_t offset, int whence) {
+  printf("!! SEEK=%u set=%u cur=%u end=%u\n", whence, SEEK_SET, SEEK_CUR, SEEK_END);
   off_t want = offset; switch(whence) {
     case SEEK_CUR: want += fd->pos; // make absolute
     case SEEK_SET:
+      printf("!! seekpre %u offset=%u want/pos=%u/%u\n", whence, offset, want, fd->pos);
       if((fd->pos <= want) && (want <= fd->pos + LEN(fd))) {
         fd->si += want - fd->pos; fd->pos = want;
         return true;
@@ -372,7 +376,7 @@ static int l_FDT_write(LS* L) {
 
 // (fd, offset, whence) -> (code)
 // Seek to offset+whence. The code is returned for convienicence.
-#define PRE_SEEK(fd) \
+#define IF_PRE_SEEK(fd) \
   assertReady(L, fd, "seek");             \
   off_t offset = luaL_checkinteger(L, 2); \
   int whence   = luaL_checkinteger(L, 3); \
@@ -380,18 +384,18 @@ static int l_FDT_write(LS* L) {
   if(FD_seekpre(fd, offset, whence)) (fd)->code = 0;
 
 static int l_FD_seek(LS* L) {
-  FD* fd = toFD(L); PRE_SEEK(fd)
-  if(fd->code) FD_seek(fd);
+  FD* fd = toFD(L);
+  IF_PRE_SEEK(fd) else FD_seek(fd);
   lua_pushinteger(L, fd->code); return 1;
 }
 static int l_FDT_seek(LS* L) {
-  FDT* fdt = toFDT(L); PRE_SEEK(&fdt->fd);
-  if(fdt->fd.code) {
+  FDT* fdt = toFDT(L); 
+  IF_PRE_SEEK(&fdt->fd) else {
     fdt->meth = FD_seek; sem_post(&fdt->sem);
   }
-  return 0;
+  lua_pushinteger(L, fdt->fd.code); return 1;
 }
-#undef PRE_SEEK
+#undef IF_PRE_SEEK
 
 static int l_FD_create(LS* L)  { FD_create(L);  return 1; }
 static int l_FDT_create(LS* L) { FDT_create(L); return 1; }
@@ -415,22 +419,13 @@ static int l_FDT_open(LS* L) {
   return 1;
 }
 
-#define FD_TMP \
-  size_t size; const char* path = luaL_checklstring(L, 1, &size); \
-  size += 7; char* buf = malloc(size); \
-  ASSERT(L, buf, "failed to alloc tmp"); \
-  fd->size = size; \
-  memmove(buf, path, size - 7); memset(buf + size - 7, 'X', 6); \
-  buf[size] = 0; fd->ei = size - 1; \
-  fd->code = FD_RUNNING
 static int l_FD_tmp(LS* L) {
-  FD* fd = FD_create(L); FD_TMP;
+  FD* fd = FD_create(L);
   FD_tmp(fd);
   return 1;
 }
 static int l_FDT_tmp(LS* L) {
-  FDT* fdt = FDT_create(L);
-  FD* fd = &fdt->fd; FD_TMP;
+  FDT* fdt = FDT_create(L); FD* fd = &fdt->fd;
   fdt->meth = FD_tmp; sem_post(&fdt->sem);
   return 1;
 }
@@ -633,6 +628,9 @@ int luaopen_fd_sys(LS *L) {
   // seek constants
   setconstfield(L, SEEK_SET); setconstfield(L, SEEK_CUR);
   setconstfield(L, SEEK_END);
+
+  // poll constants
+  setconstfield(L, POLLIN);   setconstfield(L, POLLOUT);
 
   // important errors
   setconstfield(L, EWOULDBLOCK); setconstfield(L, EAGAIN);
