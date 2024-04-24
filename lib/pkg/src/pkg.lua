@@ -84,7 +84,11 @@ end
 M.loadlib = function(path, name)
   print('!! loadlib', path, name)
   name = name:gsub('%.', '_')
-  return package.loadlib(path, 'luaopen_'..name)()
+  local pkg, err = package.loadlib(path, 'luaopen_'..name)
+  if not pkg then error(sfmt(
+    'failed to load %s at %s: %s', name, path, err
+  ))end
+  return pkg()
 end
 
 --------------------

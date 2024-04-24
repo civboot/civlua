@@ -65,8 +65,10 @@ FD* FD_create(LS* L) {
   return fd;
 }
 
-static void FD_close(FD* fd) {
-  if(fd->fileno >= 0) { close(fd->fileno); fd->fileno = -1; }
+void FD_close(FD* fd) {
+  if(fd->fileno >= 0) { 
+    printf("!! closing fd %i\n", fd->fileno);
+    close(fd->fileno); fd->fileno = -1; }
   FD_freebuf(fd);
   fd->code = 0;
 }
@@ -182,15 +184,17 @@ static void FD_read(FD* fd) {
     if((ctrl > 0) && ((fd->ei - fd->si) > ctrl)) break;
     if(fd->size - fd->ei == 0) FD_realloc(fd, fd->size * 2);
     if(!fd->buf) { code = errno; break; }
-    int c = read(fd->fileno, (char*)fd->buf + fd->ei, fd->size - fd->ei);
+    printf("!! FD_read reading...\n");
+    int rem = fd->size - fd->ei;
+    int c = read(fd->fileno, (char*)fd->buf + fd->ei, rem);
     printf("!! FD_read loop code=%i c=%i ei=%i\n", fd->code, c, fd->ei);
-    if(c == 0) { code = FD_EOF; break; } // EOF: signal to findc callers
-    if(c <  0) { code = errno;  break; }
+    if(c < 0) { code = errno;  break; }
     fd->ei += c;
     if(ctrl < 0) {
       int i = FD_findc(fd, fd->ei - c, (char) -ctrl);
       if(i < fd->ei) break;
     }
+    if(c < rem) { code = FD_EOF; break; } // EOF: signal to findc callers
   }
   printf("!! FD_read done code=%i len=%i\n", code, LEN(fd));
   fd->code = code;
@@ -441,8 +445,7 @@ static int l_FDT_close(LS* L) {
   fdt->meth = FD_close; sem_post(&fdt->sem);
   return 0;
 }
-static int l_FDT_destroy(LS* L) {
-  FDT* fdt = toFDT(L);
+void FDT_destroy(FDT* fdt) {
   if(!fdt->stopped) {
     fdt->stopped = 1;
     sem_post(&fdt->sem); pthread_join(fdt->th, NULL);
@@ -451,6 +454,7 @@ static int l_FDT_destroy(LS* L) {
   }
   FD_close(&fdt->fd);
 }
+static int l_FDT_destroy(LS* L) { FDT_destroy(toFDT(L)); }
 
 // (fd) -> code, flags
 static int l_FD_getflags(LS* L) {

@@ -74,16 +74,16 @@ S.FD.__index.flags = function(fd)
   return flags
 end
 S.FD.__index.toNonblock = function(fd)
-  M.assertReady(fd, 'toAsync')
+  M.assertReady(fd, 'toNonblock')
   if fd:_setflags(S.O_NONBLOCK | fd:flags()) ~= 0 then
     error(fd:codestr())
-  end
+  end; return fd
 end
 S.FD.__index.toBlock = function(fd)
-  M.assertReady(fd, 'toSync')
+  M.assertReady(fd, 'toBlock')
   if fd:_setflags(S.inv(S.O_NONBLOCK) & fd:flags()) ~= 0 then
     error(fd:codestr())
-  end
+  end; return fd
 end
 S.FD.__index.isAsync = function(fd)
   return (fd:flags() & S.O_NONBLOCK) ~= 0
@@ -165,8 +165,26 @@ end
 ----------------------------
 -- PollList
 M.PollList = setmetatable({
-  __name='PollList',
-}, {
+__name='PollList',
+__index = {
+  __len = function(pl) return pl._pl:size() - #pl.avail end,
+  resize = function(pl, newSize)
+    local size = pl._pl:size(); assert(newSize >= size, 'attempted shrink')
+    pl._pl:resize(newSize); for i=size,newSize-1 do push(pl.avail, i) end
+  end,
+  insert = function(pl, fileno, events)
+    local i = pl.map[fileno] or pop(pl.avail)
+    if not i then
+      pl:resize((pl._pl:size() == 0) and 8 or pl._pl.size() * 2)
+      i = assert(pop(pl.avail), 'failed to resize')
+    end
+    pl._pl:set(i, fileno, events)
+    pl.map[fileno] = i
+  end,
+  ready = function(pl, timeoutSec)
+    return pl._pl:ready(math.floor(timeoutSec * 1000))
+  end,
+}}, {
   __call=function(ty_)
     return setmetatable({
       _pl=S.pollList(),
@@ -175,20 +193,6 @@ M.PollList = setmetatable({
     }, ty_)
   end,
 })
-M.PollList.__len = function(pl) return pl._pl:size() - #pl.avail end
-M.PollList.resize = function(pl, newSize)
-  local size = pl._pl:size(); assert(newSize >= size, 'attempted shrink')
-  pl._pl:resize(newSize); for i=size,newSize-1 do push(pl.avail, i) end
-end
-M.PollList.insert = function(pl, fileno, events)
-  local i = pl.map[fileno] or pop(pl.avail)
-  if not i then
-    pl:resize((pl.size == 0) and 8 or pl.size * 2)
-    i = assert(pop(pl.avail), 'failed to resize')
-  end
-  pl._pl:set(i, fileno, events)
-  pl.map[fileno] = i
-end
 
 ----------------------------
 -- io backfill

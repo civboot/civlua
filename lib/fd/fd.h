@@ -30,7 +30,10 @@ typedef struct _FDT {
   volatile void (*meth)(FD*);
 } FDT;
 
-FD*  FD_create(lua_State* L);
+__attribute__ ((visibility ("default"))) FD*  FD_create(lua_State* L);
 FDT* FDT_create(lua_State* L);
+
+__attribute__ ((visibility ("default"))) void FD_close(FD*);
+void FDT_destroy(FDT*);
 
 #endif

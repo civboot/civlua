@@ -187,13 +187,13 @@ end)
 -- Lap
 M.monoCmp  = function(i1, i2) monoLt(i1[1], i2[1]) end
 M.LAP_UPDATE = {
-  [true] = function(ex, cor) LAP_READY[cor] = true end,
-  sleep = function(ex, cor, sleepSec)
-    ex.monoHeap:add{ex:monoFn() + sleepSec, cor}
+  [true] = function(lap, cor) LAP_READY[cor] = true end,
+  sleep = function(lap, cor, sleepSec)
+    lap.monoHeap:add{lap:monoFn() + sleepSec, cor}
   end,
-  poll = function(ex, cor, fileno, events)
-    ex.pollList:insert(fileno, events)
-    ex.pollMap[fileno] = cor
+  poll = function(lap, cor, fileno, events)
+    lap.pollList:insert(fileno, events)
+    lap.pollMap[fileno] = cor
   end,
 }
 M.Lap = mt.doc[[
@@ -219,7 +219,7 @@ Example:
   :field('sleepFn', 'function')
   :field('monoFn', 'function')
   :field('monoHeap', ds.Heap)
-  :field('defaultSleep', 0.01) -- 10 ms
+  :field('defaultSleep', 'number', 0.01) -- 10 ms
   :field'pollMap'
   :fieldMaybe'pollList':fdoc[[Poll list data structure. Required methods:
   * __len                   to get length with `#`
@@ -240,25 +240,27 @@ M.Lap.execute = function(lap, cor)
   local ok, kind, a, b = coroutine.resume(cor)
   if not ok   then return true, kind end -- error
   if not kind then return true     end   -- forget
-  local upd = M.LAP_UPDATE[kind]
-  if not upd then error('unknown kind '..kind) end
-  upd(lap, a, b)
+  local fn = M.LAP_UPDATE[kind]
+  if not fn then error('unknown kind '..kind) end
+  fn(lap, cor, a, b)
 end
 M.Lap.__call = function(lap)
+  mt.pnt('!! Lap()')
   local errors = nil
   if next(LAP_READY) then
     local ready = LAP_READY; LAP_READY = {}
     for cor in pairs(ready) do
-      local err = execute(lap, cor)
+      mt.pnt('!! Lap execute', cor)
+      local err = lap:execute(cor)
       if err then errors = errors or {}; push(errors, err) end
     end
   end
 
   -- Check for asleep coroutines
-  local mh = ex.monoHeap; local hpop = mh.pop
-  local now, till = ex:monoFn()
-  if #ex.ready > 0 then till = now -- no sleep when there are ready
-  else                  till = now + ex.defaultSleep end
+  local mh = lap.monoHeap; local hpop = mh.pop
+  local now, till = lap:monoFn()
+  if next(LAP_READY) then till = now -- no sleep when there are ready
+  else                    till = now + lap.defaultSleep end
   while true do -- handle mono (sleep)
     -- keep popping from the minheap until it is before 'now'
     local e = hpop(mh); if not e then break end
@@ -272,7 +274,7 @@ M.Lap.__call = function(lap)
   -- Poll or sleep before next loop
   local sleep = math.max(0, till - now)
   if next(lap.pollMap) then
-    local pl, pm = ex.pollList, ex.pollMap
+    local pl, pm = lap.pollList, lap.pollMap
     for _, fileno in ipairs(pl:ready(sleep)) do
       LAP_READY[ds.popk(pm, fileno)] = 'poll'
       pl:remove(fileno)
@@ -280,6 +282,22 @@ M.Lap.__call = function(lap)
   else lap.sleepFn(sleep) end
 
   return errors
+end
+M.Lap.isDone = function(lap)
+  return not (next(LAP_READY) or (#lap.monoHeap > 0) or next(lap.pollMap))
+end
+M.Lap.run = function(lap, fns)
+  LAP_READY = LAP_READY or {}
+  print('!! ready', next(LAP_READY), 'mono', #lap.monoHeap, 'poll', next(lap.pollMap))
+  assert(lap:isDone(), "cannot run non-done Lap")
+  if type(fns) == 'function' then LAP_READY[coroutine.create(fns)] = 'run'
+  else
+    for i, fn in ipairs(fns) do
+      mt.pnt('!! run adding fn', fn)
+      LAP_READY[coroutine.create(fn)] = 'run'
+    end
+  end
+  while not lap:isDone() do lap() end
 end
 
 local function toAsync()
@@ -291,6 +309,7 @@ local function toSync()
   for k, v in pairs(M._sync)  do M[k] = v end
   LAP_ASYNC = false
 end; push(LAP_FNS_SYNC,  toSync)
+
 
 if LAP_ASYNC then toAsync() else toSync() end
 

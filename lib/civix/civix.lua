@@ -1,11 +1,13 @@
 -- civix: civboot unix utilites.
 --
 -- Note: You probably want civix.sh
-local pkg = require'pkg'
-local mt = pkg'metaty'
-local ds = pkg'ds'
+local pkg  = require'pkg'
+local mt   = pkg'metaty'
+local ds   = pkg'ds'
 local shim = pkg'shim'
-local lib = pkg'civix.lib'
+local lib  = pkg'civix.lib'; local C = lib
+local fd   = pkg'fd'
+local lap  = pkg'lap'
 
 local path = ds.path
 local concat, sfmt = table.concat, string.format
@@ -66,6 +68,7 @@ M.epoch = mt.doc[[Time according to realtime clock]](
   function() return ds.Epoch(lib.epoch())   end)
 M.mono  = mt.doc[[Duration according to monotomically incrementing clock.]](
   function() return ds.Duration(lib.mono()) end)
+M.monoSec = function() return M.mono():asSeconds() end
 
 -------------------------------------
 -- Core Filesystem
@@ -74,24 +77,24 @@ local function qp(p)
   return mt.assertf(M.quote(p), 'path cannot contain "\'": %s', p)
 end
 
-local C = lib.consts
+
+M.fileno = function(f)
+  local fno = f.fileno
+  if fno then return (type(fno) == 'number') and fno or fno(f) end
+  return lib.fileno(f)
+end
+
 M.MODE_STR = {
   [C.S_IFSOCK] = 'sock', [C.S_IFLNK] = 'link', [C.S_IFREG] = 'file',
   [C.S_IFBLK]  = 'blk',  [C.S_IFDIR] = 'dir',  [C.S_IFCHR] = 'chr',
   [C.S_IFIFO]  = 'fifo',
 }
-local function _ftype(f)
-  return M.MODE_STR[C.S_IFMT & lib.filenostat(f:fileno())]
-end
-local I = lib.indexes
-I.Fd.ftype   = _ftype;
-I.FdTh.ftype = _ftype;
-I.Fd.read = function(fd, num)
-  lib.fdread(fd, ds.min(lib.IO_SIZE, num))
+M.ftype = function(f)
+  return M.MODE_STR[C.S_IFMT & lib.fstmode(M.fileno(f))]
 end
 
 M.pathtype = function(path)
-  return M.MODE_STR[C.S_IFMT & lib.pathstat(path)]
+  return M.MODE_STR[C.S_IFMT & lib.stmode(path)]
 end
 
 local function _walkcall(ftypeFns, path, ftype)
@@ -197,161 +200,7 @@ a/a3/a4.txt # content: stuff in a3.txt
   end
 end)
 
--------------------------------------
--- PollList
-
-M.PollList = mt.record'PollList'
-  :field'map':fdoc'map of fileno -> pl[index]'
-  :field'avail':fdoc'list of available indexes'
-  :field('size', 'number')
-  :field'_pl'
-:new(function(ty_, size)
-  mt.pnt('!! PollList', ty_, size)
-  local pl = mt.new(ty_, {
-    map={}, avail={}, size=0, _pl=lib.polllist(),
-  })
-  if size then pl:resize(size) end
-  return pl
-end)
-
-M.PollList.__len = function(pl) return pl.size - #pl.avail end
-
-M.PollList.resize = function(pl, newSize)
-  local size = pl.size; assert(newSize >= size, 'attempted shrink')
-  pl._pl:resize(newSize); pl.size = newSize
-  for i=size,newSize-1 do push(pl.avail, i) end
-end
-
-M.PollList.insert = function(pl, fileno, events)
-  local i = pl.map[fileno] or pop(pl.avail)
-  if not i then
-    pl:resize((pl.size == 0) and 8 or pl.size * 2)
-    i = assert(pop(pl.avail))
-  end
-  pl._pl:set(i, fileno, events)
-  pl.map[fileno] = i
-end
-
-M.PollList.remove = function(pl, fileno)
-  local i = assert(pl.map[fileno], 'fileno not tracked')
-  pl._pl:set(i, -1, 0)
-  pl.map[fileno] = nil; push(pl.avail, i)
-end
-
-M.PollList.ready = function(pl) return pl._pl:ready() end
-
--------------------------------------
--- File
-
-local function readAll(f, mode)
-  local data = {}
-  while true do
-    local o, err = f:_read(); if err then error(err) end
-    if o then
-      push(data, o)
-      if #o == 0 then break end
-    else yield('poll', f:fileno(), C.POLLIN) end
-  end
-  data = table.concat(data)
-  return #data > 0 and data or nil
-end
-
-local function readAmount(f, amt)
-  local data = {}
-  while amt > 0 do
-    local o, err = f:_read(math.min(amt, C.IO_SIZE))
-    if err then error(err) end
-    if o then
-      push(data, o); amt = amt - #o
-      if #o == 0 then break end
-    else yield('poll', f:fileno(), C.POLLIN) end
-  end
-  data = table.concat(data)
-  return #data > 0 and data or nil
-end
-
-local linesError = function()
-  error'options l/L not supported. Use file:lines()'
-end
-local READ_MODE = {
-  a=readAll, ['a*']=readAll, l=linesError, L=linesError,
-}
-
-M.read = function(f, mode)
-  if type(mode) == 'number' then return readAmount(f, mode) end
-  local fn = mt.assertf(READ_MODE[mode],
-    'unrecognized mode: %s', mode)
-  return fn(f, mode)
-end
-
-M.write = function(f, s)
-  local i = 1; while i <= #s do
-    local pos, err = f:_write(s, i); if err then error(err) end
-    if pos then
-      if pos <= i then break end
-      i = pos
-    else yield('poll', f:fileno(), C.POLLOUT) end
-  end
-end
-
--- (buf) -> (indexInclude, indexRemain)
-local LINES_END = {l=-1, L=0}
-M.lines = mt.doc[[
-lines(file, mode='l') -> modeIter
-Identical to io.lines but buffers in Lua (meaning the seek position
-will probably be incorrect).
-
-Supported Modes:
- * 'l' -> iterator of lines with the newline characters omitted
- * 'L' -> iterator of lines including newline characters
-
-Note: other modes (like 'a' or integers) are not supported.
-]](function(f, mode)
-  mode = assert(LINES_END[mode or 'l'], 'unrecognized mode')
-  local buf, lines = {}, {}
-  return function()
-    if not lines then return end
-    while #lines == 0 do ::loop::
-      local s = f:read(C.IO_SIZE)
-      if not s then -- EOF
-        push(buf, s); s = table.concat(buf)
-        buf, lines = nil, nil
-        return (#s > 0) and s or nil
-      end
-      local nl = s:find'\n'; if not nl then goto loop end
-      push(buf, s:sub(1, nl + mode))
-      push(lines, table.concat(buf)); buf = {}
-      local st = nl + 1
-      while st < #s do
-        nl = s:find('\n', st); if nl then
-          push(lines, s:sub(st, nl + mode))
-          st = nl + 1
-        else break end
-      end
-      push(buf, pop(lines)) -- last item in "lines" had no newline
-      ds.reverse(lines); assert(#lines > 0)
-    end
-    return pop(lines)
-  end
-end)
-
-I.Fd.read   = M.read
-I.Fd.write  = M.read
-I.Fd.lines  = M.lines
-
--------------------------------------
--- Async functions
-
-M.async = {}
-M.async.open = function(path, mode)
-
-end
-
-M.block = {
-  open = io.open,
-}
-
-M.block.sh = mt.doc[[
+M.sh = mt.doc[[
 sh(cmd, inp, env) -> rc, out, log
 Execute the command in another process via execvp (basically the system shell).
 
@@ -367,39 +216,22 @@ sh('cat', 'sent to stdin')         -- echo "sent to stdin" | cat
 ]](function(cmd, inp, env)
   if type(cmd) == 'string' then cmd = shim.parseStr(cmd) end
   cmd = shim.expand(cmd)
-  local sh, r, w, lr = lib.sh(cmd[1], cmd, env)
-  if inp then w:_write(inp) end; w:close()
-	local out, log = r:_read(), lr:_read()
-  r:close(); lr:close()
+  local nfd = fd.sys.newFD
+  local r, w, lr = nfd(), nfd(), nfd()
+  local sh, _r, _w, _lr = lib.sh(cmd[1], cmd, env)
+  r:_setfileno(_r); w:_setfileno(_w); lr:_setfileno(_lr)
+
+  local out, log
+  if inp then w:write(inp) end; w:close()
+  out = r:read();  r:close()
+  log = ''; lr:close() -- log = lr:read(); lr:close()
+  -- for _, f in ipairs{r, w, lr} do r:toNonblock() end
+  -- M.Lap():run{
+  --   function() if inp then w:write(inp) end; w:close() end,
+  --   function() out = r:read();  print('!! sh out', out); r:close()              end,
+  --   function() log = lr:read(); print('!! sh log', log); r:close()              end,
+  -- }
 	sh:wait(); return sh:rc(), out, log
 end)
-
--- TODO: this doesn't actually work yet, but
--- is a sketch of how I WANT the API to work.
-local function howIWantSh(cmd, inp, env)
-  if type(cmd) == 'string' then cmd = shim.parseStr(cmd) end
-  cmd = shim.expand(cmd)
-  local sh, r, w, lr = lib.sh(cmd[1], cmd, env)
-  alwaysNonBlocking(r, w, lr)
-  local out, log = {}, {}
-
-  -- blocking implementation
-  local threads = {
-    [r:fileno()] = function() push(out, r:read'a') end,
-    [w:fileno()] = function() w:write(inp)         end,
-    [l:fileno()] = function() push(log, lr:read'a') end,
-  }
-  local pl = M.PollList(3)
-  pl:insert(r:fileno(),  C.POLLIN); pl:insert(rl:fileno(), C.POLLIN);
-  pl:insert(w:fileno(),  C.POLLOUT);
-  while #pl > 0 do
-    for fno in ipairs(pl:ready(-1)) do
-      threads[fno]()
-    end
-  end
-  return table.concat(out), table.concat(log)
-end
-
-M.sh = M.block.sh
 
 return M
