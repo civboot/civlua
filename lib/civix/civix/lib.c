@@ -19,6 +19,7 @@
 #include <signal.h>
 #include <pthread.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 
 #if __APPLE__
 #include <crt_externs.h>

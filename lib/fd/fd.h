@@ -9,18 +9,18 @@
 typedef dispatch_semaphore_t fdsem_t;
 #else
 #include <semaphore.h>
-typedef sem_t fdsem_t;
+typedef sem_t                fdsem_t;
 #endif
 
 #define LUA_FD    "FD"
 #define LUA_FDT   "FDT"
 
 typedef struct _FD {
-  int code; // 0==ready/done/ok, negative=started, positive=error
-  int ctrl; // control input (function specific)
-  int fileno; off_t pos;
-  size_t size, si, ei; // buffer: size, start index, end index
-  char* buf;
+  volatile int code; // 0==ready/done/ok, negative=started, positive=error
+  volatile int ctrl; // control input (function specific)
+  volatile int fileno; volatile off_t pos;
+  volatile size_t size, si, ei; // buffer: size, start index, end index
+  volatile char* buf;
 } FD;
 
 typedef struct _FDT {

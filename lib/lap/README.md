@@ -11,19 +11,19 @@ The LAP protocol has two components:
 * yielding protocol: An ultra simple yet optionally-performant to communicate
   with the executor loop (example: see `lap.Lap`)
 * two global tables which libraries can use to schedule coroutines (`LAP_READY`)
-  and register their asynchronous API (`LAP_ASYNC` and `LAP_SYNC`)
+  and register their asynchronous API (`LAP_FNS_ASYNC` and `LAP_FNS_SYNC`)
 
 Library authord **do not** need to depend on this library to work with the
 LAP protocol. Library authors can fully support the protocol by following the
 Yielding Protocol below and copy/pasting the following:
 
 ```lua
-LAP_SYNC  = LAP_SYNC  or {}
-LAP_ASYNC = LAP_ASYNC or {}
+LAP_FNS_SYNC  = LAP_FNS_SYNC  or {}
+LAP_FNS_ASYNC = LAP_FNS_ASYNC or {}
 
 // register functions to switch modes, see end of lap.lua for example
-table.insert(LAP_SYNC,  function() ... end)
-table.insert(LAP_ASYNC, function() ... end)
+table.insert(LAP_FNS_SYNC,  function() ... end)
+table.insert(LAP_FNS_ASYNC, function() ... end)
 
 // implement your asynchronous functions by following the protocol.
 ```
@@ -66,14 +66,20 @@ must run the coroutine on the next loop).
   If the executor doesn't recognize a value it can either throw an error or
   treat it as `true` (aka "ready"), depending on the application requirements.
 
-## `LAP_ASYNC` and `LAP_SYNC` global table
-The `LAP_ASYNC` table should be a list of functions that switch their respective
-library to async mode.  An application can then switch modes by simply executing
-all the functions contained, as well as calling functions like `fd.ioAsync()` to
-override blocking functions in Lua's std library.
+## Global Variables
 
-This allows a user to write code in a blocking style yet it can be run
-asynchronously, such as the following:
+There are four global variables:
+
+* `LAP_READY`: contains the currently ready coroutines for the executor loop to
+  resume.
+* `LAP_FNS_SYNC` / `LAP_FNS_ASYNC`: contains functions to switch lua to synchronous /
+  asynchronous modes, respectively.
+* `LAP_ASYNC`: is set to true when in async mode to determine behavior at
+  runtime.
+
+The sync/async tables allows a user to write code in a blocking style yet it can
+be run asynchronously, such as the following. You can even switch back and forth
+so that tests can be run in both modes.
 
 ```
 function getLines(path, fn)
@@ -85,8 +91,7 @@ function getLines(path, fn)
 end
 ```
 
-Conversly, `LAP_SYNC` should switch to synchronous mode. This enables tests to
-be performed in both sync and async modes.
+> Recomendation: use `lap.async()` and `lap.sync()` to switch modes.
 
 ## `lap` Library (see [lap.lua](./lap.lua))
 The (pure lua) `lap` library implements:
@@ -99,4 +104,4 @@ The (pure lua) `lap` library implements:
   values between coroutines.
 
 * `lap.async()` / `lap.sync()`: switches all registered libraries to
-  async/sync mode (simply calls every function in `LAP_ASYNC` / `LAP_SYNC`)
+  async/sync mode (just calls every function in `LAP_FNS_(SYNC/ASYNC)`)

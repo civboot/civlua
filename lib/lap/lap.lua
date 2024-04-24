@@ -1,8 +1,8 @@
 
 -- lap protocol globals
 LAP_READY = LAP_READY or {}
-LAP_SYNC  = LAP_SYNC  or {}
-LAP_ASYNC = LAP_ASYNC or {}
+LAP_FNS_SYNC  = LAP_FNS_SYNC  or {}
+LAP_FNS_ASYNC = LAP_FNS_ASYNC or {}
 
 local pkg = require'pkg'
 local mt = pkg'metaty'
@@ -15,9 +15,16 @@ local yield = coroutine.yield
 local M = {_async = {}, _sync = {}}
 
 M.sync  = mt.doc'Switch lua to synchronous mode'
-  (function() for _, fn in ipairs(LAP_SYNC)  do fn() end end)
+(function()
+  for _, fn in ipairs(LAP_FNS_SYNC)  do fn() end
+  LAP_ASYNC = false
+end)
+
 M.async = mt.doc'Switch lua to asynchronous (yielding) mode'
-  (function() for _, fn in ipairs(LAP_ASYNC) do fn() end end)
+(function()
+  for _, fn in ipairs(LAP_FNS_ASYNC) do fn() end
+  LAP_ASYNC = true
+end)
 
 local SCH_DOC = 'schedule(fn) -> cor: schedule the fn on LAP_READY as coroutine'
 M._async.schedule = mt.doc(SCH_DOC)(function(fn, id)
@@ -275,11 +282,16 @@ M.Lap.__call = function(lap)
   return errors
 end
 
--- register mode switch
-push(LAP_ASYNC, function() for k, v in pairs(M._async) do M[k] = v end end)
-push(LAP_SYNC,  function() for k, v in pairs(M._sync)  do M[k] = v end end)
+local function toAsync()
+  for k, v in pairs(M._async) do M[k] = v end
+  LAP_ASYNC = true
+end; push(LAP_FNS_ASYNC, toAsync)
 
--- sync is the default mode
-M.schedule = M._sync.schedule
-M.all      = M._sync.all
+local function toSync()
+  for k, v in pairs(M._sync)  do M[k] = v end
+  LAP_ASYNC = false
+end; push(LAP_FNS_SYNC,  toSync)
+
+if LAP_ASYNC then toAsync() else toSync() end
+
 return M

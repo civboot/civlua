@@ -77,7 +77,7 @@ end
 local C = lib.consts
 M.MODE_STR = {
   [C.S_IFSOCK] = 'sock', [C.S_IFLNK] = 'link', [C.S_IFREG] = 'file',
-  [C.S_IFBLK]  = 'blk',  [C.S_IFDIR] = 'dir',  [C.S_IFCHR] = 'chr', 
+  [C.S_IFBLK]  = 'blk',  [C.S_IFDIR] = 'dir',  [C.S_IFCHR] = 'chr',
   [C.S_IFIFO]  = 'fifo',
 }
 local function _ftype(f)

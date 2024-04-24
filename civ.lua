@@ -1,6 +1,7 @@
 #!/usr/bin/lua
 METATY_CHECK, METATY_DOC       = true,  true
-LAP_READY, LAP_SYNC, LAP_ASYNC = false, false, false
+LAP_READY,    LAP_ASYNC        = false, false
+LAP_FNS_SYNC, LAP_FNS_ASYNC    = false, false
 
 local DOC = [[civ: bundled Civboot applications]]
 local M = {}

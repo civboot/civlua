@@ -72,6 +72,24 @@ M.test = function(name, fn)
   M.assertGlobals(ge)
 end
 
+-- Runs until yields non-truthy. See lib/lap/README.md
+M.lapTest = function(name, fn)
+  local ge = ds.copy(_G)
+  print('# Test', name, "(lap)")
+  local cor = coroutine.create(fn)
+  while true do
+    local ok, res = coroutine.resume(cor)
+    if not ok then
+      error(table.concat{
+        'Coroutine error: ', debug.traceback(cor, res), '\n',
+        'Error in lapTest',
+      })
+    end
+    if not res then break end
+  end
+  M.assertGlobals(ge)
+end
+
 -- Globally require a module. ONLY FOR TESTS.
 M.grequire = function(mod)
   if type(mod) == 'string' then mod = require(mod) end
