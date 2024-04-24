@@ -6,6 +6,7 @@ version  = '0.1-0'
 url      = 'git+http://github.com/civboot/civlua'
 srcs = {
   'fd.lua',
+  ['fd.sys'] = 'fd.c',
 }
 libs = {
   ['fd.sys'] = 'fd.so',

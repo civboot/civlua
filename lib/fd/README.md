@@ -1,8 +1,5 @@
-# fd: lua module for interacting directly with file descriptors
+# fd: synchronous and asynchronous file descriptors
 
-Exported "types":
-
-* `fd`: mixed C+lua file descriptor with buffer
-* `fdth`: mixed C+lua file descriptor backed by thread with buffer
-
+fd implements an API identical to lua's `file` object but with support for async
+operations following the [LAP](../lap/README.md) protocol.
 

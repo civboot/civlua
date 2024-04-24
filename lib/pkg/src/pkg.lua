@@ -200,7 +200,7 @@ M.maybe = function(name, fallback)
   local pc, hasBacktrack = M.path.concat, M.path.hasBacktrack
   for mname, mpath in M.isrcs(pkg.srcs) do
     if hasBacktrack(mpath) then error('detected ../backtrack: '..dir) end
-    if mname == name then
+    if mname == name and mpath:match'%.lua$' then
       M.PKG, M.PATH = pkg, pc{pkgdir, mpath}
       package.loaded[mname] = dofile(M.PATH)
       return package.loaded[mname]

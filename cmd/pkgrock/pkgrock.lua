@@ -45,6 +45,7 @@ M.makerock = function(dir)
   d.homepage = d.homepage or p.homepage
   d.license  = d.license  or p.license
   rock.dependencies = rock.dependencies or p.deps
+  mty.pnt('!! rock.build', rock.build)
   rock.build = rock.build or {
     type = 'builtin',
     modules = ds.kvtable{pkg.isrcs(p.srcs)},
@@ -79,14 +80,15 @@ M.exe = function(t)
   end end
   mty.pnt('?? tags:', tags)
   if gitops.tag then
-    local exist = ds.Set(ds.lines(civix.sh'git tag'.out))
+    local rc, out, log = civix.sh'git tag'
+    local exist = ds.Set(ds.lines(out))
       :union(ds.Set(tags))
     if not ds.isEmpty(exist) then error(
       'tags already exist: '..table.concat(ds.orderedKeys(exist), ' ')
     )end
   end
   if gitops.add then for _, rp in ipairs(rpaths) do
-    execute([[git add %s]], rp)
+    execute([[git add -f %s]], rp)
   end end
   if gitops.commit then
     execute([[git commit -am 'pkgrock: %s']], table.concat(tags, ' '))

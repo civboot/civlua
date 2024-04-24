@@ -8,6 +8,8 @@ like `file:read` with ones that are non-blocking and yielding (i.e. by running
 IO in a separate thread or using unix's `aio` interface) we use most libraries
 asynchronously without changing a single line of code.
 
+For an example of implementing the LAP protocol see [fd](../fd/README.md)
+
 LAP is a lightweight zero-dependency asynchronous protocol which aims to take
 advantage of this. It is architected to allow libraries to provide a lightweight
 "asynchronous mode" so that they can be used asynchronously by a coroutine

@@ -1,4 +1,6 @@
 .out/
 bin/
 **/*src.rock
-**/*src.rockspec
+**/*.rockspec
+**/*.o
+**/*.so
