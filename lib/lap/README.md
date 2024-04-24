@@ -1,10 +1,23 @@
 # LAP: Lua Asynchronous Protocol
 
-LAP is a lightweight zero-dependency asynchronous protocol. It is architected to
-allow libraries to provide a lightweight "asynchronous mode" so that they can be
-used asynchronously by a coroutine executor. This allows users and library
-authors to write code that looks synchronous but which can be executed
-asynchronously at the application author's discression.
+Lua has one of the coolest yet most underutilized asynchronous programming
+tools: the `coroutine` module, specifically `coroutine.yield`. Lua's `yield` can
+be called from any depth, resuming execution at the callsite upon
+`coroutine.resume`. This means that if we swap out traditionally blocking APIs
+like `file:read` with ones that are non-blocking and yielding (i.e. by running
+IO in a separate thread or using unix's `aio` interface) we use most libraries
+asynchronously without changing a single line of code.
+
+LAP is a lightweight zero-dependency asynchronous protocol which aims to take
+advantage of this. It is architected to allow libraries to provide a lightweight
+"asynchronous mode" so that they can be used asynchronously by a coroutine
+executor. This allows users and library authors to write code that looks
+synchronous but which can be executed asynchronously at the application author's
+discression.
+
+This folder also contains the `lap.lua` library, see the Library section.
+Library authord **do not** need to depend on this library to work with the LAP
+protocol.
 
 The LAP protocol has two components:
 
@@ -13,8 +26,7 @@ The LAP protocol has two components:
 * two global tables which libraries can use to schedule coroutines (`LAP_READY`)
   and register their asynchronous API (`LAP_FNS_ASYNC` and `LAP_FNS_SYNC`)
 
-Library authord **do not** need to depend on this library to work with the
-LAP protocol. Library authors can fully support the protocol by following the
+Library authors can fully support the protocol by following the
 Yielding Protocol below and copy/pasting the following:
 
 ```lua
@@ -28,31 +40,29 @@ table.insert(LAP_FNS_ASYNC, function() ... end)
 // implement your asynchronous functions by following the protocol.
 ```
 
-This folder also contains the `lap.lua` library, see the Library section.
-
-Library authors should make their default API **synchronous** by default,
-except for items that don't make sense (example: see Send/Recv which will fail
-if yield is attempted).
+Library authors should make their default API **synchronous** (blocking) by
+default, except for items that cannot be used synchronously.
 
 ## `LAP_READY` Global Table
-The `LAP_READY` table keys are the coroutines which should be run. The values
-are not used by the executor and are typically either `true` or a debug
-identifier of some kind.
+`LAP_READY` is a global key/value table where the keys are the coroutines which
+should be run at some later time (by the executor). The values are arbitrary
+(typically a string identifier for debugging).
 
 This means that a coroutine can schedule another coroutine `cor` by simply doing
-`LAP_READY[cor] = true`. This simple feature can be used for many purposes such
-as creating Channel datastructures as well as handling any/all behavior. See
-the Library section for details.
+`LAP_READY[cor] = "my_identifier"`. This simple feature can be used for many
+purposes such as creating Channel datastructures as well as handling any/all
+behavior. See the Library section for details.
 
 ## Yielding Protocol
 LAP's yielding protocol makes it trivial for Lua libraries to interface with
 executors. Libraries can simply call `coroutine.yield` with one of the following
-and the executor will perform the behavior specified if it is supported (else it
-must run the coroutine on the next loop).
+and a compliant executor will perform the behavior specified if it is supported
+(else it will run the coroutine on the next loop).
 
-* `yield(nil)` or `yield(false)`: forget the coroutine
+* `yield(nil)` or `yield(false)`: forget the coroutine, the executor will not
+  run it.
 
-* `yield(true)` or `yield"ready"`: run the corroutine again as soon as possible.
+* `yield(true)`: run the corroutine again as soon as possible.
   * Should prevent the executor loop from sleeping.
   * Equivalent to: `LAP_READY[coroutine.running()] = true; coroutine.yield()`
 
@@ -93,10 +103,11 @@ end
 
 > Recomendation: use `lap.async()` and `lap.sync()` to switch modes.
 
-## `lap` Library (see [lap.lua](./lap.lua))
-The (pure lua) `lap` library implements:
+## `lap` Library
+The (pure lua) `[lap.lua](./lap.lua) lap` library implements:
 
-* `lap.Lap(...)` default implementation of a single loop in an executor.
+* `lap.Lap(...)` default implementation of a single loop (aka "lap") in an
+  executor.
 
 * `lap.Any` and `lap.all` for interacting with lists of coroutines.
 
@@ -105,3 +116,4 @@ The (pure lua) `lap` library implements:
 
 * `lap.async()` / `lap.sync()`: switches all registered libraries to
   async/sync mode (just calls every function in `LAP_FNS_(SYNC/ASYNC)`)
+
