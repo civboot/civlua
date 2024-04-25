@@ -98,7 +98,7 @@ Model.getBinding=function(self, key)
   if 'string' == type(key) then
     return b[key]
   end
-  return ds.getPath(b, key)
+  return ds.keyPath(b, table.unpack(key))
 end
 
 -- #####################

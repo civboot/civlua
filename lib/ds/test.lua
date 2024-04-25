@@ -9,7 +9,8 @@ local test, assertEq, assertErrorPat; pkg.auto'civtest'
 local min, max, bound, isWithin, sort2, decAbs
 local indexOf, copy, deepcopy
 local strInsert, strDivide, trim
-local steal, getOrSet, getPath, setPath, drain, reverse
+local steal, getOrSet, setPath, drain, reverse
+local keyPath, tryPath
 local eval
 local Set, LL, Duration, Epoch
 local lines
@@ -107,9 +108,12 @@ test("table", function()
 
   assertEq(5,   getOrSet({a=5}, 'a', function() return 7 end))
   assertEq(7,   getOrSet({b=5}, 'a', function() return 7 end))
-  assertEq(7,   getPath({a={b=7}}, {'a', 'b'}))
-  assertEq(nil, getPath({}, {'a', 'b'}))
-  assertEq(nil, getPath({}, {'a', 'b'}))
+  assertEq(7,   keyPath({a={b=7}}, 'a', 'b'))
+  assertEq(7,   tryPath({a={b=7}}, 'a', 'b'))
+  assertErrorPat('index a nil', function()
+    keyPath({}, 'a', 'b')
+  end)
+  assertEq(nil, tryPath({}, 'a', 'b'))
 
   local t = {}
   setPath(t, {'a', 'b'}, 4); assertEq(4, t.a.b)

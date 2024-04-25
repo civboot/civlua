@@ -17,7 +17,7 @@ It contains the following functions and types. All types use
   l2, c2)`, `diff` (first line:col)
 - table (general): shallow `copy(t, update)`, `deepcopy(t)`, `emptyTable`
 - table (list-like): `extend`, `reverse`, `indexOf`, `drain`
-- table (map-like): `update`, `getPath`, `setPath`, `getOrSet`
+- table (map-like): `update`, `tryPath`, `keyPath`, `setPath`, `getOrSet`
 - Immutable types: `Imm{k=42}`, `imm(record'MyTy')`, `newSentinel`
 - API: `none` `bool()` (see "none" section)
 - source and debug: `callerSource`, `eval`

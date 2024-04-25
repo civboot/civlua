@@ -308,15 +308,23 @@ M.getOrSet = function(t, k, newFn)
   return v
 end
 
--- assertEq(7, getPath({a={b=7}}, {'a', 'b'}))
-M.getPath = function(d, path)
-  for i, k in ipairs(path) do
-    local nxt = d[k]
-    if not nxt then return nil end
-    d = nxt
-  end
-  return d
-end
+local keyPath
+keyPath = mty.doc[[keyPath(t, 'a', 2, 'c') -> t.a[2].c]]
+(function(t, ...)
+  if(nil == ...) then return t end
+  return keyPath(t[...], select(2, ...))
+end)
+M.keyPath = keyPath
+
+local tryPath; tryPath = mty.doc[[
+tryPath(t, 'a', 2, 'c') -> t.a?[2]?.c
+Looks up the values at the path, returning nil if any are nil.
+]](function(t, ...)
+  if(nil == (...)) then return t end
+  local v = t[...]; if v == nil then return end
+  return tryPath(v, select(2, ...))
+end)
+M.tryPath = tryPath
 
 M.emptyTable = function() return {} end
 M.setPath = function(d, path, value, newFn)

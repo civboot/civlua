@@ -26,7 +26,11 @@ M.async = mt.doc'Switch lua to asynchronous (yielding) mode'
   LAP_ASYNC = true
 end)
 
-local SCH_DOC = 'schedule(fn) -> cor: schedule the fn on LAP_READY as coroutine'
+local SCH_DOC = [[
+schedule(fn) -> cor?
+  sync:  run the fn immediately and return nil
+  async: schedule the fn and return it's coroutine
+]]
 M._async.schedule = mt.doc(SCH_DOC)(function(fn, id)
   local cor = coroutine.create(fn)
   LAP_READY[cor] = id or true

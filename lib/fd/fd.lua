@@ -142,6 +142,18 @@ S.FD.__index.lines = function(fd, mode)
   return function() return fn(fd, mode) end
 end
 
+S.FD.__bor = function(fd, w) -- fd | Sh'some command'
+  for l in fd:lines'L' do w:write(l) end
+  return w
+end
+
+S.FD.__shr = function(fd, path) -- fd >> '/tmp/example.txt'
+  local w = S.open(path, 'w')
+  for bl in fd:lines(S.IO_SIZE) do w:write(bl) end
+  w:close()
+  return fd
+end
+
 ----------------------------
 -- FDT
 -- Note that FDT is IDENTICAL to FD except it's possible
@@ -156,6 +168,8 @@ S.FDT.__index.flags      = S.FD.__index.flags
 S.FDT.__index.toNonblock = S.FD.__index.toNonblock
 S.FDT.__index.toBlock    = S.FD.__index.toBlock
 S.FDT.__index.isAsync    = function() return true end
+
+S.FDT.__bor = S.FD.__bor; S.FDT.__shr = S.FD.__shr
 
 S.FDT.__index.close = function(fd)
   fd:_close(); M.finishRunning(fd, 'sleep', 0.001)
