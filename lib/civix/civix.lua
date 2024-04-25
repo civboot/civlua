@@ -200,6 +200,10 @@ a/a3/a4.txt # content: stuff in a3.txt
   end
 end)
 
+M.Lap = function() return lap.Lap {
+  sleepFn=M.sleep, monoFn=M.monoSec, pollList=fd.PollList(),
+}end
+
 M.sh = mt.doc[[
 sh(cmd, inp, env) -> rc, out, log
 Execute the command in another process via execvp (basically the system shell).
@@ -219,19 +223,23 @@ sh('cat', 'sent to stdin')         -- echo "sent to stdin" | cat
   local nfd = fd.sys.newFD
   local r, w, lr = nfd(), nfd(), nfd()
   local sh, _r, _w, _lr = lib.sh(cmd[1], cmd, env)
+  assert(_r > 0); assert(_w > 0); assert(_lr > 0)
   r:_setfileno(_r); w:_setfileno(_w); lr:_setfileno(_lr)
 
   local out, log
-  if inp then w:write(inp) end; w:close()
-  out = r:read();  r:close()
-  log = ''; lr:close() -- log = lr:read(); lr:close()
-  -- for _, f in ipairs{r, w, lr} do r:toNonblock() end
-  -- M.Lap():run{
-  --   function() if inp then w:write(inp) end; w:close() end,
-  --   function() out = r:read();  print('!! sh out', out); r:close()              end,
-  --   function() log = lr:read(); print('!! sh log', log); r:close()              end,
-  -- }
-	sh:wait(); return sh:rc(), out, log
+  for _, f in ipairs{r, w, lr} do f:toNonblock() end
+  local fns = {
+    function() if inp then w:write(inp) end; w:close() end,
+    function() out =       r:read();         r:close() end,
+    function() log =      lr:read();        lr:close() end,
+  }
+  if LAP_ASYNC then
+    lap.all(fns)
+    while not sh:isDone() do yield('sleep', 0.005) end
+  else
+    M.Lap():run(fns)
+    sh:wait() end
+  return sh:rc(), out, log
 end)
 
 return M

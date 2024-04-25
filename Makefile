@@ -8,7 +8,7 @@ all: test
 
 test: build
 	mkdir -p ./.out/
-	lua test.lua
+	$(PRETEST) lua test.lua
 	# LUA_PATH=${LP} lua civix/runterm.lua view 0.05
 	# Tests complete
 

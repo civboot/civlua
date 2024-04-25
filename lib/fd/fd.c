@@ -181,10 +181,10 @@ static void FD_read(FD* fd) {
   if(!fd->buf) { fd->code = errno; return; }
   int ctrl = fd->ctrl, code = 0;
   while(true) {
-    if((ctrl > 0) && ((fd->ei - fd->si) > ctrl)) break;
+    if((ctrl > 0) && ((fd->ei - fd->si) > ctrl)) { code = 0; break; }
     if(fd->size - fd->ei == 0) FD_realloc(fd, fd->size * 2);
     if(!fd->buf) { code = errno; break; }
-    printf("!! FD_read reading...\n");
+    printf("!! FD_read reading fileno=%i\n", fd->fileno);
     int rem = fd->size - fd->ei;
     int c = read(fd->fileno, (char*)fd->buf + fd->ei, rem);
     printf("!! FD_read loop code=%i c=%i ei=%i\n", fd->code, c, fd->ei);
@@ -192,7 +192,7 @@ static void FD_read(FD* fd) {
     fd->ei += c;
     if(ctrl < 0) {
       int i = FD_findc(fd, fd->ei - c, (char) -ctrl);
-      if(i < fd->ei) break;
+      if(i < fd->ei) { code = 0; break; }
     }
     if(c < rem) { code = FD_EOF; break; } // EOF: signal to findc callers
   }
@@ -349,6 +349,8 @@ static int l_FD_setfileno(LS* L) {
 // Returns the code for convinience.
 // Note: call l_FD_pop() for the read string.
 #define PRE_READ(fd) \
+  if((fd)->code <= FD_RUNNING) \
+  { lua_pushinteger(L, (fd)->code); return 1; } \
   assertReady(L, fd, "read");           \
   (fd)->ctrl = luaL_optnumber(L, 2, 0); \
   (fd)->code = FD_RUNNING;
@@ -487,7 +489,7 @@ typedef struct _PL {
 } PL;
 
 static void PL_realloc(LS* L, PL* pl, int size) {
-  struct pollfd* fds = realloc(pl->fds, size);
+  struct pollfd* fds = realloc(pl->fds, size * sizeof(struct pollfd));
   ASSERT(L, fds, "OOM: realloc pollfds size=%I", size);
   for(int i=pl->size; i < size; i++) {
     fds[i].fd = -1; fds[i].revents = 0;
@@ -638,6 +640,7 @@ int luaopen_fd_sys(LS *L) {
 
   // important errors
   setconstfield(L, EWOULDBLOCK); setconstfield(L, EAGAIN);
+  setconstfield(L, EBADF);
 
   // std descriptors
   setconstfield(L, STDIN_FILENO); setconstfield(L, STDOUT_FILENO);

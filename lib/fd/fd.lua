@@ -15,6 +15,9 @@ local MFLAGS = {
   ['w+'] = S.O_RDWR   | S.O_CREAT | S.O_TRUNC,
   ['a+'] = S.O_RDWR   | S.O_CREAT | S.O_APPEND,
 }
+local AGAIN_CODE = {
+  [S.EWOULDBLOCK] = true, [S.EAGAIN] = true,
+}
 local YIELD_CODE = {
   [S.EWOULDBLOCK] = true, [S.EAGAIN] = true,
   [S.FD_RUNNING] = true,
@@ -30,9 +33,6 @@ local M = {
 
 M.assertReady = function(fd, name)
   if fd:code() < S.FD_EOF then error(name..': fd not ready') end
-end
-M.finishYield = function(fd, kind, ...)
-  while YIELD_CODE[fd:code()] do yield(kind or true, ...) end
 end
 M.finishRunning = function(fd, kind, ...)
   while fd:code() == S.FD_RUNNING do yield(kind or true, ...) end
@@ -95,13 +95,12 @@ end
 -- perform a read, handling WOULDBLOCK.
 -- return true if should be called again.
 local function readYield(fd, till) --> done
-  fd:_read(till)
   while true do
-    local c = fd:code()
-    if c == 0        then c = fd:_read(till) end
-    if DONE_CODE[c]  then return end
-    if YIELD_CODE[c] then yield('poll', fd:fileno(), S.POLLIN)
-    else                  error(fd:codestr()) end
+    local c = fd:_read(till)
+    print('!! readYield code', c)
+    if DONE_CODE[c]    then return end
+    if YIELD_CODE[c]   then yield('poll', fd:fileno(), S.POLLIN)
+    else               error(sfmt('%s (%s)', fd:codestr(), c)) end
   end
 end
 
@@ -183,6 +182,11 @@ __index = {
   end,
   ready = function(pl, timeoutSec)
     return pl._pl:ready(math.floor(timeoutSec * 1000))
+  end,
+  remove = function(pl, fileno)
+    local i = assert(pl.map[fileno])
+    push(pl.avail, i); pl.map[fileno] = nil;
+    pl._pl:set(i, -1, 0)
   end,
 }}, {
   __call=function(ty_)

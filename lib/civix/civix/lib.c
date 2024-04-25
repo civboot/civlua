@@ -194,7 +194,9 @@ struct sh* sh_wait(struct sh* sh, int flags) {
       fprintf(stderr, "ERROR: waitid failed\n");
       return sh;
     }
-    if(infop.si_pid == sh->pid) { sh->pid = 0; sh->rc = infop.si_status; }
+    if(infop.si_pid == sh->pid) {
+      sh->pid = 0; sh->rc = infop.si_status;
+    }
   }
   printf("!!  sh end %i rc=%i\n", sh->pid, sh->rc);
   return sh;
@@ -235,15 +237,13 @@ static int l_sh(LS *L) {
   sh->pid = 0; sh->env = env;
   luaL_setmetatable(L, SH_META);
 
-  int fd = 0, ch_r = 0, ch_w = 0, ch_lw = 0;
-  int rw[2]; char* err = "pipes";
+  int ch_r = 0, ch_w = 0, ch_lw = 0;
   int pr_r = 0, pr_w = 0, pr_lr = 0;
+  int rw[2]; char* err = "pipes";
 
-  #define INIT_FD(NAME) NAME = fd; fd = 0;
-  if(pipe(rw)) goto error; fd   = rw[0]; ch_w  = rw[1]; INIT_FD(pr_r);
-  if(pipe(rw)) goto error; ch_r = rw[0]; fd    = rw[1]; INIT_FD(pr_w);
-  if(pipe(rw)) goto error; fd   = rw[0]; ch_lw = rw[1]; INIT_FD(pr_lr);
-  #undef INIT_FD
+  if(pipe(rw)) goto error; pr_r  = rw[0]; ch_w  = rw[1];
+  if(pipe(rw)) goto error; ch_r  = rw[0]; pr_w  = rw[1];
+  if(pipe(rw)) goto error; pr_lr = rw[0]; ch_lw = rw[1];
 
   int pid = fork(); if(pid == -1) goto error;
   else if(pid == 0) { // child
@@ -254,11 +254,12 @@ static int l_sh(LS *L) {
     exit(100 + execvp(command, argv)); // note: exit should be unreachable
   } // else parent
   close(ch_w); close(ch_r); close(ch_lw);
-  lua_pushinteger(L, pr_r); lua_pushinteger(L, pr_w); lua_pushinteger(L, pr_lr);
+  lua_pushinteger(L, pr_r); lua_pushinteger(L, pr_w);
+  lua_pushinteger(L, pr_lr);
   sh->pid = pid;
   return 4;
   error:
-    if (fd) close(fd);
+    if(ch_r) close(ch_r); if(ch_w) close(ch_w); if(ch_lw) close(ch_lw);
     if(pr_r) close(pr_r); if(pr_w) close(pr_w); if(pr_lr) close(pr_lr);
     luaL_error(L, "failed sh (%s): %s", err, SERR); return 0;
 }

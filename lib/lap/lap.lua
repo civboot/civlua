@@ -238,8 +238,8 @@ M.Lap.poll  = M.LAP_UPDATE.poll
 M.Lap.execute = function(lap, cor)
   if not cor then return end
   local ok, kind, a, b = coroutine.resume(cor)
-  if not ok   then return true, kind end -- error
-  if not kind then return true     end   -- forget
+  if not ok   then return kind end -- error
+  if not kind then return      end   -- forget
   local fn = M.LAP_UPDATE[kind]
   if not fn then error('unknown kind '..kind) end
   fn(lap, cor, a, b)
@@ -252,7 +252,10 @@ M.Lap.__call = function(lap)
     for cor in pairs(ready) do
       mt.pnt('!! Lap execute', cor)
       local err = lap:execute(cor)
-      if err then errors = errors or {}; push(errors, err) end
+      if err then
+        errors = errors or {};
+        push(errors, tostring(err))
+      end
     end
   end
 
@@ -280,7 +283,6 @@ M.Lap.__call = function(lap)
       pl:remove(fileno)
     end
   else lap.sleepFn(sleep) end
-
   return errors
 end
 M.Lap.isDone = function(lap)
@@ -297,7 +299,13 @@ M.Lap.run = function(lap, fns)
       LAP_READY[coroutine.create(fn)] = 'run'
     end
   end
-  while not lap:isDone() do lap() end
+  while not lap:isDone() do
+    local err = lap(); if err then 
+      push(err, ''); error(
+        'Coroutine error: \n'..table.concat(err, '\n')
+      )
+    end
+  end
 end
 
 local function toAsync()
