@@ -308,23 +308,24 @@ M.getOrSet = function(t, k, newFn)
   return v
 end
 
-local keyPath
-keyPath = mty.doc[[keyPath(t, 'a', 2, 'c') -> t.a[2].c]]
-(function(t, ...)
-  if(nil == ...) then return t end
-  return keyPath(t[...], select(2, ...))
-end)
-M.keyPath = keyPath
+M.getPath = function(d, path)
+  for i, k in ipairs(path) do
+    d = d[k]; if not d then return nil end
+  end
+  return d
+end
 
-local tryPath; tryPath = mty.doc[[
-tryPath(t, 'a', 2, 'c') -> t.a?[2]?.c
-Looks up the values at the path, returning nil if any are nil.
+M.get = mty.doc[[
+get(t, 'a', 2, 'c') -> t.a?[2]?.c?
+get the keys or nil if any are missing.
 ]](function(t, ...)
-  if(nil == (...)) then return t end
-  local v = t[...]; if v == nil then return end
-  return tryPath(v, select(2, ...))
+	local len = select('#', ...)
+  for i=1,len-1 do
+    t = t[select(i, ...)]
+    if t == nil then return end
+  end
+  return t[select(len, ...)]
 end)
-M.tryPath = tryPath
 
 M.emptyTable = function() return {} end
 M.setPath = function(d, path, value, newFn)
