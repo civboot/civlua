@@ -14,7 +14,7 @@
 #include <assert.h>
 #include <poll.h>
 #include <sys/stat.h>
-
+#include <sys/eventfd.h>
 
 #include "fd.h"
 
@@ -22,25 +22,15 @@
 #define FD_RUNNING (-2)
 #define LEN(FD)  ((FD)->ei - (FD)->si)
 
+static const uint64_t EFD_WRITE = 0xfffffffffffffffeL;
+static uint64_t EFD_READ = 0;
+#define EFD_OK 8
+#define ev_post(EV)  assert(write(EV, &EFD_WRITE, 8)      == EFD_OK)
+#define ev_wait(EV)  assert(read(fdt->evfd, &EFD_READ, 8) == EFD_OK)
+#define ev_destroy(EV) close(fdt->evfd)
+
 #if __APPLE__
-#include <crt_externs.h>
-#define environ (*_NSGetEnviron())
-#include <dispatch/dispatch.h>
-static int sem_init(sem_t* sem, int _unused, int count) {
-  *sem = dispatch_semaphore_create(count);
-  return (*sem == NULL) ? -1 : 0;
-}
-static int sem_wait(sem_t* sem) {
-  return dispatch_semaphore_wait(*sem, DISPATCH_TIME_FOREVER);
-}
-static int sem_post(sem_t* sem) {
-  dispatch_semaphore_signal(*sem); return 0;
-}
-static int sem_destroy(sem_t* sem) {
-  dispatch_release(*sem); return 0;
-}
-#else
-#include <semaphore.h>
+not yet supported (use socketpair)
 #endif
 
 typedef lua_State LS;
@@ -67,7 +57,6 @@ FD* FD_create(LS* L) {
 
 void FD_close(FD* fd) {
   if(fd->fileno >= 0) { 
-    printf("!! closing fd %i\n", fd->fileno);
     close(fd->fileno); fd->fileno = -1; }
   FD_freebuf(fd);
   fd->code = 0;
@@ -77,10 +66,10 @@ void FD_close(FD* fd) {
 // -- FDT CREATE / CLOSE
 static void* FDT_run(void* d) {
   FDT* fdt = (FDT*) d;
+  uint64_t unused;
   while(true) {
-    if(sem_wait(&fdt->sem)) break;
-    printf("!! FDT_run awoken code=%i\n", fdt->fd.code);
-    if(fdt->stopped)        break;
+    ev_wait(fdt->evfd);
+    if(fdt->stopped) break;
     fdt->meth(&fdt->fd);
   }
   fdt->stopped = 2;
@@ -90,14 +79,16 @@ static void* FDT_run(void* d) {
 FDT* FDT_create(LS* L) {
   FDT* fdt = (FDT*)lua_newuserdata(L, sizeof(FDT));
   FD_init(&fdt->fd); fdt->meth = NULL; fdt->stopped = false;
+  fdt->evfd = -1;
   luaL_setmetatable(L, LUA_FDT);
-  if(sem_init(&fdt->sem, 0, 0)) goto error;
+  if((fdt->evfd = eventfd(0, 0)) < 0) goto error;
   else if (pthread_create(&fdt->th, NULL, FDT_run, (void*)fdt)) {
-    sem_destroy(&fdt->sem);     goto error;
+    goto error;
   }
   return fdt;
 error:
   fdt->stopped = 3; fdt->fd.code = errno;
+  if(fdt->evfd >= 0) close(fdt->evfd);
   return fdt;
 }
 
@@ -118,11 +109,14 @@ static void FD_freebuf(FD* fd) {
 }
 
 static void FD_realloc(FD* fd, int size) {
-  if(size < IO_SIZE) size = IO_SIZE;
   if(fd->size == 0) fd->buf = NULL;
-  char* buf = realloc((void*)fd->buf, size);
+  if(size < IO_SIZE) size = IO_SIZE;
+  printf("!! FD_realloc buf=%p size=%i\n", fd->buf, size);
+  char* buf = realloc(fd->buf, size);
   if(!buf) return;
   fd->buf = buf; fd->size = size;
+  fd->si = 0; fd->ei = 0;
+  printf("!! FD_realloc after buf=%p size=%i\n", fd->buf, fd->size);
 }
 
 // ----------------------
@@ -157,9 +151,9 @@ error:
 // find character index. If index==ei then not found.
 static size_t FD_findc(FD* fd, size_t si, char c) {
   for(; si < fd->ei; si++) {
-    if(c == fd->buf[si]) break;
+    if(c == fd->buf[si]) return si;
   }
-  return si;
+  return fd->ei + 1;
 }
 
 // shift the buffer left, typically done before a
@@ -176,27 +170,30 @@ static void FD_shift(FD* fd) {
 // If ctrl < 0 then breaks at that negated character (i.e. '\n').
 // if ctrl > 0 then stops reading when that amount is read
 static void FD_read(FD* fd) {
+  printf("!! FD_read size=%i\n", fd->size);
   if(fd->size) FD_shift(fd);
   else         FD_realloc(fd, IO_SIZE);
+  printf("!! FD_read after alloc size=%i ei=%u\n", fd->size, fd->ei);
   if(!fd->buf) { fd->code = errno; return; }
   int ctrl = fd->ctrl, code = 0;
   while(true) {
-    if((ctrl > 0) && ((fd->ei - fd->si) > ctrl)) { code = 0; break; }
+    printf("!! FD_read loop len=%i code=%i\n", LEN(fd), code);
+    if((ctrl > 0) && (LEN(fd) > ctrl)) break;
     if(fd->size - fd->ei == 0) FD_realloc(fd, fd->size * 2);
     if(!fd->buf) { code = errno; break; }
-    printf("!! FD_read reading fileno=%i\n", fd->fileno);
     int rem = fd->size - fd->ei;
+    printf("!! FD_read reading... %u %u\n", fd->ei, fd->size);
     int c = read(fd->fileno, (char*)fd->buf + fd->ei, rem);
-    printf("!! FD_read loop code=%i c=%i ei=%i\n", fd->code, c, fd->ei);
-    if(c < 0) { code = errno;  break; }
+    printf("!! ... read done c=%i errno=%i\n", c, errno);
+    if(c < 0) { code = errno; break; }
+    printf("!! adding c=%u\n", c);
     fd->ei += c;
     if(ctrl < 0) {
       int i = FD_findc(fd, fd->ei - c, (char) -ctrl);
-      if(i < fd->ei) { code = 0; break; }
+      if(i <= fd->ei) break;
     }
     if(c < rem) { code = FD_EOF; break; } // EOF: signal to findc callers
   }
-  printf("!! FD_read done code=%i len=%i\n", code, LEN(fd));
   fd->code = code;
 }
 
@@ -213,11 +210,9 @@ static void FD_write(FD* fd) {
 // attempt to seek using only buffer, else update FD.
 // return true if complete (no syscall needed)
 static bool FD_seekpre(FD* fd, off_t offset, int whence) {
-  printf("!! SEEK=%u set=%u cur=%u end=%u\n", whence, SEEK_SET, SEEK_CUR, SEEK_END);
   off_t want = offset; switch(whence) {
     case SEEK_CUR: want += fd->pos; // make absolute
     case SEEK_SET:
-      printf("!! seekpre %u offset=%u want/pos=%u/%u\n", whence, offset, want, fd->pos);
       if((fd->pos <= want) && (want <= fd->pos + LEN(fd))) {
         fd->si += want - fd->pos; fd->pos = want;
         return true;
@@ -237,10 +232,30 @@ static void FD_seek(FD* fd) {
   fd->code = 0;
 }
 
+// From fflush(3):
+//   For input streams associated with seekable files discards any buffered data
+//   that has been fetched from the underlying file
+static void FD_flush(FD* fd) {
+  fsync(fd->fileno);
+  if(fd->size > 0) goto done;
+  struct stat sbuf = {0};
+  if(fstat(fd->fileno, &sbuf)) { fd->code = errno; return; }
+  if(sbuf.st_mode != S_IFREG) goto done;
+  fd->pos += fd->ei - fd->si; // unpopped file pos
+  fd->si = 0; fd->ei = 0;
+done:
+  fd->code = 0;
+  return;
+}
+
 // ----------------------
 // -- FD/T LUA METHODS
 // These are used by both FD and FDT
 
+#define toFD(L) ((FD*)luaL_checkudata(L, 1, LUA_FD))
+#define toFDT(L) ((FDT*)luaL_checkudata(L, 1, LUA_FDT))
+#define fdGetFD(V)  (V)
+#define fdGetFDT(V) (&(V)->fd)
 static FD* asfd(LS* L) {
   FD* fd = luaL_testudata(L, 1, LUA_FD);  if(fd) return fd;
       fd = luaL_testudata(L, 1, LUA_FDT); if(fd) return fd;
@@ -265,8 +280,6 @@ static int l_FD_pop(LS* L) {
   FD* fd = asfd(L); assertReady(L, fd, "pop");
   int till = luaL_optnumber(L, 2, 0);
   ASSERT(L, fd->buf, "no buffer");
-  printf("!! pop %i %i %i\n", fd->si, fd->ei, till);
-  printf("!! pop.buf='%.*s'\n", LEN(fd), (char*)fd->buf + fd->si);
   if(till == 0) till = fd->ei;
   else if(till < 0) {
     till = FD_findc(fd, fd->si, (char)(-till));
@@ -299,25 +312,15 @@ static int l_FD_writepre(LS* L) {
 }
 
 static int l_FD_codestr(LS* L) {
-  int code = asfd(L)->code; char* str = "fd ready";
-  if(code > 0)      str = strerror(code);
-  else if(code < 0) str = "fd running";
+  int code = lua_isnoneornil(L, 2)
+      ? asfd(L)->code : lua_tointeger(L, 2);
+  char* str; switch(code) {
+    case  0: str = "FD_READY";   break;
+    case -1: str = "FD_EOF";     break;
+    case -2: str = "FD_RUNNING"; break;
+    default: str = strerror(code);
+  }
   lua_pushstring(L, str); return 1;
-}
-
-// Note: written data is ALWAYS "flushed" if in the done state.
-// From fflush(3):
-//   For input streams associated with seekable files discards any buffered data
-//   that has been fetched from the underlying file
-static int l_FD_flush(LS* L) {
-  FD* fd = asfd(L);
-  if(fd->size> 0) return 0;
-  struct stat sbuf = {0};
-  if(fstat(fd->fileno, &sbuf)) { fd->code = errno; return 0; }
-  if(sbuf.st_mode != S_IFREG) return 0;
-  fd->pos += fd->ei - fd->si; // unpopped file pos
-  fd->si = 0; fd->ei = 0;
-  return 0;
 }
 
 #define FD_intfield(FIELD) \
@@ -328,6 +331,8 @@ FD_intfield(code);
 FD_intfield(fileno);
 FD_intfield(pos);
 FD_intfield(ctrl);
+static int l_FDT_evfileno(LS* L)
+{ lua_pushinteger(L, toFDT(L)->evfd); return 1; }
 
 static int l_FD_setfileno(LS* L) {
   asfd(L)->fileno = luaL_checkinteger(L, 2); return 0;
@@ -335,10 +340,12 @@ static int l_FD_setfileno(LS* L) {
 
 // ----------------------
 // -- FD LUA METHODS
-#define toFD(L) ((FD*)luaL_checkudata(L, 1, LUA_FD))
-#define toFDT(L) ((FDT*)luaL_checkudata(L, 1, LUA_FDT))
-#define fdGetFD(V)  (V)
-#define fdGetFDT(V) (&(V)->fd)
+#define FDT_READY(L, FDT) \
+  ASSERT(L, (FDT)->fd.code > FD_RUNNING, "already running");
+#define FDT_START(L, FDT) \
+  FDT_READY(L, FDT); (FDT)->fd.code = FD_RUNNING;
+
+
 
 // (fd, till=0) -> (code)
 // read from file into buf. The amount depends on `till`
@@ -348,21 +355,18 @@ static int l_FD_setfileno(LS* L) {
 //
 // Returns the code for convinience.
 // Note: call l_FD_pop() for the read string.
-#define PRE_READ(fd) \
-  if((fd)->code <= FD_RUNNING) \
-  { lua_pushinteger(L, (fd)->code); return 1; } \
-  assertReady(L, fd, "read");           \
-  (fd)->ctrl = luaL_optnumber(L, 2, 0); \
-  (fd)->code = FD_RUNNING;
 static int l_FD_read(LS* L) {
-  FD* fd = toFD(L); PRE_READ(fd);
-  FD_read(fd);
+  FD* fd = toFD(L);
+  fd->ctrl = luaL_optnumber(L, 2, 0);
+  fd->code = FD_RUNNING; FD_read(fd);
   lua_pushinteger(L, fd->code); return 1;
 }
 static int l_FDT_read(LS* L) {
-  FDT* fdt = toFDT(L); PRE_READ(&fdt->fd);
-  fdt->meth = FD_read; sem_post(&fdt->sem);
-  lua_pushinteger(L, fdt->fd.code); 
+  FDT* fdt = toFDT(L);
+  fdt->fd.ctrl = luaL_optnumber(L, 2, 0);
+  FDT_START(L, fdt);
+  fdt->meth = FD_read; ev_post(fdt->evfd);
+  lua_pushinteger(L, fdt->fd.code);
   return 1;
 }
 #undef PRE_READ
@@ -375,33 +379,46 @@ static int l_FD_write(LS* L) {
   lua_pushinteger(L, fd->code); return 1;
 }
 static int l_FDT_write(LS* L) {
-  FDT* fdt = toFDT(L); fdt->fd.code = FD_RUNNING;
-  fdt->meth = FD_write; sem_post(&fdt->sem);
-  return 0;
+  FDT* fdt = toFDT(L); FDT_START(L, fdt);
+  fdt->meth = FD_write; ev_post(fdt->evfd);
+  lua_pushinteger(L, fdt->fd.code); return 1;
 }
 
 // (fd, offset, whence) -> (code)
 // Seek to offset+whence. The code is returned for convienicence.
 #define IF_PRE_SEEK(fd) \
-  assertReady(L, fd, "seek");             \
-  off_t offset = luaL_checkinteger(L, 2); \
-  int whence   = luaL_checkinteger(L, 3); \
   (fd)->code = FD_RUNNING; \
   if(FD_seekpre(fd, offset, whence)) (fd)->code = 0;
 
 static int l_FD_seek(LS* L) {
-  FD* fd = toFD(L);
-  IF_PRE_SEEK(fd) else FD_seek(fd);
-  lua_pushinteger(L, fd->code); return 1;
+  FD* fd = toFD(L); assertReady(L, fd, "seek");
+  off_t offset = luaL_checkinteger(L, 2);
+  int whence   = luaL_checkinteger(L, 3);
+   fd->code = FD_RUNNING;
+  if(FD_seekpre(fd, offset, whence)) fd->code = 0;
+  else FD_seek(fd);
+  return 0;
 }
 static int l_FDT_seek(LS* L) {
-  FDT* fdt = toFDT(L); 
-  IF_PRE_SEEK(&fdt->fd) else {
-    fdt->meth = FD_seek; sem_post(&fdt->sem);
-  }
-  lua_pushinteger(L, fdt->fd.code); return 1;
+  FDT* fdt = toFDT(L); FDT_READY(L, fdt);
+  off_t offset = luaL_checkinteger(L, 2);
+  int whence   = luaL_checkinteger(L, 3);
+  fdt->fd.code = FD_RUNNING;
+  if(FD_seekpre(&fdt->fd, offset, whence)) fdt->fd.code = 0;
+  else { fdt->meth = FD_seek; ev_post(fdt->evfd); }
+  return 0;
 }
 #undef IF_PRE_SEEK
+
+static int l_FD_flush(LS* L) {
+  FD* fd = toFD(L); assertReady(L, fd, "flush");
+  FD_flush(fd); return 0;
+}
+static int l_FDT_flush(LS* L) {
+  FDT* fdt = toFDT(L); FDT_START(L, fdt);
+  fdt->meth = FD_flush; ev_post(fdt->evfd);
+  return 0;
+}
 
 static int l_FD_create(LS* L)  { FD_create(L);  return 1; }
 static int l_FDT_create(LS* L) { FDT_create(L); return 1; }
@@ -421,7 +438,7 @@ static int l_FDT_open(LS* L) {
   FDT* fdt = FDT_create(L); FD* fd = &fdt->fd;
   fd->buf = (char*)path; fd->ctrl = flags;
   fd->code = FD_RUNNING;
-  fdt->meth = FD_open; sem_post(&fdt->sem);
+  fdt->meth = FD_open; ev_post(fdt->evfd);
   return 1;
 }
 
@@ -432,7 +449,7 @@ static int l_FD_tmp(LS* L) {
 }
 static int l_FDT_tmp(LS* L) {
   FDT* fdt = FDT_create(L); FD* fd = &fdt->fd;
-  fdt->meth = FD_tmp; sem_post(&fdt->sem);
+  fdt->meth = FD_tmp; ev_post(fdt->evfd);
   return 1;
 }
 #undef FD_TMP
@@ -444,15 +461,14 @@ static int l_FD_close(LS* L) {
 static int l_FDT_close(LS* L) {
   FDT* fdt = toFDT(L); assertReady(L, &fdt->fd, "close");
   fdt->fd.code = FD_RUNNING;
-  fdt->meth = FD_close; sem_post(&fdt->sem);
+  fdt->meth = FD_close; ev_post(fdt->evfd);
   return 0;
 }
 void FDT_destroy(FDT* fdt) {
   if(!fdt->stopped) {
     fdt->stopped = 1;
-    sem_post(&fdt->sem); pthread_join(fdt->th, NULL);
-    sem_post(&fdt->sem); // fails on mac without this
-    sem_destroy(&fdt->sem);
+    ev_post(fdt->evfd); pthread_join(fdt->th, NULL);
+    ev_destroy(fdt->evfd);
   }
   FD_close(&fdt->fd);
 }
@@ -607,7 +623,8 @@ int luaopen_fd_sys(LS *L) {
         L_setmethod(L, "_read",    l_FDT_read);
         L_setmethod(L, "_seek",    l_FDT_seek);
         L_setmethod(L, "_pop",     l_FD_pop);
-        L_setmethod(L, "_flush",   l_FD_flush);
+        L_setmethod(L, "_flush",   l_FDT_flush);
+        L_setmethod(L, "_evfileno",l_FDT_evfileno);
       lua_setfield(L, -2, "__index");
     lua_setfield(L, -2, "FDT");
 

@@ -151,7 +151,6 @@ end
 
 local RMR_FNS = {dir = ds.noop, default = M.rm, dirDone = M.rmdir }
 M.rmRecursive = function(path)
-  print('!! rmRecursive', path);
   M.walk({path}, RMR_FNS, nil)
 end
 M.mkDirs = function(pthArr)

@@ -6,13 +6,14 @@ local ds = pkg'ds'
 local test, assertEq; pkg.auto'civtest'
 local fd = pkg'fd'
 
-local civix  = pkg'civix'
+local M  = pkg'civix'
 local lib = pkg'civix.lib'
 local D = 'lib/civix/'
 local push = table.insert
+local O = '.out/civix/'
 
 test('sh', function()
-  local sh = civix.sh
+  local sh = M.sh
   local rc, o, l = sh'false'; assertEq(1, rc)
     assertEq('', o)
 
@@ -35,21 +36,21 @@ test('sh', function()
 end)
 
 test('time', function()
-  local period, e1 = ds.Duration(0.001), civix.epoch()
+  local period, e1 = ds.Duration(0.001), M.epoch()
   for i=1,10 do
-    civix.sleep(period)
-    local e2 = civix.epoch()
+    M.sleep(period)
+    local e2 = M.epoch()
     local result = e2 - e1; assert((e2 - e1) > period, result)
     e1 = e2
   end
-  civix.sleep(-2.3)
-  local m = civix.mono(); civix.sleep(0.001); assert(m < civix.mono())
+  M.sleep(-2.3)
+  local m = M.mono(); M.sleep(0.001); assert(m < M.mono())
 end)
 
 local function mkTestTree()
   local d = '.out/civix/'
-  if civix.exists(d) then civix.rmRecursive(d, true) end
-  civix.mkTree(d, {
+  if M.exists(d) then M.rmRecursive(d, true) end
+  M.mkTree(d, {
     ['a.txt'] = 'for civix a test',
     b = {
       ['b1.txt'] = '1 in dir b/',
@@ -65,4 +66,31 @@ test('mkTree', function()
   'for civix a test')
   assertEq(ds.readPath'.out/civix/b/b1.txt', '1 in dir b/')
   assertEq(ds.readPath'.out/civix/b/b2.txt', '2 in dir b/')
+end)
+
+test('fd-perf', function()
+  local Kib = string.rep('123456789ABCDEF\n', 64)
+  local data = string.rep(Kib, 500)
+  local count, run = 0, true
+  local res
+  M.Lap{
+    -- make sleep insta-ready instead (open/close use it)
+    sleepFn = function(cor) LAP_READY[cor] = 'sleep' end,
+  }:run{
+    function() while run do
+      count = count + 1; coroutine.yield(true)
+    end end,
+    function()
+      local f = fd.openFDT(O..'perf.bin', 'w+')
+      f:write(data); f:seek('set', 0)
+      res = f:read()
+      f:close()
+      run = false
+    end,
+  }
+
+  assert(data == res)
+  print('count', count)
+  error'ok'
+
 end)

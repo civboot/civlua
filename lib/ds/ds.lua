@@ -51,6 +51,15 @@ end
 ---------------------
 -- String Functions
 
+M.f = mty.doc[[
+Example: f'example %s: %s'('format', 'easy')
+
+Note: This is a convienience formatting function
+and is not recommended in performance-critical paths
+]](function(fmt)
+  return function(...) return fmt:format(...) end
+end)
+
 --- return the first i characters and the remainder
 M.strDivide = function(s, i)
   return string.sub(s, 1, i), string.sub(s, i+1)

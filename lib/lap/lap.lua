@@ -14,6 +14,17 @@ local yield = coroutine.yield
 
 local M = {_async = {}, _sync = {}}
 
+M.formatCorErrors = function(corErrors, lvl)
+  local f = {}
+  lvl = lvl and (lvl + 1) or 2
+  for _, corErr in ipairs(corErrors) do
+    push(f, 'Coroutine error: '..tostring(corErr[1])..'\n')
+    push(f, debug.traceback(corErr[1], corErr[2], lvl))
+    push(f, '\n')
+  end
+  return table.concat(f)
+end
+
 M.sync  = mt.doc'Switch lua to synchronous mode'
 (function()
   for _, fn in ipairs(LAP_FNS_SYNC)  do fn() end
@@ -249,16 +260,14 @@ M.Lap.execute = function(lap, cor)
   fn(lap, cor, a, b)
 end
 M.Lap.__call = function(lap)
-  mt.pnt('!! Lap()')
   local errors = nil
   if next(LAP_READY) then
     local ready = LAP_READY; LAP_READY = {}
     for cor in pairs(ready) do
-      mt.pnt('!! Lap execute', cor)
       local err = lap:execute(cor)
       if err then
         errors = errors or {};
-        push(errors, tostring(err))
+        push(errors, {cor, err})
       end
     end
   end
@@ -294,20 +303,16 @@ M.Lap.isDone = function(lap)
 end
 M.Lap.run = function(lap, fns)
   LAP_READY = LAP_READY or {}
-  print('!! ready', next(LAP_READY), 'mono', #lap.monoHeap, 'poll', next(lap.pollMap))
   assert(lap:isDone(), "cannot run non-done Lap")
   if type(fns) == 'function' then LAP_READY[coroutine.create(fns)] = 'run'
   else
     for i, fn in ipairs(fns) do
-      mt.pnt('!! run adding fn', fn)
       LAP_READY[coroutine.create(fn)] = 'run'
     end
   end
   while not lap:isDone() do
-    local err = lap(); if err then 
-      push(err, ''); error(
-        'Coroutine error: \n'..table.concat(err, '\n')
-      )
+    local errors = lap(); if errors then
+      error(M.formatCorErrors(errors))
     end
   end
 end

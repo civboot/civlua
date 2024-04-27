@@ -32,7 +32,10 @@ local M = {
 }
 
 M.assertReady = function(fd, name)
-  if fd:code() < S.FD_EOF then error(name..': fd not ready') end
+  local code = fd:code()
+  if code <= S.FD_RUNNING then error(sfmt(
+    '%s: fd not ready (code=%s)', name, code
+  ))end
 end
 M.finishRunning = function(fd, kind, ...)
   while fd:code() == S.FD_RUNNING do yield(kind or true, ...) end
@@ -40,32 +43,42 @@ end
 
 ----------------------------
 -- WRITE / SEEK
+
+
+-- FD's write may need to be called multiple times (O_NONBLOCK)
+-- FDT's read CANNOT be called multiple times.
+local function writeLap(fd, c)
+  if DONE_CODE[c]  then return end
+  if YIELD_CODE[c] then yield('poll', fd:getpoll(S.POLLOUT))
+  else error(fd:codestr(c)) end
+  return true
+end
+S.FD.__index._writeFinish = function(fd)
+  while writeLap(fd, fd:_write()) do end
+end
+S.FDT.__index._writeFinish = function(fd)
+  fd:_write()
+  while writeLap(fd, fd:code()) do end
+end
 S.FD.__index.write = function(fd, ...)
   M.assertReady(fd, 'write')
-  local str = table.concat{...}
-  fd:_writepre(str)
-  while true do
-    local c = fd:_write()
-    if YIELD_CODE[c] then
-      coroutine.yield(si.poll(fd:fileno(), S.POLLOUT))
-    elseif c ~= 0 then error(fd:codestr())
-    else return end
-  end
+  local s = table.concat{...} -- MUST OUTLIVE FN
+  fd:_writepre(s)
+  fd:_writeFinish()
 end
 
 local WHENCE = { set=S.SEEK_SET, cur=S.SEEK_CUR, ['end']=S.SEEK_END }
 S.FD.__index.seek = function(fd, whence, offset)
   M.assertReady(fd, 'seek')
   whence = assert(WHENCE[whence or 'cur'], 'unrecognized whence')
-  print('!! FD seek', whence, offset)
-  fd:_seek(offset or 0, whence); M.finishRunning(fd, 'poll', S.POLLIO)
+  fd:_seek(offset or 0, whence);
+  M.finishRunning(fd, 'poll', fd:getpoll(S.POLLIN | S.POLLOUT))
   return fd:pos()
 end
 
 S.FD.__index.flush = function(fd)
-  M.assertReady(fd, 'flush')
-  fd:_flush(); M.finishRunning(fd, 'sleep', 0.005)
-  if not DONE_CODE[fd:code()] then error('flush: '..fd:codestr()) end
+  fd:_flush(); M.finishRunning(fd, 'sleep', 0.001)
+  if fd:code() ~= 0 then error('flush: '..fd:codestr()) end
 end
 
 S.FD.__index.flags = function(fd)
@@ -89,19 +102,30 @@ S.FD.__index.isAsync = function(fd)
   return (fd:flags() & S.O_NONBLOCK) ~= 0
 end
 
+S.FD.__index.getpoll = function(fd, events)
+  return fd:fileno(), events
+end
+S.FDT.__index.getpoll = function(fdt)
+  return fdt:_evfileno(), S.POLLOUT
+end
+
 ----------------------------
 -- READ
 
--- perform a read, handling WOULDBLOCK.
--- return true if should be called again.
-local function readYield(fd, till) --> done
-  while true do
-    local c = fd:_read(till)
-    print('!! readYield code', c)
-    if DONE_CODE[c]    then return end
-    if YIELD_CODE[c]   then yield('poll', fd:fileno(), S.POLLIN)
-    else               error(sfmt('%s (%s)', fd:codestr(), c)) end
-  end
+-- FD's read may need to be called multiple times (O_NONBLOCK)
+-- FDT's read CANNOT be called multiple times.
+local function readLap(fd, c)
+  if DONE_CODE[c]    then return end
+  if YIELD_CODE[c]   then yield('poll', fd:getpoll(S.POLLIN))
+  else               error(sfmt('%s (%s)', fd:codestr(), c)) end
+  return true
+end
+S.FD.__index._readTill = function(fd, till)
+  while readLap(fd, fd:_read(till)) do end
+end
+S.FDT.__index._readTill = function(fd, till)
+  fd:_read(till)
+  while readLap(fd, fd:code()) do end
 end
 
 -- Different read modes
@@ -109,10 +133,10 @@ local function iden(x) return x end
 local function noNL(s)
   return s and (s:sub(-1) == '\n') and s:sub(1, -2) or s
 end
-local function readAll(fd) readYield(fd); return fd:_pop() or '' end
+local function readAll(fd) fd:_readTill(); return fd:_pop() or '' end
 local function readLine(fd, lineFn)
   local s = fd:_pop(NL); if s then return lineFn(s) end
-  readYield(fd, NL)
+  fd:_readTill(NL)
   return lineFn(fd:_pop(NL) or fd:_pop())
 end
 local function readLineNoNL(fd)  return readLine(fd, noNL) end
@@ -120,7 +144,7 @@ local function readLineYesNL(fd) return readLine(fd, iden) end
 local function readAmt(fd, amt)
   assert(amt > 0, 'read non-positive amount')
   local s = fd:_pop(amt); if s then return s end
-  readYield(fd, amt)
+  fd:_readTill(amt)
   return fd:_pop(amt) or fd:_pop()
 end
 

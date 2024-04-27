@@ -4,14 +4,6 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#if __APPLE__
-#include <dispatch/dispatch.h>
-typedef dispatch_semaphore_t fdsem_t;
-#else
-#include <semaphore.h>
-typedef sem_t                fdsem_t;
-#endif
-
 #define LUA_FD    "FD"
 #define LUA_FDT   "FDT"
 
@@ -25,7 +17,8 @@ typedef struct _FD {
 
 typedef struct _FDT {
   FD fd;
-  pthread_t th; fdsem_t sem;
+  pthread_t th;
+  int evfd; // eventfd
   volatile int stopped;
   volatile void (*meth)(FD*);
 } FDT;

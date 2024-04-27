@@ -62,4 +62,3 @@ T.lapTest('FDT:lines', function()
   aeq('line 3\n', f:read'L')
   aeq(nil,        f:read'l')
 end)
-
