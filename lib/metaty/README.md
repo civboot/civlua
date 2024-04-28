@@ -2,154 +2,74 @@
 
 **`./civlua.lua help metaty`**
 
-metaty is a minimalistic type library allowing users to express (runtime) types
-in Lua and get the benefits of structured records like better formatting
-(printing) and assertions.
+Metatype is a library and specification which lets you create performant
+typo-safe and documented Lua types.
 
-It accomplishes this in a bit more than 500 lines of Lua code. Since it only
-uses metatables it can seamlessly interoperate with other Lua type solutions
-based on metatables.
+```
+METATY_CHECK = true -- before require: turn on type check
+local mt = require'metaty'
 
-> For testing check out [civtest](../civtest/README.md) which has an `assertEq`
-> built on `metaty.eq`
+local Pos = mt.doc[[
+Documentation for Pos (position)
+]](mt.record'Pos') {
+  'x[int]: x coordinate
+  'y[int]: y coordinate
+}
+Pos.y = 0 -- default value
+
+local p1 = Pos{x=4}
+local p1 = Pos{x=4, y=3, z=5} -- error if checking turned on
+```
+
+The above expands to roughly the following, features like
+type checking and string formatting not included. See also:
+[Specification](#Specification).
+
+```
+local Pos = setmetatable({
+  __name='Pos',
+  y = 0,
+}, {
+  __call = function(T, t) return setmetatable(t, T) end,
+})
+Pos.__index = Pos
+DOC[Pos]       = 'Documentation for Pos (position)'
+FIELD_DOC[Pos] = {x='x coordinate', y='y coordinate'}
+```
 
 ## Why?
 
-Lua has a powerful metatable type system which can be leveraged to make rich
-runtime types.
-
 Lua is a fast and fun language. However it often lacks the ability to express
-intent when it comes to the structure of data. It can also be difficult to
-debug, since native tables only print something like `table: 0x1234` when
-passed to `tostring`.
+intent when it comes to the structure of data. Also, not only is it "type
+unsafe" but it is also "typo unsafe" -- small mistakes in the name of a field
+can easily result in hard to diagnose bugs.
 
-metaty provides:
+It is also way too difficult to print tables (i.e. `table: 0x1234` by default).
 
-* Getting the type of an arbitrary object: `ty`
-* Type definitions: `record`, `rawTy`
-* Easy equality checking (`eq`)
-* Better formatting for debugging: `fmt`, `pnt`, `Fmt`
-* More ergonomic imports: `lrequire`
-
-## API
-
-The API for metaty is very small but drastically improves the ergonomics of
-developing for Lua.
-
-### ty(val)
-If `type(val) ~= "table"` this returns the result: `"nil", "boolean", "number",
-"string"`
-
-Else it returns `getmetatable(val) or "table"`
-
-### record(name, metatable=nil)
-
-Defines a Record with fields and methods.
+## Specification
+Any library can follow the type specification. For a type
+to be considered a "metaty" it must only have a metatable
+set to it with a `__name`. In addition, they can add documentation
+for their types (including functions) by copy/pasting the following
+global variables:
 
 ```
-local Point = record'Point'
-  :field('x', 'number')
-  :field('y', 'number')
-  :fieldMaybe('z', 'number') -- can be nil
-
--- constructor
-Point:new(function(ty_, x, y, z)
-  return metaty.new(ty_, {x=x, y=y, z=z})
-end
+DOC       = DOC       or {} -- key=type/fn value=doc string
+FIELD_DOC = FIELD_DOC or {} -- key=type    value=table of field docs
 ```
 
-This is similar to a struct or a class in other languages. It is implemented as
-a thin wrapper over a regular table using Lua's `setmetatable` where the
-metatable is simply the record returned by `record'name'` (with whatever
-`:field'name'`'s and `.method = function(self)...end` are set to it).
+Their metatables can further more define the following fields:
 
-The record type (aka value metatable) has these fields set:
-* `__name`: type name for formatting
-* `__fields`: field types AND ordering by name (for formatting)
-* `__index`: allows for method lookup from the record metatable. When type
-  checking is enabled also checks `myRecord.field` types, etc.
-* `__fmt`: function(self, fmt) used for formatting the type
-* `__tostring`: by default calls `__fmt` to get the string.
-* `metatable.__call`: the type's constructor, override with `:new(function)`
+* `__fields`: should contain a table which contains fieldName -> fieldtype.
+  fieldType can be an arbitrary string and is only for documentation, though
+  future libraries/applications (type checkers) may eventually wish to consume
+  it. `metaty` (the library) uses `[user-specified-type]`
+  * This will be used by formatting libraries when printing the types
+    (so the fields are printed in deterministic order).
+* default values (i.e. `y` in the example) are assigned directly to the type.
+  Documentation formatters may use these to format help messages.
 
-These are only used when type checking is enabled:
-* `__maybes`: map of optional fields (allows `nil` values)
-* `__newindex`: (optional) type checking for `myRecord[v]=field`
-* `__missing`: (optional) function to call when a field is missing
-
-> Note: Records have no concept of inheritance, but you could build inheritance
-> through the `__check` method (used by `metaty.tyCheck`)
-
-### pnt(...)
-
-`metaty.pnt(...)` is a much better `print(...)` function.
-
-* Uses `io.stdout` (`print` does NOT as of Lua 5.3)
-* prints tables using their `__fmt` method and prints raw tables in a readable
-  way.
-* Use `ppnt(...)` for quick and easy pretty printing
-
-```lua
-pnt = require 'metaty'.pnt
-pnt({1, 2, 3, foo='bar', baz='true'})
--- {1,2,3 :: foo=bar baz="true"}
-ppnt{a=5, b=7}
--- {
---   a=5,
---   b=7,
--- }
-```
-
-### eq(a, b)
-
-`metaty.eq` compares two values. If both are raw tables or are the same `ty` it
-does a deep comparison of their keys/indexes.
-
-### fmt(value, set=nil) and Fmt{set=FmtSet{... settings}}
-
-All records have a default `__fmt` method defined which is used by `fmt`
-function and `Fmt` object, etc.
-
-> Note: by default a record's `__tostring` method is overriden to call the
-> `__fmt(self, fmt)` method.
-
-```lua
-LuckyNumber = record('LuckyNumber')
-  :field('description', Any, 'the lucky number is: ')
-  :field('a', 'number')
-
--- add a custom format function (optional)
-LuckyNumber.__fmt = function(self, fmt)
-  -- Note: you can just call `table.insert(fmt, v)` to add items as well
-  fmt:fmt(self.description) -- if description has __fmt it will call that.
-  fmt:fmt(self.a)
-  fmt:fmt(' ')
-end
-
-num = LuckyNumber{a=42}
-pnt(num) -- "the lucky number is: 42\n"
-```
-
-### lrequire'module'
-`lrequire` walks the local stack, setting nil slots to matching names from the
-module.
-
-```
--- Get a, b, and c from myModule into locals.
-local a, b, c; metaty.lrequire'myModule'
-
--- vs
-local mm = require'myModule'
-local a, b, c = mm.a, mm.b, mm.c
-```
-
-`lrequire` also returns an index and takes an index as its second argument for
-minor speed increase. This should be basically never necessary.
-
-```
-local d, e; local i = metaty.lrequire'other'
-local f, g; metaty.lrequire('other', i)
-```
+In addition, there is runtime type specification defined below.
 
 ## Runtime type checking (optional)
 
@@ -157,7 +77,7 @@ local f, g; metaty.lrequire('other', i)
 > (default=false).
 
 To enable runtime checking set the global value `METATY_CHECK = true` at
-the top of your application or test file (before executing any `require` calls).
+the top of your application or test file (before executing ANY `require` calls).
 **Set in TEST files only, or main behind a developer flag. Do not set it in
 library/module/etc files**.
 

@@ -913,15 +913,15 @@ maps both key -> value and value -> key
 must use `:remove` (instead of `bm[k] = nil` to handle deletions.
 
 Note that pairs() will return BOTH directions (in an unspecified order)
-]](mty.record'BiMap')
-:new(function(ty_, t)
+]](mty.record2'BiMap'){}
+getmetatable(M.BiMap).__call = function(ty_, t)
   local keys = {}; for k, v in pairs(t) do
     if not t[v] then add(keys, k) end
   end
   for _, k in pairs(keys) do t[t[k]] = k end
-  return mty.newUnchecked(ty_, t)
-end)
-M.BiMap.__index = mty.indexUnchecked
+  return setmetatable(t, ty_)
+end
+getmetatable(M.BiMap).__index = nil
 M.BiMap.__newindex = function(t, k, v)
   mty.pnt('?? BiMap newindex', k, v)
   rawset(t, k, v); rawset(t, v, k)
@@ -941,9 +941,13 @@ Main methods:
   popLeft()   popRight()
 
 Calling it is the same as popLeft (use as iterator)
-]](mty.record'Deq')
-  :field('right', 'number')  :field('left', 'number')
-:new(function(ty_) return mty.new(ty_, {right=0, left=1}) end)
+]](mty.record2'Deq') {
+  'right [number]',
+  'left  [number]'
+}
+getmetatable(M.Deq).__call = function(T)
+  return mty.construct(T, {right=0, left=1})
+end
 M.Deq.pushRight = function(deq, val)
   local r = deq.right + 1; deq[r] = val; deq.right = r
 end

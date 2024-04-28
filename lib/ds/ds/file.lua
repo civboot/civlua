@@ -45,23 +45,23 @@ Dynamic creation:
 Performance is good as long as lookback is only within the cache length.  You
 can assert on the cacheMiss in tests/etc to ensure you have the correct cache
 settings.
-]]
-(mty.record'LinesFile')
-  :field('file',        'userdata')
-  :field('cache',         'number')
-  :field('len',           'number')
-  :field('cacheMiss',     'number')
-  :field('_line',         'number')
-  :field('_pos',          'number')
-:new(function(ty_, t)
+]](mty.record2'LinesFile') {
+  'file      [userdata]',
+  'cache     [userdata]',
+  'len       [userdata]',
+  'cacheMiss [userdata]',
+  '_line     [userdata]',
+  '_pos      [userdata]',
+}
+getmetatable(M.LinesFile).__call = function(T, t)
   if t[1] then t.file = t[1]; t[1] = nil end
   t.cache, t.len = math.max(1, t.cache or 1), t.len or math.maxinteger
   if t.len == true then
     t.file:seek'set'; t.len = M.readLen(t.file); t.file:seek'set'
   end
   t.cacheMiss, t._line, t._pos = 0, 0, -1
-  return mty.new(ty_, t)
-end)
+  return mty.construct(T, t)
+end
 
 M.LinesFile.appendTo = mty.doc[[
 Append to file at path.
@@ -132,15 +132,16 @@ M.LinesFile.close = function(self) return self.file:close() end
 
 M.FileIdx = mty.doc[[
 A file that holds file-position of lines in another file.
-]](mty.record'FileIdx')
-  :field('file',  'userdata')
-  :field('len',   'number')
-  :field('_line', 'number')
-  :new(function(ty_, t)
-    if not t.len then t.len = idxLen(t.file) end
-    t._line = 0
-    return mty.new(ty_, t)
-  end)
+]](mty.record2'FileIdx') {
+  'file  [userdata]',
+  'len   [number]',
+  '_line [number]',
+}
+getmetatable(M.FileIdx).__call = function(T, t)
+  if not t.len then t.len = idxLen(t.file) end
+  t._line = 0
+  return mty.construct(T, t)
+end
 
 M.FileIdx.getPos = function(self, l)
   mty.assertf(l > 0 and l <= self.len,

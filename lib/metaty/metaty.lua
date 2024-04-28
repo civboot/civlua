@@ -2,7 +2,12 @@
 --
 -- See README.md for documentation.
 
+DOC       = DOC       or {}
+FIELD_DOC = FIELD_DOC or {}
+
 local M = {}
+
+M.metaget = function(t, k) return rawget(getmetatable(t), k) end
 
 -- isEnv: returns boolean for below values, else nil
 local IS_ENV = { ['true']=true,   ['1']=true,
@@ -16,9 +21,9 @@ function M.isEnvG(var) -- is env or globals
 end
 
 local CHECK = M.isEnvG'METATY_CHECK' or false -- private
-local DOC   = M.isEnvG'METATY_DOC'   or false -- private
+local _doc   = M.isEnvG'METATY_DOC'   or false -- private
 M.getCheck = function() return CHECK end
-M.getDoc   = function() return DOC end
+M.getDoc   = function() return _doc end
 M.FN_DOCS = {}
 
 local add, sfmt = table.insert, string.format
@@ -31,15 +36,15 @@ end
 function M.steal(t, k) local v = t[k]; t[k] = nil; return v end
 function M.nativeEq(a, b) return a == b end
 function M.docTy(ty_, doc)
-  if not DOC then return ty_ end
+  if not _doc then return ty_ end
   doc = M.trim(doc)
   if type(ty_) == 'function' then  M.FN_DOCS[ty_] = doc
-  elseif type(ty_) == 'table' then ty_.__doc = doc
+  elseif type(ty_) == 'table' then rawset(ty_, '__doc', doc)
   else error('cannot document type '..type(doc)) end
   return ty_
 end
 function M.doc(doc)
-  if not DOC then      return M.identity end
+  if not _doc then      return M.identity end
   return function(ty_) return M.docTy(ty_, doc) end
 end
 M.docTy(M.isEnvG,  'isEnvG"MY_VAR": isEnv but also checks _G')
@@ -137,8 +142,11 @@ local NATIVE_TY_EQ = {
   userdata = M.nativeEq, thread  = M.nativeEq,
   ['nil']  = rawequal,   ['function'] = rawequal,
   ['table'] = function(a, b)
-    if M.geteventhandler(a, b, '__eq') then return a == b end
-    if a == b                          then return true   end
+    if a == b then return true end
+    local mt = getmetatable(a)
+    if type(mt) == 'table' and rawget(mt, '__eq') then
+      return false -- true equality already tested
+    end
     return M.eqDeep(a, b)
   end,
 }
@@ -453,6 +461,71 @@ end]]
   return r
 end)
 
+-----------------------
+-- record2
+
+
+M.index = function(R, k) -- Note: R is record's metatable
+  if type(k) == 'string' and not rawget(R, '__fields')[k] then
+    error(R.__name..' does not have field '..k)
+  end
+end
+M.newindex = function(r, k, v)
+  if type(k) == 'string' and not M.metaget(r, '__fields')[k] then
+    error(r.__name..' does not have field '..k)
+  end
+  rawset(r, k, v)
+end
+
+M.fieldsCheck = function(fields, t)
+  local tkey; while true do
+    tkey = next(t, tkey); if not tkey then return end
+    if type(tkey) == 'string' and not fields[tkey] then
+      error('unrecognized field: '..tkey)
+    end
+  end
+end
+M.constructChecked = function(T, t)
+  M.fieldsCheck(rawget(T, '__fields'), t)
+  return setmetatable(t, T)
+end
+M.constructUnchecked = function(T, t)
+  return setmetatable(t, T)
+end
+M.construct = (CHECK and M.constructChecked) or M.constructUnchecked
+
+local recordInner = function(name, specs)
+  -- parse specs
+  local fields, fdocs = {}, {}
+  for _, spec in ipairs(specs) do
+    -- name [type] : some docs, but [type] and ':' are optional.
+    local name, tyname, fdoc = spec:match'^([%w_]+)%s*(%b[])%s*:?%s*(.*)$'
+    assert(#name > 0, 'empty name')
+    add(fields, name); fields[name] = tyname
+    if #fdoc > 0 then fdocs[name] = fdoc end
+  end
+
+  if next(fdocs) then FIELD_DOC[name] = fdocs end
+  local mt = { __name='Ty<'..name..'>' }
+  local R = setmetatable({
+    __name=name, __fields=fields,
+    __tostring=M.fmt, __fmt=M._recordFmt,
+    __fields=fields,
+  }, mt)
+  R.__index = R
+  if METATY_CHECK then
+    mt.__call = M.constructChecked
+    mt.__index   = M.index
+    R.__newindex = M.newindex
+  else
+    mt.__call = M.constructUnchecked
+  end
+  return R
+end
+M.record2 = function(name)
+  return function(specs) return recordInner(name, specs) end
+end
+
 ----------------------------------------------
 -- Formatting
 M.FMT_NEW = M.new -- overrideable
@@ -623,7 +696,7 @@ end)
 M.FmtSet.tblFmt = M.tblFmt
 
 M._recordFmt = function(r, f)
-  M.tblFmtKeys(r, f, getmetatable(r).__fields)
+  M.tblFmtKeys(r, f, M.metaget(r, '__fields'))
 end
 
 -----------
@@ -804,5 +877,6 @@ M.help = M.doc'(v) -> string: Get help'
   else NATIVE_TY_DOC[type(v)](v, f) end
   return M.trim(table.concat(f))
 end)
+
 
 return M
