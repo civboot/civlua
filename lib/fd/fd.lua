@@ -31,12 +31,6 @@ local M = {
   newFD = S.newFD, newFDT=S.newFDT,
 }
 
-M.assertReady = function(fd, name)
-  local code = fd:code()
-  if code <= S.FD_RUNNING then error(sfmt(
-    '%s: fd not ready (code=%s)', name, code
-  ))end
-end
 M.finishRunning = function(fd, kind, ...)
   while fd:code() == S.FD_RUNNING do yield(kind or true, ...) end
 end
@@ -44,35 +38,27 @@ end
 ----------------------------
 -- WRITE / SEEK
 
-
--- FD's write may need to be called multiple times (O_NONBLOCK)
--- FDT's read CANNOT be called multiple times.
-local function writeLap(fd, c)
-  if DONE_CODE[c]  then return end
-  if YIELD_CODE[c] then yield('poll', fd:getpoll(S.POLLOUT))
-  else error(fd:codestr(c)) end
-  return true
-end
-S.FD.__index._writeFinish = function(fd)
-  while writeLap(fd, fd:_write()) do end
-end
-S.FDT.__index._writeFinish = function(fd)
-  fd:_write()
-  while writeLap(fd, fd:code()) do end
-end
 S.FD.__index.write = function(fd, ...)
-  M.assertReady(fd, 'write')
-  local s = table.concat{...} -- MUST OUTLIVE FN
-  fd:_writepre(s)
-  fd:_writeFinish()
+  local s = table.concat{...}
+  local c = fd:_write(s, 0)
+  while YIELD_CODE[c] do
+    yield('poll', fd:fileno(), S.POLLOUT)
+    c = fd:_write(s)
+  end
+  if c > 0 then error(fd:codestr()) end
+end
+M.FDT.__index.write = function(fd, ...)
+  local s = table.concat{...}
+  fd:_write(s)
+  M.finishRunning(fd, 'poll', fd:_evfileno(), S.POLLOUT)
 end
 
 local WHENCE = { set=S.SEEK_SET, cur=S.SEEK_CUR, ['end']=S.SEEK_END }
 S.FD.__index.seek = function(fd, whence, offset)
-  M.assertReady(fd, 'seek')
   whence = assert(WHENCE[whence or 'cur'], 'unrecognized whence')
-  fd:_seek(offset or 0, whence);
+  fd:_seek(offset or 0, whence)
   M.finishRunning(fd, 'poll', fd:getpoll(S.POLLIN | S.POLLOUT))
+  if(fd:code() > 0) then error(fd:codestr()) end
   return fd:pos()
 end
 
@@ -87,13 +73,11 @@ S.FD.__index.flags = function(fd)
   return flags
 end
 S.FD.__index.toNonblock = function(fd)
-  M.assertReady(fd, 'toNonblock')
   if fd:_setflags(S.O_NONBLOCK | fd:flags()) ~= 0 then
     error(fd:codestr())
   end; return fd
 end
 S.FD.__index.toBlock = function(fd)
-  M.assertReady(fd, 'toBlock')
   if fd:_setflags(S.inv(S.O_NONBLOCK) & fd:flags()) ~= 0 then
     error(fd:codestr())
   end; return fd
@@ -157,8 +141,8 @@ local modeFn = function(mode)
   return fn
 end
 S.FD.__index.read = function(fd, mode)
-  M.assertReady(fd, 'read')
-  return modeFn(mode)(fd, mode)
+  local out = modeFn(mode)(fd, mode)
+  return out
 end
 
 S.FD.__index.lines = function(fd, mode)
@@ -183,20 +167,20 @@ end
 -- Note that FDT is IDENTICAL to FD except it's possible
 -- that code() will be a FD_RUNNING. This is already handled,
 -- as that is included as a YIELD_CODE (FD can be non-blocking)
-S.FDT.__index.write      = S.FD.__index.write
 S.FDT.__index.seek       = S.FD.__index.seek
 S.FDT.__index.read       = S.FD.__index.read
 S.FDT.__index.lines      = S.FD.__index.lines
 S.FDT.__index.flush      = S.FD.__index.flush
 S.FDT.__index.flags      = S.FD.__index.flags
-S.FDT.__index.toNonblock = S.FD.__index.toNonblock
-S.FDT.__index.toBlock    = S.FD.__index.toBlock
+S.FDT.__index.toNonblock = function() error'invalid' end
+S.FDT.__index.toBlock    = function() error'invalid' end
 S.FDT.__index.isAsync    = function() return true end
 
 S.FDT.__bor = S.FD.__bor; S.FDT.__shr = S.FD.__shr
 
 S.FDT.__index.close = function(fd)
-  fd:_close(); M.finishRunning(fd, 'sleep', 0.001)
+  M.finishRunning(fd, 'sleep', 0.001)
+  fd:_close();
 end
 
 ----------------------------

@@ -10,7 +10,6 @@ local M  = pkg'civix'
 local lib = pkg'civix.lib'
 local D = 'lib/civix/'
 local push = table.insert
-local O = '.out/civix/'
 
 test('sh', function()
   local sh = M.sh
@@ -23,7 +22,6 @@ test('sh', function()
   rc, o, l = sh{'echo', 'hi there'}; assertEq(0, rc)
     assertEq('hi there\n', o)
 
-  print'#### test CAT'
   rc, o, l = sh('cat', 'from stdin'); assertEq(0, rc)
     assertEq('from stdin', o);
 
@@ -73,6 +71,7 @@ test('fd-perf', function()
   local data = string.rep(Kib, 500)
   local count, run = 0, true
   local res
+  local O = '.out/'
   M.Lap{
     -- make sleep insta-ready instead (open/close use it)
     sleepFn = function(cor) LAP_READY[cor] = 'sleep' end,
@@ -82,15 +81,13 @@ test('fd-perf', function()
     end end,
     function()
       local f = fd.openFDT(O..'perf.bin', 'w+')
-      f:write(data); f:seek('set', 0)
-      res = f:read()
+      f:write(data); f:seek'set'; res = f:read()
       f:close()
       run = false
     end,
   }
 
-  assert(data == res)
   print('count', count)
-  error'ok'
-
+  assert(data == res)
+  assert(count > 50)
 end)

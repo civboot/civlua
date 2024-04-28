@@ -40,7 +40,6 @@ typedef lua_State LS;
 
 // ----------------------
 // -- FD CREATE / CLOSE
-static void FD_freebuf(FD* fd);
 
 // Create a FD object
 static void FD_init(FD* fd) {
@@ -54,11 +53,15 @@ FD* FD_create(LS* L) {
   luaL_setmetatable(L, LUA_FD);
   return fd;
 }
+void FD_free(FD* fd) {
+  if(fd->size) { free((char*)fd->buf); fd->size = 0; }
+}
 
 void FD_close(FD* fd) {
-  if(fd->fileno >= 0) { 
-    close(fd->fileno); fd->fileno = -1; }
-  FD_freebuf(fd);
+  if(fd->fileno >= 0) {
+    close(fd->fileno); fd->fileno = -1;
+  }
+  FD_free(fd);
   fd->code = 0;
 }
 
@@ -98,25 +101,12 @@ error:
 // and non-threaded implementaiton of filedescriptors.
 #define IO_SIZE   16384
 
-// free/destroy
-static void FD_freebuf(FD* fd) {
-  if(fd->size) {
-    // ensure pos reflects user state
-    if(fd->ei - fd->si) lseek(fd->fileno, fd->pos, SEEK_SET);
-    free((void*)fd->buf); fd->size = 0;
-  }
-  fd->buf = NULL; fd->si = 0; fd->ei = 0;
-}
-
 static void FD_realloc(FD* fd, int size) {
   if(fd->size == 0) fd->buf = NULL;
   if(size < IO_SIZE) size = IO_SIZE;
-  printf("!! FD_realloc buf=%p size=%i\n", fd->buf, size);
-  char* buf = realloc(fd->buf, size);
-  if(!buf) return;
+  char* buf = realloc((char*)fd->buf, size);
+  if(!buf) return FD_free(fd);
   fd->buf = buf; fd->size = size;
-  fd->si = 0; fd->ei = 0;
-  printf("!! FD_realloc after buf=%p size=%i\n", fd->buf, fd->size);
 }
 
 // ----------------------
@@ -170,29 +160,23 @@ static void FD_shift(FD* fd) {
 // If ctrl < 0 then breaks at that negated character (i.e. '\n').
 // if ctrl > 0 then stops reading when that amount is read
 static void FD_read(FD* fd) {
-  printf("!! FD_read size=%i\n", fd->size);
   if(fd->size) FD_shift(fd);
   else         FD_realloc(fd, IO_SIZE);
-  printf("!! FD_read after alloc size=%i ei=%u\n", fd->size, fd->ei);
   if(!fd->buf) { fd->code = errno; return; }
   int ctrl = fd->ctrl, code = 0;
   while(true) {
-    printf("!! FD_read loop len=%i code=%i\n", LEN(fd), code);
     if((ctrl > 0) && (LEN(fd) > ctrl)) break;
     if(fd->size - fd->ei == 0) FD_realloc(fd, fd->size * 2);
     if(!fd->buf) { code = errno; break; }
     int rem = fd->size - fd->ei;
-    printf("!! FD_read reading... %u %u\n", fd->ei, fd->size);
     int c = read(fd->fileno, (char*)fd->buf + fd->ei, rem);
-    printf("!! ... read done c=%i errno=%i\n", c, errno);
     if(c < 0) { code = errno; break; }
-    printf("!! adding c=%u\n", c);
     fd->ei += c;
     if(ctrl < 0) {
       int i = FD_findc(fd, fd->ei - c, (char) -ctrl);
       if(i <= fd->ei) break;
     }
-    if(c < rem) { code = FD_EOF; break; } // EOF: signal to findc callers
+    if(c == 0) { code = FD_EOF; break; } // EOF: signal to findc callers
   }
   fd->code = code;
 }
@@ -232,20 +216,20 @@ static void FD_seek(FD* fd) {
   fd->code = 0;
 }
 
-// From fflush(3):
-//   For input streams associated with seekable files discards any buffered data
-//   that has been fetched from the underlying file
-static void FD_flush(FD* fd) {
-  fsync(fd->fileno);
-  if(fd->size > 0) goto done;
+static int _FD_flush(FD* fd) {
   struct stat sbuf = {0};
-  if(fstat(fd->fileno, &sbuf)) { fd->code = errno; return; }
-  if(sbuf.st_mode != S_IFREG) goto done;
-  fd->pos += fd->ei - fd->si; // unpopped file pos
+  if(fstat(fd->fileno, &sbuf))             return errno;
+  if(sbuf.st_mode != S_IFREG)              return 0;
+  if(fsync(fd->fileno))                    return errno;
+
+  // Discard unused data that was read
+  if((fd->size == 0) || LEN(fd) == 0)      return 0;
+  if(lseek(fd->fileno, fd->pos, SEEK_SET)) return errno;
   fd->si = 0; fd->ei = 0;
-done:
-  fd->code = 0;
-  return;
+  return 0;
+}
+static void FD_flush(FD* fd) {
+  fd->code = _FD_flush(fd);
 }
 
 // ----------------------
@@ -296,20 +280,6 @@ static int l_FD_pop(LS* L) {
   return 1;
 }
 
-// (fd, string) -> ()
-// Update the buffer to prepare for string writing.
-//
-// Note: This does NOT write the string.
-// Reason: l_FD_write may need to be called multiple times if EAGAIN is the
-//   result.
-// Warning: it is your job to ensure the string doesn't go out of scope while
-//   the FD is using it.
-static int l_FD_writepre(LS* L) {
-  FD* fd = asfd(L); assertReady(L, fd, "write");
-  FD_freebuf(fd);
-  fd->buf = (char*)luaL_checklstring(L, 2, (size_t*)&fd->ei);
-  return 0;
-}
 
 static int l_FD_codestr(LS* L) {
   int code = lua_isnoneornil(L, 2)
@@ -340,14 +310,20 @@ static int l_FD_setfileno(LS* L) {
 
 // ----------------------
 // -- FD LUA METHODS
-#define FDT_READY(L, FDT) \
-  ASSERT(L, (FDT)->fd.code > FD_RUNNING, "already running");
-#define FDT_START(L, FDT) \
-  FDT_READY(L, FDT); (FDT)->fd.code = FD_RUNNING;
 
+// return true while still running previous
+#define FDT_READY(FDT) \
+  if((FDT)->fd.code == FD_RUNNING) { \
+    lua_pushboolean(L, true); return 1; \
+  }
+#define FDT_START(FDT, METH) \
+  (FDT)->fd.code = FD_RUNNING; \
+  fdt->meth = METH; ev_post(fdt->evfd); \
+  return 0;
 
-
-// (fd, till=0) -> (code)
+// FD_read(fd, till=0) -> (code)
+// Note: this interacts with FD_pop.
+//
 // read from file into buf. The amount depends on `till`
 // * zero: read till EOF
 // * positive: read at least this amount of bytes
@@ -358,49 +334,56 @@ static int l_FD_setfileno(LS* L) {
 static int l_FD_read(LS* L) {
   FD* fd = toFD(L);
   fd->ctrl = luaL_optnumber(L, 2, 0);
-  fd->code = FD_RUNNING; FD_read(fd);
+  FD_read(fd);
   lua_pushinteger(L, fd->code); return 1;
 }
 static int l_FDT_read(LS* L) {
-  FDT* fdt = toFDT(L);
+  FDT* fdt = toFDT(L); FDT_READY(fdt);
   fdt->fd.ctrl = luaL_optnumber(L, 2, 0);
-  FDT_START(L, fdt);
-  fdt->meth = FD_read; ev_post(fdt->evfd);
-  lua_pushinteger(L, fdt->fd.code);
-  return 1;
+  FDT_START(fdt, FD_read);
 }
 #undef PRE_READ
 
-// (fd, string) -> (code)
-// Write a string. The code is returned for convienicence.
+// FD_write may have to be called multiple times (O_NONBLOCK).
+// It requires passing in the string repeatedly, so we don't
+// need to own the string.
 static int l_FD_write(LS* L) {
-  FD* fd = toFD(L); fd->code = FD_RUNNING;
+  FD* fd = toFD(L);
+  FD_free(fd);
+  fd->buf = (char*)luaL_checklstring(L, 2, (size_t*)&fd->ei);
+  if(!lua_isnoneornil(L, 3)) fd->si = luaL_checkinteger(L, 3);
+  if(!lua_isnoneornil(L, 4)) fd->ei = luaL_checkinteger(L, 4);
   FD_write(fd);
   lua_pushinteger(L, fd->code); return 1;
 }
+
+// FDT_write may only be called once. We copy the string
+// so the pthread owns it
 static int l_FDT_write(LS* L) {
-  FDT* fdt = toFDT(L); FDT_START(L, fdt);
-  fdt->meth = FD_write; ev_post(fdt->evfd);
-  lua_pushinteger(L, fdt->fd.code); return 1;
+  FDT* fdt = toFDT(L); FDT_READY(fdt);
+  size_t len; const char* s = luaL_checklstring(L, 2, &len);
+  int si = luaL_optinteger(L, 3, 0);
+  int ei = luaL_optinteger(L, 3, len);
+  FD* fd = &fdt->fd;
+  if(fd->size < ei - si) FD_realloc(fd, ei - si);
+  if(!fd->size) { fd->code = errno; return 0; }
+  memmove((char*)fd->buf, s + si, ei - si);
+  fd->si = 0; fd->ei = ei - si;
+  FDT_START(fdt, FD_write);
 }
 
 // (fd, offset, whence) -> (code)
-// Seek to offset+whence. The code is returned for convienicence.
-#define IF_PRE_SEEK(fd) \
-  (fd)->code = FD_RUNNING; \
-  if(FD_seekpre(fd, offset, whence)) (fd)->code = 0;
-
+// Seek to offset+whence
 static int l_FD_seek(LS* L) {
-  FD* fd = toFD(L); assertReady(L, fd, "seek");
+  FD* fd = toFD(L);
   off_t offset = luaL_checkinteger(L, 2);
   int whence   = luaL_checkinteger(L, 3);
-   fd->code = FD_RUNNING;
   if(FD_seekpre(fd, offset, whence)) fd->code = 0;
   else FD_seek(fd);
   return 0;
 }
 static int l_FDT_seek(LS* L) {
-  FDT* fdt = toFDT(L); FDT_READY(L, fdt);
+  FDT* fdt = toFDT(L); FDT_READY(fdt);
   off_t offset = luaL_checkinteger(L, 2);
   int whence   = luaL_checkinteger(L, 3);
   fdt->fd.code = FD_RUNNING;
@@ -408,16 +391,11 @@ static int l_FDT_seek(LS* L) {
   else { fdt->meth = FD_seek; ev_post(fdt->evfd); }
   return 0;
 }
-#undef IF_PRE_SEEK
 
-static int l_FD_flush(LS* L) {
-  FD* fd = toFD(L); assertReady(L, fd, "flush");
-  FD_flush(fd); return 0;
-}
+static int l_FD_flush(LS* L) { FD_flush(toFD(L)); return 0; }
 static int l_FDT_flush(LS* L) {
-  FDT* fdt = toFDT(L); FDT_START(L, fdt);
-  fdt->meth = FD_flush; ev_post(fdt->evfd);
-  return 0;
+  FDT* fdt = toFDT(L); FDT_READY(fdt);
+  FDT_START(fdt, FD_flush);
 }
 
 static int l_FD_create(LS* L)  { FD_create(L);  return 1; }
@@ -593,7 +571,6 @@ int luaopen_fd_sys(LS *L) {
         // true methods
         L_setmethod(L, "close",    l_FD_close);
         L_setmethod(L, "codestr",  l_FD_codestr);
-        L_setmethod(L, "_writepre",l_FD_writepre);
         L_setmethod(L, "_write",   l_FD_write);
         L_setmethod(L, "_getflags",l_FD_getflags);
         L_setmethod(L, "_setflags",l_FD_setflags);
@@ -616,7 +593,6 @@ int luaopen_fd_sys(LS *L) {
         // true methods
         L_setmethod(L, "_close",   l_FDT_close);
         L_setmethod(L, "codestr",  l_FD_codestr);
-        L_setmethod(L, "_writepre",l_FD_writepre);
         L_setmethod(L, "_write",   l_FDT_write);
         L_setmethod(L, "_getflags",l_FD_getflags);
         L_setmethod(L, "_setflags",l_FD_setflags);

@@ -10,8 +10,7 @@ local p = '.out/fd.text'
 
 T.test('open -> _write -> _read', function()
   local f = M.open(p, 'w'); aeq(0, f:code())
-  f:_writepre'line 1\nline 2\n'
-  aeq(0, f:_write())
+  aeq(0, f:_write'line 1\nline 2\n')
   f:close()
   f = M.open(p, 'r'); aeq(0, f:code())
   aeq(S.FD_EOF, f:_read())
