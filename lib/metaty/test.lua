@@ -135,7 +135,7 @@ test("tostring", function()
   assertEq('423',       toStr(423))
   assertEq('1A',        toStr(26, Fmt2{numfmt='%X'}))
   assertEq('true',      toStr(true))
-  assertMatch('Fn@.*/metaty%.lua:%d+', toStr(M.errorf))
+  assertMatch('fn"metaty.errorf":.*/metaty%.lua:%d+', toStr(M.errorf))
   assertMatch('{hi=4}', toStr{hi=4})
   assertMatch('{hi=4}',
     toStr(setmetatable({hi=4}, {}))

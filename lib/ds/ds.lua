@@ -290,7 +290,11 @@ end
 M.updateKeys = function(t, add, keys)
   for _, k in ipairs(keys) do t[k] = add[k] end; return t
 end
-M.orderedKeys = mty.orderedKeys
+M.orderedKeys = function(t)
+  local keys = {}; for k in pairs(t) do add(keys, k) end
+  table.sort(keys)
+  return keys
+end
 
 M.popk = function(t, key) -- pop key
   local val = t[key]; t[key] = nil; return val
@@ -488,18 +492,18 @@ end
 M.WeakK = mty.doc[[Weak key table, see docs on '__mode']]
 (setmetatable(
   {__name='WeakK', __mode='k'}, {
-  __name='Ty<WeakK>', __call=mty.newUnchecked,
+  __name='Ty<WeakK>', __call=mty.constructUnchecked,
 }))
 M.WeakV = mty.doc[[Weak value table, see docs on '__mode']]
 (setmetatable(
   {__name='WeakV', __mode='v'}, {
-  __name='Ty<WeakV>', __call=mty.newUnchecked,
+  __name='Ty<WeakV>', __call=mty.constructUnchecked,
 }))
 
 M.WeakKV = mty.doc[[Weak key+value table, see docs on '__mode']]
 (setmetatable(
   {__name='WeakKV', __mode='kv'}, {
-  __name='Ty<WeakKV>', __call=mty.newUnchecked,
+  __name='Ty<WeakKV>', __call=mty.constructUnchecked,
 }))
 
 ---------------------

@@ -38,5 +38,5 @@ end)
 
 T.test('[[ele]]', function()
   dofile(dir..'cmd/ele/tests/test_action.lua')
-  -- dofile(dir..'cmd/ele/tests/test_model.lua')
+  dofile(dir..'cmd/ele/tests/test_model.lua')
 end)

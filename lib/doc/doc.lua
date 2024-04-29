@@ -2,7 +2,7 @@ local pkg = require'pkg'
 local shim = pkg'shim'
 local mty = require 'metaty'
 local d = mty.docTy
-local M = d({doc=mty.doc, docTy=mty.docTy, help=mty.help}, [=[
+local M = d({doc=mty.doc, docTy=mty.docTy}, [=[
 Documentation and help for Lua types (including core).
 
    help 'string.find'

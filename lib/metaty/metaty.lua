@@ -2,34 +2,74 @@
 --
 -- See README.md for documentation.
 
+SRCLOC    = SRCLOC    or {}
+SRCNAME   = SRCNAME   or {}
 DOC       = DOC       or {}
 FIELD_DOC = FIELD_DOC or {}
 local add, sfmt = table.insert, string.format
 
-local M = {}
+local srcloc = function(level)
+  local tb = debug.traceback(nil, 2 + (level or 0))
+  local loc = tb:match'.*traceback:%s+([^\n]*:%d+)'
+  assert(loc, 'not valid srcloc')
+  return loc
+end
+
+local CONCRETE_TYPE = {
+  ['nil']=true, bool=true, number=true, string=true,
+}
+
+local mod = {}; SRCLOC[mod] = srcloc(); SRCNAME[mod] = 'mod'
+
+local tyset = function(t, k, v)
+  rawset(t, k, v)
+  if type(k) ~= 'string' or CONCRETE_TYPE[type(v)] then return end
+  SRCLOC[v]  = srcloc(1)
+  SRCNAME[v] = t.__name..'.'..k
+  if(type(v)) == 'table' and rawget(v, '__name') == true then
+    rawset(v, '__name', k)
+  end
+end
+local mod = setmetatable({
+  __name='Mod',
+  __index=function(m, k) error('mod does not have: '..k, 2) end,
+  __newindex=tyset,
+}, {
+  __name='Ty<Mod>',
+  __call=function(T, name)
+    assert(type(name) == 'string', 'must provide name str')
+    local m = setmetatable({__name=name}, T)
+    SRCLOC[m]  = srcloc(1)
+    SRCNAME[m] = name
+    return m
+  end,
+})
+
+local M = mod'metaty'
+
+-- srcloc(level) -> "path/to/file.lua:line"
+M.srcloc = srcloc
+
 M.DEPTH_ERROR = '{!max depth reached!}'
 
-M.ty = function(o)
+M.ty = function(o) --> Type: string or metatable
   local t = type(o)
   return t == 'table' and getmetatable(o) or t
 end
-M.tyName = function(T)
+M.tyName = function(T) --> name
   local Tty = type(T)
   return Tty == 'string' and T
     or ((Tty == 'table') and rawget(T, '__name'))
     or Tty
 end
 
-M.callable = function(obj)
+M.callable = function(obj) --> bool: return if obj is callable
   if type(obj) == 'function' then return true end
   local m = getmetatable(obj); return m and rawget(m, '__call')
 end
-M.metaget = function(t, k) return rawget(getmetatable(t), k) end
-M.errorf = function(...) error(string.format(...), 2) end
-M.assertf = function(a, ...)
-  if not a then error('assertf: '..string.format(...), 2) end
-  return a
-end
+M.metaget = function(t, k)   return rawget(getmetatable(t), k) end
+M.errorf  = function(...)    error(string.format(...), 2)      end
+M.assertf = function(a, ...) return a or error(sfmt(...), 2)   end
 
 -- keywords https://www.lua.org/manual/5.4/manual.html
 M.KEYWORD = {}; for kw in string.gmatch([[
@@ -39,19 +79,19 @@ local     nil       not       or        repeat    return
 then      true      until     while
 ]], '%w+') do M.KEYWORD[kw] = true end
 
-M.validKey = function(s) --> boolean
+M.validKey = function(s) --> boolean: s=value is valid syntax
   return type(s) == 'string' and
     not (M.KEYWORD[s] or tonumber(s)
          or s:find'[^_%w]')
 end
 
 M.fnString = function(fn)
-  local t = {'Fn'}
-  local dbg = debug.getinfo(fn, 'nS')
-  if dbg.name then add(t, sfmt('%q', dbg.name)) end
-  add(t, '@'); add(t, dbg.short_src);
-  add(t, ':'); add(t, tostring(dbg.linedefined));
-  return table.concat(t)
+  local name = SRCNAME[fn] or debug.getinfo(fn, 'n').name
+  local loc = SRCLOC[fn]; if not loc then
+    local dbg = debug.getinfo(fn, 'S').short_src
+    loc = string.format('%s:%s', dbg.short_src, dbg.linedefined)
+  end
+  return sfmt('fn%q:%s)]', name, loc)
 end
 
 -- isEnv: returns boolean for below values, else nil
@@ -72,7 +112,6 @@ M.getDoc   = function() return _doc  end
 
 ----------------------
 -- Documentation
-M.CONCRETE_TYPE = {['nil']=true, bool=true, number=true, string=true}
 function M.identity(v) return v end
 function M.trim(subj, pat, index)
   pat = pat and ('^'..pat..'*(.-)'..pat..'*$') or '^%s*(.-)%s*$'
@@ -82,7 +121,7 @@ end
 function M.steal(t, k) local v = t[k]; t[k] = nil; return v end
 function M.nativeEq(a, b) return a == b end
 function M.docTy(T, doc)
-  if M.CONCRETE_TYPE[type(T)] then
+  if CONCRETE_TYPE[type(T)] then
     error('cannot document '..tostring(T), 2)
   end
   if not _doc then return T end
@@ -210,10 +249,11 @@ M.constructUnchecked = function(T, t)
 end
 M.construct = (CHECK and M.constructChecked) or M.constructUnchecked
 
-local recordInner = function(name, specs)
-  -- parse specs
-  local fields, fdocs = {}, {}
-  for _, spec in ipairs(specs) do
+M.namedRecord = function(name, R, loc)
+  loc = loc or M.srcloc(1)
+  rawset(R, '__name', name)
+  local fields = {}; for i=1,#R do
+    local spec = rawget(R, i); rawset(R, i, nil)
     -- name [type] : some docs, but [type] and ':' are optional.
     local name, tyname, fdoc =
       spec:match'^([%w_]+)%s*(%b[])%s*:?%s*(.*)$'
@@ -223,27 +263,27 @@ local recordInner = function(name, specs)
     assert(name,      'invalid spec')
     assert(#name > 0, 'empty name')
     add(fields, name); fields[name] = tyname or true
-    if #fdoc > 0 then fdocs[name] = fdoc end
   end
-
-  if next(fdocs) then FIELD_DOC[name] = fdocs end
-  local mt = { __name='Ty<'..name..'>' }
-  local R = setmetatable({
-    __name=name, __fields=fields,
-    __fields=fields,
-  }, mt)
-  R.__index = R
+  R.__fields = fields
+  R.__index  = rawget(R, '__index') or R
+  local mt = { __name='Ty<'..R.__name..'>' }
+  local R = setmetatable(R, mt)
   if METATY_CHECK then
-    mt.__call = M.constructChecked
+    mt.__call    = M.constructChecked
     mt.__index   = M.index
-    R.__newindex = M.newindex
+    rawset(R, '__newindex', rawget(R, '__newindex') or M.newindex)
   else
     mt.__call = M.constructUnchecked
   end
+  SRCLOC[R] = loc
   return R
 end
+
 M.record2 = function(name)
-  return function(specs) return recordInner(name, specs) end
+  assert(type(name) == 'string' and #name > 0,
+         'must set __name=string')
+  local loc = M.srcloc(1)
+  return function(R) return M.namedRecord(name, R, loc) end
 end
 
 ------------------
@@ -262,25 +302,20 @@ M.sortKeys = function(t, len)
 end
 
 M.Fmt2 = M.record2'Fmt' {
-  "keyEnd    [string] (default=', ')",
-  "indexEnd  [string] (default=', ')",
-  "tableStart[string] (default='{')",
-  "tableEnd  [string] (default='}')",
-  "listEnd   [string] (default='') separator between list/map",
-  "indent    [string] (default=nil)",
-  "maxDepth  [int]    (default=20) maximum depth in tables",
-  "numfmt    [string] (default='%q')",
-  "strfmt    [string] (default='%q')",
-  "_depth    [int]    (default=0)",
+  "keyEnd    [string]",  keyEnd=', ',
+  "indexEnd  [string]",  indexEnd = ', ',
+  "tableStart[string]",  tableStart = '{',
+  "tableEnd  [string]",  tableEnd = '}',
+  "listEnd   [string] separator between list/map", listEnd    = '',
+  "indent    [string]",  indent = '  ',
+  "maxIndent [int]",     maxIndent = 20,
+  "numfmt    [string]",  numfmt = '%q',
+  "strfmt    [string]",  strfmt = '%q',
+  "_depth    [int]",     _depth = 0,
  [[_nl [string] (default='\n') newline, indent is added/removed]],
-}; for k, v in pairs{
-  keyEnd     = ', ',  indexEnd = ', ',
-  tableStart = '{',   tableEnd = '}',
-  listEnd    = '',
-  indent     = '  ',  maxDepth = 20,
-  numfmt     = '%q',  strfmt   = '%q',
-  _depth     = 0,     _nl = '\n',
-} do M.Fmt2[k] = v end
+   _nl = '\n',
+}
+
 M.Fmt2.pretty = function(F, t)
   t.tableStart = t.tableStart or '{\n'
   t.tableEnd   = t.tableEnd   or '\n}'
@@ -331,7 +366,7 @@ M.Fmt2.userdata    = function(f, ud) add(f, tostring(ud))      end
 -- Yes this is complicated. No, there is no way to really improve
 -- this while preserving the features.
 M.Fmt2.table = function(f, t)
-  if f._depth >= f.maxDepth then return add(f, M.DEPTH_ERROR) end
+  if f._depth >= f.maxIndent then return add(f, M.DEPTH_ERROR) end
   local mt, keys = getmetatable(t), nil
   if (mt ~= 'table') and (type(mt) == 'string') then
     return add(f, tostring(t))

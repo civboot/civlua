@@ -143,8 +143,6 @@ end
 ---------------------
 -- Window core methods
 
-Window.__index = mty.indexUnchecked
-
 Window.new=function(container)
   return Window{
     id=T.nextViewId(),
