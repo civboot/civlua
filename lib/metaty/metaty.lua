@@ -4,10 +4,35 @@
 
 DOC       = DOC       or {}
 FIELD_DOC = FIELD_DOC or {}
+local add, sfmt = table.insert, string.format
 
 local M = {}
+M.DEPTH_ERROR = '{!max depth reached!}'
 
 M.metaget = function(t, k) return rawget(getmetatable(t), k) end
+
+-- keywords https://www.lua.org/manual/5.4/manual.html
+M.KEYWORD = {}; for kw in string.gmatch([[
+and       break     do        else      elseif    end
+false     for       function  goto      if        in
+local     nil       not       or        repeat    return
+then      true      until     while
+]], '%w+') do M.KEYWORD[kw] = true end
+
+M.validKey = function(s) --> boolean
+  return type(s) == 'string' and
+    not (M.KEYWORD[s] or tonumber(s)
+         or s:find'[^_%w]')
+end
+
+M.fnString = function(fn)
+  local t = {'Fn'}
+  local dbg = debug.getinfo(fn, 'nS')
+  if dbg.name then add(t, sfmt('%q', dbg.name)) end
+  add(t, '@'); add(t, dbg.short_src);
+  add(t, ':'); add(t, tostring(dbg.linedefined));
+  return table.concat(t)
+end
 
 -- isEnv: returns boolean for below values, else nil
 local IS_ENV = { ['true']=true,   ['1']=true,
@@ -26,7 +51,6 @@ M.getCheck = function() return CHECK end
 M.getDoc   = function() return _doc end
 M.FN_DOCS = {}
 
-local add, sfmt = table.insert, string.format
 function M.identity(v) return v end
 function M.trim(subj, pat, index)
   pat = pat and ('^'..pat..'*(.-)'..pat..'*$') or '^%s*(.-)%s*$'
@@ -168,7 +192,7 @@ local NATIVE_TY_FMT = {
       end; prev = line
     end; if prev then add(f, prev) end
   end,
-  -- Note: ['function'] = fnFmtSafe  (later)
+  -- Note: ['function'] = fnString  (later)
   -- Note: table        = tblFmtSafe (later)
 }
 
@@ -463,8 +487,6 @@ end)
 
 -----------------------
 -- record2
-
-
 M.index = function(R, k) -- Note: R is record's metatable
   if type(k) == 'string' and not rawget(R, '__fields')[k] then
     error(R.__name..' does not have field '..k)
@@ -607,16 +629,6 @@ M.orderedKeys = M.doc[[(t, max) -> keyList
   return keys
 end)
 
-local STR_IS_AMBIGUOUS = {['true']=true, ['false']=true, ['nil']=true}
-M.strIsAmbiguous = M.doc'return whether a string needs %q'
-(function(s) --> boolean
-  return (
-    STR_IS_AMBIGUOUS[s]
-    or tonumber(s)
-    or s:find('[%s.\'"={}%[%]]')
-  )
-end)
-
 -----------
 -- Fmt Native Types
 
@@ -631,14 +643,9 @@ M.metaName = function(mt)
   else return mt.__name or '?' end
 end
 
-M.fnFmtSafe = function(fn, f)
-  add(f, 'Fn')
-  local dbg = debug.getinfo(fn, 'nS')
-  if dbg.name then add(f, sfmt('%q', dbg.name)) end
-  add(f, '@'); add(f, dbg.short_src);
-  add(f, ':'); add(f, tostring(dbg.linedefined));
+NATIVE_TY_FMT['function'] = function(fn, f)
+  add(f, M.fnString(fn))
 end
-NATIVE_TY_FMT['function'] = M.fnFmtSafe
 
 M.tblFmtSafe = function(t, f)
   local mt = getmetatable(t);
@@ -679,7 +686,7 @@ M.tblFmtKeys = function(t, f, keys)
     elseif type(k) == 'number' and 0<k and k<=lenI then -- already added
     else
       if     type(k) == 'table' then f:fmt(k)
-      elseif type(k) == 'string' and not M.strIsAmbiguous(k) then add(f, k)
+      elseif type(k) == 'string' and M.validKey(k) then add(f, k)
       else   add(f, '['); add(f, sfmt('%q', k)); add(f, ']') end
       add(f, '='); f:fmt(v)
       if i < lenK then f:sep(f.set.itemSep) end
@@ -878,5 +885,118 @@ M.help = M.doc'(v) -> string: Get help'
   return M.trim(table.concat(f))
 end)
 
+------------------
+-- Fmt 2
+
+M.tableKey = function(k)
+  return M.validKey(k) and k or sfmt('[%q]', k)
+end
+M.sortKeys = function(t, len)
+  len = len or #t; local keys = {}
+  for k, v in pairs(t) do
+    if not (math.type(k) == 'integer' and k <= len) then
+      add(keys, k)
+    end
+  end; table.sort(keys)
+  return keys
+end
+
+M.Fmt2 = M.record2'Fmt' {
+  "keyEnd    [string] (default=', ')",
+  "indexEnd  [string] (default=', ')",
+  "tableStart[string] (default='{')",
+  "tableEnd  [string] (default='}')",
+  "listEnd   [string] (default='') separator between list/map",
+  "indent    [string] (default=nil)",
+  "maxDepth  [int]    (default=20) maximum depth in tables",
+  "numfmt    [string] (default='%q')",
+  "_depth    [int]    (default=0)",
+ [[_nl [string] (default='\n') newline, indent is added/removed]],
+}; for k, v in pairs{
+  keyEnd     = ', ',  indexEnd = ', ',
+  tableStart = '{',   tableEnd = '}',
+  listEnd    = '',
+  indent     = '  ',  maxDepth = 20,
+  numfmt     = '%q',
+  _depth     = 0,     _nl = '\n',
+} do M.Fmt2[k] = v end
+M.Fmt2.pretty = function(F, t)
+  t.tableStart = t.tableStart or '{\n'
+  t.tableEnd   = t.tableEnd   or '\n}'
+  t.listEnd    = t.listEnd    or '\n'
+  t.keyEnd     = t.keyEnd     or ',\n'
+  t.indent     = t.indent     or '  '
+  return F(t)
+end
+
+M.Fmt2.incIndent = function(f)
+  f._depth = f._depth + 1
+  if f.indent then f._nl = f._nl..f.indent end
+end
+M.Fmt2.decIndent = function(f)
+  if f._depth <= 0 then error'unballanced indent' end
+  f._depth = f._depth - 1
+  local ind = f.indent; if not ind then return end
+  f._nl = f._nl:sub(1, -1 - #ind); assert(f._nl:sub(1,1) == '\n')
+end
+M.Fmt2.write = function(f, ...) add(f, table.concat{...}) end
+M.Fmt2.__newindex = function(f, i, v)
+  if type(i) ~= 'number' then; assert(f.__fields[i], i)
+    return rawset(f, i, v)
+  end
+  assert(i == #f + 1, 'can only append to Fmt2')
+  local doIndent = false
+  for _, line in M.split(v, '\n') do
+    if doIndent then
+      rawset(f, i, f._nl); i = i + 1 end
+    rawset(f, i, line); i = i + 1; doIndent = true
+  end
+end
+M.Fmt2.tableKey = function(f, k)
+  if type(k) ~= 'string' or M.KEYWORD[k]
+     or tonumber(k) or k:find'[^_%w]' then
+    add(f, '['); f(k); add(f, ']')
+  else add(f, k) end
+end
+M.Fmt2['nil']      = function(f)     add(f, 'nil')             end
+M.Fmt2.boolean     = function(f, b)  add(f, tostring(b))       end
+M.Fmt2.number      = function(f, n)  add(f, sfmt(f.numfmt, n)) end
+M.Fmt2.string      = function(f, s)  add(f, sfmt('%q', s))     end
+M.Fmt2['function'] = function(f, fn) add(f, M.fnString(fn))    end
+M.Fmt2.thread      = function(f, th) add(f, tostring(th))      end
+M.Fmt2.userdata    = function(f, ud) add(f, tostring(ud))      end
+
+-- Recursively format a table.
+-- Yes this is complicated. No, there is no way to really improve
+-- this while preserving the features.
+M.Fmt2.table = function(f, t)
+  if f._depth >= f.maxDepth then return add(f, M.DEPTH_ERROR) end
+  local mt, keys = getmetatable(t), nil
+  if type(mt) == 'table' then
+    local fn = rawget(mt, '__fmt'); if fn then return fn(t, f) end
+    local n = rawget(mt, '__name'); if n  then add(f, n)       end
+    keys = rawget(mt, '__fields')
+  end
+  local len = #t; keys = keys or M.sortKeys(t, len)
+  f:incIndent()
+  if #keys + len > 1 then add(f, f.tableStart) else add(f, '{') end
+  for i=1,len do
+    f(t[i])
+    if (i < len) or next(keys) then add(f, f.indexEnd) end
+  end
+  if (len > 0) and (#keys + len > 1) then add(f, f.listEnd) end
+  for i, k in ipairs(keys) do
+    f:tableKey(k); add(f, '='); f(t[k])
+    if i < #keys then add(f, f.keyEnd) end
+  end
+  f:decIndent()
+  if #keys + len > 1 then add(f, f.tableEnd) else add(f, '}') end
+end
+M.Fmt2.__call = function(f, v) return f[type(v)](f, v) end
+
+M.tostring = function(v, fmt)
+  fmt = fmt or M.Fmt2{}; fmt(v)
+  return table.concat(fmt)
+end
 
 return M

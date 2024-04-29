@@ -148,39 +148,35 @@ test('record maybe', function()
   a.a2 = nil; assertEq(nil, a.a2)
 end)
 
-test("safeToStr", function()
-  local safeToStr = M.safeToStr
-  assertEq('"a123"',      safeToStr("a123"))
-  assertEq('"123"',     safeToStr("123"))
-  assertEq('"abc def"', safeToStr("abc def"))
-  assertEq('423',       safeToStr(423))
-  assertEq('1A',        safeToStr(26, FmtSet{num='%X'}))
-  assertEq('true',      safeToStr(true))
-  assertMatch('Fn@.*/metaty%.lua:%d+', safeToStr(M.errorf))
-  assertMatch('Tbl@0x[a-f0-9]+', safeToStr({hi=4}))
-  assertMatch('?@0x[a-f0-9]+',
-    safeToStr(setmetatable({hi=4}, {}))
-  )
-  assertMatch('?{...}',
-    safeToStr(setmetatable({hi=4}, {
-      __tostring=function() return 'not called' end
-    }))
+test("tostring", function()
+  local toStr = M.tostring
+  assertEq('"a123"',    toStr("a123"))
+  assertEq('"123"',     toStr("123"))
+  assertEq('"abc def"', toStr("abc def"))
+  assertEq('423',       toStr(423))
+  assertEq('1A',        toStr(26, M.Fmt2{numfmt='%X'}))
+  assertEq('true',      toStr(true))
+  assertMatch('Fn@.*/metaty%.lua:%d+', toStr(M.errorf))
+  assertMatch('{hi=4}', toStr{hi=4})
+  assertMatch('{hi=4}',
+    toStr(setmetatable({hi=4}, {}))
   )
 end)
 
 test("fmt", function()
-  local r = fmt({1, 2, 3})
-  assertEq("{1,2,3}", r)
+  assertEq("{1, 2, 3}", M.tostring{1, 2, 3})
 
   local t = {1, 2}; t[3] = t
-  assertMatch('!ERROR!.*stack overflow', fmt(t, FmtSet{safe=true}))
-  assertMatch('{1,2,RECURSE%[Tbl@0x%w+%]}', fmt(t, FmtSet{recurse=false}))
+  assertMatch('{!max depth reached!}',    M.tostring(t))
 
-  assertEq([[{baz="boo" foo="bar"}]], fmt({foo="bar", baz="boo"}))
-  local result = fmt({a=1, b=2, c=3}, FmtSet{pretty=true})
-  assertEq('{\n  a=1\n  b=2\n  c=3\n}', result)
-  assertEq('{1,2 :: a=12}', fmt({1, 2, a=12}))
-  assertEq('{["a b"]=5}', fmt({['a b'] = 5}))
+  assertEq( [[{baz="boo", foo="bar"}]],
+    M.tostring{foo="bar", baz="boo"})
+  local result = M.tostring({a=1, b=2, c=3}, M.Fmt2:pretty{})
+  assertEq('{\n  a=1,\n  b=2,\n  c=3\n}', result)
+  assertEq('{1, 2, a=12}', M.tostring{1, 2, a=12})
+  assertEq('{["a b"]=5}', M.tostring{['a b'] = 5})
+  assertEq('{\n  1, 2, \n  a=12\n}',
+           M.tostring({1, 2, a=12}, M.Fmt2:pretty{}))
 end)
 
 test('globals', function()
