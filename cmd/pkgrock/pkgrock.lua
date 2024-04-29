@@ -16,15 +16,14 @@ local push, sfmt = table.insert, string.format
 local UPLOAD = [[luarocks upload %s --api-key=%s]]
 
 local M = {DOC=DOC}
-M.ARGS = mty.docTy(mty.record'pkgrock', [[
+M.ARGS = mty.doc[[
 pkgrock dir1 dir2 ...args
-]])
-  :fieldMaybe('create', 'boolean'):fdoc[[creates the rocks from PKG.lua files]]
-  :fieldMaybe('gitops',  'string'):fdoc[[one or more: add,commit,tag]]
-  :fieldMaybe('gitpush', 'string'):fdoc[[where to push, i.e: 'origin main']]
-  :fieldMaybe('upload',  'string'):fdoc[[
-    must be set to the luarocks api key to upload with
-  ]]
+]](mty.record2'pkgrock') {
+  [[create [bool]   creates the rocks from PKG.lua files]],
+  [[gitops [string] one or more: add,commit,tag]],
+  [[gitpush[string] where to push, i.e: 'origin main']],
+  [[upload [string] set to the luarocks api key]],
+}
 
 -- make a rock and return rock, rockpath, PKG
 M.makerock = function(dir)
@@ -45,7 +44,6 @@ M.makerock = function(dir)
   d.homepage = d.homepage or p.homepage
   d.license  = d.license  or p.license
   rock.dependencies = rock.dependencies or p.deps
-  mty.pnt('!! rock.build', rock.build)
   rock.build = rock.build or {
     type = 'builtin',
     modules = ds.kvtable{pkg.isrcs(p.srcs)},
@@ -78,7 +76,6 @@ M.exe = function(t)
     local rock, rpath = M.makerock(dir)
     push(rpaths, rpath); push(tags, assert(rock.source.tag))
   end end
-  mty.pnt('?? tags:', tags)
   if gitops.tag then
     local rc, out, log = civix.sh'git tag'
     local exist = ds.Set(ds.lines(out))

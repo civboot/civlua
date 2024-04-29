@@ -193,9 +193,10 @@ M.assertHtml = function(cxtDat, expectedHtml, dbg)
 end
 
 M.Args = mty.doc[[Convert cxt doc to html]]
-(mty.record'Html')
-  :field('cxt', 'string'):fdoc'path to cxt file'
-  :field('out', 'string'):fdoc'path to html file output'
+(mty.record2'Html') {
+  'cxt[string]: path to cxt file',
+  'out[string]: path to html file output',
+}
 
 setmetatable(M, {
   __call = function(_, args, isExe)

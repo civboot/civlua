@@ -53,18 +53,17 @@ M.loadMeta = function(dat, path)
   return res
 end
 
-M.Luck = mty.record'Luck'
-  :fieldMaybe('name', 'string')
-  :field'deps'
-  :field'dat'
-  :field'path'
+M.Luck = mty.record2'Luck' {
+  'name[string]',
+  'deps', 'dat', 'path',
+}
 
 local function _error(l, msg) error(sfmt('ERROR %s\n%s', l.path, msg)) end
 local function _assertf(chk, l, fmt, ...)
   if not chk then _error(l, sfmt(fmt, ...)) end
 end
 
-M.Luck.fromMeta = function(ty_, meta, dat, path)
+M.Luck.fromMeta = function(T, meta, dat, path)
   local l = meta; l.dat, l.path = dat, path
   _assertf(not (l.name and l[1]), l, "name provided as both position and key")
   l.name = l.name or l[1]; l[1] = nil
@@ -74,7 +73,7 @@ M.Luck.fromMeta = function(ty_, meta, dat, path)
     _assertf(type(k) == 'string', l, 'dep name %s is not a string', k)
     _assertf(type(v) == 'string', l, 'value of dep %q is not a string', k)
   end
-  return mty.newChecked(ty_, l)
+  return mty.construct(T, l)
 end
 
 M.loadMetas = function(paths)
@@ -112,7 +111,6 @@ M.loadall = function(paths)
     ))end
     mty.pnt('?? loading:', l)
     for localName, depName in pairs(l.deps) do
-      mty.pntf('?? %s dep %s=%s', name, localName, depName)
       local dep = built[depName]
       if not dep then error(sfmt(
         'Cyclic dependency detected involving %q and %q. Sorted: %s',

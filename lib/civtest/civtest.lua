@@ -26,14 +26,11 @@ end
 
 M.assertEq = function(expect, result, pretty)
   if mty.eq(expect, result) then return end
-  local f = mty.Fmt{
-    set=mty.FmtSet{
-      pretty=((pretty == nil) and true) or pretty,
-    },
-  }
+  local f = (pretty or pretty == nil) and mty.Fmt2:pretty{}
+          or mty.Fmt2{}
   add(f, "! Values not equal:")
-  add(f, "\n! EXPECT: "); f:fmt(expect)
-  add(f, "\n! RESULT: "); f:fmt(result)
+  add(f, "\n! EXPECT: "); f(expect)
+  add(f, "\n! RESULT: "); f(result)
   add(f, '\n')
   if type(expect) == 'string' and type(result) == 'string' then
     M.diffFmt(f, expect, result)
@@ -62,7 +59,7 @@ function M.assertGlobals(prevG)
   local newG = {}; for k in pairs(_G) do
     if prevG[k] == nil then add(newG, k) end
   end
-  if #newG ~= 0 then error("New globals: "..mty.fmt(newG)) end
+  if #newG ~= 0 then error("New globals: "..mty.tostring(newG)) end
 end
 
 M.test = function(name, fn)

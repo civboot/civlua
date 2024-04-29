@@ -18,7 +18,7 @@ local window = pkg'ele.window'
 
 local yld = coroutine.yield
 local concat = table.concat
-local pnt, ty = mty.pnt, mty.ty
+local pnt, ty = mty.print, mty.ty
 
 local M = {}
 
@@ -39,7 +39,7 @@ Model.new=function(term_, inputCo)
     bindings=Bindings.default(),
 
     inputCo=inputCo, term=term_,
-    events=ds.LL(),
+    events=ds.LL{},
   }
   mdl = setmetatable(mdl, Model)
   mdl.statusEdit = mdl:newEdit('status')
@@ -138,7 +138,7 @@ end
 
 -- #####################
 --   * draw
-Model.draw=function(mdl)
+Model.draw = function(mdl)
   mdl.h, mdl.w = mdl.term:size()
   ds.update(mdl.view, {tl=1, tc=1, th=mdl.h, tw=mdl.w})
   mdl.view:draw(mdl.term, true)

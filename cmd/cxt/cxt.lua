@@ -37,7 +37,6 @@ M.attrs =   {PIN, Many{M.attr}, '}', kind='attrs'}
 
 local function addToken(p, node, l1, c1, l2, c2)
   if l2 >= l1 and (l2>l1 or c2>=c1) then
-    mty.pntf('?? add token: %q', lines.sub(p.dat, l1, c1, l2, c2))
     add(node, Token:encode(p, l1, c1, l2, c2))
   end
 end
@@ -380,10 +379,10 @@ A Writer for cxt serializers (terminal, http, etc) to use.
 The writer contains:
 * The src lines and token decoder for getting pegl.Token values.
 * The destination lines and current indent level.
-]](mty.record'cxt.Writer')
-  :field'src'
-  :field'to'
-  :field('indent', 'number')
+]](mty.record2'cxt.Writer') {
+  'src', 'to',
+  'indent[int]',
+}
 M.Writer.fromParser = function(ty_, p, to)
   return ty_{src=p.dat, to=to or {}, indent=0}
 end

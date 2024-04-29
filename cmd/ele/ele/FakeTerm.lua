@@ -1,10 +1,14 @@
 local pkg = require'pkg'
 local mty = pkg'metaty'
+local push = table.insert
 
 ------------------------------------------------------------------------
 -- Fake: a fake terminal for testing
 
-local FakeTerm = mty.rawTy'FakeTerm'
+local FakeTerm = mty.record2'FakeTerm'{
+  'h[int]: height', 'w[int]: width',
+  'l[int]: line',   'c[int]: column',
+}
 getmetatable(FakeTerm).__call = function(ty_, h, w)
   local t = setmetatable({}, ty_); FakeTerm.init(t, h, w)
   return t
@@ -30,10 +34,11 @@ FakeTerm.cleareol = function(t, l, c)
   for i=c, t.w do line[i] = '' end
 end
 
-FakeTerm.__tostring = function(t)
-  local out = {}
-  for i, line in ipairs(t) do out[i] = table.concat(line) end
-  return table.concat(out, '\n')
+FakeTerm.__fmt = function(t, f)
+  for i, line in ipairs(t) do
+    push(f, table.concat(line))
+    if i < #t then push(f, '\n') end
+  end
 end
 
 FakeTerm.size = function(t) return t.h, t.w end

@@ -26,7 +26,6 @@ local ds      = pkg'ds'
 local ff    = pkg'ff'
 local ele   = pkg'ele'
 local rock  = pkg'pkgrock'
-local flux  = pkg'flux'
 civtest.assertGlobals(initG)
 
 M.HELP = [[help module.any.object
@@ -53,8 +52,7 @@ shim{
     ele  = ele.main,
     ff   = ff.shim,
     rock = rock.shim,
-    ['cxt.html'] = pkg'cxt.html'.shim,
-    flux = flux.shim,
+    -- ['cxt.html'] = pkg'cxt.html'.shim,
   },
 }
 

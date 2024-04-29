@@ -1,9 +1,11 @@
+METATY_CHECK = true
 
 local pkg = require'pkg'
 local mty = pkg'metaty'
 local test, assertEq; pkg.auto'civtest'
 local gap = pkg'rebuf.gap'
 local Gap = gap.Gap
+local tostring = mty.tostring
 
 test('set', function()
   local g = Gap.new('ab\nc\n\nd')
@@ -163,8 +165,7 @@ end)
 test('ipairs', function()
   local g = Gap.new('12345\n6789\n98765\n')
   local t = {}; for i, v in ipairs(g) do
-    assertEq(g[i], g:get(i))
-    t[i] = tostring(v)
+    assertEq(g[i], g:get(i)) t[i] = v
   end
   assertEq({'12345', '6789', '98765', ''}, t)
 end)

@@ -65,14 +65,14 @@ Notes:
 * #recv gets number of items buffered.
 * recv:isDone() returns true when either recv is closed
   OR all senders are closed and #recv == 0.
-]](mt.record'Recv')
-  :field('deq', ds.Deq)
-  -- weak references of Sends. If nil then read is closed.
-  :fieldMaybe('_sends', ds.WeakKV)
-  :fieldMaybe'cor'
-:new(function(ty_)
-  return mt.new(ty_, {deq=ds.Deq(), _sends=ds.WeakKV{}})
-end)
+]](mt.record2'Recv') {
+  'deq    [Deq]',
+  '_sends [WeakKV]',
+  'cor    [thread]',
+}
+getmetatable(M.Recv).__call = function(T)
+  return mt.construct(T, {deq=ds.Deq(), _sends=ds.WeakKV{}})
+end
 M.Recv.close = mt.doc[[Close read side and all associated sends.]]
 (function(r)
   local sends = r._sends; if not sends then return end
@@ -105,11 +105,10 @@ Sender, created through ds.Recv.sender()
 
 Is considered closed if the receiver is closed.  The receiver will
 automatically close if it is garbage collected.
-]](mt.record'Send')
-  :fieldMaybe('_recv', M.Recv)
-:new(function(ty_, recv)
-  return mt.new(ty_, { _recv=assert(recv, 'missing Recv') })
-end)
+]](mt.record2'Send') {'_recv[Recv]'}
+getmetatable(M.Send).__call = function(T, recv)
+  return mt.construct(T, { _recv=assert(recv, 'missing Recv') })
+end
 M.Send.__mode = 'kv'
 M.Send.close = function(send)
   local r = send._recv; if r then
@@ -165,10 +164,11 @@ Example which handles multiple fns running simultaniously:
     -- do something related to index i
     any:restart(i) -- restart i to run again
   end
-]](mt.record'Any')
-  :field('cor', 'thread') :field'fns'
-  :field'done'
-:new(function(ty_, fns)
+]](mt.record2'Any') {
+  'cor[thread]', 'fns[table]',
+  'done[table]',
+}
+getmetatable(M.Any).__call = function(T, fns)
   local self = { cor = coroutine.running(), fns = {}, done = {} }
   for i, fn in ipairs(fns) do
     assert(type(fn) == 'function')
@@ -180,8 +180,8 @@ Example which handles multiple fns running simultaniously:
     end)
     self.done[i] = true
   end
-  return mt.new(ty_, self)
-end)
+  return mt.construct(T, self)
+end
 M.Any.ignore = function(self) self.cor = nil end
 M.Any.schedule = mt.doc'schedule() -> self: ensure all fns are scheduled'
 (function(self)
@@ -230,24 +230,26 @@ Example:
     end
     -- do other things in your application's executor loop
   end
-]](mt.record'Lap')
-  :field('sleepFn', 'function')
-  :field('monoFn', 'function')
-  :field('monoHeap', ds.Heap)
-  :field('defaultSleep', 'number', 0.01) -- 10 ms
-  :field'pollMap'
-  :fieldMaybe'pollList':fdoc[[Poll list data structure. Required methods:
-  * __len                   to get length with `#`
-  * insert(fileno, events)  insert the fileno+events into the poll list
-  * remove(fileno)          remove the fileno from poll list
-  * ready(self, durationSec) -> {filenos}
-      poll for durationSec (float), return any ready filenos.
-]]
-:new(function(ty_, ex)
+]](mt.record2'Lap') {
+  'sleepFn [function]',
+  'monoFn  [function]',
+  'monoHeap [Heap]',
+  'defaultSleep [float]',
+  'pollMap [table]',
+[[pollList [PollList] Poll list data structure. Required methods:
+* __len                   to get length with `#`
+* insert(fileno, events)  insert the fileno+events into the poll list
+* remove(fileno)          remove the fileno from poll list
+* ready(self, durationSec) -> {filenos}
+    poll for durationSec (float), return any ready filenos.
+]],
+}
+M.Lap.defaultSleep = 0.01
+getmetatable(M.Lap).__call = function(T, ex)
   ex.monoHeap = ex.monoHeap or heap.Heap{cmp = M.monoCmp}
   ex.pollMap  = ex.pollMap  or {}
-  return mt.new(ty_, ex)
-end)
+  return mt.construct(T, ex)
+end
 M.Lap.sleep = M.LAP_UPDATE.sleep
 M.Lap.poll  = M.LAP_UPDATE.poll
 M.Lap.execute = function(lap, cor)

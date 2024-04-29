@@ -2,6 +2,7 @@ METATY_CHECK = true
 
 local pkg = require'pkg'
 local mty = pkg'metaty'
+local tostring = mty.tostring
 local test, assertEq; pkg.auto'civtest'
 
 local ds = pkg'ds'

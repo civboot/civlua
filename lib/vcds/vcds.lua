@@ -23,13 +23,14 @@ This just squashes and trims the end.]]
 ---------------------
 -- Single Line Diff
 -- This type is good for displaying differences to a user.
-M.Diff = mty.record'vcds.Diff'
-  :field'b':fdoc"base: orig file.  '+'=added"
-  :field'c':fdoc"change: new file. '-'=removed"
-  :field('text', 'string')
-  :new(function(ty_, b, c, text)
-    return mty.new(ty_, {b=b, c=c, text=text})
-  end)
+M.Diff = mty.record2'Diff' {
+  "b (base)   orig file.  '+'=added",
+  "c (change) new file.   '-'=removed",
+  "text[string]",
+}
+getmetatable(M.Diff).__call = function(T, b, c, text)
+  return mty.construct(T, {b=b, c=c, text=text})
+end
 
 M.Diff.__tostring = function(d)
   return string.format("%4s %4s|%s", d.b, d.c, d.text)
@@ -46,12 +47,13 @@ end
 -- ChangeList composed of Keep and Change directives
 -- This is how diffs are often serialized
 
-M.Keep = mty.record'vcds.Keep':fieldMaybe('num',  'number')
+M.Keep = mty.record2'Keep' {'num[int]'}
 M.Keep.len = function(k) return k.num and k.num or #k end
 
-M.Change = mty.record'vcds.Change'
-  :field'rem':fdoc'removed lines. Can be number or list'
-  :fieldMaybe'add':fdoc'text to add'
+M.Change = mty.record2'Change' {
+  'rem[int|table] removed lines',
+  'add[string]    text to add',
+}
 M.Change.len = function(ch)
   return (type(ch.rem) == 'number') and ch.rem or #ch.rem
 end
@@ -83,9 +85,7 @@ end)
 M.toChanges = function(diffs, full)
   local changes, p = {}, nil
   for _, d in ipairs(diffs) do
-    mty.pnt('?? toChanges', d)
     if d:isKeep() then
-      mty.pnt('  ? isKeep:', d)
       if not p or mty.ty(p) ~= M.Keep then
         push(changes, p); p = M.Keep{num=not full and 0 or nil}
       end
@@ -169,7 +169,6 @@ above and below (unless they are start/end of file).
   __index = function(p, k) return getmetatable(p)[k] end,
   __call = function(p) -- iterator
     local de, changes, aLen = p.de, p.changes, p.set.anchorLen
-    mty.pntf('?? Picks(ci=%s de{cl=%s cl=%s})', p.ci, de.cl, de.cl)
     if p.ci > #changes then return end
     assert(ds.isEmpty(de.diffs))
 
@@ -233,12 +232,10 @@ Find the actual anchor by searching for uniqueness in the anchors:
 * above=true:  find above (search up)
 * above=false: find below (search down)
 ]](function(base, baseMap, anchors, above)
-  mty.pntf('?? findAnchor len=%s above=%s', #anchors, above)
   local iterFn = above and ds.ireverse or ipairs
   local alines = {}
   for ai, anchor in iterFn(anchors) do
     local bls = baseMap[anchor.text]; if not bls then return end
-    mty.pnt('?? find anchor loop:', ai, anchor, bls)
     if #bls == 1 then
       -- in this case below needs to subtract previous lines
       -- in `found` case, it is comparing correctly so no need.
@@ -256,9 +253,9 @@ Find the actual anchor by searching for uniqueness in the anchors:
   end
 end)
 
-M.Patch = mty.record'vcds.Patch'
-  :fieldMaybe('conflict', 'string')
-  :fieldMaybe('bl',       'number')
+M.Patch = mty.record2'Patch' {
+  'conflict [string]', 'bl [number]',
+}
 
 -- return isSoF, anchors
 M.pickAnchorsTop = function(pick)
@@ -282,7 +279,6 @@ local function patchConflict(pick, conflict)
 end
 
 local function patchApplyKeep(p, base, keep)
-  mty.pnt('?? applyKeep', keep)
   for _, kline in ipairs(keep) do
     if base[bl] ~= kline then return false end
     push(p, base[bl])
@@ -294,17 +290,13 @@ end
 -- attempt to apply the change.
 --   -> bl, clean, err
 local function patchApplyChange(p, base, ch)
-  mty.pnt('?? applyChange', ch)
   local remAnc, addAnc, iadd, irem = true, true, 1, 1
   while (iadd <= #ch.add) or (irem <= #ch.rem) do
     local bline = base[p.bl]
     local aline, rline = ch.add[iadd], ch.rem[irem]
     mty.assertf(rline ~= aline, '!removed == added: %s', rline)
-    mty.pntf('?? bline=%q rline=%q aline=%q', bline, rline, aline)
-    mty.pntf('?? iadd=%s chlen=%s', iadd, #ch.add)
     if bline == rline then irem = irem + 1
     elseif iadd <= #ch.add then
-      mty.pnt('?? adding aline', aline)
       if bline == aline then p.bl = p.bl + 1 end
       push(p, aline); iadd = iadd + 1
     else return false end
@@ -333,14 +325,12 @@ There are some strategies to fix common anchor misses:
 * empty lines are entirely ignored and are not considered an anchor
 ]]
 M.createPatch = function(base, baseMap, pick)
-  mty.pnt('?? createPatch', pick)
   local isSof, topA = M.pickAnchorsTop(pick)
   local isEof, botA = M.pickAnchorsBot(base, pick)
   local top, topLines = M.findAnchor(base, baseMap, topA, true)
   local bot, botLines = M.findAnchor(base, baseMap, botA, false)
   top = (isSof and 1)           or (top and (top + topLines))
   bot = (isEof and (#base + 1)) or (bot and (bot + botLines))
-  mty.pntf('?? top=%s bot=%s', top, bot)
   -- TODO: use next change or bot as anchor
   if not top then return patchConflict(pick,
     '%s anchor not found',
@@ -354,7 +344,6 @@ M.createPatch = function(base, baseMap, pick)
     end
   end
   for _, ch in ipairs(M.toChanges(pick, true)) do
-    mty.pnt('?? createPatch change:', ch)
     if mty.ty(ch) == M.Keep then
       clean2, conflict = patchApplyKeep(pch, base, ch)
       checkDirty'missing Keep after unanchored remove'
@@ -365,7 +354,6 @@ M.createPatch = function(base, baseMap, pick)
     if conflict then return patchConflict(pick, err) end
     clean = clean2
   end
-  mty.pnt('?? createPatch result:', new)
   pch.bl = (isSof and 0) or top
   return pch
 end

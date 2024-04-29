@@ -17,11 +17,11 @@ M.MONTH_SHORT = {
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 }
 
-M.DateTime = record'DateTime'
-  :field'year'
-  :field'yearSeconds':fdoc'seconds into year'
-  :fieldMaybe'ns'    :fdoc'nanoseconds into second'
-
+M.DateTime = record2'DateTime' {
+  'year[int]',
+  'yearSeconds[int]  seconds into year',
+  'ns[int]           nanoseconds into second',
+}
 M.DateTime.isLeapYear = function(dt) return 0 == dt.year % 4 end
 M.DateTime.dayOfYear = mty.doc'Get the day of the year [0-366]'
 (function(dt) return math.floor(dt.yearSeconds / DAY_SECONDS) end)

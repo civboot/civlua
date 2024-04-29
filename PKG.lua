@@ -14,14 +14,13 @@ dirs    = {
   'lib/vcds',
   'lib/fd',
   'lib/civix',
-  'lib/pegl',
-  'lib/luck',
+  -- 'lib/pegl',
+  -- 'lib/luck',
   'lib/patience',
   'lib/rebuf',
 
-  'cmd/cxt',
+  -- 'cmd/cxt',
   'cmd/ele',
   'cmd/ff',
   'cmd/pkgrock',
-  'cmd/flux',
 }

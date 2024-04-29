@@ -2,58 +2,62 @@ local pkg = require'pkg'
 local mty = pkg'metaty'
 local gap  = pkg'rebuf.gap'
 
-local record = mty.record
-
 local M = {Gap=gap.Gap}
 
-local NUM = 'number'
-
-M.Chain = mty.rawTy'Chain'
+M.Chain = mty.record2'Chain'{}
+M.Chain.__newindex = nil
+getmetatable(M.Chain).__index = nil
+getmetatable(M.Chain).__call = mty.constructUnchecked
 
 M.ViewId = 0
 M.nextViewId   = function() M.ViewId   = M.ViewId   + 1; return M.ViewId   end
 
 -- Window container
 -- Note: Window also acts as a list for it's children
-M.Window = record'Window'
-  :field('id', NUM)
-  :fieldMaybe'container' -- parent (Window/Model)
-  :fieldMaybe('splitkind', 'string') -- nil, h, v
-  :field('tl', NUM)  :field('tc', NUM) -- term lines, cols
-  :field('th', NUM)  :field('tw', NUM) -- term height, width
+M.Window = mty.record2'Window' {
+  'id[int]',
+  'container', -- parent (Window/Model)
+  'splitkind[string]', -- nil, h, v
+  'tl[int]',  'tc[int]', -- term lines, cols
+  'th[int]',  'tw[int]', -- term height, width
+}
 
-M.Edit = record'Edit'
-  :field('id', NUM)
-  :fieldMaybe'container' -- parent (Window/Model)
-  :fieldMaybe'canvas'
-  :field('buf', Buffer)
-  :field('l',  NUM)    :field('c',  NUM) -- cursor line, col
-  :field('vl', NUM)    :field('vc', NUM) -- view   line, col (top-left)
-  :field('tl', NUM)    :field('tc', NUM) -- term   line, col (top-left)
-  :field('th', NUM)    :field('tw', NUM) -- term   height, width
-  :field('fh', NUM, 0) :field('fw', NUM, 0) -- force h,w
+M.Edit = mty.record2'Edit' {
+  'id[int]',
+  'container', -- parent (Window/Model)
+  'canvas',
+  'buf[Buffer]',
+  'l[int]',     'c[int]', -- cursor line, col
+  'vl[int]',    'vc[int]', -- view   line, col (top-left)
+  'tl[int]',    'tc[int]', -- term   line, col (top-left)
+  'th[int]',    'tw[int]', -- term   height, width
+  'fh[int]',    'fw[int]', -- force h,w
+}
+M.Edit.fh = 0; M.Edit.fw = 0
 
-M.Action = record'Action'
-  :field('name', 'string') :field('fn', 'function')
-  :fieldMaybe('brief', 'string')
-  :fieldMaybe('doc', 'string')
-  :fieldMaybe'config'  :fieldMaybe'data' -- action specific
+M.Action = mty.record2'Action' {
+  'name[string]', 'fn[function]',
+  'brief[string]',
+  'doc[string]',
+  'config',       'data' -- action specific
+}
 
 -- Bindings to Actions
-M.Bindings = record'Bindings'
-  :field'insert'
-  :field'command'
+M.Bindings = mty.record2'Bindings' {
+  'insert', 'command',
+}
 
-M.Model = record'Model'
-  :field('mode', 'string')
-  :field('h', NUM)  :field('w', NUM)  -- window height/width
-  :field'view' -- Edit or Cols or Rows
-  :field'edit' -- The active editor
-  :field'statusEdit'      :field'searchEdit'
-  :field('buffers', Map)  :field('freeBufId', NUM)  :field'freeBufIds'
-  :field('start', Epoch)  :field('lastDraw', Epoch)
-  :field('bindings', Bindings)
-  :fieldMaybe'chain'
-  :field'inputCo'  :field'term'
+M.Model = mty.record2'Model' {
+  'mode[string]',
+  'h[int]',  'w[int]',  -- window height/width
+  'view', -- Edit or Cols or Rows
+  'edit', -- The active editor
+  'statusEdit',      'searchEdit',
+  'buffers[int]',  'freeBufId[int]',  'freeBufIds',
+  'start[Epoch]',  'lastDraw[Epoch]',
+  'bindings[Bindings]',
+  'chain',
+  'inputCo',  'term',
+}
 
 return M

@@ -2,8 +2,8 @@
 
 **`./civlua.lua help metaty`**
 
-Metatype is a library and specification which lets you create performant
-typo-safe and documented Lua types.
+Metatype is a library and specification for creating performant
+documented and typo-safe Lua Types which can be formatted.
 
 ```
 METATY_CHECK = true -- before require: turn on type check
@@ -21,45 +21,75 @@ local p1 = Pos{x=4}
 local p1 = Pos{x=4, y=3, z=5} -- error if checking turned on
 ```
 
-The above expands to roughly the following, features like
-type checking and string formatting not included. See also:
-[Specification](#Specification).
-
+The above expands to the following. Note that the "typosafe" elements
+are removed when `METATY_CHECK == false`
 ```
 local Pos = setmetatable({
   __name='Pos',
-  y = 0,
+
+  -- used with metaty.Fmt and help()
+  __fmt=metaty.recordFmt,
+  __fields={'x', 'y', x='[int]', y='[int]'},
+  __newindex = metaty.newindex, -- typosafe setting
 }, {
-  __call = function(T, t) return setmetatable(t, T) end,
+  __call = function(T, t)
+    metaty.fieldsCheck(T.__fields, t) -- typosafe constructor
+    return setmetatable(t, T)
+  end,
+  __index = metaty.index, -- typosafe getting
 })
 Pos.__index = Pos
+Pos.y = 0
 DOC[Pos]       = 'Documentation for Pos (position)'
 FIELD_DOC[Pos] = {x='x coordinate', y='y coordinate'}
 ```
 
+## API
+
+* `ty(v)` return the metaty of `v`. For tables this is `getmetatable(v)`,
+  else it is `type(v)`.
+* `record`'name' {'field1[type] documentation', 'field2[type]'}`
+  creates a documented and typo-safe record type (see examples)
+* `doc'some documentation'(something)` set 
+  `DOC[something] = 'some documentation'`
+* `tostring(v)` convert `v` to string using `Fmt` (expands tables)
+* `format(pat, ...)` the same as `string.format` except `%q` uses `Fmt` (expands
+  tables).
+* `eprint(...)` print to stderr (NOT stdout) using `Fmt` (expands tables)
+* `eprintf(pat, ...)` shortcut for `eprint(format(pat, ...))`
+
 ## Why?
 
 Lua is a fast and fun language. However it often lacks the ability to express
-intent when it comes to the structure of data. Also, not only is it "type
-unsafe" but it is also "typo unsafe" -- small mistakes in the name of a field
-can easily result in hard to diagnose bugs.
+intent when it comes to the structure of data. Also, not only is it not
+type-safe but it is also TYPO-unsafe -- small mistakes in the name of a field
+can easily result in hard to diagnose bugs, even when they occur in one's
+unit-test suite.
 
-It is also way too difficult to print tables (i.e. `table: 0x1234` by default).
+Checking for typos incurrs a small performance cost, so it is disabled by
+default. However, it is well-worth the cost in your unit tests.
+
+It is also WAY too difficult to format tables in Lua. This library and spec
+provides a Formatter specification and implementation (`metaty.Fmt`).
 
 ## Specification
-Any library can follow the type specification. For a type
-to be considered a "metaty" it must only have a metatable
-set to it with a `__name`. In addition, they can add documentation
-for their types (including functions) by copy/pasting the following
-global variables:
+Any library can follow the type specification.
 
+There are two global variables used for documentation/help:
 ```
 DOC       = DOC       or {} -- key=type/fn value=doc string
 FIELD_DOC = FIELD_DOC or {} -- key=type    value=table of field docs
+METATY_CHECK = false        -- see Runtime type checking
 ```
 
-Their metatables can further more define the following fields:
+For a type to be considered a "metaty" the only requirement is that it has a
+metatable set and that metatable has a `__name` field. Alternatively, it's
+`__metatable` can be set to a string, in which case it emulates a "native" type.
 
+The following fields can optionally be set on the metatable:
+
+* `__fmt`: if present, will be called by a compliant Formatter object instead
+  of formatting the object.
 * `__fields`: should contain a table which contains fieldName -> fieldtype.
   fieldType can be an arbitrary string and is only for documentation, though
   future libraries/applications (type checkers) may eventually wish to consume
@@ -71,26 +101,23 @@ Their metatables can further more define the following fields:
 
 In addition, there is runtime type specification defined below.
 
-## Runtime type checking (optional)
+## Runtime typo checking (optional)
 
-> Note: Runtime type checking has a cost and so is **optional**
+> Note: Runtime typo checking has a cost and so is **optional**
 > (default=false).
 
 To enable runtime checking set the global value `METATY_CHECK = true` at
 the top of your application or test file (before executing ANY `require` calls).
-**Set in TEST files only, or main behind a developer flag. Do not set it in
+**Set in TEST files only, or put behind a flag or env variable. Do not set it in
 library/module/etc files**.
 
 > Note: For your application you may want to add `assert(not metaty.getCheck())`
-> after all your `require` calls to ensure type checking was disabled.
+> after all your `require` calls to ensure typo checking was disabled.
 
-Type checking for record types is setup in the constructor and
-`forceCheckRecord`.  You can override these functions for individual record
-types to alter how type checking behaves (regardless of `METATY_CHECK`):
+You can override the typo-checking behavior with:
 
 ```
-myType.__index    = myIndex
-myType.__newindex = myNewIndex
-myType.__missing  = myMissing
-ty(myType).__call = myConstructor
+getmetatable(MyType).__call  = myConstructor
+getmetatable(MyType).__index = myIndex
+MyType.__newindex            = myNewIndex
 ```

@@ -1,6 +1,5 @@
 local pkg = require'pkg'
 local mty = pkg'metaty'
-local record, Any = mty.record, mty.Any
 local add, pop, sfmt = table.insert, table.remove, string.format
 
 local M = {
@@ -504,7 +503,8 @@ M.WeakKV = mty.doc[[Weak key+value table, see docs on '__mode']]
 }))
 
 ---------------------
--- Sentinal, none type, bool() and empty table
+-- Sentinal, none type, bool()
+-- immutable table and empty table
 
 local _si=function() error('invalid operation on sentinel', 2) end
 M.newSentinel = mty.doc[[newSentinel(name, ty_, metatable)
@@ -530,7 +530,6 @@ none is a sentinel value. Use it in APIs where there is an
 "unset but none" such as JSON's "null".
 ]]
 M.none = M.newSentinel('none', {}, {__metatable='none'})
-mty.addNativeTy(M.none, {doc=noneDoc})
 
 M.bool = mty.doc[[convert to boolean (none aware)]]
 (function(v) return not rawequal(M.none, v) and v and true or false end)
@@ -541,50 +540,26 @@ M.empty = setmetatable({}, {
   __metatable = 'table',
 })
 
----------------------
--- imm(myTy) and Imm{...} table
-
-M._IMM_FIELD = '! DO-NOT-SET !'; M.IMM_DEFAULTS = {
-  __index=function(self, k)
-    local x = self[M._IMM_FIELD][k]; if x ~= nil then return x end
-    return mty.indexChecked(self, k)
-  end,
-  __newindex=function()  error('set on immutable type', 2) end,
-  __pairs=function(v)    return pairs(v[M._IMM_FIELD]) end,
-  __ipairs=function(v)   return ipairs(v[M._IMM_FIELD]) end,
-  __len=function(v)      return #v[M._IMM_FIELD] end,
-}
-M.newImmChecked = function(ty_, t)
-  return setmetatable({[M._IMM_FIELD]=t}, ty_)
+-- Immutable table
+local IMM_DATA = '<!imm data!>'
+M.Imm = mty.record2'Imm' {}
+M.Imm.__metatable = 'table'
+M.Imm.__newindex = function() error'cannot modify Imm table' end
+M.Imm.__index    = function(t, k)
+  local d = rawget(t, IMM_DATA); return d and d[k]
 end
-M.newImm = mty.getCheck() and M.newImmChecked or mty.new
+M.Imm.__pairs    = function(t)
+  local d = rawget(t, IMM_DATA); if not d then return M.noop end
+  return pairs(d)
+end
+M.Imm.__len      = function(t)
+  local d = rawget(t, IMM_DATA); return not d and 0 or #d
+end
+getmetatable(M.Imm).__call = function(T, t)
+  return setmetatable({[IMM_DATA]=next(t) and t or nil}, T)
+end
 
-M.immChecked = mty.doc[[
-imm(MyType): make a type (record, etc) mostly-immutable.
-We actually hide the table inside [ds._IMM_FIELD], but nobody needs
-to know that!
-Example:
-  myTy = imm(record'myTy')
-    :field'f1'
-  -- Important: use ds.newImm (not metaty.new)
-  :new(function(ty_, t) ...; return ds.newImm(ty_, t) end)]]
-(function(ty_)
-  getmetatable(ty_).__call=M.newImm
-  M.update(ty_, M.IMM_DEFAULTS)
-  return ty_
-end)
-M.imm = mty.getCheck() and M.immChecked or mty.identity
-
-M.ImmChecked = mty.doc[[Imm{hi='immutable'}: immutable table.
-In all ways this will look like a normal table:
-  metaty.ty(Imm{}) == 'table'
-  however: getmetatable(Imm{}) == 'table' -- instead of nil
-
-Caveats: see ds.imm.]]
-(M.immChecked(mty.rawTy'Imm'))
-M.ImmChecked.__index=function(v, k) return v[M._IMM_FIELD][k] end
-M.ImmChecked.__metatable = 'table'
-M.Imm = mty.getCheck() and M.ImmChecked or mty.identity
+M.empty = M.Imm{}
 
 ---------------------
 -- Duration
@@ -605,10 +580,10 @@ local function assertTime(t)
   return t
 end
 
-local timeNew = function(ty_, s, ns)
-  if ns == nil then return ty_:fromSeconds(s) end
+local timeNew = function(T, s, ns)
+  if ns == nil then return T:fromSeconds(s) end
   local out = {s=s, ns=ns}
-  return setmetatable(assertTime(out), ty_)
+  return setmetatable(assertTime(out), T)
 end
 local fromSeconds = function(ty_, s)
   local sec = math.floor(s)
@@ -618,8 +593,10 @@ local fromMs = function(ty_, s)     return ty_(s / 1000) end
 local fromMicros = function(ty_, s) return ty_(s / 1000000) end
 local asSeconds = function(time) return time.s + (time.ns / NANO) end
 
-M.Duration = record('Duration', {__call=timeNew})
-  :field('s', 'number') :field('ns', 'number')
+M.Duration = mty.record2'Duration' {
+  's[int]: seconds', 'ns[int]: nanoseconds',
+}
+getmetatable(M.Duration).__call = timeNew
 
 M.Duration.NANO = NANO
 M.Duration.fromSeconds = fromSeconds
@@ -646,8 +623,10 @@ M.DURATION_ZERO = M.Duration(0, 0)
 
 ---------------------
 -- Epoch: time since the unix epoch. Interacts with duration.
-M.Epoch = record('Epoch', {__call=timeNew})
-  :field('s', 'number') :field('ns', 'number')
+M.Epoch = mty.record2'Epoch' {
+  's[int]: seconds', 'ns[int]: nanoseconds',
+}
+getmetatable(M.Epoch).__call = timeNew
 
 M.Epoch.fromSeconds = fromSeconds
 M.Epoch.asSeconds = asSeconds
@@ -670,24 +649,27 @@ end
 
 ---------------------
 -- Set
-M.Set = mty.rawTy('Set', {
-  __call=function(ty_, t)
-    local s = {}
-    for _, k in ipairs(t) do s[k] = true end
-    return setmetatable(s, ty_)
-  end,
-})
+M.Set = mty.record2'Set'{}
+M.Set.__newindex = nil
+getmetatable(M.Set).__index = nil
+getmetatable(M.Set).__call = function(T, t)
+  local s = {}
+  for _, k in ipairs(t) do s[k] = true end
+  return mty.constructUnchecked(T, s)
+end
 
 -- Pretty much the same as tblFmt except don't print values
 M.Set.__fmt = function(self, f)
-  f:levelEnter('Set{')
-  local keys = mty.orderedKeys(self, f.set.keysMax)
+  add(f, 'Set'); add(f, f.tableStart);
+  local keys = {}; for k in ipairs(self) do add(keys, k) end
+  table.sort(keys)
+  if #keys > 1 then f:incIndent() end
   for i, k in ipairs(keys) do
     f:fmt(k)
-    if i < #keys then f:sep(f.set.itemSep) end
+    if i < #keys then add(f, f.indexEnd) end
   end
-  if #keys >= f.set.keysMax then add(f, '...'); end
-  f:levelLeave('}')
+  if #keys > 1 then f:decIndent() end
+  add(f, f.tableEnd)
 end
 
 M.Set.__eq = function(self, t)
@@ -762,9 +744,9 @@ function M.ll.budge(prev, nxt, node, a)
   prev[node], prev[a] = a, b
 end
 
-M.LL = record('LL')
-  :fieldMaybe('front', 'table')
-  :fieldMaybe('back', 'table')
+M.LL = mty.record2'LL' {
+  'front[&table]', 'back[&table]',
+}
 
 M.LL.isEmpty = function(self)
   return nil == self.front and assert(nil == self.back)
@@ -921,11 +903,11 @@ getmetatable(M.BiMap).__call = function(ty_, t)
   for _, k in pairs(keys) do t[t[k]] = k end
   return setmetatable(t, ty_)
 end
-getmetatable(M.BiMap).__index = nil
+M.BiMap.__fields = nil
 M.BiMap.__newindex = function(t, k, v)
-  mty.pnt('?? BiMap newindex', k, v)
   rawset(t, k, v); rawset(t, v, k)
 end
+getmetatable(M.BiMap).__index = nil
 M.BiMap.__fmt = nil
 M.BiMap.remove = function(t, k)
   local v = t[k]; t[k] = nil; t[v] = nil

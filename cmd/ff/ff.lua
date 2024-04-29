@@ -53,43 +53,37 @@ local M = {}
 M.FF = mty.doc[[
 List arguments:
   path path2 path3 ...: list of paths to find/fix
-]](mty.record'FF')
-  :fieldMaybe('depth', 'number'):fdoc
-    [[depth to recurse. '' or nil will recurse infinitely.]]
-  :field('files', 'boolean', true):fdoc
-    [[log/return files or substituted files.]]
-  :field('matches', 'boolean', true):fdoc
-    [[log/return the matches or substitutions.]]
-  :field('dirs', 'boolean', false):fdoc[[log/return directories.]]
-  :fieldMaybe('fpat', 'string'):fdoc
-    [[file name pattern to include.]]
-  :fieldMaybe('pat', 'table'):fdoc[[
-content pattern/s which searches inside of files and prints the results.
-    Any match will include the file/line in the output in order.
-    sub will use the first match found.]]
-  :fieldMaybe'dpat':fdoc[[
-directory name patterns to include, can specify multiple times.
-    ANY matches will include the directory.]]
-  :fieldMaybe('excl', 'table'):fdoc[[
-default='/%.[^/]+/', aka exclude hidden directories.
-    directory name pattern/s to exclude, can specify multiple times.
-    ANY matches will exclude the directory.]]
-  :field('mut', 'boolean', false):fdoc[[
-If not true will NEVER modify files (but does print)]]
-  :fieldMaybe('fsub', 'string'):fdoc[[
-file substitute for fpat (rename files).
-    Note: ff will never rename dirs.]]
-  :fieldMaybe('sub', 'string'):fdoc
-    [[substitute pattern to go with pat (see lua's gsub)]]
-  :fieldMaybe'log':fdoc[[path or (Lua) filehandle to log to.]]
-  :field('fpre', 'string', ''):fdoc
-    [[prefix characters before printing files]]
-  :field('dpre', 'string', ''):fdoc
-    [[prefix characters before printing directories]]
-  :field('plain', 'boolean', false):fdoc'no line numbers'
+]](mty.record2'FF') {
+  [[depth[int]: depth to recurse (default=infinite)]],
+  [[files[bool]: log/return files or substituted files.]],
+  [[matches[bool]: log/return the matches or substitutions.]],
+  [[dirs[bool]: log/return directories.]],
+  [[fpat[string]: file name pattern to include.]],
+  [[pat[table]: content pattern/s which searches inside of files
+    and prints the results. Any match will include the file/line in
+    the output in order. sub will use the first match found.]],
+  [[dpat: directory name patterns to include, can specify multiple
+    times.  ANY matches will include the directory.]],
+  [[excl [table]: exclude pattern (default='/%.[^/]+/') 
+    The default exclude ".hidden" directories.
+    Can specify multiple times ANY matches will exclude the path]],
+  [[mut [bool]: if true files may be modified. mut=false is like dry]],
+  [[fsub[string]: file substitute for fpat (rename files).
+    Note: ff will never rename dirs.]],
+  [[sub [string]: substitute pattern to go with pat (see lua's gsub)]],
+  [[log: path or (Lua) filehandle to log to.]],
+  [[fpre[string]: prefix characters before printing files]],
+  [[dpre [string]: prefix characters before printing directories]],
+  [[plain [bool]: no line numbers]],
+}; ds.update(M.FF, {
+  files=true,  matches=true,     dirs=false,
+  mut = false, fpre='', dpre='', plain = false,
+})
 
-local f = mty.helpFmter(); mty.helpFields(M.FF, f)
-M.DOC = DOC..'\n'..table.concat(f); f = nil; DOC = nil
+-- FIXME
+-- local f = mty.helpFmter(); mty.helpFields(M.FF, f)
+-- M.DOC = DOC..'\n'..table.concat(f); f = nil; DOC = nil
+M.DOC = DOC
 
 local function wln(f, msg, pre, i)
   if pre then f:write(pre) end

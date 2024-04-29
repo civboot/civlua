@@ -17,7 +17,7 @@ local function assertRow(expected, row)
   push(ser.dat, '')
   assertEq(expected, l2str(ser.dat))
 
-  mty.pnt('?? -------- Deserializing')
+  print'?? -------- Deserializing'
   local de = M.De{ser.dat}
   local resRow = de()
   assertEq(row, resRow)
@@ -30,7 +30,6 @@ local function assertRows(expected, rows, specs, only)
     if specs then for _, spec in ipairs(specs) do
       ser:define(spec)
     end end
-    mty.pnt('?? test specs', specs, ser.specs)
     ser:rows(rows); push(ser.dat, '')
     assertEq(expected, l2str(ser.dat))
   end
@@ -110,7 +109,7 @@ test('nested', function()
 )
 end)
 
-local Abc = mty.record'Abc':field'a' :field'b' :field'c'
+local Abc = mty.record2'Abc'{'a', 'b', 'c'}
 
 test('header', function()
   assertRows([[
@@ -161,11 +160,11 @@ test('multi keyed', function()
     })
 end)
 
-local Abt = mty.record'Abt':field'a' :field'b' :field't'
-local Cd  = mty.record'Cd' :field'c' :field'd'
-local User = mty.record'User':field'n' :field'b'
-local Account = mty.record'Account'
-  :field'i' :field'a' :field't'
+local Abt = mty.record2'Abt'{'a', 'b', 't'}
+local Cd  = mty.record2'Cd'{'c', 'd'}
+local User = mty.record2'User'{'n', 'b'}
+local Account = mty.record2'Account'
+  {'i', 'a', 't'}
 
 test('named header', function()
   assertRows([[
@@ -278,12 +277,10 @@ test('autospec', function()
   "five	{:1	"six	"seven	}
   ]]}
   local res = de:all()
-  mty.pnt('?? de.specs', de.specs)
-  mty.pnt('?? res', res)
   local t0 = assert(de.specs['0'])
   local t1 = assert(de.specs['1'])
   assertEq('!0', t0.__name)
-  assertEq({'a', 'b', a=mty.Any, b=mty.Any}, t0.__fields)
+  assertEq({'a', 'b', a=true, b=true}, t0.__fields)
   assertEq({
     t0{a=1, b=2, 3, 4},
     t0{a='five', b = t1{

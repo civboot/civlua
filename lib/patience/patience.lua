@@ -8,11 +8,14 @@ local vcds = pkg'vcds'
 local push = table.insert
 local M = {}
 
-local DiffI = mty.record'patience.DiffI'
-  :field('sym', 'string'):fdoc'{" " + -}'
-  :fieldMaybe('b', 'number'):fdoc'base (original) line num'
-  :fieldMaybe('c', 'number'):fdoc'change (new) line num'
-  :new(function(ty_, sym, b, c) return mty.new(ty_, {sym=sym, b=b, c=c}) end)
+local DiffI = mty.record2'patience.DiffI' {
+  'sym[string]: {" " + -}',
+  'b  [number]: base (original) line num',
+  'c  [number]: change (new) line num',
+}
+getmetatable(DiffI).__call = function(T, sym, b, c)
+  return mty.construct(T, {sym=sym, b=b, c=c})
+end
 DiffI.__tostring = function(di) return string.format('DI(%s|%s)', di.b, di.c) end
 
 local function ensureCount(t, line)

@@ -55,23 +55,21 @@ end
 
 M.Heap = mty.doc[[
 Heap(t, cmp) binary heap using a table.
-A binary heap is a binary tree where the value of the
-parent always satisfies cmp(parent, child) == true
-
-  Minheap: cmp = function(p, c) return p < c end
-  Maxheap: cmp = function(p, c) return p > c end
-
-The default is cmp=ds.lt (minheap)
+A binary heap is a binary tree where the value of the parent always
+satisfies `cmp(parent, child) == true`
+  Min Heap: cmp = function(p, c) return p < c end (default)
+  Max Heap: cmp = function(p, c) return p > c end
 
 add and push take only O(log n), making it very useful for
 priority queues and similar problems.
-]](mty.record'Heap')
-  :field('cmp', 'function')
-:new(function(ty_, t, cmp)
+]](mty.record2'Heap') {
+  'cmp[function]: comparison function to use'
+}
+getmetatable(M.Heap).__call = function(T, t, cmp)
   t.cmp = cmp or ds.lt
   init(t, t.cmp)
-  return mty.new(ty_, t)
-end)
+  return mty.construct(T, t)
+end
 
 M.Heap.add = mty.doc[[h:add(v) add value to the heap.]]
 (function(h, v) push(h, v); percUp(h, 1, #h, #h, h.cmp) end)

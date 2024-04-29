@@ -10,25 +10,27 @@ local add, ty = table.insert, mty.ty
 M.ChangeId = 0
 M.nextChangeId = function() M.ChangeId = M.ChangeId + 1; return M.ChangeId end
 
-M.ChangeStart = mty.record'ChangeStart'
-  :field('l1', NUM)       :field('c1', NUM)
-  :fieldMaybe('l2', NUM)  :fieldMaybe('c2', NUM)
+M.ChangeStart = mty.record2'ChangeStart' {
+  'l1[int]',       'c1[int]',
+  'l2[int]',       'c2[int]',
+}
 
-M.Change = mty.record'Change'
-  :field('k', 'string')
-  :field('s', 'string')
-  :field('l', NUM) :field('c', NUM)
+M.Change = mty.record2'Change' {
+  'k[string]', 's[string]',
+  'l[int]',    'c[int]',
+}
 
-M.Buffer = mty.record'Buffer'
-  :field('id', NUM)
-  :field('gap', gap.Gap)
+M.Buffer = mty.record2'Buffer' {
+  'id  [int]',
+  'gap [Gap]',
 
   -- recorded changes from update (for undo/redo)
-  :field'changes'
-  :field('changeMax', NUM)
-  :field('changeStartI', NUM)
-  :field('changeI', NUM)
-  :fieldMaybe'mdl'
+  'changes',
+  'changeMax [int]',
+  'changeStartI [int]',
+  'changeI [int]',
+  'mdl',
+}
 
 local Buffer, Change, ChangeStart = M.Buffer, M.Change, M.ChangeStart
 

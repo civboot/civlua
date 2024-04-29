@@ -39,8 +39,6 @@ as none" instead of simply "unset" (which is what `nil` means).
 
 WARNING: `assert(none)` will pass.  Use `ds.bool` to make `none` falsy.
 
-Note: calls `metaty.addNativeTy'none'`
-
 ## Imm and imm
 `ds.Imm(myTable)` will make `myTable` immutable. In almost all ways it will
 seem like a regular "table" type, even to `metaty.ty`. See the documentation for

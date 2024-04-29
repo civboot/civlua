@@ -83,7 +83,6 @@ Example:
   return M.LinesFile(t)
 end)
 M.LinesFile.__index = function(self, l)
-  mty.pntf('!! LF index: l=%s pos=%s', l, self._pos)
   local meth = getmetatable(self)[l]; if meth then return meth end
   -- Note: only called if line is not already cached
   mty.assertf(l >= 1, 'line must be >= 1: %s', l)
@@ -173,18 +172,19 @@ IndexedFile{path}                  -- tmpfile index
 IndexedFile{path, idx=pathToIndex} -- load index from pathToIndex
 
 You can use createFileIdx to load/create your own idx.
-]](mty.record'IndexedFile')
-  :field('file',  'userdata')
-  :field('idx',   M.FileIdx)
-  :field('_line', 'number')
-:new(function(ty_, t)
+]](mty.record2'IndexedFile') {
+  'file   [userdata',
+  'idx    [FileIdx]',
+  '_line  [number]',
+}
+getmetatable(M.IndexedFile).__call = function(T, t)
   if t[1] then t.file = t[1]; t[1] = nil end
   if mty.ty(t.idx) ~= M.FileIdx then
     t.idx = M.createFileIdx(t.file, t.idx, true)
   end
   t._line = 0
-  return mty.new(ty_, t)
-end)
+  return mty.construct(T, t)
+end
 M.IndexedFile.__index = function(self, l)
   local meth = rawget(M.IndexedFile, l); if meth then return meth end
   if l < 1 or l > self.idx.len then return end

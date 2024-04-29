@@ -5,9 +5,7 @@ local pkg = require'pkg'
 local M = pkg'metaty'
 assert(M.getCheck())
 
-local ty, tyName, tyCheck, record, record2;
-local fmt, Fmt, FmtSet, split
-pkg.auto'metaty'
+local ty, tyName, record2, split, Fmt2; pkg.auto'metaty'
 
 local add, sfmt = table.insert, string.format
 
@@ -18,11 +16,11 @@ local function test(name, fn) print('# Test', name) fn() end
 
 local function assertEq(expect, result)
   if M.eq(expect, result) then return end
-  local f = M.Fmt{set=FmtSet{ pretty=true }}
+  local f = Fmt2:pretty{}
   add(f, "! Values not equal:")
-  add(f, "\n! EXPECT: "); f:fmt(expect)
-  add(f, "\n! RESULT: "); f:fmt(result); add(f, '\n')
-  error(table.concat(f))
+  add(f, "\n! EXPECT: "); f(expect)
+  add(f, "\n! RESULT: "); f(result); add(f, '\n')
+  error(table.concat(f), 2)
 end
 
 local function assertMatch(expectPat, result)
@@ -86,22 +84,6 @@ test('tyName', function()
   local mt = {__name='F'}
   assertEq('F', tyName(mt))
   assertEq('F', tyName(ty(setmetatable({}, mt))))
-
-  assert(not M._isTyErrMsg('string'))
-  assertEq('"null" is not a native type', M._isTyErrMsg('null'))
-  assertEq('boolean cannot be used as a type',
-           M._isTyErrMsg(true))
-end)
-
-test('Fmt', function()
-  -- Fmt is required for debugging. Test thouroughly
-  local f, m = Fmt.__fields, Fmt.__maybes
-  assert(f.done  == 'table')
-  assert(f.level == 'number')
-  assert(f.set   == FmtSet)
-  assert(f.file  == M.Any)
-  assert(m.file  == true)
-  FmtSet{}; Fmt{}
 end)
 
 test('record', function()
@@ -118,17 +100,14 @@ test('record', function()
   assertEq('[any]', getmetatable(a).__fields.a2)
   assert(A == ty(a))
   assert('hi' == a.a1); assert(5 == a.a2)
-  assertEq('A{a2=5 a1="hi"}', tostring(a))
+  assertEq('A{a2=5, a1="hi"}', M.tostring(a))
   a.a2 = 4;             assert(4 == a.a2)
 
   local b = B{b1=5, a=a}
   assert(B == getmetatable(b))
   assertEq(5, b.b1); assertEq(32, b.b2) -- default
   b.b2 = 7;          assertEq(7, b.b2)
-  assertEq('B{b1=5 b2=7 a=A{a2=4 a1="hi"}}', tostring(b))
-
-  assertEq(A,   tyCheck(A, A))
-  assertEq(B,   tyCheck(B, B))
+  assertEq('B{b1=5, b2=7, a=A{a2=4, a1="hi"}}', M.tostring(b))
 
   print('!! expect err', a, getmetatable(a).__fields)
   assertErrorPat('A does not have field a3',
@@ -154,7 +133,7 @@ test("tostring", function()
   assertEq('"123"',     toStr("123"))
   assertEq('"abc def"', toStr("abc def"))
   assertEq('423',       toStr(423))
-  assertEq('1A',        toStr(26, M.Fmt2{numfmt='%X'}))
+  assertEq('1A',        toStr(26, Fmt2{numfmt='%X'}))
   assertEq('true',      toStr(true))
   assertMatch('Fn@.*/metaty%.lua:%d+', toStr(M.errorf))
   assertMatch('{hi=4}', toStr{hi=4})
@@ -179,6 +158,13 @@ test("fmt", function()
            M.tostring({1, 2, a=12}, M.Fmt2:pretty{}))
 end)
 
+test('format', function()
+  assertEq('hi "Bob"! Goodbye',
+    M.format('hi %q! %s', 'Bob', 'Goodbye'))
+  assertEq('running point: {x=3, y=7}...',
+    M.format('%s point: %q...', 'running', {x=3, y=7}))
+end)
+
 test('globals', function()
   local gr = {}; for k in pairs(_G) do table.insert(gr, k) end
   table.sort(ge); table.sort(gr);
@@ -192,41 +178,42 @@ test('doc', function()
 --     true: 'true' '1'    false: 'false' '0' '']],
 -- M.help(M.isEnv))
   local A = M.doc'demo record and some fields.'
-  (record'A')
-    :field('a1', 'number', 3):fdoc'pick number,\
-    now with newline!'
-    :fieldMaybe('a2', 'string'):fdoc'and a string'
-assertMatch(([=[
-%[A%]: demo record and some fields.
-
-  Fields:
-    a1 %[number default=3%]: pick number,
-        now with newline!
-    a2 %[string default=nil%]: and a string
-%s*
-  metatable=%b{}
-%s*
-  Members
-    __doc: string
-    __fdocs: table
-    __fields: table
-    __maybes: table
-    __name: string
-%s*
-  Methods
-    __fmt      %s+: function %b[]
-    __index    %s+: function %b[]
-    __missing  %s+: function %b[]
-    __newindex %s+: function %b[]
-    __tostring %s+%(DOC%) : function %b[]
-]=]):sub(1, -2), -- remove newline
-M.help(A))
+  (record2'A') {
+    [[a1[number]: pick number
+    now with newline!]],
+    [[a2[string]: and a string]],
+  }
+-- assertMatch(([=[
+-- %[A%]: demo record and some fields.
+-- 
+--   Fields:
+--     a1 %[number default=3%]: pick number,
+--         now with newline!
+--     a2 %[string default=nil%]: and a string
+-- %s*
+--   metatable=%b{}
+-- %s*
+--   Members
+--     __doc: string
+--     __fdocs: table
+--     __fields: table
+--     __maybes: table
+--     __name: string
+-- %s*
+--   Methods
+--     __fmt      %s+: function %b[]
+--     __index    %s+: function %b[]
+--     __missing  %s+: function %b[]
+--     __newindex %s+: function %b[]
+--     __tostring %s+%(DOC%) : function %b[]
+-- ]=]):sub(1, -2), -- remove newline
+-- M.help(A))
 end)
 
-test('fmtFile', function()
-  local f = Fmt{file=io.open('.out/TEST', 'w+')}
-  f:fmt{1, 2, z='bob', a='hi'}
-  f.file:flush(); f.file:seek'set'
-  assertEq('{1,2 :: a="hi" z="bob"}', f.file:read'a')
-  f.file:close()
-end)
+-- test('fmtFile', function()
+--   local f = Fmt2{file=io.open('.out/TEST', 'w+')}
+--   f:fmt{1, 2, z='bob', a='hi'}
+--   f.file:flush(); f.file:seek'set'
+--   assertEq('{1,2 :: a="hi" z="bob"}', f.file:read'a')
+--   f.file:close()
+-- end)

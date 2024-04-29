@@ -70,24 +70,28 @@ M.ATTR_ASSERTS = {
   fbase = function(f) mty.assertf(IBASE_FMT[f], 'invalid fbase: %q', f) end,
 }
 
-M.Ser = mty.record'tso.Ser'
-  :field'dat'    :fdoc'output lines'
-  :field'attrs'
-  :field('specs', ds.BiMap):fdoc'bimap of name <--> type'
-  :field'_line'   :fdoc'current line'
-  :field('_level', 'number', -1)
-  :field('_c', 'number', 0)
-  :field('_ti', 'number', 1)
-  :field('_needSep',  'boolean', true)
-  :field('_enableAttrs', 'boolean', true)
-  :fieldMaybe'_header' -- current root header
-  :fieldMaybe('_hasRows', 'boolean')
-M.Ser:new(function(ty_, t)
+M.Ser = mty.record2'tso.Ser' {
+  'dat: output lines',
+  'attrs',
+  'specs [BiMap]: bimap of name <--> type',
+  '_line[int]: current line',
+  '_level[int]',
+  '_c  [int]',
+  '_ti [int]',
+  '_needSep [bool]',
+  '_enableAttrs [bool]',
+  '_header [table]',
+  '_hasRows [bool]',
+}; ds.update(M.Ser, {
+  _level=-1,     _c=0,              _ti=1,
+  _needSep=true, _enableAttrs=true,
+})
+getmetatable(M.Ser).__call = function(T, t)
   t.dat = t.dat or t[1] or {}; t[1] = nil
   t.attrs, t._line = t.attrs or {}, {}
   t.specs = defaultSpecs(t.specs)
-  return mty.new(ty_, t)
-end)
+  return mty.construct(T, t)
+end
 
 M.Ser._push = function(ser, s)
   assert(type(s) == 'string')
@@ -329,22 +333,25 @@ ds.updateKeys(M.SER_TY, M.Ser, {
 
 M.De = mty.doc[[
 De: tso deserializer.
-]](mty.record'tso.De')
-  :field'dat':fdoc'input lines'
-  :field'attrs'
-  :field('specs', ds.BiMap):fdoc'named specs'
-  :fieldMaybe('_line', 'string'):fdoc'current line'
-  :field('_l', 'number', 1) :field('_c', 'number', 1)
-  :fieldMaybe'_header':fdoc'root header'
-  :field('_enableAttrs', 'boolean', true)
-M.De:new(function(ty_, t)
+]](mty.record2'tso.De') {
+  'dat [table]',
+  'attrs [table]',
+  'specs [BiMap]: named specs',
+  '_line [string]: current line',
+  '_l[int]', '_c[int]',
+  '_header [root header]',
+  '_enableAttrs[bool]',
+}; ds.update(M.De, {
+  _l = 1, _c = 1, _enableAttrs = true,
+})
+getmetatable(M.De).__call = function(T, t)
   t.dat = t.dat or t[1] or {}; t[1] = nil
   assert(t.dat, 'must provide input dat lines')
   t.attrs = t.attrs or {}
   t._line = t.dat[1]
   t.specs = defaultSpecs(t.specs)
-  return mty.new(ty_, t)
-end)
+  return mty.construct(T, t)
+end
 function M.De._errorf(d, ...)
   error(sfmt('ERROR %s.%s: %s', d._l, d._c, sfmt(...)), 2)
 end
@@ -353,7 +360,7 @@ function M.De._assertf(d, v, ...)
   return v
 end
 function M.De.pnt(d, ...)
-  mty.pnt(sfmt('De.pntf %s.%s:', d._l, d._c), ...)
+  mty.print(sfmt('De.pntf %s.%s:', d._l, d._c), ...)
 end
 
 local function deConst(v, msg) return function(d)
@@ -402,9 +409,9 @@ local function deDefine(d)
   local name = deStr(d); local fields = deTableUnbracketed(d)
   d:_nextLine()
   if not d.specs[name] then
-    local spec = mty.record('!'..name); getmetatable(spec).tso = true
-    for _, f in ipairs(fields) do spec:field(f) end
-    mty.pnt('?? setting spec', name, spec)
+    local spec = mty.record2('!'..name)(fields)
+    getmetatable(spec).tso = true
+    print('?? setting spec', name, mty.tostring(spec))
     d.specs[name] = spec
   end
 end
@@ -430,7 +437,7 @@ local function deTableValue(d, t, i, ch, spec)
     t[v1] = v2
   else d:_assertf(v1 ~= nil, 'invalid nil returned')
     if spec then
-      mty.pnt('?? deTableValue', i, spec, spec.__fields)
+      mty.print('?? deTableValue', i, spec, spec.__fields)
     end
     if spec and i <= #spec.__fields then t[spec.__fields[i]] = v1
     else                                 push(t, v1) end
@@ -453,7 +460,7 @@ local function deTableBracketed(d)
     goto loop
   end
   local ch = d._line:sub(d._c,d._c)
-  mty.pnt("?? deTableBracketed", ti, ch, spec)
+  mty.print("?? deTableBracketed", ti, ch, spec)
   if ch == '}' then d._c = d._c + 1;        goto done end
   if ch == '#' then header = deHeader(d); goto loop end
   if ch == ':' then

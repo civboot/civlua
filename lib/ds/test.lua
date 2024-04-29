@@ -21,7 +21,7 @@ local df = pkg'ds.file'
 -- ds.lua
 
 test('bool and none', function()
-  local none = M.none
+  local none = assert(M.none)
   assertEq(false, M.bool())
   assertEq(false, M.bool(false))
   assertEq(false, M.bool(none))
@@ -37,11 +37,44 @@ test('bool and none', function()
   assert(not mty.eq(none, {}))
   assertEq('none', getmetatable(none))
   assertEq('none', mty.ty(none))
-  assertEq('none', mty.fmt(none))
+  assertEq('none', mty.tostring(none))
   local err = 'invalid operation on sentinel'
   assertErrorPat(err, function() none.foo = 3 end)
   assertErrorPat(err, function() return #none end)
 end)
+
+test('imm', function()
+  assertEq({}, M.empty)
+  assertEq(nil, next(M.empty))
+  assertEq(0,  #M.empty)
+  assertEq('table', getmetatable(M.empty))
+
+  local t = M.Imm{1, 2, v=3}
+  assertEq(1, t[1])
+  assertEq(3, t.v)
+  assertEq('table', getmetatable(t))
+  assert('table', debug.getmetatable(t).__metatable)
+  assertEq('table', mty.ty(t))
+  assertErrorPat('cannot modify Imm', function() t.b = 8 end)
+  assertErrorPat('cannot modify Imm', function() t.v = 8 end)
+  assertEq('<!imm data!>', next(t))
+  local j = {1, 2, v=3}
+  local k = M.Imm{1, 2, v=4}
+  assert(t == t); assert(t ~= j)
+  assertEq(t, t)
+  assertEq(t, j)
+
+  assert(t ~= k); assert(not mty.eq(t, k))
+  assertEq('{1, k=5}', mty.tostring(M.Imm{1, k=5}))
+  assertEq('table', mty.tyName(M.Imm{}))
+
+  assertEq({1, 2, v=3}, j) -- table vs Imm
+  assert(not mty.eq({1, 2}, j))
+
+  assertEq({kind='Empty'}, M.Imm{kind='Empty'})
+end)
+
+
 
 test("number", function()
   assert(0, decAbs(1)); assert(0, decAbs(-1))
@@ -186,7 +219,7 @@ test('Set', function()
 end)
 
 test('LL', function()
-  local ll = LL(); assert(ll:isEmpty())
+  local ll = LL{}; assert(ll:isEmpty())
   ll:addFront(42); assertEq(42, ll:popBack())
   ll:addFront(46); assertEq(46, ll:popBack())
   assert(ll:isEmpty())
@@ -281,28 +314,6 @@ test('path', function()
   assertEq({'', '/'},      {pl'/'})
 end)
 
-test('Imm', function()
-  local t = M.Imm{1, 2, v=3}
-  assertEq(1, t[1])
-  assertEq(3, t.v)
-  assertEq('table', getmetatable(t))
-  assertEq('table', mty.ty(t))
-  assertErrorPat('set on immutable', function() t.b = 8 end)
-  assertErrorPat('set on immutable', function() t.v = 8 end)
-  local j = M.Imm{1, 2, v=3}
-  local k = M.Imm{1, 2, v=4}
-  assert(t == t); assert(t ~= j)
-  assertEq(t, t); assertEq(t, j)
-  assert(t ~= k); assert(not mty.eq(t, k))
-  assertEq('{1 :: k=5}', mty.fmt(M.Imm{1, k=5}))
-  assertEq('table', mty.tyName(M.Imm{}))
-
-  assertEq({1, 2, v=3}, j) -- table vs Imm
-  assert(not mty.eq({1, 2}, j))
-
-  assertEq({kind='Empty'}, M.Imm{kind='Empty'})
-end)
-
 local heap = pkg'ds.heap'
 
 local function pushh(h, t)
@@ -353,17 +364,15 @@ test('bimap', function()
   assertEq(bm[2], 'two');   assertEq(bm.two, 2)
   bm[3] = 'three'
   assertEq(bm[3], 'three'); assertEq(bm.three, 3)
-  assertEq(
-    'BiMap{"one","two","three"'
-    ..' :: one=1 three=3 two=2}',
-    mty.fmt(bm))
+  assertEq('BiMap{"one", "two", "three", one=1, three=3, two=2}',
+           mty.tostring(bm))
 
   local bm = M.BiMap{a='A'}
   assertEq(bm.a, 'A'); assertEq(bm.A, 'a')
   bm.b = 'B'
   assertEq(bm.b, 'B'); assertEq(bm.B, 'b')
-  assertEq(
-    'BiMap{A="a" B="b" a="A" b="B"}', mty.fmt(bm))
+  assertEq('BiMap{A="a", B="b", a="A", b="B"}'
+         , mty.tostring(bm))
 end)
 
 test('deq', function()

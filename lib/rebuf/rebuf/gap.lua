@@ -51,9 +51,9 @@ M.lcsLeftTop = function(...)
   return l2, c2
 end
 
-local Gap = mty.record('Gap')
-  :field('bot', 'table')
-  :field('top', 'table')
+local Gap = mty.record2'Gap' {
+  'bot[table]', 'top[table]'
+}
 
 Gap.CMAX = 999
 M.Gap = Gap
@@ -86,10 +86,11 @@ Gap.get = function(g, l)
   else return g.top[#g.top - (l - bl) + 1] end
 end
 
-local gapIndex = Gap.__index
+getmetatable(Gap).__index = nil
 Gap.__index = function(g, k)
-  if type(k) == 'number' then return Gap.get(g, k) end
-  return gapIndex(g, k)
+  local mt = getmetatable(g)
+  if type(k) == 'number' then return mt.get(g, k) end
+  return mt[k]
 end
 
 local function ipairsGap(g, i)

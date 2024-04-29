@@ -17,15 +17,14 @@ local M = {}
 M.ActStep = 0
 
 M.Actions = {}
-M.actionStruct = getmetatable(Action).__call
-Action:new(function(ty_, act)
+getmetatable(Action).__call = function(T, act)
   local name = assert(act.name)
   if not act.override and M.Actions[name] then
     error('Action already defined: ' .. name)
   end
-  M.Actions[name] = M.actionStruct(ty_, act)
+  M.Actions[name] = mty.construct(T, act)
   return M.Actions[name]
-end)
+end
 
 -- Helpful for constructing "state chains"
 -- State chains simply build up an event by adding

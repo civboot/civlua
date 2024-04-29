@@ -5,6 +5,8 @@ local mty = pkg'metaty'
 local test, assertEq; pkg.auto'civtest'
 
 local buffer = pkg'rebuf.buffer'
+
+local tostring = mty.tostring
 local Buffer = buffer.Buffer
 local C, CS = buffer.Change, buffer.ChangeStart
 
