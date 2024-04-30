@@ -2,6 +2,10 @@
 
 ## 2024-04-30 refactor
 
+Also: discussions and useful links
+* https://www.reddit.com/r/lua/comments/1cgwn2y/thoughts_on_making_modules_own_name_global/
+* lua performance: https://www.lua.org/gems/sample.pdf#page=3
+
 I'm taking a break, leaving the repo in a bit of a bad state
 
 First of all, I've removed `metaty.record`, replacing with `metaty.record2` --
