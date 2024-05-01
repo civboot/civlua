@@ -1,10 +1,12 @@
 METATY_CHECK = true
 
-local pkg = require'pkg'
-local mty = pkg'metaty'
 local push, yield = table.insert, coroutine.yield
 
-local test, assertEq, assertErrorPat; pkg.auto'civtest'
+local pkg = require'pkg'
+local mty = pkg'metaty'
+local M = pkg'ds'
+
+local test, assertEq, assertErrorPat; M.auto'civtest'
 
 local min, max, bound, isWithin, sort2, decAbs
 local indexOf, copy, deepcopy
@@ -14,7 +16,7 @@ local get, getPath
 local eval
 local Set, LL, Duration, Epoch
 local lines
-local M = pkg.auto'ds'
+local M = M.auto'ds'
 local df = pkg'ds.file'
 
 ---------------------

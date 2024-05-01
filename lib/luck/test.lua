@@ -1,7 +1,7 @@
 METATY_CHECK = true
 local pkg = require'pkg'
 local mty = pkg'metaty'
-local test, assertEq, assertErrorPat; pkg.auto'civtest'
+local test, assertEq, assertErrorPat; ds.auto'civtest'
 local df  = pkg'ds.file'
 local M = pkg'luck'
 local D = 'lib/luck/'

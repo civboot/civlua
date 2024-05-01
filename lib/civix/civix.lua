@@ -90,11 +90,11 @@ M.MODE_STR = {
   [C.S_IFIFO]  = 'fifo',
 }
 M.ftype = function(f)
-  return M.MODE_STR[C.S_IFMT & lib.fstmode(M.fileno(f))]
+  return assert(M.MODE_STR[C.S_IFMT & lib.fstmode(M.fileno(f))])
 end
 
 M.pathtype = function(path)
-  return M.MODE_STR[C.S_IFMT & lib.stmode(path)]
+  return assert(M.MODE_STR[C.S_IFMT & lib.stmode(path)])
 end
 
 local function _walkcall(ftypeFns, path, ftype)

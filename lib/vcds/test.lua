@@ -1,8 +1,8 @@
 local pkg = require'pkg'
 local mty = pkg'metaty'
 local ds  = pkg'ds'
-local test, assertEq; pkg.auto'civtest'
-local Diff, Keep, Change; local M = pkg.auto'vcds'
+local test, assertEq; ds.auto'civtest'
+local Diff, Keep, Change; local M = ds.auto'vcds'
 local push = table.insert
 
 test('create anchor', function()

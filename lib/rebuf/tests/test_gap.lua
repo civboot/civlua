@@ -2,7 +2,8 @@ METATY_CHECK = true
 
 local pkg = require'pkg'
 local mty = pkg'metaty'
-local test, assertEq; pkg.auto'civtest'
+local ds  = pkg'ds'
+local test, assertEq; ds.auto'civtest'
 local gap = pkg'rebuf.gap'
 local Gap = gap.Gap
 local tostring = mty.tostring

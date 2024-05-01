@@ -5,7 +5,7 @@ local pkg = require'pkg'
 local M = pkg'metaty'
 assert(M.getCheck())
 
-local ty, tyName, record2, split, Fmt2; pkg.auto'metaty'
+local record2, split, Fmt2 = M.record2, M.split, M.Fmt2
 
 local add, sfmt = table.insert, string.format
 
@@ -64,26 +64,26 @@ test('split', function()
 end)
 
 test('ty', function()
-  assert('string' == ty('hi'))
-  assert('number' == ty(4))
-  assert('table'  == ty({}))
+  assert('string' == M.ty('hi'))
+  assert('number' == M.ty(4))
+  assert('table'  == M.ty({}))
   local mt = {}
-  assert(mt       == ty(setmetatable({}, mt)))
+  assert(mt       == M.ty(setmetatable({}, mt)))
 end)
 
 test('tyName', function()
-  assertEq('string', tyName('string'))
-  assertEq('string', tyName(ty('hi')))
+  assertEq('string', M.tyName('string'))
+  assertEq('string', M.tyName(M.ty('hi')))
 
-  assertEq('number', tyName('number'))
-  assertEq('number', tyName(ty(4)))
+  assertEq('number', M.tyName('number'))
+  assertEq('number', M.tyName(M.ty(4)))
 
-  assertEq('table',  tyName('table'))
-  assertEq('table',  tyName(ty({})))
+  assertEq('table',  M.tyName('table'))
+  assertEq('table',  M.tyName(M.ty({})))
 
   local mt = {__name='F'}
-  assertEq('F', tyName(mt))
-  assertEq('F', tyName(ty(setmetatable({}, mt))))
+  assertEq('F', M.tyName(mt))
+  assertEq('F', M.tyName(M.ty(setmetatable({}, mt))))
 end)
 
 test('record', function()
@@ -98,7 +98,7 @@ test('record', function()
   assert(A == getmetatable(a))
   assertEq('[any]', A.__fields.a1)
   assertEq('[any]', getmetatable(a).__fields.a2)
-  assert(A == ty(a))
+  assert(A == M.ty(a))
   assert('hi' == a.a1); assert(5 == a.a2)
   assertEq('A{a2=5, a1="hi"}', M.tostring(a))
   a.a2 = 4;             assert(4 == a.a2)

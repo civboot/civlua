@@ -188,7 +188,38 @@ end)
 
 --------------------
 -- Working with file paths
-M.path = pkg.path
+M.path = {}
+
+-- join a table of path components
+M.path.concat = function(t)
+  if #t == 0 then return '' end
+  local root = (t[1]:sub(1,1)=='/') and '/' or ''
+  local dir  = (t[#t]:sub(-1)=='/') and '/' or ''
+  local out = {}
+  for i, p in ipairs(t) do
+    p = string.match(p, '^/*(.-)/*$')
+    if p ~= '' then add(out, p) end
+  end; return root..table.concat(out, '/')..dir
+end
+
+M.path.first = function(path)
+  if path:sub(1,1) == '/' then return '/', path:sub(2) end
+  local a, b = path:match('^(.-)/(.*)$')
+  if not a or a == '' or b == '' then return path, '' end
+  return a, b
+end
+
+M.path.last = function(path)
+  local a, b = path:match('^(.*)/(.+)$')
+  if not a or a == '' or b == '' then return '', path end
+  return a, b
+end
+
+-- return whether a path has any '..' components
+M.path.hasBacktrack = function(path)
+  return path:match'^%.%.$' or path:match'^%.%./'
+      or path:match'/%.%./' or path:match'/%.%.$'
+end
 M.path.splitList = function(path) return M.splitList(path, '/+') end
 
 ---------------------
@@ -475,9 +506,13 @@ M.lineschunk = mty.doc'convert lines-like table into chunk for eval'
     return o
   end
 end)
+
 M.eval = function(chunk, env, name) -- Note: not typed
   assert(type(env) == 'table')
-  name = name or pkg.callerSource()
+  if not name then
+    local i = debug.getinfo(3)
+    name = sfmt('%s:%s', i.source, i.currentline)
+  end
   local e, err = load(chunk, name, 't', env)
   if err then return false, err end
   return pcall(e)
@@ -954,5 +989,25 @@ M.Deq.push = M.Deq.pushRight
 M.Deq.__len = function(d) return d.right - d.left + 1 end
 M.Deq.pop = M.Deq.popLeft
 M.Deq.__call = M.Deq.pop
+
+-----------------------
+-- Import helpers
+
+-- auto-set nil locals using require(mod)
+-- local x, y, z; ds.auto'mm' -- sets x=mm.x; y=mm.y; z=mm.z
+M.auto = function(mod, i)
+  mod, i = type(mod) == 'string' and pkg(mod) or mod, i or 1
+  while true do
+    local n, v = debug.getlocal(2, i)
+    if not n then break end
+    if nil == v then
+      if not mod[n] then error(n.." not in module") end
+      debug.setlocal(2, i, mod[n])
+    end
+    i = i + 1
+  end
+  return mod, i
+end
+
 
 return M

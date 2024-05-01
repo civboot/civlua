@@ -7,14 +7,14 @@ local T = pkg'civtest'
 
 local RootSpec, Token
 local testing, EMPTY, EOF, assertParse, assertParseError
-local pegl = pkg.auto'pegl'
+local pegl = ds.auto'pegl'
 
 local num, str, exp1, exp, field, varset
 local root, src
-local M = pkg.auto'pegl.lua'
+local M = ds.auto'pegl.lua'
 local D = 'lib/pegl/'
 
-local KW, N, NUM, HEX; pkg.auto(testing)
+local KW, N, NUM, HEX; ds.auto(testing)
 local SRC = function(...) return {..., EMPTY, EMPTY, EOF} end
 
 T.test('easy', function()

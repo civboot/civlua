@@ -5,13 +5,13 @@ local mty = pkg'metaty'
 local ds = pkg'ds'
 
 local test, assertEq
-pkg.auto'civtest'
+ds.ds'civtest'
 
 local RootSpec, Token
 local testing, EMPTY, EOF
-local pegl = pkg.auto'pegl'
+local pegl = ds.auto'pegl'
 
-local KW, N, NUM, HEX; pkg.auto(testing)
+local KW, N, NUM, HEX; ds.auto(testing)
 
 local M = pkg'cxt'
 local html = pkg'cxt.html'

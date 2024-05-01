@@ -1,8 +1,9 @@
 
 local pkg = require'pkg'
 local mty = pkg'metaty'
+local ds  = pkg'ds'
 local test, assertEq, assertErrorPat, diffFmt;
-pkg.auto'civtest'
+ds.auto'civtest'
 
 test('civtest', function()
   assertEq(1, 1)

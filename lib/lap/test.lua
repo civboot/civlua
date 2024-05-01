@@ -4,7 +4,7 @@ local push, yield = table.insert, coroutine.yield
 local pkg = require'pkg'
 local mty = pkg'metaty'
 local ds = pkg'ds'
-local test, assertEq; pkg.auto'civtest'
+local test, assertEq; ds.auto'civtest'
 local M  = pkg'lap'
 
 -- test('async.schedule', function()

@@ -1,7 +1,7 @@
 local pkg = require'pkg'
 local mty = pkg'metaty'
-local min, max, sort2, bound, isWithin
-pkg.auto'ds'
+local ds = pkg'ds'
+local min, max, sort2, bound, isWithin; ds.auto'ds'
 
 local M = {}
 local byte, char = string.byte, string.char

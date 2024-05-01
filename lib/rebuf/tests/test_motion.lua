@@ -2,13 +2,13 @@ METATY_CHECK = true
 
 local pkg = require'pkg'
 local mty = pkg'metaty'
-local test, assertEq
-pkg.auto'civtest'
+local ds  = pkg'ds'
+local test, assertEq; ds.auto'civtest'
 
 local decDistance, lcLe, lcGe, lcWithin
 local forword, backword, findBack
 local wordKind
-pkg.auto'rebuf.motion'
+ds.auto'rebuf.motion'
 
 test('distance', function()
   assertEq(3, decDistance(1, 4))

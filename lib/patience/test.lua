@@ -2,8 +2,8 @@
 local pkg = require'pkg'
 local mty = pkg'metaty'
 local ds = pkg'ds'
-local test, assertEq; local T = pkg.auto'civtest'
-local Keep, Change, toChanges; pkg.auto'vcds'
+local test, assertEq; local T = ds.auto'civtest'
+local Keep, Change, toChanges; ds.auto'vcds'
 local add, concat = table.insert, table.concat
 local M = pkg'patience'
 
