@@ -1,19 +1,27 @@
-# pkg: better lua package creation and importing
+# pkg: create and import lua packages
 
-Lua pkg improves lua's module management over the build-in `require` function
-while also acting as a command which generates `name-version.rockspec` files.
+Basic usage is to update your `.bashrc` with:
 
-How to import packages:
-* Add the path to `path/to/pkg/?.lua` on your `LUA_PATH`
-* Put the directories containing your lua pks somewhere on `LUA_PKGS`
-  environment variable (`;` separated)
-* execute lua like `lua -e "require'pkglib'.install()"`
+```
+LUA_PATH="path/to/pkg/?.lua;etc..."
+LUA_PKGS="path/to/mod1;path/to/mod2;etc..."
+alias luap="lua -e \"require'pkglib'.install()\""
+```
 
-> Recommendation for `.bashrc`:
->
-> ```bash
-> alias luap="lua -e \"require'pkglib'.install()\""
-> ```
+Now when you run `luap` your `require'something'` will search for the
+'something' pkg in `LUA_PKGS` (or subpkgs they define). Note: it will still
+fallback to `require` if the pkg is not found.
+
+This has several advantages:
+
+* local development: set `LUA_PKGS=./` and it will only search for pkgs in
+  your current directory. You can define a `PKG.lua` with a `pkgs` variable to
+  recursively search for other locally defined packages.
+* concise `LUA_*` environment variables: you no longer have to maintain a huge
+  and impossible to read `LUA_PATH` variable.
+* performance: the `PKG.lua` locations are cached for future lookup
+
+## Library Authors
 
 How to create packages:
 * Add a `PKG.lua` in your library's root.
@@ -27,9 +35,8 @@ How to create packages:
     Can be used to construct trees of packages.
   * `rockspec`: (optional) provide starting rockspec when generating it
 
-Example:
-
-```
+Example `PKG.lua` file:
+```lua
 name    = 'myLib'
 version = '0.1-5'
 url     = 'git+http://github.com/civboot/myLib'
@@ -43,12 +50,6 @@ srcs    = {
 [rockspec]: https://github.com/luarocks/luarocks/wiki/Rockspec-format
 
 ## Why?
-Because `LUA_PATH` is clumsy and annoying.
-
-Luarocks is awesome, but it doesn't solve local path management. Also,
-`rockspec` is very opinionated on file names and I wanted a way to auto
-generate the `.rockspec` files.
-
 I am personally using this library to maintain 10+ projects at
 [civlua](http://github.com/civboot/civlua) and will be making a `pkgrock`
 cmd utility to help me.
