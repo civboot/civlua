@@ -29,6 +29,8 @@ M.ty = function(o) --> Type: string or metatable
   local t = type(o)
   return t == 'table' and getmetatable(o) or t
 end
+
+-- Given a type return it's name
 M.tyName = function(T) --> name
   local Tty = type(T)
   return Tty == 'string' and T
@@ -58,13 +60,22 @@ M.validKey = function(s) --> boolean: s=value is valid syntax
          or s:find'[^_%w]')
 end
 
-M.fnString = function(fn)
-  local name = SRCNAME[fn] or debug.getinfo(fn, 'n').name
-  local loc = SRCLOC[fn]; if not loc then
-    local dbg = debug.getinfo(fn, 'S').short_src
-    loc = string.format('%s:%s', dbg.short_src, dbg.linedefined)
+M.fnsrc = function(fn)
+  local info
+  local name = SRCNAME[fn]; if not name then
+    print('!! fn', fn)
+    info = debug.getinfo(fn)
+    name = info.name
   end
-  return sfmt('fn%q:%s)]', name, loc)
+  local loc = SRCLOC[fn]; if not loc then
+    info = info or debug.getinfo(fn)
+    loc = string.format('%s:%s', info.short_src, info.linedefined)
+  end
+  return name, loc
+end
+M.getsrc = function(obj)
+  if type(obj) == 'function' then return M.fnsrc(obj) end
+  return SRCNAME[obj], SRCLOC[obj]
 end
 
 -- rawsplit(subj, ctx) -> (ctx, splitstr)
@@ -266,9 +277,9 @@ M.Fmt2['nil']      = function(f)     add(f, 'nil')             end
 M.Fmt2.boolean     = function(f, b)  add(f, tostring(b))       end
 M.Fmt2.number      = function(f, n)  add(f, sfmt(f.numfmt, n)) end
 M.Fmt2.string      = function(f, s)  add(f, sfmt(f.strfmt, s)) end
-M.Fmt2['function'] = function(f, fn) add(f, M.fnString(fn))    end
 M.Fmt2.thread      = function(f, th) add(f, tostring(th))      end
 M.Fmt2.userdata    = function(f, ud) add(f, tostring(ud))      end
+M.Fmt2['function'] = function(f, fn) add(f, sfmt('fn%q[%s]', M.fnsrc(fn))) end
 
 -- Recursively format a table.
 -- Yes this is complicated. No, there is no way to really improve

@@ -86,7 +86,6 @@ test('fd-perf', function()
     end,
   }
 
-  print('count', count)
   assert(data == res)
   assert(count > 50)
 end)

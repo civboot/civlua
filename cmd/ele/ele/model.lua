@@ -78,7 +78,7 @@ Model.status=function(self, msg, kind)
   local e = self.statusEdit
   e:changeStart()
   assert(not msg:find('\n')); e:append(msg)
-  pnt('Status: ', msg)
+  -- pnt('Status: ', msg)
 end
 Model.spent=function(self)
   return civix.epoch() - self.start
@@ -169,7 +169,7 @@ Model.update=function(self)
   while not self.events:isEmpty() do
     local ev = self.events:popBack();
     if (ev.depth or 1) > 12 then error('event depth: ' .. ev.depth) end
-    pnt('Event: ', ev)
+    -- pnt('Event: ', ev)
     local out = nil
     if self.chain then
       ds.update(self.chain, ev)

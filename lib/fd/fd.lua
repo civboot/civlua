@@ -120,7 +120,8 @@ local function readAll(fd) fd:_readTill(); return fd:_pop() or '' end
 local function readLine(fd, lineFn)
   local s = fd:_pop(NL); if s then return lineFn(s) end
   fd:_readTill(NL)
-  return lineFn(fd:_pop(NL) or fd:_pop())
+  local out = lineFn(fd:_pop(NL) or fd:_pop())
+  return out
 end
 local function readLineNoNL(fd)  return readLine(fd, noNL) end
 local function readLineYesNL(fd) return readLine(fd, iden) end
@@ -245,11 +246,13 @@ M._async.tmpfile = function() return M.tmpfileFn(S.tmpFDT) end
 
 M.read    = function(...) M.input():read(...) end
 M.lines   = function(path, mode)
+  mode = mode or 'l'
   if not path then return M.input():lines(mode) end
   local fd = M.open(path)
   local fn = function()
     if not fd then return end
-    local l = fd:read(mode); if l then return l end
+    local l = fd:read(mode)
+    if l then return l end
     fd:close(); fd = nil
   end
   return fn, nil, nil, fd

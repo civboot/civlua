@@ -410,7 +410,6 @@ local function deDefine(d)
   if not d.specs[name] then
     local spec = mty.record2('!'..name)(fields)
     getmetatable(spec).tso = true
-    print('?? setting spec', name, mty.tostring(spec))
     d.specs[name] = spec
   end
 end
@@ -435,9 +434,6 @@ local function deTableValue(d, t, i, ch, spec)
       'key %q found before end of header/spec', v1)
     t[v1] = v2
   else d:_assertf(v1 ~= nil, 'invalid nil returned')
-    if spec then
-      mty.print('?? deTableValue', i, spec, spec.__fields)
-    end
     if spec and i <= #spec.__fields then t[spec.__fields[i]] = v1
     else                                 push(t, v1) end
   end
@@ -459,7 +455,6 @@ local function deTableBracketed(d)
     goto loop
   end
   local ch = d._line:sub(d._c,d._c)
-  mty.print("?? deTableBracketed", ti, ch, spec)
   if ch == '}' then d._c = d._c + 1;        goto done end
   if ch == '#' then header = deHeader(d); goto loop end
   if ch == ':' then

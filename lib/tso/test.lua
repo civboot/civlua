@@ -16,7 +16,6 @@ local function assertRow(expected, row)
   push(ser.dat, '')
   assertEq(expected, l2str(ser.dat))
 
-  print'?? -------- Deserializing'
   local de = M.De{ser.dat}
   local resRow = de()
   assertEq(row, resRow)
@@ -46,8 +45,6 @@ test('step_by_step', function()
   ser:any(2); ser:any(3); ser:any'hi there'; ser:any(5)
   ser:_finishLine()
   assertEq(expected, l2str(ser.dat))
-  print('?? expected')
-  print(expected)
   assertRow(expected..'\n', {2, 3, 'hi there', 5})
 
   local expected = [[

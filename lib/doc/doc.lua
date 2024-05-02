@@ -31,6 +31,10 @@
 -- make small references to other civboot libraries.
 local M = mod and mod'doc' or {}
 
+local metaty = require'metaty'
+
+SRCLOC  = SRCLOC or {}; SRCNAME = SRCNAME or {}
+
 --------------------
 -- Global Functions
 
@@ -351,7 +355,12 @@ M['os.execute'] = os.execute
 
 -- Note: non-keywords are not actually stored in this module
 -- (their docs are preserved in SRC* globals)
-for k in pairs(M) do M[k] = nil end
+for k, obj in pairs(M) do
+  local name = SRCNAME[obj]; if name then
+    SRCNAME[obj] = name:sub(5)
+  end
+  M[k] = nil
+end
 M.__name = 'doc'
 
 -- for is a looping construct with two forms:
@@ -403,4 +412,53 @@ M.__name = 'doc'
 --   metaty.split is a more complex example.
 M['for'] = function() end
 
+-- local x = (expression)
+--
+-- Define a local (instead of a global) variable. Prefer local variables for
+-- most things unless you are:
+--
+-- * modifying the fundamentals of the language (i.e. replacing 'require')
+-- * implementing a "protocol" for libraries to communicate global state (i.e. LAP)
+-- * managing true physical state (i.e. robotics, terminal output, etc)
+-- * you are the top-level application (i.e. a game, CLI, etc) and global state
+--   is the best solution.
+M['local'] = function() end
+
+---------------------
+-- Functions
+
+-- doc.get(obj) -> docStr: get documentation on obj
+--
+-- obj can also be a keyword string (i.e. "for", "local", etc)
+M.get = function(obj)
+  obj = obj or rawget(M, obj)
+  if not obj then error("unknown object: "..tostring(obj)) end
+  local name, loc = metaty.getsrc(obj)
+  local doc = string.format('%s[%s]%s',
+      name and (name..' ') or '',
+      metaty.tyName(metaty.ty(obj)),
+      path and ('defined at '..path) or '')
+
+  if not loc then return doc end
+  local path, objLine = loc:match'^(.+):(%d+)$'
+  if not path then return doc end
+  objLine = tonumber(objLine)
+  local l, dlen, docs = 1, 1, {doc}
+  -- find doc lines up to and including objLine
+  for line in io.lines(path) do
+    if l == objLine then
+      dlen = dlen + 1; docs[dlen] = line
+      for i = #docs, dlen+1, -1 do
+        docs[i] = nil end
+      return table.concat(docs, '\n')
+    end
+    local docl = line:match'^%s*%-%-+%s*(.*)'
+    if docl then dlen = dlen + 1; docs[dlen] = docl
+    else         dlen = 1 end
+    l = l + 1
+  end
+  return doc -- line not found
+end
+
+getmetatable(M).__call = function(_, obj) return M.get(obj) end
 return M

@@ -1,8 +1,16 @@
 
 METATY_CHECK = true
 
+local M = require'doc'
 local T = require'civtest'
 
+T.test('doc.get', function()
+  local d = M(string.format)
+  T.assertMatch('string%.format %[function%]', d)
+  T.assertMatch([[M%['string%.format'%] = string%.format]], d)
+end)
+
+-- This was used to craft the for documentation
 T.test('pairs', function()
   local function rawipairs(t, i)
     i = i + 1
