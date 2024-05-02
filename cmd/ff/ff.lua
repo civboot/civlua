@@ -47,7 +47,7 @@ local shim = pkg'shim'
 local mty = pkg'metaty'
 local ds = pkg'ds'
 local civix = pkg'civix'
-local add = table.insert
+local push = table.insert
 
 local M = {}
 M.FF = mty.doc[[
@@ -100,7 +100,7 @@ local function _dirFn(path, args, dirs)
   end
   if args.dirs then
     if args.log then wln(args.log, path, args.dpre) end
-    if dirs then add(dirs, path) end
+    if dirs then push(dirs, path) end
   end
 end
 
@@ -116,7 +116,7 @@ local function _fileFn(path, args, out) -- got a file from walk
   -- if no patterns exit early
   if #pat == 0 then
     if files and log   then wln(log, to or path, pre) end
-    if out.files       then add(out.files, to or path) end
+    if out.files       then push(out.files, to or path) end
     if args.mut and to then civix.mv(path, to) end
     return
   end
@@ -133,14 +133,14 @@ local function _fileFn(path, args, out) -- got a file from walk
     end
     if files then files = false -- =false -> pnt only once
       if log       then wln(log, path)       end
-      if out.files then add(out.files, path) end
+      if out.files then push(out.files, path) end
     end
     line = (sub and line:gsub(patFound, sub)) or line
     if args.matches then
       if log         then wln(log, line, pre, l) end
-      if out.matches then add(out.matches, line) end
+      if out.matches then push(out.matches, line) end
     end
-    if f then wln(f, line) end
+    if f and #line > 0 then wln(f, line) end -- match
     ::continue:: l = l + 1
   end
   if f then -- close .SUB file and move it
@@ -158,7 +158,7 @@ local function argPats(args)
   if args.F then return shim.list(args.pat) end
   local pat = {}; for i=#args,1,-1 do local a=args[i];
     if type(a) == 'string' and a:sub(1,1)=='%' then
-      add(pat, a:sub(2)); table.remove(args, i)
+      push(pat, a:sub(2)); table.remove(args, i)
     end
   end; return ds.extend(ds.reverse(pat), shim.list(args.pat))
 end
@@ -166,7 +166,7 @@ end
 function M.findfix(args, out, isExe)
   local argsTy = type(args); args = shim.parseStr(args, true)
   args.pat = argPats(args)
-  if #args == 0 then add(args, '.') end
+  if #args == 0 then push(args, '.') end
   if args.sub then
     assert(#args.pat, 'must specify pat with sub')
     assert(not args.fsub, 'cannot specify both sub and fsub')
