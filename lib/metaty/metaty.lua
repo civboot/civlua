@@ -3,15 +3,27 @@
 -- See README.md for documentation.
 local M = (mod and mod'metaty' or {})
 
-DOC       = DOC       or {}
+---------------
+-- Pre module: environment variables
+local IS_ENV = { ['true']=true,   ['1']=true,
+                 ['false']=false, ['0']=false, ['']=false }
+
+-- isEnv: returns boolean for below values, else nil
+function M.isEnv(var)
+  var = os.getenv(var); if var then return IS_ENV[var] end
+end
+function M.isEnvG(var) -- is env or globals
+  local e = M.isEnv(var); if e ~= nil then return e end
+  return _G[var]
+end
+local CHECK  = M.isEnvG'METATY_CHECK' or false -- private
+M.getCheck = function() return CHECK end
+
+---------------
+-- general functions and constants
 FIELD_DOC = FIELD_DOC or {}
-local add, sfmt = table.insert, string.format
-
-
--- srcloc(level) -> "path/to/file.lua:line"
-M.srcloc = srcloc
-
 M.DEPTH_ERROR = '{!max depth reached!}'
+local add, sfmt = table.insert, string.format
 
 M.ty = function(o) --> Type: string or metatable
   local t = type(o)
@@ -55,48 +67,11 @@ M.fnString = function(fn)
   return sfmt('fn%q:%s)]', name, loc)
 end
 
--- isEnv: returns boolean for below values, else nil
-local IS_ENV = { ['true']=true,   ['1']=true,
-                 ['false']=false, ['0']=false, ['']=false }
-function M.isEnv(var)
-  var = os.getenv(var); if var then return IS_ENV[var] end
-end
-function M.isEnvG(var) -- is env or globals
-  local e = M.isEnv(var); if e ~= nil then return e end
-  return _G[var]
-end
-
-local CHECK  = M.isEnvG'METATY_CHECK' or false -- private
-local _doc   = M.isEnvG'METATY_DOC'   or false -- private
-M.getCheck = function() return CHECK end
-M.getDoc   = function() return _doc  end
-
-----------------------
--- Documentation
-function M.identity(v) return v end
-
-function M.nativeEq(a, b) return a == b end
-function M.docTy(T, doc) return T end
-function M.doc(doc)
-  return function(T) return M.docTy(T, doc) end
-end
-M.docTy(M.isEnvG,  'isEnvG"MY_VAR": isEnv but also checks _G')
-M.docTy(M.isEnv,  [[isEnv"MY_VAR" -> boolean (environment variable)
-  true: 'true' '1'    false: 'false' '0' '']])
-M.docTy(M.doc, [==[
-Document a type, example:
-  M.myFn = doc[[myFn is awesome!
-  It does ... stuff with a and b.
-  ]](function(a, b)
-    ...
-  end)
-]==])
-M.docTy(M.docTy, [==[
-docTy(ty_, doc): Document a type, prefer `doc` instead.
-Example: docTy(myTy, [[my doc string]])
-]==])
-
-local function rawsplit(subj, ctx)
+-- rawsplit(subj, ctx) -> (ctx, splitstr)
+-- Note: prefer split
+--
+--   for ctx, line in rawsplit, text, {'\n', 1} do ... end
+function M.rawsplit(subj, ctx)
   local pat, i = table.unpack(ctx)
   if not i then return end
   if i > #subj then
@@ -107,33 +82,22 @@ local function rawsplit(subj, ctx)
   ctx.si, ctx.ei, ctx[2] = i, (s and (s-1)) or #subj, e and (e+1)
   return ctx, subj:sub(ctx.si, ctx.ei)
 end
-M.rawsplit = M.docTy(rawsplit, [[
-Implementation of split, can be used directly.
 
-rawsplit(subj, ctx) -> (ctx, splitstr)
-  ctx: {pat, index}. rawsplit adds: si=, ei= (see split)
-
-for ctx, line in rawsplit, text, {'\n', 1} do ... end
-]])
-
-M.split = M.doc[[
-split subj by pattern starting at index.
-
-  split(subj:str, pat="%s+", index=1) -> forexpr
-
-for ctx, line in split(text, '\n') do
-  -- ctx.si: start index of line
-  -- ctx.ei: end index of line
-  -- table.unpack(ctx) -> pat, nextIndex
+-- split(subj:str, pat="%s+", index=1) -> iterator (ctx, str)
+-- split the subj by pattern.
+-- ctx has two keys: si (start index) and ei (end index)
+--
+-- Eample:
+--   for ctx, line in split(text, '\n') do -- split lines
+--     ... do something with line
+--   end
+function M.split(subj, pat, index)
+  return M.rawsplit, subj, {pat or '%s+', index or 1}
 end
-]](function(subj, pat, index)
-  return rawsplit, subj, {pat or '%s+', index or 1}
-end)
-
 
 -----------------------------
 -- Equality
-
+function M.nativeEq(a, b) return a == b end
 local NATIVE_TY_EQ = {
   number   = rawequal,   boolean = rawequal, string = rawequal,
   userdata = M.nativeEq, thread  = M.nativeEq,
@@ -147,8 +111,6 @@ local NATIVE_TY_EQ = {
     return M.eqDeep(a, b)
   end,
 }
-M.eq = M.doc'use __eq or auto-deep equality'
-  (function(a, b) return NATIVE_TY_EQ[type(a)](a, b) end)
 M.eqDeep = function(a, b)
   if rawequal(a, b)     then return true   end
   if M.ty(a) ~= M.ty(b) then return false  end
@@ -163,6 +125,9 @@ M.eqDeep = function(a, b)
   for bKey in pairs(b) do bLen = bLen + 1 end
   return aLen == bLen
 end
+
+-- eq(a, b) -> bool: compare tables or anything else
+function M.eq(a, b) return NATIVE_TY_EQ[type(a)](a, b) end
 
 -----------------------
 -- record2
@@ -366,51 +331,11 @@ M.print = function(...)
 end
 
 --------------------
--- Help
+-- REMOVE / MOVE
 
-function M.simpleDoc(v, fmt, name)
-  if name then fmt:string(name); add(fmt, ': ') end
-  fmt:string(type(v))
+function M.docTy(T, doc) return T end
+function M.doc(doc)
+  return function(T) return M.docTy(T, doc) end
 end
-local NATIVE_TY_DOC = {
-  ['nil']  = M.simpleDoc, boolean = M.simpleDoc,
-  number   = M.simpleDoc, string  = M.simpleDoc,
-  userdata = M.simpleDoc, thread  = M.simpleDoc,
-  table = function(t, fmt, name)
-    if t.__name or t.__tostring then return helpTy(t, fmt, name)
-    else
-      if name then fmt:fmt(name); add(fmt, ': ') end
-      fmt:fmt'table'; fmt:sep'\n'
-    end
-    return true
-  end,
-  ['function'] = function(f, fmt, name)
-    if name then
-      fmt:fmt(name)
-      if fmt.level > 1 and DOC[f] then
-        fmt:fmt(string.rep(' ', 36 - #name));
-        fmt:fmt'(DOC) '
-      else fmt:fmt(string.rep(' ', 42 - #name)) end
-      add(fmt, ': ')
-    end
-    add(fmt, 'function ['); fmt:fmt(f); add(fmt, ']')
-    if fmt.level > 1 then return end
-    local d = DOC[f]; if d then
-      fmt:levelEnter''; fmt:fmt(d); fmt:levelLeave''
-    else fmt:sep'\n' end
-    return true
-  end,
-}
-
-M.help2 = M.doc'(v) -> string: Get help'
-(function(v)
-  local name; if type(v) == 'string' then
-    name, v = v, require(v)
-  end
-  local f = M.Fmt2:pretty()
-  if type(v) == 'table' then helpTy(v, f, name)
-  else NATIVE_TY_DOC[type(v)](v, f) end
-  return M.trim(table.concat(f))
-end)
 
 return M
