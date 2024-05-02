@@ -4,13 +4,16 @@ Lua pkg improves lua's module management over the build-in `require` function
 while also acting as a command which generates `name-version.rockspec` files.
 
 How to import packages:
-* Add the path to `pkg.lua` on your `LUA_PATH`
+* Add the path to `path/to/pkg/?.lua` on your `LUA_PATH`
 * Put the directories containing your lua pks somewhere on `LUA_PKGS`
   environment variable (`;` separated)
-* ```
-  local pkg = require'pkglib'
-  local myLib = pkg'myLib'
-  ```
+* execute lua like `lua -e "require'pkglib'.install()"`
+
+> Recommendation for `.bashrc`:
+>
+> ```bash
+> alias luap="lua -e \"require'pkglib'.install()\""
+> ```
 
 How to create packages:
 * Add a `PKG.lua` in your library's root.
@@ -41,6 +44,7 @@ srcs    = {
 
 ## Why?
 Because `LUA_PATH` is clumsy and annoying.
+
 Luarocks is awesome, but it doesn't solve local path management. Also,
 `rockspec` is very opinionated on file names and I wanted a way to auto
 generate the `.rockspec` files.
@@ -50,8 +54,18 @@ I am personally using this library to maintain 10+ projects at
 cmd utility to help me.
 
 ## How?
-`PKG.lua` files are executed in a sandbox. Their environment has access to only:
-`string table select pairs ipairs next error assert
-math.abs math.ceil math.floor math.max math.min math.maxinteger math.tonumber`
+`PKG.lua` files are executed in a sandbox. Their environment has access to only
+the following, which are in their global variables:
 
-The globals they create are then read as the configuration.
+```
+UNAME   LIB_EXT -- examples: "Linux",".so"  "Windows",".dll"
+string.format
+table.insert  table.sort  table.concat
+pairs   ipairs
+error   assert
+```
+
+> Note: PKG.lua files can use `format(...)` but not `string.format(...)`. It is
+> this way to prevent accidentally leaking values into the `string` table, etc.
+
+The globals the script creates are then read as the configuration.
