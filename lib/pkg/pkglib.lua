@@ -138,6 +138,10 @@ M.get = function(name, fallback)
   error(sfmt('PKG %s found but not sub-module %q', pkgname, name))
 end
 
+M.install = function()
+  require = M.get
+end
+
 return setmetatable(M, {
   __call = function(p, ...) return M.get(...) end,
   __index = function(_, k) error('pkg does not have field: '..k) end,

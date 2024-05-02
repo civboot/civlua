@@ -1,6 +1,6 @@
 
-LP = "./?/?.lua;./pegl/?.lua;./civix/?.lua;./ele/?.lua;${LUA_PATH}"
 LUA_VERSION = lua
+LUA = lua -e "require'pkglib'.install()"
 
 .PHONY: ele
 
@@ -8,8 +8,8 @@ all: test
 
 test: build
 	mkdir -p ./.out/
-	$(PRETEST) lua test.lua
-	# LUA_PATH=${LP} lua civix/runterm.lua view 0.05
+	$(PRETEST) $(LUA) test.lua
+	# lua civix/runterm.lua view 0.05
 	# Tests complete
 
 build: fd civix

@@ -8,15 +8,8 @@ LAP_FNS_SYNC, LAP_FNS_ASYNC    = false, false
 local DOC = [[civ: bundled Civboot applications]]
 local M = {}
 
-M.dir = debug.getinfo(1).source:sub(2, -1-#'civ.lua')
-function M.load(name, path)
-  assert(not package.loaded[name])
-  local p = dofile(M.dir..path); package.loaded[name] = p
-  return p
-end
-
 local initG = {}; for k in pairs(_G) do initG[k] = true end
-local pkg     = M.load('pkglib',      'lib/pkg/pkglib.lua')
+local pkg     = require
 
 local shim    = pkg'shim'
 local mty     = pkg'metaty'
