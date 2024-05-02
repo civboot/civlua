@@ -146,7 +146,6 @@ skip:
 // return (name, ftype) iterator. Skips "." and ".."
 static int l_dir(LS *L) {
   const char* path = luaL_checkstring(L, 1);
-  printf("!! dir %s\n", path);
   DIR** dir = (DIR**)lua_newuserdata(L, sizeof(DIR*)); // stack: dir
   luaL_setmetatable(L, DIR_META);
   ASSERT(L, *dir = opendir(path), "cannot open %s: %s", path, SERR);
@@ -187,7 +186,6 @@ struct sh {
 };
 #define tolsh(L) ((struct sh*)luaL_checkudata(L, 1, SH_META))
 struct sh* sh_wait(struct sh* sh, int flags) {
-  printf("!! sh_wait %i rc=%i\n", sh->pid, sh->rc);
   if(sh->pid) {
     siginfo_t infop = {0};
     if(waitid(P_PID, sh->pid, &infop, WEXITED | flags)) {
@@ -198,7 +196,6 @@ struct sh* sh_wait(struct sh* sh, int flags) {
       sh->pid = 0; sh->rc = infop.si_status;
     }
   }
-  printf("!!  sh end %i rc=%i\n", sh->pid, sh->rc);
   return sh;
 }
 
@@ -221,7 +218,6 @@ static int l_sh_rc(LS *L) {
 
 // () -> : block until Sh is done.
 static int l_sh_wait(LS *L) { 
-  printf("!! l_sh_wait\n");
   sh_wait(tolsh(L), 0);
   return 0; }
 

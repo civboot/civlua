@@ -439,7 +439,6 @@ third line
 end)
 
 test('IndexedFile_append', function()
-  print('!! opening')
   local f = io.tmpfile()
   local orig = [[
 hi there
@@ -448,7 +447,6 @@ this file
 is indexed
 for speed.
 ]]
-  print('!! writing')
   f:write(orig)
   local fx = df.IndexedFile{f}
   local idxf = fx.idx.file

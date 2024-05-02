@@ -79,7 +79,6 @@ local M  = pkg'lap'
 --   end)
 --   assertEq('inner', nxt(cor)); assertEq(true, r:isDone())
 -- 
---   print('!! playing with executor')
 --   s = r:sender() -- there is a sender, so nxt MIGHT return a value
 --   aw = nxt(cor); assertEq(da.listen(), aw)
 --                  assert(aw == r.aw)
@@ -120,7 +119,6 @@ local M  = pkg'lap'
 --     out = 99
 --   end)
 --   assert(not ds.isEmpty(ex.ready))
---   print('!! Executing multi yield')
 --   assertEq(15, out)
 --   sel(ex); assertEq(21, out)
 --   sel(ex); assertEq(22, out); assertEq(1, #ex.done)

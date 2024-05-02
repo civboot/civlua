@@ -150,7 +150,6 @@ local function invalid(msg)
 end
 
 local function checkHelp(sh, args)
-  print('?? help', sh.help, args.help)
   if sh.help and args.help == true then
     print(sh.help);
     if sh.subs then
@@ -166,7 +165,6 @@ end
 local function shimcall(sh)
   local args = M.parse(_G.arg)
   ::loop::
-  print('?? sh', tostring(sh), args[1], sh.help)
   if sh.exe then
     checkHelp(sh, args)
     return sh.exe(args, true)

@@ -109,7 +109,6 @@ test('record', function()
   b.b2 = 7;          assertEq(7, b.b2)
   assertEq('B{b1=5, b2=7, a=A{a2=4, a1="hi"}}', M.tostring(b))
 
-  print('!! expect err', a, getmetatable(a).__fields)
   assertErrorPat('A does not have field a3',
     function() local x = a.a3 end)
   assertErrorPat('A does not have field a3',

@@ -55,9 +55,9 @@ List arguments:
   path path2 path3 ...: list of paths to find/fix
 ]](mty.record2'FF') {
   [[depth[int]: depth to recurse (default=infinite)]],
-  [[files[bool]: log/return files or substituted files.]],
-  [[matches[bool]: log/return the matches or substitutions.]],
-  [[dirs[bool]: log/return directories.]],
+  [[files[bool]: log/return files or substituted files.]],     files=true,
+  [[matches[bool]: log/return the matches or substitutions.]], matches=true,
+  [[dirs[bool]: log/return directories.]],                     dirs=false,
   [[fpat[string]: file name pattern to include.]],
   [[pat[table]: content pattern/s which searches inside of files
     and prints the results. Any match will include the file/line in
@@ -68,17 +68,15 @@ List arguments:
     The default exclude ".hidden" directories.
     Can specify multiple times ANY matches will exclude the path]],
   [[mut [bool]: if true files may be modified. mut=false is like dry]],
+    mut=false,
   [[fsub[string]: file substitute for fpat (rename files).
     Note: ff will never rename dirs.]],
   [[sub [string]: substitute pattern to go with pat (see lua's gsub)]],
   [[log: path or (Lua) filehandle to log to.]],
-  [[fpre[string]: prefix characters before printing files]],
-  [[dpre [string]: prefix characters before printing directories]],
-  [[plain [bool]: no line numbers]],
-}; ds.update(M.FF, {
-  files=true,  matches=true,     dirs=false,
-  mut = false, fpre='', dpre='', plain = false,
-})
+  [[fpre[string]: prefix characters before printing files]],        fpre='',
+  [[dpre [string]: prefix characters before printing directories]], dpre='',
+  [[plain [bool]: no line numbers]], plain=false,
+}
 
 -- FIXME
 -- local f = mty.helpFmter(); mty.helpFields(M.FF, f)
