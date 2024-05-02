@@ -96,7 +96,7 @@ Action{
     local key = assert(ev.key)
     assert(type(key) == 'string', key)
     if ev.execRawKey then
-      return chain(ev, ds.steal(ev, 'execRawKey'), {rawKey=true})
+      return chain(ev, ds.popk(ev, 'execRawKey'), {rawKey=true})
     end
     local action = mdl:getBinding(key)
     ev.key = key

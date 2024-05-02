@@ -1,5 +1,4 @@
 #!/usr/bin/lua
-SRCLOC, SRCNAME                = false, false
 DOC, FIELD_DOC                 = false, false
 METATY_CHECK, METATY_DOC       = true,  true
 LAP_READY,    LAP_ASYNC        = false, false

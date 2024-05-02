@@ -10,7 +10,7 @@ local test, assertEq, assertErrorPat; M.auto'civtest'
 local min, max, bound, isWithin, sort2, decAbs
 local indexOf, copy, deepcopy
 local f, strInsert, strDivide, trim
-local steal, getOrSet, setPath, drain, reverse
+local getOrSet, setPath, drain, reverse
 local get, getPath
 local eval
 local Set, LL, Duration, Epoch
@@ -139,7 +139,7 @@ test("table", function()
   assert(r.a[1] == 3)
 
   local t = {a=8, b=9}
-  assert(8 == steal(t, 'a')) assert(9 == steal(t, 'b'))
+  assert(8 == M.popk(t, 'a')) assert(9 == M.popk(t, 'b'))
   assert(0 == #t)
 
   assertEq(5,   getOrSet({a=5}, 'a', function() return 7 end))

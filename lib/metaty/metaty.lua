@@ -1,51 +1,12 @@
 -- metaty: simple but effective Lua type system using metatable
 --
 -- See README.md for documentation.
+local M = (mod and mod'metaty' or {})
 
-SRCLOC    = SRCLOC    or {}
-SRCNAME   = SRCNAME   or {}
 DOC       = DOC       or {}
 FIELD_DOC = FIELD_DOC or {}
 local add, sfmt = table.insert, string.format
 
-local srcloc = function(level)
-  local tb = debug.traceback(nil, 2 + (level or 0))
-  local loc = tb:match'.*traceback:%s+([^\n]*:%d+)'
-  assert(loc, 'not valid srcloc')
-  return loc
-end
-
-local CONCRETE_TYPE = {
-  ['nil']=true, bool=true, number=true, string=true,
-}
-
-local mod = {}; SRCLOC[mod] = srcloc(); SRCNAME[mod] = 'mod'
-
-local tyset = function(t, k, v)
-  rawset(t, k, v)
-  if type(k) ~= 'string' or CONCRETE_TYPE[type(v)] then return end
-  SRCLOC[v]  = srcloc(1)
-  SRCNAME[v] = t.__name..'.'..k
-  if(type(v)) == 'table' and rawget(v, '__name') == true then
-    rawset(v, '__name', k)
-  end
-end
-local mod = setmetatable({
-  __name='Mod',
-  __index=function(m, k) error('mod does not have: '..k, 2) end,
-  __newindex=tyset,
-}, {
-  __name='Ty<Mod>',
-  __call=function(T, name)
-    assert(type(name) == 'string', 'must provide name str')
-    local m = setmetatable({__name=name}, T)
-    SRCLOC[m]  = srcloc(1)
-    SRCNAME[m] = name
-    return m
-  end,
-})
-
-local M = mod'metaty'
 
 -- srcloc(level) -> "path/to/file.lua:line"
 M.srcloc = srcloc
@@ -113,30 +74,15 @@ M.getDoc   = function() return _doc  end
 ----------------------
 -- Documentation
 function M.identity(v) return v end
-function M.trim(subj, pat, index)
-  pat = pat and ('^'..pat..'*(.-)'..pat..'*$') or '^%s*(.-)%s*$'
-  return subj:match(pat, index)
-end
 
-function M.steal(t, k) local v = t[k]; t[k] = nil; return v end
 function M.nativeEq(a, b) return a == b end
-function M.docTy(T, doc)
-  if CONCRETE_TYPE[type(T)] then
-    error('cannot document '..tostring(T), 2)
-  end
-  if not _doc then return T end
-  DOC[T] = M.trim(doc)
-  return T
-end
+function M.docTy(T, doc) return T end
 function M.doc(doc)
   return function(T) return M.docTy(T, doc) end
 end
 M.docTy(M.isEnvG,  'isEnvG"MY_VAR": isEnv but also checks _G')
 M.docTy(M.isEnv,  [[isEnv"MY_VAR" -> boolean (environment variable)
   true: 'true' '1'    false: 'false' '0' '']])
-M.docTy(M.steal,   'steal(t, key): return t[key] and remove it')
-M.docTy(M.trim, [[trim(subj, pat='%s', index=1) -> string
-  removes pat from front+back of string]])
 M.docTy(M.doc, [==[
 Document a type, example:
   M.myFn = doc[[myFn is awesome!
@@ -250,7 +196,6 @@ end
 M.construct = (CHECK and M.constructChecked) or M.constructUnchecked
 
 M.namedRecord = function(name, R, loc)
-  loc = loc or M.srcloc(1)
   rawset(R, '__name', name)
   local fields = {}; for i=1,#R do
     local spec = rawget(R, i); rawset(R, i, nil)
@@ -275,15 +220,13 @@ M.namedRecord = function(name, R, loc)
   else
     mt.__call = M.constructUnchecked
   end
-  SRCLOC[R] = loc
   return R
 end
 
 M.record2 = function(name)
   assert(type(name) == 'string' and #name > 0,
          'must set __name=string')
-  local loc = M.srcloc(1)
-  return function(R) return M.namedRecord(name, R, loc) end
+  return function(R) return M.namedRecord(name, R) end
 end
 
 ------------------

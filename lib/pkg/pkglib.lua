@@ -5,6 +5,8 @@
 local push, sfmt = table.insert, string.format
 local M = {require=require}
 
+SRCLOC  = SRCLOC or {}; SRCNAME = SRCNAME or {}
+
 -- pkg.UNAME is the platform, typically: Windows, Linux or Darwin
 if package.config:sub(1,1) == '\\' then
   M.UNAME = 'Windows'
@@ -132,8 +134,48 @@ M.get = function(name, fallback)
   error(sfmt('PKG %s found but not sub-module %q', pkgname, name))
 end
 
+-----------------------
+-- MOD
+local srcloc = function(level)
+  local tb  = debug.traceback(nil, 2 + (level or 0))
+  return assert(tb:match'.*traceback:%s+([^\n]*:%d+)')
+end
+
+local CONCRETE_TYPE = {
+  ['nil']=true, bool=true, number=true, string=true,
+}
+
+-----------------------
+-- MOD
+do
+  -- mod(name) -> Mod{}: create a typesafe mod
+  local modloc, mod = srcloc(), {}
+  SRCLOC[mod] = modloc; SRCNAME[mod] = 'mod'
+  mod.__name='Mod'
+  mod.__index=function(m, k) error('mod does not have: '..k, 2) end
+  mod.__newindex=function(t, k, v)
+    rawset(t, k, v)
+    if type(k) ~= 'string' or CONCRETE_TYPE[type(v)] then return end
+    SRCLOC[v]  = srcloc(1)
+    SRCNAME[v] = t.__name..'.'..k
+    if(type(v)) == 'table' and rawget(v, '__name') == true then
+      rawset(v, '__name', k)
+    end
+  end
+  M.mod = setmetatable(mod, {
+    __name='Ty<Mod>',
+    __call=function(T, name)
+      assert(type(name) == 'string', 'must provide name str')
+      local m = setmetatable({__name=name}, T)
+      SRCLOC[m]  = srcloc(1)
+      SRCNAME[m] = name
+      return m
+    end,
+  })
+end
 M.install = function()
   require = M.get
+  mod = M.mod
 end
 
 return setmetatable(M, {

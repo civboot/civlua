@@ -1,9 +1,7 @@
 local mty = require'metaty'
 local add, pop, sfmt = table.insert, table.remove, string.format
 
-local M = {
-  steal = mty.steal, trim = mty.trim,
-}
+local M = {}
 
 M.SKIP     = 'skip'
 M.noop     = function() end
@@ -57,6 +55,11 @@ and is not recommended in performance-critical paths
 ]](function(fmt)
   return function(...) return fmt:format(...) end
 end)
+
+function M.trim(subj, pat, index)
+  pat = pat and ('^'..pat..'*(.-)'..pat..'*$') or '^%s*(.-)%s*$'
+  return subj:match(pat, index)
+end
 
 --- return the first i characters and the remainder
 M.strDivide = function(s, i)
@@ -329,7 +332,6 @@ end
 M.popk = function(t, key) -- pop key
   local val = t[key]; t[key] = nil; return val
 end
-
 
 -- pop multiple keys, pops(t, {'a', 'b'})
 M.pops = function(t, keys)
