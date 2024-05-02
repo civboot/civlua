@@ -17,9 +17,10 @@ Note: also requires DOC_LOC and DOC_NAME globals to be defined.
 local M = mod and mod'doc' or error(ERROR)
 assert(DOC_LOC and DOC_NAME, ERROR)
 
-local metaty = require'metaty'
-local ds     = require'ds'
+local mty  = require'metaty'
+local ds   = require'ds'
 local sfmt = string.format
+local push = table.insert
 
 --------------------
 -- Global Functions
@@ -411,74 +412,91 @@ M['for'] = function() end
 M['local'] = function() end
 
 ---------------------
--- Functions
+-- Doc and DocItem
 
-M.tableExtra = function(T, out)
-  local push = table.insert
-  if type(T) ~= 'table' then return end
-  local f = rawget(T, '__fields')
-  push(out, '')
-  if f then
-    push(out, '## Fields')
-    for _, k in ipairs(f) do
-      local v = f[k]
-      if type(v) == 'bool' then v = '' end
-      def = (T[k] ~= nil) and metaty.format(' (default=%q)', T[k]) or ''
-      push(out, sfmt('  %s %s%s', k, v, def))
-    end
-    push(out, '')
-  end; f = f or {}
-  local m = ds.copy(T)
-  for k in pairs(f) do m[k] = nil end
-  if next(m) then
-    push(out, '## Methods, Constants, etc')
-    for _, meth in ipairs(ds.orderedKeys(m)) do
-      push(out, sfmt('  %s [%s]', meth, metaty.tyName(metaty.ty(T[meth]))))
-    end
-    push(out, '')
-  end
+M.getsrc = function(obj)
+  if type(obj) == 'function' then return mty.fnsrc(obj) end
+  local name, loc = DOC_NAME[obj], DOC_LOC[obj]
+  name = name or (type(obj) == 'table') and rawget(obj, '__name')
+  return name, loc
 end
 
--- doc.get(obj) -> docStr: get documentation on obj
+-- Documentation on a single type
+-- These pull together the various sources of documentation
+-- from the PKG and META_TY specs into a single object.
 --
--- obj can also be a keyword string (i.e. "for", "local", etc)
-M.get = function(obj)
-  obj = obj or rawget(M, obj)
-  if not obj then error("unknown object: "..tostring(obj)) end
-  local name, loc = metaty.getsrc(obj)
-  local doc = string.format('%s%s[%s]',
-      loc and (loc..'\n') or '',
-      name and ('# '..name..' ') or '',
-      metaty.tyName(metaty.ty(obj)))
-  if not loc then return doc end
-  local path, objLine = loc:match'^(.+):(%d+)$'
-  if not path then return doc end
-  objLine = tonumber(objLine)
-  local l, dlen, dStart, docs = 1, 1, nil, {doc}
-  -- find doc lines up to and including objLine
-  for line in io.lines(path) do
-    if l == objLine then
-      if line:find'=' then -- one-liner
-        dlen = dlen + 1; docs[dlen] = 'SRC: '..line
-      end
-      for i = #docs, dlen+1, -1 do
-        docs[i] = nil
-      end
-      if type(obj) == 'table' then M.tableExtra(obj, docs) end
+-- Example: metaty.tostring(doc(myObj))
+M.Doc = mty.record2'Doc' {
+  'name', 'ty [string]: type name',
+  'path [str]',
+  'fields [table]', 'other [table]',
+}
+M.DocItem = mty.record2'DocItem' {
+  'name', 'ty [string]', 'path [string]',
+  'default [any]'
+}
 
-      return table.concat(docs, '\n')
-    end
-    local docl = line:match'^%-%-%s?(.*)'
-    if docl and not dStart     then dStart = true; dlen = 1
-    elseif not docl and dStart then
-      dStart = false; dlen = dlen + 1; docs[dlen] = '\nSRC: '..line
-    end
-    if dStart then
-      dlen = dlen + 1; docs[dlen] = docl
-    end
-    l = l + 1
+local function fmtItems(f, name, items)
+  push(f, '\n## '..name); f:incIndent(); push(f, '\n')
+  for i, item in ipairs(items) do
+    push(f, item:__tostring());
+    if i < #items then push(f, '\n') end
   end
-  return doc -- line not found
+  f:decIndent(); push(f, '\n')
+end
+
+function M.Doc.__fmt(d, f)
+	push(f, d.name or '?')
+  if d.ty   then push(f, sfmt(' [%s]', d.ty)) end
+  if d.path then push(f, sfmt(' (%s)', d.path)) end
+  if d.fields and next(d.fields) then fmtItems(f, 'Fields', d.fields) end
+  if d.other  and next(d.other)  then fmtItems(f, 'Methods, Etc', d.other) end
+end
+
+function M.DocItem.__tostring(di)
+  local ty = di.ty and (': '..mty.tyName(di.ty))
+  local def = type(di.default) ~= 'nil' and mty.format(' = %q', di.default)
+  ty = (ty or '')..(def or '')
+
+  local path; if di.path then
+    path = di.path:match'([^/]*/[^/]+:%d+)'
+    path = path and sfmt('(%s)', path)
+  end
+  return string.format('%-16s%-20s%s',
+    di.name or '?', ty or '', path or '')
+end
+
+
+local tyName = function(T) return mty.tyName(mty.ty(T)) end
+
+M.get = function(obj)
+  local name, path = M.getsrc(obj)
+  local d = M.Doc{name=name, path=path, ty=tyName(obj)}
+  if type(obj) ~= 'table' then return d end
+  d.fields, d.other = {}, {}
+  local fields = rawget(obj, '__fields')
+  if fields then
+    for _, field in ipairs(fields) do
+      push(d.fields, M.DocItem{
+        name=field, ty=fields[field], default=rawget(obj, field),
+      })
+    end
+  end
+  local other = ds.copy(obj)
+  if fields then for k in pairs(other) do -- remove shared fields
+    if fields[k] then other[k] = nil end
+  end end
+  other = ds.orderedKeys(other)
+  for _, k in ipairs(other) do
+    local v = obj[k]
+    local ty = mty.ty(v)
+    local _, vloc = M.getsrc(v)
+    vloc = vloc and sfmt('[%s]', vloc) or nil
+    push(d.other, M.DocItem {
+      name=k, ty=v and mty.ty(v), path=select(2, M.getsrc(v)),
+    })
+  end
+  return d
 end
 
 getmetatable(M).__call = function(_, obj) return M.get(obj) end

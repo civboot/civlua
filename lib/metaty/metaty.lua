@@ -72,10 +72,6 @@ M.fnsrc = function(fn)
   end
   return name, loc
 end
-M.getsrc = function(obj)
-  if type(obj) == 'function' then return M.fnsrc(obj) end
-  return DOC_NAME[obj], DOC_LOC[obj]
-end
 
 -- rawsplit(subj, ctx) -> (ctx, splitstr)
 -- Note: prefer split
@@ -186,7 +182,10 @@ M.namedRecord = function(name, R, loc)
   end
   R.__fields = fields
   R.__index  = rawget(R, '__index') or R
-  local mt = { __name='Ty<'..R.__name..'>' }
+  local mt = {
+    __name='Ty<'..R.__name..'>',
+    __newindex=mod and mod.__newindex,
+  }
   local R = setmetatable(R, mt)
   if METATY_CHECK then
     mt.__call    = M.constructChecked

@@ -1,6 +1,7 @@
 METATY_CHECK = true
 
 local push, yield = table.insert, coroutine.yield
+local sfmt = string.format
 
 local mty = require'metaty'
 local M = require'ds'
