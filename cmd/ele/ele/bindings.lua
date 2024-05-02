@@ -1,11 +1,11 @@
 -- #####################
 -- # Keyboard Bindings
 local pkg = require'pkglib'
-local mty = pkg'metaty'
-local ds = pkg'ds'
-local T = pkg'ele.types'
-local keys = pkg'ele.keys'
-local A = pkg'ele.action'.Actions
+local mty = require'metaty'
+local ds = require'ds'
+local T = require'ele.types'
+local keys = require'ele.keys'
+local A = require'ele.action'.Actions
 local byte, char = string.byte, string.char
 local ty = mty.ty
 

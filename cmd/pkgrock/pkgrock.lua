@@ -7,10 +7,10 @@ Example (sh):
 ]]
 
 local pkg = require'pkglib'
-local mty = pkg'metaty'
-local ds  = pkg'ds'
-local shim = pkg'shim'
-local civix = pkg'civix'
+local mty = require'metaty'
+local ds  = require'ds'
+local shim = require'shim'
+local civix = require'civix'
 local push, sfmt = table.insert, string.format
 
 local UPLOAD = [[luarocks upload %s --api-key=%s]]

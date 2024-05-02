@@ -1,10 +1,10 @@
 METATY_CHECK = true
 
 local pkg = require'pkglib'
-local mty = pkg'metaty'
+local mty = require'metaty'
 local test, assertEq; pkg'ds'.auto'civtest'
 
-local buffer = pkg'rebuf.buffer'
+local buffer = require'rebuf.buffer'
 
 local tostring = mty.tostring
 local Buffer = buffer.Buffer

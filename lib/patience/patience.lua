@@ -2,9 +2,9 @@
 -- https://blog.jcoglan.com/2017/09/19/the-patience-diff-algorithm/
 
 local pkg = require'pkglib'
-local mty = pkg'metaty'
-local ds  = pkg'ds'
-local vcds = pkg'vcds'
+local mty = require'metaty'
+local ds  = require'ds'
+local vcds = require'vcds'
 local push = table.insert
 local M = {}
 

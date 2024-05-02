@@ -1,5 +1,5 @@
 local pkg = require'pkglib'
-local mty = pkg'metaty'
+local mty = require'metaty'
 
 local function idxLen(f)
   local len = f:seek'end'

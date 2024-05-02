@@ -1,9 +1,9 @@
 METATY_CHECK = true
 local pkg = require'pkglib'
-local mty = pkg'metaty'
+local mty = require'metaty'
 local test, assertEq, assertErrorPat; ds.auto'civtest'
-local df  = pkg'ds.file'
-local M = pkg'luck'
+local df  = require'ds.file'
+local M = require'luck'
 local D = 'lib/luck/'
 
 test("meta", function()

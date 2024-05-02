@@ -3,18 +3,18 @@
 -- Implements the core app
 
 local pkg = require'pkglib'
-local mty = pkg'metaty'
-local ds = pkg'ds'
-local civix = pkg'civix'
-local gap  = pkg'rebuf.gap'
-local buffer = pkg'rebuf.buffer'
+local mty = require'metaty'
+local ds = require'ds'
+local civix = require'civix'
+local gap  = require'rebuf.gap'
+local buffer = require'rebuf.buffer'
 
-local T = pkg'ele.types'
-local action = pkg'ele.action'
-local edit = pkg'ele.edit'
-local bindings = pkg'ele.bindings'
-local data = pkg'ele.data'
-local window = pkg'ele.window'
+local T = require'ele.types'
+local action = require'ele.action'
+local edit = require'ele.edit'
+local bindings = require'ele.bindings'
+local data = require'ele.data'
+local window = require'ele.window'
 
 local yld = coroutine.yield
 local concat = table.concat

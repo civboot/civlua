@@ -1,5 +1,5 @@
 local pkg = require'pkglib'
-local term = pkg'civix.term'
+local term = require'civix.term'
 local byte, char, yield = string.byte, utf8.char
 local codepoint = utf8 and utf8.codepoint or byte
 

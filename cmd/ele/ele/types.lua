@@ -1,6 +1,6 @@
 local pkg = require'pkglib'
-local mty = pkg'metaty'
-local gap  = pkg'rebuf.gap'
+local mty = require'metaty'
+local gap  = require'rebuf.gap'
 
 local M = {Gap=gap.Gap}
 

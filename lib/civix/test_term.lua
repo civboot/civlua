@@ -1,8 +1,8 @@
 METATY_CHECK = true
 
 local pkg = require'pkglib'
-local T = pkg'civtest'
-local term = pkg'civix.term'
+local T = require'civtest'
+local term = require'civix.term'
 
 local function testU8(expect, chrs)
   local c = table.remove(chrs, 1)

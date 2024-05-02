@@ -1,6 +1,6 @@
 local pkg = require'pkglib'
 local mty = require'metaty'
-local ds  = pkg'ds'
+local ds  = require'ds'
 local bt = ds.bt
 local push = table.insert
 

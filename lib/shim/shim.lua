@@ -1,5 +1,5 @@
 local pkg = require'pkglib'
-local ds  = pkg'ds'
+local ds  = require'ds'
 
 local push, sfmt = table.insert, string.format
 local M = {}

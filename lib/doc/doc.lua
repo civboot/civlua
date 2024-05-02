@@ -1,5 +1,5 @@
 local pkg = require'pkglib'
-local shim = pkg'shim'
+local shim = require'shim'
 local mty = require 'metaty'
 local d = mty.docTy
 local M = d({doc=mty.doc, docTy=mty.docTy}, [=[

@@ -3,11 +3,11 @@
 -- and then using it to
 
 local pkg = require'pkglib'
-local mty = pkg'metaty'
-local ds = pkg'ds'
-local civix  = pkg'civix'
+local mty = require'metaty'
+local ds = require'ds'
+local civix  = require'civix'
 local test, assertEq; ds.auto'civtest'
-local ff = pkg'ff'
+local ff = require'ff'
 
 local add, sfmt = table.insert, string.format
 

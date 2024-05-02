@@ -5,7 +5,7 @@ local NL        = -string.byte'\n'
 
 local pkg = require'pkglib'
 
-local S = pkg'fd.sys'
+local S = require'fd.sys'
 S.POLLIO = S.POLLIN | S.POLLOUT
 
 local MFLAGS = {

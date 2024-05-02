@@ -1,13 +1,13 @@
 METATY_CHECK = true
 
 local pkg = require'pkglib'
-local mty = pkg'metaty'
-local ds = pkg'ds'
+local mty = require'metaty'
+local ds = require'ds'
 local test, assertEq; ds.auto'civtest'
-local fd = pkg'fd'
+local fd = require'fd'
 
-local M  = pkg'civix'
-local lib = pkg'civix.lib'
+local M  = require'civix'
+local lib = require'civix.lib'
 local D = 'lib/civix/'
 local push = table.insert
 

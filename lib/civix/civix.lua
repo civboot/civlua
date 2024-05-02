@@ -2,12 +2,12 @@
 --
 -- Note: You probably want civix.sh
 local pkg  = require'pkglib'
-local mt   = pkg'metaty'
-local ds   = pkg'ds'
-local shim = pkg'shim'
-local lib  = pkg'civix.lib'; local C = lib
-local fd   = pkg'fd'
-local lap  = pkg'lap'
+local mt   = require'metaty'
+local ds   = require'ds'
+local shim = require'shim'
+local lib  = require'civix.lib'; local C = lib
+local fd   = require'fd'
+local lap  = require'lap'
 
 local path = ds.path
 local concat, sfmt = table.concat, string.format

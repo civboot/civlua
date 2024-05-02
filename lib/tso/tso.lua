@@ -8,8 +8,8 @@ README has in-depth documentation.
 ]]
 
 local pkg = require'pkglib'
-local mty = pkg'metaty'
-local ds  = pkg'ds'; local lines = ds.lines
+local mty = require'metaty'
+local ds  = require'ds'; local lines = ds.lines
 local concat, push, sfmt = table.concat, table.insert, string.format
 local byte, char = string.byte, string.char
 

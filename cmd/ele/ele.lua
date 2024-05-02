@@ -1,10 +1,10 @@
 local pkg = require'pkglib'
-local shim = pkg'shim'
-local mty  = pkg'metaty'
-local term = pkg'civix.term'
+local shim = require'shim'
+local mty  = require'metaty'
+local term = require'civix.term'
 local sfmt = string.format
 
-local model = pkg'ele.model'
+local model = require'ele.model'
 
 local M = {}
 M.main = function()

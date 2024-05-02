@@ -1,11 +1,11 @@
 
 local pkg = require'pkglib'
-local mty = pkg'metaty'
-local ds = pkg'ds'
+local mty = require'metaty'
+local ds = require'ds'
 local test, assertEq; local T = ds.auto'civtest'
 local Keep, Change, toChanges; ds.auto'vcds'
 local add, concat = table.insert, table.concat
-local M = pkg'patience'
+local M = require'patience'
 
 local function B(b) return {-1, b} end
 

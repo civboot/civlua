@@ -3,9 +3,9 @@
 --   [1Header block]
 
 local pkg = require'pkglib'
-local mty = pkg'metaty'
-local ds  = pkg'ds'; local lines = ds.lines
-local civtest = pkg'civtest'
+local mty = require'metaty'
+local ds  = require'ds'; local lines = ds.lines
+local civtest = require'civtest'
 local add, sfmt = table.insert, string.format
 
 local Key

@@ -1,10 +1,10 @@
 -- #####################
 -- # Edit struct
 local pkg = require'pkglib'
-local ds = pkg'ds'
-local gap = pkg'rebuf.gap'
-local T = pkg'ele.types'
-local motion = pkg'rebuf.motion'
+local ds = require'ds'
+local gap = require'rebuf.gap'
+local T = require'ele.types'
+local motion = require'rebuf.motion'
 local Edit, CursorChange = T.Edit, T.CursorChange
 
 local add = table.insert

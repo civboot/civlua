@@ -1,13 +1,13 @@
 local DOC = "Serialize cxt nodes as html"
 local pkg = require'pkglib'
-local mty  = pkg'metaty'
-local pegl = pkg'pegl'
-local cxt  = pkg'cxt'
-local shim = pkg'shim'
-local civtest = pkg'civtest'
+local mty  = require'metaty'
+local pegl = require'pegl'
+local cxt  = require'cxt'
+local shim = require'shim'
+local civtest = require'civtest'
 local add, sfmt = table.insert, string.format
-local ds = pkg'ds'; local lines = ds.lines
-local df = pkg'ds.file'
+local ds = require'ds'; local lines = ds.lines
+local df = require'ds.file'
 
 local M = mty.docTy({}, DOC)
 

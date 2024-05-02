@@ -3,8 +3,8 @@ METATY_CHECK = true
 local push, yield = table.insert, coroutine.yield
 
 local pkg = require'pkglib'
-local mty = pkg'metaty'
-local M = pkg'ds'
+local mty = require'metaty'
+local M = require'ds'
 
 local test, assertEq, assertErrorPat; M.auto'civtest'
 
@@ -17,7 +17,7 @@ local eval
 local Set, LL, Duration, Epoch
 local lines
 local M = M.auto'ds'
-local df = pkg'ds.file'
+local df = require'ds.file'
 
 ---------------------
 -- ds.lua
@@ -316,7 +316,7 @@ test('path', function()
   assertEq({'', '/'},      {pl'/'})
 end)
 
-local heap = pkg'ds.heap'
+local heap = require'ds.heap'
 
 local function pushh(h, t)
   for i, v in ipairs(t) do h:add(v) end

@@ -1,8 +1,8 @@
 METATY_CHECK = true
 
 local pkg = require'pkglib'
-local mty = pkg'metaty'
-local ds = pkg'ds'
+local mty = require'metaty'
+local ds = require'ds'
 
 local test, assertEq
 ds.ds'civtest'
@@ -13,8 +13,8 @@ local pegl = ds.auto'pegl'
 
 local KW, N, NUM, HEX; ds.auto(testing)
 
-local M = pkg'cxt'
-local html = pkg'cxt.html'
+local M = require'cxt'
+local html = require'cxt.html'
 
 test('simple', function()
   M.assertParse('hi there', {'hi there'})

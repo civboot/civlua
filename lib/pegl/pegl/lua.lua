@@ -4,8 +4,8 @@
 -- as a reference
 
 local pkg = require'pkglib'
-local mty = pkg'metaty'
-local ds  = pkg'ds'
+local mty = require'metaty'
+local ds  = require'ds'
 local add, sfmt = table.insert, string.format
 
 local Key

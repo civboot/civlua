@@ -4,7 +4,7 @@ local pkg = require'pkglib'
 local ds = require'ds'
 local test, assertEq; ds.auto'civtest'
 
-local action = pkg'ele.action'
+local action = require'ele.action'
 local A = action.Actions
 
 test('spaces', function()

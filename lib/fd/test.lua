@@ -1,7 +1,7 @@
 
 local pkg = require'pkglib'
-local T   = pkg'civtest'
-local M   = pkg'fd'
+local T   = require'civtest'
+local M   = require'fd'
 local S   = M.sys
 local aeq = T.assertEq
 M.ioSync()

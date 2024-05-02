@@ -2,7 +2,7 @@ METATY_CHECK = true
 
 local ge = {}; for k in pairs(_G) do table.insert(ge, k) end
 local pkg = require'pkglib'
-local M = pkg'metaty'
+local M = require'metaty'
 assert(M.getCheck())
 
 local record2, split, Fmt2 = M.record2, M.split, M.Fmt2

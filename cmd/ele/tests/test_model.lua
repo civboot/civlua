@@ -1,22 +1,22 @@
 METATY_CHECK = true
 
 local pkg = require'pkglib'
-local mty = pkg'metaty'
-local ds  = pkg'ds'
+local mty = require'metaty'
+local ds  = require'ds'
 local tostring = mty.tostring
 local test, assertEq; ds.auto'civtest'
 
-local ds = pkg'ds'
-local buffer = pkg'rebuf.buffer'
-local keys = pkg'ele.keys'
-local model = pkg'ele.model'
-local term = pkg'civix.term'
-local T = pkg'ele.types'
-local window = pkg'ele.window'
-local data = pkg'ele.data'
-local action = pkg'ele.action'
+local ds = require'ds'
+local buffer = require'rebuf.buffer'
+local keys = require'ele.keys'
+local model = require'ele.model'
+local term = require'civix.term'
+local T = require'ele.types'
+local window = require'ele.window'
+local data = require'ele.data'
+local action = require'ele.action'
 local A = action.Actions
-local FakeTerm = pkg'ele.FakeTerm'
+local FakeTerm = require'ele.FakeTerm'
 
 local add = table.insert
 
