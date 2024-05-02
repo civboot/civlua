@@ -43,12 +43,12 @@ end
 -- can assert on the cacheMiss in tests/etc to ensure you have the correct cache
 -- settings.
 M.LinesFile = mty.record2'LinesFile'{
-  'file      [userdata]',
-  'cache     [userdata]',
-  'len       [userdata]',
-  'cacheMiss [userdata]',
-  '_line     [userdata]',
-  '_pos      [userdata]',
+  'file      [file]',
+  'cache     [int]',
+  'len       [int]',
+  'cacheMiss [int]',
+  '_line     [int]',
+  '_pos      [int]',
 }
 getmetatable(M.LinesFile).__call = function(T, t)
   if t[1] then t.file = t[1]; t[1] = nil end

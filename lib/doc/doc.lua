@@ -18,6 +18,8 @@ local M = mod and mod'doc' or error(ERROR)
 assert(DOC_LOC and DOC_NAME, ERROR)
 
 local metaty = require'metaty'
+local ds     = require'ds'
+local sfmt = string.format
 
 --------------------
 -- Global Functions
@@ -411,6 +413,32 @@ M['local'] = function() end
 ---------------------
 -- Functions
 
+M.tableExtra = function(T, out)
+  local push = table.insert
+  if type(T) ~= 'table' then return end
+  local f = rawget(T, '__fields')
+  push(out, '')
+  if f then
+    push(out, '## Fields')
+    for _, k in ipairs(f) do
+      local v = f[k]
+      if type(v) == 'bool' then v = '' end
+      def = (T[k] ~= nil) and metaty.format(' (default=%q)', T[k]) or ''
+      push(out, sfmt('  %s %s%s', k, v, def))
+    end
+    push(out, '')
+  end; f = f or {}
+  local m = ds.copy(T)
+  for k in pairs(f) do m[k] = nil end
+  if next(m) then
+    push(out, '## Methods, Constants, etc')
+    for _, meth in ipairs(ds.orderedKeys(m)) do
+      push(out, sfmt('  %s [%s]', meth, metaty.tyName(metaty.ty(T[meth]))))
+    end
+    push(out, '')
+  end
+end
+
 -- doc.get(obj) -> docStr: get documentation on obj
 --
 -- obj can also be a keyword string (i.e. "for", "local", etc)
@@ -418,30 +446,36 @@ M.get = function(obj)
   obj = obj or rawget(M, obj)
   if not obj then error("unknown object: "..tostring(obj)) end
   local name, loc = metaty.getsrc(obj)
-  local doc = string.format('%s[%s]%s',
-      name and (name..' ') or '',
-      metaty.tyName(metaty.ty(obj)),
-      loc and (' ('..loc..')') or '')
+  local doc = string.format('%s%s[%s]',
+      loc and (loc..'\n') or '',
+      name and ('# '..name..' ') or '',
+      metaty.tyName(metaty.ty(obj)))
   if not loc then return doc end
   local path, objLine = loc:match'^(.+):(%d+)$'
   if not path then return doc end
   objLine = tonumber(objLine)
-  local l, dlen, dStart, docs = 1, 1, nil, {'# '..doc}
+  local l, dlen, dStart, docs = 1, 1, nil, {doc}
   -- find doc lines up to and including objLine
   for line in io.lines(path) do
     if l == objLine then
-      dlen = dlen + 1; docs[dlen] = line
+      if line:find'=' then -- one-liner
+        dlen = dlen + 1; docs[dlen] = 'SRC: '..line
+      end
       for i = #docs, dlen+1, -1 do
         docs[i] = nil
-      end; return table.concat(docs, '\n')
+      end
+      if type(obj) == 'table' then M.tableExtra(obj, docs) end
+
+      return table.concat(docs, '\n')
     end
-    local docl = line:match'^%-%-+%s*(.*)'
+    local docl = line:match'^%-%-%s?(.*)'
     if docl and not dStart     then dStart = true; dlen = 1
     elseif not docl and dStart then
-      dlen = dlen + 1; docs[dlen] = '--- CODE ---'; dStart = false
+      dStart = false; dlen = dlen + 1; docs[dlen] = '\nSRC: '..line
     end
-    dlen = dlen + 1
-    docs[dlen] = docl or line
+    if dStart then
+      dlen = dlen + 1; docs[dlen] = docl
+    end
     l = l + 1
   end
   return doc -- line not found
