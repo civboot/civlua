@@ -4,14 +4,14 @@ flux: simple change management (version control) software.
 
 METATY_DOC = true
 local pkg = require'pkglib'
-local shim     = pkg'shim'
-local mty      =  pkg'metaty'
-local ds       =  pkg'ds'
-local df       =  pkg'ds.file'
-local tso      =  pkg'tso'
-local vcds     =  pkg'vcds'
-local patience =  pkg'patience'
-local civix    =  pkg'civix'
+local shim     = require'shim'
+local mty      =  require'metaty'
+local ds       =  require'ds'
+local df       =  require'ds.file'
+local tso      =  require'tso'
+local vcds     =  require'vcds'
+local patience =  require'patience'
+local civix    =  require'civix'
 
 local pc = ds.path.concat
 

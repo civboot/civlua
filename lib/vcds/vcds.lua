@@ -1,5 +1,4 @@
 -- vsds: version control data structures (and algorithms)
-local pkg = require'pkglib'
 local mty = require'metaty'
 local ds  = require'ds'
 local push, sfmt = table.insert, string.format

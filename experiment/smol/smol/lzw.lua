@@ -1,7 +1,7 @@
 -- LZW encoding
 
 local pkg = require'pkglib'
-local mty = pkg'metaty'
+local mty = require'metaty'
 local smol = require'smol'
 local char, byte = string.char, string.byte
 local push = table.insert

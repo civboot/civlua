@@ -1,15 +1,15 @@
 local SMOL_LARGE = os.getenv('SMOL_LARGE')
 
-local T      = pkg'civtest'
+local T      = require'civtest'
 local pkg = require'pkglib'
-local mty    = pkg'metaty'
+local mty    = require'metaty'
 local M      = require'smol'
 local lzw    = require'smol.lzw'
 local huff   = require'smol.huff'
 local lzhuff = require'smol.lzhuff'
 local V = require'smol.lzhuff'
 local V = require'smol.verify'
-local civix = pkg'civix'
+local civix = require'civix'
 
 local push = table.insert
 local test, assertEq = T.test, T.assertEq

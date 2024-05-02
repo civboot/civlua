@@ -11,15 +11,15 @@ local M = {}
 local initG = {}; for k in pairs(_G) do initG[k] = true end
 local pkg     = require
 
-local shim    = pkg'shim'
-local mty     = pkg'metaty'
-local civtest = pkg'civtest'
-local doc     = pkg'doc'
-local ds      = pkg'ds'
+local shim    = require'shim'
+local mty     = require'metaty'
+local civtest = require'civtest'
+local doc     = require'doc'
+local ds      = require'ds'
 
-local ff    = pkg'ff'
-local ele   = pkg'ele'
-local rock  = pkg'pkgrock'
+local ff    = require'ff'
+local ele   = require'ele'
+local rock  = require'pkgrock'
 civtest.assertGlobals(initG)
 
 M.HELP = [[help module.any.object
@@ -46,7 +46,7 @@ shim{
     ele  = ele.main,
     ff   = ff.shim,
     rock = rock.shim,
-    -- ['cxt.html'] = pkg'cxt.html'.shim,
+    -- ['cxt.html'] = require'cxt.html'.shim,
   },
 }
 

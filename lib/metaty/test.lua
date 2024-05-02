@@ -1,7 +1,6 @@
 METATY_CHECK = true
 
 local ge = {}; for k in pairs(_G) do table.insert(ge, k) end
-local pkg = require'pkglib'
 local M = require'metaty'
 assert(M.getCheck())
 

@@ -1,7 +1,6 @@
 METATY_CHECK = true
 
 local push, yield = table.insert, coroutine.yield
-local pkg = require'pkglib'
 local mty = require'metaty'
 local ds = require'ds'
 local test, assertEq; ds.auto'civtest'

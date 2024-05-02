@@ -3,7 +3,7 @@ METATY_DOC   = true
 
 local civ = dofile'civ.lua'
 local pkg = require
-local T = pkg'civtest'
+local T = require'civtest'
 local dir = ''
 
 T.test('[[core]]', function()

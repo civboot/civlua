@@ -1,4 +1,3 @@
-local pkg = require'pkglib'
 local mty = require'metaty'
 
 local function idxLen(f)

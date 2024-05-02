@@ -1,7 +1,6 @@
 
 METATY_CHECK = true
 
-local pkg = require'pkglib'
 local T = require'civtest'
 
 T.test('pairs', function()

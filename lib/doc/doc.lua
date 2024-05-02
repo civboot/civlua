@@ -1,4 +1,3 @@
-local pkg = require'pkglib'
 local shim = require'shim'
 local mty = require 'metaty'
 local d = mty.docTy

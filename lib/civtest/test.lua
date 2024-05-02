@@ -1,5 +1,4 @@
 
-local pkg = require'pkglib'
 local mty = require'metaty'
 local ds  = require'ds'
 local test, assertEq, assertErrorPat, diffFmt;

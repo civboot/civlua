@@ -1,5 +1,4 @@
 
-local pkg = require'pkglib'
 local T = require'civtest'
 local M = require'shim'
 local p, ps, e = M.parse, M.parseStr, M.expand

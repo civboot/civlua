@@ -4,7 +4,6 @@ LAP_READY = LAP_READY or {}
 LAP_FNS_SYNC  = LAP_FNS_SYNC  or {}
 LAP_FNS_ASYNC = LAP_FNS_ASYNC or {}
 
-local pkg = require'pkglib'
 local mt = require'metaty'
 local ds = require'ds'
 local heap = require'ds.heap'

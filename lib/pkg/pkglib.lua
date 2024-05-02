@@ -44,8 +44,7 @@ M.PATH = nil -- path to lua file being loaded
 
 M.ENV = {
   UNAME=UNAME,   LIB_EXT=M.LIB_EXT,
-  string=string, table=table,
-  fmt=string.format,
+  format=string.format,
   insert=table.insert, sort=table.sort, concat=table.concat,
   pairs=pairs,   ipairs=ipairs,
   error=error,   assert=assert,
@@ -97,12 +96,8 @@ end
 -------------------
 -- Loading
 
--- Load the package or get nil and and errorMsg
--- fallback will be called on failure (use true for `require`), the error
--- message will still be returned even if fallback is called.
---
--- Usage:
---   pkg'foo' -> fooPkg, errorMsg
+-- get the package. The API is identical to 'require' except
+-- it uses LUA_PKGS to search.
 M.get = function(name, fallback)
   local mod = package.loaded[name]; if mod then return mod end
   if not M.PKGS then

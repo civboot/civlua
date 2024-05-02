@@ -1,4 +1,3 @@
-local pkg = require'pkglib'
 local mty = require'metaty'
 local add, pop, sfmt = table.insert, table.remove, string.format
 
@@ -996,7 +995,7 @@ M.Deq.__call = M.Deq.pop
 -- auto-set nil locals using require(mod)
 -- local x, y, z; ds.auto'mm' -- sets x=mm.x; y=mm.y; z=mm.z
 M.auto = function(mod, i)
-  mod, i = type(mod) == 'string' and pkg(mod) or mod, i or 1
+  mod, i = type(mod) == 'string' and require(mod) or mod, i or 1
   while true do
     local n, v = debug.getlocal(2, i)
     if not n then break end

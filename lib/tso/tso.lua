@@ -7,7 +7,6 @@ see: Ser (serializer)
 README has in-depth documentation.
 ]]
 
-local pkg = require'pkglib'
 local mty = require'metaty'
 local ds  = require'ds'; local lines = ds.lines
 local concat, push, sfmt = table.concat, table.insert, string.format
