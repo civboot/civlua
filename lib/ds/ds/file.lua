@@ -1,3 +1,8 @@
+-- Lines-like file objects which you can use with ds.lines.
+-- 
+-- These objects support only append-line mutations using table.insert.
+local M = mod and mod'ds.file' or {}
+
 local mty = require'metaty'
 
 local function idxLen(f)
@@ -6,45 +11,38 @@ local function idxLen(f)
   return len // 3
 end
 
-local M = mty.docTy({}, [[
-Lines-like file objects which you can use with ds.lines.
-
-These objects support only append-line mutations using table.insert.
-]])
-
-M.readLen = mty.doc[[read the number of lines of a file.
-
-If you pass a file object in, it is your job to pre-seek to zero
-and then appropriately deal with the file object.
-]](function(f)
+-- read the number of lines of a file.
+-- 
+-- If you pass a file object in, it is your job to pre-seek to zero
+-- and then appropriately deal with the file object.
+M.readLen = function(f)
   local len = 0; if type(f) == 'string' then
     for _ in io.lines(f, 'l') do len = len + 1 end
   else
     for _ in f:lines'l'       do len = len + 1 end
   end
   return len
-end)
+end
 
 -----------------------------------
 -- LinesFile
 
-M.LinesFile = mty.doc[[
-Read and append to a file as if it were a lines table.
-
-Dynamic creation:
-  LinesFile(io.open'myfile.txt')
-  LinesFile{io.open'myfile.txt', cache=10}
-  LinesFile {
-    io.open'myfile.txt',
-    len=ds.file.readLen'myfile.txt',
-    cache=10,
-  }
-  LinesFile:appendTo'someFile.log'
-
-Performance is good as long as lookback is only within the cache length.  You
-can assert on the cacheMiss in tests/etc to ensure you have the correct cache
-settings.
-]](mty.record2'LinesFile') {
+-- Read and append to a file as if it were a lines table.
+-- 
+-- Dynamic creation:
+--   LinesFile(io.open'myfile.txt')
+--   LinesFile{io.open'myfile.txt', cache=10}
+--   LinesFile {
+--     io.open'myfile.txt',
+--     len=ds.file.readLen'myfile.txt',
+--     cache=10,
+--   }
+--   LinesFile:appendTo'someFile.log'
+-- 
+-- Performance is good as long as lookback is only within the cache length.  You
+-- can assert on the cacheMiss in tests/etc to ensure you have the correct cache
+-- settings.
+M.LinesFile = mty.record2'LinesFile'{
   'file      [userdata]',
   'cache     [userdata]',
   'len       [userdata]',
@@ -62,16 +60,15 @@ getmetatable(M.LinesFile).__call = function(T, t)
   return mty.construct(T, t)
 end
 
-M.LinesFile.appendTo = mty.doc[[
-Append to file at path.
-
-performance: unless you specify the len this will first read the entire file to
-find the length.
-
-Example:
-  LinesFile:appendTo'file.txt'
-  LinesFile:appendTo{'file.txt', cache=10, len=fileLen}
-]](function(ty_, t)
+-- Append to file at path.
+-- 
+-- performance: unless you specify the len this will first read the entire file to
+-- find the length.
+-- 
+-- Example:
+--   LinesFile:appendTo'file.txt'
+--   LinesFile:appendTo{'file.txt', cache=10, len=fileLen}
+M.LinesFile.appendTo = function(ty_, t)
   if type(t) == 'string' then t = {t} end
   assert(not t.file, 'specify path as first index')
   local path = t[1]; assert(path, 'need path')
@@ -80,7 +77,7 @@ Example:
     t.len = M.readLen(t[1]); t[1]:seek'set'
   end
   return M.LinesFile(t)
-end)
+end
 M.LinesFile.__index = function(self, l)
   local meth = getmetatable(self)[l]; if meth then return meth end
   -- Note: only called if line is not already cached
@@ -128,9 +125,8 @@ M.LinesFile.close = function(self) return self.file:close() end
 -----------------------------------
 -- IndexedFile and FileIdx
 
-M.FileIdx = mty.doc[[
-A file that holds file-position of lines in another file.
-]](mty.record2'FileIdx') {
+-- A file that holds file-position of lines in another file.
+M.FileIdx = mty.record2'FileIdx' {
   'file  [userdata]',
   'len   [number]',
   '_line [number]',
@@ -161,17 +157,16 @@ end
 M.FileIdx.flush = function(self) return self.file:flush() end
 M.FileIdx.close = function(self) return self.file:close() end
 
-M.IndexedFile = mty.doc[[
-Lines-like File backed by a index.
-
-This makes lookup O(1), though every line lookup requires one or more file
-reads (you may want to use with a cache).
-
-IndexedFile{path}                  -- tmpfile index
-IndexedFile{path, idx=pathToIndex} -- load index from pathToIndex
-
-You can use createFileIdx to load/create your own idx.
-]](mty.record2'IndexedFile') {
+-- Lines-like File backed by a index.
+-- 
+-- This makes lookup O(1), though every line lookup requires one or more file
+-- reads (you may want to use with a cache).
+-- 
+-- IndexedFile{path}                  -- tmpfile index
+-- IndexedFile{path, idx=pathToIndex} -- load index from pathToIndex
+-- 
+-- You can use createFileIdx to load/create your own idx.
+M.IndexedFile = mty.record2'IndexedFile' {
   'file   [userdata',
   'idx    [FileIdx]',
   '_line  [number]',
@@ -210,17 +205,16 @@ M.IndexedFile.close = function(self)
   return self.file:close()
 end
 
-M.createFileIdx = mty.doc[[
-Helper function to create a FileIdx
-
-Args:
-  file: path or file object (update mode)
-  idxpath: (optional) path to idx file. default=io.tmpfile()
-  preserve: if true, the index at idxpath will be preserved
-    and updated.
-
-Returns: FileIdx for use with IndexedFile.
-]](function(file, idxpath, preserve)
+-- Helper function to create a FileIdx
+-- 
+-- Args:
+--   file: path or file object (update mode)
+--   idxpath: (optional) path to idx file. default=io.tmpfile()
+--   preserve: if true, the index at idxpath will be preserved
+--     and updated.
+-- 
+-- Returns: FileIdx for use with IndexedFile.
+M.createFileIdx = function(file, idxpath, preserve)
   file = (type(file) == 'string') and io.open(file) or file
   local idx; if idxpath then
     idx = io.open(idxpath, preserve and 'r+' or 'w+')
@@ -238,6 +232,6 @@ Returns: FileIdx for use with IndexedFile.
     pos = file:seek'cur'
   end
   return fidx
-end)
+end
 
 return M

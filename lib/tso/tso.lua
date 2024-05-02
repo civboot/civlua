@@ -1,18 +1,15 @@
-local DOC = [[
-TSO: Tab Separated Objects
-
-see: Ser (serializer)
-     De (deserializer)
-
-README has in-depth documentation.
-]]
+-- TSO: Tab Separated Objects
+-- 
+-- see: Ser (serializer)
+--      De (deserializer)
+-- 
+-- README has in-depth documentation.
+local M = mod and mod'tso' or {}
 
 local mty = require'metaty'
 local ds  = require'ds'; local lines = ds.lines
 local concat, push, sfmt = table.concat, table.insert, string.format
 local byte, char = string.byte, string.char
-
-local M = mty.docTy({}, DOC)
 
 local function defaultSpecs(specs)
   if specs and mty.ty(specs) ~= 'table' then
@@ -132,9 +129,8 @@ M.Ser.comment =
   end
 end)
 
-M.Ser.define = mty.doc[[
-add spec definition, typically metaty.record
-]](function(ser, spec, name)
+-- add spec definition, typically metaty.record
+M.Ser.define = function(ser, spec, name)
   name = name or spec.__name
   mty.assertf(not ser.specs[spec],
     'spec %s already registered', spec)
@@ -148,7 +144,7 @@ add spec definition, typically metaty.record
     ser:string(k)
   end
   ser:_finishLine(); ser.specs[name] = spec
-end)
+end
 
 M.Ser._spec   = function(s, spec)
   local name = mty.assertf(s.specs[spec],
@@ -331,19 +327,17 @@ ds.updateKeys(M.SER_TY, M.Ser, {
 -----------------
 -- Deserializer
 
-M.De = mty.doc[[
-De: tso deserializer.
-]](mty.record2'tso.De') {
+-- De: tso deserializer.
+M.De = mty.record2'tso.De'{
   'dat [table]',
   'attrs [table]',
   'specs [BiMap]: named specs',
   '_line [string]: current line',
-  '_l[int]', '_c[int]',
+  '_l[int]', _l = 1,
+  '_c[int]', _c = 1,
   '_header [root header]',
-  '_enableAttrs[bool]',
-}; ds.update(M.De, {
-  _l = 1, _c = 1, _enableAttrs = true,
-})
+  '_enableAttrs[bool]', _enableAttrs = true,
+}
 getmetatable(M.De).__call = function(T, t)
   t.dat = t.dat or t[1] or {}; t[1] = nil
   assert(t.dat, 'must provide input dat lines')

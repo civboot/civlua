@@ -539,19 +539,19 @@ M.WeakKV = setmetatable(
 -- immutable table and empty table
 
 local _si=function() error('invalid operation on sentinel', 2) end
-M.newSentinel = mty.doc[[newSentinel(name, ty_, metatable)
-Use to create a "sentinel type". Return the metatable used.
-
-Sentinels are "single values" commonly used for things like: none, empty, EOF, etc.
-They have most metatable methods disallowed and are locked down. Override/add
-whatever methods you want by passing your own metatable.
-]](function(name, ty_, mt)
+-- newSentinel(name, ty_, metatable)
+-- Use to create a "sentinel type". Return the metatable used.
+-- 
+-- Sentinels are "single values" commonly used for things like: none, empty, EOF, etc.
+-- They have most metatable methods disallowed and are locked down. Override/add
+-- whatever methods you want by passing your own metatable.
+M.newSentinel = function(name, ty_, mt)
   mt = M.update({
     __name=name, __eq=rawequal, __tostring=function() return name end,
     __index=_si, __newindex=_si, __len=_si, __pairs=_si, __ipairs=_si,
   }, mt or {})
   return setmetatable(ty_, mt)
-end)
+end
 
 -- TODO: if I remove this space then 'help ds none' is
 -- missing a newline (???)
@@ -737,22 +737,22 @@ end
 -- and is more performant.
 -- LL is a data object for LL's and may be removed.
 
-M.ll = mty.doc[[Tiny linked-list module.
-  This uses indexes to track linked-lists, making it
-  extremely memory efficient and fairly performant.
-
--- 1 [-> ...]            linked list with just root
-local llp, lln, llv = {0}, {0}, {}
-
--- 1 -> 2 [-> 1...]      append 2 to root
-ll.push(llp, lln, 1, 2); llv[2] = 'value@2'
-
--- 3 -> 1 -> 2 [-> 3...] prepend 3 to root
-ll.budge(llp, lln, 1, 3); llv[3] = 'value@3'
-
--- 3 -> 1 [-> 3...]      pop 2
-ll.pop(llp, lln, 2)
-]]{}
+-- Tiny linked-list module.
+--   This uses indexes to track linked-lists, making it
+--   extremely memory efficient and fairly performant.
+-- 
+-- -- 1 [-> ...]            linked list with just root
+-- local llp, lln, llv = {0}, {0}, {}
+-- 
+-- -- 1 -> 2 [-> 1...]      append 2 to root
+-- ll.push(llp, lln, 1, 2); llv[2] = 'value@2'
+-- 
+-- -- 3 -> 1 -> 2 [-> 3...] prepend 3 to root
+-- ll.budge(llp, lln, 1, 3); llv[3] = 'value@3'
+-- 
+-- -- 3 -> 1 [-> 3...]      pop 2
+-- ll.pop(llp, lln, 2)
+M.ll = mod and mod'll' or {}
 
 -- get initial llp, lln, llv
 function M.ll.empty() return {1}, {1}, {} end
@@ -830,30 +830,28 @@ local function _bs(t, v, cmp, si, ei)
   else                  return _bs(t, v, cmp, si, mi - 1) end
 end
 
-M.binarySearch = mty.doc[[
-binarySearch(t, v, cmp, si, ei) -> i
-  cmp = ds.lte by default
-  si = start index, default=1
-  ei = end index,   default=#t
-
-Search the sorted table, return i such that:
-* cmp(t[i], v) returns true  for indexes <= i
-* cmp(t[i], v) returns false for indexes >  i
-
-If you want a value perfectly equal then check equality
-on the resulting index.
-]](function(t, v, cmp, si, ei)
+-- binarySearch(t, v, cmp, si, ei) -> i
+--   cmp = ds.lte by default
+--   si = start index, default=1
+--   ei = end index,   default=#t
+-- 
+-- Search the sorted table, return i such that:
+-- * cmp(t[i], v) returns true  for indexes <= i
+-- * cmp(t[i], v) returns false for indexes >  i
+-- 
+-- If you want a value perfectly equal then check equality
+-- on the resulting index.
+M.binarySearch = function(t, v, cmp, si, ei)
   return _bs(t, v, cmp or M.lte, si or 1, ei or #t)
-end)
+end
 
 ---------------------
 -- Binary Tree
 
-M.bt = mty.docTy({}, [[
-ds.bt: indexed table as Binary Tree.
-These functions treat an indexed table as a binary tree
-where root is at index=1.
-]])
+-- ds.bt: indexed table as Binary Tree.
+-- These functions treat an indexed table as a binary tree
+-- where root is at index=1.
+M.bt = mod and mod'bt' or {}
 function M.bt.left(t, i)    return t[i * 2]     end
 function M.bt.right(t, i)   return t[i * 2 + 1] end
 function M.bt.parent(t, i)  return t[i // 2]    end
@@ -864,7 +862,8 @@ function M.bt.parenti(t, i) return   i // 2     end
 ---------------------
 -- Directed Acyclic Graph
 
-M.dag = mty.docTy({}, "Functions for working with directed acyclic graphs.")
+-- Functions for working with directed acyclic graphs.
+M.dag = mod and mod'dag' or {}
 
 local function _dagSort(st, name, parents)
   if st.visited[name] then return end; st.visited[name] = true
@@ -874,29 +873,27 @@ local function _dagSort(st, name, parents)
   add(st.out, name)
 end
 
-M.dag.sort = mty.doc[[
-dag.sort(depsMap) -> sortedDeps
-
-Sort the directed acyclic graph. depsMap must behave like a table which:
-
-  for pairs(depsMap) -> nodeName, ...
-  depsMap[nodeName]  -> nodeDeps (list)
-
-If depsMap is a map of pkg -> depPkgs then the result is the order the pkgs
-should be built.
-
-Note: this function does NOT detect cycles.
-]](function(depsMap)
+-- dag.sort(depsMap) -> sortedDeps
+-- 
+-- Sort the directed acyclic graph. depsMap must behave like a table which:
+-- 
+--   for pairs(depsMap) -> nodeName, ...
+--   depsMap[nodeName]  -> nodeDeps (list)
+-- 
+-- If depsMap is a map of pkg -> depPkgs then the result is the order the pkgs
+-- should be built.
+-- 
+-- Note: this function does NOT detect cycles.
+M.dag.sort = function(depsMap)
   local state = {depsMap=depsMap, out={}, visited={}}
   for name, parents in pairs(depsMap) do
     _dagSort(state, name, parents)
   end
   return state.out
-end)
+end
 
-M.dag.reverseMap = mty.doc[[
-dag.reverseMap(childrenMap) -> parentsMap (or vice-versa)
-]](function(childrenMap)
+-- dag.reverseMap(childrenMap) -> parentsMap (or vice-versa)
+M.dag.reverseMap = function(childrenMap)
   local pmap = {}
   for pname, children in pairs(childrenMap) do
     M.getOrSet(pmap, pname, M.emptyTable)
@@ -905,30 +902,29 @@ dag.reverseMap(childrenMap) -> parentsMap (or vice-versa)
     end end
   end
   return pmap
-end)
+end
 
-M.dag.missing = mty.doc[[
-dag.missing(depsMap) -> missingDeps
-
-Given a depsMap return missing deps (items in a deps with no name).
-]](function(depsMap)
+-- dag.missing(depsMap) -> missingDeps
+-- 
+-- Given a depsMap return missing deps (items in a deps with no name).
+M.dag.missing = function(depsMap)
   local missing = {}; for n, deps in pairs(depsMap) do
     for _, dep in ipairs(deps) do
       if not depsMap[dep] then missing[dep] = true end
     end
   end
   return missing
-end)
+end
 
 ---------------------
 -- BiMap
-M.BiMap = mty.doc[[
-BiMap{} -> biMap: Bidirectional Map
-maps both key -> value and value -> key
-must use `:remove` (instead of `bm[k] = nil` to handle deletions.
+-- BiMap{} -> biMap: Bidirectional Map
+-- maps both key -> value and value -> key
+-- must use `:remove` (instead of `bm[k] = nil` to handle deletions.
+--
+-- Note that pairs() will return BOTH directions (in an unspecified order)
+M.BiMap = mty.record2'BiMap'{}
 
-Note that pairs() will return BOTH directions (in an unspecified order)
-]](mty.record2'BiMap'){}
 getmetatable(M.BiMap).__call = function(ty_, t)
   local keys = {}; for k, v in pairs(t) do
     if not t[v] then add(keys, k) end
@@ -948,15 +944,14 @@ end
 
 ---------------------
 -- Fifo Buffer
-M.Deq = mty.doc[[
-Deq() -> Deq, a deque
-
-Main methods:
-  pushLeft()  pushRight()
-  popLeft()   popRight()
-
-Calling it is the same as popLeft (use as iterator)
-]](mty.record2'Deq') {
+-- Deq() -> Deq, a deque
+-- 
+-- Main methods:
+--   pushLeft()  pushRight()
+--   popLeft()   popRight()
+-- 
+-- Calling it is the same as popLeft (use as iterator)
+M.Deq = mty.record2'Deq'{
   'right [number]',
   'left  [number]'
 }

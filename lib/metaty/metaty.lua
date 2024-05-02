@@ -340,12 +340,4 @@ M.print = function(...)
   io.stdout:write(table.concat(f))
 end
 
---------------------
--- REMOVE / MOVE
-
-function M.docTy(T, doc) return T end
-function M.doc(doc)
-  return function(T) return M.docTy(T, doc) end
-end
-
 return M

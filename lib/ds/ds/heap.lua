@@ -1,9 +1,10 @@
+-- Binary Heap implementation
+local M = mod and mod'ds.heap' or {}
+
 local mty = require'metaty'
 local ds  = require'ds'
 local bt = ds.bt
 local push = table.insert
-
-local M = mty.docTy({}, 'Binary Heap implementation')
 
 -- Get the index which compares true of all: n, left(n), right(n)
 local function cmpi(h, li, hi, n, cmp)
@@ -52,16 +53,15 @@ local function init(h, cmp)
   end
 end
 
-M.Heap = mty.doc[[
-Heap(t, cmp) binary heap using a table.
-A binary heap is a binary tree where the value of the parent always
-satisfies `cmp(parent, child) == true`
-  Min Heap: cmp = function(p, c) return p < c end (default)
-  Max Heap: cmp = function(p, c) return p > c end
-
-add and push take only O(log n), making it very useful for
-priority queues and similar problems.
-]](mty.record2'Heap') {
+-- Heap(t, cmp) binary heap using a table.
+-- A binary heap is a binary tree where the value of the parent always
+-- satisfies `cmp(parent, child) == true`
+--   Min Heap: cmp = function(p, c) return p < c end (default)
+--   Max Heap: cmp = function(p, c) return p > c end
+-- 
+-- add and push take only O(log n), making it very useful for
+-- priority queues and similar problems.
+M.Heap = mty.record2'Heap'{
   'cmp[function]: comparison function to use'
 }
 getmetatable(M.Heap).__call = function(T, t, cmp)

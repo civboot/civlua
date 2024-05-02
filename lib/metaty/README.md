@@ -6,16 +6,16 @@ Metatype is a library and specification for creating performant
 documented and typo-safe Lua Types which can be formatted.
 
 ```
+local M = mod and mod'myMod' or {} -- (see lib/pkg/README.md)
 METATY_CHECK = true -- before require: turn on type check
-local mt = require'metaty'
+local metaty = require'metaty'
 
-local Pos = mt.doc[[
-Documentation for Pos (position)
-]](mt.record'Pos') {
+-- Documentation for Pos (position)
+M.Pos = metaty {
   'x[int]: x coordinate
   'y[int]: y coordinate
-}
-Pos.y = 0 -- default value
+metaty
+M.Pos.y = 0 -- default value
 
 local p1 = Pos{x=4}
 local p1 = Pos{x=4, y=3, z=5} -- error if checking turned on
@@ -50,8 +50,6 @@ FIELD_DOC[Pos] = {x='x coordinate', y='y coordinate'}
   else it is `type(v)`.
 * `record`'name' {'field1[type] documentation', 'field2[type]'}`
   creates a documented and typo-safe record type (see examples)
-* `doc'some documentation'(something)` set 
-  `DOC[something] = 'some documentation'`
 * `tostring(v)` convert `v` to string using `Fmt` (expands tables)
 * `format(pat, ...)` the same as `string.format` except `%q` uses `Fmt` (expands
   tables).
@@ -73,15 +71,6 @@ It is also WAY too difficult to format tables in Lua. This library and spec
 provides a Formatter specification and implementation (`metaty.Fmt`).
 
 ## Specification
-Any library can follow the type specification.
-
-There are two global variables used for documentation/help:
-```
-DOC       = DOC       or {} -- key=type/fn value=doc string
-FIELD_DOC = FIELD_DOC or {} -- key=type    value=table of field docs
-METATY_CHECK = false        -- see Runtime type checking
-```
-
 For a type to be considered a "metaty" the only requirement is that it has a
 metatable set and that metatable has a `__name` field. Alternatively, it's
 `__metatable` can be set to a string, in which case it emulates a "native" type.

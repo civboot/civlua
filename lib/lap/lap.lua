@@ -38,35 +38,33 @@ M.async =
   LAP_ASYNC = true
 end)
 
-local SCH_DOC = [[
-schedule(fn) -> cor?
-  sync:  run the fn immediately and return nil
-  async: schedule the fn and return it's coroutine
-]]
-M._async.schedule = mt.doc(SCH_DOC)(function(fn, id)
+-- schedule(fn) -> cor?
+--   sync:  run the fn immediately and return nil
+--   async: schedule the fn and return it's coroutine
+M._async.schedule = function(fn, id)
   local cor = coroutine.create(fn)
   LAP_READY[cor] = id or true
   return cor
-end)
-M._sync.schedule = mt.doc(SCH_DOC)(function(fn) fn() end)
+end
+M._sync.schedule = function(fn) fn() end
 
 ----------------------------------
 -- Ch: channel sender and receiver (Send/Recv)
-M.Recv = mt.doc[[
-Recv() -> recv: the receive side of channel.
 
-Is considered closed when all senders are closed.
-
-Notes:
-* Use recv:sender() to create a sender. You can create
-  multiple senders.
-* Use recv:recv() or simply recv() to receive a value.
-* User sender:send(v) or simply sender(v) to send a value.
-* recv:close() when done. Also closes all senders.
-* #recv gets number of items buffered.
-* recv:isDone() returns true when either recv is closed
-  OR all senders are closed and #recv == 0.
-]](mt.record2'Recv') {
+-- Recv() -> recv: the receive side of channel.
+-- 
+-- Is considered closed when all senders are closed.
+-- 
+-- Notes:
+-- * Use recv:sender() to create a sender. You can create
+--   multiple senders.
+-- * Use recv:recv() or simply recv() to receive a value.
+-- * User sender:send(v) or simply sender(v) to send a value.
+-- * recv:close() when done. Also closes all senders.
+-- * #recv gets number of items buffered.
+-- * recv:isDone() returns true when either recv is closed
+--   OR all senders are closed and #recv == 0.
+M.Recv = mt.record2'Recv'{
   'deq    [Deq]',
   '_sends [WeakKV]',
   'cor    [thread]',
@@ -102,12 +100,11 @@ M.Recv.recv = function(r)
 end
 M.Recv.__call = M.Recv.recv
 
-M.Send = mt.doc[[
-Sender, created through ds.Recv.sender()
-
-Is considered closed if the receiver is closed.  The receiver will
-automatically close if it is garbage collected.
-]](mt.record2'Send') {'_recv[Recv]'}
+-- Sender, created through ds.Recv.sender()
+-- 
+-- Is considered closed if the receiver is closed.  The receiver will
+-- automatically close if it is garbage collected.
+M.Send = mt.record2'Send'{'_recv[Recv]'}
 getmetatable(M.Send).__call = function(T, recv)
   return mt.construct(T, { _recv=assert(recv, 'missing Recv') })
 end
@@ -135,9 +132,9 @@ end
 
 ----------------------------------
 -- all / Any
-local ALL_DOC = 'all(fns): resume when all of the functions complete'
-M._async.all = mt.doc(ALL_DOC)
-(function(fns)
+
+-- all(fns): resume when all of the functions complete
+M._async.all = function(fns)
   local rcor, count, len = coroutine.running(), 0, #fns
   for _, fn in ipairs(fns) do
     assert(type(fn) == 'function')
@@ -148,25 +145,23 @@ M._async.all = mt.doc(ALL_DOC)
     LAP_READY[cor] = 'all-item'
   end
   yield() -- forget until resumed by last completed child
-end)
-M._sync.all = mt.doc(ALL_DOC)
-(function(fns) for _, f in ipairs(fns) do f() end end)
+end
+M._sync.all = function(fns) for _, f in ipairs(fns) do f() end end
 
-M.Any = mt.doc[[
-Any(fns): handle resuming and restarting multiple fns.
-
-Call any:ignore() to stop the child threads from resuming
-the current thread. This does NOT stop the child threads.
-
-Example which handles multiple fns running simultaniously:
-
-  local any = lap.Any{fn1, fn2}:schedule()
-  while true do
-    local i = any:yield()
-    -- do something related to index i
-    any:restart(i) -- restart i to run again
-  end
-]](mt.record2'Any') {
+-- Any(fns): handle resuming and restarting multiple fns.
+-- 
+-- Call any:ignore() to stop the child threads from resuming
+-- the current thread. This does NOT stop the child threads.
+-- 
+-- Example which handles multiple fns running simultaniously:
+-- 
+--   local any = lap.Any{fn1, fn2}:schedule()
+--   while true do
+--     local i = any:yield()
+--     -- do something related to index i
+--     any:restart(i) -- restart i to run again
+--   end
+M.Any = mt.record2'Any'{
   'cor[thread]', 'fns[table]',
   'done[table]',
 }
@@ -216,26 +211,26 @@ M.LAP_UPDATE = {
     lap.pollMap[fileno] = cor
   end,
 }
-M.Lap = mt.doc[[
-A single lap of the executor loop
 
-Example:
-  -- schedule your main fn, which may schedule other fns
-  lap.schedule(myMainFn)
-
-  -- create a Lap instance with the necessary configs
-  local Lap = lap.Lap{
-    sleepFn=civix.sleep, monoFn=civix.monoSecs, pollList=fd.PollList()
-  }
-
-  -- run repeatedly while there are coroutines to run
-  while next(LAP_READY) do
-    errors = Lap(); if errors then
-      -- handle errors
-    end
-    -- do other things in your application's executor loop
-  end
-]](mt.record2'Lap') {
+-- A single lap of the executor loop
+-- 
+-- Example:
+--   -- schedule your main fn, which may schedule other fns
+--   lap.schedule(myMainFn)
+-- 
+--   -- create a Lap instance with the necessary configs
+--   local Lap = lap.Lap{
+--     sleepFn=civix.sleep, monoFn=civix.monoSecs, pollList=fd.PollList()
+--   }
+-- 
+--   -- run repeatedly while there are coroutines to run
+--   while next(LAP_READY) do
+--     errors = Lap(); if errors then
+--       -- handle errors
+--     end
+--     -- do other things in your application's executor loop
+--   end
+M.Lap = mt.record2'Lap' {
   'sleepFn [function]',
   'monoFn  [function]',
   'monoHeap [Heap]',

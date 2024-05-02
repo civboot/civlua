@@ -1,6 +1,6 @@
--- civix: civboot unix utilites.
---
--- Note: You probably want civix.sh
+-- civix: unix-like OS utilities.
+local M = mod and mod'civix' or {}
+
 local mt   = require'metaty'
 local ds   = require'ds'
 local shim = require'shim'
@@ -14,12 +14,7 @@ local push, pop = table.insert, table.remove
 local yield = coroutine.yield
 local pc = path.concat
 
-local M = {
-  std_r = 0, std_w = 1, std_lw = 2,
-  PIPE_R = io.stdin,
-  PIPE_W = io.stdout,
-  PIPE_LW = io.stderr,
-
+ds.update(M, {
 	-- file types
 	SOCK = "sock", LINK = "link",
 	FILE = "file", BLK  = "blk",
@@ -31,11 +26,7 @@ local M = {
 
   -- TODO: probably good to catch return code for cross-filesystem
   mv = lib.rename,
-}
-
-mt.docTy(M, [[
-civix: unix-like OS utilities.
-]])
+})
 
 -------------------------------------
 -- Utility
@@ -51,16 +42,15 @@ M.SH_SET = { debug=false, host=false }
 
 -------------------------------------
 -- Time Functions
-M.sleep = mt.doc[[
-Sleep for the specified duration.
-  sleep(duration)
-
-time can be a Duration or float (seconds).
-A negative duration results in a noop.
-]](function(d)
+-- Sleep for the specified duration.
+--   sleep(duration)
+-- 
+-- time can be a Duration or float (seconds).
+-- A negative duration results in a noop.
+M.sleep = function(d)
   if type(d) == 'number' then d = ds.Duration:fromSeconds(d) end
   if d.s >= 0 then lib.nanosleep(d.s, d.ns) end
-end)
+end
 
 -- Return the Epoch/Mono time
 -- Time according to realtime clock
@@ -168,26 +158,25 @@ M.mkDir = function(pth, parents)
   else mt.assertf(lib.mkdir(pth), "mkdir failed: %s", pth) end
 end
 
-M.mkTree = mt.doc[[
-mkTree(tree) builds a tree of files and dirs at `dir`.
-Dirs  are tables.
-Files are string or fd -- which are read+closed.
-
-tree = {
-  a = {
-    ['a1.txt'] = 'stuff in a1.txt',
-    ['a2.txt'] = 'stuff in a.txt',
-    a3 = {
-      ['a4.txt'] = io.open'some/file.txt',
-    }
-  }
-}
-
-Builds a tree like
-a/a1.txt    # content: stuff in a1.txt
-a/a2.txt    # content: stuff in a2.txt
-a/a3/a4.txt # content: stuff in a3.txt
-]](function(dir, tree, parents)
+-- mkTree(tree) builds a tree of files and dirs at `dir`.
+-- Dirs  are tables.
+-- Files are string or fd -- which are read+closed.
+-- 
+-- tree = {
+--   a = {
+--     ['a1.txt'] = 'stuff in a1.txt',
+--     ['a2.txt'] = 'stuff in a.txt',
+--     a3 = {
+--       ['a4.txt'] = io.open'some/file.txt',
+--     }
+--   }
+-- }
+-- 
+-- Builds a tree like
+-- a/a1.txt    # content: stuff in a1.txt
+-- a/a2.txt    # content: stuff in a2.txt
+-- a/a3/a4.txt # content: stuff in a3.txt
+M.mkTree = function(dir, tree, parents)
   M.mkDir(dir, parents)
   for name, v in pairs(tree) do
     local p = path.concat{dir, name, type(v) == 'table' and '/' or nil}
@@ -198,26 +187,25 @@ a/a3/a4.txt # content: stuff in a3.txt
       f:close(); v:close()
     else error('invalid tree value of type '..type(v)) end
   end
-end)
+end
 
 M.Lap = function() return lap.Lap {
   sleepFn=M.sleep, monoFn=M.monoSec, pollList=fd.PollList(),
 }end
 
-M.sh = mt.doc[[
-sh(cmd, inp, env) -> rc, out, log
-Execute the command in another process via execvp (basically the system shell).
-
-This is the synchronous (blocking) version of this command. Use async.sh for the
-asynchronous version (or see 'si' library).
-
-Returns the return-code, out (aka stdout), and log (aka stderr).
-
-COMMAND                               BASH
-sh'ls foo/bar'                     -- ls foo/bar
-sh{'ls', 'foo/bar', 'space dir/'}  -- ls foo/bar "space dir/"
-sh('cat', 'sent to stdin')         -- echo "sent to stdin" | cat
-]](function(cmd, inp, env)
+-- sh(cmd, inp, env) -> rc, out, log
+-- Execute the command in another process via execvp (basically the system shell).
+-- 
+-- This is the synchronous (blocking) version of this command. Use async.sh for the
+-- asynchronous version (or see 'si' library).
+-- 
+-- Returns the return-code, out (aka stdout), and log (aka stderr).
+-- 
+-- COMMAND                               BASH
+-- sh'ls foo/bar'                     -- ls foo/bar
+-- sh{'ls', 'foo/bar', 'space dir/'}  -- ls foo/bar "space dir/"
+-- sh('cat', 'sent to stdin')         -- echo "sent to stdin" | cat
+M.sh = function(cmd, inp, env)
   if type(cmd) == 'string' then cmd = shim.parseStr(cmd) end
   cmd = shim.expand(cmd)
   local nfd = fd.sys.newFD
@@ -240,6 +228,6 @@ sh('cat', 'sent to stdin')         -- echo "sent to stdin" | cat
     M.Lap():run(fns)
     sh:wait() end
   return sh:rc(), out, log
-end)
+end
 
 return M

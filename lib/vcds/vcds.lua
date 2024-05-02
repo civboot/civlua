@@ -1,4 +1,6 @@
 -- vsds: version control data structures (and algorithms)
+local M = mod and mod'vcds' or {}
+
 local mty = require'metaty'
 local ds  = require'ds'
 local push, sfmt = table.insert, string.format
@@ -8,16 +10,13 @@ local function nw(n) -- numwidth
   n = tostring(n); return n..string.rep(' ', 8-#n)
 end
 
-local M = mty.docTy({}, [[
-Version control data structures and algorithms.
-]])
 M.ADD = '+'
 M.REM = '-'
 
+-- normalize a line for comparing (anchoring).
+-- This just squashes and trims the end.]]
 -- TODO: I want to use this when applying patches
-M.normalize = mty.doc[[normalize a line for comparing (anchoring).
-This just squashes and trims the end.]]
-(function(s) return ds.squash(ds.trimEnd(s)) end)
+M.normalize = function(s) return ds.squash(ds.trimEnd(s)) end
 
 ---------------------
 -- Single Line Diff
@@ -57,12 +56,11 @@ M.Change.len = function(ch)
   return (type(ch.rem) == 'number') and ch.rem or #ch.rem
 end
 
-M.apply = mty.doc[[
-apply(dat, changes, out?) -> out
-
-Apply changes to base (TableLines)
-`out` is used for the output, else a new table.
-]](function(base, changes, out)
+-- apply(dat, changes, out?) -> out
+-- 
+-- Apply changes to base (TableLines)
+-- `out` is used for the output, else a new table.
+M.apply = function(base, changes, out)
   local l = 1; out = out or {}
   for _, p in ipairs(changes) do
     local pty = mty.ty(p)
@@ -76,7 +74,7 @@ Apply changes to base (TableLines)
     end
   end
   return out
-end)
+end
 
 ----------------------
 -- Conversion
@@ -129,15 +127,14 @@ local DiffsExtender = setmetatable({
   return setmetatable({diffs={}, base=base, bl=1, cl=1}, ty_)
 end})
 
-M.toDiffs = mty.doc[[
-toDiff(base, changes) -> diffs
-
-Convert Changes to Diffs with full context
-]](function(base, changes)
+-- toDiff(base, changes) -> diffs
+-- 
+-- Convert Changes to Diffs with full context
+M.toDiffs = function(base, changes)
   local de = DiffsExtender(base)
   for _, ch in ipairs(changes) do de(ch) end
   return de.diffs
-end)
+end
 
 M.createAnchorTop = function(base, l, aLen)
   local a = {}; if l < 1 then return a end
@@ -158,13 +155,12 @@ M.createAnchorBot = function(base, l, aLen)
   return a
 end
 
-M.Picks = mty.doc[[
-Create picks (aka cherry picks) iterator from changes.
-These can then be applied to a new base using vcds.patch(base, picks)
-
-Each "pick" is a list of Diffs which are anchored by the lines
-above and below (unless they are start/end of file).
-]](setmetatable({
+-- Create picks (aka cherry picks) iterator from changes.
+-- These can then be applied to a new base using vcds.patch(base, picks)
+-- 
+-- Each "pick" is a list of Diffs which are anchored by the lines
+-- above and below (unless they are start/end of file).
+M.Picks = setmetatable({
   __index = function(p, k) return getmetatable(p)[k] end,
   __call = function(p) -- iterator
     local de, changes, aLen = p.de, p.changes, p.set.anchorLen
@@ -209,7 +205,7 @@ above and below (unless they are start/end of file).
       set=set,
     }, ty_)
   end
-}))
+})
 
 local function checkAnchor(iter, base, bl)
   local bline; for _, aline in table.unpack(iter) do
@@ -223,14 +219,13 @@ local function checkAnchor(iter, base, bl)
 end
 
 -- iterFn = ds.ireverse to find the top, ipairs to find bottom.
-M.findAnchor = mty.doc[[
-findAnchor(base, baseLineMap, anchors: {Diff}, above: boolean)
-  -> line, anchorTextLines
-
-Find the actual anchor by searching for uniqueness in the anchors:
-* above=true:  find above (search up)
-* above=false: find below (search down)
-]](function(base, baseMap, anchors, above)
+-- findAnchor(base, baseLineMap, anchors: {Diff}, above: boolean)
+--   -> line, anchorTextLines
+-- 
+-- Find the actual anchor by searching for uniqueness in the anchors:
+-- * above=true:  find above (search up)
+-- * above=false: find below (search down)
+M.findAnchor = function(base, baseMap, anchors, above)
   local iterFn = above and ds.ireverse or ipairs
   local alines = {}
   for ai, anchor in iterFn(anchors) do
@@ -250,7 +245,7 @@ Find the actual anchor by searching for uniqueness in the anchors:
     end
     if found == 1 then return fbl, #alines end
   end
-end)
+end
 
 M.Patch = mty.record2'Patch' {
   'conflict [string]', 'bl [number]',

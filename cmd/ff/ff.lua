@@ -50,10 +50,9 @@ local civix = require'civix'
 local push = table.insert
 
 local M = {}
-M.FF = mty.doc[[
-List arguments:
-  path path2 path3 ...: list of paths to find/fix
-]](mty.record2'FF') {
+-- List arguments:
+--   path path2 path3 ...: list of paths to find/fix
+M.FF = mty.record2'FF' {
   [[depth[int]: depth to recurse (default=infinite)]],
   [[files[bool]: log/return files or substituted files.]],     files=true,
   [[matches[bool]: log/return the matches or substitutions.]], matches=true,
