@@ -1,7 +1,7 @@
 METATY_CHECK = true
 
 local push = table.insert
-local pkg = require'pkg'
+local pkg = require'pkglib'
 local mty = pkg'metaty'
 local ds = pkg'ds'
 

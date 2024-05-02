@@ -1,6 +1,6 @@
 METATY_CHECK = true
 
-local pkg = require'pkg'
+local pkg = require'pkglib'
 local T = pkg'civtest'
 local term = pkg'civix.term'
 

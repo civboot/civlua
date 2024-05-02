@@ -74,7 +74,7 @@ An alternative (recommended even) method is to simply download this directory
 and add it to the following paths in your shell's `rc` file:
 
 ```
-LUA_PATH="/path/to/civlua/lib/pkg/pkg.lua;...rest-of-your-LUA_PATH"
+LUA_PATH="/path/to/civlua/lib/pkg/pkglib.lua;...rest-of-your-LUA_PATH"
 LUA_PKGS="/path/to/civlua;...rest-of-your-LUA_PKGS"
 ```
 
@@ -112,5 +112,4 @@ This software is released into the public domain, see LICENSE (aka UNLICENSE).
 Attribution is very appreciated (but not required).
 
 [Civboot]: http://civboot.org
-[pkg.lua]: https://luarocks.org/modules/vitiral/pkg
 [LuaRocks]: https://luarocks.org/

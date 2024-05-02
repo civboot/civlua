@@ -12,14 +12,14 @@ def writepath(path, text):
 exp = re.compile(r"^.*require'metaty'.*$", re.M)
 def repl(m):
   print('  ?? replacing', m)
-  return "local pkg = require'pkg'\n" + m.group(0)
+  return "local pkg = require'pkglib'\n" + m.group(0)
 
 for base, _dirs, fnames in os.walk('./'):
   for fname in fnames:
     fpath = path.join(base, fname)
     if not fpath.endswith('.lua'): continue
     text = readpath(fpath)
-    if "require'pkg'" in text: continue
+    if "require'pkglib'" in text: continue
     print('Updating', fpath)
     res = exp.sub(repl, text)
     if res == text:

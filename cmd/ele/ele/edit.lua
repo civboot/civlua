@@ -1,6 +1,6 @@
 -- #####################
 -- # Edit struct
-local pkg = require'pkg'
+local pkg = require'pkglib'
 local ds = pkg'ds'
 local gap = pkg'rebuf.gap'
 local T = pkg'ele.types'

@@ -1,7 +1,7 @@
 local SMOL_LARGE = os.getenv('SMOL_LARGE')
 
 local T      = pkg'civtest'
-local pkg = require'pkg'
+local pkg = require'pkglib'
 local mty    = pkg'metaty'
 local M      = require'smol'
 local lzw    = require'smol.lzw'

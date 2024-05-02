@@ -2,12 +2,12 @@ METATY_CHECK = true
 METATY_DOC   = true
 
 local civ = dofile'civ.lua'
-local pkg = require'pkg'
+local pkg = require'pkglib'
 local T, dir = pkg'civtest', civ.dir
 
 T.test('[[core]]', function()
   assert(os.execute(
-    'LUA_PATH=lib/pkg/src/pkg.lua lua lib/shim/test.lua --test=test.lua'
+    'LUA_PATH=lib/pkg/pkglib.lua lua lib/shim/test.lua --test=test.lua'
   ))
   dofile(dir..'lib/fd/test.lua')
   dofile(dir..'lib/metaty/test.lua')

@@ -9,7 +9,7 @@
 --    after "bot" (aka after curLine). If the cursor is
 --    moved to a previous line then data is moved from top to bot
 
-local pkg = require'pkg'
+local pkg = require'pkglib'
 local mty = pkg'metaty'
 local ds  = pkg'ds'
 

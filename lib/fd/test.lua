@@ -1,5 +1,5 @@
 
-local pkg = require'pkg'
+local pkg = require'pkglib'
 local T   = pkg'civtest'
 local M   = pkg'fd'
 local S   = M.sys

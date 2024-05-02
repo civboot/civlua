@@ -1,6 +1,6 @@
 -- pkg: better lua pkg creation and importing
 -- usage:
---   local pkg = require'pkg'
+--   local pkg = require'pkglib'
 --   local myMod = pkg'myMod'
 
 local push, sfmt = table.insert, string.format
@@ -37,7 +37,7 @@ M.PKGS = false -- loaded pkgs
 
 -- These are modified before loading the package.
 -- The package can inspect it to (for example) know it's version string,
--- i.e. local version = require'pkg'.PKG.version
+-- i.e. local version = require'pkglib'.PKG.version
 --
 -- It is recommended to do this before executing any other `pkg()` calls!
 M.PKG  = nil -- PKG.lua being loaded

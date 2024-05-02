@@ -3,7 +3,7 @@ local push, pop = table.insert, table.remove
 local yield     = coroutine.yield
 local NL        = -string.byte'\n'
 
-local pkg = require'pkg'
+local pkg = require'pkglib'
 
 local S = pkg'fd.sys'
 S.POLLIO = S.POLLIN | S.POLLOUT

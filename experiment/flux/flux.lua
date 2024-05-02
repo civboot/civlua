@@ -3,7 +3,7 @@ flux: simple change management (version control) software.
 ]]
 
 METATY_DOC = true
-local pkg = require'pkg'
+local pkg = require'pkglib'
 local shim     = pkg'shim'
 local mty      =  pkg'metaty'
 local ds       =  pkg'ds'

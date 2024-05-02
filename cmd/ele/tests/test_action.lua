@@ -1,6 +1,6 @@
 METATY_CHECK = true
 
-local pkg = require'pkg'
+local pkg = require'pkglib'
 local ds = require'ds'
 local test, assertEq; ds.auto'civtest'
 

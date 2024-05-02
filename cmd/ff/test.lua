@@ -2,7 +2,7 @@
 -- Many of these involve writing some text files and dirs to .out/ff/
 -- and then using it to
 
-local pkg = require'pkg'
+local pkg = require'pkglib'
 local mty = pkg'metaty'
 local ds = pkg'ds'
 local civix  = pkg'civix'

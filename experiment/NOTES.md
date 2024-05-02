@@ -18,7 +18,7 @@ After that is complete I have a MAJOR overhaul in mind:
   * this is a new standard called the PKG standard.
   * Basically, libraries will now do: `local M = mod and mod'name' or {}`
   * The user can select whether to use `pkg` or `require` with
-    `alias lua="lua -e \"require = require'pkg'\""` (or similar in Make/etc)
+    `alias lua="lua -e \"require = require'pkglib'\""` (or similar in Make/etc)
   * mod will then handle naming and updating `SRC*` globals
 * PKG.lua: make dirs just a boolean, if true PKG.dirs is loaded which is a list of subpkgs
 * can call metaty module direction instead of metaty.record2
@@ -42,5 +42,5 @@ After that is complete I have a MAJOR overhaul in mind:
 * Overhaul how testing is done: global `T`
   * Tests are defined with `T.foo = function() T.assertEq(1, 1) end`
     The simplest implementation just runs the function immediately
-  * `lua -e 'require = require'pkg'; T = require"civtest"' myTest.lua`
+  * `lua -e 'require = require'pkglib'; T = require"civtest"' myTest.lua`
 

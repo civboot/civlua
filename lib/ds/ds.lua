@@ -1,4 +1,4 @@
-local pkg = require'pkg'
+local pkg = require'pkglib'
 local mty = pkg'metaty'
 local add, pop, sfmt = table.insert, table.remove, string.format
 

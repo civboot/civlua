@@ -1,5 +1,5 @@
 local DOC = "Serialize cxt nodes as html"
-local pkg = require'pkg'
+local pkg = require'pkglib'
 local mty  = pkg'metaty'
 local pegl = pkg'pegl'
 local cxt  = pkg'cxt'

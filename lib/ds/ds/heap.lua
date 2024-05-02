@@ -1,4 +1,4 @@
-local pkg = require'pkg'
+local pkg = require'pkglib'
 local mty = require'metaty'
 local ds  = pkg'ds'
 local bt = ds.bt

@@ -1,6 +1,6 @@
 -- rd: recursive descent parser
 
-local pkg = require'pkg'
+local pkg = require'pkglib'
 local mty, ty = pkg'metaty'; ty = mty.ty
 local ds      = pkg'ds'
 local civtest = pkg'civtest'

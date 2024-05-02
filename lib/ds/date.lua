@@ -1,6 +1,6 @@
 ---------------------
 -- DateTime: a year, day and time
-local pkg = require'pkg'
+local pkg = require'pkglib'
 local mty = pkg'metaty'
 
 local M = {}

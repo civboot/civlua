@@ -1,5 +1,5 @@
 METATY_CHECK = true
-local pkg = require'pkg'
+local pkg = require'pkglib'
 local mty = pkg'metaty'
 local test, assertEq, assertErrorPat; ds.auto'civtest'
 local df  = pkg'ds.file'

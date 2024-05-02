@@ -8,7 +8,7 @@ How to import packages:
 * Put the directories containing your lua pks somewhere on `LUA_PKGS`
   environment variable (`;` separated)
 * ```
-  local pkg = require'pkg'
+  local pkg = require'pkglib'
   local myLib = pkg'myLib'
   ```
 

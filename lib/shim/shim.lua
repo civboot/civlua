@@ -1,4 +1,4 @@
-local pkg = require'pkg'
+local pkg = require'pkglib'
 local ds  = pkg'ds'
 
 local push, sfmt = table.insert, string.format

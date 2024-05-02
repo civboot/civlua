@@ -1,5 +1,5 @@
 
-local pkg = require'pkg'
+local pkg = require'pkglib'
 local mty = pkg'metaty'
 local ds = pkg'ds'
 local test, assertEq; local T = ds.auto'civtest'
