@@ -13,7 +13,7 @@ however PEGL isn't yet migrated, so that needs to happen first.
 
 After that is complete I have a MAJOR overhaul in mind:
 
-* pkg exports a few globals: `mod, SRCLOC, SRCNAME`. Move them from metaty.lua where
+* pkg exports a few globals: `mod, DOC_LOC, DOC_NAME`. Move them from metaty.lua where
   I've done an MVP implementation.
   * this is a new standard called the PKG standard.
   * Basically, libraries will now do: `local M = mod and mod'name' or {}`

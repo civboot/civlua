@@ -159,10 +159,10 @@ T.test('comment', function()
   assertParse{dat='x = --line\n  {}', spec=src,
     expect=expect, root=root,
   }
-  assertParse{dat='x = --[[block]]{}', spec=src,
+  assertParse{dat='x = -- block{}', spec=src,
     expect = expect, root=root,
   }
-  assertParse{dat='x\n=\n--[[\nblock\n]]\n{}--hi\n--EOF', spec=src,
+  assertParse{dat='x\n=\n-- \nblock\n\n{}--hi\n--EOF', spec=src,
     expect = expect, root=root,
   }
 end)
@@ -336,7 +336,7 @@ T.test('error', function()
           x = 1 + {2 3} -- '2 3' is invalid
         end
       ]], src, RootSpec{dbg=false})
-    end, --[[plain]] true)
+    end, -- plain true)
 end)
 
 local function testLuaPath(path)

@@ -6,7 +6,7 @@ This is a no-frills test library (<100 LoC). It simply builds on `metaty` and
 * `assertEq` does deep table comparison as well as handling `__eq`.
 * `assertErrorPat` for asserting errors.
 * `assertMatch` for string matching.
-* `test("my test", function() assertEq(1, 2) --[[fails]] end)` does exactly what
+* `test("my test", function() assertEq(1, 2) -- fails end)` does exactly what
   you think. It ALSO:
   * Ensures no global variables were added
 * `grequire'myModule'` allows you to quickly import your module contents as

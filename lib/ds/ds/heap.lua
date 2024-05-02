@@ -70,10 +70,12 @@ getmetatable(M.Heap).__call = function(T, t, cmp)
   return mty.construct(T, t)
 end
 
-M.Heap.add = mty.doc[[h:add(v) add value to the heap.]]
+-- h:add(v) add value to the heap.
+M.Heap.add =
 (function(h, v) push(h, v); percUp(h, 1, #h, #h, h.cmp) end)
 
-M.Heap.pop = mty.doc[[h:pop() -> v: pop the top node.]]
+-- h:pop() -> v: pop the top node.
+M.Heap.pop =
 (function(h)
   if #h <= 1 then return table.remove(h) end
   -- move last child to root and fix

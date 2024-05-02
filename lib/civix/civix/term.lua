@@ -65,8 +65,10 @@ local INP_SEQ = { -- valid input sequences following '<esc>['
   ['H'] = 'home', ['F'] = 'end',
 }
 local INP_SEQO = { -- valid input sequences following '<esc>O'
-  --[[xterm]] ['OP'] = 'f1', ['OQ'] = 'f2', ['OR'] = 'f3', ['OS'] = 'f4',
-  --[[vt]]    ['OH'] = 'home', ['OF'] = 'end',
+  -- xterm
+  ['OP'] = 'f1', ['OQ'] = 'f2', ['OR'] = 'f3', ['OS'] = 'f4',
+  -- vt
+  ['OH'] = 'home', ['OF'] = 'end',
 }
 M.INP_SEQ = INP_SEQ; M.INP_SEQO = INP_SEQO
 

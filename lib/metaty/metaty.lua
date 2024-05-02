@@ -62,12 +62,11 @@ end
 
 M.fnsrc = function(fn)
   local info
-  local name = SRCNAME[fn]; if not name then
-    print('!! fn', fn)
+  local name = DOC_NAME[fn]; if not name then
     info = debug.getinfo(fn)
     name = info.name
   end
-  local loc = SRCLOC[fn]; if not loc then
+  local loc = DOC_LOC[fn]; if not loc then
     info = info or debug.getinfo(fn)
     loc = string.format('%s:%s', info.short_src, info.linedefined)
   end
@@ -75,7 +74,7 @@ M.fnsrc = function(fn)
 end
 M.getsrc = function(obj)
   if type(obj) == 'function' then return M.fnsrc(obj) end
-  return SRCNAME[obj], SRCLOC[obj]
+  return DOC_NAME[obj], DOC_LOC[obj]
 end
 
 -- rawsplit(subj, ctx) -> (ctx, splitstr)

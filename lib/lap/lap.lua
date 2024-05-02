@@ -24,13 +24,15 @@ M.formatCorErrors = function(corErrors, lvl)
   return table.concat(f)
 end
 
-M.sync  = mt.doc'Switch lua to synchronous mode'
+-- Switch lua to synchronous mode
+M.sync  =
 (function()
   for _, fn in ipairs(LAP_FNS_SYNC)  do fn() end
   LAP_ASYNC = false
 end)
 
-M.async = mt.doc'Switch lua to asynchronous (yielding) mode'
+-- Switch lua to asynchronous (yielding) mode
+M.async =
 (function()
   for _, fn in ipairs(LAP_FNS_ASYNC) do fn() end
   LAP_ASYNC = true
@@ -72,7 +74,8 @@ Notes:
 getmetatable(M.Recv).__call = function(T)
   return mt.construct(T, {deq=ds.Deq(), _sends=ds.WeakKV{}})
 end
-M.Recv.close = mt.doc[[Close read side and all associated sends.]]
+-- Close read side and all associated sends.
+M.Recv.close =
 (function(r)
   local sends = r._sends; if not sends then return end
   for s in pairs(ds.copy(sends)) do s:close() end
@@ -182,16 +185,19 @@ getmetatable(M.Any).__call = function(T, fns)
   return mt.construct(T, self)
 end
 M.Any.ignore = function(self) self.cor = nil end
-M.Any.schedule = mt.doc'schedule() -> self: ensure all fns are scheduled'
+-- schedule() -> self: ensure all fns are scheduled
+M.Any.schedule =
 (function(self)
   for i in pairs(self.done) do self:restart(i) end
 end)
-M.Any.yield = mt.doc'yield() -> fnIndex: yield until a fn index is done'
+-- yield() -> fnIndex: yield until a fn index is done
+M.Any.yield =
 (function(self)
   while not next(self.done) do yield() end
   return next(self.done)
 end)
-M.Any.restart = mt.doc'restart(i): restart fn at index'
+-- restart(i): restart fn at index
+M.Any.restart =
 (function(self, i)
   LAP_READY[coroutine.create(self.fns[i])] = 'any-item'
   self.done[i] = nil

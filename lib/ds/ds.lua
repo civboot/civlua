@@ -1,7 +1,9 @@
+-- ds: data structures and algorithms
+
+local M = mod and mod'ds' or {}
+
 local mty = require'metaty'
 local add, pop, sfmt = table.insert, table.remove, string.format
-
-local M = {}
 
 M.SKIP     = 'skip'
 M.noop     = function() end
@@ -46,15 +48,6 @@ end
 
 ---------------------
 -- String Functions
-
-M.f = mty.doc[[
-Example: f'example %s: %s'('format', 'easy')
-
-Note: This is a convienience formatting function
-and is not recommended in performance-critical paths
-]](function(fmt)
-  return function(...) return fmt:format(...) end
-end)
 
 function M.trim(subj, pat, index)
   pat = pat and ('^'..pat..'*(.-)'..pat..'*$') or '^%s*(.-)%s*$'
@@ -105,15 +98,14 @@ M.q1str = function(s)
     :gsub("'", "\\'"):gsub('\\"', '"').."'"
 end
 
-M.trimEnd = mty.doc[[trim the end of the string by removing pat (default='%s')]]
-(function(subj, pat, index)
+-- trim the end of the string by removing pat (default='%s')
+M.trimEnd = function(subj, pat, index)
   pat = pat and ('^(.-)'..pat..'*$') or '^(.-)%s*$'
   return subj:match(pat, index)
-end)
+end
 
-M.squash = mty.doc[[
-Squash a string: convert all whitespace to repl (default=' ').
-]](function(s, repl) return s:gsub('%s+', repl or ' ') end)
+-- Squash a string: convert all whitespace to repl (default=' ').
+M.squash = function(s, repl) return s:gsub('%s+', repl or ' ') end
 
 ---------------------
 -- lines module
@@ -125,22 +117,21 @@ local function span(l, c, l2, c2)
   error'span must be 2 or 4 indexes: (l, l2) or (l, c, l2, c2)'
 end
 
-M.lines = mty.doc[[
-lines module, when called splits a string into lines.
-
-lines(text) -> table of lines
-
-Also has functions for working with a table of lines.
-
-  lines.sub(myLines, l, c, l2, c2)
-]](setmetatable({span=span}, {
+-- lines module, when called splits a string into lines.
+--
+-- lines(text) -> table of lines
+--
+-- Also has functions for working with a table of lines.
+--
+--   lines.sub(myLines, l, c, l2, c2)
+M.lines = setmetatable({span=span}, {
   __call=function(_, text, index)
     local t = {}
     for _, line in mty.rawsplit, text, {'\n', index or 1} do
       add(t, line)
     end; return t
   end,
-}))
+})
 
 function M.lines.sub(t, ...)
   local l, c, l2, c2 = span(...)
@@ -180,13 +171,13 @@ function M.lines.diff(linesL, linesR)
   return nil
 end
 
-M.lines.map = mty.doc[[create a table of lineText -> {lineNums}]]
-(function(lines)
+-- create a table of lineText -> {lineNums}
+M.lines.map = function(lines)
   local map = {}; for l, line in ipairs(lines) do
     add(M.getOrSet(map, line, M.emptyTable), l)
   end
   return map
-end)
+end
 
 --------------------
 -- Working with file paths
@@ -226,77 +217,77 @@ M.path.splitList = function(path) return M.splitList(path, '/+') end
 
 ---------------------
 -- Table Functions
-M.isEmpty = mty.doc'return whether a table is empty'
-(function(t) return next(t) == nil end)
 
-M.only = mty.doc'get the first and only element of the list'
-(function(t)
+M.isEmpty = function(t) return next(t) == nil end
+
+-- get the first and only element of the list
+M.only = function(t)
   mty.assertf(#t == 1, 'len ~= 1: %s', #t)
   return t[1]
-end)
+end
 
-M.values = mty.doc'get only the values of pairs(t) as a list'
-(function(t)
+-- get only the values of pairs(t) as a list
+M.values = function(t)
   local vals = {}; for _, v in pairs(t) do add(vals, v) end
   return vals
-end)
+end
 
-M.keys = mty.doc'get only the keys of pairs(t) as a list'
-(function(t)
+-- get only the keys of pairs(t) as a list
+M.keys = function(t)
   local keys = {}; for k in pairs(t) do add(keys, k) end
   return keys
-end)
+end
 
-M.inext = mty.doc'next(t, key) but with indexes'(ipairs{})
+M.inext = ipairs{} -- next(t, key) but with indexes
 
-M.iprev = mty.doc'inext but reversed.'
-(function(t, i) if i > 1 then return i - 1, t[i - 1] end end)
+-- inext but reversed.
+M.iprev = function(t, i)
+  if i > 1 then return i - 1, t[i - 1] end
+end
 
-M.ireverse = mty.doc'ipairs reversed'
-(function(t) return M.iprev, t, #t + 1 end)
+-- ipairs reversed
+M.ireverse = function(t) return M.iprev, t, #t + 1 end
 
-M.rawislice = mty.doc'for i, v in rawislice({t, endi}, starti)'
-(function(state, i)
+-- for i, v in rawislice({t, endi}, starti)
+M.rawislice = function(state, i)
   i = i + 1; if i > state[2] then return end
   return i, state[1][i]
-end)
-M.islice = mty.doc[[
-islice(t, starti, endi=#t): iterate over slice.
-  Unlike other i* functions, this ignores length
-  except as the default value of endi
-]](function(t, starti, endi)
+end
+
+-- islice(t, starti, endi=#t): iterate over slice.
+--   Unlike other i* functions, this ignores length
+--   except as the default value of endi
+M.islice = function(t, starti, endi)
   return M.rawislice, {t, endi or #t}, (starti or 1) - 1
-end)
+end
 
-M.ilast = mty.doc[[
-iend(t, starti, endi=-1): get islice from the end.
-  starti and endi must be negative.
-
-Example:
-  iend({1, 2, 3, 4, 5}, -3, -2) -> 3, 4
-]](function(t, starti, endi)
+-- iend(t, starti, endi=-1): get islice from the end.
+--   starti and endi must be negative.
+-- 
+-- Example:
+--   iend({1, 2, 3, 4, 5}, -3, -2) -> 3, 4
+M.ilast = function(t, starti, endi)
   local len = #t; endi = endi and math.min(len, len + endi + 1) or len
   return M.rawislice, {t, endi}, math.min(len - 1, len + starti)
-end)
+end
 
-M.itable = mty.doc[[convert (_, v) iterator into a table by pushing]]
-(function(it)
+-- convert (_, v) iterator into a table by pushing
+M.itable = function(it)
   local o = {}; for _, v in table.unpack(it) do add(o, v) end;
   return o
-end)
+end
 
-M.kvtable = mty.doc[[convert (k, v) iterator into a table by setting]]
-(function(it)
+-- convert (k, v) iterator into a table by setting
+M.kvtable = (function(it)
   local o = {}; for k, v in table.unpack(it) do o[k] = v end;
   return o
 end)
 
-M.ieq = mty.doc[[
-Determine if two iterators are equal (ignores indexes)
-
-Example:
-  ieq({ipairs(a)}, {islice(b, 3, 7)})
-]](function(aiter, biter)
+-- Determine if two iterators are equal (ignores indexes)
+-- 
+-- Example:
+--   ieq({ipairs(a)}, {islice(b, 3, 7)})
+M.ieq = function(aiter, biter)
   local afn, astate, ai, a = table.unpack(aiter)
   local bfn, bstate, bi, b = table.unpack(biter)
   while true do
@@ -304,7 +295,7 @@ Example:
     if not mty.eq(a, b) then return false end
     if a == nil         then return true end
   end
-end)
+end
 
 -- reverse a list-like table in-place
 M.reverse = function(t)
@@ -359,17 +350,16 @@ M.getPath = function(d, path)
   return d
 end
 
-M.get = mty.doc[[
-get(t, 'a', 2, 'c') -> t.a?[2]?.c?
-get the keys or nil if any are missing.
-]](function(t, ...)
+-- get(t, 'a', 2, 'c') -> t.a?[2]?.c?
+-- get the keys or nil if any are missing.
+M.get = function(t, ...)
 	local len = select('#', ...)
   for i=1,len-1 do
     t = t[select(i, ...)]
     if t == nil then return end
   end
   return t[select(len, ...)]
-end)
+end
 
 M.emptyTable = function() return {} end
 M.setPath = function(d, path, value, newFn)
@@ -392,28 +382,27 @@ function M.indexOfPat(strs, pat)
   for i, s in ipairs(strs) do if s:find(pat) then return i end end
 end
 
-M.popit = mty.doc[[
-popit(t, i) -> t[i]  -- also, the length of t is reduced by 1
-
-popit (aka pop-index-top) will return the value at t[i], replacing it with the
-value at the end (aka top) of the list.
-
-if i > #t returns nil and doesn't affect the size of the list.
-]](function(t, i)
+-- popit(t, i) -> t[i]  -- also, the length of t is reduced by 1
+-- 
+-- popit (aka pop-index-top) will return the value at t[i], replacing it with the
+-- value at the end (aka top) of the list.
+-- 
+-- if i > #t returns nil and doesn't affect the size of the list.
+M.popit = function(t, i)
   local len = #t; if i > len then return end
   local o = t[i]; t[i] = t[len]; t[len] = nil
   return o
-end)
+end
 
-M.walk = mty.doc[[walk(tbl, fieldFn, tableFn, maxDepth, state)
-Walk the table up to depth maxDepth (or infinite if nil).
-
-fieldFn(key, value, state)  -> stop  is called for every non-table value.
-tableFn(key, tblValue, state) -> stop is called for every table value
-
-If tableFn stop==ds.SKIP (i.e. 'skip') then that table is not recursed.
-Else if stop then the walk is halted immediately
-]](function(t, fieldFn, tableFn, maxDepth, state)
+-- walk(tbl, fieldFn, tableFn, maxDepth, state)
+-- Walk the table up to depth maxDepth (or infinite if nil).
+-- 
+-- fieldFn(key, value, state)  -> stop  is called for every non-table value.
+-- tableFn(key, tblValue, state) -> stop is called for every table value
+-- 
+-- If tableFn stop==ds.SKIP (i.e. 'skip') then that table is not recursed.
+-- Else if stop then the walk is halted immediately
+M.walk = function(t, fieldFn, tableFn, maxDepth, state)
   if maxDepth then
     maxDepth = maxDepth - 1; if maxDepth < 0 then return end
   end
@@ -429,7 +418,7 @@ Else if stop then the walk is halted immediately
     elseif fieldFn and fieldFn(k, v, state) then return end
     ::skip::
   end
-end)
+end
 
 ---------------------
 -- Untyped Functions
@@ -485,19 +474,21 @@ function M.fileWithText(path, text, mode)
   return f
 end
 
-M.fdMv = mty.doc[[fdMv(fdTo, fdFrom): memonic fdTo = fdFrom
-Read data from fdFrom and write to fdTo, then flush.
-]](function(fdTo, fdFrom)
+-- fdMv(fdTo, fdFrom): memonic fdTo = fdFrom
+-- Read data from fdFrom and write to fdTo, then flush.
+M.fdMv = function(fdTo, fdFrom)
   while true do
     local d = fdFrom:read(4096); if not d then break end
     fdTo:write(d)
   end fdTo:flush()
   return fdTo, fdFrom
-end)
+end
 
 ---------------------
 -- Source Code Functions
-M.lineschunk = mty.doc'convert lines-like table into chunk for eval'
+
+-- convert lines-like table into chunk for eval
+M.lineschunk =
 (function(dat)
   local i = 1
   return function() -- alternates between next line and newline
@@ -525,22 +516,23 @@ end
 -- not used directly. See lua documentation on specific
 -- usage.
 
-M.WeakK = mty.doc[[Weak key table, see docs on '__mode']]
-(setmetatable(
+-- Weak key table, see docs on '__mode'
+M.WeakK = setmetatable(
   {__name='WeakK', __mode='k'}, {
   __name='Ty<WeakK>', __call=mty.constructUnchecked,
-}))
-M.WeakV = mty.doc[[Weak value table, see docs on '__mode']]
-(setmetatable(
+})
+
+-- Weak value table, see docs on '__mode'
+M.WeakV = setmetatable(
   {__name='WeakV', __mode='v'}, {
   __name='Ty<WeakV>', __call=mty.constructUnchecked,
-}))
+})
 
-M.WeakKV = mty.doc[[Weak key+value table, see docs on '__mode']]
-(setmetatable(
+-- Weak key+value table, see docs on '__mode'
+M.WeakKV = setmetatable(
   {__name='WeakKV', __mode='kv'}, {
   __name='Ty<WeakKV>', __call=mty.constructUnchecked,
-}))
+})
 
 ---------------------
 -- Sentinal, none type, bool()
@@ -571,7 +563,8 @@ none is a sentinel value. Use it in APIs where there is an
 ]]
 M.none = M.newSentinel('none', {}, {__metatable='none'})
 
-M.bool = mty.doc[[convert to boolean (none aware)]]
+-- convert to boolean (none aware)
+M.bool =
 (function(v) return not rawequal(M.none, v) and v and true or false end)
 
 -- An immutable empty table
@@ -1002,7 +995,7 @@ M.auto = function(mod, i)
     local n, v = debug.getlocal(2, i)
     if not n then break end
     if nil == v then
-      if not mod[n] then error(n.." not in module") end
+      if not mod[n] then error(n.." not in module", 2) end
       debug.setlocal(2, i, mod[n])
     end
     i = i + 1

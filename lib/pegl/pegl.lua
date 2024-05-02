@@ -100,7 +100,8 @@ local FIELDS = {
   {'kind', 'string'},
   {'name', 'string'}, -- for fmt only
 }
-M.Pat = mty.doc[[Pat'pat%wern' or Pat{'pat', kind='foo'}]]
+-- Pat'pat%wern' or Pat{'pat', kind='foo'}
+M.Pat =
 (ds.imm(newSpec('Pat'))
   :fieldMaybe'kind' :fieldMaybe'name')
 M.Pat:new(function(ty_, t)
@@ -432,7 +433,7 @@ end
 M.Parser.state   =function(p) return {l=p.l, c=p.c, line=p.line} end
 M.Parser.setState=function(p, st) p.l, p.c, p.line = st.l, st.c, st.line end
 -- TODO: rename toStrNodes
-M.Parser.toStrTokens=function(p, n--[[node]])
+M.Parser.toStrTokens=function(p, n)
   if not n then return nil end
   if ty(n) == M.Token then
     local t = p:tokenStr(n)
@@ -442,7 +443,8 @@ M.Parser.toStrTokens=function(p, n--[[node]])
   t.kind=n.kind
   return t
 end
-M.Parser.tokenStr = function(p, t--[[Token]])
+-- (p, token) -> str
+M.Parser.tokenStr = function(p, t)
   return t:decode(p.dat)
 end
 M.Parser.fmtSetDefault = function(p) return mty.FmtSet{

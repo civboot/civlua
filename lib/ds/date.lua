@@ -22,7 +22,8 @@ M.DateTime = record2'DateTime' {
   'ns[int]           nanoseconds into second',
 }
 M.DateTime.isLeapYear = function(dt) return 0 == dt.year % 4 end
-M.DateTime.dayOfYear = mty.doc'Get the day of the year [0-366]'
+-- Get the day of the year [0-366]
+M.DateTime.dayOfYear =
 (function(dt) return math.floor(dt.yearSeconds / DAY_SECONDS) end)
 
 M.DateTime.month = function(dt)

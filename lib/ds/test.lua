@@ -9,7 +9,7 @@ local test, assertEq, assertErrorPat; M.auto'civtest'
 
 local min, max, bound, isWithin, sort2, decAbs
 local indexOf, copy, deepcopy
-local f, strInsert, strDivide, trim
+local strInsert, strDivide, trim
 local getOrSet, setPath, drain, reverse
 local get, getPath
 local eval
@@ -123,8 +123,6 @@ four
   assertEq([['hello']], M.q1str[[hello]])
   assertEq([['\'hello\'']], M.q1str[['hello']])
   assertEq([['"hello"']], M.q1str[["hello"]])
-
-  assertEq('hi example 42', f'hi %s %s'('example', 42))
 end)
 
 test("table", function()

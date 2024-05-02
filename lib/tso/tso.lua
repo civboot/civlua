@@ -123,7 +123,8 @@ M.Ser._tableCont = function(ser)
   ser:_nextValue(true); ser:_push'*'; ser._needSep = false;
 end
 
-M.Ser.comment = mty.doc[[add line comment]]
+-- add line comment
+M.Ser.comment =
 (function(ser, c)
   if type(c) ~= 'table' then c = ds.lines(c) end
   ser:_finishLine(); for _, line in ipairs(c) do
@@ -581,7 +582,8 @@ M.De.__call = function(d)
   return (next(t) ~= nil) and t or nil
 end
 
-M.De.all = mty.doc[[Deserialize all (remaining) rows as a table.]]
+-- Deserialize all (remaining) rows as a table.
+M.De.all =
 (function(d)
   local t = {}; for r in d do push(t, r) end
   return t

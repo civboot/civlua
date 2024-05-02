@@ -63,9 +63,11 @@ A negative duration results in a noop.
 end)
 
 -- Return the Epoch/Mono time
-M.epoch = mt.doc[[Time according to realtime clock]](
+-- Time according to realtime clock
+M.epoch =(
   function() return ds.Epoch(lib.epoch())   end)
-M.mono  = mt.doc[[Duration according to monotomically incrementing clock.]](
+-- Duration according to monotomically incrementing clock.
+M.mono  =(
   function() return ds.Duration(lib.mono()) end)
 M.monoSec = function() return M.mono():asSeconds() end
 

@@ -1,6 +1,6 @@
 
 LUA_VERSION = lua
-LUA = lua -e "require'pkglib'.install()"
+LUA = lua -e "require'pkglib':install()"
 
 .PHONY: ele
 
