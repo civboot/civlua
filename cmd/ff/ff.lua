@@ -137,7 +137,11 @@ local function _fileFn(path, args, out) -- got a file from walk
     end
     line = (sub and line:gsub(patFound, sub)) or line
     if args.matches then
-      if log         then wln(log, line, pre, l) end
+      if log         then
+        local logl = line
+        if sub and #line == 0 then logl = '<line removed>' end
+        wln(log, logl, pre, l)
+      end
       if out.matches then push(out.matches, line) end
     end
     if f and #line > 0 then wln(f, line) end -- match

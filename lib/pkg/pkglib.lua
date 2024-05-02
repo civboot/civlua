@@ -1,7 +1,6 @@
 -- pkg: better lua pkg creation and importing
 -- usage:
---   local pkg = require'pkglib'
---   local myMod = pkg'myMod'
+--   require'pkglib'.install()
 
 local push, sfmt = table.insert, string.format
 local M = {require=require}
