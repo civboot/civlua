@@ -1,15 +1,15 @@
-# doc: documentation of lua's core types
+# doc: get documentation for Lua types at runtime
 
 Get documentation on any Lua object. Includes documentation for several items
 in the lua stdlibrary.
 
-> Note: This requires a the PKG protocol to be installed, see
+> Note: This requires the PKG protocol to be installed, see
 > [lib/pkg](../pkg/README.md) and/or the guide below.
 
-Usage:
+Usage (see also [Installation](#Installation]))
 ```
 require'pkglib':install() -- adds 'mod'
-require'civ' -- requires all civ modules
+require'civ' -- (optional) requires all civ modules for demo
 local doc = require'doc'
 print(doc('ds.heap.Heap'))
 ```
@@ -61,12 +61,12 @@ luahelp string.format
 luahelp for
 ```
 
-## Library Authors
-To make your types self-documenting you must only do
+## Library
+Making a library's types self-documenting is easy:
 
 ```
 -- My module docs
-local M = mod and mod'myMod' or {}
+local M = mod and mod'myModName' or {}
 
 -- my fn docs
 M.myFn = function() ... end
