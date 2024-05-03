@@ -4,7 +4,7 @@ local ge = {}; for k in pairs(_G) do table.insert(ge, k) end
 local M = require'metaty'
 assert(M.getCheck())
 
-local record2, split, Fmt2 = M, M.split, M.Fmt2
+local record2, split, Fmt = M, M.split, M.Fmt
 
 local add, sfmt = table.insert, string.format
 
@@ -15,7 +15,7 @@ end
 
 local function assertEq(expect, result)
   if M.eq(expect, result) then return end
-  local f = Fmt2:pretty{}
+  local f = Fmt:pretty{}
   add(f, "! Values not equal:")
   add(f, "\n! EXPECT: "); f(expect)
   add(f, "\n! RESULT: "); f(result); add(f, '\n')
@@ -131,7 +131,7 @@ test("tostring", function()
   assertEq('"123"',     toStr("123"))
   assertEq('"abc def"', toStr("abc def"))
   assertEq('423',       toStr(423))
-  assertEq('1A',        toStr(26, Fmt2{numfmt='%X'}))
+  assertEq('1A',        toStr(26, Fmt{numfmt='%X'}))
   assertEq('true',      toStr(true))
   assertMatch('fn"metaty.errorf"%[.*/metaty%.lua:%d+%]', toStr(M.errorf))
   assertMatch('{hi=4}', toStr{hi=4})
@@ -148,12 +148,12 @@ test("fmt", function()
 
   assertEq( [[{baz="boo", foo="bar"}]],
     M.tostring{foo="bar", baz="boo"})
-  local result = M.tostring({a=1, b=2, c=3}, M.Fmt2:pretty{})
+  local result = M.tostring({a=1, b=2, c=3}, M.Fmt:pretty{})
   assertEq('{\n  a=1,\n  b=2,\n  c=3\n}', result)
   assertEq('{1, 2, a=12}', M.tostring{1, 2, a=12})
   assertEq('{["a b"]=5}', M.tostring{['a b'] = 5})
   assertEq('{\n  1, 2, \n  a=12\n}',
-           M.tostring({1, 2, a=12}, M.Fmt2:pretty{}))
+           M.tostring({1, 2, a=12}, M.Fmt:pretty{}))
 end)
 
 test('format', function()
@@ -170,7 +170,7 @@ test('globals', function()
 end)
 
 -- test('fmtFile', function()
---   local f = Fmt2{file=io.open('.out/TEST', 'w+')}
+--   local f = Fmt{file=io.open('.out/TEST', 'w+')}
 --   f:fmt{1, 2, z='bob', a='hi'}
 --   f.file:flush(); f.file:seek'set'
 --   assertEq('{1,2 :: a="hi" z="bob"}', f.file:read'a')

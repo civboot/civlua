@@ -25,8 +25,8 @@ end
 
 M.assertEq = function(expect, result, pretty)
   if mty.eq(expect, result) then return end
-  local f = (pretty or pretty == nil) and mty.Fmt2:pretty{}
-          or mty.Fmt2{}
+  local f = (pretty or pretty == nil) and mty.Fmt:pretty{}
+          or mty.Fmt{}
   add(f, "! Values not equal:")
   add(f, "\n! EXPECT: "); f(expect)
   add(f, "\n! RESULT: "); f(result)

@@ -223,7 +223,7 @@ M.sortKeys = function(t, len)
   return keys
 end
 
-M.Fmt2 = M.record2'Fmt' {
+M.Fmt = M.record2'Fmt' {
   "keyEnd    [string]",  keyEnd=', ',
   "indexEnd  [string]",  indexEnd = ', ',
   "tableStart[string]",  tableStart = '{',
@@ -238,7 +238,7 @@ M.Fmt2 = M.record2'Fmt' {
    _nl = '\n',
 }
 
-M.Fmt2.pretty = function(F, t)
+M.Fmt.pretty = function(F, t)
   t.tableStart = t.tableStart or '{\n'
   t.tableEnd   = t.tableEnd   or '\n}'
   t.listEnd    = t.listEnd    or '\n'
@@ -247,22 +247,22 @@ M.Fmt2.pretty = function(F, t)
   return F(t)
 end
 
-M.Fmt2.incIndent = function(f)
+M.Fmt.incIndent = function(f)
   f._depth = f._depth + 1
   if f.indent then f._nl = f._nl..f.indent end
 end
-M.Fmt2.decIndent = function(f)
+M.Fmt.decIndent = function(f)
   if f._depth <= 0 then error'unballanced indent' end
   f._depth = f._depth - 1
   local ind = f.indent; if not ind then return end
   f._nl = f._nl:sub(1, -1 - #ind); assert(f._nl:sub(1,1) == '\n')
 end
-M.Fmt2.write = function(f, ...) add(f, table.concat{...}) end
-M.Fmt2.__newindex = function(f, i, v)
+M.Fmt.write = function(f, ...) add(f, table.concat{...}) end
+M.Fmt.__newindex = function(f, i, v)
   if type(i) ~= 'number' then; assert(f.__fields[i], i)
     return rawset(f, i, v)
   end
-  assert(i == #f + 1, 'can only append to Fmt2')
+  assert(i == #f + 1, 'can only append to Fmt')
   local doIndent = false
   for _, line in M.split(v, '\n') do
     if doIndent then
@@ -270,24 +270,24 @@ M.Fmt2.__newindex = function(f, i, v)
     rawset(f, i, line); i = i + 1; doIndent = true
   end
 end
-M.Fmt2.tableKey = function(f, k)
+M.Fmt.tableKey = function(f, k)
   if type(k) ~= 'string' or M.KEYWORD[k]
      or tonumber(k) or k:find'[^_%w]' then
     add(f, '['); f(k); add(f, ']')
   else add(f, k) end
 end
-M.Fmt2['nil']      = function(f)     add(f, 'nil')             end
-M.Fmt2.boolean     = function(f, b)  add(f, tostring(b))       end
-M.Fmt2.number      = function(f, n)  add(f, sfmt(f.numfmt, n)) end
-M.Fmt2.string      = function(f, s)  add(f, sfmt(f.strfmt, s)) end
-M.Fmt2.thread      = function(f, th) add(f, tostring(th))      end
-M.Fmt2.userdata    = function(f, ud) add(f, tostring(ud))      end
-M.Fmt2['function'] = function(f, fn) add(f, sfmt('fn%q[%s]', M.fninfo(fn))) end
+M.Fmt['nil']      = function(f)     add(f, 'nil')             end
+M.Fmt.boolean     = function(f, b)  add(f, tostring(b))       end
+M.Fmt.number      = function(f, n)  add(f, sfmt(f.numfmt, n)) end
+M.Fmt.string      = function(f, s)  add(f, sfmt(f.strfmt, s)) end
+M.Fmt.thread      = function(f, th) add(f, tostring(th))      end
+M.Fmt.userdata    = function(f, ud) add(f, tostring(ud))      end
+M.Fmt['function'] = function(f, fn) add(f, sfmt('fn%q[%s]', M.fninfo(fn))) end
 
 -- Recursively format a table.
 -- Yes this is complicated. No, there is no way to really improve
 -- this while preserving the features.
-M.Fmt2.table = function(f, t)
+M.Fmt.table = function(f, t)
   if f._depth >= f.maxIndent then return add(f, M.DEPTH_ERROR) end
   local mt, keys = getmetatable(t), nil
   if (mt ~= 'table') and (type(mt) == 'string') then
@@ -317,10 +317,10 @@ M.Fmt2.table = function(f, t)
   f:decIndent()
   if #keys + len > 1 then add(f, f.tableEnd) else add(f, '}') end
 end
-M.Fmt2.__call = function(f, v) return f[type(v)](f, v) end
+M.Fmt.__call = function(f, v) return f[type(v)](f, v) end
 
 M.tostring = function(v, fmt)
-  fmt = fmt or M.Fmt2{}; assert(#fmt == 0, 'non-empty Fmt')
+  fmt = fmt or M.Fmt{}; assert(#fmt == 0, 'non-empty Fmt')
   fmt(v)
   return table.concat(fmt)
 end
@@ -330,13 +330,13 @@ M.format = function(s, ...)
   return s:gsub('%%.', function(m)
     if m == '%%' then return '%' end
     i = i + 1; if m ~= '%q' then return sfmt(m, args[i]) end
-    local f = M.Fmt2{}; f(args[i])
+    local f = M.Fmt{}; f(args[i])
     return table.concat(f)
   end)
 end
 
 M.print = function(...)
-  local f, len = M.Fmt2{}, select('#', ...)
+  local f, len = M.Fmt{}, select('#', ...)
   for i=1,len do
     f(select(i)); if i < len then add(f, '\t') end
   end

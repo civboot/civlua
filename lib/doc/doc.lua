@@ -541,7 +541,7 @@ M.full = function(obj)
   local d = M.Doc(obj)
   local com, code = M.findcode(d.path)
   if not com then com, code = {}, {} end
-  local f = mty.Fmt2{}
+  local f = mty.Fmt{}
   push(f, sfmt('## %s (%s) ty=%s\n', d.name, d.path or '?/?', d.ty or '?'))
   M.stripComments(com)
   for _, l in ipairs(com) do push(f, l); push(f, '\n') end
