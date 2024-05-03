@@ -29,18 +29,18 @@ local push = table.insert
 -- Special:
 --   key=nil      return first key in the table
 --   key=lastKey  return nil
-M.next = next
+M.next = next -- from stdlib
 
 --pcall(fn, ...inp): handle errors.
 --  calls fn(...inp) and returns:
 --    ok=false, error    for errors
 --    ok=true, ...out    for success
-M.pcall = pcall
+M.pcall = pcall -- from stdlib
 
 --select(index, ...inp) -> inp[index:]
 --removes index-1 items from inp stack.
 --If index='#' returns #inp.
-M.select = select
+M.select = select -- from stdlib
 
 -- type(v) -> typeString. Possible values:
 --
@@ -48,7 +48,7 @@ M.select = select
 --   function thread userdata
 --
 -- See also: metaty.ty(v) for metatypes
-M.type = type
+M.type = type -- from stdlib
 
 -- setmetatable(t, mt) -> t
 -- Sets the metatable on table which adds context (metatype)
@@ -71,10 +71,10 @@ M.type = type
 --     __call    __name
 --
 -- metaty: __fields   __fmt
-M.setmetatable = setmetatable
+M.setmetatable = setmetatable -- from stdlib
 
 --getmetatable(t) -> mt  See setmetatable.
-M.getmetatable = getmetatable
+M.getmetatable = getmetatable -- from stdlib
 
 -------------------------------
 -- string
@@ -118,17 +118,17 @@ M.getmetatable = getmetatable
 --
 -- assert(    find('yes bob yes',  '(%w+) bob %1'))
 -- assert(not find('yes bob no',   '(%w+) bob %1'))
-M['string.find'] = string.find
+M['string.find'] = string.find -- from stdlib
 
 -- match(subj, pat, init) return the capture groups of pat
 -- or the whole match if no capture groups.
 --
 -- See also: string.find.
-M['string.match'] = string.match
+M['string.match'] = string.match -- from stdlib
 
 
 -- gmatch(subj, pat, init) match iterator function.
-M['string.gmatch'] = string.gmatch
+M['string.gmatch'] = string.gmatch -- from stdlib
 
 -- substring by index (NOT pattern matching).
 --
@@ -136,7 +136,7 @@ M['string.gmatch'] = string.gmatch
 --
 -- Note: This is confusingly named considering string.gsub uses pattern
 -- matching. Such is life.
-M['string.sub'] = string.sub
+M['string.sub'] = string.sub -- from stdlib
 
 -- Globally Substittue pattern with subpattern.
 --
@@ -153,7 +153,7 @@ M['string.sub'] = string.sub
 -- gsub = string.gsub
 --   assertEq('yes ann yes',
 --     gsub(  'yes bob yes', '(%w+) bob %1', '%1 ann %1'))
-M['string.gsub'] = string.gsub
+M['string.gsub'] = string.gsub -- from stdlib
 
 -- Format values into a fmt string, i.e: format('%s: %i', 'age', 42)
 --
@@ -177,19 +177,19 @@ M['string.gsub'] = string.gsub
 -- Directive control structure:
 --
 --   % <fill character>? <fill count> directive
-M['string.format'] = string.format
+M['string.format'] = string.format -- from stdlib
 
 
 -- string.byte(s [i, j]) -> number: get numberic code/s for s[i:j]
-M['string.byte'] = string.byte
+M['string.byte'] = string.byte -- from stdlib
 
 
 -- char(c1, c2, ...) -> string
 -- convert character codes to string and concatenate
-M['string.char'] = string.char
+M['string.char'] = string.char -- from stdlib
 
 -- rep(s, n, sep) -> string -- repeat s n times with separator.
-M['string.rep'] = string.rep
+M['string.rep'] = string.rep -- from stdlib
 
 -- pack(packfmt, ...values) -> string
 -- pack the values into the string using the packfmt.
@@ -208,16 +208,16 @@ M['string.rep'] = string.rep
 --   x            one byte of padding
 --   X[op]        align to option op, i.e. Xi4
 --   j J n        lua Integer / Unsigned / Number
-M['string.pack'] = string.pack
+M['string.pack'] = string.pack -- from stdlib
 
 
 -- unpack(fmt, str) -> ...
 -- See string.pack for the fmt
-M['string.unpack'] = string.unpack
+M['string.unpack'] = string.unpack -- from stdlib
 
 -- string.packsize(fmt) -> int
 -- Get the size which is used by fmt.
-M['string.packsize'] = string.packsize
+M['string.packsize'] = string.packsize -- from stdlib
 
 -------------------------------
 -- table
@@ -227,15 +227,15 @@ M['string.packsize'] = string.packsize
 --
 -- assertEq(1..' = '..3, concat{1, ' = ', 3})
 -- assertEq('1, 2, 3',   concat({1, 2, 3}, ', ')
-M['table.concat'] = table.concat
+M['table.concat'] = table.concat -- from stdlib
 
 -- table.remove(table, index=#table) -> ()
 -- remove an item from a table, returning it.
 -- The table is shifted if index < #table.
-M['table.remove'] = table.remove
+M['table.remove'] = table.remove -- from stdlib
 
 -- table.sort(list, function=nil) sort table in-place
-M['table.sort'] = table.sort
+M['table.sort'] = table.sort -- from stdlib
 
 -- insert or add to table (list-like)
 --
@@ -247,21 +247,19 @@ M['table.sort'] = table.sort
 --
 -- Recommendation:
 --   local add = table.insert; add(t, 4)
-M['table.insert'] = table.insert
+M['table.insert'] = table.insert -- from stdlib
 
 -------------------------------
 -- io module
 -- Open -> do input and output -> close files.
 --
 -- Methods:
---   input()  ->  file            get stdin
---   output() ->  file            get stdout
---   tmpfile() -> file            removed on program exit
+--   input(file=nil)  ->  file    get/set stdin
+--   output(file=nil) ->  file    get/set stdout
+--   tmpfile() -> file            note: removed on program exit
 --   popen()   -> file            see io.popen
---   input (path or file)         set stdin
---   output(path or file)         set stdout
 --   lines(path or file) -> iter  close when done, fail=error
---   type() -> ?"file|closed file"
+--   type(f) -> "[closed ]file"   get whether f is a file
 --
 -- file object:
 --   read(format="l")   read a file according to format
@@ -277,7 +275,7 @@ M['table.insert'] = table.insert
 --   L       read next line, keep EOL             *L
 --   n       read and return a number             *n
 --   number  read an exact number of bytes, EOF=nil
---   0       nil=EOF, ''=notEOF
+--   0       EOF=nil, notEOF=''
 --
 -- seek
 --   whence="set"  offset from beginning of file (0)
@@ -286,7 +284,7 @@ M['table.insert'] = table.insert
 --   seek()    ->  get current position
 --   seek'set' ->  set to beginning
 --   seek'end' ->  set to end
-M.io = io
+M.io = io -- from stdlib
 
 -- Execute shell command in separate process.
 --
@@ -297,7 +295,7 @@ M.io = io
 --   civix.sh: ergonomic blocking shell.
 --
 -- Note: as of Lua5.4 it is not possible to have stderr or both stdin&stdout.
-M['io.popen'] = io.popen
+M['io.popen'] = io.popen -- from stdlib
 
 -------------------------------
 -- os module
@@ -314,7 +312,7 @@ M['io.popen'] = io.popen
 --
 -- Recommendation:
 --   civix.epoch() returns nanosec precision, os.time() only sec.
-M.os = os
+M.os = os -- from stdlib
 
 -------------------------------
 -- os.execute and io.popen
@@ -335,7 +333,7 @@ M.os = os
 --    prints whatever was executed. There are no ways to
 --    redirect the output besides piping in the command
 --    string itself.
-M['os.execute'] = os.execute
+M['os.execute'] = os.execute -- from stdlib
 
 ---------------------
 -- Keywords
@@ -542,6 +540,7 @@ M.full = function(obj)
   if type(obj) == 'string' then obj = PKG_LOOKUP[obj] end
   local d = M.Doc(obj)
   local com, code = M.findcode(d.path)
+  if not com then com, code = {}, {} end
   local f = mty.Fmt2{}
   push(f, sfmt('## %s (%s) ty=%s\n', d.name, d.path or '?/?', d.ty or '?'))
   M.stripComments(com)

@@ -24,16 +24,9 @@ civtest.assertGlobals(initG)
 M.HELP = [[help module.any.object
 Get help for any lua module (including ones in civlib)]]
 M.help = function(args, isExe)
-  args = shim.listSplit(args, '.')
   if #args == 0 then print(M.HELP) return end
-  local path = ds.copy(args)
-  local mname = table.remove(path, 1);
-  local mod = package.loaded[mname] or pkg(mname)
-  local obj = ds.getPath(mod, table.unpack(path)); if not obj then print(
-    'ERROR: '..table.concat(path, '.')..' not found'
-  )end
-  print('Help: '..table.concat(args, '.'))
-  print(mty.help(obj))
+  mty.print('help:', args)
+  print(doc(args[1]))
 end
 
 M.helpShim = {help=M.HELP, exe=M.help}

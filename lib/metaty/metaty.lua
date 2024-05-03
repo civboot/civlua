@@ -336,7 +336,7 @@ M.print = function(...)
     f(select(i)); if i < len then add(f, '\t') end
   end
   add(f, '\n')
-  io.stdout:write(table.concat(f))
+  print(table.concat(f))
 end
 
 return M
