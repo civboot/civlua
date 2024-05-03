@@ -9,17 +9,17 @@ local add, ty = table.insert, mty.ty
 M.ChangeId = 0
 M.nextChangeId = function() M.ChangeId = M.ChangeId + 1; return M.ChangeId end
 
-M.ChangeStart = mty.record2'ChangeStart' {
+M.ChangeStart = mty'ChangeStart' {
   'l1[int]',       'c1[int]',
   'l2[int]',       'c2[int]',
 }
 
-M.Change = mty.record2'Change' {
+M.Change = mty'Change' {
   'k[string]', 's[string]',
   'l[int]',    'c[int]',
 }
 
-M.Buffer = mty.record2'Buffer' {
+M.Buffer = mty'Buffer' {
   'id  [int]',
   'gap [Gap]',
 

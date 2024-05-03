@@ -5,7 +5,7 @@ local push = table.insert
 ------------------------------------------------------------------------
 -- Fake: a fake terminal for testing
 
-local FakeTerm = mty.record2'FakeTerm'{
+local FakeTerm = mty'FakeTerm'{
   'h[int]: height', 'w[int]: width',
   'l[int]: line',   'c[int]: column',
 }

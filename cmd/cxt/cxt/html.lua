@@ -193,7 +193,7 @@ M.assertHtml = function(cxtDat, expectedHtml, dbg)
 end
 
 M.Args = mty.doc[[Convert cxt doc to html]]
-(mty.record2'Html') {
+(mty'Html') {
   'cxt[string]: path to cxt file',
   'out[string]: path to html file output',
 }

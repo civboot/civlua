@@ -6,7 +6,7 @@ M.exampleFn = function() end
 
 -- document a metaty
 -- another line
-M.Example  = require'metaty'.record2'Example'{
+M.Example  = require'metaty''Example'{
   'a [int]', a=4,
 }
 M.Example.method = function() end
@@ -28,7 +28,7 @@ T.test('findcode', function()
   com, code = doc.findcode(M.Example)
   T.assertEq('-- document a metaty', com[1])
   T.assertEq('-- another line',      com[2])
-  T.assertEq([[M.Example  = require'metaty'.record2'Example'{]], code[1])
+  T.assertEq([[M.Example  = require'metaty''Example'{]], code[1])
   T.assertEq([[  'a [int]', a=4,]], code[2])
   T.assertEq('}', code[3])
 end)
@@ -42,7 +42,7 @@ M.exampleFn = function() end\
 '
 
 local mDoc =
-"## doc_test (lib/doc/test.lua:1) ty=Mod\
+"## doc_test (lib/doc/test.lua:1) ty=Ty<doc_test>\
 \
 ## Methods, Etc\
   Example         : Ty<Example>       (doc/test.lua:11)\

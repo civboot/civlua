@@ -52,7 +52,7 @@ M.loadMeta = function(dat, path)
   return res
 end
 
-M.Luck = mty.record2'Luck' {
+M.Luck = mty'Luck' {
   'name[string]',
   'deps', 'dat', 'path',
 }

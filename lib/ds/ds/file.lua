@@ -42,7 +42,7 @@ end
 -- Performance is good as long as lookback is only within the cache length.  You
 -- can assert on the cacheMiss in tests/etc to ensure you have the correct cache
 -- settings.
-M.LinesFile = mty.record2'LinesFile'{
+M.LinesFile = mty'LinesFile'{
   'file      [file]',
   'cache     [int]',
   'len       [int]',
@@ -126,7 +126,7 @@ M.LinesFile.close = function(self) return self.file:close() end
 -- IndexedFile and FileIdx
 
 -- A file that holds file-position of lines in another file.
-M.FileIdx = mty.record2'FileIdx' {
+M.FileIdx = mty'FileIdx' {
   'file  [userdata]',
   'len   [number]',
   '_line [number]',
@@ -166,7 +166,7 @@ M.FileIdx.close = function(self) return self.file:close() end
 -- IndexedFile{path, idx=pathToIndex} -- load index from pathToIndex
 -- 
 -- You can use createFileIdx to load/create your own idx.
-M.IndexedFile = mty.record2'IndexedFile' {
+M.IndexedFile = mty'IndexedFile' {
   'file   [userdata',
   'idx    [FileIdx]',
   '_line  [number]',

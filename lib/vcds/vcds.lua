@@ -21,7 +21,7 @@ M.normalize = function(s) return ds.squash(ds.trimEnd(s)) end
 ---------------------
 -- Single Line Diff
 -- This type is good for displaying differences to a user.
-M.Diff = mty.record2'Diff' {
+M.Diff = mty'Diff' {
   "b (base)   orig file.  '+'=added",
   "c (change) new file.   '-'=removed",
   "text[string]",
@@ -45,10 +45,10 @@ end
 -- ChangeList composed of Keep and Change directives
 -- This is how diffs are often serialized
 
-M.Keep = mty.record2'Keep' {'num[int]'}
+M.Keep = mty'Keep' {'num[int]'}
 M.Keep.len = function(k) return k.num and k.num or #k end
 
-M.Change = mty.record2'Change' {
+M.Change = mty'Change' {
   'rem[int|table] removed lines',
   'add[string]    text to add',
 }
@@ -247,7 +247,7 @@ M.findAnchor = function(base, baseMap, anchors, above)
   end
 end
 
-M.Patch = mty.record2'Patch' {
+M.Patch = mty'Patch' {
   'conflict [string]', 'bl [number]',
 }
 

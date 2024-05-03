@@ -454,12 +454,12 @@ end
 -- from the PKG and META_TY specs into a single object.
 --
 -- Example: metaty.tostring(doc(myObj))
-M.Doc = mty.record2'Doc' {
+M.Doc = mty'Doc' {
   'name', 'ty [Type]: type, can be string',
   'path [str]',
   'fields [table]', 'other [table]',
 }
-M.DocItem = mty.record2'DocItem' {
+M.DocItem = mty'DocItem' {
   'name', 'ty [string]', 'path [string]',
   'default [any]'
 }

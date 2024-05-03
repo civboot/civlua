@@ -176,7 +176,11 @@ do local modloc = srcloc()
     __name='Ty<Mod>',
     __call=function(T, name)
       assert(type(name) == 'string', 'must provide name str')
-      local m = setmetatable({__name=name}, T)
+      local m = setmetatable({__name=name}, {
+        __name=sfmt('Ty<%s>', name),
+        __index=M.mod.__index,
+        __newindex=M.mod.__newindex,
+      })
       M.mod.save(name, m)
       return m
     end,

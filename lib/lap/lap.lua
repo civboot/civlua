@@ -4,7 +4,7 @@ LAP_READY = LAP_READY or {}
 LAP_FNS_SYNC  = LAP_FNS_SYNC  or {}
 LAP_FNS_ASYNC = LAP_FNS_ASYNC or {}
 
-local mt = require'metaty'
+local mty = require'metaty'
 local ds = require'ds'
 local heap = require'ds.heap'
 
@@ -64,13 +64,13 @@ M._sync.schedule = function(fn) fn() end
 -- * #recv gets number of items buffered.
 -- * recv:isDone() returns true when either recv is closed
 --   OR all senders are closed and #recv == 0.
-M.Recv = mt.record2'Recv'{
+M.Recv = mty'Recv'{
   'deq    [Deq]',
   '_sends [WeakKV]',
   'cor    [thread]',
 }
 getmetatable(M.Recv).__call = function(T)
-  return mt.construct(T, {deq=ds.Deq(), _sends=ds.WeakKV{}})
+  return mty.construct(T, {deq=ds.Deq(), _sends=ds.WeakKV{}})
 end
 -- Close read side and all associated sends.
 M.Recv.close =
@@ -104,9 +104,9 @@ M.Recv.__call = M.Recv.recv
 -- 
 -- Is considered closed if the receiver is closed.  The receiver will
 -- automatically close if it is garbage collected.
-M.Send = mt.record2'Send'{'_recv[Recv]'}
+M.Send = mty'Send'{'_recv[Recv]'}
 getmetatable(M.Send).__call = function(T, recv)
-  return mt.construct(T, { _recv=assert(recv, 'missing Recv') })
+  return mty.construct(T, { _recv=assert(recv, 'missing Recv') })
 end
 M.Send.__mode = 'kv'
 M.Send.close = function(send)
@@ -161,7 +161,7 @@ M._sync.all = function(fns) for _, f in ipairs(fns) do f() end end
 --     -- do something related to index i
 --     any:restart(i) -- restart i to run again
 --   end
-M.Any = mt.record2'Any'{
+M.Any = mty'Any'{
   'cor[thread]', 'fns[table]',
   'done[table]',
 }
@@ -177,7 +177,7 @@ getmetatable(M.Any).__call = function(T, fns)
     end)
     self.done[i] = true
   end
-  return mt.construct(T, self)
+  return mty.construct(T, self)
 end
 M.Any.ignore = function(self) self.cor = nil end
 -- schedule() -> self: ensure all fns are scheduled
@@ -230,7 +230,7 @@ M.LAP_UPDATE = {
 --     end
 --     -- do other things in your application's executor loop
 --   end
-M.Lap = mt.record2'Lap' {
+M.Lap = mty'Lap' {
   'sleepFn [function]',
   'monoFn  [function]',
   'monoHeap [Heap]',
@@ -248,7 +248,7 @@ M.Lap.defaultSleep = 0.01
 getmetatable(M.Lap).__call = function(T, ex)
   ex.monoHeap = ex.monoHeap or heap.Heap{cmp = M.monoCmp}
   ex.pollMap  = ex.pollMap  or {}
-  return mt.construct(T, ex)
+  return mty.construct(T, ex)
 end
 M.Lap.sleep = M.LAP_UPDATE.sleep
 M.Lap.poll  = M.LAP_UPDATE.poll

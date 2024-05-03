@@ -4,7 +4,7 @@ local gap  = require'rebuf.gap'
 
 local M = {Gap=gap.Gap}
 
-M.Chain = mty.record2'Chain'{}
+M.Chain = mty'Chain'{}
 M.Chain.__newindex = nil
 getmetatable(M.Chain).__index = nil
 getmetatable(M.Chain).__call = mty.constructUnchecked
@@ -14,7 +14,7 @@ M.nextViewId   = function() M.ViewId   = M.ViewId   + 1; return M.ViewId   end
 
 -- Window container
 -- Note: Window also acts as a list for it's children
-M.Window = mty.record2'Window' {
+M.Window = mty'Window' {
   'id[int]',
   'container', -- parent (Window/Model)
   'splitkind[string]', -- nil, h, v
@@ -22,7 +22,7 @@ M.Window = mty.record2'Window' {
   'th[int]',  'tw[int]', -- term height, width
 }
 
-M.Edit = mty.record2'Edit' {
+M.Edit = mty'Edit' {
   'id[int]',
   'container', -- parent (Window/Model)
   'canvas',
@@ -35,7 +35,7 @@ M.Edit = mty.record2'Edit' {
 }
 M.Edit.fh = 0; M.Edit.fw = 0
 
-M.Action = mty.record2'Action' {
+M.Action = mty'Action' {
   'name[string]', 'fn[function]',
   'brief[string]',
   'doc[string]',
@@ -43,11 +43,11 @@ M.Action = mty.record2'Action' {
 }
 
 -- Bindings to Actions
-M.Bindings = mty.record2'Bindings' {
+M.Bindings = mty'Bindings' {
   'insert', 'command',
 }
 
-M.Model = mty.record2'Model' {
+M.Model = mty'Model' {
   'mode[string]',
   'h[int]',  'w[int]',  -- window height/width
   'view', -- Edit or Cols or Rows

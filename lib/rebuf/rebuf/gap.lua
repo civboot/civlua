@@ -50,7 +50,7 @@ M.lcsLeftTop = function(...)
   return l2, c2
 end
 
-local Gap = mty.record2'Gap' {
+local Gap = mty'Gap' {
   'bot[table]', 'top[table]'
 }
 

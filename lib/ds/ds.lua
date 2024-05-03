@@ -575,7 +575,7 @@ M.empty = setmetatable({}, {
 
 -- Immutable table
 local IMM_DATA = '<!imm data!>'
-M.Imm = mty.record2'Imm' {}
+M.Imm = mty'Imm' {}
 M.Imm.__metatable = 'table'
 M.Imm.__newindex = function() error'cannot modify Imm table' end
 M.Imm.__index    = function(t, k)
@@ -626,7 +626,7 @@ local fromMs = function(ty_, s)     return ty_(s / 1000) end
 local fromMicros = function(ty_, s) return ty_(s / 1000000) end
 local asSeconds = function(time) return time.s + (time.ns / NANO) end
 
-M.Duration = mty.record2'Duration' {
+M.Duration = mty'Duration' {
   's[int]: seconds', 'ns[int]: nanoseconds',
 }
 getmetatable(M.Duration).__call = timeNew
@@ -656,7 +656,7 @@ M.DURATION_ZERO = M.Duration(0, 0)
 
 ---------------------
 -- Epoch: time since the unix epoch. Interacts with duration.
-M.Epoch = mty.record2'Epoch' {
+M.Epoch = mty'Epoch' {
   's[int]: seconds', 'ns[int]: nanoseconds',
 }
 getmetatable(M.Epoch).__call = timeNew
@@ -682,7 +682,7 @@ end
 
 ---------------------
 -- Set
-M.Set = mty.record2'Set'{}
+M.Set = mty'Set'{}
 M.Set.__newindex = nil
 getmetatable(M.Set).__index = nil
 getmetatable(M.Set).__call = function(T, t)
@@ -777,7 +777,7 @@ M.ll.budge = function(prev, nxt, node, a)
   prev[node], prev[a] = a, b
 end
 
-M.LL = mty.record2'LL' {
+M.LL = mty'LL' {
   'front[&table]', 'back[&table]',
 }
 
@@ -923,7 +923,7 @@ end
 -- must use `:remove` (instead of `bm[k] = nil` to handle deletions.
 --
 -- Note that pairs() will return BOTH directions (in an unspecified order)
-M.BiMap = mty.record2'BiMap'{}
+M.BiMap = mty'BiMap'{}
 
 getmetatable(M.BiMap).__call = function(ty_, t)
   local keys = {}; for k, v in pairs(t) do
@@ -952,7 +952,7 @@ end
 --   popLeft()   popRight()
 --
 -- Calling it is the same as popLeft (use as iterator)
-M.Deq = mty.record2'Deq'{
+M.Deq = mty'Deq'{
   'right [number]',
   'left  [number]'
 }

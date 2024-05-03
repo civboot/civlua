@@ -105,7 +105,7 @@ test('nested', function()
 )
 end)
 
-local Abc = mty.record2'Abc'{'a', 'b', 'c'}
+local Abc = mty'Abc'{'a', 'b', 'c'}
 
 test('header', function()
   assertRows([[
@@ -156,10 +156,10 @@ test('multi keyed', function()
     })
 end)
 
-local Abt = mty.record2'Abt'{'a', 'b', 't'}
-local Cd  = mty.record2'Cd'{'c', 'd'}
-local User = mty.record2'User'{'n', 'b'}
-local Account = mty.record2'Account'
+local Abt = mty'Abt'{'a', 'b', 't'}
+local Cd  = mty'Cd'{'c', 'd'}
+local User = mty'User'{'n', 'b'}
+local Account = mty'Account'
   {'i', 'a', 't'}
 
 test('named header', function()

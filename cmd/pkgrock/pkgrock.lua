@@ -18,7 +18,7 @@ local UPLOAD = [[luarocks upload %s --api-key=%s]]
 local M = {DOC=DOC}
 
 -- pkgrock dir1 dir2 ...args
-M.ARGS = mty.record2'pkgrock' {
+M.ARGS = mty'pkgrock' {
   [[create [bool]   creates the rocks from PKG.lua files]],
   [[gitops [string] one or more: add,commit,tag]],
   [[gitpush[string] where to push, i.e: 'origin main']],

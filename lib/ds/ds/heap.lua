@@ -61,8 +61,10 @@ end
 -- 
 -- add and push take only O(log n), making it very useful for
 -- priority queues and similar problems.
-M.Heap = mty.record2'Heap'{
-  'cmp[function]: comparison function to use'
+print('!! what is mty', mty.tostring(mty))
+print('!! what is mty.__call', getmetatable(mty).__call)
+M.Heap = mty.record2'Heap' {
+  'cmp[function]: comparison function to use',
 }
 getmetatable(M.Heap).__call = function(T, t, cmp)
   t.cmp = cmp or ds.lt

@@ -7,7 +7,7 @@ local vcds = require'vcds'
 local push = table.insert
 local M = {}
 
-local DiffI = mty.record2'patience.DiffI' {
+local DiffI = mty'patience.DiffI' {
   'sym[string]: {" " + -}',
   'b  [number]: base (original) line num',
   'c  [number]: change (new) line num',

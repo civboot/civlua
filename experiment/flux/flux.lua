@@ -22,7 +22,7 @@ local M = {DOC=DOC}
 -- These are stored and indexed in the TSO file.
 
 -- M.EntryMeta = mty.doc[[metadata for Entry]]
--- (mty.record2'flux.EntryMeta') {
+-- (mty'flux.EntryMeta') {
 --   'author[string]',
 -- [[dateLog\
 --   table of important dates in form

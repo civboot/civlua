@@ -8,7 +8,7 @@ Also: discussions and useful links
 
 I'm taking a break, leaving the repo in a bit of a bad state
 
-First of all, I've removed `metaty.record`, replacing with `metaty.record2` --
+First of all, I've removed `metaty.record`, replacing with `metaty` --
 however PEGL isn't yet migrated, so that needs to happen first.
 
 After that is complete I have a MAJOR overhaul in mind:
@@ -21,7 +21,7 @@ After that is complete I have a MAJOR overhaul in mind:
     `alias lua="lua -e \"require = require'pkglib'\""` (or similar in Make/etc)
   * mod will then handle naming and updating `SRC*` globals
 * PKG.lua: make dirs just a boolean, if true PKG.dirs is loaded which is a list of subpkgs
-* can call metaty module direction instead of metaty.record2
+* can call metaty module direction instead of metaty
 * `civ.lua` overrides global `print  metaty.eprint`. I'm sick of dealing with that.
 * new module: `batteries`. Once required it adds/overrides several globals.
   Should only be used in scripts and cmd line.

@@ -4,7 +4,7 @@ local ge = {}; for k in pairs(_G) do table.insert(ge, k) end
 local M = require'metaty'
 assert(M.getCheck())
 
-local record2, split, Fmt2 = M.record2, M.split, M.Fmt2
+local record2, split, Fmt2 = M, M.split, M.Fmt2
 
 local add, sfmt = table.insert, string.format
 
@@ -86,7 +86,7 @@ test('tyName', function()
 end)
 
 test('record', function()
-  local A = record2'A'{'a2[any]', 'a1[any]'}
+  local A = M'A'{'a2[any]', 'a1[any]'}
   local B = record2'B'{
     'b1[number]', 'b2[number] (default=32)',
     'a[A]'

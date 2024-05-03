@@ -37,7 +37,7 @@ priority queues and similar problems.
   add             : function          (ds/heap.lua:75)
   pop             : function          (ds/heap.lua:85)
 ---- CODE ----
-M.Heap = mty.record2'Heap'{
+M.Heap = mty'Heap'{
   'cmp[function]: comparison function to use'
 }
 ```

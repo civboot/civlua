@@ -66,7 +66,7 @@ M.ATTR_ASSERTS = {
   fbase = function(f) mty.assertf(IBASE_FMT[f], 'invalid fbase: %q', f) end,
 }
 
-M.Ser = mty.record2'tso.Ser' {
+M.Ser = mty'tso.Ser' {
   'dat: output lines',
   'attrs',
   'specs [BiMap]: bimap of name <--> type',
@@ -328,7 +328,7 @@ ds.updateKeys(M.SER_TY, M.Ser, {
 -- Deserializer
 
 -- De: tso deserializer.
-M.De = mty.record2'tso.De'{
+M.De = mty'tso.De'{
   'dat [table]',
   'attrs [table]',
   'specs [BiMap]: named specs',
@@ -403,7 +403,7 @@ local function deDefine(d)
   local name = deStr(d); local fields = deTableUnbracketed(d)
   d:_nextLine()
   if not d.specs[name] then
-    local spec = mty.record2('!'..name)(fields)
+    local spec = mty('!'..name)(fields)
     getmetatable(spec).tso = true
     d.specs[name] = spec
   end

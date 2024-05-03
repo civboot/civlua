@@ -379,7 +379,7 @@ A Writer for cxt serializers (terminal, http, etc) to use.
 The writer contains:
 * The src lines and token decoder for getting pegl.Token values.
 * The destination lines and current indent level.
-]](mty.record2'cxt.Writer') {
+]](mty'cxt.Writer') {
   'src', 'to',
   'indent[int]',
 }

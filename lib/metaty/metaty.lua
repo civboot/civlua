@@ -199,9 +199,15 @@ M.namedRecord = function(name, R, loc)
 end
 
 M.record2 = function(name)
+  print('!! record2', name)
   assert(type(name) == 'string' and #name > 0,
          'must set __name=string')
   return function(R) return M.namedRecord(name, R) end
+end
+assert(not getmetatable(M).__call)
+getmetatable(M).__call = function(T, name)
+  print('!! calling metaty', name)
+  return M.record2(name)
 end
 
 ------------------
@@ -340,5 +346,4 @@ M.print = function(...)
   print(table.concat(f))
 end
 
-M.__call = function(T, name) return M.record2(name) end
 return M
