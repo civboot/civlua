@@ -2,12 +2,13 @@
 
 **`./civlua.lua help metaty`**
 
-Metatype is a library and specification for creating performant
-documented and typo-safe Lua Types which can be formatted.
+Metatype is a library and specification for creating performant documented and
+typo-safe Lua Types which can be formatted.
 
 ```
 local M = mod and mod'myMod' or {} -- (see lib/pkg/README.md)
-METATY_CHECK = true -- before require: turn on type check
+
+METATY_CHECK = true -- note: needed before ANY require of metaty
 local metaty = require'metaty'
 
 -- Documentation for Pos (position)
@@ -40,6 +41,8 @@ local Pos = setmetatable({
   __index = metaty.index, -- typosafe getting
 })
 Pos.__index = Pos
+
+-- `mod` gives documentation reflection
 PKG_LOCS[M.myFn]         = 'path/to/file.lua:123'
 PKG_NAMES[M.myFn]        = 'mymod.Pos'
 PKG_LOOKUP['myMod.Pos'] = M.Pos
@@ -51,8 +54,9 @@ PKG_LOOKUP['myMod.Pos'] = M.Pos
   else it is `type(v)`.
 * `metaty'name' {'field1[type] documentation', 'field2[type]'}`
   creates a documented and typo-safe record type (see examples)
+* `Fmt{}` class to format types (see tostring, etc)
 * `tostring(v)` convert `v` to string using `Fmt` (expands tables)
-* `format(pat, ...)` the same as `string.format` except `%q` uses `Fmt` (expands
+* `format(pat, ...)` simplified `string.format` except `%q` uses `Fmt` (expands
   tables).
 * `eprint(...)` print to stderr (NOT stdout) using `Fmt` (expands tables)
 * `eprintf(pat, ...)` shortcut for `eprint(format(pat, ...))`
