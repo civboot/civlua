@@ -346,14 +346,14 @@ getmetatable(M.De).__call = function(T, t)
   t.specs = defaultSpecs(t.specs)
   return mty.construct(T, t)
 end
-function M.De._errorf(d, ...)
+M.De._errorf = function(d, ...)
   error(sfmt('ERROR %s.%s: %s', d._l, d._c, sfmt(...)), 2)
 end
-function M.De._assertf(d, v, ...)
+M.De._assertf = function(d, v, ...)
   if not v then d:_errorf(...) end
   return v
 end
-function M.De.pnt(d, ...)
+M.De.pnt = function(d, ...)
   mty.print(sfmt('De.pntf %s.%s:', d._l, d._c), ...)
 end
 

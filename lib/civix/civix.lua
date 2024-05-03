@@ -120,7 +120,7 @@ end
 -- The Fn signatures are: (path, depth) -> stopWalk
 -- If either return true then the walk is ended immediately
 -- If dirFn returns 'skip' then the directory is skipped
-function M.walk(paths, ftypeFns, maxDepth)
+M.walk = function(paths, ftypeFns, maxDepth)
   for _, path in ipairs(paths) do
     assert('' ~= path, 'empty path')
     local ftype = M.pathtype(path); _walkcall(ftypeFns, path, ftype)

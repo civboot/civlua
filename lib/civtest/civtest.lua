@@ -54,7 +54,7 @@ M.assertMatch = function(expectPat, result)
   end
 end
 
-function M.assertGlobals(prevG)
+M.assertGlobals = function(prevG)
   local newG = {}; for k in pairs(_G) do
     if prevG[k] == nil then add(newG, k) end
   end

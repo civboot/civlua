@@ -14,7 +14,7 @@ local B8 = {
   0x1F, 0x3F, 0x7F, 0xFF,
 }; M.BITMASK8 = B8
 
-function M.bitsmax(bits)
+M.bitsmax = function(bits)
   assert(bits <= 32); return (1 << bits) - 1
 end
 

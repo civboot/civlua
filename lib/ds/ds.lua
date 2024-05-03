@@ -49,7 +49,7 @@ end
 ---------------------
 -- String Functions
 
-function M.trim(subj, pat, index)
+M.trim = function(subj, pat, index)
   pat = pat and ('^'..pat..'*(.-)'..pat..'*$') or '^%s*(.-)%s*$'
   return subj:match(pat, index)
 end
@@ -133,7 +133,7 @@ M.lines = setmetatable({span=span}, {
   end,
 })
 
-function M.lines.sub(t, ...)
+M.lines.sub = function(t, ...)
   local l, c, l2, c2 = span(...)
   local len = #t
   local lb, lb2 = M.bound(l, 1, len), M.bound(l2, 1, len+1)
@@ -157,7 +157,7 @@ function M.lines.sub(t, ...)
   return s
 end
 
-function M.lines.diff(linesL, linesR)
+M.lines.diff = function(linesL, linesR)
   local i = 1
   while i <= #linesL and i <= #linesR do
     local lL, lR = linesL[i], linesR[i]
@@ -378,7 +378,7 @@ M.indexOf = function(t, find)
   end
 end
 
-function M.indexOfPat(strs, pat)
+M.indexOfPat = function(strs, pat)
   for i, s in ipairs(strs) do if s:find(pat) then return i end end
 end
 
@@ -455,19 +455,19 @@ end
 
 ---------------------
 -- File Functions
-function M.readPath(path)
+M.readPath = function(path)
   local f = mty.assertf(io.open(path), 'invalid %s', path)
   local out = f:read('a'); f:close()
   return out
 end
 
-function M.writePath(path, text)
+M.writePath = function(path, text)
   local f = mty.assertf(io.open(path, 'w'), 'invalid %s', path)
   local out = f:write(text); f:close()
   return out
 end
 
-function M.fileWithText(path, text, mode)
+M.fileWithText = function(path, text, mode)
   local f = mty.assertf(
     io.open(path, mode or 'w+'), 'invalid %s', path)
   f:write(text); f:flush(); f:seek'set'
@@ -755,23 +755,23 @@ end
 M.ll = mod and mod'll' or {}
 
 -- get initial llp, lln, llv
-function M.ll.empty() return {1}, {1}, {} end
+M.ll.empty = function() return {1}, {1}, {} end
 
 -- a -> node -> b  ==> a -> b
-function M.ll.pop(prev, nxt, node)
+M.ll.pop = function(prev, nxt, node)
   local a, b = prev[node], nxt[node]
   nxt[a], prev[b] = b, a
 end
 
 -- node -> b  ==>  node -> a -> b
-function M.ll.push(prev, nxt, node, a)
+M.ll.push = function(prev, nxt, node, a)
   local b = nxt[node]
   nxt[node],  nxt[a]  = assert(a), b
   prev[b],    prev[a] = a, node
 end
 
 -- b -> node ==>  b -> a -> node
-function M.ll.budge(prev, nxt, node, a)
+M.ll.budge = function(prev, nxt, node, a)
   local b = prev[node]
   nxt[b],     nxt[a]  = a, node
   prev[node], prev[a] = a, b
@@ -852,12 +852,12 @@ end
 -- These functions treat an indexed table as a binary tree
 -- where root is at index=1.
 M.bt = mod and mod'bt' or {}
-function M.bt.left(t, i)    return t[i * 2]     end
-function M.bt.right(t, i)   return t[i * 2 + 1] end
-function M.bt.parent(t, i)  return t[i // 2]    end
-function M.bt.lefti(t, i)   return   i * 2      end
-function M.bt.righti(t, i)  return   i * 2 + 1  end
-function M.bt.parenti(t, i) return   i // 2     end
+M.bt.left = function(t, i)    return t[i * 2]     end
+M.bt.right = function(t, i)   return t[i * 2 + 1] end
+M.bt.parent = function(t, i)  return t[i // 2]    end
+M.bt.lefti = function(t, i)   return   i * 2      end
+M.bt.righti = function(t, i)  return   i * 2 + 1  end
+M.bt.parenti = function(t, i) return   i // 2     end
 
 ---------------------
 -- Directed Acyclic Graph

@@ -166,7 +166,7 @@ local function argPats(args)
   end; return ds.extend(ds.reverse(pat), shim.list(args.pat))
 end
 
-function M.findfix(args, out, isExe)
+M.findfix = function(args, out, isExe)
   local argsTy = type(args); args = shim.parseStr(args, true)
   args.pat = argPats(args)
   if #args == 0 then push(args, '.') end
@@ -214,7 +214,7 @@ function M.findfix(args, out, isExe)
   return out
 end
 
-function M.exe(args, isExe)
+M.exe = function(args, isExe)
   assert(isExe)
   if not args.depth   then args.depth = 1   end
   if args.depth == '' then args.depth = -1 end

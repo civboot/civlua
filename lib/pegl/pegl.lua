@@ -502,7 +502,7 @@ M.Token.__fmt = function(t, f)
   end
 end
 
-function M.isKeyword(t) return #t == 1 and t.kind == t[1] end
+M.isKeyword = function(t) return #t == 1 and t.kind == t[1] end
 M.tblFmtParsedStrs = function(t, f)
   if M.isKeyword(t) then add(f, sfmt('KW%q', t[1])); return end
   local fmtK = f.set.data and f.set.data.root.fmtKind
@@ -575,9 +575,9 @@ local function NumT(kind, t)
     t[2] and {'.', t[2]} or {M.EMPTY})
 end
 local KW = function(kw)    return {kw, kind=kw} end -- keyword
-function M.testing.N(name) return {name, kind='name'} end -- name
-function M.testing.NUM(t)  return NumT('n10', t) end
-function M.testing.HEX(t)  return NumT('n16', t) end
+M.testing.N = function(name) return {name, kind='name'} end -- name
+M.testing.NUM = function(t)  return NumT('n10', t) end
+M.testing.HEX = function(t)  return NumT('n16', t) end
 M.testing.KW = KW
 
 -- formatting parsed so it can be copy/pasted

@@ -14,12 +14,12 @@ end
 -- depth should be incremented for each function this is
 -- called inside of.
 -- stackoverflow.com/questions/49375638
-function M.isExe(depth)
+M.isExe = function(depth)
   return _G.arg and not pcall(debug.getlocal, 5 + (depth or 0), 1)
 end
 assert(not M.isExe(), "Don't call shim directly")
 
-function M.parseList(args)
+M.parseList = function(args)
   local t = {}; for i, arg in ipairs(args) do
     if arg:find'^%-%w+' then
       for c in arg:sub(2):gmatch('.') do
@@ -39,7 +39,7 @@ end
 -- This is for convinience, use a table if it's not enough.
 --
 -- Note: if the input is already a table it just returns it.
-function M.parseStr(s)
+M.parseStr = function(s)
   if type(s) == 'table' then return s end
   if s:find'[%[%]\'"]' then error(
     [[parseStr does not support chars '"[]: ]]..s
@@ -47,12 +47,12 @@ function M.parseStr(s)
   return M.parseList(ds.splitList(s))
 end
 
-function M.parse(v)
+M.parse = function(v)
   if type(v) == 'string' then return M.parseStr(v)
   else                        return M.parseList(v) end
 end
 
-function M.short(args, short, long, value)
+M.short = function(args, short, long, value)
   if args[short] then args[long] = value; args[short] = nil end
 end
 
@@ -63,19 +63,19 @@ local BOOLS = {
 
 -- Duck type: always return a boolean (except for nil).
 -- See BOOLS (above) for mapping.
-function M.boolean(v)
+M.boolean = function(v)
   if v == nil then return nil end
   local b = BOOLS[v] if b ~= nil then return b end
   error('invalid boolean: '..tostring(v))
 end
-function M.bools(args, ...)
+M.bools = function(args, ...)
   for _, arg in ipairs{...} do
     args[arg] = M.boolean(args[arg])
   end
 end
 
 -- Duck type: always return a number
-function M.number(num)
+M.number = function(num)
   if num == nil then return nil end
   return (type(num)=='number') and num or tonumber(num)
 end
@@ -88,7 +88,7 @@ local TOSTR = {
 -- This is useful for some APIs where you want to convert
 -- number/true/false to strings
 -- Converts nil to ''
-function M.string(v)
+M.string = function(v)
   local f = TOSTR[type(v)]; if f then return f(v) end
   error('invalid type for shim.string: '..type(v))
 end
@@ -96,7 +96,7 @@ end
 -- Duck type: always return a list.
 -- default controls val==nil
 -- empty   controls val==''
-function M.list(val, default, empty)
+M.list = function(val, default, empty)
   if val == nil then return default or {} end
   if empty and val == '' then return empty end
   return (type(val) == 'table') and val or {val}
@@ -104,7 +104,7 @@ end
 
 -- Duck type: split a value or (flattened) list of values
 -- nil results in an empty list
-function M.listSplit(val, sep)
+M.listSplit = function(val, sep)
   if val == nil then return {} end
   sep = '[^'..(sep or '%s')..']+'; local t = {}
   if type(val) == 'string' then
@@ -118,7 +118,7 @@ function M.listSplit(val, sep)
 end
 
 -- expand string keys into --key=value, ordered alphabetically.
-function M.expand(args)
+M.expand = function(args)
   local out, keys = {}, {}
   for k, v in pairs(args) do
     if type(k) == 'number'     then out[k] = M.string(v)
@@ -137,7 +137,7 @@ end
 --
 -- This is primarily used for types which have a __call constructor,
 -- such as metaty types.
-function M.new(ty, val)
+M.new = function(ty, val)
   if val == nil then return end
   return getmetatable(val) and val or ty(val)
 end

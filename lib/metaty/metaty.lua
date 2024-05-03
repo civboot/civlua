@@ -9,10 +9,10 @@ local IS_ENV = { ['true']=true,   ['1']=true,
                  ['false']=false, ['0']=false, ['']=false }
 
 -- isEnv: returns boolean for below values, else nil
-function M.isEnv(var)
+M.isEnv = function(var)
   var = os.getenv(var); if var then return IS_ENV[var] end
 end
-function M.isEnvG(var) -- is env or globals
+M.isEnvG = function(var) -- is env or globals
   local e = M.isEnv(var); if e ~= nil then return e end
   return _G[var]
 end
@@ -77,7 +77,7 @@ end
 -- Note: prefer split
 --
 --   for ctx, line in rawsplit, text, {'\n', 1} do ... end
-function M.rawsplit(subj, ctx)
+M.rawsplit = function(subj, ctx)
   local pat, i = table.unpack(ctx)
   if not i then return end
   if i > #subj then
@@ -97,13 +97,13 @@ end
 --   for ctx, line in split(text, '\n') do -- split lines
 --     ... do something with line
 --   end
-function M.split(subj, pat, index)
+M.split = function(subj, pat, index)
   return M.rawsplit, subj, {pat or '%s+', index or 1}
 end
 
 -----------------------------
 -- Equality
-function M.nativeEq(a, b) return a == b end
+M.nativeEq = function(a, b) return a == b end
 local NATIVE_TY_EQ = {
   number   = rawequal,   boolean = rawequal, string = rawequal,
   userdata = M.nativeEq, thread  = M.nativeEq,
@@ -133,7 +133,7 @@ M.eqDeep = function(a, b)
 end
 
 -- eq(a, b) -> bool: compare tables or anything else
-function M.eq(a, b) return NATIVE_TY_EQ[type(a)](a, b) end
+M.eq = function(a, b) return NATIVE_TY_EQ[type(a)](a, b) end
 
 -----------------------
 -- record2

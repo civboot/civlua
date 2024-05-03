@@ -445,7 +445,7 @@ local function fmtItems(f, name, items)
   f:decIndent(); push(f, '\n')
 end
 
-function M.Doc.__fmt(d, f)
+M.Doc.__fmt = function(d, f)
 	push(f, d.name or '?')
   if d.ty   then push(f, sfmt(' [%s]', d.ty)) end
   if d.path then push(f, sfmt(' (%s)', d.path)) end
@@ -453,7 +453,7 @@ function M.Doc.__fmt(d, f)
   if d.other  and next(d.other)  then fmtItems(f, 'Methods, Etc', d.other) end
 end
 
-function M.DocItem.__tostring(di)
+M.DocItem.__tostring = function(di)
   local ty = di.ty and (': '..mty.tyName(di.ty))
   local def = type(di.default) ~= 'nil' and mty.format(' = %q', di.default)
   ty = (ty or '')..(def or '')

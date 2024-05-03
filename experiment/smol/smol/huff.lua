@@ -101,7 +101,7 @@ read the tree from writeTree.
 Nodes are {left,right}, leaves are the code number.
 ]](readTree)
 
-function M.readTree(rb, bits)
+M.readTree = function(rb, bits)
   if rb(1) == 1 then return rb(bits)
   else return {readTree(rb, bits), readTree(rb, bits)} end
 end
@@ -216,7 +216,7 @@ local function _treeStr(t, node, hcode)
     if node[2] then _treeStr(t, node[2], hcode..'1') end
   end
 end
-function M.treeStr(root)
+M.treeStr = function(root)
   local t = {}; _treeStr(t, root, '')
   table.sort(t, function(l, r) return #l.hcode < #r.hcode end)
   local d = {}; for i, v in ipairs(t) do
@@ -227,11 +227,11 @@ function M.treeStr(root)
 end
 
 
-function M.easyEncoder(codes, bits)
+M.easyEncoder = function(codes, bits)
   return M.Encoder(codes, M.eof(bits))
 end
 
-function M.easyDecoder(codes, bits, tree)
+M.easyDecoder = function(codes, bits, tree)
   -- print('# Tree\n'..table.concat(M.treeStr(tree), '\n'))
   return M.Decoder(codes, bits, M.treeStrip(tree))
 end

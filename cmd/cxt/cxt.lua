@@ -352,7 +352,7 @@ end
 -- Testing Helpers
 
 local SKIP_FOR_STR = ds.Set{'pos', 'raw'}
-function M.parsedStrings(p, node)
+M.parsedStrings = function(p, node)
   if type(node) ~= 'table' then return node end
   if mty.ty(node) == Token   then return p:tokenStr(node) end
   local n = {}
@@ -365,7 +365,7 @@ function M.parsedStrings(p, node)
   return n
 end
 
-function M.assertParse(dat, expected, dbg)
+M.assertParse = function(dat, expected, dbg)
   local node, p = M.parse(dat, dbg)
   civtest.assertEq(expected, M.parsedStrings(p, node))
 end

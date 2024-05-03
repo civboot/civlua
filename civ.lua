@@ -23,7 +23,7 @@ civtest.assertGlobals(initG)
 
 M.HELP = [[help module.any.object
 Get help for any lua module (including ones in civlib)]]
-function M.help(args, isExe)
+M.help = function(args, isExe)
   args = shim.listSplit(args, '.')
   if #args == 0 then print(M.HELP) return end
   local path = ds.copy(args)

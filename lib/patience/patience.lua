@@ -24,7 +24,7 @@ local function ensureCount(t, line)
   return v
 end
 
-function M.uniqueMatches(aLines, bLines, b, b2, c, c2)
+M.uniqueMatches = function(aLines, bLines, b, b2, c, c2)
   local counts, matches, line, ct = {}, {}
   for i=b,b2 do
     line = aLines[i]; ct = ensureCount(counts, line)
@@ -41,7 +41,7 @@ function M.uniqueMatches(aLines, bLines, b, b2, c, c2)
 end
 
 -- find the stack to the left of where we should place b=match[2]
-function M.findLeftStack(stacks, c)
+M.findLeftStack = function(stacks, c)
   local low, high, mid = 0, #stacks + 1
   while low + 1 < high do
     mid = (low + high) // 2
@@ -52,7 +52,7 @@ function M.findLeftStack(stacks, c)
 end
 
 -- Get the longest increasing sequence (in reverse order)
-function M.patienceLIS(matches)
+M.patienceLIS = function(matches)
   local stacks = {}
   for i, m in ipairs(matches) do
     i = M.findLeftStack(stacks, m[2])

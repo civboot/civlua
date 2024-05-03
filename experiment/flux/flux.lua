@@ -133,7 +133,7 @@ M.diff = function(path)
 
 end
 
-function M.commitExe(args, isExe)
+M.commitExe = function(args, isExe)
   mty.pnt'?? Running flux commit'
 end
 

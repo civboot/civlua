@@ -125,7 +125,7 @@ end
 
 -- luck.load(path) -> data
 -- Load a single path which has no dependencies.
-function M.load(path)
+M.load = function(path)
   local dat = df.LinesFile{io.open(path), len=true}
   local meta = M.loadMeta(dat, path)
   assert(not meta or not meta.deps, 'single must have no deps')

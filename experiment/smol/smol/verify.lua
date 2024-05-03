@@ -6,7 +6,7 @@ local sfmt, push = string.format, table.insert
 
 local M = {}
 
-function M.assertFilesEq(p1, p2)
+M.assertFilesEq = function(p1, p2)
   local p = io.popen(sfmt('diff -q %s %s', p1, p2))
   local msg = p:read()
   assert(p:close(), msg)
