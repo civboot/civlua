@@ -12,10 +12,9 @@ local metaty = require'metaty'
 
 -- Documentation for Pos (position)
 M.Pos = metaty {
-  'x[int]: x coordinate
-  'y[int]: y coordinate
-metaty
-M.Pos.y = 0 -- default value
+  'x[int]: x coordinate',
+  'y[int]: y coordinate', y = 0,
+}
 
 local p1 = Pos{x=4}
 local p1 = Pos{x=4, y=3, z=5} -- error if checking turned on
@@ -24,11 +23,13 @@ local p1 = Pos{x=4, y=3, z=5} -- error if checking turned on
 The above expands to the following. Note that the "typosafe" elements
 are removed when `METATY_CHECK == false`
 ```
+local M = {}
+local metaty = require'metaty'
+
 local Pos = setmetatable({
   __name='Pos',
-
+  y = 0,
   -- used with metaty.Fmt and help()
-  __fmt=metaty.recordFmt,
   __fields={'x', 'y', x='[int]', y='[int]'},
   __newindex = metaty.newindex, -- typosafe setting
 }, {
@@ -39,16 +40,16 @@ local Pos = setmetatable({
   __index = metaty.index, -- typosafe getting
 })
 Pos.__index = Pos
-Pos.y = 0
-DOC[Pos]       = 'Documentation for Pos (position)'
-FIELD_DOC[Pos] = {x='x coordinate', y='y coordinate'}
+PKG_LOCS[M.myFn]         = 'path/to/file.lua:123'
+PKG_NAMES[M.myFn]        = 'mymod.Pos'
+PKG_LOOKUP['myMod.Pos'] = M.Pos
 ```
 
 ## API
 
 * `ty(v)` return the metaty of `v`. For tables this is `getmetatable(v)`,
   else it is `type(v)`.
-* `record`'name' {'field1[type] documentation', 'field2[type]'}`
+* `metaty'name' {'field1[type] documentation', 'field2[type]'}`
   creates a documented and typo-safe record type (see examples)
 * `tostring(v)` convert `v` to string using `Fmt` (expands tables)
 * `format(pat, ...)` the same as `string.format` except `%q` uses `Fmt` (expands
