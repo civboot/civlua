@@ -2,6 +2,7 @@
 --
 -- See README.md for documentation.
 local M = (mod and mod'metaty' or {})
+setmetatable(M, getmetatable(M) or {})
 
 ---------------
 -- Pre module: environment variables
@@ -339,4 +340,5 @@ M.print = function(...)
   print(table.concat(f))
 end
 
+M.__call = function(T, name) return M.record2(name) end
 return M
