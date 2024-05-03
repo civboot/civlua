@@ -1,8 +1,14 @@
 local M = mod'doc_test'
 
--- some dosc
+-- document a fn
+-- another line
 M.exampleFn = function() end
-M.Example  = require'metaty'.record2'Example'{'a [int]', a=4}
+
+-- document a metaty
+-- another line
+M.Example  = require'metaty'.record2'Example'{
+  'a [int]', a=4,
+}
 M.Example.method = function() end
 
 METATY_CHECK = true
@@ -11,35 +17,43 @@ local mty = require'metaty'
 local doc = require'doc'
 local T = require'civtest'
 T.assertEq(mod.__newindex, getmetatable(M.Example).__newindex)
-T.assertEq('doc_test.Example', DOC_NAME[M.Example])
-T.assertEq('lib/doc/test.lua:5', DOC_LOC[M.Example])
+T.assertEq('doc_test.Example',    DOC_NAME[M.Example])
+T.assertEq('lib/doc/test.lua:11', DOC_LOC[M.Example])
 
+T.test('findcode', function()
+  local com, code = doc.findcode(M.exampleFn)
+  T.assertEq({"-- document a fn", "-- another line"}, com)
+  T.assertEq({"M.exampleFn = function() end"}, code)
+
+  com, code = doc.findcode(M.Example)
+  T.assertEq('-- document a metaty', com[1])
+  T.assertEq('-- another line',      com[2])
+  T.assertEq([[M.Example  = require'metaty'.record2'Example'{]], code[1])
+  T.assertEq([[  'a [int]', a=4,]], code[2])
+  T.assertEq('}', code[3])
+end)
 
 local eFn =
-'doc_test.exampleFn [function] (lib/doc/test.lua:4)'
-local eRecord =
-'doc_test.Example [Ty<Example>] (lib/doc/test.lua:5)\
-## Fields\
-  a               : [int] = 4         \
+'## doc_test.exampleFn (lib/doc/test.lua:5) ty=function\
+document a fn\
+another line\
+---- CODE ----\
+M.exampleFn = function() end\
+'
+
+local mDoc =
+"## doc_test (lib/doc/test.lua:1) ty=Mod\
 \
 ## Methods, Etc\
-  __fields        : table             \
-  __index         : Ty<Example>       (doc/test.lua:5)\
+  Example         : Ty<Example>       (doc/test.lua:11)\
   __name          : string            \
-  __newindex      : function          (metaty/metaty.lua:150)\
-  method          : function          (doc/test.lua:6)\
-'
-local eDoc =
-'doc_test [Mod] (lib/doc/test.lua:1)\
-## Methods, Etc\
-  Example         : Ty<Example>       (doc/test.lua:5)\
-  __name          : string            \
-  exampleFn       : function          (doc/test.lua:4)\
-'
+  exampleFn       : function          (doc/test.lua:5)\
+---- CODE ----\
+local M = mod'doc_test'\
+"
 T.test('doc.get', function()
-  T.assertEq(eFn,     mty.tostring(doc(M.exampleFn)))
-  T.assertEq(eRecord, mty.tostring(doc(M.Example)))
-  T.assertEq(eDoc,    mty.tostring(doc(M)))
+  T.assertEq(eFn,     doc(M.exampleFn))
+  T.assertEq(mDoc,    doc(M))
 end)
 
 -- This was used to craft the for documentation

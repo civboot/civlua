@@ -943,13 +943,14 @@ M.BiMap.remove = function(t, k)
 end
 
 ---------------------
--- Fifo Buffer
+-- Deq Buffer
 -- Deq() -> Deq, a deque
--- 
+-- Use as a first in/out with deq:push(v)/deq()
+--
 -- Main methods:
 --   pushLeft()  pushRight()
 --   popLeft()   popRight()
--- 
+--
 -- Calling it is the same as popLeft (use as iterator)
 M.Deq = mty.record2'Deq'{
   'right [number]',

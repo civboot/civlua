@@ -60,7 +60,7 @@ M.validKey = function(s) --> boolean: s=value is valid syntax
          or s:find'[^_%w]')
 end
 
-M.fnsrc = function(fn)
+M.fninfo = function(fn)
   local info
   local name = DOC_NAME[fn]; if not name then
     info = debug.getinfo(fn)
@@ -277,7 +277,7 @@ M.Fmt2.number      = function(f, n)  add(f, sfmt(f.numfmt, n)) end
 M.Fmt2.string      = function(f, s)  add(f, sfmt(f.strfmt, s)) end
 M.Fmt2.thread      = function(f, th) add(f, tostring(th))      end
 M.Fmt2.userdata    = function(f, ud) add(f, tostring(ud))      end
-M.Fmt2['function'] = function(f, fn) add(f, sfmt('fn%q[%s]', M.fnsrc(fn))) end
+M.Fmt2['function'] = function(f, fn) add(f, sfmt('fn%q[%s]', M.fninfo(fn))) end
 
 -- Recursively format a table.
 -- Yes this is complicated. No, there is no way to really improve

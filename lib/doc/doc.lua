@@ -414,11 +414,39 @@ M['local'] = function() end
 ---------------------
 -- Doc and DocItem
 
-M.getsrc = function(obj)
-  if type(obj) == 'function' then return mty.fnsrc(obj) end
+local VALID = {['function']=true, table=true}
+M.modinfo = function(obj)
+  if type(obj) == 'function' then return mty.fninfo(obj) end
   local name, loc = DOC_NAME[obj], DOC_LOC[obj]
   name = name or (type(obj) == 'table') and rawget(obj, '__name')
   return name, loc
+end
+
+M.findcode = function(loc) --> (comments, code)
+  if type(loc) ~= 'string' then loc = select(2, M.modinfo(loc)) end
+  if not loc then return end
+  local path, locLine = loc:match'(.*):(%d+)'
+  if not path then error('loc path invalid: '..loc) end
+  local l, lines, locLine = 1, ds.Deq{}, tonumber(locLine)
+  local l, lines = 1, ds.Deq{}
+  for line in io.lines(path) do
+    lines:push(line); if #lines > 256 then lines:pop() end
+    if l == locLine then break end
+    l = l + 1
+  end
+  assert(l == locLine, 'file not long enough')
+  lines = ds.reverse(table.move(lines, lines.left, lines.right, 1, {}))
+  local code, comments = {}, {}
+  for l, line in ipairs(lines) do
+    if line:find'^%w[^-=]+=' then table.move(lines, 1, l, 1, code); break end
+  end
+  for l=#code+1, #lines do local
+    line = lines[l]
+    if not line:find'^%-%-' then
+      table.move(lines, #code+1, l-1, 1, comments); break
+    end
+  end
+  return ds.reverse(comments), ds.reverse(code)
 end
 
 -- Documentation on a single type
@@ -427,7 +455,7 @@ end
 --
 -- Example: metaty.tostring(doc(myObj))
 M.Doc = mty.record2'Doc' {
-  'name', 'ty [string]: type name',
+  'name', 'ty [Type]: type, can be string',
   'path [str]',
   'fields [table]', 'other [table]',
 }
@@ -436,7 +464,7 @@ M.DocItem = mty.record2'DocItem' {
   'default [any]'
 }
 
-local function fmtItems(f, name, items)
+local function fmtItems(f, items, name)
   push(f, '\n## '..name); f:incIndent(); push(f, '\n')
   for i, item in ipairs(items) do
     push(f, item:__tostring());
@@ -444,13 +472,16 @@ local function fmtItems(f, name, items)
   end
   f:decIndent(); push(f, '\n')
 end
+local fmtAttrs = function(d, f)
+  if d.fields and next(d.fields) then fmtItems(f, d.fields, 'Fields') end
+  if d.other  and next(d.other)  then fmtItems(f, d.other, 'Methods, Etc') end
+end
 
 M.Doc.__fmt = function(d, f)
 	push(f, d.name or '?')
   if d.ty   then push(f, sfmt(' [%s]', d.ty)) end
   if d.path then push(f, sfmt(' (%s)', d.path)) end
-  if d.fields and next(d.fields) then fmtItems(f, 'Fields', d.fields) end
-  if d.other  and next(d.other)  then fmtItems(f, 'Methods, Etc', d.other) end
+  fmtAttrs(d, f)
 end
 
 M.DocItem.__tostring = function(di)
@@ -466,12 +497,12 @@ M.DocItem.__tostring = function(di)
     di.name or '?', ty or '', path or '')
 end
 
-
-local tyName = function(T) return mty.tyName(mty.ty(T)) end
-
-M.get = function(obj)
-  local name, path = M.getsrc(obj)
-  local d = M.Doc{name=name, path=path, ty=tyName(obj)}
+getmetatable(M.Doc).__call = function(T, obj)
+  local name, path = M.modinfo(obj)
+  local d = mty.construct(T, {
+    name=name, path=path,
+    ty=mty.tyName(mty.ty(obj)),
+  })
   if type(obj) ~= 'table' then return d end
   d.fields, d.other = {}, {}
   local fields = rawget(obj, '__fields')
@@ -490,14 +521,33 @@ M.get = function(obj)
   for _, k in ipairs(other) do
     local v = obj[k]
     local ty = mty.ty(v)
-    local _, vloc = M.getsrc(v)
+    local _, vloc = M.modinfo(v)
     vloc = vloc and sfmt('[%s]', vloc) or nil
     push(d.other, M.DocItem {
-      name=k, ty=v and mty.ty(v), path=select(2, M.getsrc(v)),
+      name=k, ty=v and mty.ty(v), path=select(2, M.modinfo(v)),
     })
   end
   return d
 end
 
-getmetatable(M).__call = function(_, obj) return M.get(obj) end
+M.stripComments = function(com)
+  if #com == 0 then return end
+  local ind = com[1]:match'^%-%-(%s+)' or ''
+  local pat = '^%-%-'..string.rep('%s?', #ind)..'(.*)%s*'
+  for i, l in ipairs(com) do com[i] = l:match(pat) or l end
+end
+M.full = function(obj)
+  local d = M.Doc(obj)
+  local com, code = M.findcode(d.path)
+  local f = mty.Fmt2{}
+  push(f, sfmt('## %s (%s) ty=%s\n', d.name, d.path or '?/?', d.ty or '?'))
+  M.stripComments(com)
+  for _, l in ipairs(com) do push(f, l); push(f, '\n') end
+  fmtAttrs(d, f)
+  if #code > 0 then push(f, '---- CODE ----\n') end
+  for _, l in ipairs(code) do push(f, l); push(f, '\n') end
+  return table.concat(f)
+end
+
+getmetatable(M).__call = function(_, obj) return M.full(obj) end
 return M

@@ -151,23 +151,16 @@ local CONCRETE_TYPE = {
   ['nil']=true, bool=true, number=true, string=true,
 }
 
------------------------
--- MOD
-do
-  -- mod(name) -> Mod{}: create a typesafe mod
-  local modloc, mod = srcloc(), {}
+-- mod(name) -> Mod{}: create a typosafe mod
+do local modloc, mod = srcloc(), {}
   DOC_LOC[mod] = modloc; DOC_NAME[mod] = 'mod'
   mod.__name='Mod'
   mod.__index=function(m, k) error('mod does not have: '..k, 2) end
   mod.__newindex=function(t, k, v)
     rawset(t, k, v)
     if type(k) ~= 'string' or CONCRETE_TYPE[type(v)] then return end
-    if DOC_LOC[v] or DOC_NAME[v] then return end
-    DOC_LOC[v]  = srcloc(1)
-    DOC_NAME[v] = t.__name..'.'..k
-    if(type(v)) == 'table' and rawget(v, '__name') == true then
-      rawset(v, '__name', k)
-    end
+    DOC_LOC[v]  = DOC_LOC[v]  or srcloc(1)
+    DOC_NAME[v] = DOC_NAME[v] or (t.__name..'.'..k)
   end
   M.mod = setmetatable(mod, {
     __name='Ty<Mod>',
