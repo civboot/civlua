@@ -1,10 +1,10 @@
 # doc: documentation of lua's core types
 
-Get documentation on any Lua object. Includes documentation
-for several items in the lua stdlibrary.
+Get documentation on any Lua object. Includes documentation for several items
+in the lua stdlibrary.
 
-> Note: This requires a module to be installed which implements the PKG
-> protocol (see [lib/pkg](../pkg/README.md)).
+> Note: This requires a the PKG protocol to be installed, see
+> [lib/pkg](../pkg/README.md) and/or the guide below.
 
 Usage:
 ```
@@ -51,13 +51,14 @@ while in the `civ/` directory. Adapt it for other usecases:
 LUA_PATH="./lib/pkg/?.lua"
 LUA_PKGS="./"
 alias luap="lua -e \"require'pkglib':install()\""
-alias ,='luap ~/projects/civlua/civ.lua'
 function luahelp() {
   luap -e "require'civ'; print(require'doc'('$1'))"
 }
 
 # Now you can print docs for any type
 luahelp ds.heap.Heap
+luahelp string.format
+luahelp for
 ```
 
 ## Library Authors

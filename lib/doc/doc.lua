@@ -348,9 +348,7 @@ for k, obj in pairs(M) do
     PKG_NAMES[obj] = newname
     PKG_LOOKUP[name] = nil; PKG_LOOKUP[newname] = obj
   end
-  M[k] = nil
 end
-M.__name = 'doc'
 
 -- for is a looping construct with two forms:
 --
@@ -400,6 +398,7 @@ M.__name = 'doc'
 -- See also:
 --   metaty.split is a more complex example.
 M['for'] = function() end
+PKG_LOOKUP['for'] = M['for']
 
 -- local x = (expression)
 --
@@ -412,6 +411,7 @@ M['for'] = function() end
 -- * you are the top-level application (i.e. a game, CLI, etc) and global state
 --   is the best solution.
 M['local'] = function() end
+PKG_LOOKUP['local'] = M['local']
 
 ---------------------
 -- Doc and DocItem
