@@ -344,7 +344,9 @@ M['os.execute'] = os.execute
 -- (their docs are preserved in SRC* globals)
 for k, obj in pairs(M) do
   local name = PKG_NAMES[obj]; if name then
-    PKG_NAMES[obj] = name:sub(5)
+    local newname = name:sub(5)
+    PKG_NAMES[obj] = newname
+    PKG_LOOKUP[name] = nil; PKG_LOOKUP[newname] = obj
   end
   M[k] = nil
 end
