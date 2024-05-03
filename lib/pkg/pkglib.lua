@@ -86,16 +86,16 @@ local function _discover(pkgdir)
     error("pkg name cannot contain '.': "..pkg.name)
   end
   M.PKGS[pkg.name] = pkgdir
-  if not pkg.dirs then return end
-  for _, dir in ipairs(pkg.dirs) do
+  if not pkg.pkgs then return end
+  for _, dir in ipairs(pkg.pkgs) do
     passert(dir)
     _discover(pjoin(pkgdir, dir))
   end
 end
 M.discover = function(luapkgs)
   M.PKGS = {}
-  local dirs = {'.'}; for d in luapkgs:gmatch'[^;]+' do push(dirs, d) end
-  for _, dir in ipairs(dirs) do _discover(dir) end
+  local pkgs = {'.'}; for d in luapkgs:gmatch'[^;]+' do push(pkgs, d) end
+  for _, dir in ipairs(pkgs) do _discover(dir) end
 end
 
 -------------------

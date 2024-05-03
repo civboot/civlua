@@ -3,7 +3,7 @@ name    = 'civ'
 version = '0.1-0'
 url     = 'git+http://github.com/civboot/civlua'
 srcs = { 'civ.lua' }
-dirs    = {
+pkgs = {
   'lib/shim',
   'lib/metaty',
   'lib/civtest',
