@@ -224,6 +224,7 @@ M.sortKeys = function(t, len)
 end
 
 M.Fmt = M.record2'Fmt' {
+  "to        [file?]: if set calls write",
   "keyEnd    [string]",  keyEnd=', ',
   "indexEnd  [string]",  indexEnd = ', ',
   "tableStart[string]",  tableStart = '{',
@@ -257,7 +258,11 @@ M.Fmt.decIndent = function(f)
   local ind = f.indent; if not ind then return end
   f._nl = f._nl:sub(1, -1 - #ind); assert(f._nl:sub(1,1) == '\n')
 end
-M.Fmt.write = function(f, ...) add(f, table.concat{...}) end
+M.Fmt.write = function(f, ...)
+  if f.to then f.to:write(...); return end
+  local s = (select('#', ...) == 1) and (...) or table.concat{...}
+  rawset(f, #f + 1, s)
+end
 M.Fmt.__newindex = function(f, i, v)
   if type(i) ~= 'number' then; assert(f.__fields[i], i)
     return rawset(f, i, v)
@@ -265,9 +270,8 @@ M.Fmt.__newindex = function(f, i, v)
   assert(i == #f + 1, 'can only append to Fmt')
   local doIndent = false
   for _, line in M.split(v, '\n') do
-    if doIndent then
-      rawset(f, i, f._nl); i = i + 1 end
-    rawset(f, i, line); i = i + 1; doIndent = true
+    if doIndent then f:write(f._nl) end
+    f:write(line); doIndent = true
   end
 end
 M.Fmt.tableKey = function(f, k)
@@ -335,13 +339,17 @@ M.format = function(s, ...)
   end)
 end
 
-M.print = function(...)
-  local f, len = M.Fmt{}, select('#', ...)
+M.fprint = function(f, ...)
+  local len = select('#', ...)
   for i=1,len do
-    f(select(i)); if i < len then add(f, '\t') end
-  end
-  add(f, '\n')
-  print(table.concat(f))
+    f(select(i, ...)); if i < len then add(f, '\t') end
+  end; add(f, '\n')
 end
+
+-- print(...) but with Fmt
+M.print  = function(...) return M.fprint(M.Fmt{to=io.stdout}, ...) end
+-- pretty print(...) with Fmt:pretty
+M.pprint = function(...) return M.fprint(M.Fmt:pretty{to=io.stdout}, ...) end
+
 
 return M

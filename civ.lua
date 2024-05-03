@@ -25,16 +25,16 @@ M.HELP = [[help module.any.object
 Get help for any lua module (including ones in civlib)]]
 M.help = function(args, isExe)
   if #args == 0 then print(M.HELP) return end
-  mty.print('help:', args)
-  print(doc(args[1]))
+  local ok, d = pcall(function() return doc(args[1]) end)
+  if ok then print(d) else
+    print('Error:', (d:match':%d+:%s*(.-)\n'))
+  end
 end
-
-M.helpShim = {help=M.HELP, exe=M.help}
 
 shim{
   help=DOC,
   subs = {
-    help = M.helpShim,
+    help = {help=M.HELP, exe=M.help},
     ele  = ele.main,
     ff   = ff.shim,
     rock = rock.shim,

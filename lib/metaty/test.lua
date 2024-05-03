@@ -99,6 +99,7 @@ test('record', function()
   assertEq('[any]', getmetatable(a).__fields.a2)
   assert(A == M.ty(a))
   assert('hi' == a.a1); assert(5 == a.a2)
+  print('!! A tostring', M.tostring(a))
   assertEq('A{a2=5, a1="hi"}', M.tostring(a))
   a.a2 = 4;             assert(4 == a.a2)
 

@@ -537,7 +537,10 @@ M.stripComments = function(com)
   for i, l in ipairs(com) do com[i] = l:match(pat) or l end
 end
 M.full = function(obj)
-  if type(obj) == 'string' then obj = PKG_LOOKUP[obj] end
+  if type(obj) == 'string' then
+    obj = PKG_LOOKUP[obj] or _G[obj] or require(obj)
+       or error(obj..' not found')
+  end
   local d = M.Doc(obj)
   local com, code = M.findcode(d.path)
   if not com then com, code = {}, {} end

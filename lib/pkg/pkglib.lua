@@ -21,6 +21,10 @@ end
 -------------------
 -- Internal utility functions
 
+local function pexists(p)
+  local f = io.open(p)
+  return f and (f:close() or true) or false
+end
 local function passert(p)
   if #p == 0           then error('empty path')                          end
   if p:sub(1,1) == '/' then error('root path (/a/b) not permitted: '..p) end
@@ -82,7 +86,9 @@ end
 -------------------
 -- Finding
 local function _discover(pkgdir)
-  local pkg = M.load('PKG', pjoin(pkgdir, 'PKG.lua'))
+  local pkgpath = pjoin(pkgdir, 'PKG.lua')
+  if not pexists(pkgpath) then return end
+  local pkg = M.load('PKG', pkgpath)
   if pkg.name:find'%.' then
     error("pkg name cannot contain '.': "..pkg.name)
   end

@@ -999,5 +999,10 @@ M.auto = function(mod, i)
   return mod, i
 end
 
+-- Autorequire: `R.foo` is same as `require'foo'`
+M.R = setmetatable({}, {
+  __tostring=function() return "R.foo->require'foo'" end,
+  __index=function(_, k) return require(k) end,
+})
 
 return M
