@@ -6,9 +6,10 @@ local push, sfmt = table.insert, string.format
 local M = {require=require}
 
 -- Documentation globals
-local weakk = {__name='DocGlobal', __mode='k'}
-DOC_LOC  = DOC_LOC  or setmetatable({}, weakk)
-DOC_NAME = DOC_NAME or setmetatable({}, weakk)
+local weakk = {__mode='k'}
+PKG_NAMES  = PKG_NAMES  or setmetatable({}, weakk)        -- obj -> name
+PKG_LOCSS   = PKG_LOCSS   or setmetatable({}, weakk)        -- obj -> path:loc
+PKG_LOOKUP = PKG_LOOKUP or setmetatable({}, {__mode='v'}) -- name -> obj
 
 -- pkg.UNAME is the platform, typically: Windows, Linux or Darwin
 if package.config:sub(1,1) == '\\' then
@@ -142,32 +143,41 @@ end
 
 -----------------------
 -- MOD
+local CONCRETE_TYPE = {
+  ['nil']=true, bool=true, number=true, string=true,
+}
 local srcloc = function(level)
   local tb  = debug.traceback(nil, 2 + (level or 0))
   return assert(tb:match'.*traceback:%s+([^\n]*:%d+)')
 end
 
-local CONCRETE_TYPE = {
-  ['nil']=true, bool=true, number=true, string=true,
-}
-
 -- mod(name) -> Mod{}: create a typosafe mod
-do local modloc, mod = srcloc(), {}
-  DOC_LOC[mod] = modloc; DOC_NAME[mod] = 'mod'
-  mod.__name='Mod'
-  mod.__index=function(m, k) error('mod does not have: '..k, 2) end
-  mod.__newindex=function(t, k, v)
+do local modloc = srcloc()
+  M.mod = {}
+  PKG_LOCSS[M.mod] = modloc; PKG_NAMES[M.mod] = 'mod'; PKG_LOOKUP.mod = M.mod
+  M.mod.__name='Mod'
+  M.mod.__index=function(m, k) error('mod does not have: '..k, 2) end
+  M.mod.__newindex=function(t, k, v)
     rawset(t, k, v)
-    if type(k) ~= 'string' or CONCRETE_TYPE[type(v)] then return end
-    DOC_LOC[v]  = DOC_LOC[v]  or srcloc(1)
-    DOC_NAME[v] = DOC_NAME[v] or (t.__name..'.'..k)
+    if type(k) ~= 'string' then return end
+    M.mod.save(t.__name..'.'..k, v)
   end
-  M.mod = setmetatable(mod, {
+
+  -- member function (not method)
+  -- save v with name to PKG variables
+  M.mod.save = function(name, v)
+    if CONCRETE_TYPE[type(v)] then return end
+    PKG_LOCSS[v]  = PKG_LOCSS[v]  or srcloc(2)
+    PKG_NAMES[v] = PKG_NAMES[v] or name
+    PKG_LOOKUP[name] = PKG_LOOKUP[name] or v
+  end
+
+  setmetatable(M.mod, {
     __name='Ty<Mod>',
     __call=function(T, name)
       assert(type(name) == 'string', 'must provide name str')
       local m = setmetatable({__name=name}, T)
-      DOC_NAME[m], DOC_LOC[m] = name, srcloc(1)
+      M.mod.save(name, m)
       return m
     end,
   })

@@ -1,4 +1,4 @@
-# pkg: create and import lua packages
+# pkg: local and recursive require
 
 Basic usage is to update your `.bashrc` with:
 
@@ -8,18 +8,55 @@ LUA_PKGS="path/to/mod1;path/to/mod2;etc..."
 alias luap="lua -e \"require'pkglib'.install()\""
 ```
 
-Now when you run `luap` your `require'something'` will search for the
-'something' pkg in `LUA_PKGS` (or subpkgs they define). Note: it will still
-fallback to `require` if the pkg is not found.
+Your libraries (packages) should have a `PKG.lua` in their root:
+```lua
+name    = 'myLib'
+version = '0.1-5'
+url     = 'git+http://github.com/civboot/myLib'
+srcs    = {
+    'myLib.lua',      -- name: myLib
+    'myLib/sub1.lua', -- name: mylib.sub1
+    ['myLib.sub2'] = 'lib/myLib/submodule.lua'},
+}
+pkgs = {
+  'path/to/subpkg/',
+}
+```
+
+Now when you run `luap` your `require'myLib'` will search for 'myLib' pkg in
+`LUA_PKGS` (or subpkgs they define). Note: it will still fallback to `require`
+if the pkg is not found.
 
 This has several advantages:
 
 * local development: set `LUA_PKGS=./` and it will only search for pkgs in
   your current directory. You can define a `PKG.lua` with a `pkgs` variable to
   recursively search for other locally defined packages.
-* concise `LUA_*` environment variables: you no longer have to maintain a huge
+* concise `LUA_PKGS` environment variables: you no longer have to maintain a huge
   and impossible to read `LUA_PATH` variable.
-* performance: the `PKG.lua` locations are cached for future lookup
+* performance: the `PKG.lua` locations are cached for future lookups whereas
+  `LUA_PATH` must search every path every time.
+
+## PKG Protocol
+pkg exports a few OPTIONAL global variables. Other libraries which override
+require or want to create self-documenting code are encouraged to use these
+(first checking they are available). These variables enable self-documenting lua
+code that can be inspected at runtime.
+
+First of all is the global `mod` function/type. Lua modules can define their `M`
+(module) variable like the following, which makes their module optionally
+self-documenting depending on whether `mod` is available.
+
+```
+local M = mod and mod'myModName' or {}
+
+-- PKG_LOCSS[M.myFn]  -> path/to/file.lua:123
+-- PKG_NAMES[M.myFn] -> 'myModName.myFn'
+-- PKG_LOOKUP['myModName.myFn'] -> M.myFn
+M.myFn = function() ... end
+```
+
+These variables are used by libraries like [../doc](../doc/README.md).
 
 ## Library Authors
 
@@ -34,18 +71,6 @@ How to create packages:
   * `dirs`: causes pkg search to continue in the given sub-directories.
     Can be used to construct trees of packages.
   * `rockspec`: (optional) provide starting rockspec when generating it
-
-Example `PKG.lua` file:
-```lua
-name    = 'myLib'
-version = '0.1-5'
-url     = 'git+http://github.com/civboot/myLib'
-srcs    = {
-    'myLib.lua',      -- name: myLib
-    'myLib/sub1.lua', -- name: mylib.sub1
-    ['myLib.sub2'] = 'lib/myLib/submodule.lua'},
-}
-```
 
 [rockspec]: https://github.com/luarocks/luarocks/wiki/Rockspec-format
 

@@ -7,7 +7,7 @@ doc module requires global `mod` function/class, such as one of:
 See lib/pkg/README.md for details
 https://github.com/civboot/civlua/tree/main/lib/pkg
 
-Note: also requires DOC_LOC and DOC_NAME globals to be defined.
+Note: also requires PKG_LOCSS and PKG_NAMES globals to be defined.
 ]]
 -- Get documentation for lua types and stynatx.
 -- Examples:
@@ -15,7 +15,7 @@ Note: also requires DOC_LOC and DOC_NAME globals to be defined.
 --    doc'for'
 --    doc(myMod.myFunction)
 local M = mod and mod'doc' or error(ERROR)
-assert(DOC_LOC and DOC_NAME, ERROR)
+assert(PKG_LOCSS and PKG_NAMES, ERROR)
 
 local mty  = require'metaty'
 local ds   = require'ds'
@@ -343,8 +343,8 @@ M['os.execute'] = os.execute
 -- Note: non-keywords are not actually stored in this module
 -- (their docs are preserved in SRC* globals)
 for k, obj in pairs(M) do
-  local name = DOC_NAME[obj]; if name then
-    DOC_NAME[obj] = name:sub(5)
+  local name = PKG_NAMES[obj]; if name then
+    PKG_NAMES[obj] = name:sub(5)
   end
   M[k] = nil
 end
@@ -417,7 +417,7 @@ M['local'] = function() end
 local VALID = {['function']=true, table=true}
 M.modinfo = function(obj)
   if type(obj) == 'function' then return mty.fninfo(obj) end
-  local name, loc = DOC_NAME[obj], DOC_LOC[obj]
+  local name, loc = PKG_NAMES[obj], PKG_LOCSS[obj]
   name = name or (type(obj) == 'table') and rawget(obj, '__name')
   return name, loc
 end
@@ -537,6 +537,7 @@ M.stripComments = function(com)
   for i, l in ipairs(com) do com[i] = l:match(pat) or l end
 end
 M.full = function(obj)
+  if type(obj) == 'string' then obj = PKG_LOOKUP[obj] end
   local d = M.Doc(obj)
   local com, code = M.findcode(d.path)
   local f = mty.Fmt2{}

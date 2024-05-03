@@ -17,8 +17,8 @@ local mty = require'metaty'
 local doc = require'doc'
 local T = require'civtest'
 T.assertEq(mod.__newindex, getmetatable(M.Example).__newindex)
-T.assertEq('doc_test.Example',    DOC_NAME[M.Example])
-T.assertEq('lib/doc/test.lua:11', DOC_LOC[M.Example])
+T.assertEq('doc_test.Example',    PKG_NAMES[M.Example])
+T.assertEq('lib/doc/test.lua:11', PKG_LOCSS[M.Example])
 
 T.test('findcode', function()
   local com, code = doc.findcode(M.exampleFn)

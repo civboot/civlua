@@ -62,11 +62,11 @@ end
 
 M.fninfo = function(fn)
   local info
-  local name = DOC_NAME[fn]; if not name then
+  local name = PKG_NAMES[fn]; if not name then
     info = debug.getinfo(fn)
     name = info.name
   end
-  local loc = DOC_LOC[fn]; if not loc then
+  local loc = PKG_LOCSS[fn]; if not loc then
     info = info or debug.getinfo(fn)
     loc = string.format('%s:%s', info.short_src, info.linedefined)
   end
