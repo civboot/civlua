@@ -12,7 +12,7 @@ local push = table.insert
 
 test('sh', function()
   local sh = M.sh
-  local rc, o, l = sh'false'; assertEq(1, rc)
+  local rc, o = sh'false'; assertEq(1, rc)
     assertEq('', o)
 
   rc, o, l = sh'true'; assertEq(0, rc)
@@ -21,7 +21,7 @@ test('sh', function()
   rc, o, l = sh{'echo', 'hi there'}; assertEq(0, rc)
     assertEq('hi there\n', o)
 
-  rc, o, l = sh('cat', 'from stdin'); assertEq(0, rc)
+  rc, o, l = sh{'cat', inp='from stdin'}; assertEq(0, rc)
     assertEq('from stdin', o);
 
   rc, o, l = sh{'commandDoesNotExist', 'blah', 'blah'};

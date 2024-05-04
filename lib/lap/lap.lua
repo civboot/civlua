@@ -319,6 +319,9 @@ M.Lap.run = function(lap, fns)
   end
 end
 
+----------------------
+-- Global Modifiers
+
 local function toAsync()
   for k, v in pairs(M._async) do M[k] = v end
   LAP_ASYNC = true

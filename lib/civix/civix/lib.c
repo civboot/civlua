@@ -222,44 +222,55 @@ static int l_sh_wait(LS *L) {
   sh_wait(tolsh(L), 0);
   return 0; }
 
-// (command, argList, envList=nil) -> (sh, r, w, lr)
+// (command, argList, envList=nil, inp, out, err) -> (sh, r, w)
 // Note: all file-descriptors are integers
+// Note: file descriptors are only returned if they have been created
+//   by pipe(), they are not returned if they were passed in.
+#define CLOSE(fno) if(fno >= 0) close(fno)
 static int l_sh(LS *L) {
-  char **argv = NULL, **env = NULL; int _len;
   const char* command = luaL_checkstring(L, 1);
-  if(!lua_isnil(L, 2)) { argv = checkstringarray(L, 2, &_len); }
-  if(!lua_isnoneornil(L, 3)) { env = checkstringarray(L, 3, &_len); }
+  char **env = NULL; int _unused;
+  char **argv = checkstringarray(L, 2, &_unused);
+  if(!lua_isnoneornil(L, 3)) { env = checkstringarray(L, 3, &_unused); }
+  int inp = luaL_optinteger(L, 4, -1);
+  int out = luaL_optinteger(L, 5, -1);
+  int err = luaL_optinteger(L, 6, STDERR_FILENO);
+  printf("!! sh inp=%i out=%i err=%i\n", inp, out, err);
 
   struct sh* sh = (struct sh*)lua_newuserdata(L, sizeof(struct sh));
   sh->pid = 0; sh->env = env;
   luaL_setmetatable(L, SH_META);
 
-  int ch_r = 0, ch_w = 0, ch_lw = 0;
-  int pr_r = 0, pr_w = 0, pr_lr = 0;
-  int rw[2]; char* err = "pipes";
-
-  if(pipe(rw)) goto error; pr_r  = rw[0]; ch_w  = rw[1];
-  if(pipe(rw)) goto error; ch_r  = rw[0]; pr_w  = rw[1];
-  if(pipe(rw)) goto error; pr_lr = rw[0]; ch_lw = rw[1];
+  // ch_r=child-read, pr_w=parent-write, etc
+  int ch_r = -1, ch_w = -1; int pr_r = -1, pr_w = -1;
+  int rw[2];
+  if(inp >= 0) { ch_r = inp; } else {
+    if(pipe(rw)) goto error; ch_r  = rw[0]; pr_w  = rw[1];
+  }
+  if(out >= 0) { ch_w = out; } else {
+    if(pipe(rw)) goto error; pr_r  = rw[0]; ch_w  = rw[1];
+  }
 
   int pid = fork(); if(pid == -1) goto error;
   else if(pid == 0) { // child
-    close(pr_r); close(pr_w); close(pr_lr);
-    dup2(ch_w,  STDOUT_FILENO); close(ch_w);
-    dup2(ch_lw, STDERR_FILENO); close(ch_lw);
-    dup2(ch_r,  STDIN_FILENO);  close(ch_r);
-    exit(100 + execvp(command, argv)); // note: exit should be unreachable
+    CLOSE(pr_r); CLOSE(pr_w);
+    if(ch_w != STDOUT_FILENO) { dup2(ch_w,  STDOUT_FILENO); close(ch_w); }
+    if(ch_r != STDIN_FILENO)  { dup2(ch_r,  STDIN_FILENO);  close(ch_r); }
+    if(err  != STDERR_FILENO) { dup2(err,   STDERR_FILENO); close(err);  }
+    return execvp(command, argv);
   } // else parent
-  close(ch_w); close(ch_r); close(ch_lw);
-  lua_pushinteger(L, pr_r); lua_pushinteger(L, pr_w);
-  lua_pushinteger(L, pr_lr);
   sh->pid = pid;
-  return 4;
+  CLOSE(ch_w); CLOSE(ch_r);
+  // only return if we created the fileno
+  if(out >= 0) lua_pushnil(L); else lua_pushinteger(L, pr_r);
+  if(inp >= 0) lua_pushnil(L); else lua_pushinteger(L, pr_w);
+  return 3;
   error:
-    if(ch_r) close(ch_r); if(ch_w) close(ch_w); if(ch_lw) close(ch_lw);
-    if(pr_r) close(pr_r); if(pr_w) close(pr_w); if(pr_lr) close(pr_lr);
+    if(ch_r) close(ch_r); if(ch_w) close(ch_w);
+    if(pr_r) close(pr_r); if(pr_w) close(pr_w);
     luaL_error(L, "failed sh (%s): %s", err, SERR); return 0;
 }
+#undef CLOSE
 
 
 // ---------------------

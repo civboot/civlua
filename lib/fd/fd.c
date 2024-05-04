@@ -17,6 +17,8 @@
 #include <sys/stat.h>
 #include "fd.h"
 
+//***********************
+//* APPLE
 #if __APPLE__
 #include <sys/socket.h>
 static char EFD_BUF = 0;
@@ -35,7 +37,9 @@ static void EV_WAIT(FDT* fdt) {
 #define EV_DESTROY(FDT) if((FDT)->socks[0] >= 0) { \
   int* s = (FDT)->socks; close(s[0]); close(s[1]); s[0] = -1; s[1] = -1; }
 
-#else /* not apple (linux/BSD) */
+//***********************
+//* Linux / BSD
+#else
 #include <sys/eventfd.h>
 static const uint64_t EFD_WRITE = 0xfffffffffffffffeUL;
 static uint64_t EFD_READ = 0;

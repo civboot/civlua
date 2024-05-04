@@ -1,7 +1,7 @@
 -- civix: unix-like OS utilities.
 local M = mod and mod'civix' or {}
 
-local mt   = require'metaty'
+local mty  = require'metaty'
 local ds   = require'ds'
 local shim = require'shim'
 local lib  = require'civix.lib'; local C = lib
@@ -13,6 +13,9 @@ local concat, sfmt = table.concat, string.format
 local push, pop = table.insert, table.remove
 local yield = coroutine.yield
 local pc = path.concat
+
+-- TODO: actually implement
+lib.getpagesize = function() return 4096 end
 
 ds.update(M, {
 	-- file types
@@ -65,7 +68,7 @@ M.monoSec = function() return M.mono():asSeconds() end
 -- Core Filesystem
 
 local function qp(p)
-  return mt.assertf(M.quote(p), 'path cannot contain "\'": %s', p)
+  return mty.assertf(M.quote(p), 'path cannot contain "\'": %s', p)
 end
 
 
@@ -149,13 +152,13 @@ M.mkDirs = function(pthArr)
     dir = pc{dir, c}
     local ok, errno = lib.mkdir(dir)
     if ok or (errno == C.EEXIST) then -- directory created or exists
-    else mt.errorf('failed to create directory: %s (%s)', 
+    else mty.errorf('failed to create directory: %s (%s)', 
                     dir, lib.strerrno(errno)) end
   end
 end
 M.mkDir = function(pth, parents)
   if parents then M.mkDirs(path.splitList(pth))
-  else mt.assertf(lib.mkdir(pth), "mkdir failed: %s", pth) end
+  else mty.assertf(lib.mkdir(pth), "mkdir failed: %s", pth) end
 end
 
 -- mkTree(tree) builds a tree of files and dirs at `dir`.
@@ -193,41 +196,146 @@ M.Lap = function() return lap.Lap {
   sleepFn=M.sleep, monoFn=M.monoSec, pollList=fd.PollList(),
 }end
 
--- sh(cmd, inp, env) -> rc, out, log
--- Execute the command in another process via execvp (basically the system shell).
--- 
--- This is the synchronous (blocking) version of this command. Use async.sh for the
--- asynchronous version (or see 'si' library).
--- 
--- Returns the return-code, out (aka stdout), and log (aka stderr).
--- 
+-- Sh: start args on the shell
+-- Constructor: Sh(args, fds) -> Sh
+--
+-- Sh:start() kicks off a subprocess which start the shell using the fds you pass
+-- in.
+--
+-- 1. If you didn't pass in inp/out then Sh:write()/Sh:read() will go to the
+--    process's new stdin/stdout pipes.
+-- 2. If you did pass in inp/out then those fields are set to nil. You can
+--    write/read from an external reference.
+--
+-- Why? This means that :close() will only close filedescriptors created by the
+--      shell itself, and you won't accidentially close io.stdout/etc.
+--
+-- Examples (see civix.sh for more examples):
+--   Lua                                              Bash
+--   Sh({'ls', 'foo/bar'}, {out=io.stdout}):start()  -- ls foo/bar
+--   local v = Sh'ls foo/bar':start():read()         -- v=$(ls foo/bar)
+M.Sh = mty'Sh' {
+  "args [table]: arguments to pass to shell",
+  "inp [file|string?] shell's stdin to send (default=new pipe)",
+  "out [file?]: shell's stdout              (default=new pipe)",
+  "err [file?]: shell's stderr              (default=io.stderr)",
+  "env [list]:  shell's environment {'FOO=bar', ...}",
+  '_sh: C implemented shell',
+}
+getmetatable(M.Sh).__call = function(T, args, fds)
+  local sh = mty.construct(T, fds or {})
+  if type(args) == 'string' then args = shim.parseStr(args) end
+  sh.args = assert(shim.expand(args), 'must provide args')
+
+  return sh
+end
+getmetatable(M.Sh).__index = function(sh, k)
+  local shv = rawget(sh, '_sh', k)
+  if shv then return shv end
+  if rawget(sh, '__fields')[k] then return nil end
+  error('unknown field: '..k)
+end
+
+local function _fnomaybe(f) return f and M.fileno(f) or nil end
+-- start the shell in the background.
+-- Note: any set filedescriptors will be set to nil.
+--       any nil filedescriptors (except stderr) will be set to the new pipe.
+M.Sh.start = function(sh)
+  local r, w = fd.newFD(), fd.newFD()
+  local ex, _r, _w, _lr = lib.sh(
+    sh.args[1], sh.args, sh.env,
+    _fnomaybe(sh.inp), _fnomaybe(sh.out), M.fileno(sh.err or io.stderr)
+  )
+  sh._sh = ex
+  if _r then r:_setfileno(_r); r:toNonblock() else r = nil end
+  if _w then w:_setfileno(_w); w:toNonblock() else w = nil end
+  sh.inp, sh.out = w, r
+  return sh
+end
+
+-- wait for shell to complete, returns return code
+M.Sh.wait = function(sh)
+  if LAP_ASYNC then
+    while not sh:isDone() do yield('sleep', 0.005) end
+  else sh._sh:wait() end
+  return sh._sh:rc()
+end
+
+M.Sh.write = function(sh, ...) return sh.inp:write(...) end
+M.Sh.read  = function(sh, ...) return sh.out:read(...) end
+
+-- sh(cmd) -> rc, out
+-- Execute the command in another process via execvp (system shell).
+--
+-- if cmd is a table, the following are treated as special. If you need any
+-- of these then you must use M.Sh directly (recommendation: use Piper)
+--
+--   inp[string|file]: the process's stdin. If string it will be sent to stdin.
+--   out[file]: the process's stdout. out will be nil if this is set
+--   err[file]: the process's stderr (default=io.stderr)
+--
+-- Note: use Piper{...}:run() if you want to pipe multiple shells together.
+--
 -- COMMAND                               BASH
 -- sh'ls foo/bar'                     -- ls foo/bar
--- sh{'ls', 'foo/bar', 'space dir/'}  -- ls foo/bar "space dir/"
--- sh('cat', 'sent to stdin')         -- echo "sent to stdin" | cat
-M.sh = function(cmd, inp, env)
-  if type(cmd) == 'string' then cmd = shim.parseStr(cmd) end
-  cmd = shim.expand(cmd)
-  local nfd = fd.sys.newFD
-  local r, w, lr = nfd(), nfd(), nfd()
-  local sh, _r, _w, _lr = lib.sh(cmd[1], cmd, env)
-  assert(_r > 0); assert(_w > 0); assert(_lr > 0)
-  r:_setfileno(_r); w:_setfileno(_w); lr:_setfileno(_lr)
-
-  local out, log
-  for _, f in ipairs{r, w, lr} do f:toNonblock() end
+-- sh{'ls', 'foo/bar', 'dir w spc/'}  -- ls foo/bar "dir w spc/"
+-- sh{inp='sent to stdin', 'cat'}     -- echo "sent to stdin" | cat
+M.sh = function(cmd)
+  local fds, inps
+  if type(cmd) == 'table' then local pk = ds.popk
+    fds = { inp = pk(cmd,'inp'), out=pk(cmd,'out'), err=pk(cmd,'err') }
+  else fds = {} end
+  if type(fds.inp) == 'string' then
+    if #fds.inp > fd.PIPE_BUF then -- may block, use tmpfile
+      local t = fd.tmpfile(); t:write(fds.inp); t:seek'set'
+      fd.inp = t
+    else inps = fds.inp; fds.inp = nil end
+  end
+  local sh, out = M.Sh(cmd, fds):start(), nil
   local fns = {
-    function() if inp then w:write(inp) end; w:close() end,
-    function() out =       r:read();         r:close() end,
-    function() log =      lr:read();        lr:close() end,
+    function() if inps then sh:write(inps) end; sh.inp:close() end,
+    function() out = sh:read(); sh.out:close() end,
   }
-  if LAP_ASYNC then
-    lap.all(fns)
-    while not sh:isDone() do yield('sleep', 0.005) end
-  else
-    M.Lap():run(fns)
-    sh:wait() end
-  return sh:rc(), out, log
+  if LAP_ASYNC then lap.all(fns) else M.Lap():run(fns) end
+  return sh:wait(), out
 end
+
+
+-- Pipe multiple shells together.
+-- Piper{inpFile|cmd, ... cmds, outFile?, err=io.stderr}
+--
+-- These are equivalent:
+--   bash:  cat inp.txt |   grep foo.bar >> out.txt
+--   Piper{open'inp.txt', 'grep foo.bar', open('out.txt', 'w')}:check()
+--
+-- All shell operations happen concurrently. Piper properly plumbs the
+-- stdout of the prior to stdin to the next. All stderr goes to the same err
+-- file (or io.stderr by default)
+--
+-- The first and last items can be files, in which case they are the inp/out.
+-- else, piper can act as a file (with :read()/:write() methods)
+M.Piper = mty'Piper' {
+  'inp [file]: owned input',
+  'out [file]: owned output',
+  'err [file]: common stderr',
+  -- ... args is the shells to kick off
+}
+
+-- TODO: Stream / Pipe / Whatever
+-- M.Piper.wait = function(sh)
+--   local fns = {
+--     function() if sh.inp then w:write(inp) end; w:close() end,
+--     function() out =       r:read();         r:close() end,
+--   }
+--   if LAP_ASYNC then
+--     lap.all(fns)
+--     while not sh:isDone() do yield('sleep', 0.005) end
+--   else
+--     M.Lap():start(fns)
+--     sh:wait() end
+--   return sh:rc(), out
+-- 
+-- end
+
 
 return M
