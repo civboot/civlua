@@ -1,7 +1,7 @@
 -- civix: unix-like OS utilities.
 local M = mod and mod'civix' or {}
 
-local mt   = require'metaty'
+local mty  = require'metaty'
 local ds   = require'ds'
 local shim = require'shim'
 local lib  = require'civix.lib'; local C = lib
@@ -65,7 +65,7 @@ M.monoSec = function() return M.mono():asSeconds() end
 -- Core Filesystem
 
 local function qp(p)
-  return mt.assertf(M.quote(p), 'path cannot contain "\'": %s', p)
+  return mty.assertf(M.quote(p), 'path cannot contain "\'": %s', p)
 end
 
 
@@ -149,13 +149,13 @@ M.mkDirs = function(pthArr)
     dir = pc{dir, c}
     local ok, errno = lib.mkdir(dir)
     if ok or (errno == C.EEXIST) then -- directory created or exists
-    else mt.errorf('failed to create directory: %s (%s)', 
+    else mty.errorf('failed to create directory: %s (%s)', 
                     dir, lib.strerrno(errno)) end
   end
 end
 M.mkDir = function(pth, parents)
   if parents then M.mkDirs(path.splitList(pth))
-  else mt.assertf(lib.mkdir(pth), "mkdir failed: %s", pth) end
+  else mty.assertf(lib.mkdir(pth), "mkdir failed: %s", pth) end
 end
 
 -- mkTree(tree) builds a tree of files and dirs at `dir`.
@@ -193,6 +193,31 @@ M.Lap = function() return lap.Lap {
   sleepFn=M.sleep, monoFn=M.monoSec, pollList=fd.PollList(),
 }end
 
+-- Sh'ls foo/bar'                     -- ls foo/bar
+-- Sh{'ls', 'foo/bar', 'space dir/'}  -- ls foo/bar "space dir/"
+-- Sh({'cat'}, {inp='sent to stdin')  -- echo "sent to stdin" | cat
+M.Sh = mty'Sh' {
+  "inp [file|string?] shell's stdin to send (default=new pipe)",
+  "out [file?]: shell's stdout              (default=new pipe)",
+  "err [file?]: shell's stderr              (default=io.stderr)",
+  "env [list]:  shell's environment {'FOO=bar', ...}",
+  '_sh: C implemented shell',
+}
+local function _fnomaybe(f) return f and M.fileno(f) end
+getmetatable(M.Sh).__call = function(T, args, sh)
+  sh = mty.construct(sh or {})
+  if type(args) == 'string' then args = shim.parseStr(args) end
+  args = assert(shim.expand(args), 'must provide args')
+  local ex, _r, _w, _lr = lib.sh(
+    sh.args[1], sh.args, sh.env,
+    _fnomaybe(sh.inp), _fnomaybe(sh.out), M.fileno(sh.err or io.stderr)
+  )
+  return sh
+end
+getmetatable(M.Sh).__index = function(sh, k)
+  return sh._sh[k] or error('unknown field: '..k)
+end
+
 -- sh(cmd, inp, env) -> rc, out, log
 -- Execute the command in another process via execvp (basically the system shell).
 -- 
@@ -210,16 +235,15 @@ M.sh = function(cmd, inp, env)
   cmd = shim.expand(cmd)
   local nfd = fd.sys.newFD
   local r, w, lr = nfd(), nfd(), nfd()
-  local sh, _r, _w, _lr = lib.sh(cmd[1], cmd, env)
-  assert(_r > 0); assert(_w > 0); assert(_lr > 0)
-  r:_setfileno(_r); w:_setfileno(_w); lr:_setfileno(_lr)
+  local sh, _r, _w = lib.sh(cmd[1], cmd, env)
+  assert(_r > 0); assert(_w > 0)
+  r:_setfileno(_r); w:_setfileno(_w)
 
-  local out, log
-  for _, f in ipairs{r, w, lr} do f:toNonblock() end
+  local out
+  for _, f in ipairs{r, w} do f:toNonblock() end
   local fns = {
     function() if inp then w:write(inp) end; w:close() end,
     function() out =       r:read();         r:close() end,
-    function() log =      lr:read();        lr:close() end,
   }
   if LAP_ASYNC then
     lap.all(fns)
@@ -227,7 +251,7 @@ M.sh = function(cmd, inp, env)
   else
     M.Lap():run(fns)
     sh:wait() end
-  return sh:rc(), out, log
+  return sh:rc(), out
 end
 
 return M
