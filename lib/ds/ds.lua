@@ -284,7 +284,7 @@ M.kvtable = (function(it)
 end)
 
 -- Determine if two iterators are equal (ignores indexes)
--- 
+--
 -- Example:
 --   ieq({ipairs(a)}, {islice(b, 3, 7)})
 M.ieq = function(aiter, biter)
@@ -322,13 +322,6 @@ end
 
 M.popk = function(t, key) -- pop key
   local val = t[key]; t[key] = nil; return val
-end
-
--- pop multiple keys, pops(t, {'a', 'b'})
-M.pops = function(t, keys)
-  local o = {}
-  for _, k in ipairs(keys) do o[k] = t[k]; t[k] = nil end
-  return o
 end
 
 M.drain = function(t, len)

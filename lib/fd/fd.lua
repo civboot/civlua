@@ -29,6 +29,7 @@ local M = {
      FD=S.FD,         FDT=S.FDT,
   newFD = S.newFD, newFDT=S.newFDT,
 }
+M.PIPE_BUF = 512 -- POSIX.1
 
 M.finishRunning = function(fd, kind, ...)
   while fd:code() == S.FD_RUNNING do yield(kind or true, ...) end
