@@ -15,24 +15,37 @@
 #include <assert.h>
 #include <poll.h>
 #include <sys/stat.h>
-#include <sys/eventfd.h>
-
 #include "fd.h"
+
+#if __APPLE__
+#include <sys/socket.h>
+static char EFD_BUF = 0;
+#define EV_INIT(FDT)    do { int* s = (FDT)->socks; \
+                             s[0] = -1; s[1] = -1; } while(0)
+#define EV_OPEN(FDT)    socketpair(AF_UNIX, SOCK_STREAM, 0, (FDT)->socks)
+#define EV_POST(FDT)    assert(write((FDT)->socks[0], &EFD_BUF, 1) == 1)
+#define EV_WAIT(FDT)    assert( read((FDT)->socks[1], &EFD_BUF, 1) == 1)
+#define EV_FILENO(FDT) (FDT)->socks[0]
+#define EV_DESTROY(FDT) if((FDT)->socks[0] >= 0) { \
+  int* s = (FDT)->socks; close(s[0]); close(s[1]); s[0] = -1; s[1] = -1; }
+
+#else /* not apple (linux/BSD) */
+#include <sys/eventfd.h>
+static const uint64_t EFD_WRITE = 0xfffffffffffffffeL;
+static uint64_t EFD_READ = 0;
+#define EFD_OK 8
+#define EV_INIT(FDT) (FDT)->evfd = -1;
+#define EV_OPEN(FDT) ((FDT)->evfd = eventfd(0, 0))
+#define EV_POST(FDT) assert(write((FDT)->evfd, &EFD_WRITE, 8) == EFD_OK)
+#define EV_WAIT(FDT) assert(read((FDT)->evfd,  &EFD_READ, 8)  == EFD_OK)
+#define EV_FILENO(FDT) (FDT)->evfd
+#define EV_DESTROY(FDT) if((FDT)->evfd >= 0) \
+  { close((FDT)->evfd); (FDT)->evfd = -1; }
+#endif
 
 #define FD_EOF     (-1)
 #define FD_RUNNING (-2)
 #define LEN(FD)  ((FD)->ei - (FD)->si)
-
-static const uint64_t EFD_WRITE = 0xfffffffffffffffeL;
-static uint64_t EFD_READ = 0;
-#define EFD_OK 8
-#define ev_post(EV)  assert(write(EV, &EFD_WRITE, 8)      == EFD_OK)
-#define ev_wait(EV)  assert(read(fdt->evfd, &EFD_READ, 8) == EFD_OK)
-#define ev_destroy(EV) close(fdt->evfd)
-
-#if __APPLE__
-not yet supported (use socketpair)
-#endif
 
 typedef lua_State LS;
 
@@ -72,7 +85,7 @@ static void* FDT_run(void* d) {
   FDT* fdt = (FDT*) d;
   uint64_t unused;
   while(true) {
-    ev_wait(fdt->evfd);
+    EV_WAIT(fdt);
     if(fdt->stopped) break;
     fdt->meth(&fdt->fd);
   }
@@ -83,16 +96,16 @@ static void* FDT_run(void* d) {
 FDT* FDT_create(LS* L) {
   FDT* fdt = (FDT*)lua_newuserdata(L, sizeof(FDT));
   FD_init(&fdt->fd); fdt->meth = NULL; fdt->stopped = false;
-  fdt->evfd = -1;
+  EV_INIT(fdt);
   luaL_setmetatable(L, LUA_FDT);
-  if((fdt->evfd = eventfd(0, 0)) < 0) goto error;
+  if(EV_OPEN(fdt) < 0) goto error;
   else if (pthread_create(&fdt->th, NULL, FDT_run, (void*)fdt)) {
     goto error;
   }
   return fdt;
 error:
   fdt->stopped = 3; fdt->fd.code = errno;
-  if(fdt->evfd >= 0) close(fdt->evfd);
+  EV_DESTROY(fdt);
   return fdt;
 }
 
@@ -303,7 +316,7 @@ FD_intfield(fileno);
 FD_intfield(pos);
 FD_intfield(ctrl);
 static int l_FDT_evfileno(LS* L)
-{ lua_pushinteger(L, toFDT(L)->evfd); return 1; }
+{ lua_pushinteger(L, EV_FILENO(toFDT(L))); return 1; }
 
 static int l_FD_setfileno(LS* L) {
   asfd(L)->fileno = luaL_checkinteger(L, 2); return 0;
@@ -319,7 +332,7 @@ static int l_FD_setfileno(LS* L) {
   }
 #define FDT_START(FDT, METH) \
   (FDT)->fd.code = FD_RUNNING; \
-  fdt->meth = METH; ev_post(fdt->evfd); \
+  fdt->meth = METH; EV_POST(fdt); \
   return 0;
 
 // FD_read(fd, till=0) -> (code)
@@ -389,7 +402,7 @@ static int l_FDT_seek(LS* L) {
   int whence   = luaL_checkinteger(L, 3);
   fdt->fd.code = FD_RUNNING;
   if(FD_seekpre(&fdt->fd, offset, whence)) fdt->fd.code = 0;
-  else { fdt->meth = FD_seek; ev_post(fdt->evfd); }
+  else { fdt->meth = FD_seek; EV_POST(fdt); }
   return 0;
 }
 
@@ -417,7 +430,7 @@ static int l_FDT_open(LS* L) {
   FDT* fdt = FDT_create(L); FD* fd = &fdt->fd;
   fd->buf = (char*)path; fd->ctrl = flags;
   fd->code = FD_RUNNING;
-  fdt->meth = FD_open; ev_post(fdt->evfd);
+  fdt->meth = FD_open; EV_POST(fdt);
   return 1;
 }
 
@@ -428,7 +441,7 @@ static int l_FD_tmp(LS* L) {
 }
 static int l_FDT_tmp(LS* L) {
   FDT* fdt = FDT_create(L); FD* fd = &fdt->fd;
-  fdt->meth = FD_tmp; ev_post(fdt->evfd);
+  fdt->meth = FD_tmp; EV_POST(fdt);
   return 1;
 }
 #undef FD_TMP
@@ -440,14 +453,14 @@ static int l_FD_close(LS* L) {
 static int l_FDT_close(LS* L) {
   FDT* fdt = toFDT(L); assertReady(L, &fdt->fd, "close");
   fdt->fd.code = FD_RUNNING;
-  fdt->meth = FD_close; ev_post(fdt->evfd);
+  fdt->meth = FD_close; EV_POST(fdt);
   return 0;
 }
 void FDT_destroy(FDT* fdt) {
   if(!fdt->stopped) {
     fdt->stopped = 1;
-    ev_post(fdt->evfd); pthread_join(fdt->th, NULL);
-    ev_destroy(fdt->evfd);
+    EV_POST(fdt); pthread_join(fdt->th, NULL);
+    EV_DESTROY(fdt);
   }
   FD_close(&fdt->fd);
 }

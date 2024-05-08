@@ -18,7 +18,11 @@ typedef struct _FD {
 typedef struct _FDT {
   FD fd;
   pthread_t th;
+#if __APPLE__
+  int socks[2]; // write socks[0] to unblock, read socks[1] waits
+#else
   int evfd; // eventfd
+#endif
   volatile int stopped;
   volatile void (*meth)(FD*);
 } FDT;
