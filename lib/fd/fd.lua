@@ -26,9 +26,12 @@ local DONE_CODE = { [S.FD_EOF] = true, [0] = true }
 local M = {
   sys = S,
   _sync={}, _async={}, _io = {},
-     FD=S.FD,         FDT=S.FDT,
+  FD=S.FD,         FDT=S.FDT,
   newFD = S.newFD, newFDT=S.newFDT,
 }
+
+S.FD.__close  = S.FD.__index.close
+S.FDT.__close = S.FDT.__index.close
 
 M.finishRunning = function(fd, kind, ...)
   while fd:code() == S.FD_RUNNING do yield(kind or true, ...) end
@@ -49,7 +52,7 @@ end
 M.FDT.__index.write = function(fd, ...)
   local s = table.concat{...}
   fd:_write(s)
-  M.finishRunning(fd, 'poll', fd:_evfileno(), S.POLLOUT)
+  M.finishRunning(fd, 'poll', fd:_evfileno(), S.POLLIN)
 end
 
 local WHENCE = { set=S.SEEK_SET, cur=S.SEEK_CUR, ['end']=S.SEEK_END }
@@ -89,7 +92,7 @@ S.FD.__index.getpoll = function(fd, events)
   return fd:fileno(), events
 end
 S.FDT.__index.getpoll = function(fdt)
-  return fdt:_evfileno(), S.POLLOUT
+  return fdt:_evfileno(), S.POLLIN
 end
 
 ----------------------------

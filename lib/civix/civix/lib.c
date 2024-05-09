@@ -10,6 +10,7 @@
 #include <dirent.h>
 #include <time.h>
 #include <poll.h>
+#include <signal.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
 

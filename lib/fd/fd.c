@@ -22,22 +22,28 @@
 static char EFD_BUF = 0;
 #define EV_INIT(FDT)    do { int* s = (FDT)->socks; \
                              s[0] = -1; s[1] = -1; } while(0)
-#define EV_OPEN(FDT)    socketpair(AF_UNIX, SOCK_STREAM, 0, (FDT)->socks)
-#define EV_POST(FDT)    assert(write((FDT)->socks[0], &EFD_BUF, 1) == 1)
-#define EV_WAIT(FDT)    assert( read((FDT)->socks[1], &EFD_BUF, 1) == 1)
+#define EV_OPEN(FDT) socketpair(AF_UNIX, SOCK_STREAM, 0, (FDT)->socks)
+static void EV_POST(FDT* fdt) {
+  assert( read(fdt->socks[0], &EFD_BUF, 1) == 1);
+  assert(write(fdt->socks[0], &EFD_BUF, 1) == 1);
+}
+static void EV_WAIT(FDT* fdt) {
+  assert(write(fdt->socks[1], &EFD_BUF, 1) == 1);
+  assert( read(fdt->socks[1], &EFD_BUF, 1) == 1);
+}
 #define EV_FILENO(FDT) (FDT)->socks[0]
 #define EV_DESTROY(FDT) if((FDT)->socks[0] >= 0) { \
   int* s = (FDT)->socks; close(s[0]); close(s[1]); s[0] = -1; s[1] = -1; }
 
 #else /* not apple (linux/BSD) */
 #include <sys/eventfd.h>
-static const uint64_t EFD_WRITE = 0xfffffffffffffffeL;
+static const uint64_t EFD_WRITE = 0xfffffffffffffffeUL;
 static uint64_t EFD_READ = 0;
 #define EFD_OK 8
 #define EV_INIT(FDT) (FDT)->evfd = -1;
-#define EV_OPEN(FDT) ((FDT)->evfd = eventfd(0, 0))
-#define EV_POST(FDT) assert(write((FDT)->evfd, &EFD_WRITE, 8) == EFD_OK)
-#define EV_WAIT(FDT) assert(read((FDT)->evfd,  &EFD_READ, 8)  == EFD_OK)
+#define EV_OPEN(FDT) ((FDT)->evfd = eventfd(1, 0))
+#define EV_POST(FDT) assert(read((FDT)->evfd,  &EFD_READ, 8)  == EFD_OK)
+#define EV_WAIT(FDT) assert(write((FDT)->evfd, &EFD_WRITE, 8) == EFD_OK)
 #define EV_FILENO(FDT) (FDT)->evfd
 #define EV_DESTROY(FDT) if((FDT)->evfd >= 0) \
   { close((FDT)->evfd); (FDT)->evfd = -1; }
@@ -85,7 +91,9 @@ static void* FDT_run(void* d) {
   FDT* fdt = (FDT*) d;
   uint64_t unused;
   while(true) {
+    printf("!! FDT_run loop top\n");
     EV_WAIT(fdt);
+    printf("!! FDT_run wait done\n");
     if(fdt->stopped) break;
     fdt->meth(&fdt->fd);
   }
@@ -257,7 +265,7 @@ static void FD_flush(FD* fd) {
 static FD* asfd(LS* L) {
   FD* fd = luaL_testudata(L, 1, LUA_FD);  if(fd) return fd;
       fd = luaL_testudata(L, 1, LUA_FDT); if(fd) return fd;
-  luaL_error(L, "arg 1 not FD or FDT");
+  luaL_error(L, "arg 1 not FD or FDT"); return NULL;
 }
 
 static void assertReady(LS* L, FD* fd, const char* name) {
@@ -352,9 +360,11 @@ static int l_FD_read(LS* L) {
   lua_pushinteger(L, fd->code); return 1;
 }
 static int l_FDT_read(LS* L) {
+  printf("!! FDT_read\n");
   FDT* fdt = toFDT(L); FDT_READY(fdt);
   fdt->fd.ctrl = luaL_optnumber(L, 2, 0);
   FDT_START(fdt, FD_read);
+
 }
 #undef PRE_READ
 
@@ -374,6 +384,7 @@ static int l_FD_write(LS* L) {
 // FDT_write may only be called once. We copy the string
 // so the pthread owns it
 static int l_FDT_write(LS* L) {
+  printf("!! FDT_write\n");
   FDT* fdt = toFDT(L); FDT_READY(fdt);
   size_t len; const char* s = luaL_checklstring(L, 2, &len);
   int si = luaL_optinteger(L, 3, 0);
@@ -460,11 +471,13 @@ void FDT_destroy(FDT* fdt) {
   if(!fdt->stopped) {
     fdt->stopped = 1;
     EV_POST(fdt); pthread_join(fdt->th, NULL);
+    printf("!! EV_DESTROY\n");
     EV_DESTROY(fdt);
+    printf("!! EV_DESTROY done\n");
   }
   FD_close(&fdt->fd);
 }
-static int l_FDT_destroy(LS* L) { FDT_destroy(toFDT(L)); }
+static int l_FDT_destroy(LS* L) { FDT_destroy(toFDT(L)); return 0; }
 
 // (fd) -> code, flags
 static int l_FD_getflags(LS* L) {
@@ -530,6 +543,7 @@ static int l_PL_set(LS* L) {
   pl->fds[index].fd      = fileno;
   pl->fds[index].events  = events;
   pl->fds[index].revents = 0;
+  return 0;
 }
 
 // (pl, timeoutMs) -> {filenos}

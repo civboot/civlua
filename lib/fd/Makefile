@@ -11,6 +11,8 @@ build:  $(UNAME)
 Linux:  $(OUT).so
 Darwin: $(OUT).so
 # Windows: $(OUT).dll
+
+WNO = -Wno-incompatible-function-pointer-types
 	
 $(OUT).so: $(FILES)
 	make Build$(UNAME)
@@ -19,7 +21,7 @@ BuildLinux: $(FILES)
 	$(CC) $(FILES) -fPIC -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -shared -o $(OUT).so
 
 BuildDarwin:
-	$(CC) $(FILES) $(shell pkg-config lua --cflags) -c -O2 -fPIC   -o $(OUT).o
+	$(CC) $(FILES) $(shell pkg-config lua --cflags) -c -O2 -fPIC $(WNO)
 	$(CC) $(OUT).o -bundle -undefined dynamic_lookup -all_load     -o $(OUT).so
 
 # BuildWindows: TODO
