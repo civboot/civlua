@@ -222,7 +222,7 @@ static int l_sh_wait(LS *L) {
   sh_wait(tolsh(L), 0);
   return 0; }
 
-// (command, argList, envList=nil, inp, out, err) -> (sh, r, w)
+// (command, argList, envList=nil, stdin, out, err) -> (sh, r, w)
 // Note: all file-descriptors are integers
 // Note: file descriptors are only returned if they have been created
 //   by pipe(), they are not returned if they were passed in.

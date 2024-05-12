@@ -15,19 +15,19 @@ test('sh', function()
   local rc, o = sh'false'; assertEq(1, rc)
     assertEq('', o)
 
-  rc, o, l = sh'true'; assertEq(0, rc)
+  rc, o = sh'true'; assertEq(0, rc)
     assertEq('', o)
 
-  rc, o, l = sh{'echo', 'hi there'}; assertEq(0, rc)
+  rc, o = sh{'echo', 'hi there'}; assertEq(0, rc)
     assertEq('hi there\n', o)
 
-  rc, o, l = sh{'cat', inp='from stdin'}; assertEq(0, rc)
+  rc, o = sh{stdin='from stdin', 'cat'}; assertEq(0, rc)
     assertEq('from stdin', o);
 
-  rc, o, l = sh{'commandDoesNotExist', 'blah', 'blah'};
+  rc, o = sh{'commandDoesNotExist', 'blah', 'blah'};
     assert(rc ~= 0);
 
-  rc, o, l = sh{'echo', 'foo', '--abc=ya', aa='bar', bb=42}; assertEq(0, rc)
+  rc, o = sh{'echo', 'foo', '--abc=ya', aa='bar', bb=42}; assertEq(0, rc)
     assertEq('foo --abc=ya --aa=bar --bb=42\n', o)
   collectgarbage()
 end)

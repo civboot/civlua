@@ -202,9 +202,9 @@ M.Lap = function() return lap.Lap {
 -- Sh:start() kicks off a subprocess which start the shell using the fds you pass
 -- in.
 --
--- 1. If you didn't pass in inp/out then Sh:write()/Sh:read() will go to the
+-- 1. If you didn't pass in stdin/stdout then Sh:write()/Sh:read() will go to the
 --    process's new stdin/stdout pipes.
--- 2. If you did pass in inp/out then those fields are set to nil. You can
+-- 2. If you did pass in stdin/stdout then those fields are set to nil. You can
 --    write/read from an external reference.
 --
 -- Why? This means that :close() will only close filedescriptors created by the
@@ -212,13 +212,13 @@ M.Lap = function() return lap.Lap {
 --
 -- Examples (see civix.sh for more examples):
 --   Lua                                              Bash
---   Sh({'ls', 'foo/bar'}, {out=io.stdout}):start()  -- ls foo/bar
+--   Sh({'ls', 'foo/bar'}, {stdout=io.stdout}):start()  -- ls foo/bar
 --   local v = Sh'ls foo/bar':start():read()         -- v=$(ls foo/bar)
 M.Sh = mty'Sh' {
   "args [table]: arguments to pass to shell",
-  "inp [file|string?] shell's stdin to send (default=new pipe)",
-  "out [file?]: shell's stdout              (default=new pipe)",
-  "err [file?]: shell's stderr              (default=io.stderr)",
+  "stdin [file|string?] shell's stdin to send (default=new pipe)",
+  "stdout [file?]: shell's stdout              (default=new pipe)",
+  "stderr [file?]: shell's stderr              (default=io.stderr)",
   "env [list]:  shell's environment {'FOO=bar', ...}",
   '_sh: C implemented shell',
 }
@@ -244,12 +244,12 @@ M.Sh.start = function(sh)
   local r, w = fd.newFD(), fd.newFD()
   local ex, _r, _w, _lr = lib.sh(
     sh.args[1], sh.args, sh.env,
-    _fnomaybe(sh.inp), _fnomaybe(sh.out), M.fileno(sh.err or io.stderr)
+    _fnomaybe(sh.stdin), _fnomaybe(sh.stdout), M.fileno(sh.stderr or io.stderr)
   )
   sh._sh = ex
   if _r then r:_setfileno(_r); r:toNonblock() else r = nil end
   if _w then w:_setfileno(_w); w:toNonblock() else w = nil end
-  sh.inp, sh.out = w, r
+  sh.stdin, sh.stdout = w, r
   return sh
 end
 
@@ -261,8 +261,8 @@ M.Sh.wait = function(sh)
   return sh._sh:rc()
 end
 
-M.Sh.write = function(sh, ...) return sh.inp:write(...) end
-M.Sh.read  = function(sh, ...) return sh.out:read(...) end
+M.Sh.write = function(sh, ...) return sh.stdin:write(...) end
+M.Sh.read  = function(sh, ...) return sh.stdout:read(...) end
 
 -- sh(cmd) -> rc, out
 -- Execute the command in another process via execvp (system shell).
@@ -270,31 +270,31 @@ M.Sh.read  = function(sh, ...) return sh.out:read(...) end
 -- if cmd is a table, the following are treated as special. If you need any
 -- of these then you must use M.Sh directly (recommendation: use Piper)
 --
---   inp[string|file]: the process's stdin. If string it will be sent to stdin.
---   out[file]: the process's stdout. out will be nil if this is set
---   err[file]: the process's stderr (default=io.stderr)
+--   stdin[string|file]: the process's stdin. If string it will be sent to stdin.
+--   stdout[file]: the process's stdout. out will be nil if this is set
+--   stderr[file]: the process's stderr (default=io.stderr)
 --
 -- Note: use Piper{...}:run() if you want to pipe multiple shells together.
 --
 -- COMMAND                               BASH
 -- sh'ls foo/bar'                     -- ls foo/bar
 -- sh{'ls', 'foo/bar', 'dir w spc/'}  -- ls foo/bar "dir w spc/"
--- sh{inp='sent to stdin', 'cat'}     -- echo "sent to stdin" | cat
+-- sh{stdin='sent to stdin', 'cat'}     -- echo "sent to stdin" | cat
 M.sh = function(cmd)
   local fds, inps
   if type(cmd) == 'table' then local pk = ds.popk
-    fds = { inp = pk(cmd,'inp'), out=pk(cmd,'out'), err=pk(cmd,'err') }
+    fds = { stdin = pk(cmd,'stdin'), stdout=pk(cmd,'stdout'), stderr=pk(cmd,'stderr') }
   else fds = {} end
-  if type(fds.inp) == 'string' then
-    if #fds.inp > fd.PIPE_BUF then -- may block, use tmpfile
-      local t = fd.tmpfile(); t:write(fds.inp); t:seek'set'
-      fd.inp = t
-    else inps = fds.inp; fds.inp = nil end
+  if type(fds.stdin) == 'string' then
+    if #fds.stdin > fd.PIPE_BUF then -- may block, use tmpfile
+      local t = fd.tmpfile(); t:write(fds.stdin); t:seek'set'
+      fd.stdin = t
+    else inps = fds.stdin; fds.stdin = nil end
   end
   local sh, out = M.Sh(cmd, fds):start(), nil
   local fns = {
-    function() if inps then sh:write(inps) end; sh.inp:close() end,
-    function() out = sh:read(); sh.out:close() end,
+    function() if inps then sh:write(inps) end; sh.stdin:close() end,
+    function() out = sh:read(); sh.stdout:close() end,
   }
   if LAP_ASYNC then lap.all(fns) else M.Lap():run(fns) end
   return sh:wait(), out
@@ -302,7 +302,7 @@ end
 
 
 -- Pipe multiple shells together.
--- Piper{inpFile|cmd, ... cmds, outFile?, err=io.stderr}
+-- Piper{inpFile|cmd, ... cmds, outFile?, stderr=io.stderr}
 --
 -- These are equivalent:
 --   bash:  cat inp.txt |   grep foo.bar >> out.txt
@@ -315,9 +315,9 @@ end
 -- The first and last items can be files, in which case they are the inp/out.
 -- else, piper can act as a file (with :read()/:write() methods)
 M.Piper = mty'Piper' {
-  'inp [file]: owned input',
-  'out [file]: owned output',
-  'err [file]: common stderr',
+  'stdin [file]: owned input',
+  'stdout [file]: owned output',
+  'stderr [file]: common stderr',
   -- ... args is the shells to kick off
 }
 
