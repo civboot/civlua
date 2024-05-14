@@ -159,7 +159,7 @@ M.Empty = ds.sentinel('Empty', {parse = function() return M.EMPTY end})
 -- Denotes the end of the file
 M.EOF = ds.sentinel('EOF', {kind='EOF', __len=zero})
 M.Eof = ds.sentinel('Eof', {
-  __tostring=function() return 'EOF' end,
+  __tostring=function() return 'Eof' end,
   parse=function(self, p)
     p:skipEmpty(); if p:isEof() then return M.EOF end
   end
@@ -366,7 +366,7 @@ M.assertParse=function(t) -- {dat, spec, expect, dbg=false, root=RootSpec{}}
   local node, parser = M.parse(t.dat, t.spec, root)
   local result = parser:toStrTokens(node)
   if not t.expect and t.parseOnly then return end
-  if t.expect ~= result then
+  if not mty.eq(t.expect, result) then
     local eStr = table.concat(root.newFmt()(t.expect))
     local rStr = table.concat(root.newFmt()(result))
     if eStr ~= rStr then
@@ -375,8 +375,12 @@ M.assertParse=function(t) -- {dat, spec, expect, dbg=false, root=RootSpec{}}
       print()
       local b = {}; civtest.diffFmt(b, eStr, rStr)
       print(table.concat(b))
-      assert(false, 'failed parse test')
+    else
+      print('\n#### FORMATTED:'); print(eStr)
+      print('!! Note: They format the same but they differ')
+      civtest.assertEq(t.expect, result)
     end
+    assert(false, 'failed parse test')
   end
   return result, node, parser
 end
@@ -531,12 +535,13 @@ M.common = {num=num, n10=n10, n16=n16}
 
 -- Debugging keywords(KW), names(N) and numbers(NUM/HEX)
 M.testing = {}
+local KW = function(kw)    return {kw, kind=kw} end -- keyword
+local neg, dot = KW'-', KW'.'
 local function NumT(kind, t)
   if type(t) == 'string' then t = {t} end; assert(#t <= 3)
-  return ds.extend({kind=kind, (t.neg and '-') or M.EMPTY, t[1]},
-    t[2] and {'.', t[2]} or {M.EMPTY})
+  return ds.extend({kind=kind, (t.neg and neg) or M.EMPTY, tostring(t[1])},
+    t[2] and {dot, tostring(t[2])} or {M.EMPTY})
 end
-local KW = function(kw)    return {kw, kind=kw} end -- keyword
 M.testing.N = function(name) return {name, kind='name'} end -- name
 M.testing.NUM = function(t)  return NumT('n10', t) end
 M.testing.HEX = function(t)  return NumT('n16', t) end

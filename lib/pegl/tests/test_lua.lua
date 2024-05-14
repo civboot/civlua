@@ -250,10 +250,14 @@ T.test('fnChain', function()
     }
   }
 
-  -- assertParse{dat="x\n\"a ['string'] \"", spec=src, root=root,
-  --   expect= SRC{ kind="stmtexp", N"x", },
-  -- }
-
+  local DAT=[[x "a ['string'] "]]
+  assertParse{dat=DAT, spec=src, root=root,
+    expect = SRC { kind="stmtexp",
+        N"x", { kind="callStr",
+        { "\"a ['string'] \"", kind="doubleStr" },
+      },
+    }
+  }
 end)
 
 T.test('src1', function()
