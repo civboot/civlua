@@ -42,7 +42,6 @@ Short:
 ]]
 
 METATY_DOC = true
-local pkg = require'pkglib'
 local shim = require'shim'
 local mty = require'metaty'
 local ds = require'ds'

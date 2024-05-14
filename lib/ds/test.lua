@@ -312,6 +312,11 @@ test('path', function()
   assertEq({'', 'b'},      {pl'b'})
   assertEq({'', '/b/'},    {pl'/b/'})
   assertEq({'', '/'},      {pl'/'})
+
+  local pe = M.path.ext
+  assertEq('foo', pe'coo.foo')
+  assertEq('foo', pe'a/b/c.foo')
+  assertEq('bar', pe'a/b.c/d.foo.bar')
 end)
 
 local heap = require'ds.heap'

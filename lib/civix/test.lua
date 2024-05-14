@@ -2,7 +2,7 @@ METATY_CHECK = true
 
 local mty = require'metaty'
 local ds = require'ds'
-local test, assertEq; ds.auto'civtest'
+local test, assertEq, assertErrorPat; ds.auto'civtest'
 local fd = require'fd'
 
 local M  = require'civix'
@@ -11,24 +11,18 @@ local D = 'lib/civix/'
 local push = table.insert
 
 test('sh', function()
-  local sh = M.sh
-  local rc, o = sh'false'; assertEq(1, rc)
-    assertEq('', o)
+  local sh, o = M.sh
 
-  rc, o = sh'true'; assertEq(0, rc)
-    assertEq('', o)
+  assertEq('',           sh'true')
+  assertEq('hi there\n', sh{'echo', 'hi there'})
+  assertEq('from stdin', sh{stdin='from stdin', 'cat'})
+  assertEq('foo --abc=ya --aa=bar --bb=42\n',
+    sh{'echo', 'foo', '--abc=ya', aa='bar', bb=42})
 
-  rc, o = sh{'echo', 'hi there'}; assertEq(0, rc)
-    assertEq('hi there\n', o)
-
-  rc, o = sh{stdin='from stdin', 'cat'}; assertEq(0, rc)
-    assertEq('from stdin', o);
-
-  rc, o = sh{'commandDoesNotExist', 'blah', 'blah'};
-    assert(rc ~= 0);
-
-  rc, o = sh{'echo', 'foo', '--abc=ya', aa='bar', bb=42}; assertEq(0, rc)
-    assertEq('foo --abc=ya --aa=bar --bb=42\n', o)
+  assertErrorPat('Command failed with rc=1', function() sh'false' end)
+  assertErrorPat('Command failed with rc=', function()
+    sh{'commandNotExist', 'blah'}
+  end)
   collectgarbage()
 end)
 

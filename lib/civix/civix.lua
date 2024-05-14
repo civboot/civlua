@@ -261,43 +261,70 @@ M.Sh.wait = function(sh)
   return sh._sh:rc()
 end
 
+M.ShFin = mty'ShFin'{
+  'stdin [file]', 'stdout [file]',
+  'input [string]: write to stdin',
+}
+
+-- finish files (in sh or other) by writing other.input to stdin and reading stdout.
+-- All processes are done asynchronously. The files are closed when the
+-- operation is done.
+M.Sh.finish = function(sh, other)
+  other = M.ShFin(other or {})
+  local inpf = other.stdin  or sh.stdin
+  local outf = other.stdout or sh.stdout
+  if other.input then assert(inpf, 'provided input without stdin') end
+  if not (inpf or outf) then return end
+  local fns, out = {}
+  if inpf then push(fns, function()
+    if other.input then inpf:write(other.input) end
+    inpf:close()
+  end) end
+  if outf then push(fns, function() out = outf:read() end) end
+  if LAP_ASYNC then lap.all(fns) else M.Lap():run(fns) end
+  return out
+end
+
 M.Sh.write = function(sh, ...) return sh.stdin:write(...) end
 M.Sh.read  = function(sh, ...) return sh.stdout:read(...) end
 
--- sh(cmd) -> rc, out
--- Execute the command in another process via execvp (system shell).
+-- sh(cmd) -> out
+-- Execute the command in another process via execvp (system shell). Throws an
+-- error if the command fails.
 --
--- if cmd is a table, the following are treated as special. If you need any
--- of these then you must use M.Sh directly (recommendation: use Piper)
+-- if cmd is a table, the following keys are treated as special. If you need any
+-- of these then you must use M.Sh directly (recommendation: use Plumb)
 --
 --   stdin[string|file]: the process's stdin. If string it will be sent to stdin.
 --   stdout[file]: the process's stdout. out will be nil if this is set
 --   stderr[file]: the process's stderr (default=io.stderr)
 --
--- Note: use Piper{...}:run() if you want to pipe multiple shells together.
+-- Note: use Plumb{...}:run() if you want to pipe multiple shells together.
 --
 -- COMMAND                               BASH
 -- sh'ls foo/bar'                     -- ls foo/bar
 -- sh{'ls', 'foo/bar', 'dir w spc/'}  -- ls foo/bar "dir w spc/"
 -- sh{stdin='sent to stdin', 'cat'}     -- echo "sent to stdin" | cat
 M.sh = function(cmd)
-  local fds, inps
-  if type(cmd) == 'table' then local pk = ds.popk
-    fds = { stdin = pk(cmd,'stdin'), stdout=pk(cmd,'stdout'), stderr=pk(cmd,'stderr') }
-  else fds = {} end
+  local pk, fds, other = ds.popk, {}, {}
+  if type(cmd) == 'table' then
+    fds.stdin  = pk(cmd, 'stdin')
+    fds.stdout = pk(cmd, 'stdout')
+    fds.stderr = pk(cmd, 'stderr')
+  end
   if type(fds.stdin) == 'string' then
     if #fds.stdin > fd.PIPE_BUF then -- may block, use tmpfile
       local t = fd.tmpfile(); t:write(fds.stdin); t:seek'set'
-      fd.stdin = t
-    else inps = fds.stdin; fds.stdin = nil end
+      fds.stdin = t
+    else other.input = pk(fds, 'stdin') end
   end
-  local sh, out = M.Sh(cmd, fds):start(), nil
-  local fns = {
-    function() if inps then sh:write(inps) end; sh.stdin:close() end,
-    function() out = sh:read(); sh.stdout:close() end,
-  }
-  if LAP_ASYNC then lap.all(fns) else M.Lap():run(fns) end
-  return sh:wait(), out
+  local sh = M.Sh(cmd, fds):start()
+  local out = sh:finish(other)
+  local rc = sh:wait(); if rc ~= 0 then
+    mty.errorf('Command failed with rc=%s: %q%s', rc, cmd,
+      (out and (#out > 0) and ('\nSTDOUT:\n'..out) or ''))
+  end
+  return out
 end
 
 

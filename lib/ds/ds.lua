@@ -214,6 +214,7 @@ M.path.hasBacktrack = function(path)
       or path:match'/%.%./' or path:match'/%.%.$'
 end
 M.path.splitList = function(path) return M.splitList(path, '/+') end
+M.path.ext = function(path) return path:match'.*%.([^/]+)$' end
 
 ---------------------
 -- Table Functions
