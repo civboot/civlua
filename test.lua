@@ -21,7 +21,7 @@ end)
 
 T.test('[[libs]]', function()
   dofile(dir..'lib/pegl/tests/test_pegl.lua')
-  -- dofile(dir..'lib/pegl/tests/test_lua.lua')
+  dofile(dir..'lib/pegl/tests/test_lua.lua')
   dofile(dir..'lib/tso/test.lua')
   -- dofile(dir..'lib/luck/test.lua')
   -- dofile(dir..'cmd/cxt/tests/test_cxt.lua')

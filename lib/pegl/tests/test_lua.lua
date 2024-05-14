@@ -159,10 +159,10 @@ T.test('comment', function()
   assertParse{dat='x = --line\n  {}', spec=src,
     expect=expect, root=root,
   }
-  assertParse{dat='x = -- block{}', spec=src,
+  assertParse{dat='x = -- block{}\n{}', spec=src,
     expect = expect, root=root,
   }
-  assertParse{dat='x\n=\n-- \nblock\n\n{}--hi\n--EOF', spec=src,
+  assertParse{dat='x\n=\n-- \n--block\n\n{}--hi\n--EOF', spec=src,
     expect = expect, root=root,
   }
 end)
@@ -189,11 +189,13 @@ T.test('fncall', function()
   local expect = [[{
   {
     N"foo", {
-      KW"(", NUM{4}, KW")", kind="call"
-    }, kind="stmtexp"
+      KW"(", NUM{4}, KW")", 
+      kind="call"
+    }, 
+    kind="stmtexp"
   }, EMPTY, EMPTY, EOF
 }]]
-  T.assertEq(expect, p:fmtParsedStrs(r))
+  T.assertEq(expect, table.concat(root.newFmt()(r)))
 
   assertParse{dat='foo({__tostring=4})', spec=src, root=root,
     expect = SRC({ kind="stmtexp",
@@ -318,13 +320,10 @@ T.test('src2', function()
   })
 end)
 
-local ERR_EXPECT ='stack: src -> block -> stmt -> fnlocal '
-..'-> fnbody -> block -> stmt -> varset -> exp -> '
-..'op2exp -> exp -> exp1 -> table\n'
-..[[
-parser expected: "}"
-Got: 3} -- '2 3' is invalid]]
-
+local ERR_EXPECT =
+"stack: src %-> block %-> stmt %-> fnlocal %-> fnbody %-> block %-> stmt %-> varset %-> exp %-> op2exp %-> exp %-> exp1 %-> table\
+parser expected: \"}\"\
+Got: 3} %-%- '2 3' is invalid"
 
 T.test('error', function()
   T.assertErrorPat(
@@ -335,7 +334,8 @@ T.test('error', function()
           x = 1 + {2 3} -- '2 3' is invalid
         end
       ]], src, RootSpec{dbg=false})
-    end, -- plain true)
+    end -- plain true)
+  )
 end)
 
 local function testLuaPath(path)

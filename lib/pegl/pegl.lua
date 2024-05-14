@@ -144,7 +144,7 @@ M.Many = mty'Many' {
 }
 M.Seq = M.specTy'Seq'
 M.Not = M.specTy'Not'
-M.Not.parse = function(self, p) return not parseSeq(p, self) end
+M.Not.parse = function(self, p) return not M.parseSeq(p, self) end
 
 -- Used in Seq to "pin" or "unpin" the parser, affecting when errors
 -- are thrown.
@@ -274,7 +274,7 @@ local function _seqAdd(p, out, spec, t)
   else add(out, t) end
 end
 
-local function parseSeq(p, seq)
+M.parseSeq = function(p, seq)
   p:skipEmpty()
   local out, pin = {}, nil
   p:dbgEnter(seq)
@@ -297,7 +297,7 @@ local function parseSeq(p, seq)
   return out
 end
 
-M.Seq.parse = function(seq, p) return parseSeq(p, seq) end
+M.Seq.parse = function(seq, p) return M.parseSeq(p, seq) end
 
 -------------------
 -- Or
@@ -324,7 +324,7 @@ M.Many.parse = function(many, p)
   local out = {}
   p:dbgEnter(many)
   while true do
-    local t = parseSeq(p, many)
+    local t = M.parseSeq(p, many)
     if not t then break end
     if ty(t) ~= M.Token and #t == 1 then add(out, t[1])
     else _seqAdd(p, out, many, t) end
@@ -349,7 +349,7 @@ local SPEC_TY = {
       return M.Token:encode(p, p.l, c, p.l, p.c - 1, kw)
     end
   end,
-  table=function(p, tbl) return parseSeq(p, tbl) end,
+  table=function(p, tbl) return M.parseSeq(p, tbl) end,
 }
 
 -- parse('hi + there', {Pat{'\w+'}, '+', Pat{'\w+'}})
