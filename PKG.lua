@@ -1,4 +1,3 @@
-
 name    = 'civ'
 version = '0.1-0'
 url     = 'git+http://github.com/civboot/civlua'
@@ -19,7 +18,7 @@ pkgs = {
   'lib/patience',
   'lib/rebuf',
 
-  -- 'cmd/cxt',
+  'cmd/cxt',
   'cmd/ele',
   'cmd/ff',
   'cmd/pkgrock',

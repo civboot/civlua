@@ -1,6 +1,6 @@
 -- TODO:
---   ["quote block]
 --   [1Header block]
+local M = mod and mod'cxt' or {}
 
 local pkg = require'pkglib'
 local mty = require'metaty'
@@ -14,7 +14,6 @@ local Token, Empty, Eof, PIN, UNPIN
 local EMPTY, common
 local pegl = ds.auto'pegl'
 
-local M = {}
 local RAW = '#'
 
 ------------------------
@@ -324,13 +323,13 @@ local function resolveFetches(p, node, named)
   end
   -- replace all @attr values
   for k, v in pairs(node) do
-    mty.pnt('?? replace attr', k, v)
+    mty.print('?? replace attr', k, v)
     if type(k) ~= 'number' and type(v) == 'string' and v:sub(1,1) == '@' then
       local n = getNamed(node, named, v:sub(2))
       local attr = n.value or (n.href and 'href') or 'text'
       if attr == 'text' then v = nodeText(p, n, v)
       else                   v = n[attr] end
-      mty.pnt('?? replacing attr='..attr, k, v, n)
+      mty.print('?? replacing attr='..attr, k, v, n)
       node[k] = v
     end
   end
@@ -373,13 +372,12 @@ end
 M.fmtAttr = fmtAttr
 M.htmlFmt  = ds.Set{'b', 'i', 'u'}
 
-M.Writer = mty.doc[[
-A Writer for cxt serializers (terminal, http, etc) to use.
-
-The writer contains:
-* The src lines and token decoder for getting pegl.Token values.
-* The destination lines and current indent level.
-]](mty'cxt.Writer') {
+-- A Writer for cxt serializers (terminal, http, etc) to use.
+-- 
+-- The writer contains:
+-- * The src lines and token decoder for getting pegl.Token values.
+-- * The destination lines and current indent level.
+M.Writer = mty'Writer' {
   'src', 'to',
   'indent[int]',
 }

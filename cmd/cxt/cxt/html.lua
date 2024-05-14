@@ -1,4 +1,6 @@
-local DOC = "Serialize cxt nodes as html"
+-- Serialize cxt nodes as html
+local M = mod and mod'cxt.html' or {}
+
 local pkg = require'pkglib'
 local mty  = require'metaty'
 local pegl = require'pegl'
@@ -8,8 +10,6 @@ local civtest = require'civtest'
 local add, sfmt = table.insert, string.format
 local ds = require'ds'; local lines = ds.lines
 local df = require'ds.file'
-
-local M = mty.docTy({}, DOC)
 
 local NAME_SYM = '☍'
 
@@ -192,8 +192,8 @@ M.assertHtml = function(cxtDat, expectedHtml, dbg)
   civtest.assertEq(expectedHtml, w.to)
 end
 
-M.Args = mty.doc[[Convert cxt doc to html]]
-(mty'Html') {
+-- Convert cxt doc to html
+M.Args = mty'Html' {
   'cxt[string]: path to cxt file',
   'out[string]: path to html file output',
 }
