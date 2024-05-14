@@ -44,8 +44,6 @@ M.callable = function(obj) --> bool: return if obj is callable
   local m = getmetatable(obj); return m and rawget(m, '__call')
 end
 M.metaget = function(t, k)   return rawget(getmetatable(t), k) end
-M.errorf  = function(...)    error(string.format(...), 2)      end
-M.assertf = function(a, ...) return a or error(sfmt(...), 2)   end
 
 -- keywords https://www.lua.org/manual/5.4/manual.html
 M.KEYWORD = {}; for kw in string.gmatch([[
@@ -138,14 +136,17 @@ M.eq = function(a, b) return NATIVE_TY_EQ[type(a)](a, b) end
 
 -----------------------
 -- record2
+M.indexError = function(R, k, lvl) -- note: can use directly as mt.__index
+  error(R.__name..' does not have field '..k, lvl or 2)
+end
 M.index = function(R, k) -- Note: R is record's metatable
   if type(k) == 'string' and not rawget(R, '__fields')[k] then
-    error(R.__name..' does not have field '..k, 2)
+    M.indexError(R, k, 3)
   end
 end
 M.newindex = function(r, k, v)
   if type(k) == 'string' and not M.metaget(r, '__fields')[k] then
-    error(r.__name..' does not have field '..k)
+    M.indexError(getmetatable(r), k, 3)
   end
   rawset(r, k, v)
 end
@@ -237,6 +238,9 @@ M.Fmt = M.record2'Fmt' {
   "_depth    [int]",     _depth = 0,
  [[_nl [string] (default='\n') newline, indent is added/removed]],
    _nl = '\n',
+
+  -- overrideable methods
+  'table [function]',
 }
 
 M.Fmt.pretty = function(F, t)
@@ -303,30 +307,30 @@ M.Fmt.table = function(f, t)
     local n = rawget(mt, '__name'); if n  then add(f, n)       end
     keys = rawget(mt, '__fields')
   end
-  local len = #t; keys = keys or M.sortKeys(t, len)
+  local len = #t; keys = keys or M.sortKeys(t, len); local klen = #keys
+  local multi = len + klen > 1 -- use multiple lines
   f:incIndent()
-  if #keys + len > 1 then add(f, f.tableStart) else add(f, '{') end
+  if multi then add(f, f.tableStart) else add(f, '{') end
   for i=1,len do
     f(t[i])
     if (i < len) or next(keys) then add(f, f.indexEnd) end
   end
-  if (len > 0) and (#keys + len > 1) then add(f, f.listEnd) end
+  if multi and (len > 0) and (klen > 0) then add(f, f.listEnd) end
   for i, k in ipairs(keys) do
     f:tableKey(k); add(f, '=');
     local v = t[k]
     if rawequal(t, v) then add(f, 'self')
     else                   f(v) end
-    if i < #keys then add(f, f.keyEnd) end
+    if i < klen then add(f, f.keyEnd) end
   end
   f:decIndent()
-  if #keys + len > 1 then add(f, f.tableEnd) else add(f, '}') end
+  if multi then add(f, f.tableEnd) else add(f, '}') end
 end
-M.Fmt.__call = function(f, v) return f[type(v)](f, v) end
+M.Fmt.__call = function(f, v) f[type(v)](f, v); return f end
 
 M.tostring = function(v, fmt)
   fmt = fmt or M.Fmt{}; assert(#fmt == 0, 'non-empty Fmt')
-  fmt(v)
-  return table.concat(fmt)
+  return table.concat(fmt(v))
 end
 
 M.format = function(s, ...)
@@ -334,8 +338,7 @@ M.format = function(s, ...)
   return s:gsub('%%.', function(m)
     if m == '%%' then return '%' end
     i = i + 1; if m ~= '%q' then return sfmt(m, args[i]) end
-    local f = M.Fmt{}; f(args[i])
-    return table.concat(f)
+    return table.concat(M.Fmt{}(args[i]))
   end)
 end
 
@@ -351,5 +354,7 @@ M.print  = function(...) return M.fprint(M.Fmt{to=io.stdout}, ...) end
 -- pretty print(...) with Fmt:pretty
 M.pprint = function(...) return M.fprint(M.Fmt:pretty{to=io.stdout}, ...) end
 
+M.errorf  = function(...)    error(M.format(...), 2)             end
+M.assertf = function(a, ...) return a or error(M.format(...), 2) end
 
 return M

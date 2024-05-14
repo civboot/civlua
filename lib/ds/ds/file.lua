@@ -28,7 +28,7 @@ end
 -- LinesFile
 
 -- Read and append to a file as if it were a lines table.
--- 
+--
 -- Dynamic creation:
 --   LinesFile(io.open'myfile.txt')
 --   LinesFile{io.open'myfile.txt', cache=10}

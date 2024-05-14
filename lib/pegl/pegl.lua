@@ -7,6 +7,7 @@ local extend, lines = ds.extend, ds.lines
 local add, sfmt = table.insert, string.format
 
 local M = {}
+local function zero() return 0 end
 
 -- Tokens use a packed span to preserve space.
 -- Maximums: line start|len = 2^24|2^16. cols=255
@@ -19,7 +20,7 @@ M.decodeSpan = function(s)
   return l, c, l + l2, c2
 end
 
-M.Token = mty.record'Token':fieldMaybe'kind'
+M.Token = mty'Token'{'kind [string]: optional, used for debugging'}
 M.Token.span = function(t, dec) return M.decodeSpan(t[1]) end
 M.Token.encode=function(ty_, p, l, c, l2, c2, kind)
   return M.Token{M.encodeSpan(l, c, l2, c2), kind=kind}
@@ -42,73 +43,67 @@ M.trimTokenLast = function(p, t)
   return M.Token:encode(p, l1, c1, l2, c2)
 end
 
-M.RootSpec = mty.record'RootSpec'
-  :field('skipEmpty', 'function'):fdoc'fn(p) default=skip whitespace'
-  :fieldMaybe('skipComment', 'function'):fdoc'fn(p) -> Token for found comment'
-  :field('tokenizer', 'function')
-  :field('dbg', 'boolean', false)
-  :field('fmtKind', 'table') -- default set at bottom
+M.RootSpec = mty'RootSpec' {
+  'skipEmpty [function]:   fn(p) default=skip whitespace',
+  'skipComment [function]: fn(p) -> Token for found comment',
+  'tokenizer [function]',
+  'dbg [boolean]',
+}
 
-M.Parser = mty.record'Parser'
-  :field'dat'
-  :field'l' :field'c' :fieldMaybe'line' :field'lines'
-  :field('root', M.RootSpec)
-  :field('stack', 'table')
-  :fieldMaybe'stackLast'
-  :field('commentLC', 'table')
-  :field('dbgLevel', 'number', 0)
-  :fieldMaybe('fmtSet', mty.FmtSet)
+M.Parser = mty'Parser'{
+  'dat',
+  'l', 'c',
+  'line', 'lines',
+  'root [RootSpec]',
+  'stack [table]',
+  'stackLast',
+  'commentLC [table]',
+  'dbgLevel [number]', dbgLevel = 0,
+}
 
 M.fmtSpec = function(s, f)
+  print'!! fmtSpec'
   if type(s) == 'string' then
     return add(f, string.format("%q", s))
   end
   if type(s) == 'function' then
-    return add(f, mty.fmt(s))
+    return add(f, mty.tostring(s))
   end
   if s.name or s.kind then
     add(f, '<'); add(f, s.name or s.kind); add(f, '>')
     return
   end
   if mty.ty(s) ~= 'table' then add(f, mty.tyName(mty.ty(s))) end
-  f:levelEnter('{')
+
+  f:incIndent(); add(f, f.tableStart)
   for i, sub in ipairs(s) do
-    M.fmtSpec(sub, f);
+    f(sub)
     if i < #s then f:sep(' ') end
   end
-  f:levelLeave('}')
+  f:decIndent(); add(f, f.tableEnd)
 end
-M.specToStr = function(s, set)
-  local set = set or mty.FmtSpec{}
-  if set.pretty == nil then set.pretty = true end
-  local f = mty.Fmt{set=set}; M.fmtSpec(s, f)
-  return table.concat(f)
-end
-
-local function newSpec(name, fields)
-  local r = mty.record(name)
-  r.__index = mty.indexUnchecked
-  r.__fmt = M.fmtSpec
-  for _, args in ipairs(fields or {}) do
-    local n, t = table.unpack(args)
-    r:fieldMaybe(n, t)
-  end
-  return r
+M.specToStr = function(s, fmt)
+  local fmt = fmt or mty.Fmt:pretty()
+  M.fmtSpec(s, fmt)
+  return table.concat(fmt)
 end
 
 local FIELDS = {
   {'kind', 'string'},
   {'name', 'string'}, -- for fmt only
 }
+
+M.specTy = function(name)
+  return mty(name){'kind [string]', 'name [string]', __fmt=M.fmtSpec}
+end
+
 -- Pat'pat%wern' or Pat{'pat', kind='foo'}
-M.Pat =
-(ds.imm(newSpec('Pat'))
-  :fieldMaybe'kind' :fieldMaybe'name')
-M.Pat:new(function(ty_, t)
+M.Pat = M.specTy'Pat'
+getmetatable(M.Pat).__call = function(T, t)
   if type(t) == 'string' then t = {t} end
   assert(#t > 0, 'must specify a pattern')
-  return ds.newImm(ty_, t)
-end)
+  return mty.construct(T, t)
+end
 
 local KEY_FORM =
   "construct Keys like Keys{{'kw1', 'kw2', kw3=true, kw4={sub-keys}, kind=...}"
@@ -124,41 +119,51 @@ local function constructKeys(keys)
       type(k) == 'string', 'number key after list items: %s', k)
     end
     if mty.ty(v) == 'table' then keys[k] = constructKeys(v)
-    else mty.assertf(v == true, '%s: %s', KEY_FORM, mty.fmt(v)) end
+    elseif v ~= true then mty.errorf('%s: %q', KEY_FORM, v) end
   end
   return keys
 end
 
-M.Key = newSpec'Key' -- Key{{'myKeword', ['+']={'+'=true}}, kind='kw'}
-  :field'keys' :fieldMaybe'name' :fieldMaybe'kind'
-M.Key:new(function(ty_, k)
-  local keys = assert(table.remove(k, 1), 'must provide keys at index 1')
-  k['keys'] = constructKeys(keys)
-  return mty.newUnchecked(ty_, k)
-end)
+-- Key{{'myKeword', ['+']={'+'=true}}, kind='kw'}
+M.Key = mty'Key' {
+  'keys [table]', 'name [string]', 'kind [string]',
+  __fmt = M.fmtSpec,
+}
+getmetatable(M.Key).__call = function(T, t)
+  local keys = assert(table.remove(t, 1), 'must provide keys at index 1')
+  t['keys'] = constructKeys(keys)
+  return mty.construct(T, t)
+end
 
-M.Or = newSpec('Or', FIELDS)
+M.Or = M.specTy'Or'
 M.Maybe = function(spec) return M.Or{spec, M.Empty} end
-M.Many = newSpec'Many'
-  :fieldMaybe('kind', 'string')
-  :field('min', 'number', 0)
-  :fieldMaybe('name', 'string')
-M.Seq = newSpec('Seq', FIELDS)
-M.Not = newSpec('Not', FIELDS)
+M.Many = mty'Many' {
+  'min [int]', min = 0,
+  'kind [string]', 'name [string]',
+  __fmt = M.fmtSpec,
+}
+M.Seq = M.specTy'Seq'
+M.Not = M.specTy'Not'
+M.Not.parse = function(self, p) return not parseSeq(p, self) end
 
 -- Used in Seq to "pin" or "unpin" the parser, affecting when errors
 -- are thrown.
-M.PIN   = ds.newSentinel('PIN',   {name='PIN'})
-M.UNPIN = ds.newSentinel('UNPIN', {name='UNPIN'})
+M.PIN   = ds.sentinel('PIN',   {name='PIN',   kind=false})
+M.UNPIN = ds.sentinel('UNPIN', {name='UNPIN', kind=false})
 
 -- Denotes a missing node. When used in a spec simply returns Empty.
 -- Example: Or{Integer, String, Empty}
-M.Empty = mty.record'Empty'
-M.EMPTY = ds.Imm{kind='EMPTY'}
+M.EMPTY = ds.sentinel('EMPTY', {kind='EMPTY', __len=zero})
+M.Empty = ds.sentinel('Empty', {parse = function() return M.EMPTY end})
 
 -- Denotes the end of the file
-M.Eof = mty.record('Eof', {__tostring=function() return 'EOF' end})
-M.EOF = ds.Imm{kind='EOF'}
+M.EOF = ds.sentinel('EOF', {kind='EOF', __len=zero})
+M.Eof = ds.sentinel('Eof', {
+  __tostring=function() return 'EOF' end,
+  parse=function(self, p)
+    p:skipEmpty(); if p:isEof() then return M.EOF end
+  end
+})
 
 -------------------
 -- Root and Utilities
@@ -334,12 +339,6 @@ end
 
 -------------------
 -- Misc
-M.Not.parse = function(self, p) return not parseSeq(p, self) end
-M.Eof.parse = function(self, p)
-  p:skipEmpty(); if p:isEof() then return M.EOF end
-end
-M.Empty.parse = function() return M.EMPTY end
-
 local SPEC_TY = {
   ['function']=function(p, fn) p:skipEmpty() return fn(p) end,
   string=function(p, kw)
@@ -368,8 +367,8 @@ M.assertParse=function(t) -- {dat, spec, expect, dbg=false, root=RootSpec{}}
   local result = parser:toStrTokens(node)
   if not t.expect and t.parseOnly then return end
   if t.expect ~= result then
-    local eStr = parser:fmtParsedStrs(t.expect)
-    local rStr = parser:fmtParsedStrs(result)
+    local eStr = table.concat(root.newFmt()(t.expect))
+    local rStr = table.concat(root.newFmt()(result))
     if eStr ~= rStr then
       print('\n#### EXPECT:'); print(eStr)
       print('\n#### RESULT:'); print(rStr)
@@ -390,9 +389,9 @@ M.assertParseError=function(t)
 end
 
 M.Parser.__tostring=function() return 'Parser()' end
-M.Parser.new = function(ty_, dat, root)
+M.Parser.new = function(T, dat, root)
   dat = (type(dat)=='string') and ds.lines(dat) or dat
-  return mty.new(ty_, {
+  return mty.construct(T, {
     dat=dat, l=1, c=1, line=dat[1], lines=#dat,
     root=root or M.RootSpec{},
     stack={},
@@ -400,8 +399,8 @@ M.Parser.new = function(ty_, dat, root)
   })
 end
 M.Parser.parse = function(p, spec)
-  local ty_ = mty.ty(spec)
-  local specFn = SPEC_TY[ty_]
+  local T = mty.ty(spec)
+  local specFn = SPEC_TY[T]
   if specFn then return specFn(p, spec)
   else           return spec:parse(p)
   end
@@ -447,107 +446,70 @@ end
 M.Parser.tokenStr = function(p, t)
   return t:decode(p.dat)
 end
-M.Parser.fmtSetDefault = function(p) return mty.FmtSet{
-  data=p, pretty=true, listSep=', ', tblSep=', ',
-}end
-M.Parser.fmtParsedStrs=function(p, nodeStrs)
-  p.fmtSet = p.fmtSet or p:fmtSetDefault()
-  p.fmtSet.tblFmt = M.tblFmtParsedStrs
-  return mty.fmt(nodeStrs, p.fmtSet)
-end
-M.Parser.fmtParsedTokens=function(p, nodeTokens)
-  p.fmtSet = p.fmtSet or p:fmtSetDefault()
-  p.fmtSet.tblFmt = M.tblFmtParsedTokens
-  return mty.fmt(nodeTokens, p.fmtSet)
-end
 
 local function fmtStack(p)
   local stk = p.stack
   local b = {}; for _, v in ipairs(stk) do
     if v == true then -- skip
     elseif type(v) == 'string' then add(b, v)
-    else add(b, mty.fmt(v)) end
+    else add(b, mty.tostring(v)) end
   end
   add(b, sfmt('%s', p.stackLast))
   return table.concat(b, ' -> ')
 end
 M.Parser.checkPin=function(p, pin, expect)
   if not pin then return end
-  if p.line then p:error(sfmt(
-    "parser expected: %s\nGot: %s",
-    mty.fmt(expect), p.line:sub(p.c))
-  )else p:error(sfmt(
-    "parser reached EOF but expected: %s", ty.fmt(expect)
-  ))end
+  if p.line then p:error(mty.format(
+    "parser expected: %q\nGot: %s",
+    expect, p.line:sub(p.c))
+  )else p:error(
+    "parser reached EOF but expected: "..mty.tostring(expect)
+  )end
 end
 M.Parser.error=function(p, msg)
   mty.errorf("ERROR %s.%s\nstack: %s\n%s", p.l, p.c, fmtStack(p), msg)
 end
 M.Parser.parseAssert=function(p, spec)
-  local n = p:parse(spec); if not n then p:error(sfmt(
-    "parser expected: %s\nGot: %s",
-    mty.fmt(spec), p.line:sub(p.c))
+  local n = p:parse(spec); if not n then p:error(mty.format(
+    "parser expected: %q\nGot: %s",
+    spec, p.line:sub(p.c))
   )end
   return n
 end
 
 M.Token.__fmt = function(t, f)
   local p = f.set.data
-  if ty(f.set.data) == M.Parser then
-    M.tblFmtParsedTokens(t, f)
-  else
-    add(f, 'Tkn')
-    if t.kind then add(f, sfmt('<%s>', t.kind)) end
-    add(f, sfmt('(%s.%s %s.%s)', t:span()))
-  end
+  add(f, 'Tkn')
+  if t.kind then add(f, sfmt('<%s>', t.kind)) end
+  add(f, sfmt('(%s.%s %s.%s)', t:span()))
 end
 
 M.isKeyword = function(t) return #t == 1 and t.kind == t[1] end
-M.tblFmtParsedStrs = function(t, f)
-  if M.isKeyword(t) then add(f, sfmt('KW%q', t[1])); return end
-  local fmtK = f.set.data and f.set.data.root.fmtKind
-  local fmtK = t.kind and fmtK and fmtK[t.kind]
-  if fmtK then fmtK(t, f)
-  elseif type(t) == 'table' then mty.tblFmt(t, f)
-  else error('not a table: '..mty.fmt(t)) end
-end
-M.tblFmtParsedTokens = function(t, f)
-  local p = f.set.data
-  local fmtK = t.kind and p.root.fmtKind[t.kind]
-  local st = ((ty(t)==M.Token) or fmtK) and p:toStrTokens(t)
-  if st then -- ya this is hacky. Don't execute from multiple threads
-    if type(st) == 'string' then add(f, sfmt('%q', st)); return end
-    f.set.tblFmt = M.tblFmtParsedStrs;
-    f.set.tblFmt(st, f)
-    f.set.tblFmt = M.tblFmtParsedTokens
-  elseif type(t) == 'table' then mty.tblFmt(t, f)
-  else error(mty.fmt(t)) end
-end
 
 M.Parser.dbgEnter=function(p, spec)
   add(p.stack, spec.kind or spec.name or true)
   if not p.root.dbg then return end
-  p:dbg('ENTER: %s', mty.fmt(spec))
+  p:dbg('ENTER: %s', mty.tostring(spec))
   p.dbgLevel = p.dbgLevel + 1
 end
 M.Parser.dbgLeave=function(p, n)
   local sn = table.remove(p.stack); p.stackLast = sn
   if not p.root.dbg then return n end
   p.dbgLevel = p.dbgLevel - 1
-  p:dbg('LEAVE: %s', mty.fmt(n or sn))
+  p:dbg('LEAVE: %s', mty.tostring(n or sn))
   return n
 end
 M.Parser.dbgMatched=function(p, spec)
   if not p.root.dbg then return end
-  p:dbg('MATCH: %s', mty.fmt(spec))
+  p:dbg('MATCH: %s', mty.tostring(spec))
 end
 M.Parser.dbgMissed=function(p, spec, note)
   if not p.root.dbg then return end
-  p:dbg('MISS: %s%s', mty.fmt(spec), (note or ''))
+  p:dbg('MISS: %s%s', mty.tostring(spec), (note or ''))
 end
 M.Parser.dbgUnpack=function(p, spec, t)
   if not p.root.dbg then return end
-  p:dbg('UNPACK: %s :: %s', mty.fmt(spec), mty.fmt(t))
+  p:dbg('UNPACK: %s :: %s', mty.tostring(spec), mty.tostring(t))
 end
 M.Parser.dbg=function(p, fmt, ...)
   if not p.root.dbg then return end
@@ -581,18 +543,32 @@ M.testing.HEX = function(t)  return NumT('n16', t) end
 M.testing.KW = KW
 
 -- formatting parsed so it can be copy/pasted
-local fmtKindNum = function(name, t, f)
+local fmtKindNum = function(name, f, t)
   add(f, name..sfmt('{%s%s%s}',
     mty.eq(t[1],M.EMPTY) and '' or 'neg=1 ', t[2],
     (mty.eq(t[3],M.EMPTY) and '') or (','..t[4])
 ))end
-M.RootSpec.fmtKind = {
-  EOF   = function(t, f) add(f, 'EOF')   end,
-  EMPTY = function(t, f) add(f, 'EMPTY') end,
-  name  = function(t, f) add(f, sfmt('N%q', t[1])) end,
-  n10   = function(t, f) fmtKindNum('NUM', t, f) end,
-  n16   = function(t, f) fmtKindNum('HEX', t, f) end,
+M.fmtKinds = {
+  EOF   = function(f, t) add(f, 'EOF')   end,
+  EMPTY = function(f, t) add(f, 'EMPTY') end,
+  name  = function(f, t) add(f, sfmt('N%q', t[1])) end,
+  n10   = function(...) fmtKindNum('NUM', ...) end,
+  n16   = function(...) fmtKindNum('HEX', ...) end,
 }
+-- Override Fmt.table with an instance of this for copy/paste debugging
+M.FmtPegl = mty'FmtPegl' {
+  'kinds [table]: kind -> fmtFn', kinds=M.fmtKinds,
+}
+M.FmtPegl.__call = function(ft, f, t)
+  if M.isKeyword(t) then add(f, sfmt('KW%q', t[1])); return end
+  local fmtK = t.kind and ft.kinds and ft.kinds[t.kind]
+  if fmtK then fmtK(f, t) else mty.Fmt.table(f, t) end
+end
+M.RootSpec.newFmt = function()
+  local f = mty.Fmt:pretty{}
+  f.table = M.FmtPegl{}
+  return f
+end
 
 M.firstToken = function(t)
   if mty.ty(t) == M.Token then return t end

@@ -529,32 +529,29 @@ M.WeakKV = setmetatable(
 
 ---------------------
 -- Sentinal, none type, bool()
--- immutable table and empty table
 
 local _si=function() error('invalid operation on sentinel', 2) end
--- newSentinel(name, ty_, metatable)
--- Use to create a "sentinel type". Return the metatable used.
--- 
+-- sentinel(name, metatable)
+-- Use to create a "sentinel type". Return the (singular) instance.
+--
 -- Sentinels are "single values" commonly used for things like: none, empty, EOF, etc.
--- They have most metatable methods disallowed and are locked down. Override/add
--- whatever methods you want by passing your own metatable.
-M.newSentinel = function(name, ty_, mt)
+-- They have most metatable methods disallowed and are immutable down. Methods can
+-- only be set by the provided metatable value.
+M.sentinel = function(name, mt)
   mt = M.update({
-    __name=name, __eq=rawequal, __tostring=function() return name end,
-    __index=_si, __newindex=_si, __len=_si, __pairs=_si, __ipairs=_si,
+    __name=name, __tostring=function() return name end,
+    __newindex=_si, __len=_si, __pairs=_si,
   }, mt or {})
-  return setmetatable(ty_, mt)
+  mt.__index = mt
+  setmetatable(mt, {__name='Ty<'..name..'>', __index=mty.indexError})
+  return setmetatable({}, mt)
 end
 
--- TODO: if I remove this space then 'help ds none' is
--- missing a newline (???)
-local noneDoc = [[
-none: "set as none" vs nil aka "unset"
-
-none is a sentinel value. Use it in APIs where there is an
-"unset but none" such as JSON's "null".
-]]
-M.none = M.newSentinel('none', {}, {__metatable='none'})
+-- none: "set as none" vs nil aka "unset"
+--
+-- none is a sentinel value. Use it in APIs where there is an
+-- "unset but none" such as JSON's "null".
+M.none = M.sentinel('none', {__metatable='none'})
 
 -- convert to boolean (none aware)
 M.bool =
@@ -567,22 +564,19 @@ M.empty = setmetatable({}, {
 })
 
 -- Immutable table
-local IMM_DATA = '<!imm data!>'
 M.Imm = mty'Imm' {}
+local IMM_DATA = '<!imm data!>'
+getmetatable(M.Imm).__call = function(T, t)
+  return setmetatable({[IMM_DATA]=(next(t) ~= nil) and t or nil}, T)
+end
 M.Imm.__metatable = 'table'
 M.Imm.__newindex = function() error'cannot modify Imm table' end
 M.Imm.__index    = function(t, k)
   local d = rawget(t, IMM_DATA); return d and d[k]
 end
-M.Imm.__pairs    = function(t)
-  local d = rawget(t, IMM_DATA); if not d then return M.noop end
-  return pairs(d)
-end
+M.Imm.__pairs    = function(t) return next, rawget(t, IMM_DATA) or t end
 M.Imm.__len      = function(t)
   local d = rawget(t, IMM_DATA); return not d and 0 or #d
-end
-getmetatable(M.Imm).__call = function(T, t)
-  return setmetatable({[IMM_DATA]=next(t) and t or nil}, T)
 end
 
 M.empty = M.Imm{}
