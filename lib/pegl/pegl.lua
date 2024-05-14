@@ -77,8 +77,7 @@ M.fmtSpec = function(s, f)
 
   f:incIndent(); add(f, f.tableStart)
   for i, sub in ipairs(s) do
-    f(sub)
-    if i < #s then f:sep(' ') end
+    f(sub); if i < #s then add(f, ' ') end
   end
   f:decIndent(); add(f, f.tableEnd)
 end
@@ -482,7 +481,6 @@ M.Parser.parseAssert=function(p, spec)
 end
 
 M.Token.__fmt = function(t, f)
-  local p = f.set.data
   add(f, 'Tkn')
   if t.kind then add(f, sfmt('<%s>', t.kind)) end
   add(f, sfmt('(%s.%s %s.%s)', t:span()))
@@ -518,7 +516,7 @@ end
 M.Parser.dbg=function(p, fmt, ...)
   if not p.root.dbg then return end
   local msg = sfmt(fmt, ...)
-  mty.pnt(string.format('%%%s%s (%s.%s)',
+  mty.print(string.format('%%%s%s (%s.%s)',
     string.rep('* ', p.dbgLevel), msg, p.l, p.c))
 end
 

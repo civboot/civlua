@@ -15,7 +15,7 @@ pkgs = {
   'lib/fd',
   'lib/civix',
   'lib/pegl',
-  -- 'lib/luck',
+  'lib/luck',
   'lib/patience',
   'lib/rebuf',
 
