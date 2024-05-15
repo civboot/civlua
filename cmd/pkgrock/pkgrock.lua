@@ -90,7 +90,7 @@ M.exe = function(t)
     )end
   end
   if gitops.add then for _, rp in ipairs(rpaths) do
-    print'... adding paths'
+    print('git add:', rp)
     execute([[git add -f %s]], rp)
   end end
   if gitops.commit then
@@ -98,7 +98,7 @@ M.exe = function(t)
     execute([[git commit -am 'pkgrock: %s']], table.concat(tags, ' '))
   end
   if gitops.tag then for _, tag in ipairs(tags) do
-    print'... tagging'
+    print('add tag:', tag)
     execute([[git tag '%s']], tag)
   end end
   if t.gitpush then
@@ -106,7 +106,7 @@ M.exe = function(t)
     execute([[git push %s]], t.gitpush)
   end
   if t.upload then for _, rp in ipairs(rpaths) do
-    print'... uploading'
+    print('uploading', rp)
     execute(UPLOAD, rp, t.upload)
   end end
 end
