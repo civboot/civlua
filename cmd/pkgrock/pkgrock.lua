@@ -25,6 +25,10 @@ M.ARGS = mty'pkgrock' {
   [[upload [string] set to the luarocks api key]],
 }
 
+M.rockpath = function(dir, tag)
+  return ds.path.concat{dir, tag..'.rockspec'}
+end
+
 -- make a rock and return rock, rockpath, PKG
 M.makerock = function(dir)
   local path = dir
@@ -48,7 +52,7 @@ M.makerock = function(dir)
   rock.build = rock.build or {
     type = 'builtin', modules = pkg.modules(p.srcs),
   }
-  local rpath = ds.path.concat{dir, tag..'.rockspec'}
+  local rpath = M.rockpath(dir, tag)
   print('... writing rockspec', rpath)
   local fmt = mty.Fmt:pretty{
     to=io.open(rpath, 'w'),
@@ -63,8 +67,9 @@ M.makerock = function(dir)
 end
 
 M.loadrock = function(dir)
-  local rpath = ds.path.concat{dir, 'PKG.lua'}
-  return rpath, pkg.load(dir, rpath)
+  local p = pkg.load(dir, ds.path.concat{dir, 'PKG.lua'})
+  local rpath = M.rockpath(dir, p.name..'-'..p.version)
+  return rpath, pkg.load(p.name, rpath)
 end
 
 local function execute(...)
@@ -85,6 +90,7 @@ M.exe = function(t)
   end end
   for _, dir in ipairs(t) do
     local rpath, rock = M.loadrock(dir)
+    mty.print('!! loaded rock', rpath, rock)
     push(rpaths, rpath); push(tags, assert(rock.source.tag))
   end
   if gitops.tag then
