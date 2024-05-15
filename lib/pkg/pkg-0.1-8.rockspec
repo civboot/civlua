@@ -1,5 +1,5 @@
 build = {
-  modules={pkglib="pkglib.lua"},
+  modules={pkg="pkglib.lua"},
   type="builtin"
 }
 dependencies = {"lua ~> 5.3"}
@@ -11,7 +11,7 @@ description = {
 package = "pkg"
 rockspec_format = "3.0"
 source = {
-  tag="pkg-0.1-6",
+  tag="pkg-0.1-8",
   url="git+http://github.com/civboot/civlua"
 }
-version = "0.1-7"
+version = "0.1-8"
