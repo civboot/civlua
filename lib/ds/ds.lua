@@ -196,6 +196,7 @@ M.path.concat = function(t)
   end; return root..table.concat(out, '/')..dir
 end
 
+-- first/middle/last -> ("first", "middle/last")
 M.path.first = function(path)
   if path:sub(1,1) == '/' then return '/', path:sub(2) end
   local a, b = path:match('^(.-)/(.*)$')
@@ -203,6 +204,7 @@ M.path.first = function(path)
   return a, b
 end
 
+-- first/middle/last -> ("first/middle", "last")
 M.path.last = function(path)
   local a, b = path:match('^(.*)/(.+)$')
   if not a or a == '' or b == '' then return '', path end

@@ -13,7 +13,7 @@ local shim = require'shim'
 local civix = require'civix'
 local push, sfmt = table.insert, string.format
 
-local UPLOAD = [[luarocks upload %s --api-key=%s]]
+local UPLOAD = [[cd %s && luarocks upload %s --api-key=%s]]
 
 local M = {DOC=DOC}
 
@@ -107,7 +107,8 @@ M.exe = function(t)
   end
   if t.upload then for _, rp in ipairs(rpaths) do
     print('uploading', rp)
-    execute(UPLOAD, rp, t.upload)
+    local dir, rockname = ds.pairs.last(rp)
+    execute(UPLOAD, dir, rockname, t.upload)
   end end
 end
 
