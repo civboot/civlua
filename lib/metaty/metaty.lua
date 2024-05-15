@@ -343,7 +343,7 @@ M.format = function(s, ...)
 end
 
 M.fprint = function(f, ...)
-  local len = select('#', ...)
+  f.to = io.stdout; local len = select('#', ...)
   for i=1,len do
     f(select(i, ...)); if i < len then add(f, '\t') end
   end; add(f, '\n')

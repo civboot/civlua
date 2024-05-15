@@ -28,8 +28,9 @@ M.ARGS = mty'pkgrock' {
 -- make a rock and return rock, rockpath, PKG
 M.makerock = function(dir)
   local path = dir
-  if not dir:find'/PKG.lua$' then path = pkg.path.concat{dir, 'PKG.lua'} end
-  local ok, p = pkg.load(path); assert(ok, p)
+  if not dir:find'/PKG.lua$' then path = ds.path.concat{dir, 'PKG.lua'} end
+  print('... loading pkg', path)
+  local p = pkg.load('noname', path)
   local rock = p.rockspec or {}
   rock.rockspec_format = rock.rockspec_format or "3.0"
   rock.package = rock.package or p.name
@@ -45,18 +46,20 @@ M.makerock = function(dir)
   d.license  = d.license  or p.license
   rock.dependencies = rock.dependencies or p.deps
   rock.build = rock.build or {
-    type = 'builtin',
-    modules = ds.kvtable{pkg.isrcs(p.srcs)},
+    type = 'builtin', modules = pkg.modules(p.srcs),
   }
-  local rpath = pkg.path.concat{dir, tag..'.rockspec'}
-  local f = io.open(rpath, 'w'); for _, key in ipairs(ds.orderedKeys(rock)) do
+  local rpath = ds.path.concat{dir, tag..'.rockspec'}
+  print('... writing rockspec', rpath)
+  local fmt = mty.Fmt:pretty{
+    to=io.open(rpath, 'w'),
+    indexEnd = ',\n', keyEnd=',\n'
+  }
+  for _, key in ipairs(ds.orderedKeys(rock)) do
     local val = rock[key]
-    f:write(key, ' = ')
-    local fset = mty.FmtSet{pretty=true, itemSep = ',\n', listSep=',\n', tblSep=''}
-    mty.fmt(val, fset, f)
-    f:write'\n'
+    fmt:write(key, ' = ')
+    fmt(val); fmt:write'\n'
   end
-  f:close()
+  fmt.to:close()
   return rock, rpath, p
 end
 
@@ -73,11 +76,13 @@ M.exe = function(t)
   local gitops = ds.Set(shim.listSplit(t.gitops))
   local tags, rpaths = {}, {}
   if t.create then for _, dir in ipairs(t) do
+    print('making rock', dir)
     local rock, rpath = M.makerock(dir)
     push(rpaths, rpath); push(tags, assert(rock.source.tag))
   end end
   if gitops.tag then
-    local rc, out, log = civix.sh'git tag'
+    print'... getting tags'
+    local out = civix.sh'git tag'
     local exist = ds.Set(ds.lines(out))
       :union(ds.Set(tags))
     if not ds.isEmpty(exist) then error(
@@ -85,18 +90,23 @@ M.exe = function(t)
     )end
   end
   if gitops.add then for _, rp in ipairs(rpaths) do
+    print'... adding paths'
     execute([[git add -f %s]], rp)
   end end
   if gitops.commit then
+    print'... commiting'
     execute([[git commit -am 'pkgrock: %s']], table.concat(tags, ' '))
   end
   if gitops.tag then for _, tag in ipairs(tags) do
+    print'... tagging'
     execute([[git tag '%s']], tag)
   end end
   if t.gitpush then
+    print'... pushing'
     execute([[git push %s]], t.gitpush)
   end
   if t.upload then for _, rp in ipairs(rpaths) do
+    print'... uploading'
     execute(UPLOAD, rp, t.upload)
   end end
 end

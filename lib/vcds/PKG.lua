@@ -7,7 +7,6 @@ license  = "UNLICENSE"
 srcs = { 'vcds.lua' }
 deps = {
   "lua    ~> 5.3",
-  "pkg    ~> 0.1",
   "metaty ~> 0.1",
   "ds     ~> 0.1",
 }

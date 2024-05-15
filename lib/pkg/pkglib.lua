@@ -29,6 +29,7 @@ local function passert(p)
   if #p == 0           then error('empty path')                          end
   if p:sub(1,1) == '/' then error('root path (/a/b) not permitted: '..p) end
   if p:match('%.%.')   then error('backtrack (/../) not permitted: '..p) end
+  return p
 end
 local function pjoin(a, b) --> a/b
   if b:sub(1,1) then sfmt('root path not permitted: %s', b) end
@@ -67,7 +68,7 @@ local loaderr = function(name, path, err)
 end
 
 -- load(path) -> globals
-M.load = function(name, path)
+M.load = function(name, path); assert(name and path)
   local env = setmetatable({}, M.ENV)
   local pkg, err = loadfile(path, nil, env)
   if not pkg then loaderr(name, path, err) end
@@ -95,8 +96,7 @@ local function _discover(pkgdir)
   M.PKGS[pkg.name] = pkgdir
   if not pkg.pkgs then return end
   for _, dir in ipairs(pkg.pkgs) do
-    passert(dir)
-    _discover(pjoin(pkgdir, dir))
+    _discover(pjoin(pkgdir, passert(dir)))
   end
 end
 M.discover = function(luapkgs)
@@ -107,6 +107,19 @@ end
 
 -------------------
 -- Loading
+
+-- modules(PKG.srcs) -> map[name -> path]
+M.modules = function(pkgsrcs)
+  local mods = {}
+  for mname, mpath in pairs(pkgsrcs) do
+    if     type(mname) == 'string' then -- already set
+    elseif type(mname) == 'number' then
+		  mname = mpath:gsub('%.lua$', ''):gsub('/', '.')
+    else error('invalid srcs key type: '..type(mname)) end
+    mods[mname] = passert(mpath)
+  end
+  return mods
+end
 
 -- get the package. The API is identical to 'require' except
 -- it uses LUA_PKGS to search.
@@ -124,15 +137,8 @@ M.get = function(name, fallback)
     error(sfmt('name %s (pkgname=%q) not found', name, pkgname))
   end
   local pkg = M.load(pkgname, pjoin(pkgdir, 'PKG.lua'))
-  local k, mname, mpath
   -- search in srcs for lua modules
-  while true do k, mpath = next(pkg.srcs, k)
-		if not k then break end
-    if type(k) == 'string'     then mname = mpath
-    elseif type(k) == 'number' then
-		  mname = mpath:gsub('.%lua$', ''):gsub('/', '.')
-    else error('invalid srcs key type: '..type(k)) end
-    passert(mpath)
+  for mname, mpath in pairs(M.modules(pkg.srcs)) do
     if mname == name and mpath:match'%.lua$' then
       package.loaded[mname] = dofile(pjoin(pkgdir, mpath))
       return package.loaded[mname]
@@ -201,6 +207,6 @@ end
 
 return setmetatable(M, {
   __call = function(p, ...) return M.get(...) end,
-  __index = function(_, k) error('pkg does not have field: '..k) end,
+  __index = function(_, k) error('pkglib does not have field: '..k) end,
   __newindex = function(_, k) error'do not modify pkg'           end,
 })

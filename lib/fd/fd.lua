@@ -1,10 +1,15 @@
+-- filedescriptor: direct control of filedescriptors.
+-- async operations support the LAP (see lib/lap) protocol.
+--
+-- Can override default `io` module for global async mode.
+local M = mod and mod'fd' or {}
+local S = require'fd.sys' -- fd.c, fd.h
+
 local sfmt      = string.format
 local push, pop = table.insert, table.remove
 local yield     = coroutine.yield
 local NL        = -string.byte'\n'
 
-
-local S = require'fd.sys'
 S.POLLIO = S.POLLIN | S.POLLOUT
 
 local MFLAGS = {
@@ -23,12 +28,13 @@ local YIELD_CODE = {
 }
 local DONE_CODE = { [S.FD_EOF] = true, [0] = true }
 
-local M = {
-  sys = S,
-  _sync={}, _async={}, _io = {},
-  FD=S.FD,         FDT=S.FDT,
-  newFD = S.newFD, newFDT=S.newFDT,
-}
+M.sys = S
+M._sync={}  -- sync functions
+M._async={} -- async functions
+M._io = {}  -- io cache
+
+M.FD=S.FD;         M.FDT=S.FDT
+M.newFD = S.newFD; M.newFDT=S.newFDT
 M.PIPE_BUF = 512 -- POSIX.1
 
 S.FD.__close  = S.FD.__index.close

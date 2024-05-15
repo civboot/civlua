@@ -7,9 +7,9 @@ local T = require'civtest'
 local dir = ''
 
 T.test('[[core]]', function()
-  assert(os.execute(
-    [[lua -e "require'pkglib'.install()" lib/shim/test.lua --test=test.lua]]
-  ))
+  assert(os.execute[[
+    lua -e "require'pkglib'.install()" lib/shim/test.lua --test=test.lua
+  ]])
   dofile(dir..'lib/fd/test.lua')
   dofile(dir..'lib/metaty/test.lua')
   dofile(dir..'lib/ds/test.lua')

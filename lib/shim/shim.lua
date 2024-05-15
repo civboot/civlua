@@ -1,5 +1,3 @@
-local ds  = require'ds'
-
 local push, sfmt = table.insert, string.format
 local M = {}
 
@@ -44,7 +42,8 @@ M.parseStr = function(s)
   if s:find'[%[%]\'"]' then error(
     [[parseStr does not support chars '"[]: ]]..s
   )end
-  return M.parseList(ds.splitList(s))
+  local args = {}; for a in s:gmatch'%S+' do push(args, a) end
+  return M.parseList(args)
 end
 
 M.parse = function(v)

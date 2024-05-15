@@ -12,7 +12,7 @@ T.test('parse', function()
 end)
 
 T.test('parseStr', function()
-  T.assertEq({'a', 'b', c='42'}, ps'a b --c=42')
+  T.assertEq({'a', 'b', c='42'}, ps'a   b --c=42')
   T.assertEq({c={'1', '2'}},     ps'--c=1   --c=2')
   T.assertEq({a=true, b=true, c='foo'}, ps'-ab --c=foo')
 end)
