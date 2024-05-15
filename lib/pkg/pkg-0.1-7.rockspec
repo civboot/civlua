@@ -11,8 +11,7 @@ description = {
 package = "pkg"
 rockspec_format = "3.0"
 source = {
-  dir="lib/pkg",
   tag="pkg-0.1-6",
   url="git+http://github.com/civboot/civlua"
 }
-version = "0.1-6"
+version = "0.1-7"
