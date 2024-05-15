@@ -1,5 +1,11 @@
 # Civix: Lua linux and shell library
 
+Shell and Plumbing
+```
+> sh = require'civix'.sh
+> out = sh{stdin=io.open'/var/log/system.log', 'grep', 'DEAD'}
+```
+
 Civix is a thin wrapper around a small C library (`civix/lib.c`) which uses
 [metaty] and [ds] types. It provides:
 

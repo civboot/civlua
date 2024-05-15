@@ -4,6 +4,7 @@ local M = mod and mod'ds' or {}
 
 local mty = require'metaty'
 local add, pop, sfmt = table.insert, table.remove, string.format
+local EMPTY = {}
 
 M.SKIP     = 'skip'
 M.noop     = function() end
@@ -284,20 +285,6 @@ M.kvtable = (function(it)
   return o
 end)
 
--- Determine if two iterators are equal (ignores indexes)
---
--- Example:
---   ieq({ipairs(a)}, {islice(b, 3, 7)})
-M.ieq = function(aiter, biter)
-  local afn, astate, ai, a = table.unpack(aiter)
-  local bfn, bstate, bi, b = table.unpack(biter)
-  while true do
-    ai, a = afn(astate, ai); bi, b = bfn(bstate, bi)
-    if not mty.eq(a, b) then return false end
-    if a == nil         then return true end
-  end
-end
-
 -- reverse a list-like table in-place
 M.reverse = function(t)
   local l = #t; for i=1, l/2 do
@@ -306,8 +293,13 @@ M.reverse = function(t)
   return t
 end
 
-M.extend = function(t, vals)
-  for _, v in ipairs(vals) do add(t, v) end; return t
+-- extend(t, vals) -> t: move vals to the end of t
+M.extend = function(t, v) return table.move(v, 1, #v, #t + 1, t) end
+-- clear(t) -> t: set t[1:#t] = nil
+M.clear  = function(t)    return table.move(EMPTY, 1, #t, 1, t)  end
+-- replace(t, r): make t's index values the same as r's
+M.replace = function(t, r)
+  return table.move(r, 1, math.max(#t, #r), 1, t)
 end
 M.update = function(t, add)
   for k, v in pairs(add) do t[k] = v end; return t
@@ -321,13 +313,14 @@ M.orderedKeys = function(t)
   return keys
 end
 
-M.popk = function(t, key) -- pop key
+M.popk = function(t, key) --> t[k]: pop key
   local val = t[key]; t[key] = nil; return val
 end
 
+-- drain(t, len=#t) -> t[#t-len:#t]
+-- return len items from the end of t, removing them from t.
 M.drain = function(t, len)
-  local out = {}
-  for i=1, M.min(#t, len) do add(out, pop(t)) end
+  local out = {}; for i=1, math.min(#t, len) do add(out, pop(t)) end
   return M.reverse(out)
 end
 
@@ -337,22 +330,21 @@ M.getOrSet = function(t, k, newFn)
   return v
 end
 
-M.getPath = function(d, path)
+-- getPath(t, {'a', 2, 'c'}) -> t.a?[2]?.c?
+M.getPath = function(t, path)
   for i, k in ipairs(path) do
-    d = d[k]; if not d then return nil end
+    t = t[k]; if t == nil then return end
   end
-  return d
+  return t
 end
 
 -- get(t, 'a', 2, 'c') -> t.a?[2]?.c?
 -- get the keys or nil if any are missing.
 M.get = function(t, ...)
-	local len = select('#', ...)
-  for i=1,len-1 do
-    t = t[select(i, ...)]
-    if t == nil then return end
+  for i=1,select('#', ...) do
+    t = t[select(i, ...)]; if t == nil then return end
   end
-  return t[select(len, ...)]
+  return t
 end
 
 M.emptyTable = function() return {} end

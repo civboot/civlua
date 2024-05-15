@@ -220,13 +220,18 @@ M.Sh = mty'Sh' {
   "stdout [file?]: shell's stdout              (default=new pipe)",
   "stderr [file?]: shell's stderr              (default=io.stderr)",
   "env [list]:  shell's environment {'FOO=bar', ...}",
-  '_sh: C implemented shell',
+  '_sh [userdata]: internal C implemented shell',
 }
 getmetatable(M.Sh).__call = function(T, args, fds)
   local sh = mty.construct(T, fds or {})
   if type(args) == 'string' then args = shim.parseStr(args) end
+  -- if #args == 1 then
+  --   local p = shim.parseStr(args[1])
+  --   mty.print('!! parsed arg[1]:', p)
+  --   table.move(p, 1, #p, 1, args) -- p[...] -> args[...]
+  --   mty.print('!! parsed args', args)
+  -- end
   sh.args = assert(shim.expand(args), 'must provide args')
-
   return sh
 end
 getmetatable(M.Sh).__index = function(sh, k)
@@ -271,6 +276,7 @@ M.ShFin = mty'ShFin'{
 -- operation is done.
 M.Sh.finish = function(sh, other)
   other = M.ShFin(other or {})
+  mty.print('!! finish', other)
   local inpf = other.stdin  or sh.stdin
   local outf = other.stdout or sh.stdout
   if other.input then assert(inpf, 'provided input without stdin') end
@@ -287,6 +293,22 @@ end
 
 M.Sh.write = function(sh, ...) return sh.stdin:write(...) end
 M.Sh.read  = function(sh, ...) return sh.stdout:read(...) end
+
+M._sh = function(cmd) --> Sh
+  local pk, fds, other = ds.popk, {}, {}
+  if type(cmd) == 'table' then
+    fds.stdin  = pk(cmd, 'stdin')
+    fds.stdout = pk(cmd, 'stdout')
+    fds.stderr = pk(cmd, 'stderr')
+  end
+  if type(fds.stdin) == 'string' then
+    if #fds.stdin > fd.PIPE_BUF then -- may block, use tmpfile
+      local t = fd.tmpfile(); t:write(fds.stdin); t:seek'set'
+      fds.stdin = t
+    else other.input = pk(fds, 'stdin') end
+  end
+  return M.Sh(cmd, fds), other
+end
 
 -- sh(cmd) -> out
 -- Execute the command in another process via execvp (system shell). Throws an
@@ -306,19 +328,7 @@ M.Sh.read  = function(sh, ...) return sh.stdout:read(...) end
 -- sh{'ls', 'foo/bar', 'dir w spc/'}  -- ls foo/bar "dir w spc/"
 -- sh{stdin='sent to stdin', 'cat'}     -- echo "sent to stdin" | cat
 M.sh = function(cmd)
-  local pk, fds, other = ds.popk, {}, {}
-  if type(cmd) == 'table' then
-    fds.stdin  = pk(cmd, 'stdin')
-    fds.stdout = pk(cmd, 'stdout')
-    fds.stderr = pk(cmd, 'stderr')
-  end
-  if type(fds.stdin) == 'string' then
-    if #fds.stdin > fd.PIPE_BUF then -- may block, use tmpfile
-      local t = fd.tmpfile(); t:write(fds.stdin); t:seek'set'
-      fds.stdin = t
-    else other.input = pk(fds, 'stdin') end
-  end
-  local sh = M.Sh(cmd, fds):start()
+  local sh, other = M._sh(cmd); sh:start()
   local out = sh:finish(other)
   local rc = sh:wait(); if rc ~= 0 then
     mty.errorf('Command failed with rc=%s: %q%s', rc, cmd,
@@ -326,43 +336,5 @@ M.sh = function(cmd)
   end
   return out
 end
-
-
--- Pipe multiple shells together.
--- Piper{inpFile|cmd, ... cmds, outFile?, stderr=io.stderr}
---
--- These are equivalent:
---   bash:  cat inp.txt |   grep foo.bar >> out.txt
---   Piper{open'inp.txt', 'grep foo.bar', open('out.txt', 'w')}:check()
---
--- All shell operations happen concurrently. Piper properly plumbs the
--- stdout of the prior to stdin to the next. All stderr goes to the same err
--- file (or io.stderr by default)
---
--- The first and last items can be files, in which case they are the inp/out.
--- else, piper can act as a file (with :read()/:write() methods)
-M.Piper = mty'Piper' {
-  'stdin [file]: owned input',
-  'stdout [file]: owned output',
-  'stderr [file]: common stderr',
-  -- ... args is the shells to kick off
-}
-
--- TODO: Stream / Pipe / Whatever
--- M.Piper.wait = function(sh)
---   local fns = {
---     function() if sh.inp then w:write(inp) end; w:close() end,
---     function() out =       r:read();         r:close() end,
---   }
---   if LAP_ASYNC then
---     lap.all(fns)
---     while not sh:isDone() do yield('sleep', 0.005) end
---   else
---     M.Lap():start(fns)
---     sh:wait() end
---   return sh:rc(), out
--- 
--- end
-
 
 return M

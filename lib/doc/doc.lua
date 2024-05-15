@@ -249,6 +249,16 @@ M['table.sort'] = table.sort -- from stdlib
 --   local add = table.insert; add(t, 4)
 M['table.insert'] = table.insert -- from stdlib
 
+-- table.move(from, siFrom, eiFrom, siTo, to=from) -> to
+-- Note: si=startIndex, ei=endIndex
+-- Equivalent to the following, though done in a way
+-- that will properly handle overlapping data
+--   ti = siTo
+--   for fi=siFrom,eiFrom do
+--     to[ti] = from[fi]; ti = ti + 1
+--   end
+M['table.move'] = table.move
+
 -------------------------------
 -- io module
 -- Open -> do input and output -> close files.

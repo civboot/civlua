@@ -11,6 +11,7 @@ local test, assertEq, assertErrorPat; M.auto'civtest'
 local min, max, bound, isWithin, sort2, decAbs
 local indexOf, copy, deepcopy
 local strInsert, strDivide, trim
+local extend, clear, replace
 local getOrSet, setPath, drain, reverse
 local get, getPath
 local eval
@@ -179,12 +180,16 @@ test("table", function()
   assertEq({4}, t)
   t = {} for _, v in M.ilast({1, 2, 3, 4, 5}, -2) do push(t, v) end
   assertEq({4, 5}, t)
-
-  assert(    M.ieq({ipairs({2, 3, 4})}, {M.islice({1, 2, 3, 4, 5}, 2, 4)}))
-  assert(not M.ieq({ipairs({2, 3, 4})}, {M.islice({1, 2, 3, 4, 5}, 2, 3)}))
 end)
 
 test('list', function()
+  assertEq({1, 2, 3}, extend({1}, {2, 3}))
+  local t = {4, 5}; extend(t, {1, 2})
+  assertEq({4, 5, 1, 2}, t)
+  assertEq({}, clear{1, 2, 3})
+  assertEq({1, 2}, replace({4, 5, 6}, {1, 2}))
+  assertEq({1, 2}, replace({3}, {1, 2}))
+
   local l = {'a', 'b', 'c', 1, 2, 3}
   assertEq({1, 2, 3}, drain(l, 3))
   assertEq({'a', 'b', 'c'}, l)
@@ -197,6 +202,7 @@ test('list', function()
 
   assertEq({2, 1},    reverse({1, 2}))
   assertEq({3, 2, 1}, reverse({1, 2, 3}))
+
 end)
 
 test("eval", function()
