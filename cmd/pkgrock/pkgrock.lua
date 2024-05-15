@@ -12,6 +12,7 @@ local ds  = require'ds'
 local shim = require'shim'
 local civix = require'civix'
 local push, sfmt = table.insert, string.format
+local pth = ds.path
 
 local UPLOAD = [[luarocks upload %s --api-key=%s]]
 
@@ -25,10 +26,14 @@ M.ARGS = mty'pkgrock' {
   [[upload [string] set to the luarocks api key]],
 }
 
+M.rockpath = function(dir, tag)
+  return pth.concat{dir, tag..'.rockspec'}
+end
+
 -- make a rock and return rock, rockpath, PKG
 M.makerock = function(dir)
   local path = dir
-  if not dir:find'/PKG.lua$' then path = ds.path.concat{dir, 'PKG.lua'} end
+  if not dir:find'/PKG.lua$' then path = pth.concat{dir, 'PKG.lua'} end
   print('... loading pkg', path)
   local p = pkg.load('noname', path)
   local rock = p.rockspec or {}
@@ -38,7 +43,7 @@ M.makerock = function(dir)
   rock.source = rock.source or {}; local s = rock.source
   local tag = (rock.package..'-'..rock.version)
   s.url = s.url or p.url
-  s.dir = s.dir or dir
+  s.dir = s.dir or pth.concat{select(2, pth.last(p.url)), dir} -- luarocks#1675
   s.tag = s.tag or tag
   rock.description = rock.description or {}; local d = rock.description
   d.summary  = d.summary  or p.summary
@@ -48,7 +53,7 @@ M.makerock = function(dir)
   rock.build = rock.build or {
     type = 'builtin', modules = pkg.modules(p.srcs),
   }
-  local rpath = ds.path.concat{dir, tag..'.rockspec'}
+  local rpath = M.rockpath(dir, tag)
   print('... writing rockspec', rpath)
   local fmt = mty.Fmt:pretty{
     to=io.open(rpath, 'w'),
@@ -60,7 +65,12 @@ M.makerock = function(dir)
     fmt(val); fmt:write'\n'
   end
   fmt.to:close()
-  return rock, rpath, p
+end
+
+M.loadrock = function(dir)
+  local p = pkg.load(dir, pth.concat{dir, 'PKG.lua'})
+  local rpath = M.rockpath(dir, p.name..'-'..p.version)
+  return rpath, pkg.load(p.name, rpath)
 end
 
 local function execute(...)
@@ -77,9 +87,13 @@ M.exe = function(t)
   local tags, rpaths = {}, {}
   if t.create then for _, dir in ipairs(t) do
     print('making rock', dir)
-    local rock, rpath = M.makerock(dir)
-    push(rpaths, rpath); push(tags, assert(rock.source.tag))
+    M.makerock(dir)
   end end
+  for _, dir in ipairs(t) do
+    local rpath, rock = M.loadrock(dir)
+    mty.print('!! loaded rock', rpath, rock)
+    push(rpaths, rpath); push(tags, assert(rock.source.tag))
+  end
   if gitops.tag then
     print'... getting tags'
     local out = civix.sh'git tag'
@@ -90,7 +104,7 @@ M.exe = function(t)
     )end
   end
   if gitops.add then for _, rp in ipairs(rpaths) do
-    print'... adding paths'
+    print('git add:', rp)
     execute([[git add -f %s]], rp)
   end end
   if gitops.commit then
@@ -98,7 +112,7 @@ M.exe = function(t)
     execute([[git commit -am 'pkgrock: %s']], table.concat(tags, ' '))
   end
   if gitops.tag then for _, tag in ipairs(tags) do
-    print'... tagging'
+    print('add tag:', tag)
     execute([[git tag '%s']], tag)
   end end
   if t.gitpush then
@@ -106,7 +120,7 @@ M.exe = function(t)
     execute([[git push %s]], t.gitpush)
   end
   if t.upload then for _, rp in ipairs(rpaths) do
-    print'... uploading'
+    print('uploading', rp)
     execute(UPLOAD, rp, t.upload)
   end end
 end

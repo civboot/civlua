@@ -23,3 +23,5 @@ civix: lib/civix/civix/lib.c
 ele:
 	LUA_PATH=${LP} lua ele/ele.lua
 
+clean:
+	rm $$($(LUA) civ.lua ff -r --fpat='.rockspec$$')
