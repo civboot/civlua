@@ -60,7 +60,11 @@ M.makerock = function(dir)
     fmt(val); fmt:write'\n'
   end
   fmt.to:close()
-  return rock, rpath, p
+end
+
+M.loadrock = function(dir)
+  local rpath = ds.path.concat{dir, 'PKG.lua'}
+  return rpath, pkg.load(dir, rpath)
 end
 
 local function execute(...)
@@ -77,9 +81,12 @@ M.exe = function(t)
   local tags, rpaths = {}, {}
   if t.create then for _, dir in ipairs(t) do
     print('making rock', dir)
-    local rock, rpath = M.makerock(dir)
-    push(rpaths, rpath); push(tags, assert(rock.source.tag))
+    M.makerock(dir)
   end end
+  for _, dir in ipairs(t) do
+    local rpath, rock = M.loadrock(dir)
+    push(rpaths, rpath); push(tags, assert(rock.source.tag))
+  end
   if gitops.tag then
     print'... getting tags'
     local out = civix.sh'git tag'
@@ -107,7 +114,7 @@ M.exe = function(t)
   end
   if t.upload then for _, rp in ipairs(rpaths) do
     print('uploading', rp)
-    local dir, rockname = ds.pairs.last(rp)
+    local dir, rockname = ds.path.last(rp)
     execute(UPLOAD, dir, rockname, t.upload)
   end end
 end
