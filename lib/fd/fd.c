@@ -218,6 +218,7 @@ static void FD_write(FD* fd) {
 // attempt to seek using only buffer, else update FD.
 // return true if complete (no syscall needed)
 static bool FD_seekpre(FD* fd, off_t offset, int whence) {
+  if((whence == SEEK_SET) && (offset == 0)) goto hard;
   off_t want = offset; switch(whence) {
     case SEEK_CUR: want += fd->pos; // make absolute
     case SEEK_SET:
@@ -228,6 +229,7 @@ static bool FD_seekpre(FD* fd, off_t offset, int whence) {
     case SEEK_END: break; // rely on syscall
     default: assert(false);
   }
+hard:
   fd->pos = offset; fd->ctrl = whence;
   return false;
 }

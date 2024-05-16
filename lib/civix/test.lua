@@ -25,12 +25,19 @@ test('sh', function()
   end)
 
   local path = D..'echo.test'
-  local f = io.open(path, 'w')
+  local f = io.open(path, 'w+')
   local out, s = sh{'echo', 'send to file', stdout=f}
   assertEq(nil, out)
   assert(s.stdin); assertEq(nil, s.stdout)
-  -- assertEq('send to file\n', f:read()) -- TODO: bad filedescriptor (9)
   assertEq('send to file\n', io.open(path):read())
+  f:seek'set'
+  assertEq('send to file\n', f:read())
+
+  f:seek'set'
+  out, s = sh{stdin=f, 'cat', stdout=io.open(D..'cat.test', 'w+')}
+  assertEq(nil, out)
+  assertEq('send to file\n', io.open(D..'cat.test'):read())
+
   collectgarbage()
 end)
 
