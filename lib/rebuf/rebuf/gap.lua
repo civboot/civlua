@@ -8,14 +8,13 @@
 -- 2. The "top" buffer is used to store data in lines
 --    after "bot" (aka after curLine). If the cursor is
 --    moved to a previous line then data is moved from top to bot
+local M = mod and mod'rebuf.gap' or {}
 
 local mty = require'metaty'
 local ds  = require'ds'
 
 local add, pop, concat = table.insert, table.remove, table.concat
 local sub = string.sub
-
-local M = {} -- module
 
 ---------------------------
 -- Utilities

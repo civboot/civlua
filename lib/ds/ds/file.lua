@@ -4,6 +4,7 @@
 local M = mod and mod'ds.file' or {}
 
 local mty = require'metaty'
+local ds  = require'ds'
 
 local function idxLen(f)
   local len = f:seek'end'
@@ -137,6 +138,32 @@ getmetatable(M.FileIdx).__call = function(T, t)
   return mty.construct(T, t)
 end
 
+-- Args:
+--   file: path or file object (update mode)
+--   idxpath: (optional) path to idx file. default=io.tmpfile()
+--   preserve: if true, the index at idxpath will be preserved
+--     and updated.
+--
+-- Returns: FileIdx for use with IndexedFile.
+M.FileIdx.create = function(T, file, idxpath, preserve)
+  file = (type(file) == 'string') and io.open(file) or file
+  local idx = idxpath and io.open(idxpath, preserve and 'r+' or 'w+')
+            or io.tmpfile()
+  local fidx = M.FileIdx{file=idx}
+  local pos, lastPos = 0, file:seek'end'
+  if fidx.len > 0 then
+    file:seek('set', fidx:getPos(fidx.len))
+    file:read'l' -- skip already indexed line
+    pos = file:seek'cur'
+  else file:seek'set' end -- start at beginning
+  while pos ~= lastPos do
+    fidx:addPos(pos)
+    file:read'l'
+    pos = file:seek'cur'
+  end
+  return fidx
+end
+
 M.FileIdx.getPos = function(self, l)
   mty.assertf(l > 0 and l <= self.len,
     "Line %s OOB (len=%s)", l, self.len)
@@ -164,74 +191,55 @@ M.FileIdx.close = function(self) return self.file:close() end
 -- 
 -- IndexedFile{path}                  -- tmpfile index
 -- IndexedFile{path, idx=pathToIndex} -- load index from pathToIndex
--- 
--- You can use createFileIdx to load/create your own idx.
 M.IndexedFile = mty'IndexedFile' {
-  'file   [userdata',
+  'file   [userdata]',
   'idx    [FileIdx]',
   '_line  [number]',
+  '_cache [WeakV]: cache of lines',
+  '_seeks [int]: count of seeks performed',
 }
 getmetatable(M.IndexedFile).__call = function(T, t)
   if t[1] then t.file = t[1]; t[1] = nil end
   if mty.ty(t.idx) ~= M.FileIdx then
-    t.idx = M.createFileIdx(t.file, t.idx, true)
+    t.idx = M.FileIdx:create(t.file, t.idx, true)
   end
-  t._line = 0
+  t._line, t._cache, t._seeks = 0, ds.WeakV{}, 0
   return mty.construct(T, t)
 end
 M.IndexedFile.__index = function(self, l)
-  local meth = rawget(M.IndexedFile, l); if meth then return meth end
+  if type(l) == 'string' then
+    return getmetatable(self)[l] or error('no method: '..l)
+  end
   if l < 1 or l > self.idx.len then return end
-  local line; if l == self._line then
-    self._line = self._line + 1
-  else
+  local line = self._cache[l]; if line then return line end
+  if l ~= self._line then
+    self._seeks = self._seeks + 1
     self.file:seek('set', self.idx:getPos(l))
   end
-  return assert(self.file:read'l')
+  line = assert(self.file:read'l'); self._cache[l] = line
+  self._line = l + 1
+  return line
 end
 M.IndexedFile.__newindex = function(self, l, line)
   mty.assertf(l == self.idx.len + 1,
     "Only append allowed. l=%s len=%s", l, self.idx.len)
-  self.idx:addPos(self.file:seek'end')
+  if self._line ~= l + 1 then
+    self._seeks = self._seeks + 1
+    self.idx:addPos(self.file:seek'end')
+  end
   self.file:write(line, '\n')
+  self._cache[l] = line
+  self._line = l + 1
 end
 M.IndexedFile.__len = function(self) return self.idx.len end
 M.IndexedFile.flush = function(self)
   self.file:flush()
   self.idx:flush()
 end
-M.IndexedFile.close = function(self) 
+M.IndexedFile.close = function(self)
   self.idx:close()
   return self.file:close()
 end
-
--- Helper function to create a FileIdx
--- 
--- Args:
---   file: path or file object (update mode)
---   idxpath: (optional) path to idx file. default=io.tmpfile()
---   preserve: if true, the index at idxpath will be preserved
---     and updated.
--- 
--- Returns: FileIdx for use with IndexedFile.
-M.createFileIdx = function(file, idxpath, preserve)
-  file = (type(file) == 'string') and io.open(file) or file
-  local idx; if idxpath then
-    idx = io.open(idxpath, preserve and 'r+' or 'w+')
-  else idx = io.tmpfile() end
-  local fidx = M.FileIdx{file=idx}
-  local pos, lastPos = 0, file:seek'end'
-  if fidx.len > 0 then
-    file:seek('set', fidx:getPos(fidx.len))
-    file:read'l' -- skip already indexed line
-    pos = file:seek'cur'
-  else file:seek'set' end -- start at beginning
-  while pos ~= lastPos do
-    fidx:addPos(pos)
-    file:read'l'
-    pos = file:seek'cur'
-  end
-  return fidx
-end
+M.IndexedFile.__close = M.IndexedFile.close
 
 return M

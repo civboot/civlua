@@ -77,8 +77,6 @@ test('imm', function()
   assertEq({kind='Empty'}, M.Imm{kind='Empty'})
 end)
 
-
-
 test("number", function()
   assert(0, decAbs(1)); assert(0, decAbs(-1))
 
@@ -180,6 +178,11 @@ test("table", function()
   assertEq({4}, t)
   t = {} for _, v in M.ilast({1, 2, 3, 4, 5}, -2) do push(t, v) end
   assertEq({4, 5}, t)
+
+  t = M.Forget{a=4}
+  assertEq(4, t.a)
+  t.b = 7; t[1] = 4
+  assertEq(nil, t.b); assertEq(nil, t[1])
 end)
 
 test('list', function()
@@ -458,27 +461,34 @@ for speed.
 ]]
   f:write(orig)
   local fx = df.IndexedFile{f}
+  fx._cache = M.Forget{}
   local idxf = fx.idx.file
   idxf:flush()
   assertEq(0,  fx.idx:getPos(1))
   assertEq(9,  fx.idx:getPos(2))
   assertEq(0,  fx.idx:getPos(1))
   assertEq(19, fx.idx:getPos(3))
+  assertEq(0, fx._seeks)
   assertEq('hi there',   fx[1])
+  assertEq(1, fx._seeks)
   assertEq('this file',  fx[2])
   assertEq('',           fx[3])
   assertEq('is indexed', fx[4])
   assertEq('for speed.', fx[5])
   assertEq(nil,          fx[0])
   assertEq(nil,          fx[6])
+  assertEq(1, fx._seeks)
 
   assertEq({'hi there', 'this file', ''}, lines.sub(fx, 1, 3))
+  assertEq(2, fx._seeks)
   assertEq('there\nthis file\n', lines.sub(fx, 1, 4, 3, 0))
+  assertEq(3, fx._seeks)
+  assertEq('is indexed', fx[4]); assertEq(3, fx._seeks) -- no seek
 
   local appended = 'and can be appended to'
-  fx[6] = appended
+  fx[6] = appended; assertEq(4, fx._seeks)
   fx:flush()
-  assertEq(appended, fx[6])
+  assertEq(appended, fx[6]); assertEq(5, fx._seeks)
   f:seek'set'
   assertEq(orig..appended..'\n', f:read'a')
 end)

@@ -522,6 +522,13 @@ M.WeakKV = setmetatable(
   __name='Ty<WeakKV>', __call=mty.constructUnchecked,
 })
 
+-- Table that never accepts new indexes. Used to disable caching in tests.
+M.Forget = setmetatable(
+  {__name='Loser', __newindex=M.noop},
+  {__name='Ty<Loser>', __call=mty.constructUnchecked}
+)
+
+
 ---------------------
 -- Sentinal, none type, bool()
 
