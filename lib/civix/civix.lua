@@ -196,38 +196,28 @@ M.Lap = function() return lap.Lap {
   sleepFn=M.sleep, monoFn=M.monoSec, pollList=fd.PollList(),
 }end
 
--- Sh: start args on the shell
--- Constructor: Sh(args, fds) -> Sh
+-- Start args on the shell
+-- Suggestion: use civix.sh instead.
 --
 -- Sh:start() kicks off a subprocess which start the shell using the fds you pass
--- in.
---
--- 1. If you didn't pass in stdin/stdout then Sh:write()/Sh:read() will go to the
---    process's new stdin/stdout pipes.
--- 2. If you did pass in stdin/stdout then those fields are set to nil. You can
---    write/read from an external reference.
+-- in or creating them if you set them to true. Created file descriptors will be
+-- stored in the associated name.
 --
 -- Why? This means that :close() will only close filedescriptors created by the
 --      shell itself, and you won't accidentially close io.stdout/etc.
 --
 -- Examples (see civix.sh for more examples):
 --   Lua                                              Bash
---   Sh({'ls', 'foo/bar'}, {stdout=io.stdout}):start()  -- ls foo/bar
---   local v = Sh'ls foo/bar':start():read()         -- v=$(ls foo/bar)
+--   Sh({'ls', 'foo/bar'}, {stdout=io.stdout}):start()      -- ls foo/bar
+--   v = Sh{'ls foo/bar', stdout=true}:start():read() -- v=$(ls foo/bar)
 M.Sh = mty'Sh' {
   "args [table]: arguments to pass to shell",
-  "stdin [file|string?] shell's stdin to send (default=new pipe)",
-  "stdout [file?]: shell's stdout              (default=new pipe)",
-  "stderr [file?]: shell's stderr              (default=io.stderr)",
+  "stdin  [file|bool]: shell's stdin to send  (default=empty)",
+  "stdout [file|bool]: shell's stdout              (default=empty)",
+  "stderr [file|bool]: shell's stderr              (default=empty)",
   "env [list]:  shell's environment {'FOO=bar', ...}",
   '_sh [userdata]: internal C implemented shell',
 }
-getmetatable(M.Sh).__call = function(T, args, fds)
-  local sh = mty.construct(T, fds or {})
-  if type(args) == 'string' then args = shim.parseStr(args) end
-  sh.args = assert(shim.expand(args), 'must provide args')
-  return sh
-end
 getmetatable(M.Sh).__index = function(sh, k)
   local shv = rawget(sh, '_sh', k)
   if shv then return shv end
@@ -235,20 +225,26 @@ getmetatable(M.Sh).__index = function(sh, k)
   error('unknown field: '..k)
 end
 
-local function _fnomaybe(f) return f and M.fileno(f) or nil end
+local function _fnomaybe(f, default)
+  if type(f) == 'boolean' then return f end
+  return f and M.fileno(f) or default
+end
 -- start the shell in the background.
--- Note: any set filedescriptors will be set to nil.
---       any nil filedescriptors (except stderr) will be set to the new pipe.
+-- sh{arg1, arg2, stdin=nostdin, stdout=true, stderr=io.stderr}
+-- See Sh for how filedescriptors are set.
 M.Sh.start = function(sh)
-  local r, w = fd.newFD(), fd.newFD()
-  local ex, _r, _w, _lr = lib.sh(
+  local r, w, l = fd.newFD(), fd.newFD(), fd.newFD()
+  local ex, _r, _w, _l = lib.sh(
     sh.args[1], sh.args, sh.env,
-    _fnomaybe(sh.stdin), _fnomaybe(sh.stdout), M.fileno(sh.stderr or io.stderr)
+    _fnomaybe(sh.stdin), _fnomaybe(sh.stdout, true),
+    _fnomaybe(sh.stderr, fd.sys.STDERR_FILENO)
   )
+  mty.print('!! lib.sh', ex, _r, _w)
   sh._sh = ex
   if _r then r:_setfileno(_r); r:toNonblock() else r = nil end
   if _w then w:_setfileno(_w); w:toNonblock() else w = nil end
-  sh.stdin, sh.stdout = w, r
+  if _l then l:_setfileno(_l); l:toNonblock() else l = nil end
+  sh.stdin, sh.stdout, sh.stderr = w, r, l
   return sh
 end
 
@@ -261,49 +257,51 @@ M.Sh.wait = function(sh)
 end
 
 M.ShFin = mty'ShFin'{
-  'stdin [file]', 'stdout [file]',
-  'input [string]: write to stdin',
+  'stdin [file]', 'stdout [file]', 'stderr [file]',
+  "input [string]: write to then close stdin (either self's or shell's)",
 }
-
--- finish files (in sh or other) by writing other.input to stdin and reading stdout.
--- All processes are done asynchronously. The files are closed when the
--- operation is done.
+-- sh:finish{ShFin} -> out, err
+-- finish files (in sh or other) by writing other.input to stdin and reading
+-- stdout/stderr.  All processes are done asynchronously
 M.Sh.finish = function(sh, other)
   other = M.ShFin(other or {})
   local inpf = other.stdin  or sh.stdin
   local outf = other.stdout or sh.stdout
-  if other.input then assert(inpf, 'provided input without stdin') end
-  if not (inpf or outf) then return end
-  local fns, out = {}
-  if inpf then push(fns, function()
-    if other.input then inpf:write(other.input) end
-    inpf:close()
-  end) end
+  local errf = other.stderr or sh.stderr
+  if not (other.input or outf or errf) then return end
+  local fns, out, err = {}
+  if other.input then assert(inpf, 'provided input without stdin')
+    push(fns, function()
+      inpf:write(other.input); inpf:close()
+    end)
+  end
   if outf then push(fns, function() out = outf:read() end) end
+  if errf then push(fns, function() err = errf:read() end) end
   if LAP_ASYNC then lap.all(fns) else M.Lap():run(fns) end
-  return out
+  return out, err
 end
-
 M.Sh.write = function(sh, ...) return sh.stdin:write(...) end
 M.Sh.read  = function(sh, ...) return sh.stdout:read(...) end
 
 M._sh = function(cmd) --> Sh
-  local pk, fds, other = ds.popk, {}, {}
-  if type(cmd) == 'table' then
-    fds.stdin  = pk(cmd, 'stdin')
-    fds.stdout = pk(cmd, 'stdout')
-    fds.stderr = pk(cmd, 'stderr')
+  local pk, sh, other = ds.popk, {}, {}
+  if type(cmd) == 'string' then cmd = shim.parseStr(cmd)
+  else
+    sh.stdin  = pk(cmd, 'stdin')
+    sh.stdout = pk(cmd, 'stdout')
+    sh.stderr = pk(cmd, 'stderr')
   end
-  if type(fds.stdin) == 'string' then
-    if #fds.stdin > fd.PIPE_BUF then -- may block, use tmpfile
-      local t = fd.tmpfile(); t:write(fds.stdin); t:seek'set'
-      fds.stdin = t
-    else other.input = pk(fds, 'stdin') end
+  sh.args = shim.expand(cmd)
+  if type(sh.stdin) == 'string' then
+    if #sh.stdin > fd.PIPE_BUF then -- may block, use tmpfile
+      local t = fd.tmpfile(); t:write(sh.stdin); t:seek'set'
+      sh.stdin = t
+    else other.input = sh.stdin; sh.stdin = true end
   end
-  return M.Sh(cmd, fds), other
+  return M.Sh(sh), other
 end
 
--- sh(cmd) -> out
+-- sh(cmd) -> out, err, sh
 -- Execute the command in another process via execvp (system shell). Throws an
 -- error if the command fails.
 --
@@ -322,12 +320,12 @@ end
 -- sh{stdin='sent to stdin', 'cat'}     -- echo "sent to stdin" | cat
 M.sh = function(cmd)
   local sh, other = M._sh(cmd); sh:start()
-  local out = sh:finish(other)
+  local out, err = sh:finish(other)
   local rc = sh:wait(); if rc ~= 0 then
     mty.errorf('Command failed with rc=%s: %q%s', rc, cmd,
       (out and (#out > 0) and ('\nSTDOUT:\n'..out) or ''))
   end
-  return out, sh
+  return out, err, sh
 end
 
 return M

@@ -24,20 +24,21 @@ test('sh', function()
     sh{'commandNotExist', 'blah'}
   end)
 
-  local path = D..'echo.test'
+  local path = '.out/echo.test'
   local f = io.open(path, 'w+')
-  local out, s = sh{'echo', 'send to file', stdout=f}
-  assertEq(nil, out)
-  assert(s.stdin); assertEq(nil, s.stdout)
+  local out, err, s = sh{'echo', 'send to file', stdout=f}
+  assertEq(nil, out); assertEq(nil, err);
+  assertEq(nil, s.stdin); assertEq(nil, s.stdout)
   assertEq('send to file\n', io.open(path):read())
-  f:seek'set'
-  assertEq('send to file\n', f:read())
+  f:seek'set'; assertEq('send to file\n', f:read())
 
   f:seek'set'
-  out, s = sh{stdin=f, 'cat', stdout=io.open(D..'cat.test', 'w+')}
-  assertEq(nil, out)
-  assertEq('send to file\n', io.open(D..'cat.test'):read())
+  out, err, s = sh{stdin=f, 'cat', stdout=io.open('.out/cat.test', 'w+')}
+  assertEq(nil, out); assertEq(nil, err)
+  assertEq('send to file\n', io.open('.out/cat.test'):read())
 
+  out, err, s = sh{'sh', '-c', "echo 'on STDERR' >&2 ", stdout=false, stderr=true}
+  assertEq(nil, out); assertEq('on STDERR\n', err)
   collectgarbage()
 end)
 

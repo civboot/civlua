@@ -26,6 +26,9 @@ typedef lua_State LS;
 #define L_setmethod(L, KEY, FN) \
   lua_pushcfunction(L, FN); lua_setfield(L, -2, KEY);
 
+static bool l_defaulttrue(LS *L, int index) {
+  return lua_isnoneornil(L, index) || lua_toboolean(L, index);
+}
 
 // Return a string array with null-terminated end.
 // Note: you MUST free it.
@@ -231,42 +234,53 @@ static int l_sh(LS *L) {
   char **env = NULL; int _unused;
   char **argv = checkstringarray(L, 2, &_unused);
   if(!lua_isnoneornil(L, 3)) { env = checkstringarray(L, 3, &_unused); }
-  int inp = luaL_optinteger(L, 4, -1);
-  int out = luaL_optinteger(L, 5, -1);
-  int err = luaL_optinteger(L, 6, STDERR_FILENO);
+  bool createdChR = false, createdChW = false, createdChL = false;
 
   struct sh* sh = (struct sh*)lua_newuserdata(L, sizeof(struct sh));
   sh->pid = 0; sh->env = env;
   luaL_setmetatable(L, SH_META);
 
   // ch_r=child-read, pr_w=parent-write, etc
-  int ch_r = -1, ch_w = -1; int pr_r = -1, pr_w = -1;
   int rw[2];
-  if(inp >= 0) { ch_r = inp; } else {
-    if(pipe(rw)) goto error; ch_r  = rw[0]; pr_w  = rw[1];
+  int ch_r = -1, ch_w = -1; int pr_r = -1, pr_w = -1, pr_l = -1, ch_l = -1;
+  // process stdin
+  if(lua_isinteger(L, 4)) ch_r = lua_tointeger(L, 4);
+  else if (lua_toboolean(L, 4)) {
+    createdChR = true; if(pipe(rw)) goto error; ch_r  = rw[0]; pr_w  = rw[1];
   }
-  if(out >= 0) { ch_w = out; } else {
-    if(pipe(rw)) goto error; pr_r  = rw[0]; ch_w  = rw[1];
+  // process stdout
+  if(lua_isinteger(L, 5)) ch_w = lua_tointeger(L, 5);
+  else if (lua_toboolean(L, 5)) {
+    createdChW = true; if(pipe(rw)) goto error; pr_r  = rw[0]; ch_w  = rw[1];
+  }
+  // process stderr
+  if(lua_isinteger(L, 6)) ch_l = lua_tointeger(L, 6);
+  else if (lua_toboolean(L, 6)) {
+    createdChL = true; if(pipe(rw)) goto error; pr_l  = rw[0]; ch_l  = rw[1];
   }
 
   int pid = fork(); if(pid == -1) goto error;
   else if(pid == 0) { // child
-    CLOSE(pr_r); CLOSE(pr_w);
+    CLOSE(pr_r); CLOSE(pr_w); CLOSE(pr_l);
     if(ch_w != STDOUT_FILENO) { dup2(ch_w,  STDOUT_FILENO); close(ch_w); }
+    else if(ch_w < 0) close(STDOUT_FILENO);
     if(ch_r != STDIN_FILENO)  { dup2(ch_r,  STDIN_FILENO);  close(ch_r); }
-    if(err  != STDERR_FILENO) { dup2(err,   STDERR_FILENO); close(err);  }
+    else if (ch_r < 0) close(STDIN_FILENO);
+    if(ch_l != STDERR_FILENO) { dup2(ch_l,  STDERR_FILENO); close(ch_l); }
+    else if (ch_l < 0) close(STDERR_FILENO);
     return execvp(command, argv);
   } // else parent
   sh->pid = pid;
-  if(out < 0) CLOSE(ch_w); if(inp < 0) CLOSE(ch_r); // close created children
-  // only return if we created the fileno
-  if(out >= 0) lua_pushnil(L); else lua_pushinteger(L, pr_r);
-  if(inp >= 0) lua_pushnil(L); else lua_pushinteger(L, pr_w);
-  return 3;
+  // only return if we created the fileno. Also, close child-side pipes
+  if(createdChW) { close(ch_w); lua_pushinteger(L, pr_r); } else lua_pushnil(L);
+  if(createdChR) { close(ch_r); lua_pushinteger(L, pr_w); } else lua_pushnil(L);
+  if(createdChL) { close(ch_l); lua_pushinteger(L, pr_l); } else lua_pushnil(L);
+  return 4;
   error:
-    if(out < 0) CLOSE(ch_w); if(inp < 0) CLOSE(ch_r);
-    if(pr_r) close(pr_r);    if(pr_w) close(pr_w);
-    luaL_error(L, "failed sh (%s): %s", err, SERR); return 0;
+    if(createdChW) CLOSE(ch_w); if(createdChR) CLOSE(ch_r);
+    if(createdChL) CLOSE(ch_l);
+    if(pr_r) close(pr_r);    if(pr_w) close(pr_w); if(pr_l) close(pr_l);
+    luaL_error(L, "failed sh: %s", SERR); return 0;
 }
 #undef CLOSE
 

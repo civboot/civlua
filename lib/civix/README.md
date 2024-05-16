@@ -1,6 +1,6 @@
-# Civix: linux tool library
+# Civix: unix sys library
 
-Civix contains standard linux functions that exist in most language's "sys"
+Civix contains standard unix functions that exist in most language's "sys"
 library such as `sleep`, `epoch`, etc. It also contains a powerful `Sh{}` type and
 convieience `sh()` function for executing system shell commands, either
 synchronously or asynchronously using the LAP protocol (see
@@ -9,9 +9,12 @@ synchronously or asynchronously using the LAP protocol (see
 ```
 $ lua
 > sh = require'civix'.sh
+> print(sh'ls some/path')
 > -- cat /var/log/syslog | grep "netgroup: version"
 > out = sh{stdin=io.open'/var/log/syslog', 'grep', 'netgroup: version'}
+> for line in require'ds'.lines(out) do ... something per line ... end
 ```
 
-[metaty]:   ../metaty/README.md
-[ds]:       ../ds/README.md
+Civix depends on the [fd](../lib/fd/README.md) library for async file
+descriptors and other filedescriptor functionality.
+
