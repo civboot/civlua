@@ -12,6 +12,7 @@ local ds  = require'ds'
 local shim = require'shim'
 local civix = require'civix'
 local push, sfmt = table.insert, string.format
+local pth = ds.path
 
 local UPLOAD = [[cd %s && luarocks upload %s --api-key=%s]]
 
@@ -26,13 +27,13 @@ M.ARGS = mty'pkgrock' {
 }
 
 M.rockpath = function(dir, tag)
-  return ds.path.concat{dir, tag..'.rockspec'}
+  return pth.concat{dir, tag..'.rockspec'}
 end
 
 -- make a rock and return rock, rockpath, PKG
 M.makerock = function(dir)
   local path = dir
-  if not dir:find'/PKG.lua$' then path = ds.path.concat{dir, 'PKG.lua'} end
+  if not dir:find'/PKG.lua$' then path = pth.concat{dir, 'PKG.lua'} end
   print('... loading pkg', path)
   local p = pkg.load('noname', path)
   local rock = p.rockspec or {}
@@ -42,7 +43,7 @@ M.makerock = function(dir)
   rock.source = rock.source or {}; local s = rock.source
   local tag = (rock.package..'-'..rock.version)
   s.url = s.url or p.url
-  s.dir = s.dir or dir
+  s.dir = s.dir or pth.concat{pth.last(p.url), dir} -- luarocks#1675
   s.tag = s.tag or tag
   rock.description = rock.description or {}; local d = rock.description
   d.summary  = d.summary  or p.summary
@@ -67,7 +68,7 @@ M.makerock = function(dir)
 end
 
 M.loadrock = function(dir)
-  local p = pkg.load(dir, ds.path.concat{dir, 'PKG.lua'})
+  local p = pkg.load(dir, pth.concat{dir, 'PKG.lua'})
   local rpath = M.rockpath(dir, p.name..'-'..p.version)
   return rpath, pkg.load(p.name, rpath)
 end
@@ -120,7 +121,7 @@ M.exe = function(t)
   end
   if t.upload then for _, rp in ipairs(rpaths) do
     print('uploading', rp)
-    local dir, rockname = ds.path.last(rp)
+    local dir, rockname = pth.last(rp)
     execute(UPLOAD, dir, rockname, t.upload)
   end end
 end
