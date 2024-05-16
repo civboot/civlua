@@ -4,7 +4,7 @@ Civix contains standard unix functions that exist in most language's "sys"
 library such as `sleep`, `epoch`, etc. It also contains a powerful `Sh{}` type and
 convieience `sh()` function for executing system shell commands, either
 synchronously or asynchronously using the LAP protocol (see
-[lib/lap](../lib/lap))
+[lib/lap](../lap))
 
 ```
 $ lua
@@ -15,6 +15,6 @@ $ lua
 > for line in require'ds'.lines(out) do ... something per line ... end
 ```
 
-Civix depends on the [fd](../lib/fd/README.md) library for async file
+Civix depends on the [fd](../fd/README.md) library for async file
 descriptors and other filedescriptor functionality.
 
