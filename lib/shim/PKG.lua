@@ -1,5 +1,5 @@
 name     = 'shim'
-version  = '0.1-2'
+version  = '0.1-3'
 url      = 'git+http://github.com/civboot/civlua'
 summary  = "write scripts for Lua, execute from shell"
 homepage = "https://github.com/civboot/civlua/blob/main/lib/shim/README.md"
