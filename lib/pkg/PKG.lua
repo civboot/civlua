@@ -2,7 +2,7 @@
 -- Obviously you cannot import pkg using pkg (you must require'pkglib')
 
 name     = 'pkg'
-version  = '0.1-12'
+version  = '0.1-13'
 url      = 'git+http://github.com/civboot/civlua'
 summary  = "better lua package creation and importing"
 homepage = "https://github.com/civboot/civlua/blob/main/lib/pkg/README.md"

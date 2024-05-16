@@ -14,7 +14,7 @@ local civix = require'civix'
 local push, sfmt = table.insert, string.format
 local pth = ds.path
 
-local UPLOAD = [[cd %s && luarocks upload %s --api-key=%s]]
+local UPLOAD = [[luarocks upload %s --api-key=%s]]
 
 local M = {DOC=DOC}
 
@@ -43,7 +43,7 @@ M.makerock = function(dir)
   rock.source = rock.source or {}; local s = rock.source
   local tag = (rock.package..'-'..rock.version)
   s.url = s.url or p.url
-  s.dir = s.dir or pth.concat{pth.last(p.url), dir} -- luarocks#1675
+  s.dir = s.dir or pth.concat{select(2, pth.last(p.url)), dir} -- luarocks#1675
   s.tag = s.tag or tag
   rock.description = rock.description or {}; local d = rock.description
   d.summary  = d.summary  or p.summary
@@ -121,8 +121,7 @@ M.exe = function(t)
   end
   if t.upload then for _, rp in ipairs(rpaths) do
     print('uploading', rp)
-    local dir, rockname = pth.last(rp)
-    execute(UPLOAD, dir, rockname, t.upload)
+    execute(UPLOAD, rp, t.upload)
   end end
 end
 
