@@ -2,7 +2,7 @@ name     = 'civix'
 summary  = "Simple but effective Lua type system using metatables"
 homepage = "https://github.com/civboot/civlua/blob/main/lib/civix/README.md"
 license  = "UNLICENSE"
-version  = '0.1-5'
+version  = '0.1-6'
 url      = 'git+http://github.com/civboot/civlua'
 srcs = {
   'civix.lua',

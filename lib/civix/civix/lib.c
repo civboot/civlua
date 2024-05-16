@@ -7,14 +7,13 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+#include <unistd.h>
 #include <dirent.h>
 #include <time.h>
 #include <poll.h>
 #include <signal.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
-
-#include "fd.h"
 
 // ---------------------
 // -- Utilities
