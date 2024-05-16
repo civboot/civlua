@@ -2,7 +2,7 @@
 -- Obviously you cannot import pkg using pkg (you must require'pkglib')
 
 name     = 'pkg'
-version  = '0.1-14'
+version  = '0.1-15'
 url      = 'git+http://github.com/civboot/civlua'
 summary  = "local and recursive require"
 homepage = "https://github.com/civboot/civlua/blob/main/lib/pkg/README.md"

@@ -1,5 +1,5 @@
 name     = 'lap'
-version  = '0.1-1'
+version  = '0.1-3'
 url      = 'git+http://github.com/civboot/civlua'
 summary  = "Lua Asynchronous Protocol and helper library"
 homepage = "https://github.com/civboot/civlua/blob/main/lib/lap/README.md"

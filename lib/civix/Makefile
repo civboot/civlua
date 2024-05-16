@@ -7,7 +7,6 @@
 NAME  = civix
 FILES = $(NAME)/lib.c
 OUT   = $(NAME)/lib
-DEPS  = -I../fd
 LUA_VERSION = lua
 
 UNAME := $(shell uname)
@@ -23,10 +22,10 @@ BuildLinux: $(FILES)
 	# vcmd:       $(_VCMD)
 	# vcmd2:      $(_VCMD2)
 	# lua version $(LUA_VERSION)
-	$(CC) $(FILES) $(DEPS) -fPIC -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -shared -o $(OUT).so
+	$(CC) $(FILES) -fPIC -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -shared -o $(OUT).so
 
 BuildDarwin:
-	$(CC) $(FILES) $(DEPS) $(shell pkg-config lua --cflags) -c -O2 -fPIC   -o $(OUT).o
+	$(CC) $(FILES) $(shell pkg-config lua --cflags) -c -O2 -fPIC   -o $(OUT).o
 	$(CC) $(OUT).o -bundle -undefined dynamic_lookup -all_load     -o $(OUT).so
 
 # BuildWindows: TODO

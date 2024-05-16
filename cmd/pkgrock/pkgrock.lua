@@ -91,7 +91,6 @@ M.exe = function(t)
   end end
   for _, dir in ipairs(t) do
     local rpath, rock = M.loadrock(dir)
-    mty.print('!! loaded rock', rpath, rock)
     push(rpaths, rpath); push(tags, assert(rock.source.tag))
   end
   if gitops.tag then

@@ -153,7 +153,7 @@ local function _fileFn(path, args, out) -- got a file from walk
 end
 
 local function _defaultFn(path, ftype, args) if args.log then
-  wln(args.log, sfmt('!! Unknown ftype=%s: %s', ftype, path))
+  wln(args.log, sfmt('?? Unknown ftype=%s: %s', ftype, path))
 end end
 
 local function argPats(args)

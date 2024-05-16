@@ -62,7 +62,6 @@ M.Parser = mty'Parser'{
 }
 
 M.fmtSpec = function(s, f)
-  print'!! fmtSpec'
   if type(s) == 'string' then
     return add(f, string.format("%q", s))
   end
@@ -376,7 +375,7 @@ M.assertParse=function(t) -- {dat, spec, expect, dbg=false, root=RootSpec{}}
       print(table.concat(b))
     else
       print('\n#### FORMATTED:'); print(eStr)
-      print('!! Note: They format the same but they differ')
+      print('## Note: They format the same but they differ')
       civtest.assertEq(t.expect, result)
     end
     assert(false, 'failed parse test')

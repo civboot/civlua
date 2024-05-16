@@ -225,12 +225,6 @@ M.Sh = mty'Sh' {
 getmetatable(M.Sh).__call = function(T, args, fds)
   local sh = mty.construct(T, fds or {})
   if type(args) == 'string' then args = shim.parseStr(args) end
-  -- if #args == 1 then
-  --   local p = shim.parseStr(args[1])
-  --   mty.print('!! parsed arg[1]:', p)
-  --   table.move(p, 1, #p, 1, args) -- p[...] -> args[...]
-  --   mty.print('!! parsed args', args)
-  -- end
   sh.args = assert(shim.expand(args), 'must provide args')
   return sh
 end
@@ -276,7 +270,6 @@ M.ShFin = mty'ShFin'{
 -- operation is done.
 M.Sh.finish = function(sh, other)
   other = M.ShFin(other or {})
-  mty.print('!! finish', other)
   local inpf = other.stdin  or sh.stdin
   local outf = other.stdout or sh.stdout
   if other.input then assert(inpf, 'provided input without stdin') end

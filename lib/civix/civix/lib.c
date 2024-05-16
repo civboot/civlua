@@ -7,14 +7,13 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+#include <unistd.h>
 #include <dirent.h>
 #include <time.h>
 #include <poll.h>
 #include <signal.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
-
-#include "fd.h"
 
 // ---------------------
 // -- Utilities
@@ -235,7 +234,6 @@ static int l_sh(LS *L) {
   int inp = luaL_optinteger(L, 4, -1);
   int out = luaL_optinteger(L, 5, -1);
   int err = luaL_optinteger(L, 6, STDERR_FILENO);
-  printf("!! sh inp=%i out=%i err=%i\n", inp, out, err);
 
   struct sh* sh = (struct sh*)lua_newuserdata(L, sizeof(struct sh));
   sh->pid = 0; sh->env = env;

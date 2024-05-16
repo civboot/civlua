@@ -26,6 +26,7 @@ local function pexists(p)
   return f and (f:close() or true) or false
 end
 local function passert(p)
+  if type(p) == 'table' then return p end -- no validation on tables
   if #p == 0           then error('empty path')                          end
   if p:sub(1,1) == '/' then error('root path (/a/b) not permitted: '..p) end
   if p:match('%.%.')   then error('backtrack (/../) not permitted: '..p) end
@@ -139,7 +140,7 @@ M.get = function(name, fallback)
   local pkg = M.load(pkgname, pjoin(pkgdir, 'PKG.lua'))
   -- search in srcs for lua modules
   for mname, mpath in pairs(M.modules(pkg.srcs)) do
-    if mname == name and mpath:match'%.lua$' then
+    if mname == name and type(mpath) == 'string' and mpath:match'%.lua$' then
       package.loaded[mname] = dofile(pjoin(pkgdir, mpath))
       return package.loaded[mname]
     end

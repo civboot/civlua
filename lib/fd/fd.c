@@ -95,9 +95,7 @@ static void* FDT_run(void* d) {
   FDT* fdt = (FDT*) d;
   uint64_t unused;
   while(true) {
-    printf("!! FDT_run loop top\n");
     EV_WAIT(fdt);
-    printf("!! FDT_run wait done\n");
     if(fdt->stopped) break;
     fdt->meth(&fdt->fd);
   }
@@ -364,7 +362,6 @@ static int l_FD_read(LS* L) {
   lua_pushinteger(L, fd->code); return 1;
 }
 static int l_FDT_read(LS* L) {
-  printf("!! FDT_read\n");
   FDT* fdt = toFDT(L); FDT_READY(fdt);
   fdt->fd.ctrl = luaL_optnumber(L, 2, 0);
   FDT_START(fdt, FD_read);
@@ -388,7 +385,6 @@ static int l_FD_write(LS* L) {
 // FDT_write may only be called once. We copy the string
 // so the pthread owns it
 static int l_FDT_write(LS* L) {
-  printf("!! FDT_write\n");
   FDT* fdt = toFDT(L); FDT_READY(fdt);
   size_t len; const char* s = luaL_checklstring(L, 2, &len);
   int si = luaL_optinteger(L, 3, 0);
@@ -475,9 +471,7 @@ void FDT_destroy(FDT* fdt) {
   if(!fdt->stopped) {
     fdt->stopped = 1;
     EV_POST(fdt); pthread_join(fdt->th, NULL);
-    printf("!! EV_DESTROY\n");
     EV_DESTROY(fdt);
-    printf("!! EV_DESTROY done\n");
   }
   FD_close(&fdt->fd);
 }
