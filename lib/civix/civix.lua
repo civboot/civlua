@@ -327,7 +327,7 @@ M.sh = function(cmd)
     mty.errorf('Command failed with rc=%s: %q%s', rc, cmd,
       (out and (#out > 0) and ('\nSTDOUT:\n'..out) or ''))
   end
-  return out
+  return out, sh
 end
 
 return M

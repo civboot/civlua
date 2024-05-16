@@ -23,6 +23,14 @@ test('sh', function()
   assertErrorPat('Command failed with rc=', function()
     sh{'commandNotExist', 'blah'}
   end)
+
+  local path = D..'echo.test'
+  local f = io.open(path, 'w')
+  local out, s = sh{'echo', 'send to file', stdout=f}
+  assertEq(nil, out)
+  assert(s.stdin); assertEq(nil, s.stdout)
+  -- assertEq('send to file\n', f:read()) -- TODO: bad filedescriptor (9)
+  assertEq('send to file\n', io.open(path):read())
   collectgarbage()
 end)
 

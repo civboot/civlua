@@ -225,7 +225,7 @@ static int l_sh_wait(LS *L) {
 // Note: all file-descriptors are integers
 // Note: file descriptors are only returned if they have been created
 //   by pipe(), they are not returned if they were passed in.
-#define CLOSE(fno) if(fno >= 0) close(fno)
+#define CLOSE(fno) if(fno >= 0) { close(fno); }
 static int l_sh(LS *L) {
   const char* command = luaL_checkstring(L, 1);
   char **env = NULL; int _unused;
@@ -258,14 +258,14 @@ static int l_sh(LS *L) {
     return execvp(command, argv);
   } // else parent
   sh->pid = pid;
-  CLOSE(ch_w); CLOSE(ch_r);
+  if(out < 0) CLOSE(ch_w); if(inp < 0) CLOSE(ch_r); // close created children
   // only return if we created the fileno
   if(out >= 0) lua_pushnil(L); else lua_pushinteger(L, pr_r);
   if(inp >= 0) lua_pushnil(L); else lua_pushinteger(L, pr_w);
   return 3;
   error:
-    if(ch_r) close(ch_r); if(ch_w) close(ch_w);
-    if(pr_r) close(pr_r); if(pr_w) close(pr_w);
+    if(out < 0) CLOSE(ch_w); if(inp < 0) CLOSE(ch_r);
+    if(pr_r) close(pr_r);    if(pr_w) close(pr_w);
     luaL_error(L, "failed sh (%s): %s", err, SERR); return 0;
 }
 #undef CLOSE
