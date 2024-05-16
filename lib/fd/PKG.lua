@@ -2,11 +2,11 @@ name     = 'fd'
 summary  = "filedescriptor interfaces"
 homepage = "https://github.com/civboot/civlua/blob/main/lib/fd/README.md"
 license  = "UNLICENSE"
-version  = '0.1-3'
+version  = '0.1-5'
 url      = 'git+http://github.com/civboot/civlua'
 srcs = {
   'fd.lua',
-  ['fd.sys'] = {'fd.c', 'fd.h'},
+  ['fd.sys'] = 'fd.c',
 }
 libs = {
   ['fd.sys'] = 'fd.so',

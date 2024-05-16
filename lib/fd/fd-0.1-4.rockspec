@@ -1,10 +1,7 @@
 build = {
   modules={
     fd="fd.lua",
-    ["fd.sys"]={
-      "fd.c",
-      "fd.h"
-    }
+    ["fd.sys"]="fd.c",
   },
   type="builtin"
 }
@@ -18,7 +15,7 @@ package = "fd"
 rockspec_format = "3.0"
 source = {
   dir="civlua/lib/fd",
-  tag="fd-0.1-3",
+  tag="fd-0.1-4",
   url="git+http://github.com/civboot/civlua"
 }
-version = "0.1-3"
+version = "0.1-4"
