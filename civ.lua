@@ -35,10 +35,10 @@ shim{
   help=DOC,
   subs = {
     help = {help=M.HELP, exe=M.help},
-    ele  = ele.main,
+    -- ele  = ele.main,
     ff   = ff.shim,
     rock = rock.shim,
-    -- ['cxt.html'] = require'cxt.html'.shim,
+    ['cxt.html'] = require'cxt.html'.shim,
   },
 }
 

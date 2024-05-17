@@ -15,19 +15,7 @@ print('Logs in', outpath)
 
 local function entered() mty.pnt('?? entered raw mode') end
 local function exited()  mty.pnt('?? exited raw mode')  end
-if mode == 'raw' then
-  print('Starting raw. Ctrl+C to exit.')
-  term.enterRawMode(out, out, entered, exited)
-  mty.pnt('?? Starting raw input loop')
-  local inp = term.rawinput()
-  while true do
-    local c = inp()
-    out:write('?? raw: ', c, '\n'); out:flush()
-    if c == 3 then break end
-  end
-  term.exitRawMode()
-  os.exit(0)
-elseif mode == 'input' then
+if mode == 'input' then
   print('?? Starting input. Ctrl+C to exit.')
   term.enterRawMode(out, out, entered, exited)
   local inp = term.niceinput()

@@ -4,13 +4,16 @@ LUA = lua -e "require'pkglib':install()"
 
 .PHONY: ele
 
-all: test
+all: test demo
 
 test: build
 	mkdir -p ./.out/
 	$(PRETEST) $(LUA) test.lua
 	# lua civix/runterm.lua view 0.05
 	# Tests complete
+
+demo: build
+	$(PRETEST) $(LUA) cmd/ele/demo_term.lua
 
 build: fd civix
 

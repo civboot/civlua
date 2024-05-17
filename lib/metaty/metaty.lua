@@ -343,16 +343,20 @@ M.format = function(s, ...)
 end
 
 M.fprint = function(f, ...)
-  f.to = io.stdout; local len = select('#', ...)
+  local len = select('#', ...)
   for i=1,len do
-    f(select(i, ...)); if i < len then add(f, '\t') end
-  end; add(f, '\n')
+    local v = select(i, ...)
+    if type(v) == 'string' then f:write(v) else f(v) end
+    if i < len then f:write'\t' end
+  end; f:write'\n'
 end
+
 
 -- print(...) but with Fmt
 M.print  = function(...) return M.fprint(M.Fmt{to=io.stdout}, ...) end
 -- pretty print(...) with Fmt:pretty
 M.pprint = function(...) return M.fprint(M.Fmt:pretty{to=io.stdout}, ...) end
+M.eprint = function(...) return M.fprint(M.Fmt{to=io.stderr}, ...) end
 
 M.errorf  = function(...)    error(M.format(...), 2)             end
 M.assertf = function(a, ...) return a or error(M.format(...), 2) end
