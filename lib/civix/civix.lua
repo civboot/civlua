@@ -239,7 +239,6 @@ M.Sh.start = function(sh)
     _fnomaybe(sh.stdin), _fnomaybe(sh.stdout, true),
     _fnomaybe(sh.stderr, fd.sys.STDERR_FILENO)
   )
-  mty.print('!! lib.sh', ex, _r, _w)
   sh._sh = ex
   if _r then r:_setfileno(_r); r:toNonblock() else r = nil end
   if _w then w:_setfileno(_w); w:toNonblock() else w = nil end
@@ -247,6 +246,8 @@ M.Sh.start = function(sh)
   sh.stdin, sh.stdout, sh.stderr = w, r, l
   return sh
 end
+
+M.Sh.isDone = function(sh) return sh._sh:isDone() end
 
 -- wait for shell to complete, returns return code
 M.Sh.wait = function(sh)

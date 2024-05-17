@@ -108,6 +108,20 @@ end
 -- Squash a string: convert all whitespace to repl (default=' ').
 M.squash = function(s, repl) return s:gsub('%s+', repl or ' ') end
 
+-- utf8 sub
+-- Note: this is NOT very performant.
+M.usub = function(s, si, ei)
+  ei = ei or -1
+  local len = utf8.len(s)
+  if     ei < 0 then   ei = len + ei + 1
+  elseif ei > len then ei = len end
+  if ei < si then return '' end
+
+  local sp = utf8.offset(s, si)
+  if ei == len then return s:sub(sp) end
+  return s:sub(sp, utf8.offset(s, ei + 1) - 1)
+end
+
 ---------------------
 -- lines module
 

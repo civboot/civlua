@@ -183,12 +183,13 @@ static int l_fstmode(LS *L) {
 // ---------------------
 // -- Shell
 const char* SH_META  = "civix.Sh";
+#define tolsh(L) ((struct sh*)luaL_checkudata(L, 1, SH_META))
 
 struct sh {
   pid_t pid; char** env; // note: env only set if needs freeing
   int rc;
 };
-#define tolsh(L) ((struct sh*)luaL_checkudata(L, 1, SH_META))
+
 struct sh* sh_wait(struct sh* sh, int flags) {
   if(sh->pid) {
     siginfo_t infop = {0};
@@ -196,7 +197,7 @@ struct sh* sh_wait(struct sh* sh, int flags) {
       fprintf(stderr, "ERROR: waitid failed\n");
       return sh;
     }
-    if(infop.si_pid == sh->pid) {
+    if(infop.si_pid) {
       sh->pid = 0; sh->rc = infop.si_status;
     }
   }
@@ -211,7 +212,7 @@ static int l_sh_gc(LS *L) { sh_gc(tolsh(L)); return 0; }
 
 // () -> isDone: asynchronously determine whether Sh is done.
 static int l_sh_isDone(LS *L) {
-  lua_pushboolean(L, sh_wait(tolsh(L), WNOHANG)->pid);
+  lua_pushboolean(L, !sh_wait(tolsh(L), WNOHANG)->pid);
   return 1;
 }
 

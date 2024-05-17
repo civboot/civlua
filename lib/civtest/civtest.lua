@@ -66,33 +66,29 @@ M.test = function(name, fn)
   print('# Test', name)
   fn()
   M.assertGlobals(ge)
+  collectgarbage()
 end
 
 -- Runs until yields non-truthy. See lib/lap/README.md
-M.lapTest = function(name, fn)
+M.asyncTest = function(name, fn)
+  local lap = require'lap'
+  local civix = require'civix'
+  local Lap = civix.Lap()
+  lap.async() -- switch to async mode
+
   local ge = ds.copy(_G)
-  print('# Test', name, "(lap)")
-  local cor = coroutine.create(fn)
-  while true do
-    local ok, res = coroutine.resume(cor)
-    if not ok then
-      error(table.concat{
-        'Coroutine error: ', debug.traceback(cor, res), '\n',
-        'Error in lapTest',
-      })
-    end
-    if not res then break end
-  end
+
+  print('# Test', name, "(async)")
+  Lap:run{fn}
+
   M.assertGlobals(ge)
+  collectgarbage()
+  lap.sync() -- switch back to sync
 end
 
--- Globally require a module. ONLY FOR TESTS.
-M.grequire = function(mod)
-  if type(mod) == 'string' then mod = require(mod) end
-  for k, v in pairs(mod) do
-    mty.assertf(not _G[k], '%s already global', k); _G[k] = v
-  end
-  return mod
+M.lapTest = function(name, fn)
+  M.test(name, fn)
+  M.asyncTest(name, fn)
 end
 
 return M

@@ -332,7 +332,6 @@ local function toSync()
   LAP_ASYNC = false
 end; push(LAP_FNS_SYNC,  toSync)
 
-
 if LAP_ASYNC then toAsync() else toSync() end
 
 return M

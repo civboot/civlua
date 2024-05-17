@@ -6,7 +6,7 @@ local pkg = require
 local T = require'civtest'
 local dir = ''
 
-T.test('[[core]]', function()
+print'[[core]]'
   assert(os.execute[[
     lua -e "require'pkglib'.install()" lib/shim/test.lua --test=test.lua
   ]])
@@ -17,9 +17,8 @@ T.test('[[core]]', function()
   dofile(dir..'lib/vcds/test.lua')
   dofile(dir..'lib/civtest/test.lua')
   dofile(dir..'lib/doc/test.lua')
-end)
 
-T.test('[[libs]]', function()
+print'[[libs]]'
   dofile(dir..'lib/pegl/tests/test_pegl.lua')
   dofile(dir..'lib/pegl/tests/test_lua.lua')
   dofile(dir..'lib/tso/test.lua')
@@ -31,8 +30,9 @@ T.test('[[libs]]', function()
   dofile(dir..'lib/civix/test.lua')
   dofile(dir..'lib/civix/test_term.lua')
   dofile(dir..'lib/patience/test.lua')
-end)
 
-T.test('[[apps]]', function()
+print'[[apps]]'
   dofile(dir..'cmd/ff/test.lua')
-end)
+
+print'[[ele]]'
+  dofile(dir..'cmd/ele/tests/test_term.lua')

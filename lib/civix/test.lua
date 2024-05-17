@@ -2,7 +2,8 @@ METATY_CHECK = true
 
 local mty = require'metaty'
 local ds = require'ds'
-local test, assertEq, assertErrorPat; ds.auto'civtest'
+local T = require'civtest'
+local assertEq, assertErrorPat; ds.auto'civtest'
 local fd = require'fd'
 
 local M  = require'civix'
@@ -10,7 +11,7 @@ local lib = require'civix.lib'
 local D = 'lib/civix/'
 local push = table.insert
 
-test('sh', function()
+T.lapTest('sh', function()
   local sh, o = M.sh
 
   assertEq('',           sh'true')
@@ -42,7 +43,7 @@ test('sh', function()
   collectgarbage()
 end)
 
-test('time', function()
+T.lapTest('time', function()
   local period, e1 = ds.Duration(0.001), M.epoch()
   for i=1,10 do
     M.sleep(period)
@@ -67,7 +68,7 @@ local function mkTestTree()
   return d
 end
 
-test('mkTree', function()
+T.lapTest('mkTree', function()
   local d = mkTestTree()
   assertEq(ds.readPath'.out/civix/a.txt', 
   'for civix a test')
@@ -75,7 +76,7 @@ test('mkTree', function()
   assertEq(ds.readPath'.out/civix/b/b2.txt', '2 in dir b/')
 end)
 
-test('fd-perf', function()
+T.test('fd-perf', function()
   local Kib = string.rep('123456789ABCDEF\n', 64)
   local data = string.rep(Kib, 500)
   local count, run = 0, true

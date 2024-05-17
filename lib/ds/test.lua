@@ -123,6 +123,12 @@ four
   assertEq([['hello']], M.q1str[[hello]])
   assertEq([['\'hello\'']], M.q1str[['hello']])
   assertEq([['"hello"']], M.q1str[["hello"]])
+
+  local u8 = "high🫸 five 🫷!"
+  assertEq("high", M.usub(u8, 1, 4))
+  assertEq("🫸 f", M.usub(u8, 5, 7))
+  assertEq("🫷!",  M.usub(u8, -2))
+  assertEq("e 🫷", M.usub(u8, -4, -2))
 end)
 
 test("table", function()

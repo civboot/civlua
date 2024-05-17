@@ -7,6 +7,7 @@ local M = mod and mod'civix.term' or {}
 local mty = require'metaty'
 local ds  = require'ds'
 local char, byte, slen = string.char, string.byte, string.len
+local push = table.insert
 local function getb() return string.byte(io.read(1)) end
 local function min(a, b) return (a<b) and a or b end
 
@@ -258,21 +259,29 @@ M.FakeTerm.stop  = ds.noop
 M.FakeTerm.clear = function(t)
   t:golc(1, 1)
   for l=1,t.h do
-    local line = t[l] or {}
-    for c=1,t.w do line[c] = '' end
+    t[l] = t[l] or {}
+    local line = t[l]
+    for c=1,t.w do line[c] = ' ' end
   end
 end
 M.FakeTerm.golc = function(t, l, c) t:assertLC(l, c); t.l, t.c = l, c end
 M.FakeTerm.cleareol = function(t, l, c)
-  t:assertLC(l, c)
-  local line = t[l]
-  for i=c, t.w do line[i] = '' end
+  if l and c then t:golc(l, c) end
+  local line = t[t.l]
+  for i=t.c, t.w do line[i] = ' ' end
 end
 M.FakeTerm.size = function(t) return t.h, t.w end
 M.FakeTerm.set = function(t, l, c, char)
   t:assertLC(l, c)
-  assert(char); assert(char ~= '')
+  assert(char); assert(utf8.len(char) == 1)
   t[l][c] = char
+end
+M.FakeTerm.write = function(t, s)
+  t:assertLC(t.l, t.c + #s - 1)
+  print('!! write', t.l, t.c)
+  local line = t[t.l]
+  for i=1, #s do line[t.c + i - 1] = s:sub(i,i) end
+  t.c = t.c + #s
 end
 M.FakeTerm.assertLC = function(t, l, c) -- utility for testing
   if 1 > l or l > t.h then error("l OOB: " .. l) end
