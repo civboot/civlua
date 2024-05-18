@@ -3,6 +3,7 @@
 --
 -- Can override default `io` module for global async mode.
 local M = mod and mod'fd' or {}
+local trace = LOG and LOG.trace or function() end
 local S = require'fd.sys' -- fd.c, fd.h
 
 local sfmt      = string.format

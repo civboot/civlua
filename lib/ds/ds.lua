@@ -12,6 +12,17 @@ M.retTrue  = function() return true  end
 M.retFalse = function() return false end
 M.newTable = function() return {}    end
 
+-- srcloc(level) -> path/to/src.lua:123, level=0 is calling function
+M.srcloc = function(level)
+  local tb  = debug.traceback(nil, 2 + (level or 0))
+  return assert(tb:match'.*traceback:%s+([^\n]+:%d+)')
+end
+
+M.shortloc = function(level)
+  local tb  = debug.traceback(nil, 2 + (level or 0))
+  return assert(tb:match'.*traceback:%s+[^\n]-([^\n/]*/[^/\n]+:%d+)')
+end
+
 M.coroutineErrorMessage = function(cor, err)
   return table.concat{
     'Coroutine error: ', debug.stacktraceback(cor, err), '\n',
@@ -694,7 +705,6 @@ getmetatable(M.Set).__call = function(T, t)
   return mty.constructUnchecked(T, s)
 end
 
--- Pretty much the same as tblFmt except don't print values
 M.Set.__fmt = function(self, f)
   add(f, 'Set'); add(f, f.tableStart);
   local keys = {}; for k in ipairs(self) do add(keys, k) end

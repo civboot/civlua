@@ -1,12 +1,16 @@
 METATY_CHECK = true
+local function testloc()  return require'ds'.srcloc() end
+local function testshort() return require'ds'.shortloc() end
+local loc1, loc2 = testloc(), testshort()
 
 local push, yield = table.insert, coroutine.yield
+local pop = table.remove
 local sfmt = string.format
 
 local mty = require'metaty'
 local M = require'ds'
 
-local test, assertEq, assertErrorPat; M.auto'civtest'
+local test, assertEq, assertMatch, assertErrorPat; M.auto'civtest'
 
 local min, max, bound, isWithin, sort2, decAbs
 local indexOf, copy, deepcopy
@@ -22,6 +26,11 @@ local df = require'ds.file'
 
 ---------------------
 -- ds.lua
+
+test('loc', function()
+  assertEq('lib/ds/test.lua:4', loc1)
+  assertEq('ds/test.lua:4', loc2)
+end)
 
 test('bool and none', function()
   local none = assert(M.none)
@@ -497,4 +506,44 @@ for speed.
   assertEq(appended, fx[6]); assertEq(5, fx._seeks)
   f:seek'set'
   assertEq(orig..appended..'\n', f:read'a')
+end)
+
+-----------------
+-- Log
+test('log', function()
+  local L = require'ds.log'
+  local fn, lvl = assert(LOGFN), assert(LOGLEVEL)
+  local logs = {}
+  LOGLEVEL = L.levelInt'INFO'
+  LOGFN = function(lvl, loc, msg, data)
+    push(logs, {lvl, msg, data}) -- skip loc
+  end
+  L.info'test info';              assertEq({'I', 'test info'}, pop(logs))
+  L.info('test %s', 'fmt');       assertEq({'I', 'test fmt'}, pop(logs))
+  L.info('test %s', 'data', {1});
+    assertEq({'I', 'test data', {1}}, pop(logs))
+
+  LOGLEVEL = L.levelInt'WARN'
+  L.info'test no log'; assertEq(0, #logs)
+  L.warn'test warn';   assertEq({'W', 'test warn'}, pop(logs))
+  assertEq(0, #logs)
+  LOGFN = fn
+
+  LOGLEVEL = L.levelInt'INFO'
+  -- test writing
+  local cxt = ' [%d:]+ ds/test.lua:%d+: '
+  local stderr = io.stderr
+  local f = io.tmpfile(); io.stderr = f
+  local assertLog = function(lvl, expect, fn, ...)
+    f:seek'set'; fn(...); f:seek'set'
+    local res = f:read'a'
+    local m = lvl..cxt; assertMatch(m, res)
+    assertEq(expect, res:sub(#res:match(m) + 1))
+  end
+  assertLog('I', 'test 42\n', L.info, 'test %s', 42)
+  assertLog('I', 'test data {1}\n', L.info, 'test %s', 'data', {1})
+  assertLog('I', 't {\n  1, 2, \n  key=42\n}\n',
+            L.info, 't', {1, 2, key=42})
+  io.stderr = stderr
+  LOGLEVEL = lvl
 end)

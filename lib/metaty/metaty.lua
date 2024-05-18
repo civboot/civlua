@@ -281,7 +281,7 @@ end
 M.Fmt.tableKey = function(f, k)
   if type(k) ~= 'string' or M.KEYWORD[k]
      or tonumber(k) or k:find'[^_%w]' then
-    add(f, '['); f(k); add(f, ']')
+    add(f, '['); f:key(k); add(f, ']')
   else add(f, k) end
 end
 M.Fmt['nil']      = function(f)     add(f, 'nil')             end
@@ -290,6 +290,9 @@ M.Fmt.number      = function(f, n)  add(f, sfmt(f.numfmt, n)) end
 M.Fmt.string      = function(f, s)  add(f, sfmt(f.strfmt, s)) end
 M.Fmt.thread      = function(f, th) add(f, tostring(th))      end
 M.Fmt.userdata    = function(f, ud) add(f, tostring(ud))      end
+M.Fmt.key         = function(f, v)
+  if type(v) == 'string' then add(f, sfmt('%q', v)) else f(v) end
+end
 M.Fmt['function'] = function(f, fn) add(f, sfmt('fn%q[%s]', M.fninfo(fn))) end
 
 -- Recursively format a table.
@@ -333,13 +336,16 @@ M.tostring = function(v, fmt)
   return table.concat(fmt(v))
 end
 
-M.format = function(s, ...)
-  local i, args = 0, {...}
-  return s:gsub('%%.', function(m)
+M.format = function(fmt, ...)
+  local i, args, tc = 0, {...}, table.concat
+  local out = fmt:gsub('%%.', function(m)
     if m == '%%' then return '%' end
-    i = i + 1; if m ~= '%q' then return sfmt(m, args[i]) end
-    return table.concat(M.Fmt{}(args[i]))
+    i = i + 1
+    return m ~= '%q' and sfmt(m, args[i])
+      or tc(M.Fmt{}(args[i]))
   end)
+  assert(i == #args, 'invalid #args')
+  return out
 end
 
 M.fprint = function(f, ...)

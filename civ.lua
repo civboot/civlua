@@ -1,6 +1,7 @@
 #!/usr/bin/lua
 DOC, FIELD_DOC                 = false, false
 METATY_CHECK, METATY_DOC       = true,  true
+LOGFN,        LOGLEVEL         = false, false
 LAP_READY,    LAP_ASYNC        = false, false
 LAP_FNS_SYNC, LAP_FNS_ASYNC    = false, false
 
@@ -20,6 +21,8 @@ local ff    = require'ff'
 local ele   = require'ele'
 local rock  = require'pkgrock'
 civtest.assertGlobals(initG)
+
+LOG = require'ds.log'
 
 M.HELP = [[help module.any.object
 Get help for any lua module (including ones in civlib)]]
