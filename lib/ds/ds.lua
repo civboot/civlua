@@ -4,6 +4,7 @@ local M = mod and mod'ds' or {}
 
 local mty = require'metaty'
 local add, pop, sfmt = table.insert, table.remove, string.format
+local ulen, uoff     = utf8.len, utf8.offset
 local EMPTY = {}
 
 M.SKIP     = 'skip'
@@ -119,18 +120,18 @@ end
 -- Squash a string: convert all whitespace to repl (default=' ').
 M.squash = function(s, repl) return s:gsub('%s+', repl or ' ') end
 
--- utf8 sub
--- Note: this is NOT very performant.
-M.usub = function(s, si, ei)
+-- utf8 sub. If len is pre-computed you can pass it in for better performance.
+M.usub = function(s, si, ei, len)
   ei = ei or -1
-  local len = utf8.len(s)
-  if     ei < 0 then   ei = len + ei + 1
-  elseif ei > len then ei = len end
-  if ei < si then return '' end
-
-  local sp = utf8.offset(s, si)
-  if ei == len then return s:sub(sp) end
-  return s:sub(sp, utf8.offset(s, ei + 1) - 1)
+  if si < 0 then len = len or ulen(s); si = len + si + 1 end
+  local so = uoff(s, si)
+  if not so then return '' end
+  if ei < 0 then
+    if ei == -1 then return s:sub(so) end
+    len = len or ulen(s); ei = len + ei + 1
+  end
+  local eo = uoff(s, ei - si + 2, so) -- offset of character after ei
+  return s:sub(so, eo and (eo - 1) or nil)
 end
 
 ---------------------
