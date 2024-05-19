@@ -15,7 +15,7 @@ PKG_LOOKUP = PKG_LOOKUP or setmetatable({}, {__mode='v'}) -- name -> obj
 if package.config:sub(1,1) == '\\' then
   M.UNAME = 'Windows'
 else
-  local f = io.popen'uname'; M.UNAME = f:read'*a':match'%w+'; f:close()
+  local f = io.popen'uname'; M.UNAME = f:read'*a':match'%w+'; assert(f:close())
 end
 
 -------------------

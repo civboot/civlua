@@ -19,7 +19,7 @@ local push, sfmt = table.insert, string.format
 
 M.time = function() return os.date():match'%d%d:%d%d:%d%d' end
 
-M.levelMap = {
+M.LEVELS = {
   SLIENT=0, [0]='SILENT',
   C=1, CRIT=1,
   E=2, ERROR=2,
@@ -28,18 +28,20 @@ M.levelMap = {
   T=5, TRACE=5,
   'CRIT', 'ERROR', 'WARN', 'INFO', 'TRACE'
 }
+M.SHORT = {'C', 'E', 'W', 'I', 'T'}
 function M.levelInt(lvl)
-  local lvl = tonumber(lvl) or M.levelMap[lvl]
+  local lvl = tonumber(lvl) or M.LEVELS[lvl]
   -- assert level is valid
-  return M.levelMap[lvl] and lvl or error('invalid lvl: '..tostring(lvl))
+  return M.LEVELS[lvl] and lvl or error('invalid lvl: '..tostring(lvl))
 end
-function M.levelStr(lvl) return M.levelMap[M.levelInt(lvl)] end
+function M.levelStr(lvl) return M.LEVELS[M.levelInt(lvl)] end
 function M.setLevel(lvl) _G.LOGLEVEL = M.levelInt(lvl) end -- GLOBAL
 M.setLevel(LOGLEVEL or os.getenv'LOGLEVEL' or 0)
 
 function M.logFn(lvl, loc, msg, data)
+  if LOGLEVEL < lvl then return end
   local f = mty.Fmt:pretty{sfmt('%s %s %s: %s',
-     lvl, M.time(), loc, msg
+     M.SHORT[lvl], M.time(), loc, msg
   )}
   if data then push(f, ' '); f(data) end
   push(f, '\n')
@@ -59,10 +61,10 @@ local function _log(lvl, fmt, ...)
   LOGFN(lvl, ds.shortloc(2), msg, args[i + 1])
 end
 
-function M.crit(...)  if LOGLEVEL >= 1 then _log('C', ...) end end
-function M.err(...)   if LOGLEVEL >= 2 then _log('E', ...) end end
-function M.warn(...)  if LOGLEVEL >= 3 then _log('W', ...) end end
-function M.info(...)  if LOGLEVEL >= 4 then _log('I', ...) end end
-function M.trace(...) if LOGLEVEL >= 5 then _log('T', ...) end end
+function M.crit(...)  if LOGLEVEL >= 1 then _log(1, ...) end end
+function M.err(...)   if LOGLEVEL >= 2 then _log(2, ...) end end
+function M.warn(...)  if LOGLEVEL >= 3 then _log(3, ...) end end
+function M.info(...)  if LOGLEVEL >= 4 then _log(4, ...) end end
+function M.trace(...) if LOGLEVEL >= 5 then _log(5, ...) end end
 
 return M

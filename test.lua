@@ -1,21 +1,27 @@
-METATY_CHECK = true
-METATY_DOC   = true
+DOC, METATY_CHECK              = false, false
+LAP_READY,    LAP_ASYNC        = false, false
+LAP_FNS_SYNC, LAP_FNS_ASYNC    = false, false
 
-local civ = dofile'civ.lua'
-local pkg = require
-local T = require'civtest'
-local dir = ''
+-- for early tests / libs to log
+LOGLEVEL = tonumber(os.getenv'LOGLEVEL') or false
+LOGFN = function(lvl, msg) if LOGLEVEL >= lvl then
+  io.stderr:write(string.format('LOG(%s): %s\n', lvl, msg))
+end end
+
+local dir = '' -- leave here incase support is needed for filedir
 
 print'[[core]]'
   assert(os.execute[[
     lua -e "require'pkglib'.install()" lib/shim/test.lua --test=test.lua
   ]])
-  dofile(dir..'lib/fd/test.lua')
   dofile(dir..'lib/metaty/test.lua')
+  dofile(dir..'lib/civtest/test.lua')
+
+  LOGFN = require'ds.log'.logFn
   dofile(dir..'lib/ds/test.lua')
+  dofile(dir..'lib/fd/test.lua')
   dofile(dir..'lib/lap/test.lua')
   dofile(dir..'lib/vcds/test.lua')
-  dofile(dir..'lib/civtest/test.lua')
   dofile(dir..'lib/doc/test.lua')
 
 print'[[libs]]'

@@ -518,14 +518,14 @@ test('log', function()
   LOGFN = function(lvl, loc, msg, data)
     push(logs, {lvl, msg, data}) -- skip loc
   end
-  L.info'test info';              assertEq({'I', 'test info'}, pop(logs))
-  L.info('test %s', 'fmt');       assertEq({'I', 'test fmt'}, pop(logs))
+  L.info'test info';              assertEq({4, 'test info'}, pop(logs))
+  L.info('test %s', 'fmt');       assertEq({4, 'test fmt'}, pop(logs))
   L.info('test %s', 'data', {1});
-    assertEq({'I', 'test data', {1}}, pop(logs))
+    assertEq({4, 'test data', {1}}, pop(logs))
 
   LOGLEVEL = L.levelInt'WARN'
   L.info'test no log'; assertEq(0, #logs)
-  L.warn'test warn';   assertEq({'W', 'test warn'}, pop(logs))
+  L.warn'test warn';   assertEq({3, 'test warn'}, pop(logs))
   assertEq(0, #logs)
   LOGFN = fn
 

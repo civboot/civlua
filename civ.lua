@@ -1,28 +1,27 @@
 #!/usr/bin/lua
-DOC, FIELD_DOC                 = false, false
-METATY_CHECK, METATY_DOC       = true,  true
-LOGFN,        LOGLEVEL         = false, false
+mod = mod or require'pkg'.mod
+
+-- civ module: packaged dev environment
+local M = mod'civ'
+
+DOC, METATY_CHECK              = false, false
 LAP_READY,    LAP_ASYNC        = false, false
 LAP_FNS_SYNC, LAP_FNS_ASYNC    = false, false
 
-local DOC = [[civ: bundled Civboot applications]]
-local M = {}
 
 local initG = {}; for k in pairs(_G) do initG[k] = true end
-local pkg     = require
 
 local shim    = require'shim'
 local mty     = require'metaty'
 local civtest = require'civtest'
-local doc     = require'doc'
 local ds      = require'ds'
 
+local doc   = require'doc'
 local ff    = require'ff'
 local ele   = require'ele'
 local rock  = require'pkgrock'
 civtest.assertGlobals(initG)
 
-LOG = require'ds.log'
 
 M.HELP = [[help module.any.object
 Get help for any lua module (including ones in civlib)]]

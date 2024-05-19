@@ -22,7 +22,6 @@ M.getCheck = function() return CHECK end
 
 ---------------
 -- general functions and constants
-FIELD_DOC = FIELD_DOC or {}
 M.DEPTH_ERROR = '{!max depth reached!}'
 local add, sfmt = table.insert, string.format
 

@@ -41,7 +41,6 @@ Short:
   F: no special features (%pat parsing, etc)
 ]]
 
-METATY_DOC = true
 local shim = require'shim'
 local mty = require'metaty'
 local ds = require'ds'
