@@ -31,12 +31,14 @@ M.LEVELS = {
 M.SHORT = {'C', 'E', 'W', 'I', 'T'}
 function M.levelInt(lvl)
   local lvl = tonumber(lvl) or M.LEVELS[lvl]
-  -- assert level is valid
   return M.LEVELS[lvl] and lvl or error('invalid lvl: '..tostring(lvl))
 end
 function M.levelStr(lvl) return M.LEVELS[M.levelInt(lvl)] end
-function M.setLevel(lvl) _G.LOGLEVEL = M.levelInt(lvl) end -- GLOBAL
-M.setLevel(LOGLEVEL or os.getenv'LOGLEVEL' or 0)
+-- set the global logging level (default=os.getenv'LOGLEVEL')
+function M.setLevel(lvl)
+  _G.LOGLEVEL = M.levelInt(lvl or os.getenv'LOGLEVEL' or 0)
+end
+M.setLevel(LOGLEVEL)
 
 function M.logFn(lvl, loc, msg, data)
   if LOGLEVEL < lvl then return end

@@ -3,7 +3,7 @@ LAP_READY,    LAP_ASYNC        = false, false
 LAP_FNS_SYNC, LAP_FNS_ASYNC    = false, false
 
 -- for early tests / libs to log
-LOGLEVEL = tonumber(os.getenv'LOGLEVEL') or false
+LOGLEVEL = tonumber(os.getenv'LOGLEVEL') or 0
 LOGFN = function(lvl, msg) if LOGLEVEL >= lvl then
   io.stderr:write(string.format('LOG(%s): %s\n', lvl, msg))
 end end
@@ -17,7 +17,9 @@ print'[[core]]'
   dofile(dir..'lib/metaty/test.lua')
   dofile(dir..'lib/civtest/test.lua')
 
-  LOGFN = require'ds.log'.logFn
+  local log = require'ds.log'
+
+  LOGFN = log.logFn; log.setLevel()
   dofile(dir..'lib/ds/test.lua')
   dofile(dir..'lib/fd/test.lua')
   dofile(dir..'lib/lap/test.lua')
@@ -29,12 +31,11 @@ print'[[libs]]'
   dofile(dir..'lib/pegl/tests/test_lua.lua')
   dofile(dir..'lib/tso/test.lua')
   dofile(dir..'lib/luck/test.lua')
-  dofile(dir..'cmd/cxt/tests/test_cxt.lua')
+  dofile(dir..'cmd/cxt/test.lua')
   dofile(dir..'lib/rebuf/tests/test_motion.lua')
   dofile(dir..'lib/rebuf/tests/test_gap.lua')
   dofile(dir..'lib/rebuf/tests/test_buffer.lua')
   dofile(dir..'lib/civix/test.lua')
-  dofile(dir..'lib/civix/test_term.lua')
   dofile(dir..'lib/patience/test.lua')
 
 print'[[apps]]'
