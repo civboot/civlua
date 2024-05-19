@@ -1,7 +1,7 @@
 -- helpers for testing ele and related libraries
 M = mod and mod'ele.testing' or {}
 
-local print = require'metaty'.print
+local info = require'ds.log'.info
 local term = require'civix.term'
 
 local x = require'civix'
@@ -15,13 +15,14 @@ function M.runterm(fn)
   local stdout, stderr = io.tmpfile(), io.tmpfile()
   term.Term:start(stdout, stderr)
   local ok, err = xpcall(fn, debug.traceback, term.Term)
-  term.Term:stop()
-  print('\n## runterm done'..(ok and '' or ('\nERROR: '..err)))
+  term.Term:stop(); io.stderr:write'\n'
+  info('runterm '..(ok and 'DONE' or ('ERROR:\n'..err)))
   stdout:flush();   stderr:flush()
   stdout:seek'set'; stderr:seek'set'
   local out, err = stdout:read'a', stderr:read'a'
-  if #out > 0 then print('## STDOUT:\n'..out) end
-  if #err > 0 then print('## STDERR:\n'..err) end
+  assert(#out > 0)
+  if #out > 0 then info('STDOUT:\n'..out) end
+  if #err > 0 then info('STDERR:\n'..err) end
   stdout:close(); stderr:close()
   assert(ok, err)
 end

@@ -353,9 +353,6 @@ M.De._assertf = function(d, v, ...)
   if not v then d:_errorf(...) end
   return v
 end
-M.De.pnt = function(d, ...)
-  mty.print(sfmt('De.pntf %s.%s:', d._l, d._c), ...)
-end
 
 local function deConst(v, msg) return function(d)
   d:_assertEnd("invalid %s value", msg); return v

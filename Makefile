@@ -1,6 +1,7 @@
 
 LUA_VERSION = lua
 LUA = lua -e "require'pkglib':install()"
+PRETEST=LOGLEVEL=INFO
 
 .PHONY: ele
 

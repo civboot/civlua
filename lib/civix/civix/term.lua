@@ -278,7 +278,6 @@ M.FakeTerm.set = function(t, l, c, char)
 end
 M.FakeTerm.write = function(t, s)
   t:assertLC(t.l, t.c + #s - 1)
-  print('!! write', t.l, t.c)
   local line = t[t.l]
   for i=1, #s do line[t.c + i - 1] = s:sub(i,i) end
   t.c = t.c + #s

@@ -99,8 +99,6 @@ M.loadall = function(paths)
     'Unknown dependencies: '..mty.tostring(missing)
   )end
   local sorted = ds.dag.sort(depsMap)
-  mty.print('?? depsMap', depsMap)
-  mty.print('?? sorted', sorted)
   local built = {}
   for _, name in ipairs(sorted) do
     local env, l = {}, lucks[name]
@@ -108,7 +106,6 @@ M.loadall = function(paths)
       'Cyclic dependency detected involving %q. Sorted: %q',
       name, sorted
     ))end
-    mty.print('?? loading:', l)
     for localName, depName in pairs(l.deps) do
       local dep = built[depName]
       if not dep then error(mty.format(
@@ -117,7 +114,6 @@ M.loadall = function(paths)
       ))end
       env[localName] = ds.deepcopy(dep)
     end
-    mty.print('?? with env:', name, env)
     built[name] = assert(M.loadraw(l.dat, env))
   end
   return built, lucks, sorted
@@ -129,7 +125,6 @@ M.load = function(path)
   local dat = df.LinesFile{io.open(path), len=true}
   local meta = M.loadMeta(dat, path)
   assert(not meta or not meta.deps, 'single must have no deps')
-  mty.print('?? single', meta)
   return assert(M.loadraw(dat))
 end
 

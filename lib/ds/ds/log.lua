@@ -34,7 +34,8 @@ function M.levelInt(lvl)
   return M.levelMap[lvl] and lvl or error('invalid lvl: '..tostring(lvl))
 end
 function M.levelStr(lvl) return M.levelMap[M.levelInt(lvl)] end
-LOGLEVEL = M.levelInt(LOGLEVEL or os.getenv'LOGLEVEL' or 0) -- GLOBAL
+function M.setLevel(lvl) _G.LOGLEVEL = M.levelInt(lvl) end -- GLOBAL
+M.setLevel(LOGLEVEL or os.getenv'LOGLEVEL' or 0)
 
 function M.logFn(lvl, loc, msg, data)
   local f = mty.Fmt:pretty{sfmt('%s %s %s: %s',
