@@ -8,7 +8,9 @@ local gap    = require'rebuf.gap'
 local motion = require'rebuf.motion'
 local types = require'ele.types'
 
-local add = table.insert
+local push = table.insert
+local span = require'ds.lines'.span
+
 INT_ID = INT_ID or 1
 
 M.Edit = mty'Edit' {
@@ -112,7 +114,7 @@ end
 
 M.Edit.remove=function(e, ...)
   local l1, c1 = e.l, e.c
-  local l, c, l2, c2 = gap.lcs(...)
+  local l, c, l2, c2 = span(...)
   local g, ch = e.buf.gap
   local len = #g
   l, l2 = ds.bound(l, 1, len), ds.bound(l2, 1, len)
@@ -143,7 +145,7 @@ end
 
 M.Edit.replace=function(e, s, ...)
   local l1, c1 = e.l, e.c
-  local l, c = gap.lcs(...)
+  local l, c = span(...)
   assert(e.l == l and (not c or c1 == c))
   local chR = e:remove(...);
   local chI = e:insert(s)  ;
@@ -172,9 +174,9 @@ M.Edit.draw=function(e, term, isRight)
   -- assert(e.fh == 0 or e.fh == e.th)
   -- assert(e.fw == 0 or e.fw == e.tw)
   for i, line in ipairs(e.buf.gap:sub(e.vl, e.vl + e.th - 1)) do
-    add(e.canvas, string.sub(line, e.vc, e.vc + e.tw - 1))
+    push(e.canvas, string.sub(line, e.vc, e.vc + e.tw - 1))
   end
-  while #e.canvas < e.th do add(e.canvas, '') end
+  while #e.canvas < e.th do push(e.canvas, '') end
   local l = e.tl
   for _, line in ipairs(e.canvas) do
     local c = e.tc

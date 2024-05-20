@@ -1,5 +1,5 @@
 local mty = require'metaty'
-local ds  = require'ds'
+local ds, lines  = require'ds', require'ds.lines'
 local df  = require'ds.file'
 local pegl = require'pegl'
 local lua = require'pegl.lua'
@@ -46,7 +46,7 @@ M.loadMeta = function(dat, path)
   local meta = p:parse(lua.call); if not meta then return end
   local metaDat = {'return'}
   local ok, res = ds.eval(
-    'return '..ds.lines.sub(dat, pegl.nodeSpan(meta)),
+    'return '..lines.sub(dat, pegl.nodeSpan(meta)),
     {}, 'luck metadata of '..path)
   mty.assertf(ok, 'Failed to load luck metadata: %s\nError:%s', path, meta)
   return res

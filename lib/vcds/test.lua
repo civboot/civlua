@@ -1,5 +1,6 @@
 local mty = require'metaty'
 local ds  = require'ds'
+local lines = require'ds.lines'
 local test, assertEq; ds.auto'civtest'
 local Diff, Keep, Change; local M = ds.auto'vcds'
 local push = table.insert
@@ -99,7 +100,7 @@ test('patch', function()
 end)
 
 local function findAnchorTest(expectBl, expectLines, base, anchors, above)
-  local baseMap = ds.lines.map(base)
+  local baseMap = lines.map(base)
   local aDiffs = {}; for _, a in ipairs(anchors) do
     push(aDiffs, Diff(-1, '@', a))
   end
@@ -130,7 +131,7 @@ end)
 
 test('create patch', function()
   local base = {'1', '2', '3', '4', '5', '6', '7'}
-  local baseMap = ds.lines.map(base)
+  local baseMap = lines.map(base)
    assertEq(M.Patch{bl=0,
      '0.a',
    }, M.createPatch(base, baseMap,

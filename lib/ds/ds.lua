@@ -134,80 +134,6 @@ M.usub = function(s, si, ei, len)
   return s:sub(so, eo and (eo - 1) or nil)
 end
 
----------------------
--- lines module
-
--- Address lines span via either (l,l2) or (l,c, l2,c2)
-local function span(l, c, l2, c2)
-  if not (l2 or c2) then return l, nil, c, nil end --(l,   l2)
-  if      l2 and c2 then return l, c, l2, c2   end --(l,c, l2,c2)
-  error'span must be 2 or 4 indexes: (l, l2) or (l, c, l2, c2)'
-end
-
--- lines module, when called splits a string into lines.
---
--- lines(text) -> table of lines
---
--- Also has functions for working with a table of lines.
---
---   lines.sub(myLines, l, c, l2, c2)
-M.lines = setmetatable({span=span}, {
-  __call=function(_, text, index)
-    local t = {}
-    for _, line in mty.rawsplit, text, {'\n', index or 1} do
-      add(t, line)
-    end; return t
-  end,
-})
-
-local function _lsub(sub, slen, t, ...)
-  local l, c, l2, c2 = span(...)
-  local len = #t
-  local lb, lb2 = M.bound(l, 1, len), M.bound(l2, 1, len+1)
-  if lb  > l  then c = 1 end
-  if lb2 < l2 then c2 = nil end -- EoL
-  l, l2 = lb, lb2
-  local s = {} -- s is sub
-  for i=l,l2 do add(s, t[i]) end
-  if    nil == c then -- skip, only lines
-  elseif #s == 0 then s = '' -- empty
-  elseif l == l2 then
-    assert(1 == #s); local line = s[1]
-     s = sub(line, c, c2)
-    if c2 > slen(line) and l2 < len then s = s..'\n' end
-  else
-    local last = s[#s]
-    s[1] = sub(s[1], c); s[#s] = sub(last, 1, c2)
-    if c2 > #last and l2 < len then add(s, '') end
-    s = table.concat(s, '\n')
-  end
-  return s
-end
-
-M.lines.sub  = function(...) return _lsub(string.sub, string.len, ...) end
-M.lines.usub = function(...) return _lsub(M.usub,     utf8.len,   ...) end
-
-M.lines.diff = function(linesL, linesR)
-  local i = 1
-  while i <= #linesL and i <= #linesR do
-    local lL, lR = linesL[i], linesR[i]
-    if lL ~= lR then
-      return i, assert(M.diffCol(lL, lR))
-    end
-    i = i + 1
-  end
-  if #linesL < #linesR then return #linesL + 1, 1 end
-  if #linesR < #linesL then return #linesR + 1, 1 end
-  return nil
-end
-
--- create a table of lineText -> {lineNums}
-M.lines.map = function(lines)
-  local map = {}; for l, line in ipairs(lines) do
-    add(M.getOrSet(map, line, M.emptyTable), l)
-  end
-  return map
-end
 
 --------------------
 -- Working with file paths
@@ -1016,10 +942,11 @@ M.auto = function(mod, i)
   return mod, i
 end
 
--- Autorequire: `R.foo` is same as `require'foo'`
+-- indexrequire: `R.foo` is same as `require'foo'`
+-- This is mostly used in scripts/etc
 M.R = setmetatable({}, {
-  __tostring=function() return "R.foo->require'foo'" end,
   __index=function(_, k) return require(k) end,
+  __newindex=function() error"don't set fields" end,
 })
 
 return M

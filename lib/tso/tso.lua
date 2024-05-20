@@ -7,7 +7,8 @@
 local M = mod and mod'tso' or {}
 
 local mty = require'metaty'
-local ds  = require'ds'; local lines = ds.lines
+local ds  = require'ds'
+local lines = require'ds.lines'
 local concat, push, sfmt = table.concat, table.insert, string.format
 local byte, char = string.byte, string.char
 
@@ -123,7 +124,7 @@ end
 -- add line comment
 M.Ser.comment =
 (function(ser, c)
-  if type(c) ~= 'table' then c = ds.lines(c) end
+  if type(c) ~= 'table' then c = lines(c) end
   ser:_finishLine(); for _, line in ipairs(c) do
     ser:_push'; '; ser:_push(line); ser:_finishLine()
   end

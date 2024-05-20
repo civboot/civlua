@@ -3,6 +3,7 @@ METATY_CHECK = true
 local push = table.insert
 local mty = require'metaty'
 local ds = require'ds'
+local lines = require'ds.lines'
 
 local test, assertEq; ds.auto'civtest'
 
@@ -33,7 +34,7 @@ local function assertRows(expected, rows, specs, only)
   end
 
   if not only or only == 'de' then
-    de = M.De{ds.lines(expected), specs=specs}
+    de = M.De{lines(expected), specs=specs}
     assertEq(rows, de:all())
   end
   return ser, de
@@ -265,7 +266,7 @@ test('comment', function()
 end)
 
 test('autospec', function()
-  local de = M.De{ds.lines[[
+  local de = M.De{lines[[
   !0	"a	"b
   !1	"c	"d
   #0
@@ -306,7 +307,7 @@ $10	$20	$30
   push(ser.dat, '')
   assertEq(expect, l2str(ser.dat))
 
-  local de = M.De{ds.lines(expect), specs={Abc=Abc}}
+  local de = M.De{lines(expect), specs={Abc=Abc}}
   assertEq({
     Abc{a=10,   b=20,   c=30},
     Abc{a=0x10, b=0x20, c=0x30},

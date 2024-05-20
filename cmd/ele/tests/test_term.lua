@@ -1,7 +1,7 @@
 -- Test display functionality (not mutation)
 
 local T = require'civtest'
-local ds   = require'ds'
+local ds, lines = require'ds', require'ds.lines'
 local term = require'civix.term'
 local et   = require'ele.testing'
 local edit = require'ele.edit'

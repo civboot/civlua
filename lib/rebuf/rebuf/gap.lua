@@ -11,7 +11,8 @@
 local M = mod and mod'rebuf.gap' or {}
 
 local mty = require'metaty'
-local ds  = require'ds'
+local ds, lines  = require'ds', require'ds.lines'
+local span = lines.span
 
 local add, pop, concat = table.insert, table.remove, table.concat
 local sub = string.sub
@@ -29,24 +30,6 @@ M.strdivide = function(s, i)
 end
 M.strinsert = function (s, i, v)
   return string.sub(s, 1, i-1) .. v .. string.sub(s, i)
-end
-
--- Get line+column information
-local function lcs(l, c, l2, c2)
-  if nil == l2 and nil == c2 then return l, nil, c, nil end
-  if nil == l2 or  nil == c2 then error(
-    'must provide 2 or 4 indexes (l, l2) or (l, c, l2, c2'
-  )end;
-  return l, c, l2, c2
-end; M.lcs = lcs
-
--- get the left/top most location of lcs
-M.lcsLeftTop = function(...)
-  local l, c, l2, c2 = lcs(...)
-  c, c2 = c or 1, c2 or 1
-  if l == l2 then return l, min(c, c2) end
-  if l < l2  then return l, c end
-  return l2, c2
 end
 
 local Gap = mty'Gap' {
@@ -70,7 +53,7 @@ end
 
 Gap.new = function(s)
   s = s or {''}
-  if type(s) == 'string' then s = ds.lines(s) end
+  if type(s) == 'string' then s = lines(s) end
   return Gap{ bot=s, top={} }
 end
 
@@ -98,63 +81,11 @@ end
 Gap.__ipairs = function(g) return ipairsGap, g, 0 end
 Gap.__pairs  = Gap.__ipairs
 
-Gap.last=function(g) return g:get(#g) end
 Gap.bound=function(g, l, c, len, line)
   len = len or Gap.__len(g)
   l = bound(l, 1, len)
   if not c then return l end
   return l, bound(c, 1, #(line or g:get(l)) + 1)
-end
-
--- Get the l, c with the +/- offset applied
-Gap.offset=function(g, off, l, c)
-  local len, m, llen, line = Gap.__len(g)
-  -- 0 based index for column
-  l = bound(l, 1, len); c = bound(c - 1, 0, #g:get(l))
-  while off > 0 do
-    line = g:get(l)
-    if nil == line then return len, #g[len] + 1 end
-    llen = #line + 1 -- +1 is for the newline
-    c = bound(c, 0, llen); m = llen - c
-    if m > off then c = c + off; off = 0;
-    else l, c, off = l + 1, 0, off - m
-    end
-    if l > len then return len, #g:get(len) + 1 end
-  end
-  while off < 0 do
-    line = g:get(l)
-    if nil == line then return 1, 1 end
-    llen = #line
-    c = bound(c, 0, llen); m = -c - 1
-    if m < off then c = c + off; off = 0
-    else l, c, off = l - 1, Gap.CMAX, off - m
-    end
-    if l <= 0 then return 1, 1 end
-  end
-  l = bound(l, 1, len)
-  return l, bound(c, 0, #g:get(l)) + 1
-end
-
-Gap.offsetOf=function(g, l, c, l2, c2)
-  local off, len, llen = 0, Gap.__len(g)
-  l, c = g:bound(l, c, len);  l2, c2 = g:bound(l2, c2, len)
-  c, c2 = c - 1, c2 - 1 -- column math is 0-indexed
-  while l < l2 do
-    llen = #g:get(l) + 1
-    c = bound(c, 0, llen)
-    off = off + (llen - c)
-    l, c = l + 1, 0
-  end
-  while l > l2 do
-    llen = #g:get(l) + ((l==len and 0) or 1)
-    c = bound(c, 0, llen)
-    off = off - c
-    l, c = l - 1, Gap.CMAX
-  end
-  llen = #g:get(l) + ((l==len and 0) or 1)
-  c, c2 = bound(c, 0, llen), bound(c2, 0, llen)
-  off = off + (c2 - c)
-  return off
 end
 
 -- set the gap to the line
@@ -180,7 +111,7 @@ end
 -- get the sub-buf (slice)
 -- of lines (l, l2) or str (l, c, l2, c2)
 Gap.sub=function(g, ...)
-  local l, c, l2, c2 = lcs(...)
+  local l, c, l2, c2 = span(...)
   local len = Gap.__len(g)
   local lb, lb2 = bound(l, 1, len), bound(l2, 1, len+1)
   if lb  > l  then c = 1 end
@@ -251,7 +182,7 @@ end
 
 -- remove from (l, c) -> (l2, c2), return what was removed
 Gap.remove=function(g, ...)
-  local l, c, l2, c2 = lcs(...);
+  local l, c, l2, c2 = span(...);
   local len = Gap.__len(g)
   if l2 > len then l2, c2 = len, Gap.CMAX end
   g:setGap(l2)
@@ -290,7 +221,7 @@ end
 
 -- extend onto gap
 Gap.extend=function(g, s)
-  if type(s) == 'string' then s = ds.lines(s) end
+  if type(s) == 'string' then s = lines(s) end
   for _, l in ipairs(s) do add(g.bot, l) end
 end
 

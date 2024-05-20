@@ -2,8 +2,9 @@
 
 local mty, ty = require'metaty'; ty = mty.ty
 local ds      = require'ds'
+local lines   = require'ds.lines'
 local civtest = require'civtest'
-local extend, lines = ds.extend, ds.lines
+local extend  = ds.extend
 local add, sfmt = table.insert, string.format
 
 local M = {}
@@ -392,7 +393,7 @@ end
 
 M.Parser.__tostring=function() return 'Parser()' end
 M.Parser.new = function(T, dat, root)
-  dat = (type(dat)=='string') and ds.lines(dat) or dat
+  dat = (type(dat)=='string') and lines(dat) or dat
   return mty.construct(T, {
     dat=dat, l=1, c=1, line=dat[1], lines=#dat,
     root=root or M.RootSpec{},

@@ -1,5 +1,6 @@
 local mty = require'metaty'
 local ds = require'ds'
+local lines = require'ds.lines'
 local motion  = require'rebuf.motion'
 local gap  = require'rebuf.gap'
 
@@ -35,7 +36,7 @@ local Buffer, Change, ChangeStart = M.Buffer, M.Change, M.ChangeStart
 
 local function redoRm(ch, b)
   local len = #ch.s - 1; if len < 0 then return ch end
-  local l2, c2 = b.gap:offset(len, ch.l, ch.c)
+  local l2, c2 = lines.offset(b.gap, len, ch.l, ch.c)
   b.gap:remove(ch.l, ch.c, l2, c2)
   return ch
 end
@@ -153,7 +154,7 @@ Buffer.insert=function(b, s, l, c)
 end
 
 Buffer.remove=function(b, ...)
-  local l, c, l2, c2 = gap.lcs(...)
+  local l, c, l2, c2 = lines.span(...)
   local lt, ct = motion.topLeft(l, c, l2, c2)
   lt, ct = b.gap:bound(lt, ct)
   local ch = b.gap:sub(l, c, l2, c2)

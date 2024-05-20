@@ -4,7 +4,7 @@
 
 local pkg = require'pkglib'
 local mty = require'metaty'
-local ds = require'ds'
+local ds, lines = require'ds', require'ds.lines'
 local civix  = require'civix'
 local test, assertEq; ds.auto'civtest'
 local ff = require'ff'
@@ -89,19 +89,19 @@ end)
 test('ff fsub', function()
   local f = io.open('.out/TEST', 'w+')
   ff.findfix{dir, r=true, fpat='b%d.txt', log=f}
-  local result = ds.lines(seekRead(f)); table.sort(result)
+  local result = lines(seekRead(f)); table.sort(result)
   local expected = {'', ".out/ff/b/b1.txt", ".out/ff/b/b2.txt"}
   assertEq(expected, result)
 
   ff.findfix{dir, r=true, fpat='b(%d.txt)', fsub='bb%1', log=f}
-  local result = ds.lines(seekRead(f)); table.sort(result)
+  local result = lines(seekRead(f)); table.sort(result)
   local expected = {'', ".out/ff/b/bb1.txt", ".out/ff/b/bb2.txt"}
   assertEq(expected, result)
   assertEq('mostly empty', ds.readPath(".out/ff/b/b2.txt"))
 
   ff.findfix{dir, m=true, r=true, fpat='b(%d.txt)', fsub='bb%1',
              log=f}
-  local result = ds.lines(seekRead(f)); table.sort(result)
+  local result = lines(seekRead(f)); table.sort(result)
   local expected = {'', ".out/ff/b/bb1.txt", ".out/ff/b/bb2.txt"}
   assertEq(expected, result)
   assert(not civix.exists".out/ff/b/b1.txt")

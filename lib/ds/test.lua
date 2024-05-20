@@ -8,7 +8,8 @@ local pop = table.remove
 local sfmt = string.format
 
 local mty = require'metaty'
-local M = require'ds'
+local M, lines = require'ds', require'ds.lines'
+local testing = require'ds.testing'
 
 local test, assertEq, assertMatch, assertErrorPat; M.auto'civtest'
 
@@ -20,7 +21,6 @@ local getOrSet, setPath, drain, reverse
 local get, getPath
 local eval
 local Set, LL, Duration, Epoch
-local lines
 local M = M.auto'ds'
 local df = require'ds.file'
 
@@ -317,6 +317,10 @@ test('lines.sub', function()
   assertEq("'",      lsub(l, 1, 9, 1, 9))
   assertEq("s",      lsub(l, 1, 10, 1, 10))
   assertEq(" nice",  lsub(l, 1, 11, 1, 15))
+end)
+
+test('lines.offset', function()
+  testing.testOffset(lines(testing.DATA.offset))
 end)
 
 test('path', function()

@@ -8,7 +8,7 @@ local cxt  = require'cxt'
 local shim = require'shim'
 local civtest = require'civtest'
 local add, sfmt = table.insert, string.format
-local ds = require'ds'; local lines = ds.lines
+local ds, lines = require'ds', require'ds.lines'
 local df = require'ds.file'
 
 local NAME_SYM = '☍'
@@ -66,7 +66,7 @@ end
 local noPKind = ds.Set{'ul', 'blockquote'}
 
 local function addLine(w, line)
-  ds.extend(w, ds.lines(table.concat(line)))
+  ds.extend(w, lines(table.concat(line)))
 end
 
 local function startFmt(w, n, kind, line)

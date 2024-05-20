@@ -1,5 +1,6 @@
 local mty = require'metaty'
 local ds = require'ds'
+local lines = require'ds.lines'
 
 local add, sfmt = table.insert, string.format
 
@@ -9,9 +10,9 @@ local M = {}
 -- Asserting
 
 M.diffFmt = function(f, sE, sR)
-  local linesE = ds.lines(sE)
-  local linesR = ds.lines(sR)
-  local l, c = ds.lines.diff(linesE, linesR)
+  local linesE = lines(sE)
+  local linesR = lines(sR)
+  local l, c = lines.diff(linesE, linesR)
   mty.assertf(l and c, '%s, %s\n', l, c)
   add(f, sfmt("! Difference line=%q (", l))
   add(f, sfmt('lines[%q|%q]', #linesE, #linesR))

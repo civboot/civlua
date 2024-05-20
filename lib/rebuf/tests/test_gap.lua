@@ -2,6 +2,7 @@ METATY_CHECK = true
 
 local mty = require'metaty'
 local ds  = require'ds'
+local dstest = require'ds.testing'
 local test, assertEq; ds.auto'civtest'
 local gap = require'rebuf.gap'
 local Gap = gap.Gap
@@ -104,54 +105,13 @@ test('sub', function()
   assertEq(" nice",  g:sub(1, 11, 1, 15))
 end)
 
--- test round-trip offset
-local function offsetRound(g, l, c, off, expect, expectOff)
-  local l2, c2 = g:offset(off, l, c)
-  assertEq(expect, {l2, c2})
-  local res = g:offsetOf(l, c, l2, c2)
-  assertEq(expectOff or off, res)
-end
-
-local OFFSET= '12345\n6789\n'
-local function _testOffset(g)
-  local l, c
-  offsetRound(g, 1, 2, 0,   {1, 2})
-  offsetRound(g, 1, 2, 1,   {1, 3})
-  -- here
-  offsetRound(g, 1, 1, 3,   {1, 4})
-  offsetRound(g, 1, 1, 4,   {1, 5}) -- '5'
-  offsetRound(g, 1, 1, 5,   {1, 6}) -- '\n'
-  offsetRound(g, 1, 1, 6,   {2, 1}) -- '6'
-  offsetRound(g, 1, 1, 9,   {2, 4}) -- '9'
-  offsetRound(g, 1, 1, 10,  {2, 5}) -- '\n'
-  offsetRound(g, 1, 1, 11,  {3, 1}) -- ''
-  offsetRound(g, 1, 1, 12,  {3, 1}, 11) -- EOF
-
-  offsetRound(g, 1, 5, -3,  {1, 2}) -- '2'
-  offsetRound(g, 1, 5, -4,  {1, 1}) -- '1'
-  offsetRound(g, 1, 5, -5,  {1, 1}, -4) -- '1'
-
-  offsetRound(g, 3, 1, -1,  {2, 5}) -- '\n'
-  offsetRound(g, 3, 1, -2,  {2, 4}) -- '9'
-  offsetRound(g, 3, 1, -3,  {2, 3}) -- '8'
-  offsetRound(g, 3, 1, -4,  {2, 2}) -- '7'
-  offsetRound(g, 3, 1, -5,  {2, 1}) -- '6'
-  offsetRound(g, 3, 1, -6,  {1, 6}) -- '\n'
-  offsetRound(g, 3, 1, -11, {1, 1}) -- '\n'
-  offsetRound(g, 3, 1, -12, {1, 1}, -11) -- BOF
-
-
-  -- Those are all "normal", let's do some OOB stuff
-  offsetRound(g, 1, 6 , 1, {2, 1})
-  offsetRound(g, 1, 10, 1, {2, 1}) -- note (1, 6) is EOL
-end
-
 test('offset', function()
-  local g = Gap.new(OFFSET)
-  _testOffset(g)
-  g:setGap(1) _testOffset(g)
-  g:setGap(2) _testOffset(g)
-  g:setGap(4) _testOffset(g)
+  local testOffset = dstest.testOffset
+  local g = Gap.new(dstest.DATA.offset)
+  testOffset(g)
+  g:setGap(1); testOffset(g)
+  g:setGap(2); testOffset(g)
+  g:setGap(4); testOffset(g)
 end)
 
 test('find', function()
