@@ -1,20 +1,32 @@
+local M = mod'ele.edit'
+
 -- #####################
 -- # Edit struct
-local pkg = require'pkglib'
-local ds = require'ds'
-local gap = require'rebuf.gap'
-local T = require'ele.types'
+local mty    = require'metaty'
+local ds     = require'ds'
+local gap    = require'rebuf.gap'
 local motion = require'rebuf.motion'
-local Edit, CursorChange = T.Edit, T.CursorChange
+local types = require'ele.types'
 
 local add = table.insert
+INT_ID = INT_ID or 1
 
-local M = {}
+M.Edit = mty'Edit' {
+  'id[int]',
+  'container', -- parent (Window/Model)
+  'canvas',
+  'buf[Buffer]',
+  'l[int]',     'c[int]', -- cursor line, col
+  'vl[int]',    'vc[int]', -- view   line, col (top-left)
+  'tl[int]',    'tc[int]', -- term   line, col (top-left)
+  'th[int]',    'tw[int]', -- term   height, width
+  'fh[int]',    'fw[int]', fh=0, fw=0, -- force h,w
+}
 
 -- Implements an edit view and state
-Edit.new=function(container, buf)
-  return Edit{
-    id=T.nextViewId(),
+M.Edit.new=function(container, buf)
+  return M.Edit{
+    id=types.uniqueId(),
     buf=buf,
     l=1, c=1, vl=1, vc=1,
     th=-1, tw=-1,
@@ -23,30 +35,30 @@ Edit.new=function(container, buf)
     canvas=nil,
   }
 end
-Edit.__tostring=function(e)
+M.Edit.__tostring=function(e)
   return string.format('Edit[id=%s]', e.id)
 end
-Edit.copy=function(e)
+M.Edit.copy=function(e)
   return ds.copy(e, {id=T.nextViewId()})
 end
-Edit.close=function(e)
+M.Edit.close=function(e)
   assert(not e.container, "Edit not removed before close")
 end
-Edit.forceHeight=function(e) return e.fh end
-Edit.forceWidth=function(e)  return e.fw end
-Edit.offset=function(e, off)
+M.Edit.forceHeight=function(e) return e.fh end
+M.Edit.forceWidth=function(e)  return e.fw end
+M.Edit.offset=function(e, off)
   return e.buf.gap:offset(off, e.l, e.c)
 end
-Edit.curLine= function(e) return e.buf.gap:get(e.l) end
-Edit.colEnd=function(e) return #e:curLine() + 1 end
-Edit.lastLine=function(e) return e.buf.gap:get(e:len()) end
+M.Edit.curLine= function(e) return e.buf.gap:get(e.l) end
+M.Edit.colEnd=function(e) return #e:curLine() + 1 end
+M.Edit.lastLine=function(e) return e.buf.gap:get(e:len()) end
 -- bound the column for the line
-Edit.boundCol= function(e, c, l)
-  return ds.bound(c, 1, #e.buf.gap:get(l or e.l) + 1)
+M.Edit.boundCol= function(e, c, l)
+  return ds.bound(c, 1, #e.buf[l or e.l] + 1)
 end
 
 -- update view to see cursor (if needed)
-Edit.viewCursor=function(e)
+M.Edit.viewCursor=function(e)
   -- if e.l > e:len() then e.l = e:len() end
   if e.l > e:len() then error(
     ('e.l OOB: %s > %s'):format(e.l, e:len())
@@ -62,32 +74,32 @@ end
 
 -----------------
 -- Helpers
-Edit.trailWs=function(e, msg)
-  local g = e.buf.gap
-  while g:get(#g - 1)    ~= ''
-        or g:get(#g - 2) ~= '' do
+M.Edit.trailWs=function(e, msg)
+  local b = e.buf
+  while b[#g - 1]   ~= ''
+        or b[#g - 2] ~= '' do
     e:append('')
   end
 end
 
-Edit.len = function(e) return e.buf:len() end
+M.Edit.len = function(e) return #e.buf end
 
 -----------------
 -- Mutations: these update the changes in the buffer
-Edit.changeStart=function(e) e.buf:changeStart(e.l, e.c) end
+M.Edit.changeStart=function(e) e.buf:changeStart(e.l, e.c) end
 
-Edit.changeUpdate2=function(e)
+M.Edit.changeUpdate2=function(e)
   local ch = assert(e.buf:getStart())
   ch.l2, ch.c2 = e.l, e.c
 end
-Edit.append=function(e, msg)
+M.Edit.append=function(e, msg)
   local l2 = e:len() + 1
   e.buf:append(msg)
   e.l, e.c = l2, 1
   e:changeUpdate2()
 end
 
-Edit.insert=function(e, s)
+M.Edit.insert=function(e, s)
   local ch = e.buf:insert(s, e.l, e.c);
   e.l, e.c = e.buf.gap:offset(#s, e.l, e.c)
   -- if causes cursor to move to next line, move to end of cur line
@@ -98,7 +110,7 @@ Edit.insert=function(e, s)
   e:changeUpdate2()
 end
 
-Edit.remove=function(e, ...)
+M.Edit.remove=function(e, ...)
   local l1, c1 = e.l, e.c
   local l, c, l2, c2 = gap.lcs(...)
   local g, ch = e.buf.gap
@@ -121,7 +133,7 @@ Edit.remove=function(e, ...)
   e:changeUpdate2()
 end
 
-Edit.removeOff=function(e, off, l, c)
+M.Edit.removeOff=function(e, off, l, c)
   if off == 0 then return end
   l, c = l or e.l, c or e.c;
   local l2, c2 = e.buf.gap:offset(ds.decAbs(off), l, c)
@@ -129,7 +141,7 @@ Edit.removeOff=function(e, off, l, c)
   e:remove(l, c, l2, c2)
 end
 
-Edit.replace=function(e, s, ...)
+M.Edit.replace=function(e, s, ...)
   local l1, c1 = e.l, e.c
   local l, c = gap.lcs(...)
   assert(e.l == l and (not c or c1 == c))
@@ -141,12 +153,12 @@ end
 
 -----------------
 -- Undo / Redo
-Edit.undo=function(e)
+M.Edit.undo=function(e)
   local chs = e.buf:undo(); if not chs then return end
   local c = assert(chs[1])
   e.l, e.c = c.l1, c.c1
 end
-Edit.redo=function(e)
+M.Edit.redo=function(e)
   local chs = e.buf:redo(); if not chs then return end
   local c = assert(chs[1])
   e.l, e.c = c.l2, c.c2
@@ -154,7 +166,7 @@ end
 
 -----------------
 -- Draw to terminal
-Edit.draw=function(e, term, isRight)
+M.Edit.draw=function(e, term, isRight)
   assert(term); e:viewCursor()
   e.canvas = {}
   -- assert(e.fh == 0 or e.fh == e.th)
@@ -182,7 +194,7 @@ Edit.draw=function(e, term, isRight)
 end
 
 -- Called by model for only the focused editor
-Edit.drawCursor=function(e, term)
+M.Edit.drawCursor=function(e, term)
   e:viewCursor()
   local c = ds.min(e.c, #e:curLine() + 1)
   term:golc(e.tl + (e.l - e.vl), e.tc + (c - e.vc))

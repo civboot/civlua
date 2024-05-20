@@ -160,7 +160,7 @@ M.lines = setmetatable({span=span}, {
   end,
 })
 
-M.lines.sub = function(t, ...)
+local function _lsub(sub, slen, t, ...)
   local l, c, l2, c2 = span(...)
   local len = #t
   local lb, lb2 = M.bound(l, 1, len), M.bound(l2, 1, len+1)
@@ -173,16 +173,19 @@ M.lines.sub = function(t, ...)
   elseif #s == 0 then s = '' -- empty
   elseif l == l2 then
     assert(1 == #s); local line = s[1]
-     s = string.sub(line, c, c2)
-    if c2 > #line and l2 < len then s = s..'\n' end
+     s = sub(line, c, c2)
+    if c2 > slen(line) and l2 < len then s = s..'\n' end
   else
     local last = s[#s]
-    s[1] = string.sub(s[1], c); s[#s] = string.sub(last, 1, c2)
+    s[1] = sub(s[1], c); s[#s] = sub(last, 1, c2)
     if c2 > #last and l2 < len then add(s, '') end
     s = table.concat(s, '\n')
   end
   return s
 end
+
+M.lines.sub  = function(...) return _lsub(string.sub, string.len, ...) end
+M.lines.usub = function(...) return _lsub(M.usub,     utf8.len,   ...) end
 
 M.lines.diff = function(linesL, linesR)
   local i = 1

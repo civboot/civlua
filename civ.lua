@@ -8,7 +8,6 @@ DOC, METATY_CHECK              = false, false
 LAP_READY,    LAP_ASYNC        = false, false
 LAP_FNS_SYNC, LAP_FNS_ASYNC    = false, false
 
-
 local initG = {}; for k in pairs(_G) do initG[k] = true end
 
 local shim    = require'shim'

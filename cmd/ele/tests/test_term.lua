@@ -1,7 +1,10 @@
+-- Test display functionality (not mutation)
+
 local T = require'civtest'
-local ds = require'ds'
+local ds   = require'ds'
 local term = require'civix.term'
-local et = require'ele.testing'
+local et   = require'ele.testing'
+local edit = require'ele.edit'
 
 local str = require'metaty'.tostring
 
@@ -31,5 +34,12 @@ T.lapTest('direct', function()
   et.setcolgrid(t, #left + 1)
   T.assertEq(SETCOLGRID, str(t))
 end)
+
+-- T.lapTest('edit', function()
+--   local t = term.FakeTerm(4, 30)
+--   local e = edit.Edit.new(nil, ds.lines(DIAGONAL))
+--   e:draw(t, false)
+--   T.assertEq(DIAGONAL, str(t))
+-- end)
 
 
