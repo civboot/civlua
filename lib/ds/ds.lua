@@ -3,9 +3,22 @@
 local M = mod and mod'ds' or {}
 
 local mty = require'metaty'
-local add, pop, sfmt = table.insert, table.remove, string.format
+local push, pop, sfmt = table.insert, table.remove, string.format
 local ulen, uoff     = utf8.len, utf8.offset
 local EMPTY = {}
+
+------------------
+-- DS psudo-metaevents
+-- these use new "metaevent" (similar to __len) that tables can override
+
+-- insert (typically integer) index into list-like type
+-- Uses __insert else table.insert
+M.insert = function(t, i, v)
+  return (mty.getmethod(t, '__insert') or push)(t, i, v)
+end
+
+-----------------
+-- Utility
 
 M.SKIP     = 'skip'
 M.noop     = function() end
@@ -79,19 +92,19 @@ end
 
 M.matches = function(s, m)
   local out = {}; for v in string.gmatch(s, m) do
-    add(out, v) end
+    push(out, v) end
   return out
 end
 
 -- split strings
 M.split = mty.split
 M.splitList = function(...)
-  local t = {}; for _, v in mty.split(...) do add(t, v) end
+  local t = {}; for _, v in mty.split(...) do push(t, v) end
   return t
 end
 M.explode = function(s) return M.matches(s, '.') end
 M.concatToStrs = function(t, sep)
-  local o = {}; for _, v in ipairs(t) do add(o, tostring(v)) end
+  local o = {}; for _, v in ipairs(t) do push(o, tostring(v)) end
   return table.concat(o, sep)
 end
 
@@ -147,7 +160,7 @@ M.path.concat = function(t)
   local out = {}
   for i, p in ipairs(t) do
     p = string.match(p, '^/*(.-)/*$')
-    if p ~= '' then add(out, p) end
+    if p ~= '' then push(out, p) end
   end; return root..table.concat(out, '/')..dir
 end
 
@@ -187,13 +200,13 @@ end
 
 -- get only the values of pairs(t) as a list
 M.values = function(t)
-  local vals = {}; for _, v in pairs(t) do add(vals, v) end
+  local vals = {}; for _, v in pairs(t) do push(vals, v) end
   return vals
 end
 
 -- get only the keys of pairs(t) as a list
 M.keys = function(t)
-  local keys = {}; for k in pairs(t) do add(keys, k) end
+  local keys = {}; for k in pairs(t) do push(keys, k) end
   return keys
 end
 
@@ -232,7 +245,7 @@ end
 
 -- convert (_, v) iterator into a table by pushing
 M.itable = function(it)
-  local o = {}; for _, v in table.unpack(it) do add(o, v) end;
+  local o = {}; for _, v in table.unpack(it) do push(o, v) end;
   return o
 end
 
@@ -265,7 +278,7 @@ M.updateKeys = function(t, add, keys)
   for _, k in ipairs(keys) do t[k] = add[k] end; return t
 end
 M.orderedKeys = function(t)
-  local keys = {}; for k in pairs(t) do add(keys, k) end
+  local keys = {}; for k in pairs(t) do push(keys, k) end
   table.sort(keys)
   return keys
 end
@@ -277,7 +290,7 @@ end
 -- drain(t, len=#t) -> t[#t-len:#t]
 -- return len items from the end of t, removing them from t.
 M.drain = function(t, len)
-  local out = {}; for i=1, math.min(#t, len) do add(out, pop(t)) end
+  local out = {}; for i=1, math.min(#t, len) do push(out, pop(t)) end
   return M.reverse(out)
 end
 
@@ -636,16 +649,16 @@ getmetatable(M.Set).__call = function(T, t)
 end
 
 M.Set.__fmt = function(self, f)
-  add(f, 'Set'); add(f, f.tableStart);
-  local keys = {}; for k in ipairs(self) do add(keys, k) end
+  push(f, 'Set'); push(f, f.tableStart);
+  local keys = {}; for k in ipairs(self) do push(keys, k) end
   table.sort(keys)
   if #keys > 1 then f:incIndent() end
   for i, k in ipairs(keys) do
     f:fmt(k)
-    if i < #keys then add(f, f.indexEnd) end
+    if i < #keys then push(f, f.indexEnd) end
   end
   if #keys > 1 then f:decIndent() end
-  add(f, f.tableEnd)
+  push(f, f.tableEnd)
 end
 
 M.Set.__eq = function(self, t)
@@ -813,7 +826,7 @@ local function _dagSort(st, name, parents)
   if parents then for _, pname in ipairs(parents) do
     _dagSort(st, pname, st.depsMap[pname])
   end end
-  add(st.out, name)
+  push(st.out, name)
 end
 
 -- dag.sort(depsMap) -> sortedDeps
@@ -841,7 +854,7 @@ M.dag.reverseMap = function(childrenMap)
   for pname, children in pairs(childrenMap) do
     M.getOrSet(pmap, pname, M.emptyTable)
     if children then for _, cname in ipairs(children) do
-      add(M.getOrSet(pmap, cname, M.emptyTable), pname)
+      push(M.getOrSet(pmap, cname, M.emptyTable), pname)
     end end
   end
   return pmap
@@ -870,7 +883,7 @@ M.BiMap = mty'BiMap'{}
 
 getmetatable(M.BiMap).__call = function(ty_, t)
   local keys = {}; for k, v in pairs(t) do
-    if not t[v] then add(keys, k) end
+    if not t[v] then push(keys, k) end
   end
   for _, k in pairs(keys) do t[t[k]] = k end
   return setmetatable(t, ty_)

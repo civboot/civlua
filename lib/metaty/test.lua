@@ -112,6 +112,11 @@ test('record', function()
     function() local x = a.a3 end)
   assertErrorPat('A does not have field a3',
     function() a.a3 = 7 end)
+
+  A.meth = function() end
+  assertEq(A.meth, M.getmethod(A,   'meth'))
+  assertEq(A.meth, M.getmethod(A{}, 'meth'))
+  assertEq(nil,    M.getmethod(A{}, 'does-not-exist'))
 end)
 
 test('record maybe', function()

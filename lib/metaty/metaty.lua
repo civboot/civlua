@@ -8,6 +8,7 @@ setmetatable(M, getmetatable(M) or {})
 -- Pre module: environment variables
 local IS_ENV = { ['true']=true,   ['1']=true,
                  ['false']=false, ['0']=false, ['']=false }
+local EMPTY = {}
 
 -- isEnv: returns boolean for below values, else nil
 M.isEnv = function(var)
@@ -19,6 +20,14 @@ M.isEnvG = function(var) -- is env or globals
 end
 local CHECK  = M.isEnvG'METATY_CHECK' or false -- private
 M.getCheck = function() return CHECK end
+
+-- get method of table if it exists.
+-- This first looks for the item directly on the table, then the item
+-- in the table's metatable. It does NOT use the table's normal __index
+-- as many of them will fail.
+M.getmethod = function(t, method)
+  return rawget(t, method) or rawget(getmetatable(t) or EMPTY, method)
+end
 
 ---------------
 -- general functions and constants

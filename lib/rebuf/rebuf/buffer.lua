@@ -42,7 +42,7 @@ local function redoRm(ch, b)
 end
 
 local function redoIns(ch, b)
-  b.gap:insert(ch.s, ch.l, ch.c)
+  lines.insert(b.gap, ch.s, ch.l, ch.c)
   return ch
 end
 
@@ -147,17 +147,17 @@ Buffer.append=function(b, s)
 end
 
 Buffer.insert=function(b, s, l, c)
-  l, c = b.gap:bound(l, c)
+  l, c = lines.bound(b.gap, l, c)
   local ch = b:changeIns(s, l, c)
-  b.gap:insert(s, l, c)
+  lines.insert(b.gap, s, l, c)
   return ch
 end
 
 Buffer.remove=function(b, ...)
   local l, c, l2, c2 = lines.span(...)
   local lt, ct = motion.topLeft(l, c, l2, c2)
-  lt, ct = b.gap:bound(lt, ct)
-  local ch = b.gap:sub(l, c, l2, c2)
+  lt, ct = lines.bound(b.gap, lt, ct)
+  local ch = lines.sub(b.gap, l, c, l2, c2)
   ch = (type(ch)=='string' and ch) or table.concat(ch, '\n')
   ch = b:changeRm(ch, lt, ct)
   b.gap:remove(l, c, l2, c2)

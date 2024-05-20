@@ -319,6 +319,18 @@ test('lines.sub', function()
   assertEq(" nice",  lsub(l, 1, 11, 1, 15))
 end)
 
+test('lines.find', function()
+  local t = lines'12345\n6789\n98765\n'
+  assertEq({1, 3}, {lines.find(t, '34', 1, 1)})
+  assertEq({2, 1}, {lines.find(t, '67', 1, 3)})
+  assertEq({2, 1}, {lines.find(t, '6', 1, 3)})
+  assertEq({3, 4}, {lines.find(t, '6', 2, 2)})
+
+  assertEq({3, 4}, {lines.findBack(t, '6', 3)})
+  assertEq({3, 4}, {lines.findBack(t, '6', 3, 4)})
+  assertEq({2, 1}, {lines.findBack(t, '6', 3, 3)})
+end)
+
 test('lines.offset', function()
   testing.testOffset(lines(testing.DATA.offset))
 end)

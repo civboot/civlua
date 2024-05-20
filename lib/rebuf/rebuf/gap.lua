@@ -8,13 +8,16 @@
 -- 2. The "top" buffer is used to store data in lines
 --    after "bot" (aka after curLine). If the cursor is
 --    moved to a previous line then data is moved from top to bot
+--
+-- TODO: migrate most of these methods to ds.lines
 local M = mod and mod'rebuf.gap' or {}
+
 
 local mty = require'metaty'
 local ds, lines  = require'ds', require'ds.lines'
 local span = lines.span
 
-local add, pop, concat = table.insert, table.remove, table.concat
+local push, pop, concat = table.insert, table.remove, table.concat
 local sub = string.sub
 
 ---------------------------
@@ -23,14 +26,6 @@ local sub = string.sub
 
 local max, min, bound = ds.max, ds.min, ds.bound
 local copy, drain = ds.copy, ds.drain
-
--- return the first i characters and the remainder
-M.strdivide = function(s, i)
-  return string.sub(s, 1, i), string.sub(s, i+1)
-end
-M.strinsert = function (s, i, v)
-  return string.sub(s, 1, i-1) .. v .. string.sub(s, i)
-end
 
 local Gap = mty'Gap' {
   'bot[table]', 'top[table]'
@@ -42,12 +37,12 @@ M.Gap = Gap
 Gap.__fmt = function(g, f)
   local len = #g
   for i, l in ipairs(g.bot) do
-    add(f, l);
-    if i < len then add(f, '\n') end
+    push(f, l);
+    if i < len then push(f, '\n') end
   end
   for i=#g.top,1,-1 do
-    add(f, g.top[i]);
-    if i > 1 then add(f, '\n') end
+    push(f, g.top[i]);
+    if i > 1 then push(f, '\n') end
   end
 end
 
@@ -81,13 +76,6 @@ end
 Gap.__ipairs = function(g) return ipairsGap, g, 0 end
 Gap.__pairs  = Gap.__ipairs
 
-Gap.bound=function(g, l, c, len, line)
-  len = len or Gap.__len(g)
-  l = bound(l, 1, len)
-  if not c then return l end
-  return l, bound(c, 1, #(line or g:get(l)) + 1)
-end
-
 -- set the gap to the line
 Gap.setGap = function(g, l)
   l = l or (#g.bot + #g.top)
@@ -97,76 +85,14 @@ Gap.setGap = function(g, l)
     while l < #g.bot do
       local v = pop(g.bot)
       if nil == v then break end
-      add(g.top, v)
+      push(g.top, v)
     end
   else -- l > #g.bot
     while l > #g.bot do
       local v = pop(g.top)
       if nil == v then break end
-      add(g.bot, v)
+      push(g.bot, v)
     end
-  end
-end
-
--- get the sub-buf (slice)
--- of lines (l, l2) or str (l, c, l2, c2)
-Gap.sub=function(g, ...)
-  local l, c, l2, c2 = span(...)
-  local len = Gap.__len(g)
-  local lb, lb2 = bound(l, 1, len), bound(l2, 1, len+1)
-  if lb  > l  then c = 1 end
-  if lb2 < l2 then c2 = nil end -- EoL
-  l, l2 = lb, lb2
-  local s = {} -- s is sub
-  for i=l, min(l2,          #g.bot) do add(s, g.bot[i]) end
-  for i=1, min((l2-l+1)-#s, #g.top) do add(s, g.top[#g.top - i + 1]) end
-  if nil == c then -- skip, only lines
-  elseif #s == 0 then s = '' -- empty
-  elseif l == l2 then
-    assert(1 == #s); local line = s[1]
-     s = sub(line, c, c2)
-    if c2 > #line and l2 < len then s = s..'\n' end
-  else
-    local last = s[#s];
-    s[1] = sub(s[1], c); s[#s] = sub(last, 1, c2)
-    if c2 > #last and l2 < len then add(s, '') end
-    s = table.concat(s, '\n')
-  end
-  return s
-end
-
--- find the pattern starting at l/c
-Gap.find=function(g, pat, l, c)
-  c = c or 1
-  while true do
-    local s = g:get(l)
-    if not s then return nil end
-    c = s:find(pat, c); if c then return l, c end
-    l, c = l + 1, 1
-  end
-end
-
--- TODO: get from motion
-local findBack = function(s, pat, end_)
-  local s, fs, fe = s:sub(1, end_), nil, 0
-  assert(#s < 256)
-  while true do
-    local _fs, _fe = s:find(pat, fe + 1)
-    if not _fs then break end
-    fs, fe = _fs, _fe
-  end
-  if fe == 0 then fe = nil end
-  return fs, fe
-end
-
--- find the pattern (backwards) starting at l/c
-Gap.findBack = function(g, pat, l, c)
-  while true do
-    local s = g:get(l)
-    if not s then return nil end
-    c = findBack(s, pat, c)
-    if c then return l, c end
-    l, c = l - 1, nil
   end
 end
 
@@ -174,14 +100,14 @@ end
 -- Gap Mutations
 
 -- insert s (string) at l, c
-Gap.insert=function(g, s, l, c)
+Gap.__insertline=function(g, s, l, c)
   g:setGap(l)
   local cur = pop(g.bot)
-  g:extend(M.strinsert(cur, c or 1, s))
+  g:extend(ds.strInsert(cur, c or 1, s))
 end
 
--- remove from (l, c) -> (l2, c2), return what was removed
-Gap.remove=function(g, ...)
+-- remove span (l, c) -> (l2, c2), return what was removed
+Gap.remove=function(g, ...) --> line(str)|lines(table)
   local l, c, l2, c2 = span(...);
   local len = Gap.__len(g)
   if l2 > len then l2, c2 = len, Gap.CMAX end
@@ -198,31 +124,31 @@ Gap.remove=function(g, ...)
     if #out == 1 then -- no newlines
       b, out[1], e = sub(out[1], 1, c-1), sub(out[1], c, c2), sub(out[1], c2+1)
     else -- has new line
-      b, out[1]    = M.strdivide(out[1], c-1)
-      out[#out], e = M.strdivide(out[#out], c2)
+      b, out[1]    = ds.strDivide(out[1], c-1)
+      out[#out], e = ds.strDivide(out[#out], c2)
     end
     local leftover = b .. e
     if rmNewline and #g.top > 0 then
       g.top[#g.top] = leftover .. g.top[#g.top]
-      add(out, '')
-    else add(g.bot, leftover) end
+      push(out, '')
+    else push(g.bot, leftover) end
     out = concat(out, '\n')
   end
   if 0 == #g.bot then
-    if 0 == #g.top then add(g.bot, '')
-    else  add(g.bot, pop(g.top)) end
+    if 0 == #g.top then push(g.bot, '')
+    else  push(g.bot, pop(g.top)) end
   end
   return out
 end
 
 Gap.append=function(g, s)
-  g:setGap(); add(g.bot, s)
+  g:setGap(); push(g.bot, s)
 end
 
 -- extend onto gap
 Gap.extend=function(g, s)
   if type(s) == 'string' then s = lines(s) end
-  for _, l in ipairs(s) do add(g.bot, l) end
+  for _, l in ipairs(s) do push(g.bot, l) end
 end
 
 Gap.getLine = Gap.get

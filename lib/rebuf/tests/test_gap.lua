@@ -1,7 +1,7 @@
 METATY_CHECK = true
 
 local mty = require'metaty'
-local ds  = require'ds'
+local ds, lines  = require'ds', require'ds.lines'
 local dstest = require'ds.testing'
 local test, assertEq; ds.auto'civtest'
 local gap = require'rebuf.gap'
@@ -23,30 +23,30 @@ test('insert', function()
   local g = Gap.new(); assertEq(1, #g)
   g:setGap(1)
   assertEq(1, #g); assertEq(1, #g.bot)
-  g:insert('foo bar', 1, 0)
+  lines.insert(g, 'foo bar', 1, 0)
   assertEq('foo bar', tostring(g))
 
-  g:insert('baz ', 1, 5)
+  lines.insert(g, 'baz ', 1, 5)
   assertEq('foo baz bar', tostring(g))
 
-  g:insert('\nand', 1, 4)
+  lines.insert(g, '\nand', 1, 4)
   assertEq('foo\nand baz bar', tostring(g))
-  g:insert('buz ', 2, 5)
+  lines.insert(g, 'buz ', 2, 5)
   assertEq('foo\nand buz baz bar', tostring(g))
 
   g = Gap.new()
-  g:insert('foo\nbar', 1, 1)
+  lines.insert(g, 'foo\nbar', 1, 1)
   assertEq('foo\nbar', tostring(g))
 end)
 
 test('remove', function()
   local g = Gap.new()
-  g:insert('foo bar', 1, 0)
+  lines.insert(g, 'foo bar', 1, 0)
   local r = g:remove(1, 3, 1, 5)
   assertEq('foar', tostring(g))
   assertEq('o b', r)
 
-  g:insert('ab\n123', 1, 4)
+  lines.insert(g, 'ab\n123', 1, 4)
   assertEq('foaab\n123r', tostring(g))
   r = g:remove(1, 3, 2, 2)
 
@@ -86,11 +86,11 @@ test('remove', function()
 end)
 
 local function subTests(g)
-  assertEq({'ab'},      g:sub(1, 1))
-  assertEq({'ab', 'c'}, g:sub(1, 2))
-  assertEq({'c', ''},   g:sub(2, 3))
-  assertEq('ab\n',      g:sub(1, 1, 1, 3))
-  assertEq('b\nc',      g:sub(1, 2, 2, 1))
+  assertEq({'ab'},      lines.sub(g, 1, 1))
+  assertEq({'ab', 'c'}, lines.sub(g, 1, 2))
+  assertEq({'c', ''},   lines.sub(g, 2, 3))
+  assertEq('ab\n',      lines.sub(g, 1, 1, 1, 3))
+  assertEq('b\nc',      lines.sub(g, 1, 2, 2, 1))
 end
 test('sub', function()
   local g = Gap.new('ab\nc\n\nd')
@@ -99,10 +99,10 @@ test('sub', function()
   g:setGap(2); subTests(g)
 
   g = Gap.new("4     It's nice to have some real data")
-  assertEq('It',     g:sub(1, 7, 1, 8))
-  assertEq("'",      g:sub(1, 9, 1, 9))
-  assertEq("s",      g:sub(1, 10, 1, 10))
-  assertEq(" nice",  g:sub(1, 11, 1, 15))
+  assertEq('It',     lines.sub(g, 1, 7, 1, 8))
+  assertEq("'",      lines.sub(g, 1, 9, 1, 9))
+  assertEq("s",      lines.sub(g, 1, 10, 1, 10))
+  assertEq(" nice",  lines.sub(g, 1, 11, 1, 15))
 end)
 
 test('offset', function()
@@ -116,10 +116,10 @@ end)
 
 test('find', function()
   local g = Gap.new('12345\n6789\n98765\n')
-  assertEq({1, 3}, {g:find    ('34', 1, 1)})
-  assertEq({2, 1}, {g:find    ('67', 1, 3)})
-  assertEq({2, 1}, {g:find    ('6', 1, 3)})
-  assertEq({3, 4}, {g:find    ('6', 2, 2)})
+  assertEq({1, 3}, {lines.find(g, '34', 1, 1)})
+  assertEq({2, 1}, {lines.find(g, '67', 1, 3)})
+  assertEq({2, 1}, {lines.find(g, '6', 1, 3)})
+  assertEq({3, 4}, {lines.find(g, '6', 2, 2)})
 end)
 
 test('ipairs', function()
