@@ -42,7 +42,7 @@ local function redoRm(ch, b)
 end
 
 local function redoIns(ch, b)
-  lines.insert(b.gap, ch.s, ch.l, ch.c)
+  lines.inset(b.gap, ch.s, ch.l, ch.c)
   return ch
 end
 
@@ -149,7 +149,7 @@ end
 Buffer.insert=function(b, s, l, c)
   l, c = lines.bound(b.gap, l, c)
   local ch = b:changeIns(s, l, c)
-  lines.insert(b.gap, s, l, c)
+  lines.inset(b.gap, s, l, c)
   return ch
 end
 

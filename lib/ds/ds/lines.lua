@@ -10,6 +10,7 @@ local M = mod and mod'ds.lines' or {}
 local mty = require'metaty'
 local ds  = require'ds'
 local push, pop = table.insert, table.remove
+local concat    = table.concat
 local max, min, bound = math.max, math.min, ds.bound
 
 M.CMAX = 999
@@ -23,13 +24,12 @@ setmetatable(M, {
   end,
 })
 
--- insert (typically integer) index into list-like type
--- Uses __insertline else default table implementation
-M.insert = function(t, s, l, c)
-  local meth = mty.getmethod(t, '__insertline')
-  if meth then return meth(t, s, l, c) end
-  local cur = pop(t, assert(l))
-  ds.extend(t, ds.strInsert(cur, c or 1, s))
+-- insert string at l, c
+--
+-- Note: this is NOT performant (O(N)) for large tables.
+-- See: lib/rebuf/gap.lua (or similar) for handling real-world workloads.
+M.inset = function(t, s, l, c)
+  ds.inset(t, l, M(ds.strInsert(t[l] or '', c or 1, s)), 1)
 end
 
 -- Address lines span via either (l,l2) or (l,c, l2,c2)
@@ -59,7 +59,7 @@ local function _lsub(sub, slen, t, ...)
     local last = s[#s]
     s[1] = sub(s[1], c); s[#s] = sub(last, 1, c2)
     if c2 > #last and l2 < len then push(s, '') end
-    s = table.concat(s, '\n')
+    s = M.concat(s)
   end
   return s
 end
@@ -182,5 +182,53 @@ M.findBack = function(t, pat, l, c)
     l, c = l - 1, nil
   end
 end
+
+-- concat with newlines
+M.concat = function(t) return concat(t, '\n') end
+
+-- remove span (l, c) -> (l2, c2), return what was removed
+M.remove = function(t, ...) --> string|table
+  local l, c, l2, c2 = span(...);
+  local len = #t
+  if l2 > len then l2, c2 = len, #t[len] + 1 end
+  local rem, new = {}, {}
+  if l > l2 then -- empty span
+  elseif c then -- includes column info
+    if l == l2 then -- same line
+      print('!! single', l, c, l2, c2, 'len=', #t[l], mty.tostring(t))
+      if c <= c2 then
+        if c2 <= #t[l] then -- no newline
+          new[1] = t[l]:sub(1, c-1)..t[l]:sub(c2+1)
+          rem    = t[l]:sub(c, c2) -- return string
+        else -- include newline in removal
+          print('!! inc newline')
+          l2 = l2 + 1 -- inset removes additional line
+          new[1] = t[l]:sub(1, c-1)..(t[l2] or '')
+          rem[1] = t[l]:sub(c, c2)
+        end
+      end
+    else -- spans multiple lines
+      print('!! multiple', l, c, l2, c2, 'len=', #t[l], mty.tostring(t))
+      local l1 = l
+      if c <= #t[l] then new[1] = t[l]:sub(1, c - 1)
+      else l1 = l+1;     new[1] = t[l]..(t[l1] or '') end
+      rem[1] = t[l]:sub(c)
+      for i=l1+1,l2-1 do push(rem, t[i]) end
+      if l1 < l2 then
+        if c2 > #t[l2] then push(rem, t[l2]) -- include newline
+        else
+          push(rem, t[l2]:sub(1, c2)); push(new, t[l2]:sub(c2 + 1))
+        end
+      end
+    end
+  else -- only lines, no col info
+    for i=l,l2 do push(rem, t[i]) end
+  end
+  mty.print('!! inset', t, l, new, l2 - l + 1)
+  ds.inset(t, l, new, l2 - l + 1)
+  return rem
+end
+
+
 
 return M

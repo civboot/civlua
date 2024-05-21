@@ -4,17 +4,36 @@ local M = mod and mod'ds' or {}
 
 local mty = require'metaty'
 local push, pop, sfmt = table.insert, table.remove, string.format
+local move = table.move
 local ulen, uoff     = utf8.len, utf8.offset
+local max = math.max
 local EMPTY = {}
 
 ------------------
 -- DS psudo-metaevents
 -- these use new "metaevent" (similar to __len) that tables can override
 
--- insert (typically integer) index into list-like type
--- Uses __insert else table.insert
-M.insert = function(t, i, v)
-  return (mty.getmethod(t, '__insert') or push)(t, i, v)
+-- insert values into list at i.
+-- Uses __inset "metamethod" if available.
+-- rmlen, if provided, will cause t[i:i+rmlen] to be removed
+M.inset = function(t, i, values, rmlen)
+  local meth = mty.getmethod(t, '__inset')
+  if meth then return meth(t, i, values, rmlen) end
+  -- impl notes, there are two modes:
+  -- * we want to keep some values after i: we cache those values then shift in
+  -- * we don't want to keep values after i: we shift in the values and clear
+  --   the rest
+  rmlen = rmlen or 0; local tlen, vlen = #t, #values
+  print('!! inset', tlen, i, rmlen, tlen - i - rmlen)
+  if tlen - i - rmlen >= 0 then -- we want to keep some values >= i
+    print('!! inset keep', i+rmlen, tlen)
+    local cache = move(t, i + rmlen, tlen, 1, {})
+    move(values, 1, max(vlen, tlen - i + 1), i, t)
+    return move(cache, 1, #cache, i + vlen, t)
+  end
+  print('!! inset nokeep', max(vlen, rmlen), i - rmlen)
+  -- not keeping values >= i
+  return move(values, 1, max(vlen, rmlen), max(1, i + 1 - rmlen), t)
 end
 
 -----------------
@@ -82,12 +101,12 @@ end
 
 --- return the first i characters and the remainder
 M.strDivide = function(s, i)
-  return string.sub(s, 1, i), string.sub(s, i+1)
+  return s:sub(1, i), s:sub(i+1)
 end
 
 -- insert the value string at index
 M.strInsert = function (s, i, v)
-  return string.sub(s, 1, i-1) .. v .. string.sub(s, i)
+  return s:sub(1, i-1) .. v .. s:sub(i)
 end
 
 M.matches = function(s, m)
@@ -264,12 +283,14 @@ M.reverse = function(t)
 end
 
 -- extend(t, vals) -> t: move vals to the end of t
-M.extend = function(t, v) return table.move(v, 1, #v, #t + 1, t) end
--- clear(t) -> t: set t[1:#t] = nil
-M.clear  = function(t)    return table.move(EMPTY, 1, #t, 1, t)  end
+M.extend = function(t, v) return move(v, 1, #v, #t + 1, t) end
+-- clear(t, startindex=1, len=#t) -> t: set t[si:si+len-1] = nil
+M.clear  = function(t, si, len)
+  return move(EMPTY, 1, len or #t, si or 1, t)
+end
 -- replace(t, r): make t's index values the same as r's
 M.replace = function(t, r)
-  return table.move(r, 1, math.max(#t, #r), 1, t)
+  return move(r, 1, math.max(#t, #r), 1, t)
 end
 M.update = function(t, add)
   for k, v in pairs(add) do t[k] = v end; return t

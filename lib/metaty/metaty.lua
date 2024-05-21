@@ -225,7 +225,7 @@ end
 M.sortKeys = function(t, len)
   len = len or #t; local keys = {}
   for k, v in pairs(t) do
-    if not (math.type(k) == 'integer' and k <= len) then
+    if not (math.type(k) == 'integer' and (0 < k) and (k <= len)) then
       add(keys, k)
     end
   end; table.sort(keys)

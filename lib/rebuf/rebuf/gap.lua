@@ -12,13 +12,14 @@
 -- TODO: migrate most of these methods to ds.lines
 local M = mod and mod'rebuf.gap' or {}
 
-
 local mty = require'metaty'
 local ds, lines  = require'ds', require'ds.lines'
 local span = lines.span
 
 local push, pop, concat = table.insert, table.remove, table.concat
+local move              = table.move
 local sub = string.sub
+local max = math.max
 
 ---------------------------
 -- Utilities
@@ -79,7 +80,7 @@ Gap.__pairs  = Gap.__ipairs
 -- set the gap to the line
 Gap.setGap = function(g, l)
   l = l or (#g.bot + #g.top)
-  assert(l > 0)
+  assert(l >= 0)
   if l == #g.bot then return end -- do nothing
   if l < #g.bot then
     while l < #g.bot do
@@ -99,11 +100,13 @@ end
 --------------------------
 -- Gap Mutations
 
--- insert s (string) at l, c
-Gap.__insertline=function(g, s, l, c)
-  g:setGap(l)
-  local cur = pop(g.bot)
-  g:extend(ds.strInsert(cur, c or 1, s))
+-- see ds.inset. Sets gap for better (real-world) performance than table of
+-- lines.
+Gap.__inset=function(g, i, values, rmlen)
+  rmlen = rmlen or 0
+  g:setGap(max(0, i + rmlen - 1))
+  move(values, 1, math.max(#values, rmlen), i, g.bot)
+  return g
 end
 
 -- remove span (l, c) -> (l2, c2), return what was removed
