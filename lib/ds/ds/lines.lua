@@ -199,12 +199,12 @@ M.remove = function(t, ...) --> string|table
       if c <= c2 then
         if c2 <= #t[l] then -- no newline
           new[1] = t[l]:sub(1, c-1)..t[l]:sub(c2+1)
-          rem    = t[l]:sub(c, c2) -- return string
+          rem[1]  = t[l]:sub(c, c2)
         else -- include newline in removal
           print('!! inc newline')
           l2 = l2 + 1 -- inset removes additional line
-          new[1] = t[l]:sub(1, c-1)..(t[l2] or '')
-          rem[1] = t[l]:sub(c, c2)
+          new[1]         = t[l]:sub(1, c-1)..(t[l2] or '')
+          rem[1], rem[2] = t[l]:sub(c, c2), ''
         end
       end
     else -- spans multiple lines
@@ -224,7 +224,6 @@ M.remove = function(t, ...) --> string|table
   else -- only lines, no col info
     for i=l,l2 do push(rem, t[i]) end
   end
-  mty.print('!! inset', t, l, new, l2 - l + 1)
   ds.inset(t, l, new, l2 - l + 1)
   return rem
 end

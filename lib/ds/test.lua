@@ -360,54 +360,9 @@ test('lines.inset', function()
 end)
 
 test('lines.remove', function()
-  local t = {}
-  lines.inset(t, 'foo bar', 1, 0)
-  assertEq('o b', lines.remove(t, 1, 3, 1, 5))
-  assertEq({'foar'}, t)
-
-  lines.inset(t, 'ab\n123', 1, 4)
-  assertEq({'foaab', '123r'}, t)
-  assertEq({'aab', '12'}, lines.remove(t, 1, 3, 2, 2))
-  assertEq({'fo', '3r'}, t)
-
-  t = lines'a\nb'
-  assertEq({''}, lines.remove(t, 1, 2, 2, 0)) -- remove newline
-  assertEq({'ab'}, t)
-  assertEq({'ab'}, lines.remove(t, 1, 1, 2, 1))
-  assertEq({''}, t)
-
-  t = lines'a\nb'
-  assertEq({''}, lines.remove(t, 1, 2, 1, 2)) -- alternate remove newline
-  assertEq({'ab'}, t)
-
-  t = lines'ab\nc'
-  assertEq({'b', 'c'}, lines.remove(t, 1, 2, 2, 1))
-  assertEq({'a', ''}, t)
-
-  t = lines'ab\nc'
-  assertEq({'b', 'c'}, lines.remove(t, 1, 2, 2, 2))
-  assertEq({'a'}, t)
-
-  t = lines'ab\nc\n\nd'
-  assertEq({'c', ''}, lines.remove(t, 2, 3))
-  assertEq({'ab', 'd'}, t)
-
-  -- g = Gap.new('ab\nc')
-  -- r = g:remove(2, 1, 2, 1) -- remove c
-  -- assertEq('c', r); assertEq('ab\n', tostring(g));
-  -- r = g:remove(1, 3, 2, 0) -- remove \n (lineskip)
-  -- assertEq('\n', r); assertEq('ab', tostring(g));
-
-  -- g = Gap.new('ab\nc')
-  -- r = g:remove(1, 3, 1, 3) -- remove \n (single)
-  -- assertEq('\n', r);
-  -- assertEq('abc', tostring(g));
-
-  -- g = Gap.new('ab\nc\nde\n')
-  -- r = g:remove(1, 3, 1, 3) -- remove \n (single)
-  -- assertEq('\n', r);
-  -- local res = tostring(g);
-  -- assertEq('abc\nde\n', res)
+  testing.testLinesRemove(function(t)
+    return type(t) == 'string' and lines(t) or t
+  end)
 end)
 
 test('path', function()

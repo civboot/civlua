@@ -48,49 +48,7 @@ test('insertstr', function()
 end)
 
 test('remove', function()
-  local g = Gap.new()
-  lines.inset(g, 'foo bar', 1, 0)
-  local r = g:remove(1, 3, 1, 5)
-  assertEq('foar', tostring(g))
-  assertEq('o b', r)
-
-  lines.inset(g, 'ab\n123', 1, 4)
-  assertEq('foaab\n123r', tostring(g))
-  r = g:remove(1, 3, 2, 2)
-
-  g = Gap.new('a\nb')
-  r = g:remove(1, 2, 1, 2) -- remove newline
-  assertEq('\n', r);
-  assertEq('ab', tostring(g))
-  r = g:remove(1, 1, 2, 1)
-  assertEq('ab', r); assertEq('', tostring(g))
-
-  g = Gap.new('ab\nc')
-  r = g:remove(1, 2, 2, 1)
-  assertEq('b\nc', r); assertEq('a', tostring(g));
-
-  g = Gap.new('ab\nc\n\nd')
-  assertEq('ab\nc\n\nd', tostring(g));
-  r = g:remove(2, 3)
-  assertEq({'c', ''}, r);
-  assertEq('ab\nd', tostring(g));
-
-  g = Gap.new('ab\nc')
-  r = g:remove(2, 1, 2, 1) -- remove c
-  assertEq('c', r); assertEq('ab\n', tostring(g));
-  r = g:remove(1, 3, 2, 0) -- remove \n (lineskip)
-  assertEq('\n', r); assertEq('ab', tostring(g));
-
-  g = Gap.new('ab\nc')
-  r = g:remove(1, 3, 1, 3) -- remove \n (single)
-  assertEq('\n', r);
-  assertEq('abc', tostring(g));
-
-  g = Gap.new('ab\nc\nde\n')
-  r = g:remove(1, 3, 1, 3) -- remove \n (single)
-  assertEq('\n', r);
-  local res = tostring(g);
-  assertEq('abc\nde\n', res)
+  dstest.testLinesRemove(assert(Gap.new))
 end)
 
 local function subTests(g)

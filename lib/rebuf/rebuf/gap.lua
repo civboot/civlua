@@ -110,39 +110,7 @@ Gap.__inset=function(g, i, values, rmlen)
 end
 
 -- remove span (l, c) -> (l2, c2), return what was removed
-Gap.remove=function(g, ...) --> line(str)|lines(table)
-  local l, c, l2, c2 = span(...);
-  local len = Gap.__len(g)
-  if l2 > len then l2, c2 = len, Gap.CMAX end
-  g:setGap(l2)
-  if l2 < l then
-    if nil == c then return {}
-    else             return '' end
-  end
-  -- b=begin, e=end (of leftover text)
-  local b, e, out, rmNewline = '', '', drain(g.bot, l2 - l + 1)
-  if c == nil then      -- only lines, leave as list
-  else
-    rmNewline = c2 > #(out[#out])
-    if #out == 1 then -- no newlines
-      b, out[1], e = sub(out[1], 1, c-1), sub(out[1], c, c2), sub(out[1], c2+1)
-    else -- has new line
-      b, out[1]    = ds.strDivide(out[1], c-1)
-      out[#out], e = ds.strDivide(out[#out], c2)
-    end
-    local leftover = b .. e
-    if rmNewline and #g.top > 0 then
-      g.top[#g.top] = leftover .. g.top[#g.top]
-      push(out, '')
-    else push(g.bot, leftover) end
-    out = concat(out, '\n')
-  end
-  if 0 == #g.bot then
-    if 0 == #g.top then push(g.bot, '')
-    else  push(g.bot, pop(g.top)) end
-  end
-  return out
-end
+Gap.remove= lines.remove
 
 Gap.append=function(g, s)
   g:setGap(); push(g.bot, s)

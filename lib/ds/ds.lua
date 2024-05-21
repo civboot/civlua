@@ -24,14 +24,11 @@ M.inset = function(t, i, values, rmlen)
   -- * we don't want to keep values after i: we shift in the values and clear
   --   the rest
   rmlen = rmlen or 0; local tlen, vlen = #t, #values
-  print('!! inset', tlen, i, rmlen, tlen - i - rmlen)
   if tlen - i - rmlen >= 0 then -- we want to keep some values >= i
-    print('!! inset keep', i+rmlen, tlen)
     local cache = move(t, i + rmlen, tlen, 1, {})
     move(values, 1, max(vlen, tlen - i + 1), i, t)
     return move(cache, 1, #cache, i + vlen, t)
   end
-  print('!! inset nokeep', max(vlen, rmlen), i - rmlen)
   -- not keeping values >= i
   return move(values, 1, max(vlen, rmlen), max(1, i + 1 - rmlen), t)
 end
