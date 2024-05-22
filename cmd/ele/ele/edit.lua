@@ -115,23 +115,25 @@ end
 M.Edit.remove=function(e, ...)
   local l1, c1 = e.l, e.c
   local l, c, l2, c2 = span(...)
-  local g, ch = e.buf.gap
+  local g = e.buf.gap
   local len = #g
   l, l2 = ds.bound(l, 1, len), ds.bound(l2, 1, len)
+  if l2 < l then return end
   if not c then -- only lines specified
     l, l2 = ds.sort2(l, l2); assert(not c2)
     if e.l <= l2 then
       e.l = ds.bound(e.l - (l2 - l), 1, len - (l2 - l1))
     end
-    c, c2 = 1, #g:get(l2) + 1
+    c, c2 = 1, #g[l2] + 1
   else
-    l, c = g:bound(l, c);  l2, c2 = g:bound(l2, c2)
+    l, c   = lines.bound(g, l, c)
+    l2, c2 = lines.bound(g, l2, c2)
     if motion.lcGe(e.l, e.c, l2, c2) then
-      local off = g:offsetOf(e.l, e.c, l2, c2)
-      e.l, e.c = g:offset(off, e.l, e.c)
+      local off = lines.offsetOf(g, e.l, e.c, l2, c2)
+      e.l, e.c = lines.offset(g, off, e.l, e.c)
     end
   end
-  ch = e.buf:remove(l, c, l2, c2)
+  local ch = e.buf:remove(l, c, l2, c2)
   e:changeUpdate2()
 end
 

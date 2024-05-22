@@ -9,7 +9,7 @@ local Gap = gap.Gap
 local tostring = mty.tostring
 
 test('set', function()
-  local g = Gap.new('ab\nc\n\nd')
+  local g = Gap'ab\nc\n\nd'
   assertEq('ab\nc\n\nd', tostring(g))
   assertEq({'ab', 'c', '', 'd'}, g.bot)
   g:setGap(3)
@@ -19,7 +19,7 @@ test('set', function()
 end)
 
 -- test('insert', function()
---   local g = Gap.new()
+--   local g = Gap()
 --   ds.insert(g, 1, {'a', 'b'}, 1)
 --   assertEq('a\nb', tostring(g))
 --   ds.insert(g, 1, {'c', 'd'})
@@ -27,8 +27,8 @@ end)
 -- end)
 
 test('insertstr', function()
-  assertEq(1, #Gap.new(''))
-  local g = Gap.new(); assertEq(1, #g)
+  assertEq(1, #Gap'')
+  local g = Gap(); assertEq(1, #g)
   g:setGap(1)
   assertEq(1, #g); assertEq(1, #g.bot)
   lines.inset(g, 'foo bar', 1, 0)
@@ -42,13 +42,13 @@ test('insertstr', function()
   lines.inset(g, 'buz ', 2, 5)
   assertEq('foo\nand buz baz bar', tostring(g))
 
-  g = Gap.new()
+  g = Gap()
   lines.inset(g, 'foo\nbar', 1, 1)
   assertEq('foo\nbar', tostring(g))
 end)
 
 test('remove', function()
-  dstest.testLinesRemove(assert(Gap.new))
+  dstest.testLinesRemove(Gap)
 end)
 
 local function subTests(g)
@@ -59,12 +59,12 @@ local function subTests(g)
   assertEq('b\nc',      lines.sub(g, 1, 2, 2, 1))
 end
 test('sub', function()
-  local g = Gap.new('ab\nc\n\nd')
+  local g = Gap'ab\nc\n\nd'
   g:setGap(4); subTests(g)
   g:setGap(1); subTests(g)
   g:setGap(2); subTests(g)
 
-  g = Gap.new("4     It's nice to have some real data")
+  g = Gap"4     It's nice to have some real data"
   assertEq('It',     lines.sub(g, 1, 7, 1, 8))
   assertEq("'",      lines.sub(g, 1, 9, 1, 9))
   assertEq("s",      lines.sub(g, 1, 10, 1, 10))
@@ -73,7 +73,7 @@ end)
 
 test('offset', function()
   local testOffset = dstest.testOffset
-  local g = Gap.new(dstest.DATA.offset)
+  local g = Gap(dstest.DATA.offset)
   testOffset(g)
   g:setGap(1); testOffset(g)
   g:setGap(2); testOffset(g)
@@ -81,7 +81,7 @@ test('offset', function()
 end)
 
 test('find', function()
-  local g = Gap.new('12345\n6789\n98765\n')
+  local g = Gap'12345\n6789\n98765\n'
   assertEq({1, 3}, {lines.find(g, '34', 1, 1)})
   assertEq({2, 1}, {lines.find(g, '67', 1, 3)})
   assertEq({2, 1}, {lines.find(g, '6', 1, 3)})
@@ -89,9 +89,15 @@ test('find', function()
 end)
 
 test('ipairs', function()
-  local g = Gap.new('12345\n6789\n98765\n')
+  local g = Gap'12345\n6789\n98765\n'
   local t = {}; for i, v in ipairs(g) do
-    assertEq(g[i], g:get(i)) t[i] = v
+    assertEq(g[i], g[i]) t[i] = v
   end
   assertEq({'12345', '6789', '98765', ''}, t)
+end)
+
+test('extend', function()
+  local g = Gap'123'
+  ds.extend(g, {'456', '7'})
+  assertEq('123\n456\n7', tostring(g))
 end)

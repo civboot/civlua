@@ -36,8 +36,9 @@ local Buffer, Change, ChangeStart = M.Buffer, M.Change, M.ChangeStart
 
 local function redoRm(ch, b)
   local len = #ch.s - 1; if len < 0 then return ch end
-  local l2, c2 = lines.offset(b.gap, len, ch.l, ch.c)
-  b.gap:remove(ch.l, ch.c, l2, c2)
+  local dat = b.gap
+  local l2, c2 = lines.offset(dat, len, ch.l, ch.c)
+  lines.remove(dat, ch.l, ch.c, l2, c2)
   return ch
 end
 
@@ -51,7 +52,7 @@ local CHANGE_UNDO = { ins=redoRm, rm=redoIns, }
 
 Buffer.new=function(s)
   return Buffer{
-    gap=gap.Gap.new(s),
+    gap=gap.Gap(s),
     changes={}, changeMax=0,
     changeStartI=0, changeI=0,
   }
@@ -156,11 +157,12 @@ end
 Buffer.remove=function(b, ...)
   local l, c, l2, c2 = lines.span(...)
   local lt, ct = motion.topLeft(l, c, l2, c2)
-  lt, ct = lines.bound(b.gap, lt, ct)
-  local ch = lines.sub(b.gap, l, c, l2, c2)
+  local dat = b.gap
+  lt, ct = lines.bound(dat, lt, ct)
+  local ch = lines.sub(dat, l, c, l2, c2)
   ch = (type(ch)=='string' and ch) or table.concat(ch, '\n')
   ch = b:changeRm(ch, lt, ct)
-  b.gap:remove(l, c, l2, c2)
+  lines.remove(dat, l, c, l2, c2)
   return ch
 end
 
