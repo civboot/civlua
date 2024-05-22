@@ -41,7 +41,7 @@ end
 
 -- set lefthand side
 function M.setleft(T, left)
-  for l=1,T:size() do
+  for l=1,(T:size()) do
     T:golc(l, 1) T:write(left); T:cleareol(); T:flush(); sleep()
   end
 end

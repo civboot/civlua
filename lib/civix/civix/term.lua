@@ -255,9 +255,8 @@ getmetatable(M.FakeTerm).__call = function(T, h, w)
 end
 -- set items to left of t.l to space if they are empty
 M.FakeTerm._fill = function(t, l, c)
-  local line = t[l or t.l]; for i=1,(c or t.c)-1 do
-    if line[i] == '' then line[i] = ' ' end
-  end
+  local line = t[l or t.l]
+  for i = #line+1, (c or t.c) - 1 do line[i] = ' ' end
 end
 M.FakeTerm.flush = ds.noop
 M.FakeTerm.start = ds.noop
@@ -265,18 +264,15 @@ M.FakeTerm.stop  = ds.noop
 M.FakeTerm.clear = function(t)
   t:golc(1, 1)
   for l=1,t.h do
-    t[l] = t[l] or {}
-    local line = t[l]
-    for c=1,t.w do line[c] = '' end
+    t[l] = t[l] or {}; ds.clear(t[l])
   end
 end
 M.FakeTerm.golc = function(t, l, c)
-  print('!! golc', l, c)
   t:assertLC(l, c); t.l, t.c = l, c end
 M.FakeTerm.cleareol = function(t, l, c)
   if l and c then t:golc(l, c) end
-  local line = t[t.l]
-  for i=t.c, t.w do line[i] = '' end
+  local c, line = t.c, t[t.l]
+  ds.clear(line, c, #line - c + 1)
 end
 M.FakeTerm.size = function(t) return t.h, t.w end
 M.FakeTerm.set = function(t, l, c, char)
@@ -288,8 +284,8 @@ end
 M.FakeTerm.write = function(t, s)
   if #s == 0 then return end
   t:assertLC(t.l, t.c + #s - 1)
-  local line = t[t.l]
   t:_fill()
+  local line = t[t.l]
   for i=1, #s do line[t.c + i - 1] = s:sub(i,i) end
   t.c = t.c + #s
 end
