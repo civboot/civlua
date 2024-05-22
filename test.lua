@@ -1,4 +1,4 @@
-DOC, METATY_CHECK              = false, false
+DOC, METATY_CHECK              = false, true
 LAP_READY,    LAP_ASYNC        = false, false
 LAP_FNS_SYNC, LAP_FNS_ASYNC    = false, false
 
@@ -9,6 +9,11 @@ LOGFN = function(lvl, msg) if LOGLEVEL >= lvl then
 end end
 
 local dir = '' -- leave here incase support is needed for filedir
+
+local tests = os.getenv'tests' -- do these first
+if tests then
+  for tpath in tests:gmatch'%S+' do dofile(dir..tpath) end
+end
 
 print'[[core]]'
   assert(os.execute[[

@@ -253,6 +253,12 @@ getmetatable(M.FakeTerm).__call = function(T, h, w)
   t:clear()
   return t
 end
+-- set items to left of t.l to space if they are empty
+M.FakeTerm._fill = function(t, l, c)
+  local line = t[l or t.l]; for i=1,(c or t.c)-1 do
+    if line[i] == '' then line[i] = ' ' end
+  end
+end
 M.FakeTerm.flush = ds.noop
 M.FakeTerm.start = ds.noop
 M.FakeTerm.stop  = ds.noop
@@ -261,30 +267,35 @@ M.FakeTerm.clear = function(t)
   for l=1,t.h do
     t[l] = t[l] or {}
     local line = t[l]
-    for c=1,t.w do line[c] = ' ' end
+    for c=1,t.w do line[c] = '' end
   end
 end
-M.FakeTerm.golc = function(t, l, c) t:assertLC(l, c); t.l, t.c = l, c end
+M.FakeTerm.golc = function(t, l, c)
+  print('!! golc', l, c)
+  t:assertLC(l, c); t.l, t.c = l, c end
 M.FakeTerm.cleareol = function(t, l, c)
   if l and c then t:golc(l, c) end
   local line = t[t.l]
-  for i=t.c, t.w do line[i] = ' ' end
+  for i=t.c, t.w do line[i] = '' end
 end
 M.FakeTerm.size = function(t) return t.h, t.w end
 M.FakeTerm.set = function(t, l, c, char)
   t:assertLC(l, c)
   assert(char); assert(utf8.len(char) == 1)
+  t:_fill(l, c)
   t[l][c] = char
 end
 M.FakeTerm.write = function(t, s)
+  if #s == 0 then return end
   t:assertLC(t.l, t.c + #s - 1)
   local line = t[t.l]
+  t:_fill()
   for i=1, #s do line[t.c + i - 1] = s:sub(i,i) end
   t.c = t.c + #s
 end
 M.FakeTerm.assertLC = function(t, l, c) -- utility for testing
-  if 1 > l or l > t.h then error("l OOB: " .. l) end
-  if 1 > c or c > t.w then error("c OOB: " .. c) end
+  if l < 1 or l > t.h then error("line OOB: "..l) end
+  if c < 1 or c > t.w then error("col OOB: "..c) end
 end
 M.FakeTerm.__fmt = function(t, f)
   for i, line in ipairs(t) do

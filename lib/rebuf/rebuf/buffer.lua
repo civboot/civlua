@@ -32,6 +32,7 @@ M.Buffer = mty'Buffer' {
   'mdl',
 }
 
+
 local Buffer, Change, ChangeStart = M.Buffer, M.Change, M.ChangeStart
 
 local function redoRm(ch, b)
@@ -56,6 +57,12 @@ Buffer.new=function(s)
     changes={}, changeMax=0,
     changeStartI=0, changeI=0,
   }
+end
+
+Buffer.__len = function(b) return #b.gap end
+Buffer.__index = function(b, i)
+  if type(i) == 'string' then return Buffer[i] end
+  return b.gap[i]
 end
 
 Buffer.addChange=function(b, ch)
@@ -165,8 +172,6 @@ Buffer.remove=function(b, ...)
   lines.remove(dat, l, c, l2, c2)
   return ch
 end
-
-Buffer.len = function(b) return #b.gap end
 
 ChangeStart.__tostring = function(c)
   return string.format('[%s.%s -> %s.%s]', c.l1, c.c1, c.l2, c.c2)

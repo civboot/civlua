@@ -28,7 +28,7 @@ getmetatable(Gap).__index = nil
 Gap.__len = function(g) return #g.bot + #g.top end
 Gap.__index = function(g, l)
   if type(l) ~= 'number' then
-    return assert(getmetatable(g)[l], 'invalid gap field')
+    return Gap[l] or error('missing field: '..l)
   end
   local bl = #g.bot
   if l <= bl then return g.bot[l]
