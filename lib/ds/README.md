@@ -13,7 +13,7 @@ It contains the following functions and types. All types use
 - string: `strDivide`, `strInsert`, `explode` (make table of characters),
   `concatToStrs`, (whitespace) `trimWs` and `split`, `matches` (gmatch table)
   `diffCol` (find column diff)
-- lines submodule: `ds.lines(text)` to get table of lines, `span`, `sub(l, c,
+- lines submodule: `lines(text)` to get table of lines, `span`, `sub(l, c,
   l2, c2)`, `diff` (first line:col)
 - table (general): shallow `copy(t, update)`, `deepcopy(t)`, `emptyTable`
 - table (list-like): `extend`, `reverse`, `indexOf`, `drain`

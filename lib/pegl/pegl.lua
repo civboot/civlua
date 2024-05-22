@@ -2,7 +2,7 @@
 
 local mty, ty = require'metaty'; ty = mty.ty
 local ds      = require'ds'
-local lines   = require'ds.lines'
+local lines   = require'lines'
 local civtest = require'civtest'
 local extend  = ds.extend
 local add, sfmt = table.insert, string.format

@@ -8,8 +8,8 @@ local pop = table.remove
 local sfmt = string.format
 
 local mty = require'metaty'
-local M, lines = require'ds', require'ds.lines'
-local testing = require'ds.testing'
+local M, lines = require'ds', require'lines'
+local testing = require'lines.testing'
 
 local test, assertEq, assertMatch, assertErrorPat; M.auto'civtest'
 
@@ -308,62 +308,6 @@ test('time', function()
   assertEq('Epoch(1.5s)', tostring(Epoch(1.5)))
 end)
 
-test('lines.sub', function()
-  local lsub = lines.sub
-  local l = lines'ab\nc\n\nd'
-  assertEq({'ab'},      lsub(l, 1, 1))
-  assertEq({'ab', 'c'}, lsub(l, 1, 2))
-  assertEq({'c', ''},   lsub(l, 2, 3))
-  assertEq('ab\n',      lsub(l, 1, 1, 1, 3))
-  assertEq('ab\n',      lsub(l, 1, 1, 2, 0))
-  assertEq('b\nc',      lsub(l, 1, 2, 2, 1))
-
-  l = lines"4     It's nice to have some real data"
-  assertEq('It',     lsub(l, 1, 7, 1, 8))
-  assertEq("'",      lsub(l, 1, 9, 1, 9))
-  assertEq("s",      lsub(l, 1, 10, 1, 10))
-  assertEq(" nice",  lsub(l, 1, 11, 1, 15))
-end)
-
-test('lines.find', function()
-  local t = lines'12345\n6789\n98765\n'
-  assertEq({1, 3}, {lines.find(t, '34', 1, 1)})
-  assertEq({2, 1}, {lines.find(t, '67', 1, 3)})
-  assertEq({2, 1}, {lines.find(t, '6', 1, 3)})
-  assertEq({3, 4}, {lines.find(t, '6', 2, 2)})
-
-  assertEq({3, 4}, {lines.findBack(t, '6', 3)})
-  assertEq({3, 4}, {lines.findBack(t, '6', 3, 4)})
-  assertEq({2, 1}, {lines.findBack(t, '6', 3, 3)})
-end)
-
-test('lines.offset', function()
-  testing.testOffset(lines(testing.DATA.offset))
-end)
-
-test('lines.inset', function()
-  local t = {''}
-  assertEq(1, #t)
-  lines.inset(t, 'foo bar', 1, 0)
-  assertEq('foo bar', lines.concat(t))
-  lines.inset(t, 'baz ', 1, 5)
-  assertEq('foo baz bar', lines.concat(t))
-
-  lines.inset(t, '\nand', 1, 4)
-  assertEq('foo\nand baz bar', lines.concat(t))
-  lines.inset(t, 'buz ', 2, 5)
-  assertEq('foo\nand buz baz bar', lines.concat(t))
-
-  t = {''}
-  lines.inset(t, 'foo\nbar', 1, 1)
-  assertEq('foo\nbar', lines.concat(t))
-end)
-
-test('lines.remove', function()
-  testing.testLinesRemove(function(t)
-    return type(t) == 'string' and lines(t) or t
-  end)
-end)
 
 test('path', function()
   local pc = M.path.concat

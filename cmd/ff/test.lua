@@ -4,7 +4,7 @@
 
 local pkg = require'pkglib'
 local mty = require'metaty'
-local ds, lines = require'ds', require'ds.lines'
+local ds, lines = require'ds', require'lines'
 local civix  = require'civix'
 local test, assertEq; ds.auto'civtest'
 local ff = require'ff'

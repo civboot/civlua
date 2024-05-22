@@ -8,7 +8,7 @@ local cxt  = require'cxt'
 local shim = require'shim'
 local civtest = require'civtest'
 local add, sfmt = table.insert, string.format
-local ds, lines = require'ds', require'ds.lines'
+local ds, lines = require'ds', require'lines'
 local df = require'ds.file'
 
 local NAME_SYM = '☍'

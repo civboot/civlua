@@ -1,3 +1,4 @@
+local mty = require'metaty'
 -- line-based gap buffer.
 --
 -- The buffer is composed of two lists (stacks)
@@ -8,12 +9,9 @@
 -- 2. The "top" buffer is used to store data in lines
 --    after "bot" (aka after curLine). If the cursor is
 --    moved to a previous line then data is moved from top to bot
---
--- TODO: migrate most of these methods to ds.lines
-local M = mod and mod'rebuf.gap' or {}
+local Gap = mty'Gap' { 'bot[table]', 'top[table]' }
 
-local mty = require'metaty'
-local ds, lines  = require'ds', require'ds.lines'
+local ds, lines  = require'ds', require'lines'
 local span = lines.span
 
 local push, pop, concat = table.insert, table.remove, table.concat
@@ -21,11 +19,6 @@ local move              = table.move
 local sub = string.sub
 local max = math.max
 
-local max, min, bound = ds.max, ds.min, ds.bound
-local copy, drain = ds.copy, ds.drain
-
-local Gap = mty'Gap' { 'bot[table]', 'top[table]' }
-M.Gap = Gap
 getmetatable(Gap).__call = function(T, t)
   t = (type(t) == 'string') and lines(t) or t or {''}
   return mty.construct(T, { bot=t, top={} })
@@ -58,6 +51,21 @@ Gap.__pairs = ipairs
 --------------------------
 -- Mutations
 
+Gap.__newindex = function(g, i, v)
+  assert(i == #g + 1, 'cannot set above len+1')
+  g:setGap(i); g.bot[i] = v
+end
+
+-- see lines.inset
+-- This has much better performance than lines.inset when operations
+-- are performed close together.
+Gap.__inset = function(g, i, values, rmlen)
+  rmlen = rmlen or 0
+  g:setGap(max(0, i + rmlen - 1))
+  move(values, 1, max(#values, rmlen), i, g.bot)
+  return g
+end
+
 -- set the gap to the line
 Gap.setGap = function(g, l)
   local bot, top = g.bot, g.top
@@ -80,20 +88,4 @@ Gap.setGap = function(g, l)
   end
 end
 
--- see lines.inset
--- This has much better performance than lines.inset when operations
--- are performed close together.
-Gap.__inset = function(g, i, values, rmlen)
-  rmlen = rmlen or 0
-  g:setGap(max(0, i + rmlen - 1))
-  move(values, 1, math.max(#values, rmlen), i, g.bot)
-  return g
-end
-
-Gap.__newindex = function(g, i, v)
-  local len = #g
-  assert(i == len + 1, 'cannot set above len+1')
-  g:setGap(len); g.bot[len + 1] = v
-end
-
-return M
+return Gap

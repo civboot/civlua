@@ -1,4 +1,5 @@
--- Lines-like file objects which you can use with ds.lines.
+-- TODO: a lot of this should be moved to lines module
+-- Lines-like file objects which you can use with lines.
 -- 
 -- These objects support only append-line mutations using table.insert.
 local M = mod and mod'ds.file' or {}
@@ -144,7 +145,8 @@ end
 --   preserve: if true, the index at idxpath will be preserved
 --     and updated.
 --
--- Returns: FileIdx for use with IndexedFile.
+-- Returns: FileIdx for use with lines.IndexedFile or other places indexes are
+-- needed.
 M.FileIdx.create = function(T, file, idxpath, preserve)
   file = (type(file) == 'string') and io.open(file) or file
   local idx = idxpath and io.open(idxpath, preserve and 'r+' or 'w+')

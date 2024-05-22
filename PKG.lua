@@ -8,6 +8,7 @@ pkgs = {
   'lib/civtest',
   'lib/doc',
   'lib/ds',
+  'lib/lines',
   'lib/lap',
   'lib/tso',
   'lib/vcds',

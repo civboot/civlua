@@ -1,5 +1,5 @@
 local mty = require'metaty'
-local ds, lines  = require'ds', require'ds.lines'
+local ds, lines  = require'ds', require'lines'
 local df  = require'ds.file'
 local pegl = require'pegl'
 local lua = require'pegl.lua'

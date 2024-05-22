@@ -4,12 +4,11 @@ local M = mod'ele.edit'
 -- # Edit struct
 local mty    = require'metaty'
 local ds     = require'ds'
-local gap    = require'rebuf.gap'
 local motion = require'rebuf.motion'
 local types = require'ele.types'
 
 local push = table.insert
-local span = require'ds.lines'.span
+local span = require'lines'.span
 
 INT_ID = INT_ID or 1
 

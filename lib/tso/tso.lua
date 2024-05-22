@@ -8,7 +8,7 @@ local M = mod and mod'tso' or {}
 
 local mty = require'metaty'
 local ds  = require'ds'
-local lines = require'ds.lines'
+local lines = require'lines'
 local concat, push, sfmt = table.concat, table.insert, string.format
 local byte, char = string.byte, string.char
 

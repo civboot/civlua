@@ -5,7 +5,11 @@
 -- Also has functions for working with a table of lines.
 --
 --   lines.sub(myLines, l, c, l2, c2)
-local M = mod and mod'ds.lines' or {}
+--
+-- sub-modules include several data structures with more performant
+-- mechanisms to insert/remove/etc based on real-world workloads
+-- (i.e. editor, parser, etc)
+local M = mod and mod'lines' or {}
 
 local mty = require'metaty'
 local ds  = require'ds'
@@ -227,7 +231,5 @@ M.remove = function(t, ...) --> string|table
   ds.inset(t, l, new, l2 - l + 1)
   return rem
 end
-
-
 
 return M

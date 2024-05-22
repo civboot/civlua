@@ -1,8 +1,8 @@
 local mty = require'metaty'
 local ds = require'ds'
-local lines = require'ds.lines'
+local lines = require'lines'
 local motion  = require'rebuf.motion'
-local gap  = require'rebuf.gap'
+local Gap  = require'lines.Gap'
 
 local M = {}
 local add, ty = table.insert, mty.ty
@@ -52,7 +52,7 @@ local CHANGE_UNDO = { ins=redoRm, rm=redoIns, }
 
 Buffer.new=function(s)
   return Buffer{
-    gap=gap.Gap(s),
+    gap=Gap(s),
     changes={}, changeMax=0,
     changeStartI=0, changeI=0,
   }

@@ -1,7 +1,7 @@
 -- Test display functionality (not mutation)
 
 local T = require'civtest'
-local ds, lines = require'ds', require'ds.lines'
+local ds, lines = require'ds', require'lines'
 local term = require'civix.term'
 local et   = require'ele.testing'
 local edit = require'ele.edit'
@@ -37,7 +37,7 @@ end)
 
 -- T.lapTest('edit', function()
 --   local t = term.FakeTerm(4, 30)
---   local e = edit.Edit.new(nil, ds.lines(DIAGONAL))
+--   local e = edit.Edit.new(nil, lines(DIAGONAL))
 --   e:draw(t, false)
 --   T.assertEq(DIAGONAL, str(t))
 -- end)

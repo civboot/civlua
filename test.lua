@@ -21,6 +21,7 @@ print'[[core]]'
 
   LOGFN = log.logFn; log.setLevel()
   dofile(dir..'lib/ds/test.lua')
+  dofile(dir..'lib/lines/test.lua')
   dofile(dir..'lib/fd/test.lua')
   dofile(dir..'lib/lap/test.lua')
   dofile(dir..'lib/vcds/test.lua')
@@ -33,7 +34,6 @@ print'[[libs]]'
   dofile(dir..'lib/luck/test.lua')
   dofile(dir..'cmd/cxt/test.lua')
   dofile(dir..'lib/rebuf/tests/test_motion.lua')
-  dofile(dir..'lib/rebuf/tests/test_gap.lua')
   dofile(dir..'lib/rebuf/tests/test_buffer.lua')
   dofile(dir..'lib/civix/test.lua')
   dofile(dir..'lib/patience/test.lua')

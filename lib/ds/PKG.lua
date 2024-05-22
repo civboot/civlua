@@ -10,9 +10,7 @@ deps = {
 }
 srcs = {
   'ds.lua',
-  'ds/lines.lua',
   'ds/heap.lua',
   'ds/file.lua',
   'ds/log.lua',
-  'ds/testing.lua',
 }

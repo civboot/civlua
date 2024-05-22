@@ -4,7 +4,7 @@ local M = mod and mod'cxt' or {}
 
 local pkg = require'pkglib'
 local mty = require'metaty'
-local ds  = require'ds'; local lines = require'ds.lines'
+local ds  = require'ds'; local lines = require'lines'
 local civtest = require'civtest'
 local add, sfmt = table.insert, string.format
 

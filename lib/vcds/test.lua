@@ -1,6 +1,6 @@
 local mty = require'metaty'
 local ds  = require'ds'
-local lines = require'ds.lines'
+local lines = require'lines'
 local test, assertEq; ds.auto'civtest'
 local Diff, Keep, Change; local M = ds.auto'vcds'
 local push = table.insert

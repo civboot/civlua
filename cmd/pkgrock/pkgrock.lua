@@ -96,7 +96,7 @@ M.exe = function(t)
   if gitops.tag then
     print'... getting tags'
     local out = civix.sh'git tag'
-    local exist = ds.Set(require'ds.lines'(out))
+    local exist = ds.Set(require'lines'(out))
       :union(ds.Set(tags))
     if not ds.isEmpty(exist) then error(
       'tags already exist: '..table.concat(ds.orderedKeys(exist), ' ')

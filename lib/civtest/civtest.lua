@@ -1,6 +1,6 @@
 local mty = require'metaty'
 local ds = require'ds'
-local lines = require'ds.lines'
+local lines = require'lines'
 
 local add, sfmt = table.insert, string.format
 

@@ -1,9 +1,9 @@
 -- testing helpers for ds related data structures
-local M = mod and mod'ds.testing' or {}
+local M = mod and mod'lines.testing' or {}
 
 local T = require'civtest'
 local assertEq = T.assertEq
-local ds, lines = require'ds', require'ds.lines'
+local ds, lines = require'ds', require'lines'
 M.DATA = {}
 
 -- test round-trip offset
