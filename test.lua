@@ -27,6 +27,7 @@ print'[[core]]'
   LOGFN = log.logFn; log.setLevel()
   dofile(dir..'lib/ds/test.lua')
   dofile(dir..'lib/lines/test.lua')
+  dofile(dir..'lib/tv/test.lua')
   dofile(dir..'lib/fd/test.lua')
   dofile(dir..'lib/lap/test.lua')
   dofile(dir..'lib/vcds/test.lua')

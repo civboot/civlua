@@ -169,7 +169,7 @@ end
 
 local function parseTable(p, tbl)
   if p.line and p.c > #p.line then p:incLine() end
-  local rowDel, colDel = '+', '|'
+  local rowDel, colDel = tbl.row or '+', tbl.col or '|'
   local altEnd = function(p, node, l, c)
     if p.c == 1 then
       local c1, c2 = p.line:find'%S'; if c2 then

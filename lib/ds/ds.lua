@@ -38,6 +38,7 @@ end
 
 M.SKIP     = 'skip'
 M.noop     = function() end
+M.iden     = function(...) return ... end -- identity function
 M.retTrue  = function() return true  end
 M.retFalse = function() return false end
 M.newTable = function() return {}    end
