@@ -1,5 +1,11 @@
 [{h1}TSO: tab separated objects]
 
+[" [*WARNING:] this is currently abandoned. Instead I'm going with
+   a much simpler (and less featureful) spec `TV` (tabulated values).
+   I'm keeping this for now in case I want to revisit it, but it was
+   slightly too complex to implement the parser IMO.
+]
+
 [" [*Note:] The initial Lua implementation of TSO is complete and is minimally
    tested. The spec may change at any time, though I don't expect major changes.
 

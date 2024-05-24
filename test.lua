@@ -35,7 +35,6 @@ print'[[core]]'
 print'[[libs]]'
   dofile(dir..'lib/pegl/tests/test_pegl.lua')
   dofile(dir..'lib/pegl/tests/test_lua.lua')
-  dofile(dir..'lib/tso/test.lua')
   dofile(dir..'lib/luck/test.lua')
   dofile(dir..'cmd/cxt/test.lua')
   dofile(dir..'lib/rebuf/tests/test_motion.lua')
@@ -43,8 +42,12 @@ print'[[libs]]'
   dofile(dir..'lib/civix/test.lua')
   dofile(dir..'lib/patience/test.lua')
 
+print'[[experiment]]'
+  dofile(dir..'experiment/tso/test.lua')
+
 print'[[apps]]'
   dofile(dir..'cmd/ff/test.lua')
 
 print'[[ele]]'
   dofile(dir..'cmd/ele/tests/test_term.lua')
+

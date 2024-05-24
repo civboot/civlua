@@ -10,7 +10,6 @@ pkgs = {
   'lib/ds',
   'lib/lines',
   'lib/lap',
-  'lib/tso',
   'lib/vcds',
   'lib/fd',
   'lib/civix',
@@ -23,4 +22,6 @@ pkgs = {
   'cmd/ele',
   'cmd/ff',
   'cmd/pkgrock',
+
+  'experiment/tso',
 }
