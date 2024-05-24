@@ -1,4 +1,4 @@
-[{h1}TV: Tabulated Values]
+[{h1}TV: Tabulated Values ([<https://github.com/civboot/civlua/tree/main/lib/tv>repo])]
 
 TV is a concise tabulated serialization format similar in spirit
 to CSV but with a minimal spec. Here is an example [$.tv] file
