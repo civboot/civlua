@@ -67,17 +67,17 @@ that supports the full spec should support the following types by default.
 ]
 
 [{table}
-+ bool     | boolean value. True is one of [$t true y yes]. False is one of [$f
-             false n no]
++ type     | description
++ bool     | boolean value. [$t true y yes] is true, [$f false n no] is false.
 
 + int      | positive or negative integer value, i.e. [$-1234]. Should also
-             support hexadecimal values using prefix [$0x]. [$_] [$,] and whitespace characters
-             should be
-             ignored.
+             support hexadecimal values using prefix [$0x].
+             Should ignore [$_] [$,] and whitespace.
 
 + number   | real number, typically double precision floating point. Should
              accept both decimal [$1234.567] notation as well as exponent [$1.234567e3]
-             notation.  [$_] [$,] and whitespace characters should be ignored.
+             notation.
+             Should ignore [$_] [$,] and whitespace.
 
 + duration | [$hour:minute:seconds.fraction], i.e. [$1:30:20.123] is 1hr
              30minutes 20sec and 123milliseconds.
@@ -91,7 +91,7 @@ that supports the full spec should support the following types by default.
 + time     | ISO8601 time, i.e. [$2024-05-24T06:37:05−07:00] (7h negative
              offset). Whitespace characters should be ignored.
 
-+ epoch    | a time which is the [$number] of seconds after the unix epoch.
++ epoch    | a time which is the number of seconds after the unix epoch.
 ]
 
 [{:h2}Lua Library]

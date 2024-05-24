@@ -143,18 +143,21 @@ values.
 <p>
 <table>
 <tr>
-<th>bool</th>
-<th>boolean value. True is one of <code>t true y yes</code>. False is one of <code>f
-             false n no</code>
-<p>
+<th>type</th>
+<th>description
 </th>
+</tr>
+<tr>
+<td>bool</td>
+<td>boolean value. <code>t true y yes</code> is true, <code>f false n no</code> is false.
+<p>
+</td>
 </tr>
 <tr>
 <td>int</td>
 <td>positive or negative integer value, i.e. <code>-1234</code>. Should also
-support hexadecimal values using prefix <code>0x</code>. <code>_</code> <code>,</code> and whitespace characters
-should be
-ignored.
+support hexadecimal values using prefix <code>0x</code>.
+Should ignore <code>_</code> <code>,</code> and whitespace.
 <p>
 </td>
 </tr>
@@ -162,7 +165,8 @@ ignored.
 <td>number</td>
 <td>real number, typically double precision floating point. Should
 accept both decimal <code>1234.567</code> notation as well as exponent <code>1.234567e3</code>
-notation.  <code>_</code> <code>,</code> and whitespace characters should be ignored.
+notation.
+Should ignore <code>_</code> <code>,</code> and whitespace.
 <p>
 </td>
 </tr>
@@ -196,7 +200,7 @@ offset). Whitespace characters should be ignored.
 </tr>
 <tr>
 <td>epoch</td>
-<td>a time which is the <code>number</code> of seconds after the unix epoch.
+<td>a time which is the number of seconds after the unix epoch.
 </td>
 </tr>
 </table>
