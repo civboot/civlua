@@ -239,13 +239,10 @@ end
 
 ------------------
 -- Fmt
-M.tableKey = function(k)
-  return M.validKey(k) and k or sfmt('[%q]', k)
-end
 M.sortKeys = function(t)
   local len, keys = #t, {}
   for k, v in pairs(t) do
-    if not (math.type(k) == 'integer' and (0 < k) and (k <= len)) then
+    if not (math.type(k) == 'integer' and (1 <= k) and (k <= len)) then
       add(keys, k)
     end
   end; table.sort(keys)
@@ -255,6 +252,7 @@ end
 M.Fmt = M.record'Fmt' {
   "to        [file?]: if set calls write",
   "keyEnd    [string]",  keyEnd     = ', ',
+  "keySet    [string]",  keySet     = '=',
   "indexEnd  [string]",  indexEnd   = ', ',
   "tableStart[string]",  tableStart = '{',
   "tableEnd  [string]",  tableEnd   = '}',
@@ -268,7 +266,7 @@ M.Fmt = M.record'Fmt' {
    _nl = '\n',
 
   -- overrideable methods
-  'table [function]',
+  'table [function]', 'string [function]',
 }
 
 M.Fmt.pretty = function(F, t)
@@ -309,7 +307,9 @@ end
 M.Fmt.tableKey = function(f, k)
   if type(k) ~= 'string' or M.KEYWORD[k]
      or tonumber(k) or k:find'[^_%w]' then
-    add(f, '['); f:key(k); add(f, ']')
+    add(f, '[');
+    if type(k) == 'string' then add(f, sfmt('%q', k)) else f(k) end
+    add(f, ']')
   else add(f, k) end
 end
 M.Fmt['nil']      = function(f)     add(f, 'nil')             end
@@ -318,9 +318,6 @@ M.Fmt.number      = function(f, n)  add(f, sfmt(f.numfmt, n)) end
 M.Fmt.string      = function(f, s)  add(f, sfmt(f.strfmt, s)) end
 M.Fmt.thread      = function(f, th) add(f, tostring(th))      end
 M.Fmt.userdata    = function(f, ud) add(f, tostring(ud))      end
-M.Fmt.key         = function(f, v)
-  if type(v) == 'string' then add(f, sfmt('%q', v)) else f(v) end
-end
 M.Fmt['function'] = function(f, fn) add(f, sfmt('fn%q[%s]', M.fninfo(fn))) end
 
 -- format items in table "list"
@@ -334,13 +331,13 @@ end
 
 -- format key/vals in table "map"
 M.Fmt.keyvals = function(f, t, keys)
-  local klen = #keys
+  local klen, kset, kend = #keys, f.keySet, f.keyEnd
   for i, k in ipairs(keys) do
-    f:tableKey(k); add(f, '=');
+    f:tableKey(k); add(f, kset);
     local v = t[k]
     if rawequal(t, v) then add(f, 'self')
     else                   f(v) end
-    if i < klen then add(f, f.keyEnd) end
+    if i < klen then add(f, kend) end
   end
 end
 

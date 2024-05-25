@@ -3,7 +3,7 @@ local M = mod and mod'tv' or {}
 
 local mty = require'metaty'
 local ds = require'ds'
-local push = table.insert
+local push, concat = table.insert, table.concat
 local rep = string.rep
 
 local ENCODE = {['\n'] = '\\n', ['\t'] = '\\t'}
@@ -125,9 +125,11 @@ M.SerdeMap.epoch   = M.number
 
 -- decode the matched pattern
 M.cellmatch = function(backs, esc)
-  local nbacks = #backs; assert(nbacks % 2 == 1)
-  if esc == '\\' then return rep('\\', (nbacks + 1) // 2) end
-  return rep('\\', nbacks // 2)..(DECODE[esc] or ('\\'..esc))
+  local nbacks = #backs
+  if esc == '\\'     then return rep('\\', (nbacks + 1) // 2) end
+  if nbacks % 2 == 0 then return rep('\\', nbacks // 2)..esc  end
+  return rep('\\', (nbacks - 2) // 2)
+       ..(DECODE[esc] or ('\\'..esc))
 end
 local cellmatch = M.cellmatch
 

@@ -1,5 +1,5 @@
 name     = 'ds'
-version  = '0.1-10'
+version  = '0.1-11'
 url      = 'git+http://github.com/civboot/civlua'
 summary  = "Tiny data structures and algorithms"
 homepage = "https://github.com/civboot/civlua/blob/main/lib/ds/README.md"
