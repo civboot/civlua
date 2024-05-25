@@ -9,6 +9,7 @@ pkgs = {
   'lib/doc',
   'lib/ds',
   'lib/lines',
+  'lib/lson',
   'lib/tv',
   'lib/lap',
   'lib/vcds',

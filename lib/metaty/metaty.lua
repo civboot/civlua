@@ -4,6 +4,11 @@
 local M = (mod and mod'metaty' or {})
 setmetatable(M, getmetatable(M) or {})
 
+local function copy(t)
+  local o = {}; for k, v in pairs(t) do o[k] = v end
+  return o
+end
+
 ---------------
 -- Pre module: environment variables
 local IS_ENV = { ['true']=true,   ['1']=true,
@@ -143,7 +148,7 @@ end
 M.eq = function(a, b) return NATIVE_TY_EQ[type(a)](a, b) end
 
 -----------------------
--- record2
+-- record
 M.indexError = function(R, k, lvl) -- note: can use directly as mt.__index
   error(R.__name..' does not have field '..k, lvl or 2)
 end
@@ -175,10 +180,8 @@ M.constructUnchecked = function(T, t)
   return setmetatable(t, T)
 end
 M.construct = (CHECK and M.constructChecked) or M.constructUnchecked
-
-M.namedRecord = function(name, R, loc)
-  rawset(R, '__name', name)
-  local fields = {}; for i=1,#R do
+M.extendFields = function(fields, R)
+  for i=1,#R do
     local spec = rawget(R, i); rawset(R, i, nil)
     -- name [type] : some docs, but [type] and ':' are optional.
     local name, tyname, fdoc =
@@ -190,7 +193,13 @@ M.namedRecord = function(name, R, loc)
     assert(#name > 0, 'empty name')
     add(fields, name); fields[name] = tyname or true
   end
-  R.__fields = fields
+  return fields
+end
+
+
+M.namedRecord = function(name, R, loc)
+  rawset(R, '__name', name)
+  R.__fields = M.extendFields({}, R)
   R.__index  = rawget(R, '__index') or R
   local mt = {
     __name='Ty<'..R.__name..'>',
@@ -207,14 +216,25 @@ M.namedRecord = function(name, R, loc)
   return R
 end
 
-M.record2 = function(name)
+M.record = function(name)
   assert(type(name) == 'string' and #name > 0,
          'must set __name=string')
   return function(R) return M.namedRecord(name, R) end
 end
 assert(not getmetatable(M).__call)
 getmetatable(M).__call = function(T, name)
-  return M.record2(name)
+  return M.record(name)
+end
+
+-- Extend the Type with (optional) new name and (optional) additional fields.
+M.extend = function(Type, name, fields)
+  name, fields = name or Type.__name, fields or {}
+  local E, mt = copy(Type), copy(getmetatable(Type))
+  E.__name, mt.__name = name, 'Ty<'..name..'>'
+  E.__index = E
+  E.__fields = copy(E.__fields); M.extendFields(E.__fields, fields)
+  for k, v in pairs(fields) do E[k] = v end
+  return setmetatable(E, mt)
 end
 
 ------------------
@@ -222,8 +242,8 @@ end
 M.tableKey = function(k)
   return M.validKey(k) and k or sfmt('[%q]', k)
 end
-M.sortKeys = function(t, len)
-  len = len or #t; local keys = {}
+M.sortKeys = function(t)
+  local len, keys = #t, {}
   for k, v in pairs(t) do
     if not (math.type(k) == 'integer' and (0 < k) and (k <= len)) then
       add(keys, k)
@@ -232,18 +252,18 @@ M.sortKeys = function(t, len)
   return keys
 end
 
-M.Fmt = M.record2'Fmt' {
+M.Fmt = M.record'Fmt' {
   "to        [file?]: if set calls write",
-  "keyEnd    [string]",  keyEnd=', ',
-  "indexEnd  [string]",  indexEnd = ', ',
+  "keyEnd    [string]",  keyEnd     = ', ',
+  "indexEnd  [string]",  indexEnd   = ', ',
   "tableStart[string]",  tableStart = '{',
-  "tableEnd  [string]",  tableEnd = '}',
+  "tableEnd  [string]",  tableEnd   = '}',
   "listEnd   [string] separator between list/map", listEnd    = '',
-  "indent    [string]",  indent = '  ',
-  "maxIndent [int]",     maxIndent = 20,
-  "numfmt    [string]",  numfmt = '%q',
-  "strfmt    [string]",  strfmt = '%q',
-  "_depth    [int]",     _depth = 0,
+  "indent    [string]",  indent     = '  ',
+  "maxIndent [int]",     maxIndent  = 20,
+  "numfmt    [string]",  numfmt     = '%q',
+  "strfmt    [string]",  strfmt     = '%q',
+  "_depth    [int]",     _depth     = 0,
  [[_nl [string] (default='\n') newline, indent is added/removed]],
    _nl = '\n',
 
@@ -303,6 +323,27 @@ M.Fmt.key         = function(f, v)
 end
 M.Fmt['function'] = function(f, fn) add(f, sfmt('fn%q[%s]', M.fninfo(fn))) end
 
+-- format items in table "list"
+M.Fmt.items = function(f, t, hasKeys, listEnd)
+  local len = #t; for i=1,len do
+    f(t[i])
+    if (i < len) or hasKeys then add(f, f.indexEnd) end
+  end
+  if listEnd then add(f, listEnd) end
+end
+
+-- format key/vals in table "map"
+M.Fmt.keyvals = function(f, t, keys)
+  local klen = #keys
+  for i, k in ipairs(keys) do
+    f:tableKey(k); add(f, '=');
+    local v = t[k]
+    if rawequal(t, v) then add(f, 'self')
+    else                   f(v) end
+    if i < klen then add(f, f.keyEnd) end
+  end
+end
+
 -- Recursively format a table.
 -- Yes this is complicated. No, there is no way to really improve
 -- this while preserving the features.
@@ -314,26 +355,16 @@ M.Fmt.table = function(f, t)
   end
   if type(mt) == 'table' then
     local fn = rawget(mt, '__fmt'); if fn then return fn(t, f) end
-     fn = rawget(mt, '__tostring'); if fn then return add(f, fn(t)) end
+    fn = rawget(mt, '__tostring'); if fn then return add(f, fn(t)) end
     local n = rawget(mt, '__name'); if n  then add(f, n)       end
     keys = rawget(mt, '__fields')
   end
-  local len = #t; keys = keys or M.sortKeys(t, len); local klen = #keys
-  local multi = len + klen > 1 -- use multiple lines
+  keys = keys or M.sortKeys(t)
+  local multi = #t + #keys > 1 -- use multiple lines
   f:incIndent()
   if multi then add(f, f.tableStart) else add(f, '{') end
-  for i=1,len do
-    f(t[i])
-    if (i < len) or next(keys) then add(f, f.indexEnd) end
-  end
-  if multi and (len > 0) and (klen > 0) then add(f, f.listEnd) end
-  for i, k in ipairs(keys) do
-    f:tableKey(k); add(f, '=');
-    local v = t[k]
-    if rawequal(t, v) then add(f, 'self')
-    else                   f(v) end
-    if i < klen then add(f, f.keyEnd) end
-  end
+  f:items(t, next(keys), multi and (#t>0) and (#keys>0) and f.listEnd)
+  f:keyvals(t, keys)
   f:decIndent()
   if multi then add(f, f.tableEnd) else add(f, '}') end
 end

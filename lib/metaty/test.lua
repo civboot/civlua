@@ -4,7 +4,7 @@ local ge = {}; for k in pairs(_G) do table.insert(ge, k) end
 local M = require'metaty'
 assert(M.getCheck())
 
-local record2, split, Fmt = M, M.split, M.Fmt
+local mty, split, Fmt = M, M.split, M.Fmt
 
 local add, sfmt = table.insert, string.format
 
@@ -87,7 +87,7 @@ end)
 
 test('record', function()
   local A = M'A'{'a2[any]', 'a1[any]'}
-  local B = record2'B'{
+  local B = mty'B'{
     'b1[number]', 'b2[number] (default=32)',
     'a[A]'
   }
@@ -120,7 +120,7 @@ test('record', function()
 end)
 
 test('record maybe', function()
-  local A = record2'A' {'a1[string]', 'a2[number]'}
+  local A = mty'A' {'a1[string]', 'a2[number]'}
 
   local a = A{a1='hi'}
     assertEq('hi', a.a1);   assertEq(nil, a.a2);
@@ -128,6 +128,16 @@ test('record maybe', function()
   a.a2 = 4;   assertEq(4, a.a2);
               assertEq(A{a1='hi', a2=4}, a)
   a.a2 = nil; assertEq(nil, a.a2)
+end)
+
+test('extend type', function()
+  local A = mty'A' {'a1[string]', 'a2[number]'}
+  local a = A{}; assertEq('A', a.__name)
+
+  local B = M.extend(A, 'B', {'b1[string]', b1='default'})
+  assertEq('B', B.__name)
+  local b = B{}; assertEq('B', b.__name)
+  assertEq('default', b.b1)
 end)
 
 test("tostring", function()

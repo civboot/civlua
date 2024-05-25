@@ -16,7 +16,7 @@ M.MONTH_SHORT = {
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 }
 
-M.DateTime = record2'DateTime' {
+M.DateTime = mty'DateTime' {
   'year[int]',
   'yearSeconds[int]  seconds into year',
   'ns[int]           nanoseconds into second',

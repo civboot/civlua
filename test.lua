@@ -16,17 +16,18 @@ if tests then
 end
 
 print'[[core]]'
+  dofile(dir..'lib/metaty/test.lua')
+  dofile(dir..'lib/civtest/test.lua')
   assert(os.execute[[
     lua -e "require'pkglib'.install()" lib/shim/test.lua --test=test.lua
   ]])
-  dofile(dir..'lib/metaty/test.lua')
-  dofile(dir..'lib/civtest/test.lua')
 
   local log = require'ds.log'
 
   LOGFN = log.logFn; log.setLevel()
   dofile(dir..'lib/ds/test.lua')
   dofile(dir..'lib/lines/test.lua')
+  dofile(dir..'lib/lson/test.lua')
   dofile(dir..'lib/tv/test.lua')
   dofile(dir..'lib/fd/test.lua')
   dofile(dir..'lib/lap/test.lua')
