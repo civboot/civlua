@@ -30,5 +30,3 @@ ele:
 clean:
 	rm -f $$($(LUA) civ.lua ff -r --fpat='%.rockspec$$')
 	rm -f $$($(LUA) civ.lua ff -r --fpat='%.src%.rock$$')
-	rm -f $$($(LUA) civ.lua ff -r --fpat='%.o$$')
-	rm -f $$($(LUA) civ.lua ff -r --fpat='%.so$$')
