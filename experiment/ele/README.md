@@ -12,40 +12,6 @@ It ships with:
 * Shele, a "Lua shell" application which extends Ele with features useful
   for making it into a full-featured shell (think bash but better)
 
-## Basic Architecture
-Ele is architected using the MVI (model-view-intent) architecture, also known as
-the "React architecture" from the web library of the same name.
-
-```
-model = Model.new{} -- holds all state
-while true do
-  -- update view and receive new events (no state modification)
-  events = model:view()
-  -- process events until empty (modifying model's state)
-  model:update(events)
-end
-```
-
-Where:
-* `Model` represents all data needed to render a view as well as all
-  (non-visibile) application state.
-* `events` is a list of serializable (and human-readable) `Event` objects which
-  are composed of plain-old-data (POD) which specify what the actor should
-  handle the event and the data the event contains.
-* The `update` function receives the `Model` and `Event` list and runs the
-  suitable `Actor` until the event stream is empty.
-  * actors can emit new events, which are handled (sequentially) before new
-    events on the stack.
-  * when an actor emits an event it increases the event depth. There is a limit
-    on event depth/recursion (tentatively 12).
-* The `view` function renders the screen at appropriate times and checks
-  asynchronous state (user inputs, background processes, etc).
-
-`Event` objects are created by:
-* user inputs, primarily keyboard input
-* background processes (timer, file watcher, etc)
-* actions can emit new events (increasing the depth)
-
 ## Shele: a Lua shell
 
 Shele is a shell built for the [Civboot] project in pure lua. It is shipped with
