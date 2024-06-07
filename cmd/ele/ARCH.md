@@ -85,58 +85,49 @@ It is extremely simple to add plugins:
   `lap.schedule(...)` (i.e. the builtin `Keys` plugin does this).
 
 ## Keys Builtin Plugin {#keys}
-There are several builtin actions, but they all center around `Keys` which
-registers three objects:
+Keys is a builtin plugin which handles actions associated with modal or chorded
+(aka vim or emacs style) keyboard input sequences. Users assign keybinding
+functions to `Data.bindings` and add binding chains (nested tables) to one of
+the `Data.bindings.modes` tables.
 
-* `Actions.keys` handles keys events
-* `Data.keys` contains the current keys state
-* `ele.bindings` contains the current keybindings (organized by mode) and
-  related functions.
-* it schedules a coroutine on the LAP scheduler which emits `action="keys"`
-  events when keys are pressed.
+Keybinding functions receive `Data.keys`  as their ONLY argument . `keys` is POD
+with the following fields:
 
-`Data.keys` is architected to support both modal and chord style keybindings (aka vim
-or emacs style). This means that when a user presses a single key the binding is
-either executed (if it is an action) or the state is updated (if it is a chord)
-or some other action is taken (if no binding is registered).
+* `mode`: string which must be in `bindings.modes`
+* `fallback`: action for unknown chord (default=`'chordUnknown'`)
+* `chord`: list of keys which led to this binding, i.e. `{'space', 'a'}`
+* `event`: table to use when returning (emitting) an event from the binding
+  function. Some bindings modify this for future binding functions to emit.
+  * for example,  delete sets `moveop='remove'` since it needs to know how much
+    to delete.
+* `next`: the binding which will be used for the next key. This can
+  be either a string or a table (of keybindings). This starts as
+  `bindings.modes[keys.mode]`
+* `keep`: cleared before every binding function call. If not set to `true`
+  the above fields (except mode and fallback) will be cleared as well.
+  * `chord = {}; event = {}; next = bindings.modes[keys.mode]`
 
-The fields of `Data.keys` are:
+Basic example:
+```
+local command = Data.bindings.modes.command
 
-* `.default` is the "root" keybinding. This is a table of valid keyinput values
-  (i.e. `a`, `^A`, `return`, etc) to either a function or a nested table of
-  inputs.
+Data.bindings.mybinding = function(keys) --> event
+  keys.event.action = 'myaction'
+  return keys.event
+end
 
-* `.current` is the current keyinput table. This starts as `default` but changes
-  as keys are entered.
+-- Equivalent to the following but creates missing dicts:
+-- command.space['^A'] = 'mybinding'
+addBinding(command, 'space ^A', 'mybinding')
+```
 
-When a keyinput is received `chord` is updated and the operation depends on
-`keys.current`. If `keys.current` is a string then
-`events:push(bindings[current](keys, current, chord))` is called.
+The basic operation is that the `keyinput` action walks the bindings in the
+mode, updating `Data.keys.next` until it gets to an action to perform. It then
+calls the binding function, scheduling an event if one is returned.
 
-> Why: this allows keybindings to set up "chains" where they wait for further
-> inputs without having to modify and cache the mode. For example:
-> `d<movement>` waits for the next command and emits an action that uses it to
-> delete text until the movement.
-
-Note that the called function may modify keys (i.e. to change `current`,
-`default`, etc) but will NOT be able to modify other Ele data or events (besides
-returning one). This makes the tie of keyinputs -> action more straightforward
-as actions are only emitted when the chord is fully determined (though more
-complex extensions can modify `keys` if necessary -- though this isn't
-recommended in most cases).
-
-Else `keys.current` must be a table and `value = keys.current[keyinput]`
-* If value is a table then `.current` is set to that table (done)
-
-* If value is a string then it refers to a registered member function of
-  bindings:
-
-  `events:push(bindings[value](keys, current, chord)`
-
-* If the value is not found in `current` then the following event is pushed
-  ```
-  {action=Keys.unknown or 'chordUnknown'}
-  ```
-  This action handle the unknown key, also modifying `data.keys` appropriately
-  (typically: `keys.current, keys.chord = keys.default, {}`)
+The binding functions can directly mutate Keys, or they can emit an event which
+calls an action to mutate data or schedule coroutines. Core data is never
+modified by the keybinding itself, which makes logging (and replaying) user
+actions trivial (see `Data.bindings.loggers`) which permits recording
+macros/etc.
 
