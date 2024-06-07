@@ -120,12 +120,18 @@ M.Send.close = function(send)
 end
 M.Send.__close = M.Send.close
 M.Send.isClosed = function(s) return s._recv == nil end
-M.Send.send = function(send, val)
-  local r = assert(send._recv, 'send when closed')
+M.Send.push = function(send, val)
+  local r = assert(send._recv, 'recv closed')
   r.deq:push(val);
-  if r.cor then LAP_READY[r.cor] = 'ch.send' end
+  if r.cor then LAP_READY[r.cor] = 'ch.push' end
 end
-M.Send.__call = M.Send.send
+-- preemtive send
+M.Send.pushLeft = function(send, val)
+  local r = assert(send._recv, 'recv closed')
+  r.deq:pushLeft(val);
+  if r.cor then LAP_READY[r.cor] = 'ch.pushLeft' end
+end
+M.Send.__call = M.Send.push
 M.Send.__len = function(send)
   local r = send._recv; return r and #r or 0
 end

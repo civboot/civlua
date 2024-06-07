@@ -52,14 +52,15 @@ end
 LOGFN = LOGFN or M.logFn -- GLOBAL
 
 local function _log(lvl, fmt, ...)
-  local i, args, tc = 0, {...}, table.concat
+  local i, args, nargs = 0, {...}, select('#', ...)
+  local tc = table.concat
   local msg = fmt:gsub('%%.', function(m)
     if m == '%%' then return '%' end
     i = i + 1
     return m ~= '%q' and sfmt(m, args[i])
       or tc(mty.Fmt{}(args[i]))
   end)
-  assert((i == #args) or (i == #args - 1), 'invalid #args')
+  assert((i == nargs) or (i == nargs - 1), 'invalid #args')
   LOGFN(lvl, ds.shortloc(2), msg, args[i + 1])
 end
 

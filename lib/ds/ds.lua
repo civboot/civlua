@@ -209,6 +209,12 @@ M.path.ext = function(path) return path:match'.*%.([^/]+)$' end
 
 M.isEmpty = function(t) return next(t) == nil end
 
+-- get index, handling negatives
+M.geti = function(t, i)
+  return (i >= 0) and t[i] or t[#t + i + 1]
+end
+M.last = function(t) return t[#t] end
+
 -- get the first and only element of the list
 M.only = function(t)
   mty.assertf(#t == 1, 'len ~= 1: %s', #t)
@@ -307,6 +313,20 @@ M.orderedKeys = function(t)
   table.sort(keys)
   return keys
 end
+-- recursively update t with add. This will call update on inner tables as
+-- well.
+-- Note: treats list indexes as normal keys (does not append)
+M.deepUpdate = function(t, add)
+  for k, v in pairs(add) do
+    local e = t[k]
+    if type(e) == 'table' and type(v) == 'table' then
+      M.deepUpdate(e, v)
+    else
+      t[k] = v
+    end
+  end
+  return t
+end
 
 M.popk = function(t, key) --> t[k]: pop key
   local val = t[key]; t[key] = nil; return val
@@ -320,12 +340,14 @@ M.drain = function(t, len)
 end
 
 M.getOrSet = function(t, k, newFn)
-  local v = t[k]; if v then return v end
+  local v = t[k]; if v ~= nil then return v end
   v = newFn(t, k); t[k] = v
   return v
 end
 
-
+M.setIfNil = function(t, k, v)
+  if t[k] == nil then t[k] = v end
+end
 M.emptyTable = function() return {} end
 
 -- used with ds.get and ds.set
@@ -345,7 +367,7 @@ end
 -- ]##
 M.get = function(t, path) --> value at path
   for i, k in ipairs(path) do
-    t = t[k]; if t == nil then return end
+    t = t[k]; if t == nil then return nil end
   end
   return t
 end

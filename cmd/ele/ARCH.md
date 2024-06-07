@@ -90,36 +90,8 @@ Keys is a builtin plugin which handles actions associated with modal or chorded
 functions to `Data.bindings` and add binding chains (nested tables) to one of
 the `Data.bindings.modes` tables.
 
-Keybinding functions receive `Data.keys`  as their ONLY argument . `keys` is POD
-with the following fields:
-
-* `mode`: string which must be in `bindings.modes`
-* `fallback`: action for unknown chord (default=`'chordUnknown'`)
-* `chord`: list of keys which led to this binding, i.e. `{'space', 'a'}`
-* `event`: table to use when returning (emitting) an event from the binding
-  function. Some bindings modify this for future binding functions to emit.
-  * for example,  delete sets `moveop='remove'` since it needs to know how much
-    to delete.
-* `next`: the binding which will be used for the next key. This can
-  be either a string or a table (of keybindings). This starts as
-  `bindings.modes[keys.mode]`
-* `keep`: cleared before every binding function call. If not set to `true`
-  the above fields (except mode and fallback) will be cleared as well.
-  * `chord = {}; event = {}; next = bindings.modes[keys.mode]`
-
-Basic example:
-```
-local command = Data.bindings.modes.command
-
-Data.bindings.mybinding = function(keys) --> event
-  keys.event.action = 'myaction'
-  return keys.event
-end
-
--- Equivalent to the following but creates missing dicts:
--- command.space['^A'] = 'mybinding'
-addBinding(command, 'space ^A', 'mybinding')
-```
+Keybinding functions receive `Data.keys`  as their ONLY argument . `keys` POD,
+see ele/keys.lua for the fields.
 
 The basic operation is that the `keyinput` action walks the bindings in the
 mode, updating `Data.keys.next` until it gets to an action to perform. It then
@@ -128,6 +100,8 @@ calls the binding function, scheduling an event if one is returned.
 The binding functions can directly mutate Keys, or they can emit an event which
 calls an action to mutate data or schedule coroutines. Core data is never
 modified by the keybinding itself, which makes logging (and replaying) user
-actions trivial (see `Data.bindings.loggers`) which permits recording
-macros/etc.
+actions trivial (see `Data.bindings.listen`) which permits recording macros/etc.
 
+The event can have the following special fields:
+* `mode`: if set then `keys.mode` is set to this after the event is emitted.
+  Makes `change`-like commands much simpler.

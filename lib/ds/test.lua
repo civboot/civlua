@@ -16,7 +16,7 @@ local test, assertEq, assertMatch, assertErrorPat; M.auto'civtest'
 local min, max, bound, isWithin, sort2, decAbs
 local indexOf, copy, deepcopy
 local strInsert, strDivide, trim
-local extend, clear, replace
+local extend, clear, replace, deepUpdate
 local getOrSet, get, set
 local drain, reverse
 local eval
@@ -151,7 +151,7 @@ four
   assertEq('',     M.usub(u8, 100))
 end)
 
-test("table", function()
+test('table', function()
   local t1, t2 = {1, 2}, {3, 4}
   assert(1 == indexOf(t2, 3)); assert(2 == indexOf(t2, 4))
 
@@ -210,9 +210,19 @@ test("table", function()
 
   t = {4, 5, 6}
   assertEq({4, 5, 6, 7, 8}, M.add(t, 7, 8))
+
+  t = {1, a=3, b={4, 5, b1=3}, c=3}
+  assertEq({2, a=4, b={4, 7, 6, b1=3, b2=4}, c=3}, deepUpdate(t, {
+    2, a=4, b={[2]=7, [3]=6, b2=4},
+  }))
 end)
 
 test('list', function()
+  local t = {4, 5, 6}
+  assertEq(4, M.geti(t, 1))
+  assertEq(6, M.geti(t, -1))
+  assertEq(5, M.geti(t, -2))
+
   assertEq({1, 2, 3}, extend({1}, {2, 3}))
   local t = {4, 5}; extend(t, {1, 2})
   assertEq({4, 5, 1, 2}, t)
