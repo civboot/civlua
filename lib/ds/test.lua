@@ -17,12 +17,13 @@ local min, max, bound, isWithin, sort2, decAbs
 local indexOf, copy, deepcopy
 local strInsert, strDivide, trim
 local extend, clear, replace
-local getOrSet, setPath, drain, reverse
-local get, getPath
+local getOrSet, get, set
+local drain, reverse
 local eval
 local Set, LL, Duration, Epoch
 local M = M.auto'ds'
 local df = require'ds.file'
+local dp = M.dotpath
 
 ---------------------
 -- ds.lua
@@ -167,16 +168,14 @@ test("table", function()
 
   assertEq(5,   getOrSet({a=5}, 'a', function() return 7 end))
   assertEq(7,   getOrSet({b=5}, 'a', function() return 7 end))
-  assertEq(7,   get(    {a={b=7}},  'a', 'b'))
-  assertEq(7,   getPath({a={b=7}}, {'a', 'b'}))
-  assertEq(nil, get({}, 'a', 'b'))
-  assertEq(nil, getPath({}, {'a', 'b'}))
+  assertEq(7,   get({a={b=7}}, {'a', 'b'}))
+  assertEq(nil, get({}, {'a', 'b'}))
 
   local t = {}
-  setPath(t, {'a', 'b'}, 4); assertEq(4, t.a.b)
-  setPath(t, {'a', 'a', 'a'}, 5);   assertEq(5, t.a.a.a)
-  setPath(t, {'a', 'a', 'a'}, nil); assertEq(nil, t.a.a.a)
-  setPath(t, {'a', 'b'}, 4); assertEq(4, t.a.b)
+  set(t, dp'a.b',   4);   assertEq(4, t.a.b)
+  set(t, dp'a.a.a', 5);   assertEq(5, t.a.a.a)
+  set(t, dp'a.a.a', nil); assertEq(nil, t.a.a.a)
+  set(t, dp'a.b',   4);   assertEq(4, t.a.b)
 
   t = {}; for i, v in M.inext, {4, 5, 8}, 0 do t[i] = v end
   assertEq({4, 5, 8}, t)
@@ -208,6 +207,9 @@ test("table", function()
   assertEq(4, t.a)
   t.b = 7; t[1] = 4
   assertEq(nil, t.b); assertEq(nil, t[1])
+
+  t = {4, 5, 6}
+  assertEq({4, 5, 6, 7, 8}, M.add(t, 7, 8))
 end)
 
 test('list', function()

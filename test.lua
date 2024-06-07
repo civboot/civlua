@@ -51,5 +51,6 @@ print'[[apps]]'
   dofile(dir..'cmd/ff/test.lua')
 
 print'[[ele]]'
+  dofile(dir..'cmd/ele/tests/test_keys.lua')
   dofile(dir..'cmd/ele/tests/test_term.lua')
 

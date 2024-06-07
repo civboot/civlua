@@ -139,3 +139,31 @@ T.test('u8edges', function()
   testU8('🙃', {0xF0, 0x9F, 0x99, 0x83})
   testU8('🧿', {0xF0, 0x9F, 0xA7, 0xBF})
 end)
+
+T.test('literal', function()
+  local l = term.literal
+  assertEq('a',  l'a')
+  assertEq('\n', l'return')
+  assertEq(nil,  l'invalid')
+end)
+
+T.test('keyError', function()
+  local ke = term.keyError
+  assertEq(nil, ke'a')
+  assertEq(nil, ke'esc')
+  assertEq(nil, ke'^A')
+  assertEq(nil, ke'😜')
+  assertEq('invalid key: "escape"', ke'escape')
+  assertEq([[key "\8" not a printable character]], ke'\x08')
+end)
+
+T.test('keynice', function()
+  local key, b = term.key, string.byte
+  assertEq('a',      key(b'a'))
+  assertEq('^a',     key(1))
+  assertEq('tab',    key(9))
+  assertEq('^j',     key(10))
+  assertEq('return', key(13))
+  assertEq('space',  key(32))
+  assertEq('^z',     key(26))
+end)

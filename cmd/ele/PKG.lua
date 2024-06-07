@@ -4,6 +4,7 @@ url     = 'git+http://github.com/civboot/civlua'
 srcs = {
   'ele.lua',
   'ele/types.lua',
+  'ele/keys.lua',
   'ele/edit.lua',
   'ele/testing.lua',
 }

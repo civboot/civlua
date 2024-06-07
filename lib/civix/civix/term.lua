@@ -7,8 +7,9 @@ local M = mod and mod'civix.term' or {}
 local mty = require'metaty'
 local ds  = require'ds'
 local char, byte, slen = string.char, string.byte, string.len
-local push = table.insert
-local function getb() return string.byte(io.read(1)) end
+local ulen = utf8.len
+local push, sfmt = table.insert, string.format
+local function getb()    return byte(io.read(1)) end
 local function min(a, b) return (a<b) and a or b end
 
 local READALL = (_VERSION < "Lua 5.3") and "*a" or "a"
@@ -80,15 +81,13 @@ local CMD = { -- command characters (not sequences)
   [127] = 'back',  [ESC] = 'esc',
 }
 M.CMD = CMD
-local function ctrlChar(c) -- Note: excludes CMD
-  if c >= 32 then return nil end
-  return char(64+c) -- TODO: use 96 for lower-case
-end; M.ctrlChar = ctrlChar
-local function nice(c)
-  if     CMD[c]      then return CMD[c]
-  elseif ctrlChar(c) then return '^'..ctrlChar(c) end
-  return char(c)
-end
+local ctrlChar = function(c) --> string: key user pressed w/ctrl
+  return (c < 32) and char(96+c) or nil
+end;
+local nice = function(c) --> nice key string
+  return CMD[c] or (ctrlChar(c) and '^'..ctrlChar(c)) or char(c)
+end;
+M.ctrlChar, M.key = ctrlChar, nice
 
 ---------------------------------
 -- Terminal Input Stream
@@ -242,6 +241,65 @@ M.Term = {
     return h, w
   end,
 }
+
+--------------------------------
+-- Validation and Interaction
+-- These help with validating keys are valid and converting
+-- special keys (return, space, etc) to their literal form.
+
+M.LITERALS = {
+  ['tab']       = '\t',
+  ['return']    = '\n',
+  ['space']     = ' ',
+  ['slash']     = '/',
+  ['backslash'] = '\\',
+  ['caret']     = '^',
+}
+
+-- Convert any key to it's literal form
+-- [#
+--   literal'a'       -> 'a'
+--   literal'return'  -> '\n'
+--   literal'invalid' -> nil
+-- ]#
+M.literal = function(key) --> literalstring?
+  return (1 == ulen(key)) and key or M.LITERALS[key]
+end
+
+local VK = {}
+for c=byte'A', byte'Z' do VK['^'..char(c)]  = true end
+-- m and i don't have ctrl variants
+VK['^M'] = 'ctrl+m == return'
+VK['^I'] = 'ctrl+i == tabl'
+for c     in pairs(M.LITERALS)    do VK[c]  = true end
+for _, kc in pairs(M.CMD)         do VK[kc] = true end
+for _, kc in pairs(M.INP_SEQ)     do VK[kc] = true end
+for _, kc in pairs(M.INP_SEQO)    do VK[kc] = true end
+M.VALID_KEY = VK
+
+-- Check that a key is valid. Return errstring if not.
+M.keyError = function(key) --> errstring?
+  if #key == 0 then return 'empty key' end
+  local v = VK[key]; if v then
+    return (v ~= true) and sfmt('%q not valid key: %s', key, v) or nil
+  end
+  if #key == 1 then; local cp = byte(key)
+    if cp <= 32 or (127 <= cp and cp <= 255) then
+      return sfmt('key %q not a printable character', key)
+    end
+    return
+  end
+  if ulen(key) ~= 1 then
+    return sfmt('invalid key: %q', key)
+  end
+end
+M.checkKey = function(key) --> key?, errstring?
+  local err = M.keyError(key); if err then return nil, err end
+  return key
+end
+
+--------------------------------
+-- Test Helpers
 
 -- An in-memory fake terminal that you can assert against
 M.FakeTerm = mty'FakeTerm'{

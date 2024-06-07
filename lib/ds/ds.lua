@@ -280,11 +280,17 @@ M.reverse = function(t)
   return t
 end
 
--- extend(t, vals) -> t: move vals to the end of t
-M.extend = function(t, v) return move(v, 1, #v, #t + 1, t) end
+-- extend(t, list) -> t: move vals to the end of t
+M.extend = function(t, l) return move(l, 1, #l, #t + 1, t) end
 -- clear(t, startindex=1, len=#t) -> t: set t[si:si+len-1] = nil
 M.clear  = function(t, si, len)
   return move(EMPTY, 1, len or #t, si or 1, t)
+end
+-- append one or more values to t
+M.add = function(t, ...) --> t
+  local tend = #t
+  for i=1,select('#', ...) do t[tend + i] = select(i, ...) end
+  return t
 end
 -- replace(t, r): make t's index values the same as r's
 M.replace = function(t, r)
@@ -319,31 +325,40 @@ M.getOrSet = function(t, k, newFn)
   return v
 end
 
--- getPath(t, {'a', 2, 'c'}) -> t.a?[2]?.c?
-M.getPath = function(t, path)
+
+M.emptyTable = function() return {} end
+
+-- used with ds.get and ds.set
+-- Example:
+--   local dp = require'ds'.dotpath
+--   ds.get(t, dp'a.b.c')
+M.dotpath = function(dots) --> list split by '.'
+  local p = {}; for v in dots:gmatch'[^%.]+' do push(p, v) end
+  return p
+end
+
+-- get the value at the path or nil if the value or any
+-- intermediate table is missing.
+-- [##
+--   get(t, {'a', 2, 'c'})  -> t.a?[2]?.c?
+--   get(t, dotpath'a.b.c') -> t.a?.b?.c?
+-- ]##
+M.get = function(t, path) --> value at path
   for i, k in ipairs(path) do
     t = t[k]; if t == nil then return end
   end
   return t
 end
 
--- get(t, 'a', 2, 'c') -> t.a?[2]?.c?
--- get the keys or nil if any are missing.
-M.get = function(t, ...)
-  for i=1,select('#', ...) do
-    t = t[select(i, ...)]; if t == nil then return end
-  end
-  return t
-end
-
-M.emptyTable = function() return {} end
-M.setPath = function(d, path, value, newFn)
-  local newFn = newFn or M.emptyTable
+-- set the value at path using newFn (default=ds.newTable) to create
+-- missing intermediate tables.
+-- [##
+--   set(t, dotpath'a.b.c', 2) -> t.a?.b?.c = 2
+-- ]##
+M.set = function(d, path, value, newFn)
+  newFn = newFn or M.emptyTable
   local len = #path; assert(len > 0, 'empty path')
-  for i, k in ipairs(path) do
-    if i >= len then break end
-    d = M.getOrSet(d, k, newFn)
-  end
+  for i=1,len-1 do d = M.getOrSet(d, path[i], newFn) end
   d[path[len]] = value
 end
 
