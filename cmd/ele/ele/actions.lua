@@ -1,6 +1,7 @@
 -- Actions builtin plugin
 local M = mod and mod'ele.actions' or {}
 local motion = require'rebuf.motion'
+local log = require'ds.log'
 
 ----------------------------------
 -- MOVE
@@ -49,12 +50,17 @@ end
 
 -- remove movement action
 M.remove = function(data, ev, evsend)
-  local e = data.edit
-  if ev.lines == 0 then return e:remove(e.l, e.l + (ev.times or 0)) end
+  local e = data.edit; e:changeStart()
+  if ev.lines == 0 then
+    local t = ev.times; local l2 = (t and (t - 1)) or 0
+    log.info('remove lines=0 + %s', l2)
+    return e:remove(e.l, e.l + l2)
+  end
   if ev.move == 'forword' then ev.cols = -1 end
   local l1, c1 = e.l, e.c; M.move(data, ev)
   if ev.lines then e:remove(l1, e.l)
   else             e:remove(l1, c1, e.l, e.c) end
+  e.l = math.min(#e.buf, l1); e.c = e:boundCol(c1)
 end
 
 return M

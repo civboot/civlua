@@ -4,6 +4,7 @@ local M = mod'ele.edit'
 -- # Edit struct
 local mty    = require'metaty'
 local ds     = require'ds'
+local log    = require'ds.log'
 local motion = require'rebuf.motion'
 local types = require'ele.types'
 local lines = require'lines'
@@ -104,6 +105,7 @@ end
 M.Edit.remove = function(e, ...)
   local l1, c1 = e.l, e.c
   local l, c, l2, c2 = span(...)
+  log.info('remove %s.%s : %s.%s', l, c or ' ', l2, c2 or ' ')
   local g = e.buf.gap
   local len = #g
   l, l2 = ds.bound(l, 1, len), ds.bound(l2, 1, len)
@@ -122,6 +124,7 @@ M.Edit.remove = function(e, ...)
       e.l, e.c = lines.offset(g, off, e.l, e.c)
     end
   end
+  log.info('  + rm %s.%s : %s.%s', l, c, l2, c2)
   local ch = e.buf:remove(l, c, l2, c2)
   e:changeUpdate2()
 end

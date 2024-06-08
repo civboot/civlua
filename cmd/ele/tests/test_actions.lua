@@ -1,10 +1,11 @@
 -- Test event handling actions
 
 local T = require'civtest'
+local ds = require'ds'
 local M = require'ele.actions'
-local ds, lines = require'ds', require'lines'
 local edit = require'ele.edit'
 local Buffer = require'rebuf.buffer'.Buffer
+local tostring = require'metaty'.tostring
 
 local newData = function(lines)
 	return {
@@ -57,4 +58,10 @@ T.test('remove', function()
   T.assertEq({1, 1}, {e.l, e.c})
   assertRemove('forword', {}, 1, 1)
     T.assertEq('3 5 7 9', b[1])
+    T.assertEq('  3 5', b[2])
+  assertRemove('find', {find='7', cols=-1}, 1, 1)
+    T.assertEq('7 9', b[1])
+  -- assertRemove('lines', {lines=0, times=2}, 1, 1)
+  --   T.assertEq('1 3 5 7 9\n', b:tostring())
+
 end)

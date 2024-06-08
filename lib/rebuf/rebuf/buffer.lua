@@ -59,6 +59,8 @@ Buffer.new=function(s)
   }
 end
 
+Buffer.tostring = function(b) return mty.tostring(b.gap) end
+
 Buffer.__len = function(b) return #b.gap end
 Buffer.__index = function(b, i)
   if type(i) == 'string' then return Buffer[i] end
