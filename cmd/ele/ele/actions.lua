@@ -47,4 +47,14 @@ M.move = function(data, ev, evsend)
   e.l = math.min(#e.buf, e.l); e.c = e:boundCol(e.c)
 end
 
+-- remove movement action
+M.remove = function(data, ev, evsend)
+  local e = data.edit
+  if ev.lines == 0 then return e:remove(e.l, e.l + (ev.times or 0)) end
+  if ev.move == 'forword' then ev.cols = -1 end
+  local l1, c1 = e.l, e.c; M.move(data, ev)
+  if ev.lines then e:remove(l1, e.l)
+  else             e:remove(l1, c1, e.l, e.c) end
+end
+
 return M

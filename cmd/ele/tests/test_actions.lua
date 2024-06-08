@@ -46,3 +46,15 @@ T.test('move', function()
   assertMove('find',     {find='9'},     1, 9)
   assertMove('findback', {findback='1'}, 1, 1)
 end)
+
+T.test('remove', function()
+  local d = newData(lines3); local e, b = d.edit, d.edit.buf
+  local function assertRemove(mv, ev, l, c)
+    ev.move = mv; M.remove(d, ev)
+    T.assertEq({l, c}, {e.l, e.c})
+  end
+
+  T.assertEq({1, 1}, {e.l, e.c})
+  assertRemove('forword', {}, 1, 1)
+    T.assertEq('3 5 7 9', b[1])
+end)
