@@ -2,6 +2,7 @@
 local M = mod and mod'lines.testing' or {}
 
 local T = require'civtest'
+local mty = require'metaty'
 local assertEq = T.assertEq
 local ds, lines = require'ds', require'lines'
 M.DATA = {}
@@ -95,8 +96,14 @@ M.testLinesRemove = function(new)
   assertEq(new{'abc'}, t)
 
   t = new'ab\nc\nde\n'
-  assertEq({'', ''}, lines.remove(t, 1, 3, 1, 3)) -- remove \n (single)
+  -- remove \n (single)
+  assertEq({'', ''}, lines.remove(t, 1, 3, 1, 3))
   assertEq(new{'abc', 'de', ''}, t)
+
+  t = new'a b c\nd e\nf g\nh i\n'
+  mty.print('t:', t)
+  assertEq({'d e', 'f g'}, lines.remove(t, 2, 3))
+  assertEq(new{'a b c', 'h i', ''}, t)
 end
 
 return M

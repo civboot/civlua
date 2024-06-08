@@ -58,7 +58,7 @@ test('inset', function()
   assertEq('foo\nbar', lines.concat(t))
 end)
 
-test('remove', function()
+test('remove table', function()
   testing.testLinesRemove(function(t)
     return type(t) == 'string' and lines(t) or t
   end)
@@ -106,7 +106,7 @@ test('insertstr', function()
   assertEq('foo\nbar', tostring(g))
 end)
 
-test('remove', function()
+test('remove gap', function()
   testing.testLinesRemove(Gap)
 end)
 

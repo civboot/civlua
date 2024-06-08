@@ -17,6 +17,7 @@ local EMPTY = {}
 -- Uses __inset "metamethod" if available.
 -- rmlen, if provided, will cause t[i:i+rmlen] to be removed
 M.inset = function(t, i, values, rmlen)
+  print('!! inset', i, rmlen)
   local meth = mty.getmethod(t, '__inset')
   if meth then return meth(t, i, values, rmlen) end
   -- impl notes, there are two modes:
@@ -26,8 +27,13 @@ M.inset = function(t, i, values, rmlen)
   rmlen = rmlen or 0; local tlen, vlen = #t, #values
   if tlen - i - rmlen >= 0 then -- we want to keep some values >= i
     local cache = move(t, i + rmlen, tlen, 1, {})
+    print('!! inset keeping, moving values', 1, max(vlen, tlen - i + 1), i)
     move(values, 1, max(vlen, tlen - i + 1), i, t)
-    return move(cache, 1, #cache, i + vlen, t)
+    mty.print('!!   t:', t)
+    print('!! inset keeping, moving cache', 1, #cache, i + vlen)
+    move(cache, 1, #cache, i + vlen, t)
+    mty.print('!!   t:', t)
+    return t
   end
   -- not keeping values >= i
   return move(values, 1, max(vlen, rmlen), max(1, i + 1 - rmlen), t)

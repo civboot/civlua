@@ -53,14 +53,17 @@ M.remove = function(data, ev, evsend)
   local e = data.edit; e:changeStart()
   if ev.lines == 0 then
     local t = ev.times; local l2 = (t and (t - 1)) or 0
-    log.info('remove lines=0 + %s', l2)
+    log.info('remove lines(0) %s:%s', e.l, e.l + l2)
     return e:remove(e.l, e.l + l2)
   end
   if ev.move == 'forword' then ev.cols = -1 end
-  local l1, c1 = e.l, e.c; M.move(data, ev)
-  if ev.lines then e:remove(l1, e.l)
-  else             e:remove(l1, c1, e.l, e.c) end
-  e.l = math.min(#e.buf, l1); e.c = e:boundCol(c1)
+  local l, c = e.l, e.c
+  M.move(data, ev)
+  log.info('remove moved: %s.%s -> %s.%s', l, c, e.l, e.c)
+  if ev.lines then e:remove(l, e.l)
+  else             e:remove(l, c, e.l, e.c) end
+  l, c = motion.topLeft(l, c, e.l, e.c)
+  e.l = math.min(#e.buf, l); e.c = e:boundCol(c)
 end
 
 return M

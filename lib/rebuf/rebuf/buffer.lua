@@ -3,6 +3,7 @@ local ds = require'ds'
 local lines = require'lines'
 local motion  = require'rebuf.motion'
 local Gap  = require'lines.Gap'
+local log = require'ds.log'
 
 local M = {}
 local add, ty = table.insert, mty.ty
@@ -171,6 +172,7 @@ Buffer.remove=function(b, ...)
   local ch = lines.sub(dat, l, c, l2, c2)
   ch = (type(ch)=='string' and ch) or table.concat(ch, '\n')
   ch = b:changeRm(ch, lt, ct)
+  log.info('remove %s.%s : %s.%s', l, c, l2, c2)
   lines.remove(dat, l, c, l2, c2)
   return ch
 end

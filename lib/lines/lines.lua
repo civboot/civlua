@@ -38,8 +38,12 @@ end
 
 -- Address lines span via either (l,l2) or (l,c, l2,c2)
 local function span(l, c, l2, c2)
-  if not (l2 or c2) then return l, nil, c, nil end --(l,   l2)
-  if      l2 and c2 then return l, c, l2, c2   end --(l,c, l2,c2)
+  print('!! span', l, c, l2, c2)
+  if      l2 and c2 then return l, c, l2, c2    end --(l,c, l2,c2)
+  if not (l2 or c2) then return l, nil, c, nil  end --(l,   l2)
+  if not (c  or c2) and (l and l2) then
+    return l, nil, l2, nil
+  end --(l,   l2)
   error'span must be 2 or 4 indexes: (l, l2) or (l, c, l2, c2)'
 end
 M.span = span
@@ -196,6 +200,8 @@ M.remove = function(t, ...) --> string|table
   local len = #t
   if l2 > len then l2, c2 = len, #t[len] + 1 end
   local rem, new = {}, {}
+  mty.print(('!! lines.remove %s.%s : %s.%s'):format(
+             l, c or '*', l2, c2 or '*'))
   if l > l2 then -- empty span
   elseif c then -- includes column info
     if l == l2 then -- same line
@@ -227,6 +233,7 @@ M.remove = function(t, ...) --> string|table
     end
   else -- only lines, no col info
     for i=l,l2 do push(rem, t[i]) end
+    mty.print('!! rem lines', rem)
   end
   ds.inset(t, l, new, l2 - l + 1)
   return rem
