@@ -38,6 +38,12 @@ M.async =
   LAP_ASYNC = true
 end)
 
+-- yield(fn)
+--   sync: noop
+--   async: coroutine.yield
+M._async.yield = yield
+M._sync.yield  = function() end
+
 -- schedule(fn) -> cor?
 --   sync:  run the fn immediately and return nil
 --   async: schedule the fn and return it's coroutine

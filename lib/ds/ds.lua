@@ -33,6 +33,32 @@ M.inset = function(t, i, values, rmlen)
   return move(values, 1, max(vlen, rmlen), max(1, i + 1 - rmlen), t)
 end
 
+---------------------
+-- Pseudo Types
+local CONCRETE_TYPES = {
+  ['nil']=true, boolean=true, number=true, string=true
+}
+
+-- return true if the value is "plain old data".
+--
+-- Plain old data is defined as any concrete type or a table with no metatable
+-- and who's pairs() are only POD.
+local isPod; isPod = function(v)
+  local ty = type(v)
+  if ty == 'table' then
+    local mt = getmetatable(v)
+    if mt and (mt ~= 'table') then return false end
+    for k, v in pairs(v) do
+      if not (isPod(k) and isPod(v)) then
+        return false
+      end
+    end
+    return true
+  end
+  return CONCRETE_TYPES[ty]
+end
+M.isPod, M.CONCRETE_TYPES = isPod, CONCRETE_TYPES
+
 -----------------
 -- Utility
 

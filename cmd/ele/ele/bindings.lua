@@ -1,8 +1,8 @@
--- Keys builin plugin
+-- Bindings builin plugin
 --
--- Note: requires the following actions to be defined (see actions)
---   insert, move, remove, buffer, window, file
-local M = mod and mod'keys' or {}
+-- This defines the default keybindings and the function
+-- for handling key inputs.
+local M = mod and mod'ele.keys' or {}
 
 local mty = require'metaty'
 local ds = require'ds'
@@ -13,6 +13,9 @@ local sfmt = string.format
 local push, pop, concat = table.insert, table.remove, table.concat
 local get, set, dp = ds.get, ds.set, ds.dotpath
 local add = ds.add
+
+---------------------------
+-- Utility Functions
 
 -- space-separated keypath to a list, asserting valid keys
 M.keypath = function(keystr) --> keylist
@@ -47,7 +50,7 @@ local function move(event)
 end
 
 ---------------------------
--- Keys type
+-- Type for data.keys
 
 M.Keys = mty'Keys' {
   "mode [string]: mode from bindings.modes",
@@ -64,7 +67,8 @@ M.Keys.check = function(k, ele) --> errstring?
 end
 
 ---------------------------
--- Bindings
+-- Default data.bindings functions
+
 M.bindings = {}
 local B = M.bindings
 
@@ -83,21 +87,20 @@ B.commandmode = function(keys) keys.mode = 'command' end
 B.right, B.left = move{off=1},    move{off=-1}
 B.up,    B.down = move{lines=-1}, move{lines=1}
 
--- used with find/till/etc
--- sets the ev[ev.keyfield] to the last key
-B.nextkey = function(keys)
-  log.info('nextkey', ds.last(keys.chord))
+B.forword  = act('move', {move='forword'})
+B.backword = act('move', {move='backword'})
+
+B.movekey = function(keys)
   local ev = keys.event
-  ev[ev.keyfield] = M.literal(ds.last(keys.chord))
-  ev.keyfield = nil
+  ev[ev.move] = M.literal(ds.last(keys.chord))
   return ev
 end
 
 -- go to the character
 B.find = function(keys)
   ds.setIfNil(keys.event, 'action', 'move')
-  keys.event.keyfield = 'find'
-  keys.next = 'nextkey'
+  keys.event.move = 'find'
+  keys.next = 'movekey'
   keys.keep = true
 end
 
@@ -109,7 +112,7 @@ end
 -- go back to the character
 B.findback = function(keys)
   B.find(keys)
-  keys.event.keyfield = 'findback'
+  keys.event.move = 'findback'
 end
 
 -- go back to the column after the character
@@ -145,9 +148,12 @@ end
 B.zero = function(keys) -- special: movement if not after a digit
   local ev = keys.event
   if not ev.action and ev.times then return B.times(keys) end
-  ev.action, ev.c = ev.action or 'move', 1
+  ev.action, ev.sol = ev.action or 'move', true
   return ev
 end
+
+---------------------------
+-- Default Layout
 
 B.modes = {}
 B.modes.insert, B.modes.command = {}, {}; do
@@ -184,7 +190,7 @@ end
 -- Action and installation
 
 M.action = function(data, ev, evsend)
-  local ki = assert(ev.keyinput)
+  local ki = assert(ev[1])
   local K, B = data.keys, data.bindings
   log.info('action: %q mode=%s keep=%s', ev, K.mode, K.keep)
   if K.keep then K.keep = nil
@@ -212,6 +218,8 @@ M.action = function(data, ev, evsend)
 end
 
 -- install the builtin keys plugin
+--
+-- Note: this does NOT start the keyinputs coroutine
 M.install = function(data)
   data.keys = M.Keys{mode='insert'}
   data.bindings = data.bindings or {}

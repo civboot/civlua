@@ -39,12 +39,12 @@ Actions are functions or `__call`-able tables which must be registered in
 `ele.Actions` and must have signature:
 
 ```
-function action([self,] data, ev, events)
+function action([self,] data, ev, evsend)
 ```
 
 The action body is free to mutate both `data` and `ev` as well as call
-`events:push(newEvent)`. It is also free to call `lap.schedule(...)` to
-schedule coroutines which call `events:push(newEvent)` asynchronously.
+`evsend(newEvent)`. It is also free to call `lap.schedule(...)` to
+schedule coroutines which call `evsend(newEvent)` asynchronously.
 
 Any events scheduled directly by the action will be handled immediately (the LAP
 executor will not be run). The actual implementation of `model()` is:
@@ -64,7 +64,7 @@ that calls `model()` when any `events` are present.
 
 ## Event Records
 Event records MUST be POD (plain old data). This is asserted on by
-`events:push`.
+`evsend()`.
 
 Events are a table with some fields defined, mainly:
  * action: the action name that should be executed. This must be

@@ -48,7 +48,6 @@ end
 
 -- bound the column for the line
 M.Edit.boundCol= function(e, c, l)
-  print('!! boundCol', c, l, e.buf[l])
   return ds.bound(c, 1, #e.buf[l or e.l] + 1)
 end
 

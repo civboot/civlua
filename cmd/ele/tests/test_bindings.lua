@@ -39,7 +39,7 @@ local function assertKeys(keyinputs, keys, expectKeys, expectEvents)
   local data = newData(keys)
   local events = {}; local evsend = function(v) push(events, v) end
   for _, ki in ipairs(M.keypath(keyinputs)) do
-    M.action(data, {action='keyinput', keyinput=ki}, evsend)
+    M.action(data, {action='keyinput', ki}, evsend)
   end
 
   if expectKeys == false then T.assertEq(nil, data.keys.keep)
@@ -88,7 +88,10 @@ T.test('action', function()
     T.assertEq('insert', k.mode)
 
   -- find
-  assertKeys('f x',       'command', false, {move{find='x'}})
-  assertKeys('1 0 d f x', 'command', false, {rm{find='x', times=10}})
-  assertKeys('1 0 d t x', 'command', false, {rm{find='x', times=10, cols=-1}})
+  assertKeys('f x',       'command', false,
+    {move{find='x', move='find'}})
+  assertKeys('1 0 d f x', 'command', false,
+    {  rm{find='x', move='find', times=10}})
+  assertKeys('1 0 d t x', 'command', false,
+    {  rm{find='x', move='find', times=10, cols=-1}})
 end)

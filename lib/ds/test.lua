@@ -151,6 +151,21 @@ four
   assertEq('',     M.usub(u8, 100))
 end)
 
+test('pod', function()
+  assertEq(true,  M.isPod(true))
+  assertEq(true,  M.isPod(false))
+  assertEq(true,  M.isPod(3))
+  assertEq(true,  M.isPod(3.3))
+  assertEq(true,  M.isPod'hi')
+
+  assertEq(nil,  M.isPod(M.noop))
+  assertEq(nil,  M.isPod(io.open'PKG.lua'))
+
+  assertEq(true, M.isPod{1, 2, a=3})
+  assertEq(true, M.isPod{1, 2, a={4, 5, b=6}})
+  assertEq(false, M.isPod{1, 2, a={4, 5, b=M.noop}})
+end)
+
 test('table', function()
   local t1, t2 = {1, 2}, {3, 4}
   assert(1 == indexOf(t2, 3)); assert(2 == indexOf(t2, 4))

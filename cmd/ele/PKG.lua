@@ -6,5 +6,6 @@ srcs = {
   'ele/types.lua',
   'ele/bindings.lua',
   'ele/edit.lua',
+  'ele/actions.lua',
   'ele/testing.lua',
 }

@@ -98,11 +98,11 @@ end
 -- find backwards
 -- this searches for the pattern and returns the LAST one found.
 -- This is HORRIBLY non-performant, only use for small amounts of data
-M.findBack = function(s, pat, end_)
+M.findBack = function(s, pat, end_, plain)
   local s, fs, fe = s:sub(1, end_), nil, 0
   assert(#s < 256)
   while true do
-    local _fs, _fe = s:find(pat, fe + 1)
+    local _fs, _fe = s:find(pat, fe + 1, plain)
     if not _fs then break end
     fs, fe = _fs, _fe
   end
