@@ -10,7 +10,7 @@ local Buffer = buffer.Buffer
 local C, CS = buffer.Change, buffer.ChangeStart
 
 test('undoIns', function()
-  local b = Buffer.new(''); local g = b.gap
+  local b = Buffer.new(''); local g = b.dat
 
   local ch1 = C{k='ins', s='hello ', l=1, c=1}
   local ch2 = C{k='ins', s='world!', l=1, c=7}
@@ -47,7 +47,7 @@ test('undoIns', function()
 end)
 
 test('undoInsRm', function()
-  local b = Buffer.new(''); local g, ch = b.gap
+  local b = Buffer.new(''); local g, ch = b.dat
   local ch1 = C{k='ins', s='12345\n', l=1, c=1}
   local ch2 = C{k='rm', s='12', l=1, c=1}
   b:changeStart(0, 0)
@@ -66,7 +66,7 @@ end)
 
 test('undoReal', function() -- undo/redo word deleting
   local START = "4     It's nice to have some real data"
-  local b = Buffer.new(START); local g, ch = b.gap
+  local b = Buffer.new(START); local g, ch = b.dat
   local ch1 = C{k='rm', s='It',  l=1, c=7}
   local ch2 = C{k='rm', s="'",   l=1, c=7}
   local ch3 = C{k='rm', s="'s ", l=1, c=7}
@@ -84,7 +84,7 @@ end)
 
 test('undoMulti', function() -- undo/redo across multi lines
   local START = '123\n456\n789\nabc'
-  local b = Buffer.new(START); local g, ch = b.gap
+  local b = Buffer.new(START); local g, ch = b.dat
   assertEq(START, tostring(g))
   local ch1 = C{k='rm', s='\n', l=1, c=4}
   local ch2 = C{k='rm', s='\n', l=1, c=7}

@@ -5,6 +5,7 @@ local ds = require'ds'
 local lap = require'lap'
 local M = require'ele.bindings'
 local et = require'ele.types'
+local Ed = require'ele.Ed'
 local keyinput = require'ele.actions'.keyinput
 
 local push = table.insert
@@ -25,7 +26,7 @@ T.test('chords', function()
 end)
 
 local function newEd(mode)
-  local ed = et.Ed{
+  local ed = Ed{
     mode=mode, modes={}, actions=actions, ext={}
   }
   M.install(ed)

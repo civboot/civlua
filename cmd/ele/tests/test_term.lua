@@ -52,7 +52,7 @@ local L_2l3c2h5w =
 
 T.test('edit', function()
   local e = edit.Edit(nil, Buffer.new(lines3))
-  T.assertEq(3, #e.buf.gap)
+  T.assertEq(3, #e.buf.dat)
   T.assertEq(3, #e.buf)
   T.assertEq(3, #e)
   local ft = term.FakeTerm(3, 10)

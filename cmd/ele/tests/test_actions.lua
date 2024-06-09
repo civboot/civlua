@@ -4,12 +4,12 @@ local T = require'civtest'
 local ds = require'ds'
 local M = require'ele.actions'
 local edit = require'ele.edit'
-local et = require'ele.types'
+local Ed = require'ele.Ed'
 local Buffer = require'rebuf.buffer'.Buffer
 local tostring = require'metaty'.tostring
 
 local newEd = function(lines)
-	return et.Ed{
+	return Ed{
     edit = edit.Edit(nil, Buffer.new(lines)),
   }
 end

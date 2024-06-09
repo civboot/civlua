@@ -97,13 +97,12 @@ M.Recv.sender = function(r)
   assert(r._sends, 'sender on closed channel')[s] = true
   return s
 end
-M.Recv.recv = function(r)
-  local deq = r.deq
-  while (#deq == 0) and (r._sends and not ds.isEmpty(r._sends)) do
+M.Recv.wait = function(r)
+  while (#r.deq == 0) and (r._sends and not ds.isEmpty(r._sends)) do
     r.cor = coroutine.running(); yield()
   end
-  return deq()
 end
+M.Recv.recv = function(r) r:wait() return r.deq() end
 M.Recv.__call = M.Recv.recv
 -- drain the recv. This does NOT wait for new items.
 M.Recv.drain = function(r) return r.deq:drain() end

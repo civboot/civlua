@@ -7,6 +7,7 @@ local push, pop, sfmt = table.insert, table.remove, string.format
 local move = table.move
 local ulen, uoff     = utf8.len, utf8.offset
 local max = math.max
+local xpcall, traceback = xpcall, debug.traceback
 local EMPTY = {}
 
 ------------------
@@ -552,6 +553,13 @@ M.eval = function(chunk, env, name) -- Note: not typed
   local e, err = load(chunk, name, 't', env)
   if err then return false, err end
   return pcall(e)
+end
+
+-- same as pcall but the error contains the traceback
+-- TODO: eventually I'd like this to return an Error object
+--   or something instead.
+M.try = function(fn, ...) --> ok, ...out
+  return xpcall(fn, traceback, ...)
 end
 
 ---------------------

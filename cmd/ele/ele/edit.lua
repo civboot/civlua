@@ -19,11 +19,11 @@ M.Edit = mty'Edit' {
   'container', -- parent (Window/Model)
   'canvas',
   'buf[Buffer]',
-  'l[int]',  l=1,     'c[int]',  c=1, -- cursor line, col
-  'vl[int]', vl=1,    'vc[int]', vc=1, -- view   line, col (top-left)
+  'l[int]',  l=1,     'c[int]',  c=1,   -- cursor line, col
+  'vl[int]', vl=1,    'vc[int]', vc=1,  -- view   line, col (top-left)
   'tl[int]', tl=-1,   'tc[int]', tc=-1, -- term   line, col (top-left)
   'th[int]', th=-1,   'tw[int]', tw=-1, -- term   height, width
-  'fh[int]', fh=0,    'fw[int]', fw=0, -- force h,w
+  'fh[int]', fh=0,    'fw[int]', fw=0,  -- force h,w
 }
 
 getmetatable(M.Edit).__call = function(T, container, buf)
@@ -44,7 +44,7 @@ M.Edit.curLine     = function(e) return e.buf[e.l] end
 M.Edit.colEnd      = function(e) return #e:curLine() + 1 end
 M.Edit.lastLine    = function(e) return e.buf[#e] end
 M.Edit.offset = function(e, off)
-  return e.buf.gap:offset(off, e.l, e.c)
+  return lines.offset(e.buf.dat, off, e.l, e.c)
 end
 
 -- bound the column for the line
@@ -67,16 +67,6 @@ M.Edit.viewCursor = function(e)
 end
 
 -----------------
--- Helpers
-M.Edit.trailWs = function(e, msg)
-  local b = e.buf
-  while    b[#g - 1] ~= ''
-        or b[#g - 2] ~= '' do
-    e:append''
-  end
-end
-
------------------
 -- Mutations: these update the changes in the buffer
 M.Edit.changeStart = function(e) e.buf:changeStart(e.l, e.c) end
 
@@ -93,7 +83,7 @@ end
 
 M.Edit.insert = function(e, s)
   e.buf:insert(s, e.l, e.c);
-  e.l, e.c = lines.offset(e.buf.gap, #s, e.l, e.c)
+  e.l, e.c = lines.offset(e.buf.dat, #s, e.l, e.c)
   -- if causes cursor to move to next line, move to end of cur line
   -- except in specific circumstances
   if (e.l > 1) and (e.c == 1) and ('\n' ~= s:sub(#s)) then
@@ -111,7 +101,7 @@ end
 M.Edit.removeOff = function(e, off, l, c)
   if off == 0 then return end
   l, c = l or e.l, c or e.c;
-  local l2, c2 = e.buf.gap:offset(ds.decAbs(off), l, c)
+  local l2, c2 = lines.offset(e.buf.dat, ds.decAbs(off), l, c)
   if off < 0 then l, l2, c, c2 = l2, l, c2, c end
   e:remove(l, c, l2, c2)
 end
@@ -146,7 +136,7 @@ M.Edit.draw = function(e, term, isRight)
   e.canvas = {}
   -- assert(e.fh == 0 or e.fh == e.th)
   -- assert(e.fw == 0 or e.fw == e.tw)
-  for i, line in ipairs(lsub(e.buf.gap, e.vl, e.vl + e.th - 1)) do
+  for i, line in ipairs(lsub(e.buf.dat, e.vl, e.vl + e.th - 1)) do
     push(e.canvas, string.sub(line, e.vc, e.vc + e.tw - 1))
   end
   while #e.canvas < e.th do push(e.canvas, '') end

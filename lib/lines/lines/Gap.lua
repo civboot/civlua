@@ -23,6 +23,16 @@ getmetatable(Gap).__call = function(T, t)
   t = (type(t) == 'string') and lines(t) or t or {''}
   return mty.construct(T, { bot=t, top={} })
 end
+-- read from string (path).
+-- If v is already a table of lines then uses that.
+Gap.read = function(v)
+  if type(v) == 'string' then
+    local f = open(v); v = {}
+    for line in f:lines'l' do push(v, line) end
+    f:close()
+  end
+  return Gap(v)
+end
 
 getmetatable(Gap).__index = nil
 Gap.__len = function(g) return #g.bot + #g.top end

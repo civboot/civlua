@@ -1,7 +1,7 @@
 local M = mod'ele.types'
 
-local mty = require'metaty'
-local ds  = require'ds'
+local mty    = require'metaty'
+local ds     = require'ds'
 M.term    = require'civix.term' -- can replace
 
 local sfmt = string.format
@@ -12,20 +12,6 @@ M.ID = 1
 M.uniqueId = function()
   local id = M.ID; M.ID = M.ID+1; return id
 end
-
--- Ed is the global editor state that actions have access to.
---
--- action signature: function(data, event, evsend)
-M.Ed = mty'Ed' {
-  'mode  [string]: current editor mode',
-  'modes [table]: keyboard bindings per mode (see: bindings.lua)',
-  'actions [table]: actions which events can trigger (see: actions.lua)',
-  'resources [table]: resources to close when shutting down',
-  'view [RootView]: the root view',
-  'edit [Buffer]: the current edit buffer',
-  'run [boolean]: set to false to stop the app', run=true,
-  'ext [table]: table for extensions to store data',
-}
 
 M.checkBinding = function(b)
   if not mty.callable(b) then
@@ -69,6 +55,5 @@ M.checkAction = function(data, action) --> errstring
     return sfmt('actions.%s is not a callable', action)
   end
 end
-
 
 return M

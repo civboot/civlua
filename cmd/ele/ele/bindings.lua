@@ -219,12 +219,22 @@ end -- END modes
 
 -- install the builtin keys plugin
 --
--- Note: this does NOT start the keyinputs coroutine
+-- Note: this does NOT start the keyactions coroutine
 M.install = function(ed)
   ed.ext.keys = M.Keys{}
   ed.modes = ds.merge(ed.modes or {}, {
       insert=M.insert, command=M.command,
   })
 end
+
+-- keyactions coroutine.
+-- This should be scheduled with LAP, see user.lua and testing.lua
+M.keyactions = function(ed, keyrecv)
+  while ed.run do
+    local key = keyrecv()
+    if key then evsend{key, action='keyinput'} end
+  end
+end
+
 
 return M

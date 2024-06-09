@@ -51,17 +51,22 @@ function M.logFn(lvl, loc, msg, data)
 end
 LOGFN = LOGFN or M.logFn -- GLOBAL
 
-local function _log(lvl, fmt, ...)
+local function logfmt(fmt, ...) --> string, data?
   local i, args, nargs = 0, {...}, select('#', ...)
-  local tc = table.concat
+  local Fmt, tc = mty.Fmt, table.concat
   local msg = fmt:gsub('%%.', function(m)
     if m == '%%' then return '%' end
     i = i + 1
     return m ~= '%q' and sfmt(m, args[i])
-      or tc(mty.Fmt{}(args[i]))
+      or tc(Fmt{}(args[i]))
   end)
   assert((i == nargs) or (i == nargs - 1), 'invalid #args')
-  LOGFN(lvl, ds.shortloc(2), msg, args[i + 1])
+  return msg, args[i + 1]
+end
+M.logfmt = logfmt
+
+local function _log(lvl, fmt, ...)
+  LOGFN(lvl, ds.shortloc(2), logfmt(fmt, ...))
 end
 
 function M.crit(...)  if LOGLEVEL >= 1 then _log(1, ...) end end
@@ -69,5 +74,12 @@ function M.err(...)   if LOGLEVEL >= 2 then _log(2, ...) end end
 function M.warn(...)  if LOGLEVEL >= 3 then _log(3, ...) end end
 function M.info(...)  if LOGLEVEL >= 4 then _log(4, ...) end end
 function M.trace(...) if LOGLEVEL >= 5 then _log(5, ...) end end
+
+-- Log to a table. This is typically used for in tests/etc
+M.LogTable = mty.record'LogTable'{}
+M.LogTable.__call = function(lc, ...)
+  local msg, data = logfmt(...)
+  push(lc, {msg, data=data})
+end
 
 return M

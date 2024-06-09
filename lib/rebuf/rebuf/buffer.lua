@@ -23,29 +23,36 @@ M.Change = mty'Change' {
 
 M.Buffer = mty'Buffer' {
   'id  [int]',
-  'gap [Gap]',
+  'dat [Gap]',
+  'path [string]',
 
   -- recorded changes from update (for undo/redo)
   'changes',
-  'changeMax [int]',
-  'changeStartI [int]',
-  'changeI [int]',
-  'mdl',
+  'changeMax [int]',    changeMax=0,
+  'changeStartI [int]', changeStartI=0,
+  'changeI [int]',      changeI=0,
 }
+
+getmetatable(M.Buffer).__call=function(T, t)
+  assert(t.dat)
+  t.changes = t.changes or {}
+
+  return mty.construct(T, t)
+end
 
 
 local Buffer, Change, ChangeStart = M.Buffer, M.Change, M.ChangeStart
 
 local function redoRm(ch, b)
   local len = #ch.s - 1; if len < 0 then return ch end
-  local dat = b.gap
+  local dat = b.dat
   local l2, c2 = lines.offset(dat, len, ch.l, ch.c)
   lines.remove(dat, ch.l, ch.c, l2, c2)
   return ch
 end
 
 local function redoIns(ch, b)
-  lines.inset(b.gap, ch.s, ch.l, ch.c)
+  lines.inset(b.dat, ch.s, ch.l, ch.c)
   return ch
 end
 
@@ -53,19 +60,15 @@ local CHANGE_REDO = { ins=redoIns, rm=redoRm, }
 local CHANGE_UNDO = { ins=redoRm, rm=redoIns, }
 
 Buffer.new=function(s)
-  return Buffer{
-    gap=Gap(s),
-    changes={}, changeMax=0,
-    changeStartI=0, changeI=0,
-  }
+  return Buffer{ dat=Gap(s) }
 end
 
-Buffer.tostring = function(b) return mty.tostring(b.gap) end
+Buffer.tostring = function(b) return mty.tostring(b.dat) end
 
-Buffer.__len = function(b) return #b.gap end
+Buffer.__len = function(b) return #b.dat end
 Buffer.__index = function(b, i)
   if type(i) == 'string' then return Buffer[i] end
-  return b.gap[i]
+  return b.dat[i]
 end
 
 Buffer.addChange=function(b, ch)
@@ -152,22 +155,22 @@ Buffer.redo=function(b)
 end
 
 Buffer.append=function(b, s)
-  local ch = b:changeIns(s, #b.gap + 1, 1)
-  b.gap:append(s)
+  local ch = b:changeIns(s, #b.dat + 1, 1)
+  b.dat:append(s)
   return ch
 end
 
 Buffer.insert=function(b, s, l, c)
-  l, c = lines.bound(b.gap, l, c)
+  l, c = lines.bound(b.dat, l, c)
   local ch = b:changeIns(s, l, c)
-  lines.inset(b.gap, s, l, c)
+  lines.inset(b.dat, s, l, c)
   return ch
 end
 
 Buffer.remove=function(b, ...)
   local l, c, l2, c2 = lines.span(...)
   local lt, ct = motion.topLeft(l, c, l2, c2)
-  local dat = b.gap
+  local dat = b.dat
   lt, ct = lines.bound(dat, lt, ct)
   local ch = lines.sub(dat, l, c, l2, c2)
   ch = (type(ch)=='string' and ch) or table.concat(ch, '\n')

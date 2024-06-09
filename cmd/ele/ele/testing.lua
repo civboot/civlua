@@ -1,12 +1,28 @@
 -- helpers for testing ele and related libraries
 M = mod and mod'ele.testing' or {}
 
+local mty = require'metaty'
 local info = require'ds.log'.info
 local term = require'civix.term'
 
 local x = require'civix'
+local buffer = require'rebuf.buffer'
+local eb = require'ele.bindings'
+local ea = require'ele.actions'
+local es = require'ele.session'
+local edit = require'ele.edit'
+
+local push = table.insert
 
 M.SLEEP = 0
+
+M.newSession = function(text)
+  local s = es.Session:test(); local ed = s.ed
+  push(ed.buffers, buffer.Buffer.new(text))
+  ed.edit = edit.Edit(nil, ed.buffers[1])
+  return s
+end
+
 local function sleep()
   if M.SLEEP > 0 then x.sleep(M.SLEEP) end
 end
