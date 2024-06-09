@@ -4,11 +4,12 @@ local T = require'civtest'
 local ds = require'ds'
 local M = require'ele.actions'
 local edit = require'ele.edit'
+local et = require'ele.types'
 local Buffer = require'rebuf.buffer'.Buffer
 local tostring = require'metaty'.tostring
 
-local newData = function(lines)
-	return {
+local newEd = function(lines)
+	return et.Ed{
     edit = edit.Edit(nil, Buffer.new(lines)),
   }
 end
@@ -19,7 +20,7 @@ local lines3 =
 ..'1 3 5 7 9\n'
 
 T.test('move', function()
-  local d = newData(lines3); local e = d.edit
+  local d = newEd(lines3); local e = d.edit
   local function assertMove(mv, ev, l, c)
     ev.move = mv; M.move(d, ev)
     T.assertEq({l, c}, {e.l, e.c})
@@ -49,7 +50,7 @@ T.test('move', function()
 end)
 
 T.test('remove', function()
-  local d = newData(lines3); local e, b = d.edit, d.edit.buf
+  local d = newEd(lines3); local e, b = d.edit, d.edit.buf
   local function assertRemove(mv, ev, l, c)
     ev.move = mv; M.remove(d, ev)
     T.assertEq({l, c}, {e.l, e.c})
@@ -66,7 +67,7 @@ T.test('remove', function()
 end)
 
 T.test('insert', function()
-  local d = newData'1 2 3\n4 5 6'; local e, b = d.edit, d.edit.buf
+  local d = newEd'1 2 3\n4 5 6'; local e, b = d.edit, d.edit.buf
   local function assertInsert(txt, ev, l, c)
     ev[1] = txt; M.insert(d, ev)
     T.assertEq({l, c}, {e.l, e.c})

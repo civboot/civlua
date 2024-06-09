@@ -15,7 +15,22 @@ local get, set, dp = ds.get, ds.set, ds.dotpath
 local add = ds.add
 
 ---------------------------
--- Utility Functions
+-- TYPES
+
+M.Keys = mty'Keys' {
+  "chord [table]: list of keys which led to this binding, i.e. {'space', 'a'}",
+  "event [table]: table to use when returning (emitting) an event.",
+  "next [table|string]: the binding which will be used for the next key",
+  "keep [boolean]: if true the above fields will be preserved in next call",
+}
+
+M.Keys.check = function(k, ele) --> errstring?
+  return (type(k.next) ~= 'table') and et.checkBinding(k.next)
+    or k.event.action and et.checkAction(ele, k.event.action)
+end
+
+---------------------------
+-- Utility Functions and Callable Records
 
 -- space-separated keys to a list, asserting valid keys
 M.chord = function(str) --> keylist
@@ -44,41 +59,12 @@ M.moveAction = function(event)
   end
 end
 
----------------------------
--- TYPES
-
-M.Keys = mty'Keys' {
-  "mode [string]: mode from bindings.modes",
-  "chord [table]: list of keys which led to this binding, i.e. {'space', 'a'}",
-  "event [table]: table to use when returning (emitting) an event.",
-  "next [table|string]: the binding which will be used for the next key",
-  "keep [boolean]: if true the above fields will be preserved in next call",
-}
-
-M.Keys.check = function(k, ele) --> errstring?
-  return et.checkMode(ele, k.mode)
-    or (type(k.next) ~= 'table') and et.checkBinding(k.next)
-    or k.event.action and et.checkAction(ele, k.event.action)
-end
-
 -- Return an updated keys.event when called (typically for an action)
 M.Event = mty'Event'{}
 getmetatable(M.Event).__call = mty.constructUnchecked
 getmetatable(M.Event).__index = nil
 M.Event.__newindex = nil
 M.Event.__call = function(a, keys) return ds.update(keys.event, a) end
-
--- Runs a given key chord (series of keys)
---   example: command.g = Chord'd t g' -- delete till g
-M.Chord = mty'Chord' {}
-getmetatable(M.Chord).__call = function(T, chord)
-  return mty.construct(T, M.chord(chord))
-end
-M.Chord.__call = function(r, keys)
-  local ev = keys.event; ev.action = 'chain'
-  for i, k in ipairs(r) do ev[i] = {action='chordkey', k} end
-  return ev
-end
 
 -- Chain of literal events
 M.Chain = mty'Chain'{}
@@ -88,8 +74,20 @@ M.Chain.__call = function(acts, keys)
   return ev
 end
 
+-- Runs a given key chord (series of keys)
+--   example: command.T = hotkey'd t' -- delete till
+M.Hotkey = mty'Hotkey' {}
+getmetatable(M.Hotkey).__call = function(T, chord)
+  return mty.construct(T, M.chord(chord))
+end
+M.Hotkey.__call = function(r, keys)
+  local ev = keys.event; ev.action = 'chain'
+  for i, k in ipairs(r) do ev[i] = {action='hotkey', k} end
+  return ev
+end
+
 ---------------------------
--- Default data.bindings functions
+-- Default ed.bindings functions
 
 M.insertChord = function(keys)
   return ds.update(keys.event, {
@@ -100,10 +98,10 @@ M.unboundChord = function(keys)
   error('unbound chord: '..concat(keys.chord, ' '))
 end
 
-M.insertmode  = function(keys) keys.mode = 'insert'  end
-M.insertsol   = M.Event{action='move', move='sol', mode='insert'}
-M.inserteol   = M.Event{action='move', move='eol', mode='insert'}
-M.commandmode = function(keys) keys.mode = 'command' end
+M.insertmode  = M.Event{mode='insert'}
+M.insertsol   = M.Event{mode='insert', action='move', move='sol'}
+M.inserteol   = M.Event{mode='insert', action='move', move='eol'}
+M.commandmode = M.Event{mode='command'}
 
 do local MA = M.moveAction
   M.right,   M.left      = MA{off=1},          MA{off=-1}
@@ -217,13 +215,10 @@ end -- END modes
 -- install the builtin keys plugin
 --
 -- Note: this does NOT start the keyinputs coroutine
-M.install = function(data)
-  data.keys = M.Keys{mode='insert'}
-  data.bindings = data.bindings or {}
-  ds.merge(data.bindings, {
-    modes={
+M.install = function(ed)
+  ed.ext.keys = M.Keys{}
+  ed.modes = ds.merge(ed.modes or {}, {
       insert=M.insert, command=M.command,
-    },
   })
 end
 

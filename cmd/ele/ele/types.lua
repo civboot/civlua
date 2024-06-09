@@ -13,21 +13,19 @@ M.uniqueId = function()
   local id = M.ID; M.ID = M.ID+1; return id
 end
 
--- Data is the global state that actions have access to.
--- Any field can be assigned to, this record is just for documentation
--- purposes.
+-- Ed is the global editor state that actions have access to.
 --
 -- action signature: function(data, event, evsend)
-M.Data = mty'Data' {
-  'resources [table]: table of resources to close when shutting down',
-  'keys     [Keys]:  see bindings.lua',
-  'bindings [table]: see bindings.lua',
+M.Ed = mty'Ed' {
+  'mode  [string]: current editor mode',
+  'modes [table]: keyboard bindings per mode (see: bindings.lua)',
+  'actions [table]: actions which events can trigger (see: actions.lua)',
+  'resources [table]: resources to close when shutting down',
   'view [RootView]: the root view',
   'edit [Buffer]: the current edit buffer',
   'run [boolean]: set to false to stop the app', run=true,
+  'ext [table]: table for extensions to store data',
 }
-M.Data.__newindex = nil
-getmetatable(M.Data).__index = nil
 
 M.checkBinding = function(b)
   if not mty.callable(b) then
@@ -61,8 +59,8 @@ M.checkBindings = function(btable, path)
 end
 
 M.checkMode = function(data, mode) --> errstring
-  if not get(data, {'bindings', 'modes', mode}) then
-    return sfmt('bindings.modes.%s does not exist', mode)
+  if not data.modes[mode] then
+    return sfmt('modes.%s does not exist', mode)
   end
 end
 
