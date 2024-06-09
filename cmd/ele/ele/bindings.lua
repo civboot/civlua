@@ -80,6 +80,7 @@ M.Chord.__call = function(r, keys)
   return ev
 end
 
+-- Chain of literal events
 M.Chain = mty'Chain'{}
 M.Chain.__call = function(acts, keys)
   local ev = keys.event; ev.action = 'chain'
@@ -100,6 +101,8 @@ M.unboundChord = function(keys)
 end
 
 M.insertmode  = function(keys) keys.mode = 'insert'  end
+M.insertsol   = M.Event{action='move', move='sol', mode='insert'}
+M.inserteol   = M.Event{action='move', move='eol', mode='insert'}
 M.commandmode = function(keys) keys.mode = 'command' end
 
 do local MA = M.moveAction
@@ -191,8 +194,8 @@ I.back,  I.del                = M.backspace, M.delkey
 -- COMMAND
 C.fallback = M.unboundChord
 C.esc      = M.commandmode
-C.i        = M.insertmode
--- C.I = M.Event{action='move', move='sol' mode='insert'}
+C.i, C.I   = M.insertmode, M.insertsol
+C.A        = M.inserteol
 
 -- movement
 C.right, C.left, C.up, C.down = M.right, M.left, M.up, M.down
