@@ -5,7 +5,7 @@ local ds  = require'ds'
 M.term    = require'civix.term' -- can replace
 
 local sfmt = string.format
-local push, pop = table.insert, table.remove
+local push, pop, concat = table.insert, table.remove, table.concat
 local get = ds.get
 
 M.ID = 1
@@ -29,29 +29,31 @@ M.Data = mty'Data' {
 M.Data.__newindex = nil
 getmetatable(M.Data).__index = nil
 
-M.checkBinding = function(data, b)
-  if not get(data, {'bindings', b}) then
-    return sfmt('bindings.%s does not exist', b)
+M.checkBinding = function(b)
+  if not mty.callable(b) then
+    return 'binding must be callable'
   end
 end
 
-M.checkBindings = function(data, btable, path)
-  path = path or {}; push(path, '<replace>')
+M.checkBindings = function(btable, path)
+  path = path or {}; push(path, '<root>')
+  if type(btable) ~= 'table' then error(sfmt(
+    '%s: bindings must be only tables and callables', concat(path)
+  ))end
+
   local keyError, err = M.term.keyError
   for k, b in pairs(btable) do
     path[#path] = k
     if k == 'fallback' then
-      err = M.checkBinding(data, b)
-      if err then return sfmt('%s: %s', concat(path, ' '), err) end
+      if not mty.callable(b) then error(sfmt(
+        '%s: fallback must be callable', concat(path)
+      ))end
       goto continue
     end
-    err = keyError(k); if err then return sfmt(
-      '%s: %s', concat(path, ' '), err
-    )end
-    if type(b) == 'table' then M.checkBindings(data, b, path)
-    else
-      err = M.checkBinding(data, b)
-      if err then return sfmt('%s: %s', concat(path, ' '), err) end
+    err = (type(k) ~= 'string') and 'keys must be str' or keyError(k)
+    if err then return sfmt('%s: %s', concat(path, ' '), err) end
+    if not mty.callable(b) then
+      M.checkBindings(b, path)
     end
     ::continue::
   end
@@ -65,8 +67,8 @@ M.checkMode = function(data, mode) --> errstring
 end
 
 M.checkAction = function(data, action) --> errstring
-  if type(get(data, {'actions', action})) ~= 'function' then
-    return sfmt('actions.%s is not a function', action)
+  if not mty.callable(get(data, {'actions', action})) then
+    return sfmt('actions.%s is not a callable', action)
   end
 end
 

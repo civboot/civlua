@@ -348,11 +348,11 @@ end
 -- recursively update t with add. This will call update on inner tables as
 -- well.
 -- Note: treats list indexes as normal keys (does not append)
-M.deepUpdate = function(t, add)
+M.merge = function(t, add)
   for k, v in pairs(add) do
     local e = t[k]
     if type(e) == 'table' and type(v) == 'table' then
-      M.deepUpdate(e, v)
+      M.merge(e, v)
     else
       t[k] = v
     end
@@ -1006,8 +1006,20 @@ end
 M.Deq.pushRight = function(deq, val)
   local r = deq.right + 1; deq[r] = val; deq.right = r
 end
+-- extend deq to right
+M.Deq.extendRight = function(deq, vals)
+  local r, vlen = deq.right, #vals
+  move(vals, 1, vlen, r + 1, deq)
+  deq.right = deq.right + vlen
+end
 M.Deq.pushLeft = function(deq, val)
   local l = deq.left - 1;  deq[l] = val; deq.left = l
+end
+-- extend deq to left (vals[1] is left-most)
+M.Deq.extendLeft = function(deq, vals)
+  local vlen = #vals
+  deq.left = deq.left - vlen
+  move(vals, 1, vlen, deq.left, deq)
 end
 M.Deq.popLeft = function(deq)
   local l = deq.left; if l > deq.right then return nil end
@@ -1023,6 +1035,14 @@ M.Deq.push = M.Deq.pushRight
 M.Deq.__len = function(d) return d.right - d.left + 1 end
 M.Deq.pop = M.Deq.popLeft
 M.Deq.__call = M.Deq.pop
+M.Deq.clear = function(deq) -- clear deq
+  local l = deq.left; move(EMPTY, l, deq.right, l, deq)
+  deq.left, deq.right = 1, 0
+end
+M.Deq.drain = function(deq) --> table: get all items and clear deq
+  local t = move(deq, deq.left, deq.right, 1, {})
+  deq:clear(); return t
+end
 
 -----------------------
 -- Import helpers

@@ -17,10 +17,10 @@ local add = ds.add
 ---------------------------
 -- Utility Functions
 
--- space-separated keypath to a list, asserting valid keys
-M.keypath = function(keystr) --> keylist
+-- space-separated keys to a list, asserting valid keys
+M.chord = function(str) --> keylist
   local checkKey = et.term.checkKey
-  local keys = {}; for k in keystr:gmatch'%S+' do
+  local keys = {}; for k in str:gmatch'%S+' do
     push(keys, assert(checkKey(k)))
   end
   return keys
@@ -36,12 +36,7 @@ M.chordstr = function(chord)
   return concat(s)
 end
 
--- create a binding that emits the action event
-local function act(action, event)
-  event.action = action
-  return function(keys) return ds.update(keys.event, event) end
-end
-local function move(event)
+M.moveAction = function(event)
   return function(keys)
     local ev = keys.event
     ev.action = ev.action or 'move'
@@ -50,7 +45,7 @@ local function move(event)
 end
 
 ---------------------------
--- Type for data.keys
+-- TYPES
 
 M.Keys = mty'Keys' {
   "mode [string]: mode from bindings.modes",
@@ -62,69 +57,92 @@ M.Keys = mty'Keys' {
 
 M.Keys.check = function(k, ele) --> errstring?
   return et.checkMode(ele, k.mode)
-    or (type(k.next) ~= 'table') and et.checkBinding(ele, k.next)
+    or (type(k.next) ~= 'table') and et.checkBinding(k.next)
     or k.event.action and et.checkAction(ele, k.event.action)
+end
+
+-- Return an updated keys.event when called (typically for an action)
+M.Event = mty'Event'{}
+getmetatable(M.Event).__call = mty.constructUnchecked
+getmetatable(M.Event).__index = nil
+M.Event.__newindex = nil
+M.Event.__call = function(a, keys) return ds.update(keys.event, a) end
+
+-- Runs a given key chord (series of keys)
+--   example: command.g = Chord'd t g' -- delete till g
+M.Chord = mty'Chord' {}
+getmetatable(M.Chord).__call = function(T, chord)
+  return mty.construct(T, M.chord(chord))
+end
+M.Chord.__call = function(r, keys)
+  local ev = keys.event; ev.action = 'chain'
+  for i, k in ipairs(r) do ev[i] = {action='chordkey', k} end
+  return ev
+end
+
+M.Chain = mty'Chain'{}
+M.Chain.__call = function(acts, keys)
+  local ev = keys.event; ev.action = 'chain'
+  for i, act in ipairs(acts) do ev[i] = ds.copy(act) end
+  return ev
 end
 
 ---------------------------
 -- Default data.bindings functions
 
-M.bindings = {}
-local B = M.bindings
-
-B.insertChord = function(keys)
+M.insertChord = function(keys)
   return ds.update(keys.event, {
     M.chordstr(keys.chord), action='insert',
   })
 end
-B.unboundChord = function(keys)
+M.unboundChord = function(keys)
   error('unbound chord: '..concat(keys.chord, ' '))
 end
 
-B.insertmode  = function(keys) keys.mode = 'insert'  end
-B.commandmode = function(keys) keys.mode = 'command' end
+M.insertmode  = function(keys) keys.mode = 'insert'  end
+M.commandmode = function(keys) keys.mode = 'command' end
 
-B.right, B.left = move{off=1},    move{off=-1}
-B.up,    B.down = move{lines=-1}, move{lines=1}
+do local MA = M.moveAction
+  M.right,   M.left      = MA{off=1},          MA{off=-1}
+  M.up,      M.down      = MA{lines=-1},       MA{lines=1}
+  M.forword, M.backword  = MA{move='forward'}, MA{move='backword'}
+end
 
-B.forword  = act('move', {move='forword'})
-B.backword = act('move', {move='backword'})
-
-B.movekey = function(keys)
+M.movekey = function(keys)
   local ev = keys.event
   ev[ev.move] = M.literal(ds.last(keys.chord))
   return ev
 end
 
 -- go to the character
-B.find = function(keys)
+M.find = function(keys)
   ds.setIfNil(keys.event, 'action', 'move')
   keys.event.move = 'find'
-  keys.next = 'movekey'
+  keys.next = M.movekey
   keys.keep = true
 end
 
 -- go to the column before the character
-B.till = function(keys)
-  B.find(keys); keys.event.cols = -1
+M.till = function(keys)
+  M.find(keys); keys.event.cols = -1
 end
 
 -- go back to the character
-B.findback = function(keys)
-  B.find(keys)
+M.findback = function(keys)
+  M.find(keys)
   keys.event.move = 'findback'
 end
 
 -- go back to the column after the character
-B.tillback = function(keys)
-  B.findback(keys); keys.event.cols = 1
+M.tillback = function(keys)
+  M.findback(keys); keys.event.cols = 1
 end
 
-B.backspace = act('remove', {off=-1})
-B.delkey    = act('remove', {off=1})
+M.backspace = M.Event{action='remove', off=-1}
+M.delkey    = M.Event{action='remove', off=1}
 
 -- delete until a movement command (or similar)
-B.delete = function(keys)
+M.delete = function(keys)
   local ev = keys.event
   if ev.action == 'remove' then
     ev.lines = 0; return ev
@@ -133,89 +151,65 @@ B.delete = function(keys)
   keys.keep = true
 end
 
-B.change = function(keys)
+M.change = function(keys)
   keys.event.mode = 'insert' -- action sets mode
-  return B.delete(keys)
+  return M.delete(keys)
 end
 
 -- used for setting the number of times to do an action.
 -- 1 0 d t x: delete till the 10th x
-B.times = function(keys)
+M.times = function(keys)
   local ev = keys.event
   ev.times = (ev.times or 0) * 10 + tonumber(ds.last(keys.chord))
   keys.keep = true
 end
-B.zero = function(keys) -- special: movement if not after a digit
+M.zero = function(keys) -- special: movement if not after a digit
   local ev = keys.event
-  if not ev.action and ev.times then return B.times(keys) end
+  if not ev.action and ev.times then return M.times(keys) end
   ev.action, ev.sol = ev.action or 'move', true
   return ev
 end
 
 ---------------------------
--- Default Layout
+-- KEYBOARD LAYOUT
 
-B.modes = {}
-B.modes.insert, B.modes.command = {}, {}; do
-  local char = string.char
-  local I, C = B.modes.insert, B.modes.command
-  -----
-  -- INSERT
-  I.fallback = 'insertChord'
-  I.esc      = 'commandmode'
-  I.right, I.left, I.up, I.down = 'right', 'left', 'up', 'down'
-  I.back, I.del = 'backspace', 'delkey'
+-- Modes
+M.insert  = mod and mod'ele.insert' or {}
+M.command = mod and mod'ele.command' or {}
 
-  -----
-  -- COMMAND
-  C.fallback = 'unboundChord'
-  C.esc      = 'commandmode'
-  C.i        = 'insertmode'
+do
+local char = string.char
+local I, C = M.insert, M.command
+-----
+-- INSERT
+I.fallback = M.insertChord
+I.esc      = M.commandmode
+I.right, I.left, I.up, I.down = M.right, M.left, M.up, M.down
+I.back,  I.del                = M.backspace, M.delkey
 
-  -- movement
-  C.right, C.left, C.up, C.down = 'right', 'left', 'up', 'down'
-  C.l,     C.h,    C.j,  C.k    = 'right', 'left', 'up', 'down'
-  C.f, C.t, C.F, C.T = 'find', 'till', 'findback', 'tillback'
+-----
+-- COMMAND
+C.fallback = M.unboundChord
+C.esc      = M.commandmode
+C.i        = M.insertmode
+-- C.I = M.Event{action='move', move='sol' mode='insert'}
 
-  -- times
-  C['0'] = 'zero'
-  for b=('1'):byte(), ('9'):byte() do C[char(b)] = 'times' end
+-- movement
+C.right, C.left, C.up, C.down = M.right, M.left, M.up, M.down
+C.l,     C.h,    C.j,  C.k    = M.right, M.left, M.up, M.down
+C.f, C.t, C.F, C.T = M.find, M.till, M.findback, M.tillback
 
-  -- delete/change
-  C.d = 'delete'
-  C.c = 'change'
-end
+-- times
+C['0'] = M.zero
+for b=('1'):byte(), ('9'):byte() do C[char(b)] = M.times end
+
+-- delete/change
+C.d = M.delete
+C.c = M.change
+end -- END modes
 
 ---------------------------
--- Action and installation
-
-M.action = function(data, ev, evsend)
-  local ki = assert(ev[1])
-  local K, B = data.keys, data.bindings
-  log.info('action: %q mode=%s keep=%s', ev, K.mode, K.keep)
-  if K.keep then K.keep = nil
-  else
-    K.chord, K.event = {}, {}
-    K.next = B.modes[K.mode]
-  end
-  local n = type(K.next) == 'string' and K.next
-    or K.next[ki] or B.modes[K.mode].fallback
-  if type(n) == 'table' then
-    K.next, K.keep = n, true
-    return
-  end
-  push(K.chord, ki)
-  log.info(' + binding=%q chord=%q', n, K.chord)
-  local ev = (B[n] or error(sfmt('no binding: %s', n)))(K)
-  if ev then
-    evsend(ev); K.mode = ev.mode or K.mode
-  end
-  local err = K:check(data); if err then
-    keys.keep = false
-    if et.checkMode(data, K.mode) then K.mode = 'insert' end
-    error(sfmt('bindings.%s(keys) -> invalid keys: %s', n, err))
-  end
-end
+-- INSTALL
 
 -- install the builtin keys plugin
 --
@@ -223,7 +217,11 @@ end
 M.install = function(data)
   data.keys = M.Keys{mode='insert'}
   data.bindings = data.bindings or {}
-  ds.deepUpdate(data.bindings, M.bindings)
+  ds.merge(data.bindings, {
+    modes={
+      insert=M.insert, command=M.command,
+    },
+  })
 end
 
 return M

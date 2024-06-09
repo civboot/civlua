@@ -1,7 +1,61 @@
 -- Actions builtin plugin
 local M = mod and mod'ele.actions' or {}
-local motion = require'rebuf.motion'
+local mty = require'metaty'
 local log = require'ds.log'
+local motion = require'rebuf.motion'
+local push, pop = table.insert, table.remove
+local callable = mty.callable
+
+----------------------------------
+-- KEYBINDINGS
+
+-- keyinput action.  This handles actual user keyboard inputs as well as
+-- chordkey/etc.
+--
+-- The basic architecture of keys.lua is that the Keys object holds all
+-- state necessary for determining user intent across a chord of keys,
+-- which are pressed in sequence. Typically, these end with the binding
+-- generating an event when all keys are gathered.
+M.keyinput = function(data, ev, evsend)
+  local ki = assert(ev[1])
+  local K, B = data.keys, data.bindings
+  log.info('action: %q mode=%s keep=%s', ev, K.mode, K.keep)
+  if K.keep then K.keep = nil
+  else
+    K.chord, K.event = {}, {}
+    K.next = B.modes[K.mode]
+  end
+  mty.eprint('?? K.next', K.next)
+  local nxt = callable(K.next) and K.next
+    or rawget(K.next, ki) or B.modes[K.mode].fallback
+  if not callable(nxt) then
+    assert(type(nxt) == 'table')
+    K.next, K.keep = nxt, true
+    return
+  end
+  push(K.chord, ki)
+  log.info(' + binding=%q chord=%q', nxt, K.chord)
+  local ev = nxt(K)
+  if ev then
+    evsend:pushLeft(ev); K.mode = ev.mode or K.mode
+  end
+  local err = K:check(data); if err then
+    keys.keep = nil
+    if et.checkMode(data, K.mode) then K.mode = 'insert' end
+    error(sfmt('bindings.%s(keys) -> invalid keys: %s', n, err))
+  end
+end
+M.chordkey = keyinput
+
+----------------------------------
+-- UTILITY
+
+-- chain: push multiple events to the FRONT, effectively
+--   replacing this action with it's children.
+-- Note: supports times
+M.chain = function(data, ev, evsend)
+  for _=1,ev.times or 1 do evsend:extendLeft(ev) end
+end
 
 ----------------------------------
 -- MOVE
@@ -42,14 +96,32 @@ end
 --   cols, off: move cursor by columns/offset (positive or negative)
 --
 -- Supports: times
-M.move = function(data, ev, evsend)
+M.move = function(data, ev)
   local e = data.edit
   for _=1,ev.times or 1 do domove(e, ev) end
   e.l = math.min(#e.buf, e.l); e.c = e:boundCol(e.c)
 end
 
+----------------------------------
+-- MODIFY
+
+-- insert action
+--
+-- this inserts text at the current position.
+M.insert = function(data, ev)
+  local e = data.edit; e:changeStart()
+  e:insert(string.rep(assert(ev[1]), ev.times or 1))
+end
+
 -- remove movement action
-M.remove = function(data, ev, evsend)
+--
+-- This is always tied with a movement (except below).
+-- It performs the movement and then uses the new location
+-- as the "end"
+--
+-- Exceptions:
+-- * lines=0 removes a single line (also supports times)
+M.remove = function(data, ev)
   local e = data.edit; e:changeStart()
   if ev.lines == 0 then
     local t = ev.times; local l2 = (t and (t - 1)) or 0
@@ -65,5 +137,6 @@ M.remove = function(data, ev, evsend)
   l, c = motion.topLeft(l, c, e.l, e.c)
   e.l = math.min(#e.buf, l); e.c = e:boundCol(c)
 end
+
 
 return M

@@ -2,8 +2,10 @@
 local T = require'civtest'
 local mty = require'metaty'
 local ds = require'ds'
+local lap = require'lap'
 local M = require'ele.bindings'
 local et = require'ele.types'
+local keyinput = require'ele.actions'.keyinput
 
 local push = table.insert
 
@@ -14,42 +16,40 @@ local events = function()
 end
 
 T.test('chords', function()
-  T.assertEq({'space', 'a', 'b'}, M.keypath'space a b')
+  T.assertEq({'space', 'a', 'b'}, M.chord'space a b')
 
   T.assertEq('a b', M.chordstr{'a', 'space', 'b'})
   T.assertEq('x',   M.chordstr{'x'})
 end)
 
 local function newData(keys)
-  local data = {
-    bindings = M.bindings,
-    actions = actions,
-  }
+  local data = {actions = actions}
+  M.install(data)
   data.keys = type(keys) == 'string' and M.Keys{mode=keys}
            or assert(keys)
   return data
 end
 T.test('bindings', function()
   local data = newData'insert'
-  et.checkBindings(data, M.bindings.modes.insert)
-  et.checkBindings(data, M.bindings.modes.command)
+  et.checkBindings(M.insert)
+  et.checkBindings(M.command)
 end)
 
 local function assertKeys(keyinputs, keys, expectKeys, expectEvents)
   local data = newData(keys)
-  local events = {}; local evsend = function(v) push(events, v) end
-  for _, ki in ipairs(M.keypath(keyinputs)) do
-    M.action(data, {action='keyinput', ki}, evsend)
+  local events = lap.Recv(); local evsend = events:sender()
+  for _, ki in ipairs(M.chord(keyinputs)) do
+    keyinput(data, {action='keyinput', ki}, evsend)
   end
 
   if expectKeys == false then T.assertEq(nil, data.keys.keep)
   elseif expectKeys then T.assertEq(expectKeys, data.keys) end
-  T.assertEq(expectEvents or {}, events)
+  T.assertEq(expectEvents or {}, events:drain())
   return data.keys
 end
 
 T.test('action', function()
-  local modes, k = M.bindings.modes
+  local k
   -- Switch between modes
   k = assertKeys('esc',   'insert', false)
     T.assertEq('command', k.mode)
@@ -66,7 +66,8 @@ T.test('action', function()
   local ins = function(str) return {action='insert', str} end
   k = assertKeys('a', 'insert', false, {ins'a'})
     T.assertEq({'a'}, k.chord)
-  k = assertKeys('space a', 'insert', false, {ins' ', ins'a'})
+  k = assertKeys('space a', 'insert', false,
+    {ins'a', ins' '}) -- note: reverse order because pushLeft
     T.assertEq({'a'}, k.chord)
 
   -- move

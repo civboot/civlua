@@ -92,8 +92,8 @@ M.Edit.append = function(e, msg)
 end
 
 M.Edit.insert = function(e, s)
-  local ch = e.buf:insert(s, e.l, e.c);
-  e.l, e.c = e.buf.gap:offset(#s, e.l, e.c)
+  e.buf:insert(s, e.l, e.c);
+  e.l, e.c = lines.offset(e.buf.gap, #s, e.l, e.c)
   -- if causes cursor to move to next line, move to end of cur line
   -- except in specific circumstances
   if (e.l > 1) and (e.c == 1) and ('\n' ~= s:sub(#s)) then

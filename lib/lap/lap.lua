@@ -105,7 +105,12 @@ M.Recv.recv = function(r)
   return deq()
 end
 M.Recv.__call = M.Recv.recv
+-- drain the recv. This does NOT wait for new items.
+M.Recv.drain = function(r) return r.deq:drain() end
 
+local function recvReady(r)
+  if r.cor then LAP_READY[r.cor] = 'ch.push' end
+end
 -- Sender, created through ds.Recv.sender()
 -- 
 -- Is considered closed if the receiver is closed.  The receiver will
@@ -126,16 +131,25 @@ M.Send.close = function(send)
 end
 M.Send.__close = M.Send.close
 M.Send.isClosed = function(s) return s._recv == nil end
+M.Send._ready = function(r)
+end
 M.Send.push = function(send, val)
   local r = assert(send._recv, 'recv closed')
-  r.deq:push(val);
-  if r.cor then LAP_READY[r.cor] = 'ch.push' end
+  r.deq:push(val); recvReady(r)
+end
+M.Send.extend = function(send, vals)
+  local r = assert(send._recv, 'recv closed')
+  r.deq:extendRight(val); recvReady(r)
 end
 -- preemtive send
 M.Send.pushLeft = function(send, val)
   local r = assert(send._recv, 'recv closed')
-  r.deq:pushLeft(val);
-  if r.cor then LAP_READY[r.cor] = 'ch.pushLeft' end
+  r.deq:pushLeft(val); recvReady(r)
+end
+-- put vals at left (order preserved)
+M.Send.extendLeft = function(send, vals)
+  local r = assert(send._recv, 'recv closed')
+  r.deq:extendLeft(vals); recvReady(r)
 end
 M.Send.__call = M.Send.push
 M.Send.__len = function(send)

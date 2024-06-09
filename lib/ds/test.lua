@@ -16,7 +16,7 @@ local test, assertEq, assertMatch, assertErrorPat; M.auto'civtest'
 local min, max, bound, isWithin, sort2, decAbs
 local indexOf, copy, deepcopy
 local strInsert, strDivide, trim
-local extend, clear, replace, deepUpdate
+local extend, clear, replace, merge
 local getOrSet, get, set
 local drain, reverse
 local eval
@@ -227,7 +227,7 @@ test('table', function()
   assertEq({4, 5, 6, 7, 8}, M.add(t, 7, 8))
 
   t = {1, a=3, b={4, 5, b1=3}, c=3}
-  assertEq({2, a=4, b={4, 7, 6, b1=3, b2=4}, c=3}, deepUpdate(t, {
+  assertEq({2, a=4, b={4, 7, 6, b1=3, b2=4}, c=3}, merge(t, {
     2, a=4, b={[2]=7, [3]=6, b2=4},
   }))
 end)
@@ -439,6 +439,14 @@ test('deq', function()
   assertEq(3, d());          assertEq(2, #d)
   assertEq(5, d:popRight()); assertEq(1, #d)
   assertEq(4, d());          assertEq(0, #d)
+
+  d = M.Deq()
+  d:extendRight{1, 2}; d:extendLeft{4, 5}; d:extendRight{6, 7}
+  setmetatable(d, nil)
+  assertEq({[-1]=4, [0]=5, 1, 2, 6, 7, left=-1, right=4},
+    setmetatable(d, nil))
+  assertEq({4, 5, 1, 2, 6, 7}, setmetatable(d, M.Deq):drain())
+  assertEq({left=1, right=0}, setmetatable(d, nil))
 end)
 
 ---------------------

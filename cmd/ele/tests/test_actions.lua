@@ -63,5 +63,18 @@ T.test('remove', function()
     T.assertEq('7 9', b[1])
   assertRemove('lines', {lines=0, times=2}, 1, 1)
     T.assertEq('1 3 5 7 9\n', b:tostring())
+end)
 
+T.test('insert', function()
+  local d = newData'1 2 3\n4 5 6'; local e, b = d.edit, d.edit.buf
+  local function assertInsert(txt, ev, l, c)
+    ev[1] = txt; M.insert(d, ev)
+    T.assertEq({l, c}, {e.l, e.c})
+  end
+  T.assertEq({1, 1}, {e.l, e.c})
+  assertInsert('4 5 ', {}, 1, 5)
+    T.assertEq('4 5 1 2 3', b[1])
+    T.assertEq('4 5 6',     b[2])
+  assertInsert('6 7\n', {}, 2, 1)
+    T.assertEq('4 5 6 7\n1 2 3\n4 5 6', b:tostring())
 end)
