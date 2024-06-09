@@ -20,12 +20,11 @@ local callable = mty.callable
 -- which are pressed in sequence. Typically, these end with the binding
 -- generating an event when all keys are gathered.
 M.keyinput = function(ed, ev, evsend)
-  local ki = assert(ev[1])
-  local K, err = ed.ext.keys
+  local ki, K, err = assert(ev[1], 'missing key'), ed.ext.keys
   log.info('action: %q mode=%s keep=%s', ev, ed.mode, K.keep)
   if K.keep then K.keep = nil
   else
-    K.chord, K.event = {}, {}
+    K.chord, K.event = {}, nil
     K.next = ed.modes[ed.mode]
   end
   mty.eprint('?? K.next', K.next)

@@ -26,7 +26,8 @@ M.Keys = mty'Keys' {
 
 M.Keys.check = function(k, ele) --> errstring?
   return (type(k.next) ~= 'table') and et.checkBinding(k.next)
-    or k.event.action and et.checkAction(ele, k.event.action)
+    or get(k, {'event', 'action'})
+       and et.checkAction(ele, k.event.action)
 end
 
 ---------------------------
@@ -53,7 +54,7 @@ end
 
 M.moveAction = function(event)
   return function(keys)
-    local ev = keys.event
+    local ev = keys.event or {}
     ev.action = ev.action or 'move'
     return ds.update(ev, event)
   end
@@ -64,24 +65,27 @@ M.Event = mty'Event'{}
 getmetatable(M.Event).__call = mty.constructUnchecked
 getmetatable(M.Event).__index = nil
 M.Event.__newindex = nil
-M.Event.__call = function(a, keys) return ds.update(keys.event, a) end
+M.Event.__call = function(a, keys)
+  keys.event = keys.event or {}
+  return ds.update(keys.event, a)
+end
 
 -- Chain of literal events
 M.Chain = mty'Chain'{}
 M.Chain.__call = function(acts, keys)
-  local ev = keys.event; ev.action = 'chain'
+  local ev = keys.event or {}; ev.action = 'chain'
   for i, act in ipairs(acts) do ev[i] = ds.copy(act) end
   return ev
 end
 
 -- Runs a given key chord (series of keys)
---   example: command.T = hotkey'd t' -- delete till
+--   example: command.T = hotkey'd t' -- delete till 
 M.Hotkey = mty'Hotkey' {}
 getmetatable(M.Hotkey).__call = function(T, chord)
   return mty.construct(T, M.chord(chord))
 end
 M.Hotkey.__call = function(r, keys)
-  local ev = keys.event; ev.action = 'chain'
+  local ev = keys.event or {}; ev.action = 'chain'
   for i, k in ipairs(r) do ev[i] = {action='hotkey', k} end
   return ev
 end
@@ -90,7 +94,7 @@ end
 -- Default ed.bindings functions
 
 M.insertChord = function(keys)
-  return ds.update(keys.event, {
+  return ds.update(keys.event or {}, {
     M.chordstr(keys.chord), action='insert',
   })
 end
@@ -110,14 +114,15 @@ do local MA = M.moveAction
 end
 
 M.movekey = function(keys)
-  local ev = keys.event
+  local ev = keys.event or {}
   ev[ev.move] = M.literal(ds.last(keys.chord))
   return ev
 end
 
 -- go to the character
 M.find = function(keys)
-  ds.setIfNil(keys.event, 'action', 'move')
+  keys.event = keys.event or {}
+  keys.event.action = keys.event.action or 'move'
   keys.event.move = 'find'
   keys.next = M.movekey
   keys.keep = true
@@ -144,7 +149,7 @@ M.delkey    = M.Event{action='remove', off=1}
 
 -- delete until a movement command (or similar)
 M.delete = function(keys)
-  local ev = keys.event
+  local ev = keys.event or {}; keys.event = ev
   if ev.action == 'remove' then
     ev.lines = 0; return ev
   end
@@ -153,19 +158,19 @@ M.delete = function(keys)
 end
 
 M.change = function(keys)
-  keys.event.mode = 'insert' -- action sets mode
-  return M.delete(keys)
+  local ev = M.delete(keys); keys.event.mode = 'insert'
+  return ev
 end
 
 -- used for setting the number of times to do an action.
 -- 1 0 d t x: delete till the 10th x
 M.times = function(keys)
-  local ev = keys.event
+  local ev = keys.event or {}; keys.event = ev
   ev.times = (ev.times or 0) * 10 + tonumber(ds.last(keys.chord))
   keys.keep = true
 end
 M.zero = function(keys) -- special: movement if not after a digit
-  local ev = keys.event
+  local ev = keys.event or {}
   if not ev.action and ev.times then return M.times(keys) end
   ev.action, ev.sol = ev.action or 'move', true
   return ev
