@@ -93,6 +93,8 @@ end
 ---------------------------
 -- Default ed.bindings functions
 
+M.exit = M.Event{action='exit'}
+
 M.insertChord = function(keys)
   return ds.update(keys.event or {}, {
     M.chordstr(keys.chord), action='insert',
@@ -179,40 +181,64 @@ end
 ---------------------------
 -- KEYBOARD LAYOUT
 
+-- bind chord to function
+-- example: bind(B.insert, 'space a b', function(keys) ... end)
+M.bind = function(b, chord, fn)
+  assert(type(fn) == 'table' or mty.callable(fn),
+    'can only bind to table or callable')
+  chord = (type(chord) == 'string') and M.chord(chord) or chord
+  assert(#chord > 0, 'chord is empty')
+  local i, mpath = 1, {}
+  while i < #chord do
+    mpath[i] = mty.name(b)
+    local key = chord[i]; if not rawget(b, key) then
+      b[key] = mod and mod(concat(mpath)) or {}
+    end
+    b, i = b[key], i + 1
+  end
+  b[chord[i]] = fn
+end
+M.bindall = function(b, map)
+  for chord, fn in pairs(map) do M.bind(b, chord, fn) end
+end
+
 -- Modes
 M.insert  = mod and mod'ele.insert' or {}
 M.command = mod and mod'ele.command' or {}
 
-do
-local char = string.char
-local I, C = M.insert, M.command
+
 -----
 -- INSERT
-I.fallback = M.insertChord
-I.esc      = M.commandmode
-I.right, I.left, I.up, I.down = M.right, M.left, M.up, M.down
-I.back,  I.del                = M.backspace, M.delkey
+M.insert.fallback = M.insertChord
+M.bindall(M.insert, {
+  ['^q ^q'] = M.exit,
+  esc       = M.commandmode,
+  right = M.right, left=M.left, up=M.up, down=M.down,
+  back = M.backspace, del=M.delkey,
+})
 
 -----
 -- COMMAND
-C.fallback = M.unboundChord
-C.esc      = M.commandmode
-C.i, C.I   = M.insertmode, M.insertsol
-C.A        = M.inserteol
+M.command.fallback = M.unboundChord
+M.bindall(M.command, {
+  ['^q ^q'] = M.exit,
+  i = M.insertmode, I=M.insertsol, A=M.inserteol,
 
--- movement
-C.right, C.left, C.up, C.down = M.right, M.left, M.up, M.down
-C.l,     C.h,    C.j,  C.k    = M.right, M.left, M.up, M.down
-C.f, C.t, C.F, C.T = M.find, M.till, M.findback, M.tillback
+  -- movement
+  right = M.right, left=M.left, up=M.up, down=M.down,
+  l     = M.right, h   =M.left, k =M.up, j   =M.down,
+  f=M.find, F=M.findback,
+  t=M.till, T=M.tillback,
 
--- times
-C['0'] = M.zero
-for b=('1'):byte(), ('9'):byte() do C[char(b)] = M.times end
+  -- times (note: 1-9 defined below)
+  ['0'] = M.zero,
+
+  d = M.delete, c = M.change,
+})
 
 -- delete/change
-C.d = M.delete
-C.c = M.change
-end -- END modes
+for b=('1'):byte(), ('9'):byte()
+  do M.command[string.char(b)] = M.times end
 
 ---------------------------
 -- INSTALL
@@ -232,9 +258,10 @@ end
 M.keyactions = function(ed, keyrecv)
   while ed.run do
     local key = keyrecv()
-    if key then evsend{key, action='keyinput'} end
+    log.info('key received: %q', key)
+    if key then evsend{key, action='keyinput'}
+    else ed:error'received empty key' end
   end
 end
-
 
 return M

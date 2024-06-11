@@ -9,7 +9,13 @@ local ds  = require'ds'
 local char, byte, slen = string.char, string.byte, string.len
 local ulen = utf8.len
 local push, sfmt = table.insert, string.format
-local function getb()    return byte(io.read(1)) end
+local io = io
+local function getb()
+  io.stderr:write('reading byte...\n')
+  local b = io.read(1)
+  io.stderr:write(sfmt('got byte: %q\n', b))
+  return byte(b)
+end
 local function min(a, b) return (a<b) and a or b end
 
 local READALL = (_VERSION < "Lua 5.3") and "*a" or "a"
@@ -267,10 +273,10 @@ M.literal = function(key) --> literalstring?
 end
 
 local VK = {}
-for c=byte'A', byte'Z' do VK['^'..char(c)]  = true end
+for c=byte'a', byte'z' do VK['^'..char(c)]  = true end
 -- m and i don't have ctrl variants
-VK['^M'] = 'ctrl+m == return'
-VK['^I'] = 'ctrl+i == tabl'
+VK['^m'] = 'ctrl+m == return'
+VK['^i'] = 'ctrl+i == tabl'
 for c     in pairs(M.LITERALS)    do VK[c]  = true end
 for _, kc in pairs(M.CMD)         do VK[kc] = true end
 for _, kc in pairs(M.INP_SEQ)     do VK[kc] = true end

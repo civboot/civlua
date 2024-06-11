@@ -3,6 +3,11 @@
 --
 -- Can override default `io` module for global async mode.
 local M = mod and mod'fd' or {}
+
+-- protocol globals (PKG and LAP)
+LAP_FNS_ASYNC = LAP_FNS_ASYNC or {}
+LAP_FNS_SYNC  = LAP_FNS_SYNC  or {}
+
 local trace = LOG and LOG.trace or function() end
 local S = require'fd.sys' -- fd.c, fd.h
 
@@ -30,8 +35,8 @@ local YIELD_CODE = {
 local DONE_CODE = { [S.FD_EOF] = true, [0] = true }
 
 M.sys = S
-M._sync={}  -- sync functions
-M._async={} -- async functions
+M._sync  = mod and mod'fd(sync)'  or {} -- sync functions
+M._async = mod and mod'fd(async)' or {} -- async functions
 M._io = {}  -- io cache
 
 M.FD=S.FD;         M.FDT=S.FDT
@@ -281,15 +286,14 @@ end
 ----------------------------
 -- To Sync / Async
 
-local function toAsync()
+push(LAP_FNS_ASYNC, function()
   for k, v in pairs(M._async) do M[k] = v end
   for _, k in ipairs{'stdin', 'stdout', 'stderr'} do M[k]:toNonblock() end
-end
-local function toSync()
+end)
+push(LAP_FNS_SYNC, function()
   for k, v in pairs(M._sync)  do M[k] = v end
   for _, k in ipairs{'stdin', 'stdout', 'stderr'} do M[k]:toBlock() end
-end
-if LAP_ASYNC then toAsync() else toSync() end
+end)
 
 local IO_KEYS = [[
 open   close  tmpfile
@@ -298,17 +302,19 @@ stdout stderr stdin
 input  output flush
 type
 ]]
-local function copyKeys(keys, from, to)
-  for k in keys:gmatch'%w+' do to[k] = from[k] end
+local function copyKeysM(keys, from, to)
+  for k in keys:gmatch'%w+' do
+    to[k] = assert(rawget(from, k) or M[k])
+  end
   return cache
 end
-copyKeys(IO_KEYS, io, M._io)
+copyKeysM(IO_KEYS, io, M._io)
 
-M.ioAsync = function()
-  assert(LAP_ASYNC);     copyKeys(IO_KEYS, M, io)
-end
 M.ioSync = function()
-  assert(not LAP_ASYNC); copyKeys(IO_KEYS, M, io)
+  assert(not LAP_ASYNC); copyKeysM(IO_KEYS, M._sync, io)
+end
+M.ioAsync = function()
+  assert(LAP_ASYNC);     copyKeysM(IO_KEYS, M._async, io)
 end
 
 return M

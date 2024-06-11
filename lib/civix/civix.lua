@@ -71,7 +71,6 @@ local function qp(p)
   return mty.assertf(M.quote(p), 'path cannot contain "\'": %s', p)
 end
 
-
 M.fileno = function(f)
   local fno = f.fileno
   if fno then return (type(fno) == 'number') and fno or fno(f) end

@@ -10,6 +10,7 @@ local heap = require'ds.heap'
 
 local push = table.insert
 local yield = coroutine.yield
+local log = require'ds.log'
 
 local M = {_async = {}, _sync = {}}
 
@@ -27,15 +28,17 @@ end
 -- Switch lua to synchronous mode
 M.sync  =
 (function()
+  if not LAP_ASYNC then return end
   for _, fn in ipairs(LAP_FNS_SYNC)  do fn() end
-  LAP_ASYNC = false
+  assert(not LAP_ASYNC)
 end)
 
 -- Switch lua to asynchronous (yielding) mode
 M.async =
 (function()
+  if LAP_ASYNC then return end
   for _, fn in ipairs(LAP_FNS_ASYNC) do fn() end
-  LAP_ASYNC = true
+  assert(LAP_ASYNC)
 end)
 
 -- yield(fn)
@@ -288,10 +291,13 @@ M.Lap.execute = function(lap, cor)
 end
 M.Lap.__call = function(lap)
   local errors = nil
+  log.info'lap()'
   if next(LAP_READY) then
     local ready = LAP_READY; LAP_READY = {}
     for cor in pairs(ready) do
+      log.info('running cor: %q', cor)
       local err = lap:execute(cor)
+      log.info('cor done: %q', cor)
       if err then
         errors = errors or {};
         push(errors, {cor, err})
@@ -342,6 +348,7 @@ M.Lap.run = function(lap, fns)
       error(M.formatCorErrors(errors))
     end
   end
+  return lap
 end
 
 ----------------------

@@ -14,6 +14,12 @@ local EMPTY = {}
 -- DS psudo-metaevents
 -- these use new "metaevent" (similar to __len) that tables can override
 
+-- if t is a table returns t.__name or '?'
+M.name = function(t)
+  if not type(t) == 'table' then return end
+  local mt = getmetatable(t)
+end
+
 -- insert values into list at i.
 -- Uses __inset "metamethod" if available.
 -- rmlen, if provided, will cause t[i:i+rmlen] to be removed

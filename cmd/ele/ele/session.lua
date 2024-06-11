@@ -11,15 +11,20 @@ local edit = require'ele.edit'
 local bindings = require'ele.bindings'
 local actions = require'ele.actions'
 
+local spawn = coroutine.create
+local yield = coroutine.yield
+
 M.Session = mty'Session' {
   'ed [Ed]',
-  'events [Recv]', 'evsend [Send]',
-  'keys [Recv]',   'keysend [Send]',
+  'events [Recv]',
+  'keys [Recv]',
+  'logf [File]',
 }
-M.Session.init = function(T, ed)
-  local s = {ed=ed or Ed:init()}
-  s.events = lap.Recv(); s.evsend = s.events:sender()
-  s.keys   = lap.Recv(); s.keysend = s.keys:sender()
+M.Session.init = function(T, s)
+  s = s or {}
+  s.ed = s.ed or Ed:init()
+  s.events = lap.Recv()
+  s.keys   = lap.Recv()
   return T(s)
 end
 -- init test session
@@ -31,7 +36,7 @@ end
 -- init (not run) real user session
 M.Session.user = function(T, ed)
   local s = T:init(ed)
-  s.ed.error = log.error
+  s.ed.error = log.err
   return s
 end
 
@@ -40,7 +45,12 @@ M.Session.run = function(s)
   local actions = s.ed.actions
   for ev in s.events do
     log('event', ev); if not ev or not ev.action then goto cont end
-    local act = actions[ev.action]; if not act then
+    local act = ev.action; if act == 'exit' then
+      s.ed:error'exit action received'
+      s.ed.run = false
+      break
+    end
+    act = actions[act]; if not act then
       s.ed:error('unknown action: %q', act)
       goto cont
     end
@@ -56,19 +66,17 @@ M.Session.play = function(s, chord)
   h:run()
 end
 
--- Start for an actual user session
-M.start = function(ed, input)
+-- Start a user session
+M.Session.start = function(s)
   assert(LAP_ASYNC, 'must be started in async mode')
-  local log = io.open('.out/LOG', 'w')
-  ed.display:start(log, log)
-  local s = M.Session:user(ed)
-  LAP_READY[
-    coroutine.create(input, s.keysend)
-  ] = 'terminput'
-  LAP_READY[
-    coroutine.create(bindings.keyactions, ed, s.keys)
-  ] = 'keyactions'
-  lap.schedule(function() while ed.run do s:run() end end)
+  LAP_READY[spawn(bindings.keyactions, s.ed, s.keys)] = 'keyactions'
+  lap.schedule(
+    function()
+      while s.ed.run do
+        s:run(); yield('sleep', 0.5)
+      end
+    end,
+    'sessionloop')
   return s
 end
 

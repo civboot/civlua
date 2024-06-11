@@ -148,7 +148,7 @@ local function invalid(msg)
 end
 
 local function checkHelp(sh, args)
-  if sh.help and args.help == true then
+  if args.help == true and sh.help then
     print(sh.help);
     if sh.subs then
       print('Subcommands:\n')
@@ -178,7 +178,7 @@ end
 
 return setmetatable(M, {
   __call=function(ty_, sh)
-    if sh.exe and sh.subs then error(
+    if rawget(sh, 'exe') and rawget(sh, 'subs') then error(
       'must specify exe OR subs, not both'
     )end
     if not (sh.exe or sh.subs) then error(
@@ -188,9 +188,8 @@ return setmetatable(M, {
       shimcall(sh)
       os.exit(0)
     end
-    return setmetatable(sh, {
-      __name='SHIM',
-      __call=shimcall,
-    })
+    local mt = getmetatable(sh) or setmetatable(sh, {__name='SHIM'})
+    mt.__call=shimcall
+    return sh
   end,
 })

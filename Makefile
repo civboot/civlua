@@ -25,7 +25,7 @@ civix: lib/civix/civix/lib.c
 	cd lib/civix && make build LUA_VERSION=$(LUA_VERSION)
 
 ele:
-	LUA_PATH=${LP} lua ele/ele.lua
+	$(LUA) cmd/ele/ele.lua
 
 clean:
 	rm -f $$($(LUA) civ.lua ff -r --fpat='%.rockspec$$')

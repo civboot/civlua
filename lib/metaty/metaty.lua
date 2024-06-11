@@ -45,11 +45,20 @@ M.ty = function(o) --> Type: string or metatable
 end
 
 -- Given a type return it's name
-M.tyName = function(T) --> name
+M.tyName = function(T, default) --> name
   local Tty = type(T)
   return Tty == 'string' and T
     or ((Tty == 'table') and rawget(T, '__name'))
-    or Tty
+    or default or Tty
+end
+
+-- Given an object (function, table, userdata) return it's name.
+-- return nil if it's not one of the above types
+M.name = function(o)
+  return type(o) == 'function' and M.fninfo(o)
+      or type(t) == 'table'    and M.tyName(M.ty(o))
+      or type(t) == 'userdata' and M.tyName(getmetatable(o), 'userdata')
+      or nil
 end
 
 M.callable = function(obj) --> bool: return if obj is callable
@@ -82,7 +91,7 @@ M.fninfo = function(fn)
     info = info or debug.getinfo(fn)
     loc = string.format('%s:%s', info.short_src, info.linedefined)
   end
-  return name, loc
+  return name or 'function', loc
 end
 
 -- rawsplit(subj, ctx) -> (ctx, splitstr)

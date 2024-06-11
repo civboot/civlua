@@ -37,8 +37,8 @@ function M.runterm(fn)
   stdout:seek'set'; stderr:seek'set'
   local out, err = stdout:read'a', stderr:read'a'
   assert(#out > 0)
-  if #out > 0 then info('STDOUT:\n'..out) end
-  if #err > 0 then info('STDERR:\n'..err) end
+  if #out > 0 then info('STDOUT:\n%s', out) end
+  if #err > 0 then info('STDERR:\n%s', err) end
   stdout:close(); stderr:close()
   assert(ok, err)
 end
