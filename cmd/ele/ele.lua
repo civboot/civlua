@@ -23,7 +23,8 @@ M.exe = function(args)
     log.info'!! log works after display start'
     s:start()
     lap.schedule(function()
-      term.input(s.keys:sender())
+      coroutine.yield(true)
+      term.input(send)
     end)
     log.info'ele started'
   end)

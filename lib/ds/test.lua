@@ -2,6 +2,8 @@ METATY_CHECK = true
 local function testloc()  return require'ds'.srcloc() end
 local function testshort() return require'ds'.shortloc() end
 local loc1, loc2 = testloc(), testshort()
+local a = function() error'a error' end
+local b = function() a() end; local c = function() b() end
 
 local push, yield = table.insert, coroutine.yield
 local pop = table.remove
@@ -449,6 +451,36 @@ test('deq', function()
   assertEq({left=1, right=0}, setmetatable(d, nil))
 end)
 
+local TB = [[
+stack traceback:
+        [C]: in function 'string.gsub'
+        lib/ds/ds.lua:1064: in function 'ds.tracelist'
+        lib/ds/ds.lua:1084: in function <lib/ds/ds.lua:1081>
+]]
+test('error', function()
+  assertEq({
+    "[C]: in function 'string.gsub'",
+    "lib/ds/ds.lua:1064: in function 'ds.tracelist'",
+    "lib/ds/ds.lua:1084: in function <lib/ds/ds.lua:1081>"
+  }, M.tracelist(TB))
+
+  local ok, err = M.try(c); assertEq(false, ok)
+  M.clear(err.traceback, 4)
+  local expect = M.Error{
+    msg='a error',
+    traceback={
+      "lib/ds/test.lua:5: in upvalue 'a'",
+      "lib/ds/test.lua:6: in upvalue 'b'",
+      "lib/ds/test.lua:6: in function <lib/ds/test.lua:6>",
+    },
+  }
+  assertEq(expect, err)
+
+  local cor = coroutine.create(c)
+  local ok, msg = coroutine.resume(cor)
+  assert(not ok)
+  assertEq(expect, M.Error.from(msg, cor))
+end)
 ---------------------
 -- ds/file.lua
 

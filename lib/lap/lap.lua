@@ -12,15 +12,15 @@ local push = table.insert
 local yield, create = coroutine.yield, coroutine.create
 local resume        = coroutine.resume
 local log = require'ds.log'
+local errorFrom = ds.Error.from
 
 local M = {_async = {}, _sync = {}}
 
 M.formatCorErrors = function(corErrors, lvl)
-  local f = {}
+  local f = mty.Fmt{}
   lvl = lvl and (lvl + 1) or 2
-  for _, corErr in ipairs(corErrors) do
-    push(f, 'Coroutine error: '..tostring(corErr[1])..'\n')
-    push(f, debug.traceback(corErr[1], corErr[2], lvl))
+  for _, ce in ipairs(corErrors) do
+    push(f, 'Coroutine '); f(ce)
     push(f, '\n')
   end
   return table.concat(f)
@@ -48,13 +48,13 @@ end)
 M._async.yield = yield
 M._sync.yield  = function() end
 
--- schedule(fn, ...) -> cor(fn(...))?
+-- schedule(fn) -> coroutine?
 --   sync:  run the fn immediately and return nil
---   async: resume the function once with args then schedule it if it yields
---     non-false value. The coroutine is returned.
+--   async: create and schedule returned coroutine
 M._async.schedule = function(fn, ...)
+  assert(select('#', ...) == 0, 'only function supported')
   local cor = create(fn)
-  if resume(cor, ...) then LAP_READY[cor] = 'scheduled' end
+  LAP_READY[cor] = 'scheduled'
   return cor
 end
 M._sync.schedule = function(fn, ...) fn(...) end
@@ -111,12 +111,17 @@ M.Recv.recv = function(r) r:wait() return r.deq() end
 M.Recv.__call = M.Recv.recv
 -- drain the recv. This does NOT wait for new items.
 M.Recv.drain = function(r) return r.deq:drain() end
+M.Recv.__fmt = function(r, fmt)
+  push(fmt, 'Recv{cor='); fmt(r.cor);
+  push(fmt, (' hasSender=%s '):format(next(r._sends) and true or false))
+  fmt(r.deq); push(fmt, '}')
+end
 
 local function recvReady(r)
   if r.cor then LAP_READY[r.cor] = 'ch.push' end
 end
 -- Sender, created through ds.Recv.sender()
--- 
+--
 -- Is considered closed if the receiver is closed.  The receiver will
 -- automatically close if it is garbage collected.
 M.Send = mty'Send'{'_recv[Recv]'}
@@ -282,11 +287,11 @@ getmetatable(M.Lap).__call = function(T, ex)
 end
 M.Lap.sleep = M.LAP_UPDATE.sleep
 M.Lap.poll  = M.LAP_UPDATE.poll
-M.Lap.execute = function(lap, cor)
+M.Lap.execute = function(lap, cor) --> errstr?
   if not cor then return end
   local ok, kind, a, b = coroutine.resume(cor)
   if not ok   then return kind end -- error
-  if not kind then return      end   -- forget
+  if not kind then return      end -- forget
   local fn = M.LAP_UPDATE[kind]
   if not fn then error('unknown kind '..kind) end
   fn(lap, cor, a, b)
@@ -298,8 +303,8 @@ M.Lap.__call = function(lap)
     for cor in pairs(ready) do
       local err = lap:execute(cor)
       if err then
-        errors = errors or {};
-        push(errors, {cor, err})
+        errors = errors or {}
+        push(errors, errorFrom(err, cor))
       end
     end
   end

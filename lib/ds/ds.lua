@@ -8,6 +8,7 @@ local move = table.move
 local ulen, uoff     = utf8.len, utf8.offset
 local max = math.max
 local xpcall, traceback = xpcall, debug.traceback
+local resume = coroutine.resume
 local EMPTY = {}
 
 ------------------
@@ -561,13 +562,6 @@ M.eval = function(chunk, env, name) -- Note: not typed
   return pcall(e)
 end
 
--- same as pcall but the error contains the traceback
--- TODO: eventually I'd like this to return an Error object
---   or something instead.
-M.try = function(fn, ...) --> ok, ...out
-  return xpcall(fn, traceback, ...)
-end
-
 ---------------------
 -- Low-level Types
 -- These are generally used to create other types and are
@@ -1057,6 +1051,62 @@ M.Deq.drain = function(deq) --> table: get all items and clear deq
   local t = move(deq, deq.left, deq.right, 1, {})
   deq:clear(); return t
 end
+
+-----------------------
+-- ERROR type
+
+M.IGNORE_TRACE = {
+  [""]=true,
+  ['stack traceback:']=true,
+  ["[C]: in function 'error'"]=true,
+  ["[C]: in ?"]=true,
+}
+-- convert the string traceback into a list
+M.tracelist = function(tbstr) --> {traceback}
+  local ig, tb = M.IGNORE_TRACE, {}
+  for l in tbstr:gmatch'%s*([^\n]*)' do
+    if not ig[l] then push(tb, l) end
+  end
+  return tb
+end
+
+-- Error message, traceback and cause
+-- NOTE: you should only use this for printing/logging/etc.
+M.Error = mty'Error' {
+  'msg [string]', 'traceback [table]', 'cause [Error]',
+}
+M.Error.__fmt = function(e, fmt)
+  push(fmt, 'ERROR: '); push(fmt, e.msg)
+  if e.traceback then
+    push(fmt, '\ntraceback:\n')
+    for _, l in ipairs(e.traceback) do
+      push(fmt, '  '); push(fmt, l); push(fmt, '\n')
+    end
+  end
+  if e.cause then
+    push(fmt, '\nCaused by: ');
+    fmt(e.cause); push(fmt, '\n')
+  end
+end
+-- create the error from the arguments.
+-- tb can be one of: coroutine string table
+M.Error.from = function(msg, tb, cause)
+  tb = (type(tb) == 'thread') and traceback(tb) or tb
+  return M.Error{
+    msg=msg:match'[^/]+/.*:%d+: (.*)' or msg, -- remove line number
+    traceback=(type(tb) == 'table') and tb or M.tracelist(tb),
+    cause=cause,
+  }
+end
+
+-- for use with xpcall. See: try
+M.Error.msgh = function(msg, level)
+  return M.Error.from(msg, traceback('', (level or 1) + 1))
+end
+
+-- Run the fn, return one of:
+-- success(true, fnresults...); failure(false, ds.Error)
+M.try = function(fn, ...) return xpcall(fn, M.Error.msgh, ...) end
 
 -----------------------
 -- Import helpers

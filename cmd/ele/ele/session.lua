@@ -15,14 +15,14 @@ local yield = coroutine.yield
 
 M.Session = mty'Session' {
   'ed [Ed]',
-  'events [Recv]',
+  'events [Recv]', 'evsend [Send]',
   'keys [Recv]',
   'logf [File]',
 }
 M.Session.init = function(T, s)
   s = s or {}
   s.ed = s.ed or Ed:init()
-  s.events = lap.Recv()
+  s.events = lap.Recv(); s.evsend = s.events:sender()
   s.keys   = lap.Recv()
   return T(s)
 end
@@ -43,7 +43,8 @@ end
 M.Session.run = function(s)
   local actions = s.ed.actions
   for ev in s.events do
-    log('event', ev); if not ev or not ev.action then goto cont end
+    log.info('event', ev)
+    if not ev or not ev.action then goto cont end
     local act = ev.action; if act == 'exit' then
       s.ed.error'exit action received'
       s.ed.run = false
@@ -54,7 +55,9 @@ M.Session.run = function(s)
       goto cont
     end
     local ok, err = ds.try(act, s.ed, ev, s.evsend)
-    if not ok then s.ed.error('failed event %q\nError: %s', err) end
+    if not ok then s.ed.error(
+      'failed event %q\nError: %s', ev, err
+    )end
     ::cont::
   end
 end
@@ -69,7 +72,9 @@ end
 M.Session.start = function(s)
   assert(LAP_ASYNC, 'must be started in async mode')
   assert(s.ed and s.keys)
-  lap.schedule(bindings.keyactions, s.ed, s.keys)
+  lap.schedule(function()
+    bindings.keyactions(s.ed, s.keys, s.evsend)
+  end)
   lap.schedule(function()
     while s.ed.run do
       s:run(); yield('sleep', 0.5)

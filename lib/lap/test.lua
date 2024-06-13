@@ -14,7 +14,7 @@ T.asyncTest('schedule', function()
     i = 99
   end)
   T.assertEq('scheduled', LAP_READY[cor])
-  for ei=1, 3 do
+  for ei=0, 3 do
     assert(LAP_READY[cor])
     T.assertEq(ei, i); yield(true)
   end
@@ -25,16 +25,20 @@ end)
 T.asyncTest('ch', function()
   local r = M.Recv(); local s = r:sender()
 
-  local res = {}
+  local t = {}
   M.schedule(function()
-    for v in r do push(res, v) end
+    for v in r do push(t, v) end
   end)
-  T.assertEq({}, res)
-  yield(true); T.assertEq({}, res)
-  s(10);       T.assertEq({}, res)
-  yield(true); T.assertEq({10}, res)
+  T.assertEq({}, t);
+  yield(true); T.assertEq({}, t)
+  s(10);       T.assertEq({}, t)
+  yield(true); T.assertEq({10}, t)
 
-  s(11); s(12); T.assertEq({10}, res)
-  yield(true);  T.assertEq({10, 11, 12}, res)
+  s(11); s(12); T.assertEq({10}, t)
+  yield(true);  T.assertEq({10, 11, 12}, t)
   T.assertEq({}, r:drain())
+
+  ds.clear(t)
+  s(13); T.assertEq({13}, r:drain())
+  yield(true); T.assertEq({}, t)
 end)

@@ -255,8 +255,10 @@ end
 
 -- keyactions coroutine.
 -- This should be scheduled with LAP, see user.lua and testing.lua
-M.keyactions = function(ed, keyrecv)
+M.keyactions = function(ed, keyrecv, evsend)
+  log.info('keyactions recv=%q', keyrecv)
   while ed.run do
+    print('!! sends', next(keyrecv._sends))
     local key = keyrecv()
     log.info('key received: %q', key)
     if key == '^q' then

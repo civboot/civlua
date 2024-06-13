@@ -60,7 +60,9 @@ local function logfmt(fmt, ...) --> string, data?
     return m ~= '%q' and sfmt(m, args[i])
       or tc(Fmt{}(args[i]))
   end)
-  assert((i == nargs) or (i == nargs - 1), 'invalid #args')
+  if (i ~= nargs) and (i ~= nargs - 1) then error(
+    'invalid #args: '..nargs..' %fmts='..i
+  )end
   return msg, args[i + 1]
 end
 M.logfmt = logfmt
