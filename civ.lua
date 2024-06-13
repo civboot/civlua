@@ -4,9 +4,10 @@ mod = mod or require'pkg'.mod
 -- civ module: packaged dev environment
 local M = mod'civ'
 
-DOC, METATY_CHECK              = false, false
-LAP_READY,    LAP_ASYNC        = false, false
-LAP_FNS_SYNC, LAP_FNS_ASYNC    = false, false
+DOC,          METATY_CHECK  = false, false
+LOGLEVEL,     LOGFN         = false, false
+LAP_READY,    LAP_ASYNC     = false, false
+LAP_FNS_SYNC, LAP_FNS_ASYNC = false, false
 
 local initG = {}; for k in pairs(_G) do initG[k] = true end
 
@@ -32,7 +33,7 @@ M.help = function(args, isExe)
   end
 end
 
-shim{
+shim {
   help=DOC,
   subs = {
     help = {help=M.HELP, exe=M.help},

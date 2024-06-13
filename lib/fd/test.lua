@@ -66,3 +66,16 @@ T.asyncTest('FDT:lines', function()
   aeq('line 4\n', f:read'L')
   aeq(nil,        f:read'l')
 end)
+
+local pipeTest = function(r, w)
+  w:write'hi there'
+  aeq('hi', r:read(2)); aeq(' there', r:read(6))
+end
+T.test('pipe', function() pipeTest(S.pipe()) end)
+T.asyncTest('pipe', function()
+  local r, w = S.pipe()
+  pipeTest(r:toNonblock(), w:toNonblock())
+  aeq(S.EWOULDBLOCK, r:_read(1))
+  w:write'bye'
+  aeq('b', r:read(1)); aeq('ye', r:read(2))
+end)

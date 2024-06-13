@@ -11,17 +11,20 @@ M.exe = function(args)
   log.info('ele exe', args)
   -- TODO: handle args
   local s = args.session or require'ele.session'.Session:user{}
+  assert(s.ed)
   lap.async()
   require'fd'.ioAsync()
   return s, require'civix'.Lap{}:run(function()
     local term = require'civix.term'
-    -- s.logf = s.logf or assert(io.open('/tmp/ele.log', 'w'))
-    s.ed.display = term.FakeTerm
-    -- s.ed.display:start(s.logf, s.logf)
+    s.logf = s.logf or assert(io.open('/tmp/ele.log', 'w'))
+    s.ed.display = term.Term
+    s.ed.display:start(s.logf, s.logf)
+    print'!! print works after display start'
+    log.info'!! log works after display start'
     s:start()
-    LAP_READY[
-      coroutine.create(term.input, s.keys:sender())
-    ] = 'terminput'
+    lap.schedule(function()
+      term.input(s.keys:sender())
+    end)
     log.info'ele started'
   end)
 end

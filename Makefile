@@ -24,7 +24,7 @@ fd: lib/fd/fd.c
 civix: lib/civix/civix/lib.c
 	cd lib/civix && make build LUA_VERSION=$(LUA_VERSION)
 
-ele:
+ele: build
 	$(LUA) cmd/ele/ele.lua
 
 clean:

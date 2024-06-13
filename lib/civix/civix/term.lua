@@ -11,9 +11,9 @@ local ulen = utf8.len
 local push, sfmt = table.insert, string.format
 local io = io
 local function getb()
-  io.stderr:write('reading byte...\n')
+  io.stderr:write('!! reading byte...\n')
   local b = io.read(1)
-  io.stderr:write(sfmt('got byte: %q\n', b))
+  io.stderr:write(sfmt('!! got byte: %q %q\n', b, byte(b)))
   return byte(b)
 end
 local function min(a, b) return (a<b) and a or b end
@@ -117,6 +117,7 @@ M.input = function(send)
       b = u8decode(lenMsk, b, dat)
     end
   end
+  io.stderr:write(sfmt('!! input byte: %q\n', b))
   if b ~= ESC then send(nice(b)); goto continue end
   while b == ESC do -- get next char, guard against multi-escapes
     b = getb(); if b == ESC then send'esc' end

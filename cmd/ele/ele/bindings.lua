@@ -259,8 +259,12 @@ M.keyactions = function(ed, keyrecv)
   while ed.run do
     local key = keyrecv()
     log.info('key received: %q', key)
+    if key == '^q' then
+      log.warn('received ^q, exiting')
+      os.exit()
+    end
     if key then evsend{key, action='keyinput'}
-    else ed:error'received empty key' end
+    else ed.error'received empty key' end
   end
 end
 

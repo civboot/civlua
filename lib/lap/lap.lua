@@ -9,7 +9,8 @@ local ds = require'ds'
 local heap = require'ds.heap'
 
 local push = table.insert
-local yield = coroutine.yield
+local yield, create = coroutine.yield, coroutine.create
+local resume        = coroutine.resume
 local log = require'ds.log'
 
 local M = {_async = {}, _sync = {}}
@@ -47,15 +48,16 @@ end)
 M._async.yield = yield
 M._sync.yield  = function() end
 
--- schedule(fn) -> cor?
+-- schedule(fn, ...) -> cor(fn(...))?
 --   sync:  run the fn immediately and return nil
---   async: schedule the fn and return it's coroutine
-M._async.schedule = function(fn, id)
-  local cor = coroutine.create(fn)
-  LAP_READY[cor] = id or true
+--   async: resume the function once with args then schedule it if it yields
+--     non-false value. The coroutine is returned.
+M._async.schedule = function(fn, ...)
+  local cor = create(fn)
+  if resume(cor, ...) then LAP_READY[cor] = 'scheduled' end
   return cor
 end
-M._sync.schedule = function(fn) fn() end
+M._sync.schedule = function(fn, ...) fn(...) end
 
 ----------------------------------
 -- Ch: channel sender and receiver (Send/Recv)
@@ -291,13 +293,10 @@ M.Lap.execute = function(lap, cor)
 end
 M.Lap.__call = function(lap)
   local errors = nil
-  log.info'lap()'
   if next(LAP_READY) then
     local ready = LAP_READY; LAP_READY = {}
     for cor in pairs(ready) do
-      log.info('running cor: %q', cor)
       local err = lap:execute(cor)
-      log.info('cor done: %q', cor)
       if err then
         errors = errors or {};
         push(errors, {cor, err})

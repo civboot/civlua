@@ -11,7 +11,6 @@ local edit = require'ele.edit'
 local bindings = require'ele.bindings'
 local actions = require'ele.actions'
 
-local spawn = coroutine.create
 local yield = coroutine.yield
 
 M.Session = mty'Session' {
@@ -46,16 +45,16 @@ M.Session.run = function(s)
   for ev in s.events do
     log('event', ev); if not ev or not ev.action then goto cont end
     local act = ev.action; if act == 'exit' then
-      s.ed:error'exit action received'
+      s.ed.error'exit action received'
       s.ed.run = false
       break
     end
     act = actions[act]; if not act then
-      s.ed:error('unknown action: %q', act)
+      s.ed.error('unknown action: %q', act)
       goto cont
     end
     local ok, err = ds.try(act, s.ed, ev, s.evsend)
-    if not ok then s.ed:error('failed event %q\nError: %s', err) end
+    if not ok then s.ed.error('failed event %q\nError: %s', err) end
     ::cont::
   end
 end
@@ -69,14 +68,13 @@ end
 -- Start a user session
 M.Session.start = function(s)
   assert(LAP_ASYNC, 'must be started in async mode')
-  LAP_READY[spawn(bindings.keyactions, s.ed, s.keys)] = 'keyactions'
-  lap.schedule(
-    function()
-      while s.ed.run do
-        s:run(); yield('sleep', 0.5)
-      end
-    end,
-    'sessionloop')
+  assert(s.ed and s.keys)
+  lap.schedule(bindings.keyactions, s.ed, s.keys)
+  lap.schedule(function()
+    while s.ed.run do
+      s:run(); yield('sleep', 0.5)
+    end
+  end)
   return s
 end
 

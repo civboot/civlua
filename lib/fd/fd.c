@@ -184,6 +184,7 @@ static void FD_shift(FD* fd) {
 // If ctrl < 0 then breaks at that negated character (i.e. '\n').
 // if ctrl > 0 then stops reading when that amount is read
 static void FD_read(FD* fd) {
+  printf("!! FD_read\n");
   if(fd->size) FD_shift(fd);
   else         FD_realloc(fd, IO_SIZE);
   if(!fd->buf) { fd->code = errno; return; }
@@ -289,7 +290,7 @@ static void assertReady(LS* L, FD* fd, const char* name) {
 static int l_FD_pop(LS* L) {
   FD* fd = asfd(L); assertReady(L, fd, "pop");
   int till = luaL_optnumber(L, 2, 0);
-  ASSERT(L, fd->buf, "no buffer");
+  if(!fd->buf) { return 0; } // nil (no buffer)
   if(till == 0) till = fd->ei;
   else if(till < 0) {
     till = FD_findc(fd, fd->si, (char)(-till));
@@ -305,7 +306,6 @@ static int l_FD_pop(LS* L) {
   fd->si = till;
   return 1;
 }
-
 
 static int l_FD_codestr(LS* L) {
   int code = lua_isnoneornil(L, 2)
@@ -498,6 +498,14 @@ static int l_FD_setflags(LS* L) {
   return 1;
 }
 
+// () -> (r, w): return read/write pipes
+static int l_pipe(LS* L) {
+  FD *r = FD_create(L); FD *w = FD_create(L);
+  int rw[2]; ASSERT(L, !pipe(rw), "pipe() %s", strerror(errno));
+  r->fileno = rw[0]; w->fileno = rw[1];
+  return 2;
+}
+
 // ---------------------
 // -- PollList
 const char* LUA_PL = "fd.PollList";
@@ -576,7 +584,7 @@ static const struct luaL_Reg fd_sys[] = {
   {"tmpFD",  l_FD_tmp},    {"tmpFDT",  l_FDT_tmp},
   {"newFD",  l_FD_create}, {"newFDT",  l_FDT_create},
   {"pollList", l_PL_new},
-  {"inv", l_inv},
+  {"pipe", l_pipe}, {"inv", l_inv},
   {NULL, NULL},
 };
 

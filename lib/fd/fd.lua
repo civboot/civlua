@@ -246,7 +246,7 @@ end
 M._sync.tmpfile  = function() return M.tmpfileFn(S.tmpFD)  end
 M._async.tmpfile = function() return M.tmpfileFn(S.tmpFDT) end
 
-M.read    = function(...) M.input():read(...) end
+M.read    = function(...) return M.input():read(...) end
 M.lines   = function(path, mode)
   mode = mode or 'l'
   if not path then return M.input():lines(mode) end
@@ -259,7 +259,7 @@ M.lines   = function(path, mode)
   end
   return fn, nil, nil, fd
 end
-M.write = function(...) M.output():write(...) end
+M.write = function(...) return M.output():write(...) end
 
 M.openFileno = function(fileno)
   local fd = S.newFD(); fd:_setfileno(fileno)
