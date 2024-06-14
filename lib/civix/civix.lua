@@ -57,12 +57,10 @@ end
 
 -- Return the Epoch/Mono time
 -- Time according to realtime clock
-M.epoch =(
-  function() return ds.Epoch(lib.epoch())   end)
+M.epoch   = function() return ds.Epoch(lib.epoch())   end
 -- Duration according to monotomically incrementing clock.
-M.mono  =(
-  function() return ds.Duration(lib.mono()) end)
-M.monoSec = function() return M.mono():asSeconds() end
+M.mono    = function() return ds.Duration(lib.mono()) end
+M.monoSec = function() return M.mono():asSeconds()    end
 
 -------------------------------------
 -- Core Filesystem

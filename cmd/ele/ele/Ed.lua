@@ -22,7 +22,8 @@ local Ed = mty'Ed' {
   'run [boolean]: set to false to stop the app', run=true,
   'ext [table]: table for extensions to store data',
 
-  'error [callable]: error handler with ds.log.logfmt signature',
+  'error [callable]: error handler (ds.log.logfmt sig)',
+  'warn  [callable]: warn handler',
   'newbuffer [callable(text)]: function to create new buffer',
     newDat = Gap.read,
 }

@@ -257,17 +257,17 @@ end
 -- This should be scheduled with LAP, see user.lua and testing.lua
 M.keyactions = function(ed, keyrecv, evsend)
   log.info('keyactions recv=%q', keyrecv)
-  while ed.run do
-    print('!! sends', next(keyrecv._sends))
-    local key = keyrecv()
-    log.info('key received: %q', key)
+  for key in keyrecv do
     if key == '^q' then
       log.warn('received ^q, exiting')
       os.exit()
     end
+    if not ed.run then break end
+    log.info('key received: %q', key)
     if key then evsend{key, action='keyinput'}
-    else ed.error'received empty key' end
+    else ed.warn'received empty key' end
   end
+  log.warn'exited keyactions'
 end
 
 return M

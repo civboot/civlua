@@ -358,12 +358,10 @@ end
 -- Note: treats list indexes as normal keys (does not append)
 M.merge = function(t, add)
   for k, v in pairs(add) do
-    local e = t[k]
-    if type(e) == 'table' and type(v) == 'table' then
-      M.merge(e, v)
-    else
-      t[k] = v
-    end
+    local ex = t[k] -- existing
+    if type(ex) == 'table' and type(v) == 'table' then
+      M.merge(ex, v)
+    else t[k] = v end
   end
   return t
 end

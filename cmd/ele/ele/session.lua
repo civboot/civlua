@@ -30,12 +30,14 @@ end
 M.Session.test = function(T, ed)
   local s = T:init(ed)
   s.ed.error = log.LogTable{}
+  s.ed.warn  = log.warn
   return s
 end
 -- init (not run) real user session
 M.Session.user = function(T, ed)
   local s = T:init(ed)
   s.ed.error = log.err
+  s.ed.warn  = log.warn
   return s
 end
 
@@ -43,7 +45,7 @@ end
 M.Session.run = function(s)
   local actions = s.ed.actions
   for ev in s.events do
-    log.info('event', ev)
+    log.info('run event %q', ev)
     if not ev or not ev.action then goto cont end
     local act = ev.action; if act == 'exit' then
       s.ed.error'exit action received'
@@ -76,8 +78,12 @@ M.Session.start = function(s)
     bindings.keyactions(s.ed, s.keys, s.evsend)
   end)
   lap.schedule(function()
+    local frame, mono = ds.Duration(0.1), civix.mono
     while s.ed.run do
-      s:run(); yield('sleep', 0.5)
+      local start = mono()
+      s:run()
+      -- TODO: paint
+      yield('sleep', frame - (mono() - start))
     end
   end)
   return s

@@ -21,13 +21,12 @@ local callable = mty.callable
 -- generating an event when all keys are gathered.
 M.keyinput = function(ed, ev, evsend)
   local ki, K, err = assert(ev[1], 'missing key'), ed.ext.keys
-  log.info('action: %q mode=%s keep=%s', ev, ed.mode, K.keep)
   if K.keep then K.keep = nil
   else
     K.chord, K.event = {}, nil
     K.next = ed.modes[ed.mode]
   end
-  mty.eprint('?? K.next', K.next)
+  log.info('keyinput %q mode=%s next=%s', ki, ed.mode, K.next)
   local nxt = callable(K.next) and K.next
     or rawget(K.next, ki) or ed.modes[ed.mode].fallback
   if not callable(nxt) then
@@ -39,6 +38,7 @@ M.keyinput = function(ed, ev, evsend)
   log.info(' + binding=%q chord=%q', nxt, K.chord)
   local ev = nxt(K)
   if ev then
+    log.info(' + keyinput %q -> %q', ki, ev)
     evsend:pushLeft(ev)
     if ev.mode then
       err = et.checkMode(ed, ev.mode); if err then
