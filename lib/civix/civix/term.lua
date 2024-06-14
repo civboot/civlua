@@ -106,6 +106,8 @@ M.ctrlChar, M.key = ctrlChar, nice
 --
 -- See CMD, INP_SEQ, INP_SEQO for possible utf8.len>1 strings.
 M.input = function(send)
+  mty.print('!! send', send)
+  send'esc'
   local b, s, dat, len = 0, '', {}
   ::continue::
   b = getb()

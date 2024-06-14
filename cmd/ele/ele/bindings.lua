@@ -256,7 +256,8 @@ end
 -- keyactions coroutine.
 -- This should be scheduled with LAP, see user.lua and testing.lua
 M.keyactions = function(ed, keyrecv, evsend)
-  log.info('keyactions recv=%q', keyrecv)
+  assert(keyrecv:hasSender())
+  log.info('keyactions keyrecv=%q', keyrecv)
   for key in keyrecv do
     if key == '^q' then
       log.warn('received ^q, exiting')

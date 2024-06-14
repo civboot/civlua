@@ -12,6 +12,8 @@ M.exe = function(args)
   -- TODO: handle args
   local s = args.session or require'ele.session'.Session:user{}
   assert(s.ed)
+  local keysend = s.keys:sender()
+
   lap.async()
   require'fd'.ioAsync()
   return s, require'civix'.Lap{}:run(function()
@@ -22,10 +24,7 @@ M.exe = function(args)
     print'!! print works after display start'
     log.info'!! log works after display start'
     s:start()
-    lap.schedule(function()
-      coroutine.yield(true)
-      term.input(send)
-    end)
+    lap.schedule(function() term.input(keysend) end)
     log.info'ele started'
   end)
 end

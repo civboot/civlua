@@ -63,9 +63,9 @@ M._sync.schedule = function(fn, ...) fn(...) end
 -- Ch: channel sender and receiver (Send/Recv)
 
 -- Recv() -> recv: the receive side of channel.
--- 
+--
 -- Is considered closed when all senders are closed.
--- 
+--
 -- Notes:
 -- * Use recv:sender() to create a sender. You can create
 --   multiple senders.
@@ -102,6 +102,9 @@ M.Recv.sender = function(r)
   assert(r._sends, 'sender on closed channel')[s] = true
   return s
 end
+M.Recv.hasSender = function(r)
+  return r._sends and next(r._sends) and true or false
+end
 M.Recv.wait = function(r)
   while (#r.deq == 0) and (r._sends and not ds.isEmpty(r._sends)) do
     r.cor = coroutine.running(); yield()
@@ -112,9 +115,9 @@ M.Recv.__call = M.Recv.recv
 -- drain the recv. This does NOT wait for new items.
 M.Recv.drain = function(r) return r.deq:drain() end
 M.Recv.__fmt = function(r, fmt)
-  push(fmt, 'Recv{cor='); fmt(r.cor);
-  push(fmt, (' hasSender=%s '):format(next(r._sends) and true or false))
-  fmt(r.deq); push(fmt, '}')
+  push(fmt, ('Recv{%s len=%s hasSender=%s}'):format(
+    r:isClosed() and 'closed' or 'active',
+    #r.deq, r:hasSender() and 'yes' or 'no'))
 end
 
 local function recvReady(r)
@@ -163,6 +166,9 @@ end
 M.Send.__call = M.Send.push
 M.Send.__len = function(send)
   local r = send._recv; return r and #r or 0
+end
+M.Send.__fmt = function(send, f)
+  push(f, ('Send{active=%s}'):format(send:isClosed() and 'no' or 'yes'))
 end
 
 ----------------------------------
