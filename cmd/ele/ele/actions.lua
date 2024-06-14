@@ -1,13 +1,16 @@
 -- Actions builtin plugin
 local M = mod and mod'ele.actions' or {}
 local mty = require'metaty'
+local ds = require'ds'
 local log = require'ds.log'
 local motion = require'rebuf.motion'
 local et = require'ele.types'
 
 local push, pop = table.insert, table.remove
-local sfmt = string.format
+local concat    = table.concat
+local sfmt      = string.format
 local callable = mty.callable
+local try = ds.try
 
 ----------------------------------
 -- KEYBINDINGS
@@ -20,36 +23,37 @@ local callable = mty.callable
 -- which are pressed in sequence. Typically, these end with the binding
 -- generating an event when all keys are gathered.
 M.keyinput = function(ed, ev, evsend)
+  local mode = ed.modes[ed.mode]; local fallback = mode.fallback
   local ki, K, err = assert(ev[1], 'missing key'), ed.ext.keys
   if K.keep then K.keep = nil
-  else
-    K.chord, K.event = {}, nil
-    K.next = ed.modes[ed.mode]
-  end
+  else           K.chord, K.event, K.next = {}, nil, mode end
   log.info('keyinput %q mode=%s next=%s', ki, ed.mode, K.next)
-  local nxt = callable(K.next) and K.next
-    or rawget(K.next, ki) or ed.modes[ed.mode].fallback
+  local nxt = callable(K.next) and K.next or rawget(K.next, ki) or fallback
+  push(K.chord, ki)
   if not callable(nxt) then
-    assert(type(nxt) == 'table')
+    if not type(nxt) == 'table' then
+      K.keep = nil; error'keys.nxt is neither callable or table'
+    end
     K.next, K.keep = nxt, true
     return
   end
-  push(K.chord, ki)
-  log.info(' + binding=%q chord=%q', nxt, K.chord)
-  local ev = nxt(K)
-  if ev then
+  log.info(' + keyinput calling %q (%q)', K.chord, nxt)
+  local ok, ev = try(nxt, K)
+  if not ok then
+    ed.error('%q (%s) failed: %q', nxt, concat(K.chord, ' '), ev)
+  elseif ev then
     log.info(' + keyinput %q -> %q', ki, ev)
     evsend:pushLeft(ev)
     if ev.mode then
       err = et.checkMode(ed, ev.mode); if err then
-        error(sfmt('%s -> event has invalid mode: %s', n, ev.mode))
+        ed.error('%s -> event has invalid mode: %s', n, ev.mode)
       end
       ed.mode = ev.mode
     end
   end
   err = K:check(ed); if err then
     K.keep = nil
-    error(sfmt('bindings.%s(keys) -> invalid keys: %s', n, err))
+    ed.error('bindings.%s(keys) -> invalid keys: %s', n, err)
   end
 end
 M.hotkey = keyinput

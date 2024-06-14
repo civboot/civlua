@@ -1,7 +1,6 @@
 
 LUA_VERSION = lua
 LUA = lua -e "require'pkglib':install()"
-PRETEST=LOGLEVEL=INFO
 
 .PHONY: ele
 
@@ -9,8 +8,7 @@ all: test demo
 
 test: build
 	mkdir -p ./.out/
-	$(PRETEST) $(LUA) test.lua
-	# lua civix/runterm.lua view 0.05
+	$(LUA) test.lua
 	# Tests complete
 
 demo: build

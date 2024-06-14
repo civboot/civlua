@@ -9,16 +9,18 @@ local ds = require'ds'
 local heap = require'ds.heap'
 
 local push = table.insert
-local yield, create = coroutine.yield, coroutine.create
-local resume        = coroutine.resume
+local yield, create  = coroutine.yield, coroutine.create
+local resume, status = coroutine.resume, coroutine.status
 local log = require'ds.log'
 local errorFrom = ds.Error.from
+local TRACE = log.LEVEL.TRACE
 
 local M = {_async = {}, _sync = {}}
 
-M.formatCorErrors = function(corErrors, lvl)
+LAP_CORS = LAP_CORS or ds.WeakKV{}
+
+M.formatCorErrors = function(corErrors)
   local f = mty.Fmt{}
-  lvl = lvl and (lvl + 1) or 2
   for _, ce in ipairs(corErrors) do
     push(f, 'Coroutine '); f(ce)
     push(f, '\n')
@@ -55,6 +57,8 @@ M._async.schedule = function(fn, ...)
   assert(select('#', ...) == 0, 'only function supported')
   local cor = create(fn)
   LAP_READY[cor] = 'scheduled'
+  LAP_CORS[cor] = fn
+  log.trace('schedule %s [%q]', cor, fn)
   return cor
 end
 M._sync.schedule = function(fn, ...) fn(...) end
@@ -63,9 +67,9 @@ M._sync.schedule = function(fn, ...) fn(...) end
 -- Ch: channel sender and receiver (Send/Recv)
 
 -- Recv() -> recv: the receive side of channel.
--- 
+--
 -- Is considered closed when all senders are closed.
--- 
+--
 -- Notes:
 -- * Use recv:sender() to create a sender. You can create
 --   multiple senders.
@@ -102,9 +106,12 @@ M.Recv.sender = function(r)
   assert(r._sends, 'sender on closed channel')[s] = true
   return s
 end
+M.Recv.hasSender = function(r)
+  return r._sends and next(r._sends) and true or false
+end
 M.Recv.wait = function(r)
   while (#r.deq == 0) and (r._sends and not ds.isEmpty(r._sends)) do
-    r.cor = coroutine.running(); yield()
+    r.cor = coroutine.running(); yield'forget'
   end
 end
 M.Recv.recv = function(r) r:wait() return r.deq() end
@@ -112,9 +119,9 @@ M.Recv.__call = M.Recv.recv
 -- drain the recv. This does NOT wait for new items.
 M.Recv.drain = function(r) return r.deq:drain() end
 M.Recv.__fmt = function(r, fmt)
-  push(fmt, 'Recv{cor='); fmt(r.cor);
-  push(fmt, (' hasSender=%s '):format(next(r._sends) and true or false))
-  fmt(r.deq); push(fmt, '}')
+  push(fmt, ('Recv{%s len=%s hasSender=%s}'):format(
+    r:isClosed() and 'closed' or 'active',
+    #r.deq, r:hasSender() and 'yes' or 'no'))
 end
 
 local function recvReady(r)
@@ -148,7 +155,7 @@ M.Send.push = function(send, val)
 end
 M.Send.extend = function(send, vals)
   local r = assert(send._recv, 'recv closed')
-  r.deq:extendRight(val); recvReady(r)
+  r.deq:extendRight(vals); recvReady(r)
 end
 -- preemtive send
 M.Send.pushLeft = function(send, val)
@@ -163,6 +170,9 @@ end
 M.Send.__call = M.Send.push
 M.Send.__len = function(send)
   local r = send._recv; return r and #r or 0
+end
+M.Send.__fmt = function(send, f)
+  push(f, ('Send{active=%s}'):format(send:isClosed() and 'no' or 'yes'))
 end
 
 ----------------------------------
@@ -179,7 +189,7 @@ M._async.all = function(fns)
     end)
     LAP_READY[cor] = 'all-item'
   end
-  yield() -- forget until resumed by last completed child
+  yield'forget' -- forget until resumed by last completed child
 end
 M._sync.all = function(fns) for _, f in ipairs(fns) do f() end end
 
@@ -223,7 +233,7 @@ end)
 -- yield() -> fnIndex: yield until a fn index is done
 M.Any.yield =
 (function(self)
-  while not next(self.done) do yield() end
+  while not next(self.done) do yield'forget' end
   return next(self.done)
 end)
 -- restart(i): restart fn at index
@@ -236,8 +246,9 @@ end)
 ----------------------------------
 -- Lap
 M.monoCmp  = function(i1, i2) monoLt(i1[1], i2[1]) end
-M.LAP_UPDATE = {
+local LAP_UPDATE = {
   [true] = function(lap, cor) LAP_READY[cor] = true end,
+  forget = ds.noop,
   sleep = function(lap, cor, sleepSec)
     lap.monoHeap:add{lap:monoFn() + sleepSec, cor}
   end,
@@ -245,7 +256,7 @@ M.LAP_UPDATE = {
     lap.pollList:insert(fileno, events)
     lap.pollMap[fileno] = cor
   end,
-}
+}; M.LAP_UPDATE = LAP_UPDATE
 
 -- A single lap of the executor loop
 -- 
@@ -288,14 +299,23 @@ end
 M.Lap.sleep = M.LAP_UPDATE.sleep
 M.Lap.poll  = M.LAP_UPDATE.poll
 M.Lap.execute = function(lap, cor) --> errstr?
-  if not cor then return end
-  local ok, kind, a, b = coroutine.resume(cor)
-  if not ok   then return kind end -- error
-  if not kind then return      end -- forget
-  local fn = M.LAP_UPDATE[kind]
-  if not fn then error('unknown kind '..kind) end
-  fn(lap, cor, a, b)
+  if LOGLEVEL >= TRACE then
+    log.trace("execute %s [%q]", cor, LAP_CORS[cor])
+  end
+  local ok, kind, a, b = resume(cor)
+  if LOGLEVEL >= TRACE then
+    log.trace("finished %s [%q] -> %s, %q",
+      cor, LAP_CORS[cor], ok and 'ok' or '!err!',
+      ds.brief(kind))
+  end
+  if not ok then return kind end -- error
+  local fn = LAP_UPDATE[kind]
+  if fn then return fn(lap, cor, a, b)
+  elseif kind then return 'unknown kind: '..kind end
+  return (status(cor) ~= 'dead')
+     and 'non-dead coroutine yielded false/nil' or nil
 end
+
 M.Lap.__call = function(lap)
   local errors = nil
   if next(LAP_READY) then
@@ -308,6 +328,7 @@ M.Lap.__call = function(lap)
       end
     end
   end
+  if errors then return errors end
 
   -- Check for asleep coroutines
   local mh = lap.monoHeap; local hpop = mh.pop
@@ -333,25 +354,24 @@ M.Lap.__call = function(lap)
       pl:remove(fileno)
     end
   else lap.sleepFn(sleep) end
-  return errors
 end
 M.Lap.isDone = function(lap)
   return not (next(LAP_READY) or (#lap.monoHeap > 0) or next(lap.pollMap))
 end
-M.Lap.run = function(lap, fns)
-  LAP_READY = LAP_READY or {}
+M.Lap.run = function(lap, fns, async, sync)
+  local errors; async, sync = async or M.async, sync or M.sync
   assert(lap:isDone(), "cannot run non-done Lap")
+  assert(not LAP_ASYNC, 'already in async mode')
   if type(fns) == 'function' then LAP_READY[coroutine.create(fns)] = 'run'
-  else
-    for i, fn in ipairs(fns) do
-      LAP_READY[coroutine.create(fn)] = 'run'
-    end
-  end
+  else; for i, fn in ipairs(fns) do
+    LAP_READY[coroutine.create(fn)] = 'run'
+  end ; end
+  async()
   while not lap:isDone() do
-    local errors = lap(); if errors then
-      error(M.formatCorErrors(errors))
-    end
+    errors = lap(); if errors then break end
   end
+  sync()
+  if errors then error(M.formatCorErrors(errors)) end
   return lap
 end
 

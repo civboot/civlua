@@ -267,7 +267,6 @@ M.openFileno = function(fileno)
 end
 M.stdin  = M.openFileno(S.STDIN_FILENO)
 M.stdout = M.openFileno(S.STDOUT_FILENO)
-M.stderr = M.openFileno(S.STDERR_FILENO)
 
 M.input  = function() return M.stdin end
 M.output = function() return M.stdout end
@@ -288,17 +287,15 @@ end
 
 push(LAP_FNS_ASYNC, function()
   for k, v in pairs(M._async) do M[k] = v end
-  for _, k in ipairs{'stdin', 'stdout', 'stderr'} do M[k]:toNonblock() end
 end)
 push(LAP_FNS_SYNC, function()
   for k, v in pairs(M._sync)  do M[k] = v end
-  for _, k in ipairs{'stdin', 'stdout', 'stderr'} do M[k]:toBlock() end
 end)
 
 local IO_KEYS = [[
 open   close  tmpfile
 read   lines  write
-stdout stderr stdin
+stdout stdin
 input  output flush
 type
 ]]

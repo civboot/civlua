@@ -106,6 +106,7 @@ M.ctrlChar, M.key = ctrlChar, nice
 --
 -- See CMD, INP_SEQ, INP_SEQO for possible utf8.len>1 strings.
 M.input = function(send)
+  send'esc'
   local b, s, dat, len = 0, '', {}
   ::continue::
   b = getb()
@@ -198,6 +199,7 @@ M.exitRawMode = function()
   local stdout = M.ATEXIT.stdout
   io.stdout = stdout
   io.stderr = M.ATEXIT.stderr
+  io.stderr:write'!! finished atexit'
 end
 M.enterRawMode = function(stdout, stderr, enteredFn, exitFn)
   assert(stdout, 'must provide new stdout')

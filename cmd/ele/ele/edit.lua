@@ -93,7 +93,6 @@ M.Edit.insert = function(e, s)
 end
 
 M.Edit.remove = function(e, ...)
-  mty.print('!! remove: ', {...})
   local ch = e.buf:remove(...)
   e:changeUpdate2()
 end

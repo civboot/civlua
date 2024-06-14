@@ -6,6 +6,7 @@ local ds = require'ds'
 local M  = require'lap'
 
 local push, yield = table.insert, coroutine.yield
+local co = coroutine
 
 T.asyncTest('schedule', function()
   local i = 0
@@ -42,3 +43,22 @@ T.asyncTest('ch', function()
   s(13); T.assertEq({13}, r:drain())
   yield(true); T.assertEq({}, t)
 end)
+
+T.test('execute', function()
+  local l = M.Lap{}
+  local v = 0
+  local res = l:execute(co.create(
+    function() v = 3; yield'forget' end
+  ))
+  T.assertEq(3, v)
+  T.assertEq(nil, res)
+  local res = l:execute(co.create(
+    function() yield'foo' end
+  ))
+  T.assertEq('unknown kind: foo', res)
+
+  local errFn = function() error'bar' end
+  local res = l:execute(co.create(errFn))
+  T.assertMatch(': bar', res)
+end)
+

@@ -75,8 +75,6 @@ M.asyncTest = function(name, fn)
   local lap = require'lap'
   local civix = require'civix'
   local Lap = civix.Lap()
-  lap.async() -- switch to async mode
-
   local ge = ds.copy(_G)
 
   print('# Test', name, "(async)")
@@ -84,7 +82,6 @@ M.asyncTest = function(name, fn)
 
   M.assertGlobals(ge)
   collectgarbage()
-  lap.sync() -- switch back to sync
 end
 
 M.lapTest = function(name, fn)

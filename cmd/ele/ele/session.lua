@@ -16,14 +16,14 @@ local yield = coroutine.yield
 M.Session = mty'Session' {
   'ed [Ed]',
   'events [Recv]', 'evsend [Send]',
-  'keys [Recv]',
+  'keys [Recv]', 'keysend [Send]',
   'logf [File]',
 }
 M.Session.init = function(T, s)
   s = s or {}
   s.ed = s.ed or Ed:init()
   s.events = lap.Recv(); s.evsend = s.events:sender()
-  s.keys   = lap.Recv()
+  s.keys   = lap.Recv(); s.keysend = s.keys:sender()
   return T(s)
 end
 -- init test session
@@ -43,6 +43,7 @@ end
 
 -- run events until they are exhuasted
 M.Session.run = function(s)
+  log.info('session run (events=%q)', s.events)
   local actions = s.ed.actions
   for ev in s.events do
     log.info('run event %q', ev)
@@ -57,17 +58,19 @@ M.Session.run = function(s)
       goto cont
     end
     local ok, err = ds.try(act, s.ed, ev, s.evsend)
-    if not ok then s.ed.error(
-      'failed event %q\nError: %s', ev, err
-    )end
+    if not ok then s.ed.error('failed event %q. %q', ev, err) end
     ::cont::
   end
 end
 
 -- send chord of keys and play them (run events)
+-- this is mostly used for tests
 M.Session.play = function(s, chord)
-  h.keysend:extend(bindings.chord(chord))
-  h:run()
+  s.keysend:extend(bindings.chord(chord))
+  while (#s.keys > 0) or (#s.events > 0) do
+    log.trace('still playing: %s', chord)
+    yield(true)
+  end
 end
 
 -- Start a user session
@@ -82,7 +85,6 @@ M.Session.start = function(s)
     while s.ed.run do
       local start = mono()
       s:run()
-      -- TODO: paint
       yield('sleep', frame - (mono() - start))
     end
   end)

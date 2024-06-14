@@ -1,7 +1,9 @@
 -- Test display functionality (not mutation)
 
 local T = require'civtest'
+local mty = require'metaty'
 local ds, lines = require'ds', require'lines'
+local log = require'ds.log'
 local term = require'civix.term'
 local etest = require'ele.testing'
 local edit = require'ele.edit'
@@ -23,13 +25,25 @@ T.asyncTest('session', function()
   local ke, sk = ed.ext.keys, s.keys:sender()
   local b, bi = ed:buffer()
   local e = ed:focus(b)
-  aeq('command', ed.mode)
+  local lt = log.LogTable{}
 
   s:start()
-  sk'i'; run(s)
-    aeq(bindings.command, ke.next) -- selected in keyinput
-    aeq('insert', ed.mode)         -- next mode
+  aeq('command', ed.mode)
 
-  sk'9'; sk'space'; run(s)
+  s:play'Z' -- unknown
+  aeq(1, #ed.error)
+  T.assertMatch('unbound chord: Z', ed.error[1].msg)
+  ds.clear(ed.error)
+
+  s:play'i'
+    aeq('insert', ed.mode) -- next mode
+    aeq(bindings.command, ke.next) -- selected in keyinput
+
+  aeq(lt, ed.error)
+
+  s:play'9 space'
     aeq('9 ', b.dat[1])
+  aeq(lt, ed.error)
+
+  ed.run = false
 end)

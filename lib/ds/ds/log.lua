@@ -15,11 +15,11 @@
 local M = mod and mod'ds.log' or {}
 local mty = require'metaty'
 local ds = require'ds'
-local push, sfmt = table.insert, string.format
+local push, concat, sfmt = table.insert, table.concat, string.format
 
 M.time = function() return os.date():match'%d%d:%d%d:%d%d' end
 
-M.LEVELS = {
+local LEVEL = ds.Checked{
   SLIENT=0, [0]='SILENT',
   C=1, CRIT=1,
   E=2, ERROR=2,
@@ -27,13 +27,13 @@ M.LEVELS = {
   I=4, INFO=4,
   T=5, TRACE=5,
   'CRIT', 'ERROR', 'WARN', 'INFO', 'TRACE'
-}
-M.SHORT = {'C', 'E', 'W', 'I', 'T'}
+}; M.LEVEL = LEVEL
+local SHORT = ds.Checked{'C', 'E', 'W', 'I', 'T'}
 function M.levelInt(lvl)
-  local lvl = tonumber(lvl) or M.LEVELS[lvl]
-  return M.LEVELS[lvl] and lvl or error('invalid lvl: '..tostring(lvl))
+  local lvl = tonumber(lvl) or M.LEVEL[lvl]
+  return M.LEVEL[lvl] and lvl or error('invalid lvl: '..tostring(lvl))
 end
-function M.levelStr(lvl) return M.LEVELS[M.levelInt(lvl)] end
+function M.levelStr(lvl) return M.LEVEL[M.levelInt(lvl)] end
 -- set the global logging level (default=os.getenv'LOGLEVEL')
 function M.setLevel(lvl)
   _G.LOGLEVEL = M.levelInt(lvl or os.getenv'LOGLEVEL' or 0)
@@ -43,11 +43,11 @@ M.setLevel(LOGLEVEL)
 function M.logFn(lvl, loc, msg, data)
   if LOGLEVEL < lvl then return end
   local f = mty.Fmt:pretty{sfmt('%s %s %s: %s',
-     M.SHORT[lvl], M.time(), loc, msg
+     SHORT[lvl], M.time(), loc, msg
   )}
   if data then push(f, ' '); f(data) end
   push(f, '\n')
-  io.stderr:write(table.concat(f))
+  io.stderr:write(concat(f))
 end
 LOGFN = LOGFN or M.logFn -- GLOBAL
 
@@ -81,7 +81,7 @@ function M.trace(...) if LOGLEVEL >= 5 then _log(5, ...) end end
 M.LogTable = mty.record'LogTable'{}
 M.LogTable.__call = function(lc, ...)
   local msg, data = logfmt(...)
-  push(lc, {msg, data=data})
+  push(lc, {msg=msg, data=data})
 end
 
 return M

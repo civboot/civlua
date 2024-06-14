@@ -25,7 +25,6 @@ end
 -- Uses __inset "metamethod" if available.
 -- rmlen, if provided, will cause t[i:i+rmlen] to be removed
 M.inset = function(t, i, values, rmlen)
-  print('!! inset', i, rmlen)
   local meth = mty.getmethod(t, '__inset')
   if meth then return meth(t, i, values, rmlen) end
   -- impl notes, there are two modes:
@@ -35,12 +34,8 @@ M.inset = function(t, i, values, rmlen)
   rmlen = rmlen or 0; local tlen, vlen = #t, #values
   if tlen - i - rmlen >= 0 then -- we want to keep some values >= i
     local cache = move(t, i + rmlen, tlen, 1, {})
-    print('!! inset keeping, moving values', 1, max(vlen, tlen - i + 1), i)
     move(values, 1, max(vlen, tlen - i + 1), i, t)
-    mty.print('!!   t:', t)
-    print('!! inset keeping, moving cache', 1, #cache, i + vlen)
     move(cache, 1, #cache, i + vlen, t)
-    mty.print('!!   t:', t)
     return t
   end
   -- not keeping values >= i
@@ -132,6 +127,12 @@ end
 ---------------------
 -- String Functions
 
+M.brief = function(s, maxlen, trunc) --> string | str...
+  maxlen, trunc = maxlen or 50, trunc or '...'
+  if type(s) ~= 'string' then s = mty.tostring(s) end
+  return (#s <= maxlen) and s or (s:sub(1,maxlen)..trunc)
+end
+
 M.trim = function(subj, pat, index)
   pat = pat and ('^'..pat..'*(.-)'..pat..'*$') or '^%s*(.-)%s*$'
   return subj:match(pat, index)
@@ -203,7 +204,6 @@ M.usub = function(s, si, ei, len)
   local eo = uoff(s, ei - si + 2, so) -- offset of character after ei
   return s:sub(so, eo and (eo - 1) or nil)
 end
-
 
 --------------------
 -- Working with file paths
@@ -562,9 +562,6 @@ end
 
 ---------------------
 -- Low-level Types
--- These are generally used to create other types and are
--- not used directly. See lua documentation on specific
--- usage.
 
 -- Weak key table, see docs on '__mode'
 M.WeakK = setmetatable(
@@ -590,6 +587,13 @@ M.Forget = setmetatable(
   {__name='Ty<Loser>', __call=mty.constructUnchecked}
 )
 
+-- Table that errors on missing key
+M.Checked = setmetatable(
+  {__name='Checked', __metatable='table',
+   __index=function(_, k) error('unknown key: '..k) end,
+  },
+  {__name='Ty<Checked>', __call=mty.constructUnchecked}
+)
 
 ---------------------
 -- Sentinal, none type, bool()
@@ -1087,11 +1091,11 @@ M.Error.__fmt = function(e, fmt)
   end
 end
 -- create the error from the arguments.
--- tb can be one of: coroutine string table
+-- tb can be one of: coroutine|string|table
 M.Error.from = function(msg, tb, cause)
   tb = (type(tb) == 'thread') and traceback(tb) or tb
   return M.Error{
-    msg=msg:match'[^/]+/.*:%d+: (.*)' or msg, -- remove line number
+    msg=msg:match'^%S+/%S+:%d+: (.*)' or msg, -- remove line number
     traceback=(type(tb) == 'table') and tb or M.tracelist(tb),
     cause=cause,
   }
