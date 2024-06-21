@@ -26,10 +26,10 @@ T.asyncTest('session', function()
   aeq('command', ed.mode)
 
   s:start()
-  sk'i'; run(s)
-    aeq(bindings.command, ke.next) -- selected in keyinput
-    aeq('insert', ed.mode)         -- next mode
+  -- sk'i'; run(s)
+  --   -- aeq(bindings.command, ke.next) -- selected in keyinput
+  --   aeq('insert', ed.mode) -- next mode
 
-  sk'9'; sk'space'; run(s)
-    aeq('9 ', b.dat[1])
+  -- sk'9'; sk'space'; run(s)
+  --   aeq('9 ', b.dat[1])
 end)

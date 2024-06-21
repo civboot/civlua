@@ -259,13 +259,15 @@ M.keyactions = function(ed, keyrecv, evsend)
   assert(keyrecv:hasSender())
   log.info('keyactions keyrecv=%q', keyrecv)
   for key in keyrecv do
+    log.info('key received: %q', key)
     if key == '^q' then
       log.warn('received ^q, exiting')
       os.exit()
     end
     if not ed.run then break end
-    log.info('key received: %q', key)
-    if key then evsend{key, action='keyinput'}
+    if key then
+      evsend{key, action='keyinput'}
+      log.info('sent key %q', key)
     else ed.warn'received empty key' end
   end
   log.warn'exited keyactions'

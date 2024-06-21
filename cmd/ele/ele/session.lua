@@ -43,6 +43,7 @@ end
 
 -- run events until they are exhuasted
 M.Session.run = function(s)
+  log.info('session run (events=%q)', s.events)
   local actions = s.ed.actions
   for ev in s.events do
     log.info('run event %q', ev)
@@ -58,7 +59,7 @@ M.Session.run = function(s)
     end
     local ok, err = ds.try(act, s.ed, ev, s.evsend)
     if not ok then s.ed.error(
-      'failed event %q\nError: %s', ev, err
+      'failed event %q. %q', ev, err
     )end
     ::cont::
   end

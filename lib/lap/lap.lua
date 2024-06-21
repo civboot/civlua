@@ -9,16 +9,15 @@ local ds = require'ds'
 local heap = require'ds.heap'
 
 local push = table.insert
-local yield, create = coroutine.yield, coroutine.create
-local resume        = coroutine.resume
+local yield, create  = coroutine.yield, coroutine.create
+local resume, status = coroutine.resume, coroutine.status
 local log = require'ds.log'
 local errorFrom = ds.Error.from
 
 local M = {_async = {}, _sync = {}}
 
-M.formatCorErrors = function(corErrors, lvl)
+M.formatCorErrors = function(corErrors)
   local f = mty.Fmt{}
-  lvl = lvl and (lvl + 1) or 2
   for _, ce in ipairs(corErrors) do
     push(f, 'Coroutine '); f(ce)
     push(f, '\n')
@@ -107,7 +106,7 @@ M.Recv.hasSender = function(r)
 end
 M.Recv.wait = function(r)
   while (#r.deq == 0) and (r._sends and not ds.isEmpty(r._sends)) do
-    r.cor = coroutine.running(); yield()
+    r.cor = coroutine.running(); yield'forget'
   end
 end
 M.Recv.recv = function(r) r:wait() return r.deq() end
@@ -185,7 +184,7 @@ M._async.all = function(fns)
     end)
     LAP_READY[cor] = 'all-item'
   end
-  yield() -- forget until resumed by last completed child
+  yield'forget' -- forget until resumed by last completed child
 end
 M._sync.all = function(fns) for _, f in ipairs(fns) do f() end end
 
@@ -229,7 +228,7 @@ end)
 -- yield() -> fnIndex: yield until a fn index is done
 M.Any.yield =
 (function(self)
-  while not next(self.done) do yield() end
+  while not next(self.done) do yield'forget' end
   return next(self.done)
 end)
 -- restart(i): restart fn at index
@@ -242,8 +241,9 @@ end)
 ----------------------------------
 -- Lap
 M.monoCmp  = function(i1, i2) monoLt(i1[1], i2[1]) end
-M.LAP_UPDATE = {
+local LAP_UPDATE = {
   [true] = function(lap, cor) LAP_READY[cor] = true end,
+  forget = ds.noop,
   sleep = function(lap, cor, sleepSec)
     lap.monoHeap:add{lap:monoFn() + sleepSec, cor}
   end,
@@ -251,7 +251,7 @@ M.LAP_UPDATE = {
     lap.pollList:insert(fileno, events)
     lap.pollMap[fileno] = cor
   end,
-}
+}; M.LAP_UPDATE = LAP_UPDATE
 
 -- A single lap of the executor loop
 -- 
@@ -294,14 +294,15 @@ end
 M.Lap.sleep = M.LAP_UPDATE.sleep
 M.Lap.poll  = M.LAP_UPDATE.poll
 M.Lap.execute = function(lap, cor) --> errstr?
-  if not cor then return end
-  local ok, kind, a, b = coroutine.resume(cor)
-  if not ok   then return kind end -- error
-  if not kind then return      end -- forget
-  local fn = M.LAP_UPDATE[kind]
-  if not fn then error('unknown kind '..kind) end
-  fn(lap, cor, a, b)
+  local ok, kind, a, b = resume(cor)
+  if not ok then return kind end -- error
+  local fn = LAP_UPDATE[kind]
+  if fn then return fn(lap, cor, a, b)
+  elseif kind then return 'unknown kind: '..kind end
+  return (status(cor) ~= 'dead')
+     and 'non-dead coroutine yielded false/nil' or nil
 end
+
 M.Lap.__call = function(lap)
   local errors = nil
   if next(LAP_READY) then
@@ -314,6 +315,7 @@ M.Lap.__call = function(lap)
       end
     end
   end
+  if errors then return errors end
 
   -- Check for asleep coroutines
   local mh = lap.monoHeap; local hpop = mh.pop
@@ -339,7 +341,6 @@ M.Lap.__call = function(lap)
       pl:remove(fileno)
     end
   else lap.sleepFn(sleep) end
-  return errors
 end
 M.Lap.isDone = function(lap)
   return not (next(LAP_READY) or (#lap.monoHeap > 0) or next(lap.pollMap))
