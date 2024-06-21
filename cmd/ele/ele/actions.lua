@@ -7,7 +7,8 @@ local motion = require'rebuf.motion'
 local et = require'ele.types'
 
 local push, pop = table.insert, table.remove
-local sfmt = string.format
+local concat    = table.concat
+local sfmt      = string.format
 local callable = mty.callable
 local try = ds.try
 
@@ -22,25 +23,25 @@ local try = ds.try
 -- which are pressed in sequence. Typically, these end with the binding
 -- generating an event when all keys are gathered.
 M.keyinput = function(ed, ev, evsend)
-  log.info'keyinput started'
   local ki, K, err = assert(ev[1], 'missing key'), ed.ext.keys
-  print'!! wut wut'
-  error'wut'
   if K.keep then K.keep = nil
-  else
+  else -- keys (no keep)
     K.chord, K.event = {}, nil
     K.next = ed.modes[ed.mode]
   end
   log.info('keyinput %q mode=%s next=%s', ki, ed.mode, K.next)
+  local fallback = ed.modes[ed.mode].fallback
   local nxt = callable(K.next) and K.next
-    or rawget(K.next, ki) or ed.modes[ed.mode].fallback
+    or rawget(K.next, ki) or fallback
+  push(K.chord, ki)
   if not callable(nxt) then
-    assert(type(nxt) == 'table')
+    if not type(nxt) == 'table' then
+      K.keep = nil; error'keys.nxt is neither callable or table'
+    end
     K.next, K.keep = nxt, true
     return
   end
-  push(K.chord, ki)
-  log.info(' + binding=%q chord=%q', nxt, K.chord)
+  log.info(' + keyinput calling %q (%q)', K.chord, nxt)
   local ok, ev = try(nxt, K)
   if not ok then
     log.err('%q (%s) failed: %q', nxt, concat(K.chord, ' '), ev)

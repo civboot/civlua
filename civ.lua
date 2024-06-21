@@ -8,6 +8,7 @@ DOC,          METATY_CHECK  = false, false
 LOGLEVEL,     LOGFN         = false, false
 LAP_READY,    LAP_ASYNC     = false, false
 LAP_FNS_SYNC, LAP_FNS_ASYNC = false, false
+LAP_CORS                    = false
 
 local initG = {}; for k in pairs(_G) do initG[k] = true end
 

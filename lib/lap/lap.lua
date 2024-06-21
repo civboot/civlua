@@ -13,8 +13,11 @@ local yield, create  = coroutine.yield, coroutine.create
 local resume, status = coroutine.resume, coroutine.status
 local log = require'ds.log'
 local errorFrom = ds.Error.from
+local TRACE = log.LEVEL.TRACE
 
 local M = {_async = {}, _sync = {}}
+
+LAP_CORS = LAP_CORS or ds.WeakKV{}
 
 M.formatCorErrors = function(corErrors)
   local f = mty.Fmt{}
@@ -54,6 +57,8 @@ M._async.schedule = function(fn, ...)
   assert(select('#', ...) == 0, 'only function supported')
   local cor = create(fn)
   LAP_READY[cor] = 'scheduled'
+  LAP_CORS[cor] = fn
+  log.trace('schedule %s [%q]', cor, fn)
   return cor
 end
 M._sync.schedule = function(fn, ...) fn(...) end
@@ -294,6 +299,7 @@ end
 M.Lap.sleep = M.LAP_UPDATE.sleep
 M.Lap.poll  = M.LAP_UPDATE.poll
 M.Lap.execute = function(lap, cor) --> errstr?
+  log.trace("execute %s [%q]", cor, LAP_CORS[cor])
   local ok, kind, a, b = resume(cor)
   if not ok then return kind end -- error
   local fn = LAP_UPDATE[kind]

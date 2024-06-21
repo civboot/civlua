@@ -562,9 +562,6 @@ end
 
 ---------------------
 -- Low-level Types
--- These are generally used to create other types and are
--- not used directly. See lua documentation on specific
--- usage.
 
 -- Weak key table, see docs on '__mode'
 M.WeakK = setmetatable(
@@ -590,6 +587,13 @@ M.Forget = setmetatable(
   {__name='Ty<Loser>', __call=mty.constructUnchecked}
 )
 
+-- Table that errors on missing key
+M.Checked = setmetatable(
+  {__name='Checked', __metatable='table',
+   __index=function(_, k) error('unknown key: '..k) end,
+  },
+  {__name='Ty<Checked>', __call=mty.constructUnchecked}
+)
 
 ---------------------
 -- Sentinal, none type, bool()

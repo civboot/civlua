@@ -199,6 +199,7 @@ M.exitRawMode = function()
   local stdout = M.ATEXIT.stdout
   io.stdout = stdout
   io.stderr = M.ATEXIT.stderr
+  io.stderr:write'!! finished atexit'
 end
 M.enterRawMode = function(stdout, stderr, enteredFn, exitFn)
   assert(stdout, 'must provide new stdout')

@@ -262,7 +262,8 @@ M.keyactions = function(ed, keyrecv, evsend)
     log.info('key received: %q', key)
     if key == '^q' then
       log.warn('received ^q, exiting')
-      os.exit()
+      ed.run = false
+      break
     end
     if not ed.run then break end
     if key then

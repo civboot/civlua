@@ -2,6 +2,8 @@
 local M = mod and mod'ele' or {}
 local lap = require'lap'
 local log = require'ds.log'
+local fd = require'fd'
+local ioopen = io.open
 
 print'ele.lua'
 
@@ -18,11 +20,13 @@ M.exe = function(args)
   require'fd'.ioAsync()
   return s, require'civix'.Lap{}:run(function()
     local term = require'civix.term'
-    s.logf = s.logf or assert(io.open('/tmp/ele.log', 'w'))
+    local stdout = assert(io.open('/tmp/ele.out', 'w'))
+    local stderr = assert(ioopen('/tmp/ele.err', 'w'))
+
     s.ed.display = term.Term
-    s.ed.display:start(s.logf, s.logf)
-    print'!! print works after display start'
-    log.info'!! log works after display start'
+    s.ed.display:start(stdout, stderr)
+    print'!! print after display start'
+    log.info'!! log after display start'
     s:start()
     lap.schedule(function() term.input(keysend) end)
     log.info'ele started'
