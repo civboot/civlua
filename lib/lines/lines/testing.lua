@@ -19,6 +19,10 @@ M.testOffset = function(t)
   local l, c
   offsetRound(t, 1, 2, 0,   {1, 2})
   offsetRound(t, 1, 2, 1,   {1, 3})
+  offsetRound(t, 1, 3, -1,  {1, 2})
+  offsetRound(t, 1, 2, -1,  {1, 1})
+  T.assertEq({1, 1}, {lines.offset(t, -1, 1, 1)})
+
   -- here
   offsetRound(t, 1, 1, 3,   {1, 4})
   offsetRound(t, 1, 1, 4,   {1, 5}) -- '5'
@@ -41,7 +45,6 @@ M.testOffset = function(t)
   offsetRound(t, 3, 1, -6,  {1, 6}) -- '\n'
   offsetRound(t, 3, 1, -11, {1, 1}) -- '\n'
   offsetRound(t, 3, 1, -12, {1, 1}, -11) -- BOF
-
 
   -- Those are all "normal", let's do some OOB stuff
   offsetRound(t, 1, 6 , 1, {2, 1})

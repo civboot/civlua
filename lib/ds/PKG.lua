@@ -10,6 +10,7 @@ deps = {
 }
 srcs = {
   'ds.lua',
+  'ds/utf8.lua',
   'ds/heap.lua',
   'ds/file.lua',
   'ds/log.lua',

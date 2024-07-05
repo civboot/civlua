@@ -48,6 +48,7 @@ function M.logFn(lvl, loc, msg, data)
   if data then push(f, ' '); f(data) end
   push(f, '\n')
   io.stderr:write(concat(f))
+  io.stderr:flush()
 end
 LOGFN = LOGFN or M.logFn -- GLOBAL
 

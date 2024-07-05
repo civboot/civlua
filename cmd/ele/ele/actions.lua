@@ -3,6 +3,7 @@ local M = mod and mod'ele.actions' or {}
 local mty = require'metaty'
 local ds = require'ds'
 local log = require'ds.log'
+local lines = require'lines'
 local motion = require'rebuf.motion'
 local et = require'ele.types'
 
@@ -96,9 +97,9 @@ local DOMOVE = {
 }
 local domove = function(e, ev)
   local fn = ev.move and DOMOVE[ev.move]
-  if fn      then fn(e, e.buf[e.l], ev) end
-  if ev.cols then e.c = e.c + ev.cols   end
-  if ev.off  then e:offset(ev.off)      end
+  if fn      then fn(e, e.buf[e.l], ev)       end
+  if ev.cols then e.c = e.c + ev.cols         end
+  if ev.off  then e.l, e.c = e:offset(ev.off) end
 end
 
 -- move action
@@ -145,13 +146,14 @@ M.remove = function(ed, ev)
     log.info('remove lines(0) %s:%s', e.l, e.l + l2)
     return e:remove(e.l, e.l + l2)
   end
-  if ev.move == 'forword' then ev.cols = -1 end
-  local l, c = e.l, e.c
+  if ev.move == 'forword' then ev.cols = ev.cols or -1 end
+  local l, c = e.l, e.c + (ev.cols1 or 0)
   M.move(ed, ev)
-  log.info('remove moved: %s.%s -> %s.%s', l, c, e.l, e.c)
-  if ev.lines then e:remove(l, e.l)
-  else             e:remove(l, c, e.l, e.c) end
-  l, c = motion.topLeft(l, c, e.l, e.c)
+  local l, c, l2, c2 = lines.sort(l, c, e.l, e.c)
+  log.info('remove %q: %s.%s -> %s.%s', ev, l, c, l2, c2)
+  if ev.lines then e:remove(l, l2)
+  else             e:remove(l, c, l2, c2) end
+  l, c = motion.topLeft(l, c, l2, c2)
   e.l = math.min(#e.buf, l); e.c = e:boundCol(c)
 end
 

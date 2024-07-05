@@ -8,7 +8,7 @@ DOC,          METATY_CHECK  = false, false
 LOGLEVEL,     LOGFN         = false, false
 LAP_READY,    LAP_ASYNC     = false, false
 LAP_FNS_SYNC, LAP_FNS_ASYNC = false, false
-LAP_CORS                    = false
+LAP_CORS,     LAP_TRACE     = false, false
 
 local initG = {}; for k in pairs(_G) do initG[k] = true end
 
@@ -38,7 +38,7 @@ shim {
   help=DOC,
   subs = {
     help = {help=M.HELP, exe=M.help},
-    -- ele  = ele.main,
+    ele  = ele,
     ff   = ff.shim,
     rock = rock.shim,
     ['cxt.html'] = require'cxt.html'.shim,

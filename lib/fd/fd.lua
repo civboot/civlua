@@ -115,9 +115,11 @@ end
 -- FDT's read CANNOT be called multiple times.
 local function readLap(fd, c)
   if DONE_CODE[c]    then return end
-  if YIELD_CODE[c]   then yield('poll', fd:getpoll(S.POLLIN))
-  else               error(sfmt('%s (%s)', fd:codestr(), c)) end
-  return true
+  if YIELD_CODE[c]   then
+    yield('poll', fd:getpoll(S.POLLIN))
+    return true
+  end
+  error(sfmt('%s (%s)', fd:codestr(), c))
 end
 S.FD.__index._readTill = function(fd, till)
   while readLap(fd, fd:_read(till)) do end
@@ -246,7 +248,12 @@ end
 M._sync.tmpfile  = function() return M.tmpfileFn(S.tmpFD)  end
 M._async.tmpfile = function() return M.tmpfileFn(S.tmpFDT) end
 
-M.read    = function(...) return M.input():read(...) end
+M.read    = function(...)
+  local inp = M.input()
+  io.stderr:write('!! fd.read: ', tostring(inp), '\n')
+  io.stderr:flush()
+  return inp:read(...)
+end
 M.lines   = function(path, mode)
   mode = mode or 'l'
   if not path then return M.input():lines(mode) end

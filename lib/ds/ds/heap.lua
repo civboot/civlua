@@ -62,12 +62,12 @@ end
 -- add and push take only O(log n), making it very useful for
 -- priority queues and similar problems.
 M.Heap = mty'Heap' {
-  'cmp[function]: comparison function to use',
+  'cmp[function]: comparison function to use', cmp=ds.lt
 }
-getmetatable(M.Heap).__call = function(T, t, cmp)
-  t.cmp = cmp or ds.lt
-  init(t, t.cmp)
-  return mty.construct(T, t)
+getmetatable(M.Heap).__call = function(T, t)
+  local h = mty.construct(T, t)
+  init(h, h.cmp)
+  return h
 end
 
 -- h:add(v) add value to the heap.

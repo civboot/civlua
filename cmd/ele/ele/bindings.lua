@@ -112,7 +112,7 @@ M.commandmode = M.Event{mode='command'}
 do local MA = M.moveAction
   M.right,   M.left      = MA{off=1},          MA{off=-1}
   M.up,      M.down      = MA{lines=-1},       MA{lines=1}
-  M.forword, M.backword  = MA{move='forward'}, MA{move='backword'}
+  M.forword, M.backword  = MA{move='forword'}, MA{move='backword'}
 end
 
 M.movekey = function(keys)
@@ -146,7 +146,7 @@ M.tillback = function(keys)
   M.findback(keys); keys.event.cols = 1
 end
 
-M.backspace = M.Event{action='remove', off=-1}
+M.backspace = M.Event{action='remove', off=-1, cols1=-1}
 M.delkey    = M.Event{action='remove', off=1}
 
 -- delete until a movement command (or similar)
@@ -260,15 +260,15 @@ M.keyactions = function(ed, keyrecv, evsend)
   log.info('keyactions keyrecv=%q', keyrecv)
   for key in keyrecv do
     log.info('key received: %q', key)
-    if key == '^q' then
-      log.warn('received ^q, exiting')
-      ed.run = false
-      break
-    end
+    if key == '^q' then ed.run = false; log.warn('received ^q, exiting') end
     if not ed.run then break end
     if key then
-      evsend{key, action='keyinput'}
-      log.info('sent key %q', key)
+      if type(key) == 'string' then
+        evsend{key, action='keyinput'}
+        log.info('sent key %q', key)
+      else assert(key[1] == 'size')
+        local d = ed.display; d.h, d.w = key.h, key.w
+      end
     else ed.warn'received empty key' end
   end
   log.warn'exited keyactions'

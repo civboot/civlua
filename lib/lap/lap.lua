@@ -3,11 +3,13 @@
 LAP_READY = LAP_READY or {}
 LAP_FNS_SYNC  = LAP_FNS_SYNC  or {}
 LAP_FNS_ASYNC = LAP_FNS_ASYNC or {}
+LAP_TRACE = LAP_TRACE or {}
 
 local mty = require'metaty'
 local ds = require'ds'
 local heap = require'ds.heap'
 
+local sfmt = string.format
 local push = table.insert
 local yield, create  = coroutine.yield, coroutine.create
 local resume, status = coroutine.resume, coroutine.status
@@ -245,30 +247,39 @@ end)
 
 ----------------------------------
 -- Lap
-M.monoCmp  = function(i1, i2) monoLt(i1[1], i2[1]) end
+M.lt1  = function(a, b) return a[1] < b[1] end
 local LAP_UPDATE = {
   [true] = function(lap, cor) LAP_READY[cor] = true end,
   forget = ds.noop,
   sleep = function(lap, cor, sleepSec)
+    if type(sleepSec) ~= 'number' then
+      return sfmt('non-number sleep: %s', sleepSec)
+    end
     lap.monoHeap:add{lap:monoFn() + sleepSec, cor}
   end,
   poll = function(lap, cor, fileno, events)
+    if lap.pollMap[fileno] then return string.format(
+      'two coroutines are both attempting to listen to fileno=%s\n'
+      ..'Existing traceback:\n  %s',
+      fileno,
+      table.concat(ds.tracelist(debug.traceback(lap.pollMap[fileno])), '\n  ')
+    )end
     lap.pollList:insert(fileno, events)
     lap.pollMap[fileno] = cor
   end,
 }; M.LAP_UPDATE = LAP_UPDATE
 
 -- A single lap of the executor loop
--- 
+--
 -- Example:
 --   -- schedule your main fn, which may schedule other fns
 --   lap.schedule(myMainFn)
--- 
+--
 --   -- create a Lap instance with the necessary configs
 --   local Lap = lap.Lap{
 --     sleepFn=civix.sleep, monoFn=civix.monoSecs, pollList=fd.PollList()
 --   }
--- 
+--
 --   -- run repeatedly while there are coroutines to run
 --   while next(LAP_READY) do
 --     errors = Lap(); if errors then
@@ -292,21 +303,21 @@ M.Lap = mty'Lap' {
 }
 M.Lap.defaultSleep = 0.01
 getmetatable(M.Lap).__call = function(T, ex)
-  ex.monoHeap = ex.monoHeap or heap.Heap{cmp = M.monoCmp}
+  ex.monoHeap = ex.monoHeap or heap.Heap{cmp = M.lt1}
   ex.pollMap  = ex.pollMap  or {}
   return mty.construct(T, ex)
 end
 M.Lap.sleep = M.LAP_UPDATE.sleep
 M.Lap.poll  = M.LAP_UPDATE.poll
-M.Lap.execute = function(lap, cor) --> errstr?
-  if LOGLEVEL >= TRACE then
-    log.trace("execute %s [%q]", cor, LAP_CORS[cor])
+M.Lap.execute = function(lap, cor, note) --> errstr?
+  if LOGLEVEL >= TRACE and LAP_TRACE[cor] then
+    log.trace("execute %s %s %q [%q]", cor, status(cor), note, LAP_CORS[cor])
   end
   local ok, kind, a, b = resume(cor)
-  if LOGLEVEL >= TRACE then
-    log.trace("finished %s [%q] -> %s, %q",
+  if LOGLEVEL >= TRACE and LAP_TRACE[cor] then
+    log.trace("finished %s [%q] -> %s, %q [%q , %q]",
       cor, LAP_CORS[cor], ok and 'ok' or '!err!',
-      ds.brief(kind))
+      ds.brief(kind), ds.brief(a), ds.brief(b))
   end
   if not ok then return kind end -- error
   local fn = LAP_UPDATE[kind]
@@ -320,8 +331,8 @@ M.Lap.__call = function(lap)
   local errors = nil
   if next(LAP_READY) then
     local ready = LAP_READY; LAP_READY = {}
-    for cor in pairs(ready) do
-      local err = lap:execute(cor)
+    for cor, note in pairs(ready) do
+      local err = lap:execute(cor, note)
       if err then
         errors = errors or {}
         push(errors, errorFrom(err, cor))
@@ -350,6 +361,7 @@ M.Lap.__call = function(lap)
   if next(lap.pollMap) then
     local pl, pm = lap.pollList, lap.pollMap
     for _, fileno in ipairs(pl:ready(sleep)) do
+      log.trace('scheduling fileno %s', fileno)
       LAP_READY[ds.popk(pm, fileno)] = 'poll'
       pl:remove(fileno)
     end
@@ -371,7 +383,11 @@ M.Lap.run = function(lap, fns, async, sync)
     errors = lap(); if errors then break end
   end
   sync()
-  if errors then error(M.formatCorErrors(errors)) end
+  if errors then
+    errors = M.formatCorErrors(errors)
+    log.info('coroutine errors: %s', errors)
+    error(errors)
+  else log.info('Lap:run done. ready=%q, pm=%q', LAP_READY, lap.pollMap) end
   return lap
 end
 

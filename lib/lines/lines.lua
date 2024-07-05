@@ -16,6 +16,7 @@ local ds  = require'ds'
 local push, pop = table.insert, table.remove
 local concat    = table.concat
 local max, min, bound = math.max, math.min, ds.bound
+local sort2 = ds.sort2
 
 M.CMAX = 999
 
@@ -46,6 +47,14 @@ local function span(l, c, l2, c2)
   error'span must be 2 or 4 indexes: (l, l2) or (l, c, l2, c2)'
 end
 M.span = span
+
+-- sort the span
+M.sort = function(...)
+  local l, c, l2, c2 = span(...)
+  if l > l2 then l, c, l2, c2 = l2, c2, l, c
+  elseif c and (l == l2) and (c > c2) then c, c2 = c2, c end
+  return l, c, l2, c2
+end
 
 local function _lsub(sub, slen, t, ...)
   local l, c, l2, c2 = span(...)

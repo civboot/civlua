@@ -184,7 +184,6 @@ static void FD_shift(FD* fd) {
 // If ctrl < 0 then breaks at that negated character (i.e. '\n').
 // if ctrl > 0 then stops reading when that amount is read
 static void FD_read(FD* fd) {
-  printf("!! FD_read\n");
   if(fd->size) FD_shift(fd);
   else         FD_realloc(fd, IO_SIZE);
   if(!fd->buf) { fd->code = errno; return; }

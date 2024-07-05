@@ -24,6 +24,7 @@ local drain, reverse
 local eval
 local Set, LL, Duration, Epoch
 local M = M.auto'ds'
+local d8 = require'ds.utf8'
 local df = require'ds.file'
 local dp = M.dotpath
 
@@ -392,8 +393,11 @@ test('heap', function()
   assertEq(heap.Heap{-1, 42, 8, 333, 111}, h)
   assertPops({-1, 8, 42, 111, 333}, h)
 
-  h = heap.Heap({1, 5, 9, 10, 3, 2}, M.gt)
+  h = heap.Heap{1, 5, 9, 10, 3, 2, cmp=M.gt}
   assertPops({10, 9, 5, 3, 2, 1}, h)
+
+  h = heap.Heap{{3}, {2}, {1}, cmp=function(a, b) return a[1] < b[1] end}
+  assertPops({{1}, {2}, {3}}, h)
 end)
 
 test('dag', function()
@@ -482,8 +486,44 @@ test('error', function()
   assertEq(expect, M.Error.from(msg, cor))
 end)
 ---------------------
--- ds/file.lua
+-- ds/utf8.lua
 
+local function testU8(expect, chrs)
+  local len = d8.decodelen(chrs[1]); assert(len, 'len is nil')
+  assertEq(#chrs, len)
+  c = d8.decode(chrs)
+  assertEq(expect, utf8.char(c))
+end
+
+-- chrs were gotten from python:
+--   print('{'+', '.join('0x%X' % c for c in '🙃'.encode('utf-8'))+'}')
+-- Edge case characters are from:
+--   https://design215.com/toolbox/ascii-utf8.php
+test('u8edges', function()
+  testU8('\0', {0})
+  testU8(' ', {0x20})
+  testU8('a', {string.byte('a')})
+  testU8('~', {0x7E})
+
+  testU8('¡', {0xC2, 0xA1})
+  testU8('ƒ', {0xC6, 0x92})
+  testU8('߿', {0xDF, 0xBF})
+
+  testU8('ࠀ', {0xE0, 0xA0, 0x80})
+  testU8('ἰ', {0xE1, 0xBC, 0xB0})
+  testU8('‡', {0xE2, 0x80, 0xA1})
+  testU8('➤', {0xE2, 0x9E, 0xA4})
+  testU8('⮝', {0xE2, 0xAE, 0x9D})
+  testU8('€', {0xE2, 0x82, 0xAC})
+  testU8('�', {0xEF, 0xBF, 0xBD})
+
+  testU8('𒀀',  {0xF0, 0x92, 0x80, 0x80})
+  testU8('🙃', {0xF0, 0x9F, 0x99, 0x83})
+  testU8('🧿', {0xF0, 0x9F, 0xA7, 0xBF})
+end)
+
+---------------------
+-- ds/file.lua
 test('LinesFile_small', function()
   assertEq(5, df.readLen'testdata/small.txt')
   local f = io.open('testdata/small.txt')

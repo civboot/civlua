@@ -34,6 +34,10 @@ M.assertEq = function(expect, result, pretty)
   add(f, '\n')
   if type(expect) == 'string' and type(result) == 'string' then
     M.diffFmt(f, expect, result)
+  else
+    local tyn = function(v) return mty.tyName(mty.ty(v)) end
+    add(f, sfmt('\n! TYPES: expect=%s  result=%s',
+                tyn(expect), tyn(result)))
   end
   error(table.concat(f))
 end

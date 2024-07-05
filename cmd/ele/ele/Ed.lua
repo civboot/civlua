@@ -59,9 +59,9 @@ Ed.focus = function(ed, e)
 end
 
 Ed.draw = function(ed)
-  local v = ed.view
-  v.tl, v.tc, v.th, v.tw = 1, 1, ed.display:size()
-  v:draw(ed.display, true)
+  local v, d = ed.view, ed.display
+  v.tl, v.tc, v.th, v.tw = 1, 1, d.h, d.w
+  v:draw(d, true)
 end
 
 return Ed

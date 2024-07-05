@@ -7,6 +7,14 @@ local Gap = require'lines.Gap'
 
 local tostring = require'metaty'.tostring
 
+test('sort', function()
+  local sort = lines.sort
+  assertEq({1, 1, 2, 2}, {sort(1, 1, 2, 2)})
+  assertEq({1, 1, 2, 2}, {sort(2, 2, 1, 1)})
+  assertEq({1, 5, 2, 1}, {sort(1, 5, 2, 1)})
+  assertEq({1, 5, 2, 1}, {sort(2, 1, 1, 5)})
+end)
+
 test('sub', function()
   local lsub = lines.sub
   local l = lines'ab\nc\n\nd'

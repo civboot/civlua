@@ -141,6 +141,7 @@ M.Edit.draw = function(e, term, isRight)
   while #e.canvas < e.th do push(e.canvas, '') end
   for l, line in ipairs(e.canvas) do
     l = e.tl + l - 1
+    log.trace('draw tl=%s l=%s', e.tl, l)
     if isRight then term:cleareol(l, e.tc)
     else line = line..string.rep(' ', e.tw - #line) end
     term:golc(l, e.tc)

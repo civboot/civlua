@@ -6,14 +6,13 @@ local M = mod and mod'civix.term' or {}
 
 local mty = require'metaty'
 local ds  = require'ds'
+local d8  = require'ds.utf8'
 local char, byte, slen = string.char, string.byte, string.len
 local ulen = utf8.len
-local push, sfmt = table.insert, string.format
+local push, unpack, sfmt = table.insert, table.unpack, string.format
 local io = io
 local function getb()
-  io.stderr:write('!! reading byte...\n')
   local b = io.read(1)
-  io.stderr:write(sfmt('!! got byte: %q %q\n', b, byte(b)))
   return byte(b)
 end
 local function min(a, b) return (a<b) and a or b end
@@ -31,30 +30,9 @@ end
 local restoremode = function(mode) return os.execute('stty '..mode) end
 
 ---------------------------------
--- UTF8 Stream Handling
-if utf8 then
-  M.U8MSK = {}
-  char, slen = utf8.char, utf8.len
-  -- lenRemain, mask for decoding first byte
-  local u1 = {1, 0x7F}; local u2 = {2, 0x1F}
-  local u3 = {3, 0x0F}; local u4 = {4, 0x07}
-  for b=0,15 do M.U8MSK[        b << 3 ] = u1 end -- 0xxxxxxx: 1byte utf8
-  for b=0,3  do M.U8MSK[0xC0 | (b << 3)] = u2 end -- 110xxxxx: 2byte utf8
-  for b=0,1  do M.U8MSK[0xE0 | (b << 3)] = u3 end -- 1110xxxx: 3byte utf8
-                M.U8MSK[0xF0           ] = u4     -- 11110xxx: 4byte utf8
-
-  -- decode utf8 data into an integer.
-  -- Use utf8.char to turn into a string.
-  M.u8decode = function(lenMsk, c, rest)
-    c = lenMsk[2] & c
-    for i=1,lenMsk[1]-1 do c = (c << 6) | (0x3F & rest[i]) end
-    return c
-  end
-end
-
----------------------------------
 -- Escape Sequences
 local ESC,  LETO, LETR, LBR = 27, byte'O', byte'R', byte'['
+local LET0, LET9, LETSC = byte'0', byte'9', byte';'
 local INP_SEQ = { -- valid input sequences following '<esc>['
   ['A'] = 'up',    ['B'] = 'down',  ['C'] = 'right', ['D'] = 'left',
   ['2~'] = 'ins',  ['3~'] = 'del',  ['5~'] = 'pgup', ['6~'] = 'pgdn',
@@ -89,10 +67,10 @@ local CMD = { -- command characters (not sequences)
 M.CMD = CMD
 local ctrlChar = function(c) --> string: key user pressed w/ctrl
   return (c < 32) and char(96+c) or nil
-end;
+end
 local nice = function(c) --> nice key string
   return CMD[c] or (ctrlChar(c) and '^'..ctrlChar(c)) or char(c)
-end;
+end
 M.ctrlChar, M.key = ctrlChar, nice
 
 ---------------------------------
@@ -106,19 +84,16 @@ M.ctrlChar, M.key = ctrlChar, nice
 --
 -- See CMD, INP_SEQ, INP_SEQO for possible utf8.len>1 strings.
 M.input = function(send)
-  send'esc'
   local b, s, dat, len = 0, '', {}
   ::continue::
   b = getb()
   ::restart::
-  if utf8 then
-    local lenMsk = M.U8MSK[0xF8 & b]
-    if lenMsk[1] > 1 then
-      dat[1] = b; for i=2,lenMsk[1] do dat[i]=getb() end
-      b = u8decode(lenMsk, b, dat)
-    end
+  ds.clear(dat)
+  len = d8.decodelen(b)
+  if len > 1 then
+    dat[1] = b; for i=2,len do dat[i]=getb() end
+    b = d8.decode(dat)
   end
-  io.stderr:write(sfmt('!! input byte: %q\n', b))
   if b ~= ESC then send(nice(b)); goto continue end
   while b == ESC do -- get next char, guard against multi-escapes
     b = getb(); if b == ESC then send'esc' end
@@ -131,35 +106,49 @@ M.input = function(send)
   if b ~= LBR then goto restart end
   -- get up to three characters and try to find in
   -- INP_SEQ. If c is not visible ASCII then bail early
-  len, s = 0, ''
+  s = ''
   for i=1,3 do
-    b = getb(); if 0x20 <= b or b > 0x7F then break end
+    b = getb(); if b <= 0x20 or b > 0x7F then break end
     s = s..char(b)
     if INP_SEQ[s] then send(INP_SEQ[s]); goto continue end
-    dat[i] = b; len = i; b = nil
+    dat[i] = b; b = nil
   end
-  for i=1,len do send(nice(dat[i])) end
+  if s:match'%d+;?%d*' then
+    for i=4,8 do -- could be size: <esc>[<int>;<int>R
+      b = getb(); if b <= 0x20 or b > 0x7F then break end
+      if b == LETR then
+        local h, w = char(unpack(dat)):match'(%d+);(%d+)'
+        if h then
+          send{'size', h=tonumber(h), w=tonumber(w)}
+        end
+        goto continue
+      end
+      dat[i] = b; b = nil
+    end
+  end
+  for _, d in ipairs(dat) do
+    send(nice(dat[i]))
+  end
   if b then goto restart else goto continue end
+  error'unreachable'
 end
 
 ---------------------------------
 -- Terminal Control Functions
 M.termFn = function(name, fmt)
   local fmt = '\027['..fmt
-  return function(...)
-    local f = string.format(fmt, ...)
-    io.write(f)
-  end
+  return function(...) io.write(fmt:format(...)) end
 end
-for name, fmt in pairs({
+for name, fmt in pairs{
   clear = '2J',       cleareol= 'K',
   -- color(0) resets; colorFB(foreground,background)
   color = '%im',      colorFB = '%i;%im',
-  -- golc(line,col). up(1), etc. All are for cursor
+  -- cursor control
   up='%iA',      down='%iB',  right='%iC', left='%iD',
   golc='%i;%iH', hide='?25l', show='?25h',
   save='s',      restore='u', reset='c',
-}) do M[name] = M.termFn(name, fmt) end
+  getlc='6n',
+} do M[name] = M.termFn(name, fmt) end
 
 M.colors = {
   default = 0,
@@ -171,24 +160,10 @@ M.bgcolors = {
   blue  = 44,   magenta = 45, cyan = 46,     white = 47,
 }
 
-M.getlc = function()
-  local s, c = {}, nil
-  io.write'\027[6n'; io.flush()
-  c = getb(); if c ~= ESC then return nil end
-  c = getb(); if c ~= LBR then return nil end
-  for _=1,8 do
-    c = getb(); if c == LETR then break end
-    table.insert(s, c)
-  end
-  local l, c = char(table.unpack(s)):match'(%d+);(%d+)'
-  if not l then return end
-  return tonumber(l), tonumber(c)
-end
-
+-- causes input to (eventually) send {'size', l=, c=}
 M.size = function()
   M.save(); M.down(999); M.right(999)
-  local h, w = M.getlc(); M.restore()
-  return h, w
+  M.getlc(); M.restore(); io.flush()
 end
 
 M.ATEXIT = {}
@@ -199,7 +174,7 @@ M.exitRawMode = function()
   local stdout = M.ATEXIT.stdout
   io.stdout = stdout
   io.stderr = M.ATEXIT.stderr
-  io.stderr:write'!! finished atexit'
+  io.stderr:write'!! finished atexit\n'
 end
 M.enterRawMode = function(stdout, stderr, enteredFn, exitFn)
   assert(stdout, 'must provide new stdout')
@@ -225,11 +200,9 @@ end
 
 -- Global Term object which actually controls the input terminal.
 M.Term = {
-  w=-1, h=-1, l=-1, c=-1,
-  start    = function(t, ...)  return M.enterRawMode(...)    end,
-  stop     = function()        return M.exitRawMode()        end,
+  h=-1, w=-1, l=-1, c=-1,
   flush    = function()        io.flush()                    end,
-  clear    = function(t)       M.clear(); t.l, t.c = 1, 1    end,
+  clear    = function(t)       M.clear();    t.l, t.c = 1, 1 end,
   golc     = function(t, l, c) M.golc(l, c); t.l, t.c = l, c end,
   cleareol = function(t, l, c)
     if l and c then t:golc(l, c) end
@@ -244,11 +217,7 @@ M.Term = {
     t:golc(l, c); io.write(char)
     t.c = min(t.w, t.c + 1)
   end,
-  size = function(t) --> h, w
-    local h, w = M.size()
-    if h then t.h, t.w = h, w end
-    return h, w
-  end,
+  size = M.size,
 }
 
 --------------------------------
@@ -341,7 +310,7 @@ M.FakeTerm.cleareol = function(t, l, c)
   local c, line = t.c, t[t.l]
   ds.clear(line, c, #line - c + 1)
 end
-M.FakeTerm.size = function(t) return t.h, t.w end
+M.FakeTerm.size = ds.noop
 M.FakeTerm.set = function(t, l, c, char)
   t:assertLC(l, c)
   assert(char); assert(utf8.len(char) == 1)
