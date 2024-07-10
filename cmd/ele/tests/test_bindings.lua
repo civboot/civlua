@@ -32,14 +32,15 @@ local function newEd(mode)
   M.install(ed)
   return ed
 end
+
 T.test('bindings', function()
   local data = newEd'insert'
   et.checkBindings(M.insert)
   et.checkBindings(M.command)
 end)
 
-local function assertKeys(keyinputs, keys, expectKeys, expectEvents)
-  local data = newEd(keys)
+local function assertKeys(keyinputs, mode, expectKeys, expectEvents)
+  local data = newEd(mode)
   local events = lap.Recv(); local evsend = events:sender()
   for _, ki in ipairs(M.chord(keyinputs)) do
     keyinput(data, {action='keyinput', ki}, evsend)

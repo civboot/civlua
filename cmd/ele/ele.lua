@@ -27,11 +27,14 @@ M.exe = function(args)
     log.info'log after display start'
     s:handleEvents()
     lap.schedule(function()
+      LAP_TRACE[coroutine.running()] = true
       log.info'start term.input'
       term.input(keysend)
       log.info'exit term.input'
     end)
-    lap.schedule(function() s:draw() end)
+    lap.schedule(function()
+      s:draw()
+    end)
     log.info'ele started'
   end,
   function() lap.async() -- setup (async())

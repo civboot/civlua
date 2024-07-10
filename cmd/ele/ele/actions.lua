@@ -10,9 +10,11 @@ local et = require'ele.types'
 local push, pop = table.insert, table.remove
 local concat    = table.concat
 local sfmt      = string.format
+local min, max  = math.min, math.max
 local callable = mty.callable
 local try = ds.try
 
+M.redraw = function() end -- noop, this increments event id
 ----------------------------------
 -- KEYBINDINGS
 
@@ -79,7 +81,9 @@ end
 -- MOVE
 -- This defines the move action
 local DOMOVE = {
-  lines    = function(e, _, ev) e.l = e.l + ev.lines end,
+  lines    = function(e, _, ev)
+    log.info('!! lines %q', ev.lines)
+    e.l = e.l + ev.lines end,
   sol      = function(e, line) e.c = line:find'%S' or 1                end,
   eol      = function(e, line) e.c = #line                             end,
   forword  = function(e, line)
@@ -116,8 +120,9 @@ end
 -- Supports: times
 M.move = function(ed, ev)
   local e = ed.edit
+  log.trace('move %q [start %s.%s]', ev, e.l, e.c)
   for _=1,ev.times or 1 do domove(e, ev) end
-  e.l = math.min(#e.buf, e.l); e.c = e:boundCol(e.c)
+  e.l = ds.bound(e.l, 1, #e.buf); e.c = e:boundCol(e.c)
 end
 
 ----------------------------------

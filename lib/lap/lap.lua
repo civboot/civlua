@@ -361,9 +361,11 @@ M.Lap.__call = function(lap)
   if next(lap.pollMap) then
     local pl, pm = lap.pollList, lap.pollMap
     for _, fileno in ipairs(pl:ready(sleep)) do
-      log.trace('scheduling fileno %s', fileno)
-      LAP_READY[ds.popk(pm, fileno)] = 'poll'
-      pl:remove(fileno)
+      local cor = ds.popk(pm, fileno); pl:remove(fileno)
+      if LOGLEVEL >= TRACE and LAP_TRACE[cor] then
+        log.trace('scheduling fileno=%s %q', fileno, LAP_CORS[cor])
+      end
+      LAP_READY[cor] = 'poll'
     end
   else lap.sleepFn(sleep) end
 end

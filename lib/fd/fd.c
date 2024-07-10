@@ -189,7 +189,7 @@ static void FD_read(FD* fd) {
   if(!fd->buf) { fd->code = errno; return; }
   int ctrl = fd->ctrl, code = 0;
   while(true) {
-    if((ctrl > 0) && (LEN(fd) > ctrl)) break;
+    if((ctrl > 0) && (LEN(fd) >= ctrl)) break;
     if(fd->size - fd->ei == 0) FD_realloc(fd, fd->size * 2);
     if(!fd->buf) { code = errno; break; }
     int rem = fd->size - fd->ei;

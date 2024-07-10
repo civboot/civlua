@@ -14,43 +14,80 @@ local bindings = require'ele.bindings'
 local str = mty.tostring
 local aeq = T.assertEq
 
+local LINES3 =
+  '1 3 5 7 9\n'
+..' 2 4 6\n'
+..''
+
 local y = function(v) coroutine.yield(v or true) end
 
 local function run(s)
   while (#s.keys + #s.events > 0) do coroutine.yield(true) end
 end
 
-local lines3 = '1 2 3 4 5\n 2 4 6 8\n'
-T.asyncTest('session', function()
-  local s = es.Session:test(); local ed = s.ed
-  local t = term.FakeTerm(3, 20)
-  ed.display = t
-  local ke, sk = ed.ext.keys, s.keys:sender()
-  local lt = log.LogTable{}
-  local b = ed.edit.buf
+-- Test{th=5, ..., 'name', function(test) ed = test.s.ed; ... end}
+local Test = mty.record'session.Test' {
+  'th', th=3, 'tw', tw=20,
+  'dat', dat=LINES3,
+  's [Session]',
+}
+getmetatable(Test).__call = function(Ty, t)
+  t = mty.construct(Ty, t)
+  assert(type(t.dat) == 'string')
+  t.s = t.s or es.Session:test(); local ed = t.s.ed
+  ed.display = term.FakeTerm(t.th, t.tw)
+  T.asyncTest(assert(t[1], 'need name'), function()
+    lines.inset(ed.edit.buf.dat, t.dat, 1)
+    t.s:handleEvents()
+    assert(t[2], 'need [2]=fn')(t)
+    aeq(log.LogTable{}, ed.error)
+    ed.run = false
+  end)
+end
 
-  s:handleEvents()
+Test{'session', dat='', function(tst)
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
+  local b, t = ed.edit.buf, ed.display
   aeq('command', ed.mode)
   aeq('\n\n', str(t))
 
   s:play'Z' -- unknown
-  aeq(1, #ed.error)
-  T.assertMatch('unbound chord: Z', ed.error[1].msg)
+    aeq(1, #ed.error)
+    T.assertMatch('unbound chord: Z', ed.error[1].msg)
   ds.clear(ed.error)
 
   s:play'i'
     aeq('insert', ed.mode) -- next mode
-    aeq(bindings.command, ke.next) -- selected in keyinput
-  aeq(lt, ed.error)
+    aeq(bindings.command, ed.ext.keys.next) -- selected in keyinput
+  aeq(log.LogTable{}, ed.error)
 
   s:play'9 space 8'; ed:draw()
     aeq('9 8', b.dat[1])
     aeq('9 8\n\n', str(t))
-  aeq(lt, ed.error)
+  aeq(log.LogTable{}, ed.error)
 
   s:play'space 7 return 6'
     aeq('9 8 7\n6\n', str(t))
+end}
 
-  ed.run = false
-  print'!! test session done'
-end)
+Test{'move', function(tst)
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
+  aeq(3, #e.buf)
+  aeq('command', ed.mode)
+  aeq('\n\n', str(ed.display))
+
+  s:play'j';   aeq({2, 1}, {e.l, e.c})
+    aeq(LINES3, str(ed.display))
+  s:play'2 k'; aeq({1, 1}, {e.l, e.c})
+  s:play'$ j'; aeq({2, 7}, {e.l, e.c})
+    aeq(LINES3, str(ed.display))
+end}
+
+Test{'backspace', function(tst)
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
+  local b = e.buf
+  s:play'l l';    aeq({1, 3}, {e.l, e.c})
+  s:play'i back'; aeq({1, 2}, {e.l, e.c})
+    aeq('13 5 7 9', b[1])
+    aeq('13 5 7 9\n 2 4 6\n', str(ed.display))
+end}

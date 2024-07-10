@@ -62,7 +62,7 @@ Gap.__pairs = ipairs
 -- Mutations
 
 Gap.__newindex = function(g, i, v)
-  assert(i == #g + 1, 'cannot set above len+1')
+  assert(i == #g + 1, 'can only set at len+1')
   g:setGap(i); g.bot[i] = v
 end
 

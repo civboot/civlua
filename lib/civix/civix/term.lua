@@ -6,14 +6,16 @@ local M = mod and mod'civix.term' or {}
 
 local mty = require'metaty'
 local ds  = require'ds'
+local log = require'ds.log'
 local d8  = require'ds.utf8'
 local char, byte, slen = string.char, string.byte, string.len
 local ulen = utf8.len
 local push, unpack, sfmt = table.insert, table.unpack, string.format
 local io = io
 local function getb()
-  local b = io.read(1)
-  return byte(b)
+  local b = byte(io.read(1))
+  log.trace('input %s %q', b, char(b))
+  return b
 end
 local function min(a, b) return (a<b) and a or b end
 
@@ -94,7 +96,10 @@ M.input = function(send)
     dat[1] = b; for i=2,len do dat[i]=getb() end
     b = d8.decode(dat)
   end
-  if b ~= ESC then send(nice(b)); goto continue end
+  if b ~= ESC then
+    b = nice(b); log.trace('send %q', b)
+    send(b); goto continue
+  end
   while b == ESC do -- get next char, guard against multi-escapes
     b = getb(); if b == ESC then send'esc' end
   end
@@ -201,6 +206,7 @@ end
 -- Global Term object which actually controls the input terminal.
 M.Term = {
   h=-1, w=-1, l=-1, c=-1,
+  showCur  = M.show,           hideCur = M.hide,
   flush    = function()        io.flush()                    end,
   clear    = function(t)       M.clear();    t.l, t.c = 1, 1 end,
   golc     = function(t, l, c) M.golc(l, c); t.l, t.c = l, c end,
@@ -294,6 +300,8 @@ M.FakeTerm._fill = function(t, l, c)
   local line = t[l or t.l]
   for i = #line+1, (c or t.c) - 1 do line[i] = ' ' end
 end
+M.FakeTerm.showCur = ds.noop
+M.FakeTerm.hideCur = ds.noop
 M.FakeTerm.flush = ds.noop
 M.FakeTerm.start = ds.noop
 M.FakeTerm.stop  = ds.noop

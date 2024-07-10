@@ -40,7 +40,9 @@ M.Edit.__tostring  = function(e) return string.format('Edit[id=%s]', e.id) end
 M.Edit.copy        = function(e) return ds.copy(e, {id=T.nextViewId()}) end
 M.Edit.forceHeight = function(e) return e.fh end
 M.Edit.forceWidth  = function(e) return e.fw end
-M.Edit.curLine     = function(e) return e.buf[e.l] end
+M.Edit.curLine     = function(e)
+  log.info('!! l=%s len=%s', e.l, #e.buf.dat)
+  return e.buf.dat[e.l] end
 M.Edit.colEnd      = function(e) return #e:curLine() + 1 end
 M.Edit.lastLine    = function(e) return e.buf[#e] end
 M.Edit.offset = function(e, off)
@@ -152,7 +154,7 @@ end
 -- Called by model for only the focused editor
 M.Edit.drawCursor = function(e, term)
   e:viewCursor()
-  local c = ds.min(e.c, #e:curLine() + 1)
+  local c = ds.min(e.c, e:colEnd())
   term:golc(e.tl + (e.l - e.vl), e.tc + (c - e.vc))
 end
 

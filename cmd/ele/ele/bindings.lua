@@ -111,8 +111,10 @@ M.commandmode = M.Event{mode='command'}
 
 do local MA = M.moveAction
   M.right,   M.left      = MA{off=1},          MA{off=-1}
-  M.up,      M.down      = MA{lines=-1},       MA{lines=1}
   M.forword, M.backword  = MA{move='forword'}, MA{move='backword'}
+  M.up                   = MA{move='lines', lines=-1}
+  M.down                 = MA{move='lines', lines=1}
+  M.eol                  = MA{move='eol'}
 end
 
 M.movekey = function(keys)
@@ -229,6 +231,7 @@ M.bindall(M.command, {
   l     = M.right, h   =M.left, k =M.up, j   =M.down,
   f=M.find, F=M.findback,
   t=M.till, T=M.tillback,
+  ['$'] = M.eol,
 
   -- times (note: 1-9 defined below)
   ['0'] = M.zero,
@@ -267,7 +270,10 @@ M.keyactions = function(ed, keyrecv, evsend)
         evsend{key, action='keyinput'}
         log.info('sent key %q', key)
       else assert(key[1] == 'size')
-        local d = ed.display; d.h, d.w = key.h, key.w
+        local d = ed.display
+        local ch = (d.h ~= key.h) or (d.w ~= key.w)
+        d.h, d.w = key.h, key.w
+        if ch then evsend{action='redraw'} end
       end
     else ed.warn'received empty key' end
   end

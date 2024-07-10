@@ -104,7 +104,7 @@ M.Session.draw = function(s)
    local id = -1
    while s.ed.run do
      if s.eventId > id then
-       id = s.eventId
+       id = s.eventId; log.info('draw eventId=%s', id)
        s.ed.display:size()
        s.ed:draw()
      end
