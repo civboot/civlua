@@ -9,7 +9,6 @@ local etest = require'ele.testing'
 local edit = require'ele.edit'
 local Buffer = require'rebuf.buffer'.Buffer
 local es = require'ele.session'
-local bindings = require'ele.bindings'
 
 local str = mty.tostring
 local aeq = T.assertEq
@@ -58,7 +57,7 @@ Test{'session', dat='', function(tst)
 
   s:play'i'
     aeq('insert', ed.mode) -- next mode
-    aeq(bindings.command, ed.ext.keys.next) -- selected in keyinput
+    aeq(nil, ed.ext.keys.next) -- selected in keyinput
   aeq(log.LogTable{}, ed.error)
 
   s:play'9 space 8'; ed:draw()

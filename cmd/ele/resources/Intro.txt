@@ -1,0 +1,28 @@
+intro = [===[
+Welcome to Ele, the extendable lua editor for text and code.
+Ele is a modal editor (similar to vim), which makes it both powerful and fun to
+use.
+
+HOW TO EXIT: press cntl+q twice.
+
+* type "space ? ?" for the help introduction.
+* type "space ? t" to navigate the tree of available options in your current mode.
+
+This buffer will now be used as the command buffer. Basic operation:
+* in insert mode write lua scripts and type "enter enter" to execute one stanza
+  * a stanza is a set of non-empty lines.
+  * Note: this will also add an empty line to the executed stanza.
+* in command mode you may also type "enter" to execute the current stanza
+
+list the current directory with:
+    list''<enter><enter>
+  alternatively in command mode:
+    space f l  (aka find list)
+
+  - use j/k or arrow keys to go up/down to select a file
+  - in command mode, select a file to open by typing "g l" (goto line)
+
+open a file by typing:           o'path/to/file.txt'<enter><enter>
+]===]
+
+

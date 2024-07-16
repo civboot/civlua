@@ -29,21 +29,25 @@ M.keyinput = function(ed, ev, evsend)
   local mode = ed.modes[ed.mode]; local fallback = mode.fallback
   local ki, K, err = assert(ev[1], 'missing key'), ed.ext.keys
   if K.keep then K.keep = nil
-  else           K.chord, K.event, K.next = {}, nil, mode end
-  log.info('keyinput %q mode=%s next=%s', ki, ed.mode, K.next)
-  local nxt = callable(K.next) and K.next or rawget(K.next, ki) or fallback
+  else           K.chord, K.event, K.next = {}, nil, nil end
   push(K.chord, ki)
+  log.info('keyinput %q mode=%s', K.chord, ed.mode)
+  local nxt; if K.next then
+       nxt = callable(K.next) and K.next
+             or rawget(K.next, ki) or fallback
+  else nxt = ds.get(ed, {'edit', 'modes', ed.mode, ki})
+             or rawget(mode, ki)   or fallback
+  end
   if not callable(nxt) then
     if not type(nxt) == 'table' then
-      K.keep = nil; error'keys.nxt is neither callable or table'
+      K.keep = nil; mty.errorf('%q is neither fn or table', K.chord)
     end
     K.next, K.keep = nxt, true
     return
   end
   log.info(' + keyinput calling %q (%q)', K.chord, nxt)
   local ok, ev = try(nxt, K)
-  if not ok then
-    ed.error('%q (%s) failed: %q', nxt, concat(K.chord, ' '), ev)
+  if not ok then ed.error('%q (%s) failed: %q', nxt, concat(K.chord, ' '), ev)
   elseif ev then
     log.info(' + keyinput %q -> %q', ki, ev)
     evsend:pushLeft(ev)

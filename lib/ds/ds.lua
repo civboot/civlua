@@ -78,15 +78,16 @@ M.retTrue  = function() return true  end
 M.retFalse = function() return false end
 M.newTable = function() return {}    end
 
--- srcloc(level) -> path/to/src.lua:123, level=0 is calling function
-M.srcloc = function(level)
+M.srcloc = function(level) --> "/path/to/dir/file.lua:10"
   local tb  = debug.traceback(nil, 2 + (level or 0))
   return assert(tb:match'.*traceback:%s+([^\n]+:%d+)')
 end
-
-M.shortloc = function(level)
+M.shortloc = function(level) --> "dir/file.lua:10"
   local tb  = debug.traceback(nil, 2 + (level or 0))
   return assert(tb:match'.*traceback:%s+[^\n]-([^\n/]*/[^/\n]+:%d+)')
+end
+M.srcdir = function(level) --> "/path/to/dir/"
+  return M.srcloc(1 + (level or 0)):match'^(.*/)[^/]+$'
 end
 
 M.coroutineErrorMessage = function(cor, err)
@@ -403,8 +404,8 @@ end
 --   get(t, {'a', 2, 'c'})  -> t.a?[2]?.c?
 --   get(t, dotpath'a.b.c') -> t.a?.b?.c?
 -- ]##
-M.get = function(t, path) --> value at path
-  for i, k in ipairs(path) do
+M.get = function(t, path) --> value? at path
+  for _, k in ipairs(path) do
     t = t[k]; if t == nil then return nil end
   end
   return t
@@ -1135,5 +1136,14 @@ M.R = setmetatable({}, {
   __index=function(_, k) return require(k) end,
   __newindex=function() error"don't set fields" end,
 })
+
+-- Include a resource (raw data) relative to the current file.
+--
+-- Example:
+--   M.myData = ds.resource'data/myData.csv'
+M.resource = function(relpath)
+  assert(not relpath:match'%.%./', 'previous path ".." not allowed')
+  return M.readPath(M.srcdir(1)..relpath)
+end
 
 return M

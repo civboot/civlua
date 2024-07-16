@@ -149,8 +149,6 @@ M.Send.close = function(send)
 end
 M.Send.__close = M.Send.close
 M.Send.isClosed = function(s) return s._recv == nil end
-M.Send._ready = function(r)
-end
 M.Send.push = function(send, val)
   local r = assert(send._recv, 'recv closed')
   r.deq:push(val); recvReady(r)

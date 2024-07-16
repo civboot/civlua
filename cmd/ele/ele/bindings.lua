@@ -25,6 +25,7 @@ M.Keys = mty'Keys' {
 }
 
 M.Keys.check = function(k, ele) --> errstring?
+  if k.next == nil then return end
   return (type(k.next) ~= 'table') and et.checkBinding(k.next)
     or get(k, {'event', 'action'})
        and et.checkAction(ele, k.event.action)

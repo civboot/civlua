@@ -19,6 +19,10 @@ See [ARCH.md](ARCH.md) for the current architecture.
 
 [civboot]: https://github.com/civboot/civboot
 
+## Design
+
+* [design/navigation.md]
+
 ## LICENSE
 This software is released into the public domain, see LICENSE (aka UNLICENSE).
 

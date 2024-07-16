@@ -19,6 +19,8 @@ M.Edit = mty'Edit' {
   'container', -- parent (Window/Model)
   'canvas',
   'buf[Buffer]',
+  -- override specific keybindings for this buffer
+  'modes [table]',
   'l[int]',  l=1,     'c[int]',  c=1,   -- cursor line, col
   'vl[int]', vl=1,    'vc[int]', vc=1,  -- view   line, col (top-left)
   'tl[int]', tl=-1,   'tc[int]', tc=-1, -- term   line, col (top-left)

@@ -36,7 +36,7 @@ M.assertEq = function(expect, result, pretty)
     M.diffFmt(f, expect, result)
   else
     local tyn = function(v) return mty.tyName(mty.ty(v)) end
-    add(f, sfmt('\n! TYPES: expect=%s  result=%s',
+    add(f, sfmt('! TYPES:  %s != %s',
                 tyn(expect), tyn(result)))
   end
   error(table.concat(f))

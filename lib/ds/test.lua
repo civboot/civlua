@@ -34,6 +34,14 @@ local dp = M.dotpath
 test('loc', function()
   assertEq('lib/ds/test.lua:4', loc1)
   assertEq('ds/test.lua:4', loc2)
+
+  assertEq(   'lib/ds/',          M.srcdir())
+  assertMatch('.*/lib/civtest/$', M.srcdir(1))
+  local function fn()
+     assertEq(   'lib/ds/',          M.srcdir())
+     assertEq(   'lib/ds/',          M.srcdir(1))
+     assertMatch('.*/lib/civtest/$', M.srcdir(2))
+  end; fn()
 end)
 
 test('bool and none', function()
