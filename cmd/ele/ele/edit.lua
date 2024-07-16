@@ -19,13 +19,15 @@ M.Edit = mty'Edit' {
   'container', -- parent (Window/Model)
   'canvas',
   'buf[Buffer]',
-  -- override specific keybindings for this buffer
-  'modes [table]',
   'l[int]',  l=1,     'c[int]',  c=1,   -- cursor line, col
   'vl[int]', vl=1,    'vc[int]', vc=1,  -- view   line, col (top-left)
   'tl[int]', tl=-1,   'tc[int]', tc=-1, -- term   line, col (top-left)
   'th[int]', th=-1,   'tw[int]', tw=-1, -- term   height, width
   'fh[int]', fh=0,    'fw[int]', fw=0,  -- force h,w
+  'closed [bool]', closed = false,
+
+  -- override specific keybindings for this buffer
+  'modes [table]',
 }
 
 getmetatable(M.Edit).__call = function(T, container, buf)
@@ -34,8 +36,14 @@ getmetatable(M.Edit).__call = function(T, container, buf)
   })
 end
 
-M.Edit.close = function(e)
+M.Edit.close = function(e, ed)
   assert(not e.container, "Edit not removed before close")
+  e.closed = true
+  if e.buf.tmp then
+    e.buf.tmp[e] = nil; if #e.buf.tmp == 0 then
+      ed.buffers[e.id] = nil
+    end
+  end
 end
 M.Edit.__len       = function(e) return #e.buf end
 M.Edit.__tostring  = function(e) return string.format('Edit[id=%s]', e.id) end

@@ -5,6 +5,8 @@ local log = require'ds.log'
 local fd = require'fd'
 local ioopen = io.open
 
+CWD = CWD or os.getenv'PWD' or os.getenv'CD'
+
 print'ele.lua'
 
 -- shim exe function

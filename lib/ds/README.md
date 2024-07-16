@@ -50,3 +50,12 @@ You can make your own types immutable using `imm`, i.e.
 Both are extremely fast during type-checking: each instance uses an inner table
 with a single key/value and one indirection for lookups. They are zero-cost
 (disabled) when `METATY_CHECK=falsy`.
+
+## Path
+`ds.path` has some functions for working with paths.
+
+The function `path.abs` (absolute) uses the global `CWD` with the recommended
+definition (not set by this module):
+```
+CWD = CWD or os.getenv'PWD' or os.getenv'CD'
+```

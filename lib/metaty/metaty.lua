@@ -86,7 +86,7 @@ M.fninfo = function(fn)
     info = debug.getinfo(fn)
     name = info.name
   end
-  local loc = PKG_LOCSS[fn]; if not loc then
+  local loc = PKG_LOC[fn]; if not loc then
     info = info or debug.getinfo(fn)
     loc = string.format('%s:%s', info.short_src, info.linedefined)
   end

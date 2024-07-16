@@ -4,7 +4,8 @@
 -- Can override default `io` module for global async mode.
 local M = mod and mod'fd' or {}
 
--- protocol globals (PKG and LAP)
+-- protocol globals (CIV and LAP protocols)
+CWD = CWD or os.getenv'PWD' or os.getenv'CD' -- current working dir
 LAP_FNS_ASYNC = LAP_FNS_ASYNC or {}
 LAP_FNS_SYNC  = LAP_FNS_SYNC  or {}
 

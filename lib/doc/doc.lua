@@ -7,7 +7,7 @@ doc module requires global `mod` function/class, such as one of:
 See lib/pkg/README.md for details
 https://github.com/civboot/civlua/tree/main/lib/pkg
 
-Note: also requires PKG_LOCSS and PKG_NAMES globals to be defined.
+Note: also requires PKG_LOC and PKG_NAMES globals to be defined.
 ]]
 -- Get documentation for lua types and stynatx.
 -- Examples:
@@ -15,7 +15,7 @@ Note: also requires PKG_LOCSS and PKG_NAMES globals to be defined.
 --    doc'for'
 --    doc(myMod.myFunction)
 local M = mod and mod'doc' or error(ERROR)
-assert(PKG_LOCSS and PKG_NAMES, ERROR)
+assert(PKG_LOC and PKG_NAMES, ERROR)
 
 local mty  = require'metaty'
 local ds   = require'ds'
@@ -427,7 +427,7 @@ PKG_LOOKUP['local'] = M['local']
 local VALID = {['function']=true, table=true}
 M.modinfo = function(obj)
   if type(obj) == 'function' then return mty.fninfo(obj) end
-  local name, loc = PKG_NAMES[obj], PKG_LOCSS[obj]
+  local name, loc = PKG_NAMES[obj], PKG_LOC[obj]
   name = name or (type(obj) == 'table') and rawget(obj, '__name')
   return name, loc
 end

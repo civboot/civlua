@@ -15,6 +15,7 @@ local callable = mty.callable
 local try = ds.try
 
 M.redraw = function() end -- noop, this increments event id
+
 ----------------------------------
 -- KEYBINDINGS
 
@@ -33,11 +34,15 @@ M.keyinput = function(ed, ev, evsend)
   push(K.chord, ki)
   log.info('keyinput %q mode=%s', K.chord, ed.mode)
   local nxt; if K.next then
-       nxt = callable(K.next) and K.next
-             or rawget(K.next, ki) or fallback
-  else nxt = ds.get(ed, {'edit', 'modes', ed.mode, ki})
-             or rawget(mode, ki)   or fallback
+    nxt = callable(K.next) and K.next
+          or rawget(K.next, ki)
+  else
+    local emode = ds.get(ed, {'edit', 'modes', ed.mode, ki})
+    nxt = emode and rawget(emode, ki)
+       or rawget(mode, ki)
+       or emode and rawget(emode, 'fallback')
   end
+  nxt = nxt or fallback
   if not callable(nxt) then
     if not type(nxt) == 'table' then
       K.keep = nil; mty.errorf('%q is neither fn or table', K.chord)
@@ -164,6 +169,15 @@ M.remove = function(ed, ev)
   else             e:remove(l, c, l2, c2) end
   l, c = motion.topLeft(l, c, l2, c2)
   e.l = math.min(#e.buf, l); e.c = e:boundCol(c)
+end
+
+----------------------------------
+-- nav: navigation
+
+M.nav = function(ed, ev, evsend)
+  local to = assert(ev[1], 'nav: must provide index 1 for to')
+  to = mty.assertf(ed.ext.nav[to], 'nav: invalid to=%q', to)
+  to(ed, ev, evsend)
 end
 
 return M

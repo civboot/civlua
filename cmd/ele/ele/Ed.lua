@@ -41,10 +41,19 @@ Ed.init = function(T, t)
 end
 
 -- create new buffer from v (path or table of lines)
-Ed.buffer = function(ed, v) --> Buffer, index
-  local b = Buffer{dat=ed.newDat(v)}
-  local i = #ed.buffers + 1; ed.buffers[i] = b
-  return b, i
+-- if v is nil the buffer will be an empty tmp buffer
+--
+-- If v is a string this will first check if a buffer exists at the path.
+Ed.buffer = function(ed, v) --> Buffer
+  if type(v) == 'string' then
+    v = ds.path.abs(v)
+    for _, b in pairs(ed.buffers) do
+      if v == b.path then return b end
+    end
+  end
+  local id = #ed.buffers + 1
+  ed.buffers[id] = Buffer{id=id, dat=ed.newDat(v or {}), tmp=not v}
+  return ed.buffers[id]
 end
 
 -- enter focus mode on a single edit view

@@ -31,15 +31,15 @@ M.Buffer = mty'Buffer' {
   'changeMax [int]',    changeMax=0,
   'changeStartI [int]', changeStartI=0,
   'changeI [int]',      changeI=0,
+
+  'tmp[parents]: if set, delete when parents are empty',
 }
 
 getmetatable(M.Buffer).__call=function(T, t)
   assert(t.dat)
   t.changes = t.changes or {}
-
   return mty.construct(T, t)
 end
-
 
 local Buffer, Change, ChangeStart = M.Buffer, M.Change, M.ChangeStart
 

@@ -50,7 +50,7 @@ self-documenting depending on whether `mod` is available.
 ```
 local M = mod and mod'myModName' or {}
 
--- PKG_LOCSS[M.myFn]  -> path/to/file.lua:123
+-- PKG_LOC[M.myFn]  -> path/to/file.lua:123
 -- PKG_NAMES[M.myFn] -> 'myModName.myFn'
 -- PKG_LOOKUP['myModName.myFn'] -> M.myFn
 M.myFn = function() ... end

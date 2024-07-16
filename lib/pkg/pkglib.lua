@@ -8,7 +8,7 @@ local M = {require=require}
 -- Documentation globals
 local weakk = {__mode='k'}
 PKG_NAMES  = PKG_NAMES  or setmetatable({}, weakk)        -- obj -> name
-PKG_LOCSS   = PKG_LOCSS   or setmetatable({}, weakk)        -- obj -> path:loc
+PKG_LOC   = PKG_LOC   or setmetatable({}, weakk)        -- obj -> path:loc
 PKG_LOOKUP = PKG_LOOKUP or setmetatable({}, {__mode='v'}) -- name -> obj
 
 -- pkg.UNAME is the platform, typically: Windows, Linux or Darwin
@@ -167,7 +167,7 @@ end
 -- mod(name) -> Mod{}: create a typosafe mod
 do local modloc = srcloc()
   M.mod = {}
-  PKG_LOCSS[M.mod] = modloc; PKG_NAMES[M.mod] = 'mod'; PKG_LOOKUP.mod = M.mod
+  PKG_LOC[M.mod] = modloc; PKG_NAMES[M.mod] = 'mod'; PKG_LOOKUP.mod = M.mod
   M.mod.__name='Mod'
   M.mod.__index=function(m, k) error('mod does not have: '..k, 2) end
   M.mod.__newindex=function(t, k, v)
@@ -180,7 +180,7 @@ do local modloc = srcloc()
   -- save v with name to PKG variables
   M.mod.save = function(name, v)
     if CONCRETE_TYPE[type(v)] then return end
-    PKG_LOCSS[v]  = PKG_LOCSS[v]  or srcloc(2)
+    PKG_LOC[v]  = PKG_LOC[v]  or srcloc(2)
     PKG_NAMES[v] = PKG_NAMES[v] or name
     PKG_LOOKUP[name] = PKG_LOOKUP[name] or v
   end

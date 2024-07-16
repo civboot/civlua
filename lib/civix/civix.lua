@@ -113,8 +113,8 @@ end
 --
 -- If depth is nil/false then the depth is infinite.
 --
--- ftypeFns has two special keys:
---  * default: called if the ftype is not present
+-- ftypeFns must be a table of ftypes (file, dir) and:
+--  * default: called as fallback (if missing ftype key)
 --  * dirDone: called AFTER the directory has been walked
 --
 -- The Fn signatures are: (path, depth) -> stopWalk

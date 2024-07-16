@@ -105,6 +105,9 @@ M.unboundChord = function(keys)
   error('unbound chord: '..concat(keys.chord, ' '))
 end
 
+
+M.close       = M.Event{action='close'} -- close current focus
+
 M.insertmode  = M.Event{mode='insert'}
 M.insertsol   = M.Event{mode='insert', action='move', move='sol'}
 M.inserteol   = M.Event{mode='insert', action='move', move='eol'}
@@ -210,6 +213,10 @@ M.insert  = mod and mod'ele.insert' or {}
 M.command = mod and mod'ele.command' or {}
 
 
+-- Navigation
+M.goline  = M.Event{action='nav', 'line'}
+M.listCWD = M.Event{action='nav', 'listcwd'}
+
 -----
 -- INSERT
 M.insert.fallback = M.insertChord
@@ -238,11 +245,17 @@ M.bindall(M.command, {
   ['0'] = M.zero,
 
   d = M.delete, c = M.change,
+
+  -- Navigation
+  -- ['g f']       = M.navFind,
+  ['g l']           = M.goline,
+  -- ['space f f']     = M.navInteractive,
+  ['space f space'] = M.listCWD,
+  -- ['space f .']     = M.listFileDir,
 })
 
--- delete/change
-for b=('1'):byte(), ('9'):byte()
-  do M.command[string.char(b)] = M.times end
+-- times
+for b=('1'):byte(), ('9'):byte() do M.command[string.char(b)] = M.times end
 
 ---------------------------
 -- INSTALL

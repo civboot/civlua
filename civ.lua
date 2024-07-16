@@ -4,6 +4,7 @@ mod = mod or require'pkg'.mod
 -- civ module: packaged dev environment
 local M = mod'civ'
 
+CWD = false
 DOC,          METATY_CHECK  = false, false
 LOGLEVEL,     LOGFN         = false, false
 LAP_READY,    LAP_ASYNC     = false, false

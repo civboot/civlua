@@ -4,7 +4,7 @@ local M = mod and mod'ds' or {}
 
 local mty = require'metaty'
 local push, pop, sfmt = table.insert, table.remove, string.format
-local move = table.move
+local move, sort = table.move, table.sort
 local ulen, uoff     = utf8.len, utf8.offset
 local max = math.max
 local xpcall, traceback = xpcall, debug.traceback
@@ -210,6 +210,16 @@ end
 -- Working with file paths
 M.path = {}
 
+-- If the path is not already absolute then make absolute
+-- using the CWD (current working directory) global or
+-- equivalent PWD/CD env variables.
+M.path.abs = function(path, cwd) --> /absolute/path
+  if (path:sub(1,1) == '/') then return path end
+  cwd = cwd or CWD or os.getenv'PWD' or os.getenv'CD'
+  return (cwd:sub(-1) == '/') and (cwd..path)
+                              or  (cwd..'/'..path)
+end
+
 -- join a table of path components
 M.path.concat = function(t)
   if #t == 0 then return '' end
@@ -249,6 +259,10 @@ M.path.ext = function(path) return path:match'.*%.([^/]+)$' end
 -- Table Functions
 
 M.isEmpty = function(t) return next(t) == nil end
+
+-- sort table and return it.
+-- Eventually this may use the __sort metamethod
+M.sort = function(t, fn) sort(t, fn); return t end --> t
 
 -- get index, handling negatives
 M.geti = function(t, i)
@@ -351,7 +365,7 @@ M.updateKeys = function(t, add, keys)
 end
 M.orderedKeys = function(t)
   local keys = {}; for k in pairs(t) do push(keys, k) end
-  table.sort(keys)
+  sort(keys)
   return keys
 end
 -- recursively update t with add. This will call update on inner tables as
@@ -750,7 +764,7 @@ end
 M.Set.__fmt = function(self, f)
   push(f, 'Set'); push(f, f.tableStart);
   local keys = {}; for k in ipairs(self) do push(keys, k) end
-  table.sort(keys)
+  sort(keys)
   if #keys > 1 then f:incIndent() end
   for i, k in ipairs(keys) do
     f:fmt(k)
