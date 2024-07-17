@@ -27,8 +27,7 @@ M.Session.init = function(T, s)
   s.ed = s.ed or Ed:init()
   s.events = lap.Recv(); s.evsend = s.events:sender()
   s.keys   = lap.Recv(); s.keysend = s.keys:sender()
-  local b = s.ed:buffer()
-  local e = s.ed:focus(b)
+  s.ed:focus(s.ed:buffer())
   return T(s)
 end
 -- init test session

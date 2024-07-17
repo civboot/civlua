@@ -28,7 +28,7 @@ getmetatable(Gap).__call = function(T, t)
   if type(t) == 'string' then t = {bot=lines(t), top={}}
   else
     t     = t     or {}
-    t.bot = t.bot or {}
+    t.bot = ds.popk(t, 'dat') or t.bot or {}
     t.top = t.top or {}
   end
   return mty.construct(T, t)
@@ -37,17 +37,14 @@ end
 -- Load gap from file, which can be a path.
 -- returns nil if f==nil or path DNE
 Gap.load = function(T, f, close) --> Gap?
-  local dat = lines.load(f, close)
-  if not dat then return nil end
+  local dat, err = lines.load(f, close)
+  if not dat then return nil, err end
   return T{dat = dat, path=type(f) == 'string' and f or nil}
 end
 
-getmetatable(Gap).__index = nil
 Gap.__len = function(g) return #g.bot + #g.top end
 Gap.__index = function(g, l)
-  if type(l) ~= 'number' then
-    return Gap[l] or error('missing field: '..l)
-  end
+  if type(l) ~= 'number' then return getmetatable(g)[l] end
   local bl = #g.bot
   if l <= bl then return g.bot[l]
   else            return g.top[#g.top - (l - bl) + 1] end

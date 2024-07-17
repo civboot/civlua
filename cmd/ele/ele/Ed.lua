@@ -2,6 +2,7 @@
 
 local mty    = require'metaty'
 local ds     = require'ds'
+local log    = require'ds.log'
 local Gap    = require'lines.Gap'
 local Buffer = require'rebuf.buffer'.Buffer
 local Edit = require'ele.edit'.Edit
@@ -25,9 +26,7 @@ local Ed = mty'Ed' {
   'error [callable]: error handler (ds.log.logfmt sig)',
   'warn  [callable]: warn handler',
   'newDat [callable(text)]: function to create new buffer',
-    newDat = function(f)
-      return f and assert(Gap:load(f)) or Gap()
-    end,
+  newDat = function(f) return f and Gap:load(f) or Gap{path=f} end,
 }
 
 Ed.init = function(T, t)
@@ -50,11 +49,14 @@ Ed.buffer = function(ed, v) --> Buffer
   if type(v) == 'string' then
     v = ds.path.abs(v)
     for _, b in pairs(ed.buffers) do
-      if v == b.path then return b end
+      if v == b.dat.path then return b end
     end
   end
   local id = #ed.buffers + 1
-  ed.buffers[id] = Buffer{id=id, dat=ed.newDat(v), tmp=not v}
+  if type(f) == 'string' then log.info('opening file: %s', f) end
+  ed.buffers[id] = Buffer{
+    id=id, dat=ed.newDat(v), tmp=not v and {} or nil
+  }
   return ed.buffers[id]
 end
 
@@ -65,8 +67,16 @@ Ed.focus = function(ed, e)
   end
   if mty.ty(e) == Buffer then e = Edit(ed, e)
   else assert(mty.ty(e) == Edit) end
+  if ed.view then
+    ed.view.container = nil; ed.view:close(ed)
+  end
   ed.edit, ed.view = e, e
   return e
+end
+
+-- open path and focus. If already open then use existing buffer.
+Ed.open = function(ed, path) --> edit
+  return ed:focus(ed:buffer(path))
 end
 
 Ed.draw = function(ed)

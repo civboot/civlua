@@ -14,6 +14,7 @@ local M, lines = require'ds', require'lines'
 local testing = require'lines.testing'
 
 local test, assertEq, assertMatch, assertErrorPat; M.auto'civtest'
+local str = mty.tostring
 
 local min, max, bound, isWithin, sort2, decAbs
 local indexOf, copy, deepcopy
@@ -61,7 +62,7 @@ test('bool and none', function()
   assert(not mty.eq(none, {}))
   assertEq('none', getmetatable(none))
   assertEq('none', mty.ty(none))
-  assertEq('none', mty.tostring(none))
+  assertEq('none', str(none))
   local err = 'invalid operation on sentinel'
   assertErrorPat(err, function() none.foo = 3 end)
   assertErrorPat(err, function() return #none end)
@@ -89,7 +90,7 @@ test('imm', function()
   assertEq(t, j)
 
   assert(t ~= k); assert(not mty.eq(t, k))
-  assertEq('{1, k=5}', mty.tostring(M.Imm{1, k=5}))
+  assertEq('{1, k=5}', str(M.Imm{1, k=5}))
   assertEq('table', mty.tyName(M.Imm{}))
 
   assertEq({1, 2, v=3}, j) -- table vs Imm
@@ -435,14 +436,14 @@ test('bimap', function()
   bm[3] = 'three'
   assertEq(bm[3], 'three'); assertEq(bm.three, 3)
   assertEq('BiMap{"one", "two", "three", one=1, three=3, two=2}',
-           mty.tostring(bm))
+           str(bm))
 
   local bm = M.BiMap{a='A'}
   assertEq(bm.a, 'A'); assertEq(bm.A, 'a')
   bm.b = 'B'
   assertEq(bm.b, 'B'); assertEq(bm.B, 'b')
   assertEq('BiMap{A="a", B="b", a="A", b="B"}'
-         , mty.tostring(bm))
+         , str(bm))
 end)
 
 test('deq', function()
@@ -661,4 +662,27 @@ test('log', function()
             L.info, 't', {1, 2, key=42})
   io.stderr = stderr
   LOGLEVEL = lvl
+end)
+
+-----------------
+-- Grid
+test('Grid', function()
+  local Grid = require'ds.Grid'
+  local g = Grid{h=3, w=20}
+    assertEq('\n\n', str(g))
+  g:insert(2, 2, 'hello')
+    assertEq('\n hello\n', str(g))
+  g:insert(2, 4, ' is my friend') -- keeps 'he'
+    assertEq('\n he is my friend\n', str(g))
+
+  g:clear(); assertEq('\n\n', str(g))
+  g:insert(1, 3, 'hi\n  bye\nfin')
+    assertEq('  hi\n'
+           ..'    bye\n'
+           ..'  fin', str(g))
+
+  g:insert(1, 10, 'there\nthen\n!')
+    assertEq('  hi     there\n'
+           ..'    bye  then\n'
+           ..'  fin    !', str(g))
 end)

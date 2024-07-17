@@ -6,7 +6,7 @@ local Gap  = require'lines.Gap'
 local log = require'ds.log'
 
 local M = {}
-local add, ty = table.insert, mty.ty
+local push, ty = table.insert, mty.ty
 
 M.ChangeId = 0
 M.nextChangeId = function() M.ChangeId = M.ChangeId + 1; return M.ChangeId end
@@ -24,7 +24,6 @@ M.Change = mty'Change' {
 M.Buffer = mty'Buffer' {
   'id  [int]',
   'dat [Gap]',
-  'path [string]',
 
   -- recorded changes from update (for undo/redo)
   'changes',
@@ -63,8 +62,11 @@ Buffer.new=function(s)
   return Buffer{ dat=Gap(s) }
 end
 
-Buffer.tostring = function(b) return mty.tostring(b.dat) end
-
+Buffer.__fmt = function(b, fmt)
+  push(fmt, ('Buffer{%sid=%s, path=%q}'):format(
+    b.tmp and (#b.tmp == 0) and '(closed) ',
+    b.id, b.dat.path))
+end
 Buffer.__len = function(b) return #b.dat end
 Buffer.__index = function(b, i)
   if type(i) == 'string' then return Buffer[i] end
@@ -127,7 +129,7 @@ Buffer.undo=function(b)
   local done = {}
   while ch do
     b.changeI = b.changeI - 1
-    add(done, ch)
+    push(done, ch)
     if ty(ch) == ChangeStart then break
     else
       assert(ty(ch) == Change)
@@ -147,7 +149,7 @@ Buffer.redo=function(b)
   ch = b:redoTop(); assert(ty(ch) ~= ChangeStart)
   while ch and ty(ch) ~= ChangeStart do
     b.changeI = b.changeI + 1
-    add(done, ch)
+    push(done, ch)
     CHANGE_REDO[ch.k](ch, b)
     ch = b:redoTop()
   end

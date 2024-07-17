@@ -172,16 +172,16 @@ M.newindex = function(r, k, v)
   rawset(r, k, v)
 end
 
-M.fieldsCheck = function(fields, t)
+M.fieldsCheck = function(T, fields, t)
   local tkey; while true do
     tkey = next(t, tkey); if not tkey then return end
     if type(tkey) == 'string' and not fields[tkey] then
-      error('unrecognized field: '..tkey)
+      error(sfmt('[%s] unrecognized field: %s', T.__name, tkey))
     end
   end
 end
 M.constructChecked = function(T, t)
-  M.fieldsCheck(rawget(T, '__fields'), t)
+  M.fieldsCheck(T, rawget(T, '__fields'), t)
   return setmetatable(t, T)
 end
 M.constructUnchecked = function(T, t)

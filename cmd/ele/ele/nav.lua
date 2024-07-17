@@ -39,7 +39,7 @@ M.to.listcwd = function(ed, ev, evsend)
   end)
 end
 
-M.to.line = function(ed, ev) ed:focus(ed:buffer(ed.edit:curLine())) end
+M.to.line = function(ed, ev) eD:open(ed.edit:curLine()) end
 
 M.install = function(ed)
   ed.ext.nav = ds.merge(ed.ext.nav or {}, M.to)

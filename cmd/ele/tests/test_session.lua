@@ -13,6 +13,7 @@ local es = require'ele.session'
 local str = mty.tostring
 local aeq = T.assertEq
 
+local SMALL = ds.srcdir()..'small.lua'
 local LINES3 =
   '1 3 5 7 9\n'
 ..' 2 4 6\n'
@@ -27,16 +28,17 @@ end
 -- Test{th=5, ..., 'name', function(test) ed = test.s.ed; ... end}
 local Test = mty.record'session.Test' {
   'th', th=3, 'tw', tw=20,
-  'dat', dat=LINES3,
+  'dat', 'open [path]',
   's [Session]',
 }
 getmetatable(Test).__call = function(Ty, t)
   t = mty.construct(Ty, t)
-  assert(type(t.dat) == 'string')
   t.s = t.s or es.Session:test(); local ed = t.s.ed
   ed.display = term.FakeTerm(t.th, t.tw)
   T.asyncTest(assert(t[1], 'need name'), function()
-    lines.inset(ed.edit.buf.dat, t.dat, 1)
+    if t.dat then
+      lines.inset(ed.edit.buf.dat, t.dat, 1)
+    elseif t.open then ed:open(t.open) end
     t.s:handleEvents()
     assert(t[2], 'need [2]=fn')(t)
     aeq(log.LogTable{}, ed.error)
@@ -69,7 +71,7 @@ Test{'session', dat='', function(tst)
     aeq('9 8 7\n6\n', str(t))
 end}
 
-Test{'move', function(tst)
+Test{'move', dat=LINES3, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
   aeq(3, #e.buf)
   aeq('command', ed.mode)
@@ -82,11 +84,28 @@ Test{'move', function(tst)
     aeq(LINES3, str(ed.display))
 end}
 
-Test{'backspace', function(tst)
+Test{'backspace', dat=LINES3, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
   local b = e.buf
   s:play'l l';    aeq({1, 3}, {e.l, e.c})
   s:play'i back'; aeq({1, 2}, {e.l, e.c})
     aeq('13 5 7 9', b[1])
     aeq('13 5 7 9\n 2 4 6\n', str(ed.display))
+end}
+
+Test{'open', open=SMALL, th=9, tw=30, function(tst)
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
+  local b, BID = e.buf, 2
+  aeq(b.id, BID)
+  aeq(0, #ed.buffers[1].tmp) -- was temporary and was closed
+  T.assertMatch('^/.+/'..SMALL..'$', b.dat.path)
+  s:play'' -- draws
+    aeq('-- a small lua file for tests', b[1])
+    aeq(ds.readPath(SMALL), str(ed.display))
+  s:play'd f space'
+    aeq('a small lua file for tests', b[1])
+  e = ed:open(SMALL)
+    aeq(b.id, BID)
+    assert(rawequal(b, e.buf), 'buf is new')
+    aeq('a small lua file for tests', b[1]) -- no change to contents
 end}
