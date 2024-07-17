@@ -9,7 +9,12 @@ local mty = require'metaty'
 -- 2. The "top" buffer is used to store data in lines
 --    after "bot" (aka after curLine). If the cursor is
 --    moved to a previous line then data is moved from top to bot
-local Gap = mty'Gap' { 'bot[table]', 'top[table]' }
+--
+-- Example:
+--   Gap()
+--   Gap'some\nlines'
+--   Gap{bot={'some', 'lines'}}
+local Gap = mty'Gap' { 'bot[table]', 'top[table]', 'path [string]' }
 
 local ds, lines  = require'ds', require'lines'
 local span = lines.span
@@ -20,18 +25,21 @@ local sub = string.sub
 local max = math.max
 
 getmetatable(Gap).__call = function(T, t)
-  t = (type(t) == 'string') and lines(t) or t or {''}
-  return mty.construct(T, { bot=t, top={} })
-end
--- read from string (path).
--- If v is already a table of lines then uses that.
-Gap.read = function(v)
-  if type(v) == 'string' then
-    local f = open(v); v = {}
-    for line in f:lines'l' do push(v, line) end
-    f:close()
+  if type(t) == 'string' then t = {bot=lines(t), top={}}
+  else
+    t     = t     or {}
+    t.bot = t.bot or {}
+    t.top = t.top or {}
   end
-  return Gap(v)
+  return mty.construct(T, t)
+end
+
+-- Load gap from file, which can be a path.
+-- returns nil if f==nil or path DNE
+Gap.load = function(T, f, close) --> Gap?
+  local dat = lines.load(f, close)
+  if not dat then return nil end
+  return T{dat = dat, path=type(f) == 'string' and f or nil}
 end
 
 getmetatable(Gap).__index = nil

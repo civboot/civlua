@@ -24,8 +24,10 @@ local Ed = mty'Ed' {
 
   'error [callable]: error handler (ds.log.logfmt sig)',
   'warn  [callable]: warn handler',
-  'newbuffer [callable(text)]: function to create new buffer',
-    newDat = Gap.read,
+  'newDat [callable(text)]: function to create new buffer',
+    newDat = function(f)
+      return f and assert(Gap:load(f)) or Gap()
+    end,
 }
 
 Ed.init = function(T, t)
@@ -52,7 +54,7 @@ Ed.buffer = function(ed, v) --> Buffer
     end
   end
   local id = #ed.buffers + 1
-  ed.buffers[id] = Buffer{id=id, dat=ed.newDat(v or {}), tmp=not v}
+  ed.buffers[id] = Buffer{id=id, dat=ed.newDat(v), tmp=not v}
   return ed.buffers[id]
 end
 

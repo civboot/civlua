@@ -8,7 +8,7 @@ local sfmt = string.format
 local push, pop, concat = table.insert, table.remove, table.concat
 local get = ds.get
 
-M.ID = 10000 -- the first 10,000 are reserved for buffer indexes
+M.ID = 1
 M.uniqueId = function()
   local id = M.ID; M.ID = M.ID+1; return id
 end

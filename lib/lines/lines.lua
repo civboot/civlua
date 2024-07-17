@@ -19,6 +19,7 @@ local max, min, bound = math.max, math.min, ds.bound
 local sort2 = ds.sort2
 
 M.CMAX = 999
+M.CHUNK = 0x4000 -- 16KiB
 
 setmetatable(M, {
   __call=function(_, text, index)
@@ -239,6 +240,34 @@ M.remove = function(t, ...) --> string|table
   end
   ds.inset(t, l, new, l2 - l + 1)
   return rem
+end
+
+-- load lines from file.
+-- if f is a string then open as file and close before returning.
+-- if f is nil (or the path does not exist) then return nil
+M.load = function(f, close) --> table?
+  if type(f) == 'string' then f = io.open(f, 'r'); close = true end
+  if f       == nil      then return nil end
+  local i, t = 1, {}; for line in f:lines() do
+    t[i] = line; i = i + 1
+  end
+  if close then f:close() end
+  return t
+end
+
+-- write lines to file in chunks (default = 16KiB)
+-- if f is a string opens it as a file and closes when done.
+M.dump = function(t, f, close, chunk)
+  local dat, len, chunk = {}, 0, chunk or M.CHUNK
+  if type(f) == 'string' then f = io.open(f, 'w'); close = true end
+  for i, line in ipairs(t) do
+    push(dat, line); len = len + #line + 1
+    if len >= chunk then
+      f:write(concat(dat, '\n')); ds.clear(dat); len = 0
+    end
+  end
+  if #dat > 0 then f:write(concat(dat, '\n')) end
+  if close then f:close() end
 end
 
 return M
