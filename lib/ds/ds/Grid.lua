@@ -28,10 +28,15 @@ G.clear = function(g) --> g
   return g
 end
 
--- insert the str into the grid at l.c
+local split = function(s) --> lines
+  if type(s) == 'string' then return ds.split(s, '\n')
+  else --[[lines]]            return ipairs(s) end
+end
+
+-- insert the str|lines into the grid at l.c
 -- this handles newlines by inserting at the same column
 G.insert = function(g, l, c, str)
-  for _, lstr in ds.split(str, '\n') do
+  for _, lstr in split(str) do
     local llen = 0
     local line = g[l]; if not line then return end
     for _, code in codes(lstr) do

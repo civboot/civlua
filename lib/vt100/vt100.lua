@@ -37,16 +37,22 @@ getmetatable(M.Term).__call = function(T, t)
   t = mty.construct(T, t)
   t.text     = Grid{h=t.h, w=t.w}
   t.fg, t.bg = Grid{h=t.h, w=t.w}, Grid{h=t.h, w=t.w}
-  return t:_updateChildren()
+  t:_updateChildren(); t:clear()
+  return t
 end
 
 M.Term._updateChildren = function(tm)
   local h, w = tm.h, tm.w
   tm.text.h, tm.fg.h, tm.bg.h = h, h, h
   tm.text.w, tm.fg.w, tm.bg.w = w, w, w
-  tm.text:clear(); tm.fg:clear(); tm.bg:clear()
-  return tm
 end
+
+M.Term.clear = function(tm)
+  tm.text:clear(); tm.fg:clear(); tm.bg:clear()
+end
+
+M.Term.__fmt = function(tm, fmt) return tm.text:__fmt(fmt) end
+
 
 ---------------------------------
 -- CONSTANTS (and working with them)
@@ -228,7 +234,7 @@ end
 M.Term.resize = function(tm)
   tm:_requestSize()
   while tm._waiting do coroutine.yield'forget' end -- wait for size
-  tm:_updateChildren() -- update children to new size
+  tm:_updateChildren(); tm:clear() -- clear updates rows
 end
 
 -- function to run in a (LAP) coroutine.

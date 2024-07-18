@@ -2,8 +2,7 @@ local M = mod'ele.types'
 
 local mty    = require'metaty'
 local ds     = require'ds'
-M.term    = require'civix.term' -- can replace
-
+M.term       = require'vt100'
 local sfmt = string.format
 local push, pop, concat = table.insert, table.remove, table.concat
 local get = ds.get

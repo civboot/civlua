@@ -6,7 +6,6 @@ version  = '0.1-8'
 url      = 'git+http://github.com/civboot/civlua'
 srcs = {
   'civix.lua',
-  'civix/term.lua',
   ['civix.lib'] = 'civix/lib.c',
 }
 libs = {

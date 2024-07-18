@@ -22,6 +22,7 @@ M.name = function(t)
   local mt = getmetatable(t)
 end
 
+
 -- insert values into list at i.
 -- Uses __inset "metamethod" if available.
 -- rmlen, if provided, will cause t[i:i+rmlen] to be removed
@@ -72,12 +73,13 @@ M.isPod, M.CONCRETE_TYPES = isPod, CONCRETE_TYPES
 -----------------
 -- Utility
 
-M.SKIP     = 'skip'
-M.noop     = function() end
-M.iden     = function(...) return ... end -- identity function
-M.retTrue  = function() return true  end
-M.retFalse = function() return false end
-M.newTable = function() return {}    end
+M.SKIP      = 'skip'
+M.noop      = function() end
+M.nosupport = function() error'not supported' end
+M.iden      = function(...) return ... end -- identity function
+M.retTrue   = function() return true  end
+M.retFalse  = function() return false end
+M.newTable  = function() return {}    end
 
 M.srcloc = function(level) --> "/path/to/dir/file.lua:10"
   local tb  = debug.traceback(nil, 2 + (level or 0))

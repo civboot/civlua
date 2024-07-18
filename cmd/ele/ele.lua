@@ -12,7 +12,7 @@ print'ele.lua'
 -- shim exe function
 M.exe = function(args)
   print'ele exe'
-  local term = require'civix.term'
+  local vt = require'vt100'
   log.info('ele exe', args)
   -- TODO: handle args
   local s = args.session or require'ele.session'.Session:user{}
@@ -22,17 +22,17 @@ M.exe = function(args)
   function() -- setup terminal and kickoff ele coroutines
     local stdout = assert(io.open('/tmp/ele.out', 'w'))
     local stderr = assert(ioopen('/tmp/ele.err', 'w'))
-    term.enterRawMode(stdout, stderr)
+    vt.start(stdout, stderr)
 
-    s.ed.display = term.Term
+    s.ed.display = vt.Term{}
     print'print after display start'
     log.info'log after display start'
     s:handleEvents()
     lap.schedule(function()
       LAP_TRACE[coroutine.running()] = true
-      log.info'start term.input'
-      term.input(keysend)
-      log.info'exit term.input'
+      log.info'start term:input()'
+      s.ed.display:input(keysend)
+      log.info'exit term:input()'
     end)
     lap.schedule(function()
       s:draw()
@@ -45,7 +45,7 @@ M.exe = function(args)
   end,
   function() lap.sync() -- teardown (sync())
     fd.stdin:toBlock()
-    term.exitRawMode()
+    vt.stop()
     fd.ioSync()
   end)
   return s, l

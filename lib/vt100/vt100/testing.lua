@@ -2,11 +2,23 @@
 local M = mod and mod'vt100.testing' or {}
 
 local T = require'civtest'
+local mty = require'metaty'
 local ds = require'ds'
 local log = require'ds.log'
 local vt = require'vt100'
 local fd = require'fd'
 local co = coroutine
+
+M.Fake = mty.extend(vt.Term, 'Fake')
+
+M.Fake.resize = function(tm, l, c)
+  assert(l and c, 'must pass l,c for Fake')
+  tm.l, tm.c = l, c
+  tm:clear()
+end
+
+M.Fake.draw  = ds.nosupport
+M.Fake.input = ds.nosupport
 
 M.runWaiting = function(term, th)
   while term._waiting do

@@ -85,10 +85,8 @@ Ed.draw = function(ed)
   if not ed.redraw then return end
   local v, d = ed.view, ed.display
   v.tl, v.tc, v.th, v.tw = 1, 1, d.h, d.w
-  d:hideCur()
-  v:draw(d, true); v:drawCursor(d)
-  d:showCur()
-  d:flush()
+  d:clear()
+  v:draw(d)
   ed.redraw = false
 end
 

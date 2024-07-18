@@ -4,11 +4,11 @@ local T = require'civtest'
 local mty = require'metaty'
 local ds, lines = require'ds', require'lines'
 local log = require'ds.log'
-local term = require'civix.term'
 local etest = require'ele.testing'
 local edit = require'ele.edit'
-local Buffer = require'rebuf.buffer'.Buffer
 local es = require'ele.session'
+local Buffer = require'rebuf.buffer'.Buffer
+local Fake = require'vt100.testing'.Fake
 
 local str = mty.tostring
 local aeq = T.assertEq
@@ -37,7 +37,7 @@ local Test = mty.record'session.Test' {
 getmetatable(Test).__call = function(Ty, t)
   t = mty.construct(Ty, t)
   t.s = t.s or es.Session:test(); local ed = t.s.ed
-  ed.display = term.FakeTerm(t.th, t.tw)
+  ed.display = Fake{h=t.th, w=t.tw}
   T.asyncTest(assert(t[1], 'need name'), function()
     if t.dat then
       lines.inset(ed.edit.buf.dat, t.dat, 1)

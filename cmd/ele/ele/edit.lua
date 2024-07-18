@@ -142,30 +142,21 @@ end
 
 -----------------
 -- Draw to terminal
-M.Edit.draw = function(e, term, isRight)
-  assert(term); e:viewCursor()
+M.Edit.draw = function(e, t, isRight)
+  assert(t); e:viewCursor()
+
   e.canvas = {}
-  -- assert(e.fh == 0 or e.fh == e.th)
-  -- assert(e.fw == 0 or e.fw == e.tw)
   for i, line in ipairs(lsub(e.buf.dat, e.vl, e.vl + e.th - 1)) do
     push(e.canvas, string.sub(line, e.vc, e.vc + e.tw - 1))
   end
-  while #e.canvas < e.th do push(e.canvas, '') end
-  for l, line in ipairs(e.canvas) do
-    l = e.tl + l - 1
-    log.trace('draw tl=%s l=%s', e.tl, l)
-    if isRight then term:cleareol(l, e.tc)
-    else line = line..string.rep(' ', e.tw - #line) end
-    term:golc(l, e.tc)
-    term:write(line)
-  end
+  t.text:insert(e.tl, e.tc, e.canvas)
 end
 
 -- Called by model for only the focused editor
-M.Edit.drawCursor = function(e, term)
+M.Edit.drawCursor = function(e, t)
   e:viewCursor()
   local c = ds.min(e.c, e:colEnd())
-  term:golc(e.tl + (e.l - e.vl), e.tc + (c - e.vc))
+  t.l, t.c = e.tl + (e.l - e.vl), e.tc + (c - e.vc)
 end
 
 return M
