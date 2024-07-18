@@ -6,7 +6,6 @@ local mty = require'metaty'
 local ds = require'ds'
 local log = require'ds.log'
 local vt = require'vt100'
-local fd = require'fd'
 local co = coroutine
 
 M.Fake = mty.extend(vt.Term, 'Fake')
@@ -20,12 +19,6 @@ end
 M.Fake.draw  = ds.nosupport
 M.Fake.input = ds.nosupport
 
-M.runWaiting = function(term, th)
-  while term._waiting do
-    T.assertEq({true, 'poll', 0, fd.sys.POLLIN}, {ds.resume(th)})
-  end
-end
-
 -- start rawmode using tmpfiles
 M.startTmp = function() --> out, err
   local out, err = io.tmpfile(), io.tmpfile()
@@ -38,6 +31,7 @@ end
 function M.run(fn)
   local lap = require'lap'
   local cx = require'civix'
+  local fd = require'fd'
   local ioin, ioread = io.stdin, io.read
 
   local t = vt.Term{h=10, w=80}
@@ -55,12 +49,16 @@ function M.run(fn)
 
     -- send size request and wait until it is recieved
     T.assertEq({true, 'forget'}, {ds.resume(szTh)})
-      T.assertEq(szTh, t._waiting)
-    M.runWaiting(t, inTh)
-      T.assertEq(nil, t._waiting)
-      T.assertEq(nil, r())
+    T.assertEq(szTh, t._waiting)
+
+    while t._waiting do
+      T.assertEq({true, 'poll', 0, fd.sys.POLLIN}, {ds.resume(inTh)})
+    end
+    T.assertEq(nil, t._waiting)
+    T.assertEq(nil, r())
     T.assertEq({true}, {ds.resume(szTh)})
-      T.assertEq('dead', coroutine.status(szTh))
+    T.assertEq('dead', coroutine.status(szTh))
+
     log.info('term size: %s %s', t.h, t.w)
     fn(t)
   end)
