@@ -28,8 +28,9 @@ print'[[core]]'
   dofile(dir..'lib/lines/test.lua')
   dofile(dir..'lib/lson/test.lua')
   dofile(dir..'lib/tv/test.lua')
-  dofile(dir..'lib/fd/test.lua')
   dofile(dir..'lib/lap/test.lua')
+  dofile(dir..'lib/fd/test.lua')
+  dofile(dir..'lib/vt100/test.lua')
   dofile(dir..'lib/vcds/test.lua')
   dofile(dir..'lib/doc/test.lua')
 

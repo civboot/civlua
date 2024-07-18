@@ -14,6 +14,7 @@ pkgs = {
   'lib/lap',
   'lib/vcds',
   'lib/fd',
+  'lib/vt100',
   'lib/civix',
   'lib/pegl',
   'lib/luck',
