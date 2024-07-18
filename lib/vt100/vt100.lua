@@ -214,17 +214,15 @@ end
 -------------------
 -- Actual VT100 Control Methods
 local function getb()
-  local b = byte(io.read(1))
-  -- log.trace('input %s %q', b, char(b))
+  local b = byte(io.read(1)); -- log.trace('input %s %q', b, char(b))
   return b
 end
 
--- send a request for size which input() will receive and
--- call _ready()
+-- send a request for size.
+-- Note: the input() coroutine will receive and call _ready()
 M.Term._requestSize = function(tm)
   tm._waiting = coroutine.running(); M.ctrl.size()
 end
-
 M.Term._ready = function(tm, msg)
   LAP_READY[assert(tm._waiting)] = msg or true
   tm._waiting = nil
@@ -234,22 +232,18 @@ end
 M.Term.resize = function(tm)
   tm:_requestSize()
   while tm._waiting do coroutine.yield'forget' end -- wait for size
-  tm:_updateChildren(); tm:clear() -- clear updates rows
+  tm:_updateChildren(); tm:clear() -- note: clear updates row length
 end
 
--- function to run in a (LAP) coroutine.
--- Requires the input coroutine to also be run for reading the size escape.
+-- draw the text and color(fg/bg) grids to the screen
 M.Term.draw = function(tm)
-  log.trace'drawing'
-  local golc, nextline = M.ctrl.golc, M.ctrl.nextline
-  local colorFB        = M.ctrl.colorFB
-  local fgC, bgC       = M.fgColor, M.bgColor
+  local golc, nextline   = M.ctrl.golc, M.ctrl.nextline
+  local colorFB          = M.ctrl.colorFB
+  local fgC, bgC, fg, bg = M.fgColor, M.bgColor, nil, nil
   M.ctrl.hide(); M.ctrl.clear()     -- hide cursor and clear screen
   golc(1, 1)
-	local fg, bg
-  -- fill text
-  for l=1,tm.text.h do
-    for c=1,tm.text.w do
+  for l=1, tm.text.h do
+    for c=1, tm.text.w do
       local chr = tm.text[l][c]; if not chr then break end
       local f, b = tm.fg[l][c], tm.bg[l][c]
       if f ~= fg or b ~= bg then
@@ -259,7 +253,7 @@ M.Term.draw = function(tm)
     end
     nextline()
   end
-  M.ctrl.color(0)
+  M.ctrl.color(0) -- clear color
   golc(tm.l, tm.c); M.ctrl.show() -- set cursor and show it
   io.flush()
 end
