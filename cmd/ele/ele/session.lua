@@ -20,7 +20,6 @@ M.Session = mty'Session' {
   'events [Recv]', 'evsend [Send]',
   'keys [Recv]', 'keysend [Send]',
   'logf [File]',
-  'eventId [int]', eventId = 0,
 }
 M.Session.init = function(T, s)
   s = s or {}
@@ -53,7 +52,7 @@ M.Session.run = function(s)
     local ev = s.events()
     log.info('run event %q', ev)
     if not ev or not ev.action then goto cont end
-    s.eventId = s.eventId + 1; ev.id = s.eventId
+    s.ed.redraw = true
     local act = ev.action; if act == 'exit' then
       s.ed.error'exit action received'
       s.ed.run = false
@@ -76,7 +75,7 @@ M.Session.play = function(s, chord)
   s.keysend:extend(bindings.chord(chord))
   while (#s.keys > 0) or (#s.events > 0) do yield(true) end
   log.info('draw %q', chord)
-  s.ed:draw()
+  s.ed.redraw = true; s.ed:draw()
 end
 
 -- Start a user session

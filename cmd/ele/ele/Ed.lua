@@ -27,6 +27,7 @@ local Ed = mty'Ed' {
   'warn  [callable]: warn handler',
   'newDat [callable(text)]: function to create new buffer',
   newDat = function(f) return f and Gap:load(f) or Gap{path=f} end,
+  'redraw [boolean]: set to true to force a redraw',
 }
 
 Ed.init = function(T, t)
@@ -38,6 +39,7 @@ Ed.init = function(T, t)
     ext={},
   }, t or {})
   require'ele.bindings'.install(t)
+  require'ele.nav'.install(t)
   return Ed(t)
 end
 
@@ -80,12 +82,14 @@ Ed.open = function(ed, path) --> edit
 end
 
 Ed.draw = function(ed)
+  if not ed.redraw then return end
   local v, d = ed.view, ed.display
   v.tl, v.tc, v.th, v.tw = 1, 1, d.h, d.w
   d:hideCur()
   v:draw(d, true); v:drawCursor(d)
   d:showCur()
   d:flush()
+  ed.redraw = false
 end
 
 return Ed

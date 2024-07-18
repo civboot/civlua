@@ -14,8 +14,6 @@ local min, max  = math.min, math.max
 local callable = mty.callable
 local try = ds.try
 
-M.redraw = function() end -- noop, this increments event id
-
 ----------------------------------
 -- KEYBINDINGS
 

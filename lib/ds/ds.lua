@@ -3,12 +3,13 @@
 local M = mod and mod'ds' or {}
 
 local mty = require'metaty'
-local push, pop, sfmt = table.insert, table.remove, string.format
-local move, sort = table.move, table.sort
+local push, pop, sfmt    = table.insert, table.remove, string.format
+local move, sort, unpack = table.move, table.sort, table.unpack
 local ulen, uoff     = utf8.len, utf8.offset
 local max = math.max
 local xpcall, traceback = xpcall, debug.traceback
 local resume = coroutine.resume
+local str = mty.tostring
 local EMPTY = {}
 
 ------------------
@@ -130,7 +131,7 @@ end
 
 M.brief = function(s, maxlen, trunc) --> string | str...
   maxlen, trunc = maxlen or 50, trunc or '...'
-  if type(s) ~= 'string' then s = mty.tostring(s) end
+  if type(s) ~= 'string' then s = str(s) end
   return (#s <= maxlen) and s or (s:sub(1,maxlen)..trunc)
 end
 
@@ -163,7 +164,7 @@ M.splitList = function(...)
 end
 M.explode = function(s) return M.matches(s, '.') end
 M.concatToStrs = function(t, sep)
-  local o = {}; for _, v in ipairs(t) do push(o, tostring(v)) end
+  local o = {}; for _, v in ipairs(t) do push(o, str(v)) end
   return table.concat(o, sep)
 end
 
@@ -323,13 +324,13 @@ end
 
 -- convert (_, v) iterator into a table by pushing
 M.itable = function(it)
-  local o = {}; for _, v in table.unpack(it) do push(o, v) end;
+  local o = {}; for _, v in unpack(it) do push(o, v) end;
   return o
 end
 
 -- convert (k, v) iterator into a table by setting
 M.kvtable = (function(it)
-  local o = {}; for k, v in table.unpack(it) do o[k] = v end;
+  local o = {}; for k, v in unpack(it) do o[k] = v end;
   return o
 end)
 
@@ -1106,6 +1107,8 @@ M.Error.__fmt = function(e, fmt)
     fmt(e.cause); push(fmt, '\n')
   end
 end
+M.Error.__tostring = function(e) return str(e) end
+
 -- create the error from the arguments.
 -- tb can be one of: coroutine|string|table
 M.Error.from = function(msg, tb, cause)
@@ -1125,6 +1128,16 @@ end
 -- Run the fn, return one of:
 -- success(true, fnresults...); failure(false, ds.Error)
 M.try = function(fn, ...) return xpcall(fn, M.Error.msgh, ...) end
+
+-- Same as coroutine.resume except returns ok, err
+-- where Err is an ds.Error object (has traceback)
+--
+-- Only returns up to 4 items
+M.resume = function(th) --> ok, err|...
+  local ok, a, b, c = resume(th)
+  if ok then return ok, a, b, c end
+  return nil, M.Error.from(a, th)
+end
 
 -----------------------
 -- Import helpers

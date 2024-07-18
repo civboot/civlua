@@ -287,7 +287,7 @@ M.keyactions = function(ed, keyrecv, evsend)
         local d = ed.display
         local ch = (d.h ~= key.h) or (d.w ~= key.w)
         d.h, d.w = key.h, key.w
-        if ch then evsend{action='redraw'} end
+        if ch then ed.redraw = true end
       end
     else ed.warn'received empty key' end
   end

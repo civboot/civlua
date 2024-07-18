@@ -33,7 +33,7 @@ end
 G.insert = function(g, l, c, str)
   for _, lstr in ds.split(str, '\n') do
     local llen = 0
-    local line = g[l]
+    local line = g[l]; if not line then return end
     for _, code in codes(lstr) do
       llen = llen + 1
       local lc = c + llen - 1; assert(lc <= g.w, 'line+c too long')

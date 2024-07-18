@@ -28,9 +28,9 @@ M.navEdit = function(ed) --> new temporary nav buffer
   return e
 end
 
-M.to.listcwd = function(ed, ev, evsend)
+M.to.listcwd = function(ed)
   local e = M.navEdit(ed)
-  local d = function() evsend{action='redraw'} end
+  local d = function() ed.redraw = true end
   lap:schedule(function()
     cx.walk({assert(CWD)}, {
       dir     = function(p) e:append(p..'/\n'); d() end,

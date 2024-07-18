@@ -38,7 +38,7 @@ local DONE_CODE = { [S.FD_EOF] = true, [0] = true }
 M.sys = S
 M._sync  = mod and mod'fd(sync)'  or {} -- sync functions
 M._async = mod and mod'fd(async)' or {} -- async functions
-M._io = {}  -- io cache
+M.io = {}  -- io cache
 
 M.FD=S.FD;         M.FDT=S.FDT
 M.newFD = S.newFD; M.newFDT=S.newFDT
@@ -287,7 +287,7 @@ M.type   = function(fd)
   if mt and FD_TYPES[mt] then
     return (fd:fileno() >= 0) and 'file' or 'closed file'
   end
-  return M._io.type(fd)
+  return M.io.type(fd)
 end
 
 ----------------------------
@@ -313,7 +313,7 @@ local function copyKeysM(keys, from, to)
   end
   return cache
 end
-copyKeysM(IO_KEYS, io, M._io)
+copyKeysM(IO_KEYS, io, M.io)
 
 M.ioSync = function()
   assert(not LAP_ASYNC); copyKeysM(IO_KEYS, M._sync, io)

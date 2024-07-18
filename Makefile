@@ -12,7 +12,8 @@ test: build
 	# Tests complete
 
 demo: build
-	$(PRETEST) $(LUA) cmd/ele/demo_term.lua
+	$(PRETEST) $(LUA) lib/vt100/demo.lua
+	# $(PRETEST) $(LUA) cmd/ele/demo_term.lua
 
 build: fd civix
 

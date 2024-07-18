@@ -13,7 +13,10 @@ local es = require'ele.session'
 local str = mty.tostring
 local aeq = T.assertEq
 
-local SMALL = ds.srcdir()..'small.lua'
+local _CWD = CWD
+CWD = ds.path.abs(ds.srcdir()) -- override global
+
+local SMALL = CWD..'small.lua'
 local LINES3 =
   '1 3 5 7 9\n'
 ..' 2 4 6\n'
@@ -98,7 +101,7 @@ Test{'open', open=SMALL, th=9, tw=30, function(tst)
   local b, BID = e.buf, 2
   aeq(b.id, BID)
   aeq(0, #ed.buffers[1].tmp) -- was temporary and was closed
-  T.assertMatch('^/.+/'..SMALL..'$', b.dat.path)
+  aeq(SMALL, b.dat.path)
   s:play'' -- draws
     aeq('-- a small lua file for tests', b[1])
     aeq(ds.readPath(SMALL), str(ed.display))
@@ -109,3 +112,12 @@ Test{'open', open=SMALL, th=9, tw=30, function(tst)
     assert(rawequal(b, e.buf), 'buf is new')
     aeq('a small lua file for tests', b[1]) -- no change to contents
 end}
+
+Test{'nav', dat='', function(tst)
+  -- local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
+  -- local b, BID = e.buf, 2
+  -- s:play'space f space' -- listCWD
+  --   aeq(BID, b.id) -- opened new buffer
+end}
+
+CWD = _CWD

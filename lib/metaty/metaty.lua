@@ -360,7 +360,7 @@ M.Fmt.table = function(f, t)
   end
   if type(mt) == 'table' then
     local fn = rawget(mt, '__fmt'); if fn then return fn(t, f) end
-    fn = rawget(mt, '__tostring'); if fn then return add(f, fn(t)) end
+    fn = rawget(mt, '__tostring');  if fn then return add(f, fn(t)) end
     local n = rawget(mt, '__name'); if n  then add(f, n)       end
     keys = rawget(mt, '__fields')
   end

@@ -7,6 +7,7 @@ local M = mod and mod'vt100' or {}
 
 local mty = require'metaty'
 local ds  = require'ds'
+local Grid = require'ds.Grid'
 local log = require'ds.log'
 local d8  = require'ds.utf8'
 
@@ -24,21 +25,26 @@ local io = io
 -- Requires vt100.start() have been called to initiate raw mode.
 M.Term = mty'Term'{
   'l [int]: cursor line', 'c [int]: cursor column', l=1, c=1,
+  'h [int]: height', 'w [int]: width', h=40, w=80,
   'text [ds.Grid]: the text to display',
   'fg   [ds.Grid]: foreground color (ASCII coded)',
   'bg   [ds.Grid]: background color (ASCII coded)',
   '_waiting [thread]: the thread waiting on update (i.e. size)',
   'run [boolean]: set to false to stop coroutines', run=true,
 }
-
-M.Term.setSize = function(tm, h, w)
-  tm.text.h, tm.fg.h, tm.bg.h = h, h, h
-  tm.text.w, tm.fg.w, tm.bg.w = w, w, w
+getmetatable(M.Term).__call = function(T, t)
+  t = mty.construct(T, t)
+  t.text     = Grid{h=t.h, w=t.w}
+  t.fg, t.bg = Grid{h=t.h, w=t.w}, Grid{h=t.h, w=t.w}
+  return t:_updateChildren()
 end
 
-M.Term._ready = function(tm)
-  LAP_READY[tm._waiting] = 'size updated'
-  tm._waiting = nil
+M.Term._updateChildren = function(tm)
+  local h, w = tm.h, tm.w
+  tm.text.h, tm.fg.h, tm.bg.h = h, h, h
+  tm.text.w, tm.fg.w, tm.bg.w = w, w, w
+  tm.text:clear(); tm.fg:clear(); tm.bg:clear()
+  return tm
 end
 
 ---------------------------------
@@ -175,8 +181,9 @@ for name, fmt in pairs{
 
 -- causes terminal to send size as (escaped) cursor position
 M.ctrl.size = function()
-  M.save(); M.down(999); M.right(999)
-  M.getlc(); M.restore(); io.flush()
+  local C = M.ctrl
+  C.save(); C.down(999); C.right(999)
+  C.getlc(); C.restore(); io.flush()
 end
 
 -------------------
@@ -187,22 +194,41 @@ local function getb()
   return b
 end
 
+-- send a request for size which input() will receive and
+-- call _ready()
+M.Term._requestSize = function(tm)
+  tm._waiting = coroutine.running(); M.ctrl.size()
+end
+
+M.Term._ready = function(tm, msg)
+  LAP_READY[assert(tm._waiting)] = msg or true
+  tm._waiting = nil
+end
+
+-- This can only be run with an active (LAP) input coroutine
+M.Term.resize = function(tm)
+  tm:_requestSize()
+  while tm._waiting do coroutine.yield'forget' end -- wait for size
+  tm:_updateChildren() -- update children to new size
+end
+
 -- function to run in a (LAP) coroutine.
 -- Requires the input coroutine to also be run for reading the size escape.
 M.Term.draw = function(tm)
-  local nextline, out = M.ctrl.nextline, io.stdout
-  tm._waiting = coroutine.running(); M.ctrl.size() -- wait for size (at end)
+  log.info'drawing'
+  local golc, nextline = M.ctrl.golc, M.ctrl.nextline
   M.ctrl.hide(); M.ctrl.clear()     -- hide cursor and clear screen
+  golc(1, 1)
   -- fill text
   for l=1,tm.text.h do
     for c=1,tm.text.w do
       local chr = tm.text[l][c]; if not chr then break end
-      out:write(chr)
+      io.write(chr)
     end
-    nextline() -- FIXME: '\r\n'?
+    nextline()
   end
-  M.golc(tm.l, tm.c); M.ctrl.show() -- set cursor and show it
-  while tm._waiting do coroutine.yield'forget' end
+  golc(tm.l, tm.c); M.ctrl.show() -- set cursor and show it
+  io.flush()
 end
 
 -- function to run in a (LAP) coroutine.
@@ -247,8 +273,8 @@ M.Term.input = function(tm, send) --> infinite loop (run in coroutine)
       if b == LETR then
         local h, w = char(unpack(dat)):match'(%d+);(%d+)'
         if h and tm._waiting then
-          tm:setSize(tonumber(h), tonumber(w))
-          tm:_ready()
+          tm.h, tm.w = tonumber(h), tonumber(w)
+          tm:_ready'size updated'
         end
         goto continue
       end
@@ -284,9 +310,10 @@ M.stop = function()
   local stdout = M.ATEXIT.stdout
   io.stdout = stdout
   io.stderr = M.ATEXIT.stderr
-  io.stderr:write'!! finished atexit\n'
+  log.info'vt100.stop() complete'
 end
 M.start = function(stdout, stderr, enteredFn, exitFn)
+  log.info'vt100.start() begin'
   assert(stdout, 'must provide new stdout')
   assert(stderr, 'must provide new stderr')
   assert(not getmetatable(M.ATEXIT))
@@ -295,7 +322,7 @@ M.start = function(stdout, stderr, enteredFn, exitFn)
   local mt = {
     __gc = function()
       if not getmetatable(M.ATEXIT) then return end
-      M.clear()
+      M.ctrl.clear()
       restoremode(SAVED)
       if exitFn then exitFn() end
    end,
@@ -306,6 +333,7 @@ M.start = function(stdout, stderr, enteredFn, exitFn)
   io.stdout = stdout
   io.stderr = stderr
   setrawmode(); if enteredFn then enteredFn() end
+  log.info'vt100.start() complete'
 end
 
 return M
