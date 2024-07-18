@@ -14,7 +14,6 @@ M.runWaiting = function(term, th)
   end
 end
 
-
 -- start rawmode using tmpfiles
 M.startTmp = function() --> out, err
   local out, err = io.tmpfile(), io.tmpfile()
@@ -58,6 +57,7 @@ function M.run(fn)
   fd.stdin:toBlock()
 
   vt.stop();
+  io.flush()
   io.stderr:write('\nvt100.testing.run '..
     (ok and 'DONE' or ('ERROR:\n'..tostring(err)))
     ..'\n')

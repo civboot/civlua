@@ -13,6 +13,7 @@ local d8  = require'ds.utf8'
 
 local min = math.min
 local char, byte, slen = string.char, string.byte, string.len
+local lower            = string.lower
 local ulen = utf8.len
 local push, unpack, sfmt = table.insert, table.unpack, string.format
 local io = io
@@ -50,15 +51,33 @@ end
 ---------------------------------
 -- CONSTANTS (and working with them)
 
-M.colors = {
-  default = 0,
-  black   = 30, red     = 31, green   = 32,  yellow = 33,
-  blue    = 34, magenta = 35, cyan    = 36,  white = 37,
+-- ASCII Color table.
+-- This allows applications to set single characters in a Grid and
+-- have it map to a color (which is looked up in Fg/Bg Color)
+M.AsciiColor = { -- ASCII color definitions
+  z = 'default', [' '] = 'default',
+  w = 'white', l = 'lgrey',  d = 'dgrey', p = 'black', -- p == "pitch"
+  r = 'red',   y = 'yellow', g = 'green', c = 'cyan',
+	b = 'blue',  m = 'magenta',
 }
-M.bgcolors = {
-  black = 40,   red     = 41, green = 42,    yellow = 43,
-  blue  = 44,   magenta = 45, cyan = 46,     white = 47,
+
+M.FgColor = { -- foreground
+  default = 39, lgrey   = 37, dgrey   = 90,
+  black   = 30, red     = 31, green   = 32, yellow = 33,
+  blue    = 34, magenta = 35, cyan    = 36, white = 97,
 }
+M.BgColor = { -- background
+	default = 49, lgrey   = 47, dgrey   = 100,
+  black   = 40, red     = 41, green   = 42, yellow = 43,
+  blue    = 44, magenta = 45, cyan    = 46, white = 107,
+}
+
+M.fgColor = function(c) --> colorCode
+  return M.FgColor[M.AsciiColor[lower(c or 'z')]]
+end
+M.bgColor = function(c) --> colorCode
+  return M.BgColor[M.AsciiColor[lower(c or 'z')]]
+end
 
 -- Escape Sequences
 local ESC,  LETO, LETR, LBR = 27, byte'O', byte'R', byte'['
@@ -190,7 +209,7 @@ end
 -- Actual VT100 Control Methods
 local function getb()
   local b = byte(io.read(1))
-  log.trace('input %s %q', b, char(b))
+  -- log.trace('input %s %q', b, char(b))
   return b
 end
 
@@ -215,18 +234,26 @@ end
 -- function to run in a (LAP) coroutine.
 -- Requires the input coroutine to also be run for reading the size escape.
 M.Term.draw = function(tm)
-  log.info'drawing'
+  log.trace'drawing'
   local golc, nextline = M.ctrl.golc, M.ctrl.nextline
+  local colorFB        = M.ctrl.colorFB
+  local fgC, bgC       = M.fgColor, M.bgColor
   M.ctrl.hide(); M.ctrl.clear()     -- hide cursor and clear screen
   golc(1, 1)
+	local fg, bg
   -- fill text
   for l=1,tm.text.h do
     for c=1,tm.text.w do
       local chr = tm.text[l][c]; if not chr then break end
+      local f, b = tm.fg[l][c], tm.bg[l][c]
+      if f ~= fg or b ~= bg then
+        fg, bg = f, b; colorFB(fgC(f), bgC(b))
+      end
       io.write(chr)
     end
     nextline()
   end
+  M.ctrl.color(0)
   golc(tm.l, tm.c); M.ctrl.show() -- set cursor and show it
   io.flush()
 end
