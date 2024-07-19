@@ -54,8 +54,6 @@ with a single key/value and one indirection for lookups. They are zero-cost
 ## Path
 `ds.path` has some functions for working with paths.
 
-The function `path.abs` (absolute) uses the global `CWD` with the recommended
-definition (not set by this module):
-```
-CWD = CWD or os.getenv'PWD' or os.getenv'CD'
-```
+It interacts (but does not set) the **globals** `CWD` and `HOME` to get the
+"current working directory" and "home directory", respectively.
+

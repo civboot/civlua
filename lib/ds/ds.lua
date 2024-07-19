@@ -211,16 +211,25 @@ end
 
 --------------------
 -- Working with file paths
-M.path = {}
 
--- If the path is not already absolute then make absolute
--- using the CWD (current working directory) global or
--- equivalent PWD/CD env variables.
-M.path.abs = function(path, cwd) --> /absolute/path
-  if (path:sub(1,1) == '/') then return path end
-  cwd = cwd or CWD or os.getenv'PWD' or os.getenv'CD'
-  return (cwd:sub(-1) == '/') and (cwd..path)
-                              or  (cwd..'/'..path)
+-- get current working directory
+M.cwd = function() return CWD or os.getenv'PWD' or os.getenv'CD' end
+
+M.home = function() return HOME or os.getenv'HOME'
+                        or os.getenv'HOMEDIR'      end
+
+-- submodule for paths.
+-- Call directly to convert a list|str to a list of path components.
+M.path = mod and mod'ds.path' or setmetatable({}, {})
+getmetatable(M.path).__call = function(_, p)
+  if type(p) == 'table' then return p end
+  p = M.splitList(p, '/+')
+  if p[1] == ''  then p[1] = '/' end
+  local len = #p
+  if len > 1 and p[len] == '' then
+    p[len - 1] = p[len - 1]..'/'; p[len] = nil
+  end
+  return p
 end
 
 -- join a table of path components
@@ -233,6 +242,71 @@ M.path.concat = function(t)
     p = string.match(p, '^/*(.-)/*$')
     if p ~= '' then push(out, p) end
   end; return root..table.concat(out, '/')..dir
+end
+
+
+-- return whether a path has any '..' components
+M.path.hasBacktrack = function(path) --> bool. path: [str|list]
+  if type(path) == 'string' then
+    return path:match'^%.%.$' or path:match'^%.%./'
+        or path:match'/%.%./' or path:match'/%.%.$'
+  end
+  for _, c in ipairs(path) do
+    if c == '..' then return true end
+  end; return false
+end
+M.path.ext = function(path) --> boolean. path: [str|list]
+  if type(path) == 'table' then path = path[#path] end
+  return path:match'.*%.([^/]+)$'
+end
+
+-- Ensure the path is absolute, using the wd (default=cwd()) if necessary
+M.path.abs = function(path, wd) --> /absolute/path
+  if type(path) == 'string' then
+    if (path:sub(1,1) == '/') then return path end
+    wd = wd or M.cwd()
+    return (wd:sub(-1) == '/') and (wd..path)
+                               or  (wd..'/'..path)
+  end
+  if path[1]:sub(1,1) == '/' then return path end
+  assert(type(wd) == 'string')
+  return M.extend(M.path(wd), path)
+end
+
+local DOTS = {['.']=true, ['..']=true}
+-- resolve any `..` or `.` path components, making the path
+-- absolute if necessary.
+M.path.resolve = function(path, wd) --> list
+  if type(path) == 'table' then path = ds.copy(path)
+  else path = M.path(path) end
+
+  -- walk path, resolving . and ..
+  local i, j, len = 1, 1, #path
+  local isdir = path[len]:sub(-1) == '/' or DOTS[path[len]]
+  while j <= len do
+    local c = path[j]
+    if c == '.' then j = j + 1 -- skip
+    elseif c == '..' then      -- backtrack
+      i = i - 1; j = j + 1
+      if i < 1 then
+        assert(path[1] ~= '/', 'backtracks are before root')
+        local abs = M.path(wd or M.cwd())
+        len = #abs
+        table.move(path, j, #path + 1, len, abs)
+        i, j      = len, len
+        path, len = abs, #abs
+      end
+    else
+      path[i] = path[j]
+      i = i + 1; j = j + 1
+    end
+  end
+  M.clear(path, i, len)
+  local last = path[#path]
+  if isdir and last:sub(-1) ~= '/' then
+    path[#path] = last..'/'
+  end
+  return path
 end
 
 -- first/middle/last -> ("first", "middle/last")
@@ -249,14 +323,6 @@ M.path.last = function(path)
   if not a or a == '' or b == '' then return '', path end
   return a, b
 end
-
--- return whether a path has any '..' components
-M.path.hasBacktrack = function(path)
-  return path:match'^%.%.$' or path:match'^%.%./'
-      or path:match'/%.%./' or path:match'/%.%.$'
-end
-M.path.splitList = function(path) return M.splitList(path, '/+') end
-M.path.ext = function(path) return path:match'.*%.([^/]+)$' end
 
 ---------------------
 -- Table Functions

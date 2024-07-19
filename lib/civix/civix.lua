@@ -154,7 +154,7 @@ M.mkDirs = function(pthArr)
   end
 end
 M.mkDir = function(pth, parents)
-  if parents then M.mkDirs(path.splitList(pth))
+  if parents then M.mkDirs(path(pth))
   else mty.assertf(lib.mkdir(pth), "mkdir failed: %s", pth) end
 end
 
