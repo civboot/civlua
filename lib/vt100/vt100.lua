@@ -61,28 +61,49 @@ M.Term.__fmt = function(tm, fmt) return tm.text:__fmt(fmt) end
 -- This allows applications to set single characters in a Grid and
 -- have it map to a color (which is looked up in Fg/Bg Color)
 M.AsciiColor = { -- ASCII color definitions
-  z = 'default', [' '] = 'default',
-  w = 'white', l = 'lgrey',  d = 'dgrey', p = 'black', -- p == "pitch"
-  r = 'red',   y = 'yellow', g = 'green', c = 'cyan',
-	b = 'blue',  m = 'magenta',
+  z = 'default',   [' '] = 'default',
+  w = 'white',     b = 'black',
+  l = 'lightgrey', d = 'darkgrey',
+
+  r = 'red',
+  o = 'orange',  lightred = 'o',   -- lightred, VT100 has no orange
+  y = 'yellow',
+  g = 'green',
+  t = 'tea',     lightgreen = 't', -- lightgreen
+  c = 'cyan',
+  n = 'navy',    blue = 'n',       -- blue: b is taken for black
+  s = 'sky',     lightblue = 's',  -- lightblue
+  m = 'magenta', purple = 'm',     -- purple: p is taken for pink
+  p = 'pink',    lightmagenta = 'p',
 }
+for k, v in pairs(M.AsciiColor) do
+  if #k == 1 then M.AsciiColor[v] = k end
+end
 
 M.FgColor = { -- foreground
-  default = 39, lgrey   = 37, dgrey   = 90,
+  default = 39, lightgrey = 37, darkgrey = 90,
   black   = 30, red     = 31, green   = 32, yellow = 33,
-  blue    = 34, magenta = 35, cyan    = 36, white = 97,
+  navy    = 34, magenta = 35, cyan    = 36, white = 97,
+  blue    = 34,
+
+  -- lightred   ..green     ..blue     ..magenta
+  orange = 101, mint = 102, sky = 104, pink = 105
 }
 M.BgColor = { -- background
-	default = 49, lgrey   = 47, dgrey   = 100,
+	default = 49, lightgrey = 47, darkgrey = 100,
   black   = 40, red     = 41, green   = 42, yellow = 43,
-  blue    = 44, magenta = 45, cyan    = 46, white = 107,
+  navy    = 44, magenta = 45, cyan    = 46, white = 107,
+  blue    = 44,
+
+  -- lightred  ..green    ..blue    ..magenta
+  orange = 91, mint = 92, sky = 94, pink = 95
 }
 
 M.fgColor = function(c) --> colorCode
-  return M.FgColor[M.AsciiColor[lower(c or 'z')]]
+  return M.FgColor[assert(M.AsciiColor[lower(c or 'z')], c)]
 end
 M.bgColor = function(c) --> colorCode
-  return M.BgColor[M.AsciiColor[lower(c or 'z')]]
+  return M.BgColor[assert(M.AsciiColor[lower(c or 'z')], c)]
 end
 
 -- Escape Sequences
