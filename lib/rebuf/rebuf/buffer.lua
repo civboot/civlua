@@ -36,6 +36,7 @@ M.Buffer = mty'Buffer' {
 
 getmetatable(M.Buffer).__call=function(T, t)
   assert(t.dat)
+  if #t.dat == 0 then push(t.dat, '') end
   t.changes = t.changes or {}
   return mty.construct(T, t)
 end

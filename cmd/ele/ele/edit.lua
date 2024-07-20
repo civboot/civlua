@@ -11,6 +11,7 @@ local lines = require'lines'
 
 local push = table.insert
 local span, lsub = lines.span, lines.sub
+local max = math.max
 
 INT_ID = INT_ID or 1
 
@@ -51,12 +52,20 @@ M.Edit.copy        = function(e) return ds.copy(e, {id=T.nextViewId()}) end
 M.Edit.forceHeight = function(e) return e.fh end
 M.Edit.forceWidth  = function(e) return e.fw end
 M.Edit.curLine     = function(e)
-  log.info('!! l=%s len=%s', e.l, #e.buf.dat)
   return e.buf.dat[e.l] end
 M.Edit.colEnd      = function(e) return #e:curLine() + 1 end
 M.Edit.lastLine    = function(e) return e.buf[#e] end
 M.Edit.offset = function(e, off)
   return lines.offset(e.buf.dat, off, e.l, e.c)
+end
+
+M.Edit.boundLC = function(e, l, c)
+  if l <= 1 then
+    if #e == 0 then return 1, 1 end
+    return 1, ds.bound(c, 1, #e.buf[1] + 1)
+  end
+  l = ds.bound(l, 1, #e)
+  return l, ds.bound(c, 1, #e.buf[l])
 end
 
 -- bound the column for the line
@@ -66,11 +75,10 @@ end
 
 -- update view to see cursor (if needed)
 M.Edit.viewCursor = function(e)
-  if e.l > #e then error(
+  if e.l > 1 and e.l > #e then error(
     ('e.l OOB: %s > %s'):format(e.l, #e)
   )end
-  local l, c = e.l, e.c
-  l = ds.bound(l, 1, #e); c = e:boundCol(c, l)
+  l, c = e:boundLC(e.l, e.c)
   if e.vl > l            then e.vl = l end
   if l < e.vl            then e.vl = l end
   if l > e.vl + e.th - 1 then e.vl = l - e.th + 1 end
@@ -94,12 +102,13 @@ M.Edit.append = function(e, msg)
 end
 
 M.Edit.insert = function(e, s)
-  e.buf:insert(s, e.l, e.c);
-  e.l, e.c = lines.offset(e.buf.dat, #s, e.l, e.c)
+  local b = e.buf
+  b:insert(s, e.l, e.c);
+  e.l, e.c = lines.offset(b.dat, #s, e.l, e.c)
   -- if causes cursor to move to next line, move to end of cur line
   -- except in specific circumstances
   if (e.l > 1) and (e.c == 1) and ('\n' ~= s:sub(#s)) then
-    e.l, e.c = e.l - 1, #e.buf[e.l - 1] + 1
+    e.l, e.c = e.l - 1, #b[e.l - 1] + 1
   end
   e:changeUpdate2()
 end
@@ -144,7 +153,6 @@ end
 -- Draw to terminal
 M.Edit.draw = function(e, t, isRight)
   assert(t); e:viewCursor()
-
   e.canvas = {}
   for i, line in ipairs(lsub(e.buf.dat, e.vl, e.vl + e.th - 1)) do
     push(e.canvas, string.sub(line, e.vc, e.vc + e.tw - 1))

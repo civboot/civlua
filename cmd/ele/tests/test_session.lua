@@ -83,9 +83,15 @@ Test{'move', dat=LINES3, function(tst)
 
   s:play'j';   aeq({2, 1}, {e.l, e.c})
     aeq(LINES3, str(ed.display))
-  s:play'2 k'; aeq({1, 1}, {e.l, e.c})
-  s:play'$ j'; aeq({2, 7}, {e.l, e.c})
+  s:play'2 k'; aeq({1, 1},  {e.l, e.c})
+  s:play'$';   aeq({1, 9}, {e.l, e.c})
+  s:play'j';   aeq({2, 7},  {e.l, e.c})
     aeq(LINES3, str(ed.display))
+
+  s:play'0';   aeq({2, 1}, {e.l, e.c})
+  s:play'2 w'; aeq({2, 4}, {e.l, e.c})
+  s:play'b';   aeq({2, 2}, {e.l, e.c})
+  s:play'l ^'; aeq({2, 2}, {e.l, e.c})
 end}
 
 Test{'backspace', dat=LINES3, function(tst)

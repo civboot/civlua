@@ -251,7 +251,6 @@ M._async.tmpfile = function() return M.tmpfileFn(S.tmpFDT) end
 
 M.read    = function(...)
   local inp = M.input()
-  io.stderr:write('!! fd.read: ', tostring(inp), '\n')
   io.stderr:flush()
   return inp:read(...)
 end

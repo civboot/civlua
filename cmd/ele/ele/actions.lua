@@ -84,21 +84,33 @@ M.chain = function(ed, ev, evsend)
   for _=1,ev.times or 1 do evsend:extendLeft(ev) end
 end
 
+-- TODO: decide how I want to do replace mode
+--   probably need an ed:switchMode() function and use
+--   ed.ext.mode table which is cleared on each switch.
+--   Then insert.default just checks ext.mode.replace
+--   to decide to replace instead of insert.
+-- M.replacemode = function(ed)
+--   ed.mode = 'insert'; ed.replace = true
+-- end
+
 ----------------------------------
 -- MOVE
 -- This defines the move action
 local DOMOVE = {
-  lines    = function(e, _, ev)
-    log.info('!! lines %q', ev.lines)
-    e.l = e.l + ev.lines end,
-  sol      = function(e, line) e.c = line:find'%S' or 1                end,
-  eol      = function(e, line) e.c = #line                             end,
+  lines = function(e, _, ev) e.l = e.l + ev.lines end,
+  -- start/end of line/text
+  sol = function(e, line) e.c = 1                  end,
+  sot = function(e, line) e.c = line:find'%S' or 1 end,
+  eol = function(e, line) e.c = #line              end,
+  eot = function(e, line) e.c = line:find'.*%S%s*' or #line end,
+  -- move by word
   forword  = function(e, line)
     e.c = motion.forword(line, e.c) or (e.c + 1)
   end,
   backword = function(e, line)
     e.c = motion.backword(line, e.c) or (e.c + 1)
   end,
+  -- search for character
   find = function(e, line, ev)
     e.c = line:find(ev.find, e.c, true) or e.c
   end,
@@ -129,7 +141,7 @@ M.move = function(ed, ev)
   local e = ed.edit
   log.trace('move %q [start %s.%s]', ev, e.l, e.c)
   for _=1,ev.times or 1 do domove(e, ev) end
-  e.l = ds.bound(e.l, 1, #e.buf); e.c = e:boundCol(e.c)
+  l, c = e:boundLC(e.l, e.c)
 end
 
 ----------------------------------

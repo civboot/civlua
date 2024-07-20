@@ -38,6 +38,7 @@ Ed.init = function(T, t)
     buffers={},
     resources={},
     ext={},
+    redraw = true,
   }, t or {})
   require'ele.bindings'.install(t)
   require'ele.nav'.install(t)
@@ -83,12 +84,13 @@ Ed.open = function(ed, path) --> edit
 end
 
 Ed.draw = function(ed)
-  if not ed.redraw then return end
-  local v, d = ed.view, ed.display
+  local v, d, e = ed.view, ed.display, ed.edit
+  d:resize()
   v.tl, v.tc, v.th, v.tw = 1, 1, d.h, d.w
-  d:clear()
   v:draw(d)
-  ed.redraw = false
+  e:viewCursor()
+  d.l, d.c = e.l, e.c
+  d:draw()
 end
 
 return Ed

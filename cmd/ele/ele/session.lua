@@ -13,6 +13,7 @@ local actions = require'ele.actions'
 
 local yield = coroutine.yield
 
+-- local FRAME = 0.05
 local FRAME = 0.05
 
 M.Session = mty'Session' {
@@ -99,12 +100,10 @@ end
 
 -- draw coroutine
 M.Session.draw = function(s)
-   local id = -1
    while s.ed.run do
-     if s.eventId > id then
-       id = s.eventId; log.info('draw eventId=%s', id)
-       s.ed.display:size()
+     if s.ed.redraw then
        s.ed:draw()
+       s.ed.redraw = false
      end
      yield('sleep', FRAME)
    end

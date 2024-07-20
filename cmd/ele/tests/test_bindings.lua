@@ -102,5 +102,5 @@ T.test('action', function()
     {  rm{find='x', move='find', times=10, cols=-1}})
 
   -- Event
-  assertKeys('I', 'command', false, {move{move='sol', mode='insert'}})
+  assertKeys('I', 'command', false, {move{move='sot', mode='insert'}})
 end)

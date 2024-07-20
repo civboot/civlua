@@ -109,8 +109,8 @@ end
 M.close       = M.Event{action='close'} -- close current focus
 
 M.insertmode  = M.Event{mode='insert'}
-M.insertsol   = M.Event{mode='insert', action='move', move='sol'}
-M.inserteol   = M.Event{mode='insert', action='move', move='eol'}
+M.insertsot   = M.Event{mode='insert', action='move', move='sot'}
+M.inserteol   = M.Event{mode='insert', action='move', move='eol', cols=1}
 M.commandmode = M.Event{mode='command'}
 
 do local MA = M.moveAction
@@ -118,7 +118,9 @@ do local MA = M.moveAction
   M.forword, M.backword  = MA{move='forword'}, MA{move='backword'}
   M.up                   = MA{move='lines', lines=-1}
   M.down                 = MA{move='lines', lines=1}
-  M.eol                  = MA{move='eol'}
+  -- start/end of line/text
+  M.sol, M.sot           = MA{move='sol'}, MA{move='sot'}
+  M.eol, M.eot           = MA{move='eol'}, MA{move='eot'}
 end
 
 M.movekey = function(keys)
@@ -180,7 +182,7 @@ end
 M.zero = function(keys) -- special: movement if not after a digit
   local ev = keys.event or {}
   if not ev.action and ev.times then return M.times(keys) end
-  ev.action, ev.sol = ev.action or 'move', true
+  ev.action, ev.move = ev.action or 'move', 'sol'
   return ev
 end
 
@@ -232,17 +234,18 @@ M.bindall(M.insert, {
 M.command.fallback = M.unboundChord
 M.bindall(M.command, {
   ['^q ^q'] = M.exit,
-  i = M.insertmode, I=M.insertsol, A=M.inserteol,
+  i = M.insertmode, I=M.insertsot, A=M.inserteol,
 
   -- movement
   right = M.right, left=M.left, up=M.up, down=M.down,
   l     = M.right, h   =M.left, k =M.up, j   =M.down,
+  w=M.forword, b=M.backword,
   f=M.find, F=M.findback,
   t=M.till, T=M.tillback,
-  ['$'] = M.eol,
+  ['^'] = M.sot, ['$'] = M.eol,
 
   -- times (note: 1-9 defined below)
-  ['0'] = M.zero,
+  ['0'] = M.zero, -- sol+0times
 
   d = M.delete, c = M.change,
 
@@ -253,7 +256,6 @@ M.bindall(M.command, {
   ['space f space'] = M.listCWD,
   -- ['space f .']     = M.listFileDir,
 })
-
 -- times
 for b=('1'):byte(), ('9'):byte() do M.command[string.char(b)] = M.times end
 

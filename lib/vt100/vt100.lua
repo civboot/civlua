@@ -247,6 +247,7 @@ M.Term._ready = function(tm, msg)
   tm._waiting = nil
 end
 
+-- request size and clear children
 -- This can only be run with an active (LAP) input coroutine
 M.Term.resize = function(tm)
   tm:_requestSize()

@@ -23,9 +23,9 @@ LAP_CORS = LAP_CORS or ds.WeakKV{}
 
 M.formatCorErrors = function(corErrors)
   local f = mty.Fmt{}
-  for _, ce in ipairs(corErrors) do
-    push(f, 'Coroutine '); f(ce)
-    push(f, '\n')
+  for i, ce in ipairs(corErrors) do
+    push(f, sfmt('Coroutine Error #%s:\n', i))
+    f(ce); push(f, '\n')
   end
   return table.concat(f)
 end
