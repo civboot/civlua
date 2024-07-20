@@ -273,7 +273,6 @@ M.path.abs = function(path, wd) --> /absolute/path
   return M.extend(M.path(wd), path)
 end
 
-local DOTS = {['.']=true, ['..']=true}
 -- resolve any `..` or `.` path components, making the path
 -- absolute if necessary.
 M.path.resolve = function(path, wd) --> list
@@ -281,15 +280,17 @@ M.path.resolve = function(path, wd) --> list
   else path = M.path(path) end
 
   -- walk path, resolving . and ..
-  local i, j, len = 1, 1, #path
-  local isdir = path[len]:sub(-1) == '/' or DOTS[path[len]]
+  local i, j, len, last = 1, 1, #path, path[#path]
+  local isdir = last:sub(-1) == '/' or last:match'^/?%.%.?$'
   while j <= len do
     local c = path[j]
-    if c == '.' then j = j + 1 -- skip
-    elseif c == '..' then      -- backtrack
+    if c == '' or c:match'^/?%./?$'   then j = j + 1 -- '.'  skip
+    elseif        c:match'^/?%.%./?$' then           -- '..' backtrack
       i = i - 1; j = j + 1
+      if i <= 1 then
+        assert(path[1]:sub(-1) ~= '/', '../ backtrack before root')
+      end
       if i < 1 then
-        assert(path[1] ~= '/', 'backtracks are before root')
         local abs = M.path(wd or M.cwd())
         len = #abs
         table.move(path, j, #path + 1, len, abs)
@@ -302,10 +303,32 @@ M.path.resolve = function(path, wd) --> list
     end
   end
   M.clear(path, i, len)
-  local last = path[#path]
-  if isdir and last:sub(-1) ~= '/' then
-    path[#path] = last..'/'
+  len = #path; last = path[#path]
+  if isdir and last and last:sub(-1) ~= '/' then
+    path[len] = last..'/'
   end
+  return path
+end
+
+-- remove trim from the left side of path.
+-- noop if trim is not exactly equal to the left side.
+M.path.trimleft = function(path, trm)
+  for i, c in ipairs(trm) do
+    if not path[i] or (M.trim(c, '/') ~= M.trim(path[i], '/')) then
+      return
+    end
+  end
+  local l, tl = #path, #trm
+  table.move(path, tl + 1, l, 1) -- move to start
+  table.move(EMPTY, 1, tl, l - tl + 1, path) -- clear end
+end
+
+-- return a nice short path (list) that is resolved and readable.
+M.path.nice = function(path, wd)
+  wd = wd or M.cwd()
+  path, wd = M.path.resolve(path, wd), M.path(wd)
+  M.path.trimleft(path, wd)
+  if #path == 0 or path[1] == '' then path[1] = './' end
   return path
 end
 

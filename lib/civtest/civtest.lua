@@ -45,10 +45,13 @@ end
 M.assertErrorPat = function(errPat, fn, plain)
   local ok, err = pcall(fn)
   if ok then mty.errorf(
-    '! No error received, expected: %q', errPat
+    'Did not recieve expected error.\n'
+  ..'! Expected errPat %q\n! Got result[1]: %s',
+    errPat, mty.tostring(err)
   )end
   if not err:find(errPat, 1, plain) then mty.errorf(
-    '! Expected error:\n%q\n!### Got error:\n%q', errPat, err
+    '! Did not recieve expected error.\n'
+  ..'! Expected errPat %q\n!### Got error:\n%q', errPat, err
   )end
 end
 

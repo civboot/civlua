@@ -368,11 +368,28 @@ test('path', function()
   assertEq('a/b',       pc{'a/', '', 'b'})
 
   local pr = M.path.resolve
+  assertEq({'/', '.a'},      pr('/.a'))
+  assertEq({'/', '..a'},     pr('/..a'))
+  assertEq({'/', 'a.'},      pr('/a.'))
+  assertEq({'/', 'a..'},     pr('/a..'))
   assertEq({'a/'},           pr'a/b/..')
   assertEq({'b'},            pr'a/../b')
   assertEq({'b/'},           pr'a/../b/')
   assertEq({'/', 'a', 'b/'}, pr('..',       '/a/b/c/'))
   assertEq({'/', 'a', 'd/'}, pr('../../d/', '/a/b/c/'))
+  assertEq({'/'},            pr('/a/..'))
+  assertEq({},               pr('a/..'))
+  assertErrorPat('before root', function() pr('/..')    end)
+  assertErrorPat('before root', function() pr('/../..') end)
+  assertErrorPat('before root', function() pr('/../../a') end)
+  assertErrorPat('before root', function() pr('/a/../..') end)
+  assertErrorPat('before root', function() pr('/a/../../') end)
+
+  local pn = M.path.nice
+  assertEq({'./'},               pn('a/..'))
+  assertEq({'/', 'a', 'b/'},     pn('..', '/a/b/c/'))
+  assertEq({'d', 'e'},           pn('/a/b/c/d/e',  '/a/b/c'))
+  assertEq({'d', 'e/'},          pn('/a/b/c/d/e/', '/a/b/c'))
 
   local pe = M.path.ext
   assertPath(pe, 'foo', 'coo.foo')
