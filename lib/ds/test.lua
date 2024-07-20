@@ -723,4 +723,8 @@ test('Grid', function()
     assertEq('  hi     there\n'
            ..'    bye  then\n'
            ..'  fin    !', str(g))
+
+  g = Grid{h=3, w=20}
+  g:insert(1, 1, {"13 5 7 9", " 2 4 6", ""})
+    assertEq('13 5 7 9\n 2 4 6\n', str(g))
 end)

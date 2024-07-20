@@ -81,11 +81,14 @@ Test{'move', dat=LINES3, function(tst)
   aeq('command', ed.mode)
   aeq('\n\n', str(ed.display))
 
+  s:play'' -- draw
+    aeq('1 3 5 7 9\n 2 4 6\n', str(ed.display))
+
   s:play'j';   aeq({2, 1}, {e.l, e.c})
     aeq(LINES3, str(ed.display))
-  s:play'2 k'; aeq({1, 1},  {e.l, e.c})
+  s:play'2 k'; aeq({1, 1}, {e.l, e.c})
   s:play'$';   aeq({1, 9}, {e.l, e.c})
-  s:play'j';   aeq({2, 7},  {e.l, e.c})
+  s:play'j';   aeq({2, 7}, {e.l, e.c})
     aeq(LINES3, str(ed.display))
 
   s:play'0';   aeq({2, 1}, {e.l, e.c})
@@ -100,7 +103,7 @@ Test{'backspace', dat=LINES3, function(tst)
   s:play'l l';    aeq({1, 3}, {e.l, e.c})
   s:play'i back'; aeq({1, 2}, {e.l, e.c})
     aeq('13 5 7 9', b[1])
-    aeq('13 5 7 9\n 2 4 6\n', str(ed.display))
+  aeq('13 5 7 9\n 2 4 6\n', str(ed.display))
 end}
 
 Test{'open', open=SMALL, th=9, tw=30, function(tst)

@@ -21,7 +21,7 @@ end
 G.clear = function(g) --> g
   for l=1,g.h do
     local line = g[l] or {}
-    clear(line, 1, max(#line, g.w))
+    clear(line, 1, max(#line, g.w)); assert(next(line) == nil)
     g[l] = line
   end
   clear(g, g.h + 1, #g)
@@ -36,17 +36,21 @@ end
 -- insert the str|lines into the grid at l.c
 -- this handles newlines by inserting at the same column
 G.insert = function(g, l, c, str)
-  for _, lstr in split(str) do
+  require'ds.log'.trace('!! start:\n%s', mty.tostring(g))
+  require'ds.log'.trace('!! inserting:\n%s', mty.tostring(str))
+  for _l, lstr in split(str) do
     local llen = 0
     local line = g[l]; if not line then return end
     for _, code in codes(lstr) do
       llen = llen + 1
       local lc = c + llen - 1; assert(lc <= g.w, 'line+c too long')
       for i=#line+1,lc-1 do line[i] = ' ' end -- fill spaces
+      print('!! inserting', _l, lc, char(code))
       line[lc] = char(code)
     end
     l = l + 1
   end
+  require'ds.log'.trace('!! inserted, now:\n%s', mty.tostring(g))
 end
 
 G.__fmt = function(g, fmt)

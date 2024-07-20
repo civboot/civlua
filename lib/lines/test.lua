@@ -66,10 +66,20 @@ test('inset', function()
   assertEq('foo\nbar', lines.concat(t))
 end)
 
-test('remove table', function()
+test('remove', function()
   testing.testLinesRemove(function(t)
     return type(t) == 'string' and lines(t) or t
   end)
+end)
+
+test('box', function()
+  local l = lines(
+    '1 3 5 7 9\n'
+  ..' 2 4 6\n'
+  ..'a c d e f g h')
+  assertEq({'1 3', ' 2 '        }, lines.box(l, 1,1, 2,3))
+  assertEq({' 3 ', '2 4'        }, lines.box(l, 1,2, 2,4))
+  assertEq({'7 9', '',   'e f g'}, lines.box(l, 1,7, 3,11))
 end)
 
 ------------------------

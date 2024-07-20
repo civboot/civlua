@@ -85,12 +85,10 @@ end
 
 Ed.draw = function(ed)
   local v, d, e = ed.view, ed.display, ed.edit
-  d:resize()
   v.tl, v.tc, v.th, v.tw = 1, 1, d.h, d.w
   v:draw(d)
   e:viewCursor()
   d.l, d.c = e.l, e.c
-  d:draw()
 end
 
 return Ed

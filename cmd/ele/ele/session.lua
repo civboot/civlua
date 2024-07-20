@@ -76,6 +76,7 @@ M.Session.play = function(s, chord)
   s.keysend:extend(bindings.chord(chord))
   while (#s.keys > 0) or (#s.events > 0) do yield(true) end
   log.info('draw %q', chord)
+  s.ed.display:clear(); -- normally part of resize()
   s.ed.redraw = true; s.ed:draw()
 end
 
@@ -102,7 +103,9 @@ end
 M.Session.draw = function(s)
    while s.ed.run do
      if s.ed.redraw then
+       d:resize()
        s.ed:draw()
+       s.ed.display:draw()
        s.ed.redraw = false
      end
      yield('sleep', FRAME)

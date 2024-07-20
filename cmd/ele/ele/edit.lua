@@ -65,7 +65,7 @@ M.Edit.boundLC = function(e, l, c)
     return 1, ds.bound(c, 1, #e.buf[1] + 1)
   end
   l = ds.bound(l, 1, #e)
-  return l, ds.bound(c, 1, #e.buf[l])
+  return l, ds.bound(c, 1, #e.buf[l] + 1)
 end
 
 -- bound the column for the line
@@ -78,7 +78,7 @@ M.Edit.viewCursor = function(e)
   if e.l > 1 and e.l > #e then error(
     ('e.l OOB: %s > %s'):format(e.l, #e)
   )end
-  l, c = e:boundLC(e.l, e.c)
+  local l, c = e:boundLC(e.l, e.c)
   if e.vl > l            then e.vl = l end
   if l < e.vl            then e.vl = l end
   if l > e.vl + e.th - 1 then e.vl = l - e.th + 1 end
@@ -153,11 +153,10 @@ end
 -- Draw to terminal
 M.Edit.draw = function(e, t, isRight)
   assert(t); e:viewCursor()
-  e.canvas = {}
-  for i, line in ipairs(lsub(e.buf.dat, e.vl, e.vl + e.th - 1)) do
-    push(e.canvas, string.sub(line, e.vc, e.vc + e.tw - 1))
-  end
-  t.text:insert(e.tl, e.tc, e.canvas)
+  local b = lines.box(e.buf.dat,
+    e.vl,            e.vc,
+    e.vl + e.th - 1, e.vc + e.tw - 1)
+  t.text:insert(e.tl, e.tc, b)
 end
 
 -- Called by model for only the focused editor

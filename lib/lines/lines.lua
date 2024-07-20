@@ -242,6 +242,19 @@ M.remove = function(t, ...) --> string|table
   return rem
 end
 
+-- return the box bounded top-left(l1,c1) and bot-right(l2,c2)
+M.box = function(t, l1, c1, l2, c2) --> lines
+  local b = {}; for l=l1,l2 do
+    local line = t[l]
+    push(b, line and line:sub(c1, c2) or '')
+  end
+  require'ds.log'.trace('!! %s.%s -> %s.%s: %q', l1,c1,l2,c2,b)
+  return b
+end
+
+-------------------------
+-- Save / Load from file
+
 -- load lines from file.
 -- if f is a string then open as file and close before returning.
 -- if f is nil (or the path does not exist) then return nil

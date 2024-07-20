@@ -141,7 +141,7 @@ M.move = function(ed, ev)
   local e = ed.edit
   log.trace('move %q [start %s.%s]', ev, e.l, e.c)
   for _=1,ev.times or 1 do domove(e, ev) end
-  l, c = e:boundLC(e.l, e.c)
+  e.l, e.c = e:boundLC(e.l, e.c)
 end
 
 ----------------------------------
