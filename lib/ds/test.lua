@@ -28,6 +28,7 @@ local M = M.auto'ds'
 local d8 = require'ds.utf8'
 local df = require'ds.file'
 local dp = M.dotpath
+local path = require'ds.path'
 
 ---------------------
 -- ds.lua
@@ -348,18 +349,19 @@ test('time', function()
 end)
 
 
-local function assertPath(fn, expect, path)
-  assertEq(expect, fn(path))         -- pass in string
-  assertEq(expect, fn(M.path(path))) -- pass in table
+local function assertPath(fn, expect, p)
+  assertEq(expect, fn(p))       -- pass in string
+  assertEq(expect, fn(path(p))) -- pass in table
 end
 test('path', function()
-  assertEq({'a', 'b', 'c'},  M.path('a/b/c'))
-  assertEq({'/', 'b', 'c'},  M.path('/b/c'))
-  assertEq({'a', 'b', 'c/'}, M.path('a/b/c/'))
-  assertEq({'a', 'b', 'c'},  M.path{'a', 'b', 'c'})
-  assertEq({'/', 'b', 'c'},  M.path{'/', 'b', 'c'})
 
-  local pc = M.path.concat
+  assertEq({'a', 'b', 'c'},  path('a/b/c'))
+  assertEq({'/', 'b', 'c'},  path('/b/c'))
+  assertEq({'a', 'b', 'c/'}, path('a/b/c/'))
+  assertEq({'a', 'b', 'c'},  path{'a', 'b', 'c'})
+  assertEq({'/', 'b', 'c'},  path{'/', 'b', 'c'})
+
+  local pc = path.concat
   assertEq('foo/bar',   pc{'foo/', 'bar'})
   assertEq('/foo/bar',  pc{'/foo/', 'bar'})
   assertEq('/foo/bar/', pc{'/foo/', 'bar/'})
@@ -367,7 +369,7 @@ test('path', function()
   assertEq('a/b',       pc{'a', '', 'b'})
   assertEq('a/b',       pc{'a/', '', 'b'})
 
-  local pr = M.path.resolve
+  local pr = path.resolve
   assertEq({'/', '.a'},      pr('/.a'))
   assertEq({'/', '..a'},     pr('/..a'))
   assertEq({'/', 'a.'},      pr('/a.'))
@@ -385,18 +387,18 @@ test('path', function()
   assertErrorPat('before root', function() pr('/a/../..') end)
   assertErrorPat('before root', function() pr('/a/../../') end)
 
-  local pn = M.path.nice
+  local pn = path.nice
   assertEq({'./'},               pn('a/..'))
   assertEq({'/', 'a', 'b/'},     pn('..', '/a/b/c/'))
   assertEq({'d', 'e'},           pn('/a/b/c/d/e',  '/a/b/c'))
   assertEq({'d', 'e/'},          pn('/a/b/c/d/e/', '/a/b/c'))
 
-  local pe = M.path.ext
+  local pe = path.ext
   assertPath(pe, 'foo', 'coo.foo')
   assertPath(pe, 'foo', 'a/b/c.foo')
   assertPath(pe, 'bar', 'a/b.c/d.foo.bar')
 
-  local pf = M.path.first
+  local pf = path.first
   assertEq({'/',  'a/b/c/'}, {pf'/a/b/c/'})
   assertEq({'a',  'b/c/'},   {pf'a/b/c/'})
   assertEq({'/',  'a/b/'},   {pf'/a/b/'})
@@ -406,7 +408,7 @@ test('path', function()
   assertEq({'/',  'b/'},     {pf'/b/'})
   assertEq({'/',  ''},       {pf'/'})
 
-  local pl = M.path.last
+  local pl = path.last
   assertEq({'/a/b', 'c/'}, {pl'/a/b/c/'})
   assertEq({'a/b', 'c/'},  {pl'a/b/c/'})
   assertEq({'/a', 'b/'},   {pl'/a/b/'})

@@ -2,6 +2,7 @@
 
 local mty    = require'metaty'
 local ds     = require'ds'
+local path   = require'ds.path'
 local log    = require'ds.log'
 local Gap    = require'lines.Gap'
 local Buffer = require'rebuf.buffer'.Buffer
@@ -49,7 +50,7 @@ end
 -- If v is a string this will first check if a buffer exists at the path.
 Ed.buffer = function(ed, v) --> Buffer
   if type(v) == 'string' then
-    v = ds.path.abs(v)
+    v = path.abs(v)
     for _, b in pairs(ed.buffers) do
       if v == b.dat.path then return b end
     end

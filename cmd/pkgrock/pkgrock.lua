@@ -12,7 +12,7 @@ local ds  = require'ds'
 local shim = require'shim'
 local civix = require'civix'
 local push, sfmt = table.insert, string.format
-local pth = ds.path
+local pth = require'ds.path'
 
 local UPLOAD = [[luarocks upload %s --api-key=%s]]
 

@@ -8,7 +8,7 @@ local lib  = require'civix.lib'; local C = lib
 local fd   = require'fd'
 local lap  = require'lap'
 
-local path = ds.path
+local path = require'ds.path'
 local concat, sfmt = table.concat, string.format
 local push, pop = table.insert, table.remove
 local yield = coroutine.yield

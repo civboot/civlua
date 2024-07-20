@@ -80,6 +80,7 @@ M.iden      = function(...) return ... end -- identity function
 M.retTrue   = function() return true  end
 M.retFalse  = function() return false end
 M.newTable  = function() return {}    end
+M.eq        = function(a, b) return a == b end
 
 M.srcloc = function(level) --> "/path/to/dir/file.lua:10"
   local tb  = debug.traceback(nil, 2 + (level or 0))
@@ -207,144 +208,6 @@ M.usub = function(s, si, ei, len)
   end
   local eo = uoff(s, ei - si + 2, so) -- offset of character after ei
   return s:sub(so, eo and (eo - 1) or nil)
-end
-
---------------------
--- Working with file paths
-
--- get current working directory
-M.cwd = function() return CWD or os.getenv'PWD' or os.getenv'CD' end
-
-M.home = function() return HOME or os.getenv'HOME'
-                        or os.getenv'HOMEDIR'      end
-
--- submodule for paths.
--- Call directly to convert a list|str to a list of path components.
-M.path = mod and mod'ds.path' or setmetatable({}, {})
-getmetatable(M.path).__call = function(_, p)
-  if type(p) == 'table' then return p end
-  p = M.splitList(p, '/+')
-  if p[1] == ''  then p[1] = '/' end
-  local len = #p
-  if len > 1 and p[len] == '' then
-    p[len - 1] = p[len - 1]..'/'; p[len] = nil
-  end
-  return p
-end
-
--- join a table of path components
-M.path.concat = function(t)
-  if #t == 0 then return '' end
-  local root = (t[1]:sub(1,1)=='/') and '/' or ''
-  local dir  = (t[#t]:sub(-1)=='/') and '/' or ''
-  local out = {}
-  for i, p in ipairs(t) do
-    p = string.match(p, '^/*(.-)/*$')
-    if p ~= '' then push(out, p) end
-  end; return root..table.concat(out, '/')..dir
-end
-
-
--- return whether a path has any '..' components
-M.path.hasBacktrack = function(path) --> bool. path: [str|list]
-  if type(path) == 'string' then
-    return path:match'^%.%.$' or path:match'^%.%./'
-        or path:match'/%.%./' or path:match'/%.%.$'
-  end
-  for _, c in ipairs(path) do
-    if c == '..' then return true end
-  end; return false
-end
-M.path.ext = function(path) --> boolean. path: [str|list]
-  if type(path) == 'table' then path = path[#path] end
-  return path:match'.*%.([^/]+)$'
-end
-
--- Ensure the path is absolute, using the wd (default=cwd()) if necessary
-M.path.abs = function(path, wd) --> /absolute/path
-  if type(path) == 'string' then
-    if (path:sub(1,1) == '/') then return path end
-    wd = wd or M.cwd()
-    return (wd:sub(-1) == '/') and (wd..path)
-                               or  (wd..'/'..path)
-  end
-  if path[1]:sub(1,1) == '/' then return path end
-  assert(type(wd) == 'string')
-  return M.extend(M.path(wd), path)
-end
-
--- resolve any `..` or `.` path components, making the path
--- absolute if necessary.
-M.path.resolve = function(path, wd) --> list
-  if type(path) == 'table' then path = ds.copy(path)
-  else path = M.path(path) end
-
-  -- walk path, resolving . and ..
-  local i, j, len, last = 1, 1, #path, path[#path]
-  local isdir = last:sub(-1) == '/' or last:match'^/?%.%.?$'
-  while j <= len do
-    local c = path[j]
-    if c == '' or c:match'^/?%./?$'   then j = j + 1 -- '.'  skip
-    elseif        c:match'^/?%.%./?$' then           -- '..' backtrack
-      i = i - 1; j = j + 1
-      if i <= 1 then
-        assert(path[1]:sub(-1) ~= '/', '../ backtrack before root')
-      end
-      if i < 1 then
-        local abs = M.path(wd or M.cwd())
-        len = #abs
-        table.move(path, j, #path + 1, len, abs)
-        i, j      = len, len
-        path, len = abs, #abs
-      end
-    else
-      path[i] = path[j]
-      i = i + 1; j = j + 1
-    end
-  end
-  M.clear(path, i, len)
-  len = #path; last = path[#path]
-  if isdir and last and last:sub(-1) ~= '/' then
-    path[len] = last..'/'
-  end
-  return path
-end
-
--- remove trim from the left side of path.
--- noop if trim is not exactly equal to the left side.
-M.path.trimleft = function(path, trm)
-  for i, c in ipairs(trm) do
-    if not path[i] or (M.trim(c, '/') ~= M.trim(path[i], '/')) then
-      return
-    end
-  end
-  local l, tl = #path, #trm
-  table.move(path, tl + 1, l, 1) -- move to start
-  table.move(EMPTY, 1, tl, l - tl + 1, path) -- clear end
-end
-
--- return a nice short path (list) that is resolved and readable.
-M.path.nice = function(path, wd)
-  wd = wd or M.cwd()
-  path, wd = M.path.resolve(path, wd), M.path(wd)
-  M.path.trimleft(path, wd)
-  if #path == 0 or path[1] == '' then path[1] = './' end
-  return path
-end
-
--- first/middle/last -> ("first", "middle/last")
-M.path.first = function(path)
-  if path:sub(1,1) == '/' then return '/', path:sub(2) end
-  local a, b = path:match('^(.-)/(.*)$')
-  if not a or a == '' or b == '' then return path, '' end
-  return a, b
-end
-
--- first/middle/last -> ("first/middle", "last")
-M.path.last = function(path)
-  local a, b = path:match('^(.*)/(.+)$')
-  if not a or a == '' or b == '' then return '', path end
-  return a, b
 end
 
 ---------------------
@@ -495,6 +358,21 @@ M.setIfNil = function(t, k, v)
   if t[k] == nil then t[k] = v end
 end
 M.emptyTable = function() return {} end
+
+-- remove (mutate) the left side of the table (list).
+-- noop if rm is not exactly equal to the left side.
+M.rmleft = function(t, rm, eq--[[ds.eq]]) --> t (mutated)
+  eq = eq or ds.eq
+  for i, v in ipairs(rm) do
+    if not t[i] or not eq(v, t[i]) then
+      return
+    end
+  end
+  local l, rl = #t, #rm
+  move(t,     rl + 1, l,  1) -- move to start
+  move(EMPTY, 1,      rl, l - rl + 1, t) -- clear end
+  return t
+end
 
 -- used with ds.get and ds.set
 -- Example:
@@ -1261,7 +1139,6 @@ M.R = setmetatable({}, {
 -- Example:
 --   M.myData = ds.resource'data/myData.csv'
 M.resource = function(relpath)
-  assert(not relpath:match'%.%./', 'previous path ".." not allowed')
   return M.readPath(M.srcdir(1)..relpath)
 end
 

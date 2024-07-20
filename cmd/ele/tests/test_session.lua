@@ -9,12 +9,13 @@ local edit = require'ele.edit'
 local es = require'ele.session'
 local Buffer = require'rebuf.buffer'.Buffer
 local Fake = require'vt100.testing'.Fake
+local path = require'ds.path'
 
 local str = mty.tostring
 local aeq = T.assertEq
 
 local _CWD = CWD
-CWD = ds.path.abs(ds.srcdir()) -- override global
+CWD = path.abs(ds.srcdir()) -- override global
 
 local SMALL = CWD..'small.lua'
 local LINES3 =
