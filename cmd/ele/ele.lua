@@ -15,7 +15,7 @@ M.exe = function(args)
   local vt = require'vt100'
   log.info('ele exe', args)
   -- TODO: handle args
-  local s = args.session or require'ele.session'.Session:user{}
+  local s = args.session or require'ele.Session':user{}
   local keysend = s.keys:sender()
 
   local l = require'civix'.Lap{}:run(

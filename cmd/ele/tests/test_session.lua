@@ -6,7 +6,7 @@ local ds, lines = require'ds', require'lines'
 local log = require'ds.log'
 local etest = require'ele.testing'
 local edit = require'ele.edit'
-local es = require'ele.session'
+local Session = require'ele.Session'
 local Buffer = require'rebuf.buffer'.Buffer
 local Fake = require'vt100.testing'.Fake
 local path = require'ds.path'
@@ -37,7 +37,7 @@ local Test = mty.record'session.Test' {
 }
 getmetatable(Test).__call = function(Ty, t)
   t = mty.construct(Ty, t)
-  t.s = t.s or es.Session:test(); local ed = t.s.ed
+  t.s = t.s or Session:test(); local ed = t.s.ed
   ed.display = Fake{h=t.th, w=t.tw}
   T.asyncTest(assert(t[1], 'need name'), function()
     if t.dat then

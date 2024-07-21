@@ -40,6 +40,7 @@ Short:
   r: --depth='' (infinite recursion)
   F: no special features (%pat parsing, etc)
 ]]
+local M = mod and mod'ff' or {}
 
 local shim = require'shim'
 local mty = require'metaty'
@@ -47,26 +48,32 @@ local ds = require'ds'
 local civix = require'civix'
 local push = table.insert
 
-local M = {}
+local s = ds.simplestr
+
+
 -- List arguments:
 --   path path2 path3 ...: list of paths to find/fix
-M.FF = mty'FF' {
+M.ff = mty'ff' {
   [[depth[int]: depth to recurse (default=infinite)]],
   [[files[bool]: log/return files or substituted files.]],     files=true,
   [[matches[bool]: log/return the matches or substitutions.]], matches=true,
   [[dirs[bool]: log/return directories.]],                     dirs=false,
   [[fpat[string]: file name pattern to include.]],
-  [[pat[table]: content pattern/s which searches inside of files
+ s[[
+    pat[table]: content pattern/s which searches inside of files
     and prints the results. Any match will include the file/line in
     the output in order. sub will use the first match found.]],
-  [[dpat: directory name patterns to include, can specify multiple
+ s[[
+    dpat: directory name patterns to include, can specify multiple
     times.  ANY matches will include the directory.]],
-  [[excl [table]: exclude pattern (default='/%.[^/]+/') 
+ s[[
+    excl [table]: exclude pattern (default='/%.[^/]+/') 
     The default exclude ".hidden" directories.
     Can specify multiple times ANY matches will exclude the path]],
   [[mut [bool]: if true files may be modified. mut=false is like dry]],
     mut=false,
-  [[fsub[string]: file substitute for fpat (rename files).
+ s[[
+    fsub[string]: file substitute for fpat (rename files).
     Note: ff will never rename dirs.]],
   [[sub [string]: substitute pattern to go with pat (see lua's gsub)]],
   [[log: path or (Lua) filehandle to log to.]],
@@ -75,10 +82,8 @@ M.FF = mty'FF' {
   [[plain [bool]: no line numbers]], plain=false,
 }
 
--- FIXME
--- local f = mty.helpFmter(); mty.helpFields(M.FF, f)
--- M.DOC = DOC..'\n'..table.concat(f); f = nil; DOC = nil
-M.DOC = DOC
+M.DOC = DOC..'\n#############\n# ARGS\n'
+      ..(require'doc'(M.ff):match'.-\n(.-)%-%-+ CODE')
 
 local function wln(f, msg, pre, i)
   if pre then f:write(pre) end
@@ -190,9 +195,9 @@ M.findfix = function(args, out, isExe)
   end
 
   if isExe then local ok;
-    ok, args = pcall(M.FF, args)
+    ok, args = pcall(M.ff, args)
     if not ok then io.stderr:write(args, '\n'); os.exit(1) end
-  else args = M.FF(args) end
+  else args = M.ff(args) end
 
   -- args.dpre    = args.dpre or '\n'
   out = out or {

@@ -41,7 +41,6 @@ M.encodeNames = function(names) --> string
   return '| '..table.concat(names, '\t| ')
 end
 M.encodeRow = function(names, row, types, serdeMap)
-  mty.print('!! encoding', row, 'names=', names, 'types=', types)
   local ec, out = M.encodeCell, {}
   for i, name in ipairs(names) do
     local v = row[name]
@@ -141,7 +140,6 @@ M.decodeCell = function(cell, de)
   return d
 end
 M.decodeRow = function(names, row, types, serdeMap)
-  mty.print('!! decodeRow serdeMap', serdeMap)
   local i, out, dc = 1, {}, M.decodeCell
   for _, cell in ds.split(row, '\t') do
     local de = serdeMap[types and types[i]]
@@ -197,7 +195,6 @@ end
 -- store(file, t, names=orderedKeys(t[1]), types=nil)
 -- simple store function
 M.store = function(file, t, names, types, serdeMap) --> encoder
-  mty.print('!! store', t, names, types)
   local enc = M.Encoder{serdeMap=serdeMap or M.SerdeMap}
   if types then file:write(enc:types(types), '\n') end
   file:write(enc:names(names or ds.orderedKeys(t[1])), '\n')

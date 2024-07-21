@@ -112,13 +112,13 @@ M.rmleft = function(path, rm)
   return ds.rmleft(path, rm, M.itemeq)
 end
 
--- return a nice short path (list) that is resolved and readable.
-M.nice = function(path, wd)
+-- return a nice short path (string) that is resolved and readable.
+M.nice = function(path, wd) --> string
   wd = wd or M.cwd()
   path, wd = M.resolve(path, wd), M(wd)
   M.rmleft(path, wd)
   if #path == 0 or path[1] == '' then path[1] = './' end
-  return path
+  return M.concat(path)
 end
 
 -- first/middle/last -> ("first", "middle/last")

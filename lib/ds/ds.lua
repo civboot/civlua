@@ -5,6 +5,7 @@ local M = mod and mod'ds' or {}
 local mty = require'metaty'
 local push, pop, sfmt    = table.insert, table.remove, string.format
 local move, sort, unpack = table.move, table.sort, table.unpack
+local concat             = table.concat
 local ulen, uoff     = utf8.len, utf8.offset
 local max = math.max
 local xpcall, traceback = xpcall, debug.traceback
@@ -95,7 +96,7 @@ M.srcdir = function(level) --> "/path/to/dir/"
 end
 
 M.coroutineErrorMessage = function(cor, err)
-  return table.concat{
+  return concat{
     'Coroutine error: ', debug.stacktraceback(cor, err), '\n',
     'Coroutine failed!',
   }
@@ -168,7 +169,7 @@ end
 M.explode = function(s) return M.matches(s, '.') end
 M.concatToStrs = function(t, sep)
   local o = {}; for _, v in ipairs(t) do push(o, str(v)) end
-  return table.concat(o, sep)
+  return concat(o, sep)
 end
 
 M.diffCol = function(sL, sR)
@@ -210,9 +211,40 @@ M.usub = function(s, si, ei, len)
   return s:sub(so, eo and (eo - 1) or nil)
 end
 
+-- A way to declare simpler mulitline strings which:
+-- 1. ignores the first/last newline if empty
+-- 2. removes leading whitespace equal to the first
+--    line.
+--
+-- Example:
+--   local s = require'ds'.simplestr
+--   local mystr = s[[
+--     this is
+--       a string.
+--   ]]
+--   assertEq('this is\n  a string.', mystr)
+M.simplestr = function(s)
+  local i, out, iden, spcs = 1, {}, nil
+  for _, line in M.split(s, '\n') do
+    spcs = line:match'%s*'
+    if iden then -- later lines, iden already set
+      assert((#spcs == #line) or (#spcs >= #iden), 'invalid indent')
+      push(out, line:sub(#iden + 1))
+    else -- first lines, set iden
+      if i == 1 and line == '' then -- skip empty first line
+      else
+        iden = spcs
+        push(out, line:sub(#iden + 1))
+      end
+    end
+    i = i + 1
+  end
+  if out[#out] == '' then pop(out) end
+  return concat(out, '\n')
+end
+
 ---------------------
 -- Table Functions
-
 M.isEmpty = function(t) return next(t) == nil end
 
 -- sort table and return it.

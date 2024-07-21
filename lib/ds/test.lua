@@ -29,6 +29,7 @@ local d8 = require'ds.utf8'
 local df = require'ds.file'
 local dp = M.dotpath
 local path = require'ds.path'
+local s = M.simplestr
 
 ---------------------
 -- ds.lua
@@ -44,6 +45,21 @@ test('loc', function()
      assertEq(   'lib/ds/',          M.srcdir(1))
      assertMatch('.*/lib/civtest/$', M.srcdir(2))
   end; fn()
+end)
+
+test('simplestr', function()
+  assertEq('this is\n  a simple str.', s[[
+    this is
+      a simple str.
+  ]])
+
+  assertEq('easy',    s[[easy]])
+  assertEq('easy  ',  s[[  easy  ]])
+  assertEq('easy\n  ',  s[[easy
+  ]])
+  assertEq('easy',  s[[
+  easy
+  ]])
 end)
 
 test('bool and none', function()
@@ -388,10 +404,10 @@ test('path', function()
   assertErrorPat('before root', function() pr('/a/../../') end)
 
   local pn = path.nice
-  assertEq({'./'},               pn('a/..'))
-  assertEq({'/', 'a', 'b/'},     pn('..', '/a/b/c/'))
-  assertEq({'d', 'e'},           pn('/a/b/c/d/e',  '/a/b/c'))
-  assertEq({'d', 'e/'},          pn('/a/b/c/d/e/', '/a/b/c'))
+  assertEq('./',        pn('a/..'))
+  assertEq('/a/b/',     pn('..', '/a/b/c/'))
+  assertEq('d/e',       pn('/a/b/c/d/e',  '/a/b/c'))
+  assertEq('d/e/',      pn('/a/b/c/d/e/', '/a/b/c'))
 
   local pe = path.ext
   assertPath(pe, 'foo', 'coo.foo')

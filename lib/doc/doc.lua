@@ -21,6 +21,7 @@ local mty  = require'metaty'
 local ds   = require'ds'
 local sfmt = string.format
 local push = table.insert
+local pth = require'ds.path'
 
 --------------------
 -- Global Functions
@@ -471,7 +472,7 @@ M.Doc = mty'Doc' {
 }
 M.DocItem = mty'DocItem' {
   'name', 'ty [string]', 'path [string]',
-  'default [any]'
+  'default [any]', 'doc [string]', doc = '',
 }
 
 local function fmtItems(f, items, name)
@@ -498,13 +499,14 @@ M.DocItem.__tostring = function(di)
   local ty = di.ty and (': '..mty.tyName(di.ty))
   local def = type(di.default) ~= 'nil' and mty.format(' = %q', di.default)
   ty = (ty or '')..(def or '')
+  local doc = di.doc ~= '' and ('\n| '..(di.doc:gsub('\n', '\n| ')..'\n')) or ''
 
   local path; if di.path then
     path = di.path:match'([^/]*/[^/]+:%d+)'
     path = path and sfmt('(%s)', path)
   end
-  return string.format('%-16s%-20s%s',
-    di.name or '?', ty or '', path or '')
+  return sfmt('%-16s%-20s%s%s',
+    di.name or '?', ty or '', path or '', doc)
 end
 
 getmetatable(M.Doc).__call = function(T, obj)
@@ -517,9 +519,11 @@ getmetatable(M.Doc).__call = function(T, obj)
   d.fields, d.other = {}, {}
   local fields = rawget(obj, '__fields')
   if fields then
+    local docs   = rawget(obj, '__docs') or {}
     for _, field in ipairs(fields) do
       push(d.fields, M.DocItem{
         name=field, ty=fields[field], default=rawget(obj, field),
+        doc = docs[field],
       })
     end
   end
@@ -555,7 +559,8 @@ M.full = function(obj)
   local com, code = M.findcode(d.path)
   if not com then com, code = {}, {} end
   local f = mty.Fmt{}
-  push(f, sfmt('## %s (%s) ty=%s\n', d.name, d.path or '?/?', d.ty or '?'))
+  push(f, sfmt('## %s (%s) ty=%s\n',
+    d.name, pth.nice(d.path or '?/?'), d.ty or '?'))
   M.stripComments(com)
   for _, l in ipairs(com) do push(f, l); push(f, '\n') end
   fmtAttrs(d, f)

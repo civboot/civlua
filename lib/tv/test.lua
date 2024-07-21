@@ -49,7 +49,6 @@ T.test('cell', function()
 end)
 
 local assertFull = function(encoded, t, names, types, smap)
-  mty.print('!! assertFull', t, names, types)
   local f = io.tmpfile();
   f:write"' testfile\n"
   local enc = M.store(f, t, names, types, smap)

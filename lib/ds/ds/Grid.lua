@@ -36,8 +36,6 @@ end
 -- insert the str|lines into the grid at l.c
 -- this handles newlines by inserting at the same column
 G.insert = function(g, l, c, str)
-  require'ds.log'.trace('!! start:\n%s', mty.tostring(g))
-  require'ds.log'.trace('!! inserting:\n%s', mty.tostring(str))
   for _l, lstr in split(str) do
     local llen = 0
     local line = g[l]; if not line then return end
@@ -45,12 +43,10 @@ G.insert = function(g, l, c, str)
       llen = llen + 1
       local lc = c + llen - 1; assert(lc <= g.w, 'line+c too long')
       for i=#line+1,lc-1 do line[i] = ' ' end -- fill spaces
-      print('!! inserting', _l, lc, char(code))
       line[lc] = char(code)
     end
     l = l + 1
   end
-  require'ds.log'.trace('!! inserted, now:\n%s', mty.tostring(g))
 end
 
 G.__fmt = function(g, fmt)

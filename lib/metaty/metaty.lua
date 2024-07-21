@@ -189,6 +189,7 @@ M.constructUnchecked = function(T, t)
 end
 M.construct = (CHECK and M.constructChecked) or M.constructUnchecked
 M.extendFields = function(fields, R)
+  local docs = {}
   for i=1,#R do
     local spec = rawget(R, i); rawset(R, i, nil)
     -- name [type] : some docs, but [type] and ':' are optional.
@@ -200,14 +201,15 @@ M.extendFields = function(fields, R)
     assert(name,      'invalid spec')
     assert(#name > 0, 'empty name')
     add(fields, name); fields[name] = tyname or true
+    docs[name] = fdoc ~= '' and fdoc or nil
   end
-  return fields
+  return fields, docs
 end
 
 
 M.namedRecord = function(name, R, loc)
   rawset(R, '__name', name)
-  R.__fields = M.extendFields({}, R)
+  R.__fields, R.__docs = M.extendFields({}, R)
   R.__index  = rawget(R, '__index') or R
   local mt = {
     __name='Ty<'..R.__name..'>',

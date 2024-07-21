@@ -3,7 +3,7 @@ M = mod and mod'ele.testing' or {}
 
 local buffer = require'rebuf.buffer'
 local eb = require'ele.bindings'
-local es = require'ele.session'
+local Session = require'ele.Session'
 local edit = require'ele.edit'
 
 local push = table.insert
@@ -11,7 +11,7 @@ local push = table.insert
 M.SLEEP = 0
 
 M.newSession = function(text)
-  local s = es.Session:test(); local ed = s.ed
+  local s = Session:test(); local ed = s.ed
   push(ed.buffers, buffer.Buffer.new(text))
   ed.edit = edit.Edit(nil, ed.buffers[1])
   return s

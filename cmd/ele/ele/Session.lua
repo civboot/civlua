@@ -1,6 +1,14 @@
--- User module: set up an actual user to use
-local M = mod and mod'ele.user' or {}
 local mty = require'metaty'
+-- Session: holds the main objects of an ed session.
+--   This are not directly available to actions/etc
+--   This also makes it easier to setup tests/etc.
+local Session = mty'Session' {
+  'ed [Ed]',
+  'events [Recv]', 'evsend [Send]',
+  'keys [Recv]', 'keysend [Send]',
+  'logf [File]',
+}
+
 local ds = require'ds'
 local log = require'ds.log'
 local lap = require'lap'
@@ -16,13 +24,7 @@ local yield = coroutine.yield
 -- local FRAME = 0.05
 local FRAME = 0.05
 
-M.Session = mty'Session' {
-  'ed [Ed]',
-  'events [Recv]', 'evsend [Send]',
-  'keys [Recv]', 'keysend [Send]',
-  'logf [File]',
-}
-M.Session.init = function(T, s)
+Session.init = function(T, s)
   s = s or {}
   s.ed = s.ed or Ed:init()
   s.events = lap.Recv(); s.evsend = s.events:sender()
@@ -31,14 +33,14 @@ M.Session.init = function(T, s)
   return T(s)
 end
 -- init test session
-M.Session.test = function(T, ed)
+Session.test = function(T, ed)
   local s = T:init(ed)
   s.ed.error = log.LogTable{}
   s.ed.warn  = log.warn
   return s
 end
 -- init (not run) real user session
-M.Session.user = function(T, ed)
+Session.user = function(T, ed)
   local s = T:init(ed)
   s.ed.error = log.err
   s.ed.warn  = log.warn
@@ -47,7 +49,7 @@ end
 
 
 -- run events until they are exhuasted
-M.Session.run = function(s)
+Session.run = function(s)
   local actions = s.ed.actions
   while #s.events > 0 do
     local ev = s.events()
@@ -71,7 +73,7 @@ end
 
 -- send chord of keys and play them (run events)
 -- this is only used in tests
-M.Session.play = function(s, chord)
+Session.play = function(s, chord)
   log.info('play %q', chord)
   s.keysend:extend(bindings.chord(chord))
   while (#s.keys > 0) or (#s.events > 0) do yield(true) end
@@ -81,7 +83,7 @@ M.Session.play = function(s, chord)
 end
 
 -- Start a user session
-M.Session.handleEvents = function(s)
+Session.handleEvents = function(s)
   assert(LAP_ASYNC, 'must be started in async mode')
   assert(s.ed and s.keys)
   lap.schedule(function()
@@ -100,10 +102,10 @@ M.Session.handleEvents = function(s)
 end
 
 -- draw coroutine
-M.Session.draw = function(s)
+Session.draw = function(s)
    while s.ed.run do
      if s.ed.redraw then
-       d:resize()
+       s.ed.display:resize()
        s.ed:draw()
        s.ed.display:draw()
        s.ed.redraw = false
@@ -112,4 +114,4 @@ M.Session.draw = function(s)
    end
 end
 
-return M
+return Session
