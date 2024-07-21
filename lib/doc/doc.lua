@@ -499,7 +499,8 @@ M.DocItem.__tostring = function(di)
   local ty = di.ty and (': '..mty.tyName(di.ty))
   local def = type(di.default) ~= 'nil' and mty.format(' = %q', di.default)
   ty = (ty or '')..(def or '')
-  local doc = di.doc ~= '' and ('\n| '..(di.doc:gsub('\n', '\n| ')..'\n')) or ''
+  local doc = di.doc ~= '' and
+    sfmt('\n| %s\n', di.doc:gsub('\n', '\n| ')) or ''
 
   local path; if di.path then
     path = di.path:match'([^/]*/[^/]+:%d+)'

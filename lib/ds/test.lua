@@ -48,6 +48,8 @@ test('loc', function()
 end)
 
 test('simplestr', function()
+  assertEq('a', [[
+a]])
   assertEq('this is\n  a simple str.', s[[
     this is
       a simple str.
@@ -55,7 +57,9 @@ test('simplestr', function()
 
   assertEq('easy',    s[[easy]])
   assertEq('easy  ',  s[[  easy  ]])
-  assertEq('easy\n  ',  s[[easy
+  assertEq('easy\nhi\nthere',  s[[easy
+    hi
+    there
   ]])
   assertEq('easy',  s[[
   easy

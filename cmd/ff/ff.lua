@@ -50,40 +50,37 @@ local push = table.insert
 
 local s = ds.simplestr
 
-
--- List arguments:
---   path path2 path3 ...: list of paths to find/fix
-M.ff = mty'ff' {
-  [[depth[int]: depth to recurse (default=infinite)]],
-  [[files[bool]: log/return files or substituted files.]],     files=true,
-  [[matches[bool]: log/return the matches or substitutions.]], matches=true,
-  [[dirs[bool]: log/return directories.]],                     dirs=false,
-  [[fpat[string]: file name pattern to include.]],
- s[[
-    pat[table]: content pattern/s which searches inside of files
-    and prints the results. Any match will include the file/line in
-    the output in order. sub will use the first match found.]],
- s[[
-    dpat: directory name patterns to include, can specify multiple
-    times.  ANY matches will include the directory.]],
- s[[
-    excl [table]: exclude pattern (default='/%.[^/]+/') 
-    The default exclude ".hidden" directories.
-    Can specify multiple times ANY matches will exclude the path]],
-  [[mut [bool]: if true files may be modified. mut=false is like dry]],
+-- List arguments: 'path1', 'path2', 'path3'
+M.Args = mty'Args' {
+  'depth[int]:    depth to recurse (default=infinite)',
+  'files[bool]:   log/return files or substituted files.',   files=true,
+  'matches[bool]: log/return the matches or substitutions.', matches=true,
+  'dirs[bool]:    log/return directories.',                  dirs=false,
+s[[pat[table]:
+     (shortcut: %foo == --pat=foo; multi: sub uses first)
+     content pattern/s which searches inside of files
+     and prints the results.]],
+  'sub [string]: substitute pattern to go with pat (see lua\'s gsub)',
+  'fpat[string]:  (multi) file name pattern to include.',
+s[[fsub[string]:
+     file substitute for fpat. Renames files (not directories).]],
+s[[dpat[string]:
+     (multi: any includes)
+     directory name patterns to include.
+     ANY match will cause dir to be included.]],
+s[[excl [table]:
+     (multi: any match excludes)
+     exclude pattern (default='/%.[^/]+/' -- aka hidden)]],
+  'mut [bool]: if true files may be modified, else dry run',
     mut=false,
- s[[
-    fsub[string]: file substitute for fpat (rename files).
-    Note: ff will never rename dirs.]],
-  [[sub [string]: substitute pattern to go with pat (see lua's gsub)]],
-  [[log: path or (Lua) filehandle to log to.]],
-  [[fpre[string]: prefix characters before printing files]],        fpre='',
-  [[dpre [string]: prefix characters before printing directories]], dpre='',
-  [[plain [bool]: no line numbers]], plain=false,
+  'log: path or (Lua) filehandle to log to.',
+  'fpre[string]: prefix characters before printing files',        fpre='',
+  'dpre [string]: prefix characters before printing directories', dpre='',
+  'plain [bool]: no line numbers', plain=false,
 }
 
 M.DOC = DOC..'\n#############\n# ARGS\n'
-      ..(require'doc'(M.ff):match'.-\n(.-)%-%-+ CODE')
+      ..(require'doc'(M.Args):match'.-\n(.-)%-%-+ CODE')
 
 local function wln(f, msg, pre, i)
   if pre then f:write(pre) end
@@ -169,7 +166,7 @@ local function argPats(args)
   end; return ds.extend(ds.reverse(pat), shim.list(args.pat))
 end
 
-M.findfix = function(args, out, isExe)
+getmetatable(M).__call = function(_, args, out, isExe)
   local argsTy = type(args); args = shim.parseStr(args, true)
   args.pat = argPats(args)
   if #args == 0 then push(args, '.') end
@@ -195,9 +192,9 @@ M.findfix = function(args, out, isExe)
   end
 
   if isExe then local ok;
-    ok, args = pcall(M.ff, args)
+    ok, args = pcall(M.Args, args)
     if not ok then io.stderr:write(args, '\n'); os.exit(1) end
-  else args = M.ff(args) end
+  else args = M.Args(args) end
 
   -- args.dpre    = args.dpre or '\n'
   out = out or {
@@ -222,7 +219,7 @@ M.exe = function(args, isExe)
   if not args.depth   then args.depth = 1   end
   if args.depth == '' then args.depth = -1 end
   args.log = io.stdout
-  M.findfix(args, {}, true)
+  M(args, {}, true)
 end
 
 M.shim = shim{help = M.DOC, exe = M.exe}

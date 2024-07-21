@@ -214,7 +214,7 @@ end
 -- A way to declare simpler mulitline strings which:
 -- 1. ignores the first/last newline if empty
 -- 2. removes leading whitespace equal to the first
---    line.
+--    line (or second line if first line has no indent)
 --
 -- Example:
 --   local s = require'ds'.simplestr
@@ -226,16 +226,14 @@ end
 M.simplestr = function(s)
   local i, out, iden, spcs = 1, {}, nil
   for _, line in M.split(s, '\n') do
-    spcs = line:match'%s*'
+    spcs = line:match'^%s*'
+    print(sfmt('!! line %i %q spcs=%q', i, line, spcs))
     if iden then -- later lines, iden already set
       assert((#spcs == #line) or (#spcs >= #iden), 'invalid indent')
       push(out, line:sub(#iden + 1))
-    else -- first lines, set iden
-      if i == 1 and line == '' then -- skip empty first line
-      else
-        iden = spcs
-        push(out, line:sub(#iden + 1))
-      end
+    else -- set iden from line 1 (if exists) or line 2
+      iden = (i > 1 or spcs ~= '') and spcs or nil
+      push(out, line:sub(#spcs + 1))
     end
     i = i + 1
   end
