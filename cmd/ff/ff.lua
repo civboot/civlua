@@ -19,7 +19,6 @@ Examples (bash):
   ff path --fpat='%.txt'    # filter to .txt files
   ff path --fpat='(.*)%.txt' --fsub='%1.md'  # rename all .txt -> .md
   # rename OldTestClass -> NewTestClass, 'C' is not case sensitive.
-  ff -r --pat='OldTest([Cc]lass)' --sub='NewTesting%1 --mut
 
 Special:
   indexed %arg will be converged to --pat=arg
@@ -47,6 +46,7 @@ local mty = require'metaty'
 local ds = require'ds'
 local civix = require'civix'
 local push = table.insert
+local fd = require'fd'
 
 local s = ds.simplestr
 
@@ -77,6 +77,7 @@ s[[excl [table]:
   'fpre[string]: prefix characters before printing files',        fpre='',
   'dpre [string]: prefix characters before printing directories', dpre='',
   'plain [bool]: no line numbers', plain=false,
+  'color [true|false|always|never]: whether to use color',
 }
 
 M.DOC = DOC..'\n#############\n# ARGS\n'
@@ -179,11 +180,10 @@ getmetatable(M).__call = function(_, args, out, isExe)
   )end
 
   shim.bools(args, 'files', 'matches', 'dirs')
-  args.depth = shim.number(args.depth or 1)
+  args.depth = shim.number(args.depth or -1)
   args.dpat  = shim.list(args.dpat)
   args.excl  = shim.list(shim.excl, {'/%.[^/]+/'}, {})
   shim.short(args, 'd', 'dirs',  true)
-  shim.short(args, 'r', 'depth', -1)
   shim.short(args, 'm', 'mut',   true)
   shim.short(args, 'p', 'plain', true)
   if args.depth < 0 then args.depth = nil end
@@ -202,6 +202,7 @@ getmetatable(M).__call = function(_, args, out, isExe)
     matches = args.matches and {} or nil,
   }
   out.log = args.log
+  args.color = shim.color(args.color, fd.isatty(out.log))
   civix.walk(
     args, {
       file=function(path, _ftype)   return _fileFn(path, args, out)      end,
@@ -216,7 +217,6 @@ end
 
 M.exe = function(args, isExe)
   assert(isExe)
-  if not args.depth   then args.depth = 1   end
   if args.depth == '' then args.depth = -1 end
   args.log = io.stdout
   M(args, {}, true)
