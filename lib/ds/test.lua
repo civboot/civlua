@@ -412,6 +412,7 @@ test('path', function()
   assertEq('/a/b/',     pn('..', '/a/b/c/'))
   assertEq('d/e',       pn('/a/b/c/d/e',  '/a/b/c'))
   assertEq('d/e/',      pn('/a/b/c/d/e/', '/a/b/c'))
+  assertEq('a',         pn('./a'))
 
   local pe = path.ext
   assertPath(pe, 'foo', 'coo.foo')

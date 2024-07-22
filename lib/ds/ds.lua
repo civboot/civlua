@@ -227,7 +227,6 @@ M.simplestr = function(s)
   local i, out, iden, spcs = 1, {}, nil
   for _, line in M.split(s, '\n') do
     spcs = line:match'^%s*'
-    print(sfmt('!! line %i %q spcs=%q', i, line, spcs))
     if iden then -- later lines, iden already set
       assert((#spcs == #line) or (#spcs >= #iden), 'invalid indent')
       push(out, line:sub(#iden + 1))
