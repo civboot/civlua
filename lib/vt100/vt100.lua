@@ -13,10 +13,53 @@ local d8  = require'ds.utf8'
 
 local min = math.min
 local char, byte, slen = string.char, string.byte, string.len
-local lower            = string.lower
+local lower, upper     = string.lower, string.upper
 local ulen = utf8.len
 local push, unpack, sfmt = table.insert, table.unpack, string.format
 local io = io
+
+local ty = mty.ty
+
+M.Style = mty'Style' {
+  'fg [int]: fg color code',
+  'bg [int]: bg color code',
+  'bold [bool]', 'ul [bool]',
+}
+
+-- VT100 File object. Useful for writing color/etc
+M.File = mty.extend(require'ds.File', 'File', {
+  '_style [Style]',
+})
+M.File.style = function(f, s)
+  local _s = f._style
+  if not s or not next(s) then
+    if not next(_s) then return end
+    color(0)
+    for k, v in pairs(_s) do _s[k] = nil end
+    return
+  end
+  if (_s.fg == s.fg) and (_s.bg == s.bg)
+     and (_s.bold == s.bold) and (_s.ul == s.ul) then
+     return -- no changes
+  end
+  color(0)
+  if s.fg or s.bg then colorFB(s.fg, s.bg) end
+  if s.bold       then color(M.Style.bold) end
+  if s.ul         then color(M.Style.underline) end
+end
+
+-- ascii style
+M.File.astyle = function(f, fg, bg)
+  return f:style{
+    fg=fg and M.fgColor(fg), bg=bg and M.bgColor(bg),
+    bold = fg and fg~=' ' and fg==upper(fg),
+    ul   = bg and bg~=' ' and bg==upper(bg),
+  }
+end
+M.File.write = function(f, ...)
+
+end
+
 
 -- VT100 Terminal Emulator
 --   Write the text to display
@@ -52,7 +95,6 @@ M.Term.clear = function(tm)
 end
 
 M.Term.__fmt = function(tm, fmt) return tm.text:__fmt(fmt) end
-
 
 ---------------------------------
 -- CONSTANTS (and working with them)
@@ -95,6 +137,10 @@ M.BgColor = { -- background
 
   -- lightred  ..green    ..blue    ..magenta
   orange = 91, tea = 92,  sky = 94, pink = 95
+}
+M.Style = { -- use with color()
+  reset = 0, bold = 1, underline = 4,
+  invert = 7, -- invert fg/bg
 }
 
 M.fgColor = function(c) --> colorCode
