@@ -3,6 +3,8 @@
 -- License CC0 / UNLICENSE
 -- Originally written 2022 Phil Leblanc, modified 2023 Rett Berg (Civboot.org)
 -- Authorized for relicense in: http://github.com/philanc/plterm/issues/4
+
+-- Module for interacting with the vt100 via keys and AsciiColors.
 local M = mod and mod'vt100' or {}
 
 local mty = require'metaty'
@@ -13,10 +15,38 @@ local d8  = require'ds.utf8'
 
 local min = math.min
 local char, byte, slen = string.char, string.byte, string.len
-local lower            = string.lower
+local lower, upper     = string.lower, string.upper
 local ulen = utf8.len
 local push, unpack, sfmt = table.insert, table.unpack, string.format
 local io = io
+
+local ty = mty.ty
+
+-- Direct terminal control functions
+local ctrl = mod and mod'vt100.ctrl' or {}
+M.ctrl = ctrl
+
+local DEFAULT = {[''] = true, [' '] = true, z=true}
+local RESET, BOLD, UL, INV = 0, 1, 4, 7
+
+-- Write to file using fg+bg 1-2byte ac (AsciiColors) string.
+--
+-- VT100: assumes style is already reset state.
+--        ac=nil resets at start, otherwise resets after writing.
+M.colored = function(f, ac, ...) --> write(...)
+  if not ac then ctrl.color(f, RESET); return f:write(...) end
+  local color = ctrl.color
+  local fg, bg = ac:sub(1,1), ac:sub(2,2)
+  if DEFAULT[bg] then color(f, M.fgColor(fg))
+  else
+    ctrl.colorFB(f, M.fgColor(fg), M.bgColor(bg))
+    if not DEFAULT[bg] and bg==upper(bg) then color(f, UL)   end
+  end
+  if   not DEFAULT[fg] and fg==upper(fg) then color(f, BOLD) end
+  local a, b = f:write(...)
+  color(f, RESET)
+  return a, b
+end
 
 -- VT100 Terminal Emulator
 --   Write the text to display
@@ -53,48 +83,67 @@ end
 
 M.Term.__fmt = function(tm, fmt) return tm.text:__fmt(fmt) end
 
-
 ---------------------------------
 -- CONSTANTS (and working with them)
 
 -- ASCII Color table.
 -- This allows applications to set single characters in a Grid and
 -- have it map to a color (which is looked up in Fg/Bg Color)
-M.AsciiColor = { -- ASCII color definitions (lookup in either direction)
-  z = 'default',   [' '] = 'default',
-  w = 'white',         b = 'black',
-  l = 'lightgrey',     d = 'darkgrey',
+--
+-- In general the first character of the colorname is used,
+-- i.e. 'w' == white. default is 'zero'
+-- Uppercase changes a style:
+--   * fg = bold
+--   * bg = underlined.
+--
+-- ASCII Colors (fg-capital=bold, bg-capital=underlined)
+M.AsciiColor = {
+  z = 'zero',          [' '] = 'zero',
 
-  r = 'red',
-  o = 'orange',
-  y = 'yellow',
-  g = 'green',
-  t = 'tea',     -- lightgreen
-  c = 'cyan',
-  n = 'navy',    -- aka "blue", b is taken for black
-  s = 'sky',     -- lightblue
-  m = 'magenta', -- aka "purple", p is taken for pink
-  p = 'pink',
-}; do local rev = {} -- add reverse lookups
+  --  (dark)           (light)
+  b = 'black',         w = 'white',
+  d = 'darkgrey',      l = 'lightgrey',
+  r = 'red',           p = 'pink',
+  y = 'yellow',        h = 'honey',
+  g = 'green',         t = 'tea',
+  c = 'cyan',          a = 'aqua',
+  n = 'navy',          s = 'sky', -- blue
+  m = 'magenta',       f = 'fuschia',
+}
+do local rev = {} -- add reverse lookups
   for k, v in pairs(M.AsciiColor) do rev[v] = k end
   ds.update(M.AsciiColor, rev)
 end
 
 M.FgColor = { -- foreground
-  default = 39, lightgrey = 37, darkgrey = 90,
-  black   = 30, red     = 31, green   = 32, yellow = 33,
-  navy    = 34, magenta = 35, cyan    = 36, white = 97,
+  zero    = 39,
 
-  -- lightred   ..green     ..blue     ..magenta
-  orange = 101, tea = 102, sky = 104, pink = 105
+  -- (dark)      (light)
+  black   = 30,  white = 97,
+  darkgrey = 90, lightgrey = 37,
+  red     = 31,  pink = 91,
+  green   = 32,  tea = 92,
+  yellow = 33,   honey = 93,
+  cyan    = 36,  aqua = 96,
+  navy    = 34,  sky = 94,
+  magenta = 35,  fuschia = 95,
+
 }
 M.BgColor = { -- background
-	default = 49, lightgrey = 47, darkgrey = 100,
-  black   = 40, red     = 41, green   = 42, yellow = 43,
-  navy    = 44, magenta = 45, cyan    = 46, white = 107,
-
-  -- lightred  ..green    ..blue    ..magenta
-  orange = 91, tea = 92,  sky = 94, pink = 95
+	zero    = 49,
+  -- (dark)       (light)
+  black    = 40,  white = 107,
+  darkgrey = 100, lightgrey = 47,
+  red      = 41,  pink = 101,
+  yellow   = 43,  honey = 103,
+  green    = 42,  tea = 102,
+  cyan     = 46,  aqua = 106,
+  navy     = 44,  sky = 104,
+  magenta  = 45,  fuschia = 105,
+}
+M.Style = { -- use with color()
+  reset = RESET, bold = BOLD, underline = UL,
+  invert = INV, -- invert fg/bg
 }
 
 M.fgColor = function(c) --> colorCode
@@ -205,11 +254,9 @@ end
 ---------------------------------
 -- Terminal Control (functions)
 
-M.ctrl = mod and mod'vt100.ctrl' or {}
-
 local termFn = function(name, fmt)
   local fmt = '\027['..fmt
-  return function(...) io.write(fmt:format(...)) end
+  return function(f, ...) f:write(fmt:format(...)) end
 end
 for name, fmt in pairs{
   clear = '2J',       cleareol= 'K',
@@ -221,13 +268,13 @@ for name, fmt in pairs{
   golc='%i;%iH', hide='?25l', show='?25h',
   save='s',      restore='u', reset='c',
   getlc='6n',
-} do M.ctrl[name] = termFn(name, fmt) end
+} do ctrl[name] = termFn(name, fmt) end
 
 -- causes terminal to send size as (escaped) cursor position
-M.ctrl.size = function()
-  local C = M.ctrl
-  C.save(); C.down(999); C.right(999)
-  C.getlc(); C.restore(); io.flush()
+ctrl.size = function(f)
+  local C = ctrl
+  C.save(f); C.down(f, 999); C.right(f, 999)
+  C.getlc(f); C.restore(f); f:flush()
 end
 
 -------------------
@@ -239,8 +286,8 @@ end
 
 -- send a request for size.
 -- Note: the input() coroutine will receive and call _ready()
-M.Term._requestSize = function(tm)
-  tm._waiting = coroutine.running(); M.ctrl.size()
+M.Term._requestSize = function(tm, f)
+  tm._waiting = coroutine.running(); ctrl.size(f or io.stdout)
 end
 M.Term._ready = function(tm, msg)
   LAP_READY[assert(tm._waiting)] = msg or true
@@ -256,26 +303,29 @@ M.Term.resize = function(tm)
 end
 
 -- draw the text and color(fg/bg) grids to the screen
-M.Term.draw = function(tm)
-  local golc, nextline   = M.ctrl.golc, M.ctrl.nextline
-  local colorFB          = M.ctrl.colorFB
+M.Term.draw = function(tm, fd)
+  fd = fd or io.stdout
+  local golc, nextline   = ctrl.golc, ctrl.nextline
+  local colorFB          = ctrl.colorFB
   local fgC, bgC, fg, bg = M.fgColor, M.bgColor, nil, nil
-  M.ctrl.hide(); M.ctrl.clear()     -- hide cursor and clear screen
-  golc(1, 1)
+  ctrl.hide(fd); ctrl.clear(fd)     -- hide cursor and clear screen
+  golc(fd, 1, 1)
   for l=1, tm.text.h do
     for c=1, tm.text.w do
       local chr = tm.text[l][c]; if not chr then break end
       local f, b = tm.fg[l][c], tm.bg[l][c]
-      if f ~= fg or b ~= bg then
-        fg, bg = f, b; colorFB(fgC(f), bgC(b))
+      if not f or f == ' ' then f = 'z' end
+      if not b or b == ' ' then b = 'z' end
+      if (f ~= fg) or (b ~= bg) then
+        fg, bg = f, b; colorFB(fd, fgC(f), bgC(b))
       end
-      io.write(chr)
+      fd:write(chr)
     end
-    nextline()
+    nextline(fd)
   end
-  M.ctrl.color(0) -- clear color
-  golc(tm.l, tm.c); M.ctrl.show() -- set cursor and show it
-  io.flush()
+  ctrl.color(fd, 0) -- clear color
+  golc(fd, tm.l, tm.c); ctrl.show(fd) -- set cursor and show it
+  fd:flush()
 end
 
 -- function to run in a (LAP) coroutine.
@@ -355,13 +405,11 @@ M.stop = function()
   mt.__gc()
   setmetatable(M.ATEXIT, nil)
   local stdout = M.ATEXIT.stdout
-  io.stdout = stdout
   io.stderr = M.ATEXIT.stderr
   log.info'vt100.stop() complete'
 end
-M.start = function(stdout, stderr, enteredFn, exitFn)
+M.start = function(stderr, ...); assert(select('#', ...) == 0)
   log.info'vt100.start() begin'
-  assert(stdout, 'must provide new stdout')
   assert(stderr, 'must provide new stderr')
   assert(not getmetatable(M.ATEXIT))
   local SAVED, ok, msg = savemode()
@@ -369,16 +417,13 @@ M.start = function(stdout, stderr, enteredFn, exitFn)
   local mt = {
     __gc = function()
       if not getmetatable(M.ATEXIT) then return end
-      M.ctrl.clear()
+      ctrl.clear(io.stdout)
       restoremode(SAVED)
       if exitFn then exitFn() end
    end,
   }
   setmetatable(M.ATEXIT, mt)
-  M.ATEXIT.stdout = io.stdout; M.ATEXIT.stderr = io.stderr
-  -- io.output(stdout)
-  io.stdout = stdout
-  io.stderr = stderr
+  M.ATEXIT.stderr = io.stderr; io.stderr = stderr
   setrawmode(); if enteredFn then enteredFn() end
   log.info'vt100.start() complete'
 end

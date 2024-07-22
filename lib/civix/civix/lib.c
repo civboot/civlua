@@ -49,16 +49,6 @@ static int l_strerrno(LS* L) {
 }
 
 // ---------------------
-// -- FILE
-#ifndef LUA_FILEHANDLE
-#define LUA_FILEHANDLE "FILE*"
-#endif
-#define tolstream(L)    ((luaL_Stream *)luaL_checkudata(L, 1, LUA_FILEHANDLE))
-static int l_ffileno(LS* L) {
-  lua_pushinteger(L, fileno(tolstream(L)->f)); return 1;
-}
-
-// ---------------------
 // -- Time
 int gettime(LS *L, clockid_t clk_id) {
   struct timespec spec = {};
@@ -163,19 +153,6 @@ static int l_stmode(LS *L) {
   struct stat sbuf = {0};
   const char* path = luaL_checkstring(L, 1);
   ASSERT(L, stat(path, &sbuf) == 0, "cannot stat %s: %s", path, SERR);
-  lua_pushinteger(L, sbuf.st_mode);
-  return 1;
-}
-
-static int l_fileno(LS* L) {
-  lua_pushinteger(L, fileno(tolstream(L)->f)); return 1;
-}
-
-// fmode(fileno) -> st_mode
-// See pathstat for constants.
-static int l_fstmode(LS *L) {
-  int fd = luaL_checkinteger(L, 1); struct stat sbuf = {0};
-  ASSERT(L, fstat(fd, &sbuf) == 0, "fstat failed: %s", SERR);
   lua_pushinteger(L, sbuf.st_mode);
   return 1;
 }
@@ -294,11 +271,9 @@ static const struct luaL_Reg civix_lib[] = {
   {"epoch", l_epoch}, {"mono", l_mono},
   {"nanosleep", l_nanosleep},
   {"dir", l_dir}, {"stmode", l_stmode},
-  {"fileno", l_fileno}, {"fstmode", l_fstmode},
   {"mkdir", l_mkdir}, {"rm",  l_rm}, {"rmdir", l_rmdir},
   {"rename", l_rename}, {"exists", l_exists},
   {"sh", l_sh},
-  {"ffileno", l_ffileno},
   {NULL, NULL}, // sentinel
 };
 

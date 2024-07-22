@@ -34,7 +34,7 @@ M.assertEq = function(expect, result, pretty)
   add(f, '\n')
   if type(expect) == 'string' and type(result) == 'string' then
     M.diffFmt(f, expect, result)
-  else
+  elseif mty.ty(expect) ~= mty.ty(result) then
     local tyn = function(v) return mty.tyName(mty.ty(v)) end
     add(f, sfmt('! TYPES:  %s != %s',
                 tyn(expect), tyn(result)))
