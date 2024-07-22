@@ -20,9 +20,8 @@ M.exe = function(args)
 
   local l = require'civix'.Lap{}:run(
   function() -- setup terminal and kickoff ele coroutines
-    local stdout = assert(io.open('/tmp/ele.out', 'w'))
     local stderr = assert(ioopen('/tmp/ele.err', 'w'))
-    vt.start(stdout, stderr)
+    vt.start(stderr)
 
     s.ed.display = vt.Term{}
     print'print after display start'

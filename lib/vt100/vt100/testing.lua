@@ -21,9 +21,9 @@ M.Fake.input = ds.nosupport
 
 -- start rawmode using tmpfiles
 M.startTmp = function() --> out, err
-  local out, err = io.tmpfile(), io.tmpfile()
-  vt.start(out, err)
-  return out, err
+  local err = io.tmpfile()
+  vt.start(err)
+  return err
 end
 
 -- Run function in a LAP environment with terminal started
@@ -35,9 +35,7 @@ function M.run(fn)
   local ioin, ioread = io.stdin, io.read
 
   local t = vt.Term{h=10, w=80}
-  local stdout, stderr = M.startTmp()
-  stdout:write'started vt100.testing.run()\n'
-
+  local stderr = M.startTmp()
   local r = lap.Recv{}
   local szTh = co.create(function() t:resize() end)
   local inTh = co.create(function() t:input(r) end)
@@ -65,19 +63,16 @@ function M.run(fn)
   -- undo async stdin
   io.stdin, io.read = ioin, ioread
   fd.stdin:toBlock()
-
   vt.stop();
+
   io.flush()
   io.stderr:write('\nvt100.testing.run '..
     (ok and 'DONE' or ('ERROR:\n'..tostring(err)))
     ..'\n')
-  stdout:flush();   stderr:flush()
-  stdout:seek'set'; stderr:seek'set'
-  local out, err = stdout:read'a', stderr:read'a'
-  assert(#out > 0)
-  if #out > 0 then log.info('STDOUT:\n%s', out) end
+  stderr:flush(); stderr:seek'set'
+  local err = stderr:read'a'
   if #err > 0 then log.info('STDERR:\n%s', err) end
-  stdout:close(); stderr:close()
+  stderr:close()
   assert(ok, 'got error, see stderr')
 end
 
