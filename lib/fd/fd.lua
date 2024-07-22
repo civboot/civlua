@@ -16,8 +16,15 @@ local sfmt      = string.format
 local push, pop = table.insert, table.remove
 local yield     = coroutine.yield
 local NL        = -string.byte'\n'
+local iotype    = io.type
 
 S.POLLIO = S.POLLIN | S.POLLOUT
+
+M.FMODE = {
+  [S.S_IFSOCK] = 'sock', [S.S_IFLNK] = 'link', [S.S_IFREG] = 'file',
+  [S.S_IFBLK]  = 'blk',  [S.S_IFDIR] = 'dir',  [S.S_IFCHR] = 'chr',
+  [S.S_IFIFO]  = 'fifo',
+}
 
 local MFLAGS = {
   ['r']  = S.O_RDONLY, ['r+']= S.O_RDWR,
@@ -94,7 +101,7 @@ S.FD.__index.toNonblock = function(fd)
   end; return fd
 end
 S.FD.__index.toBlock = function(fd)
-  if fd:_setflags(S.inv(S.O_NONBLOCK) & fd:flags()) ~= 0 then
+  if fd:_setflags(~S.O_NONBLOCK & fd:flags()) ~= 0 then
     error(fd:codestr())
   end; return fd
 end
@@ -286,7 +293,18 @@ M.type   = function(fd)
   if mt and FD_TYPES[mt] then
     return (fd:fileno() >= 0) and 'file' or 'closed file'
   end
-  return M.io.type(fd)
+  return iotype(fd)
+end
+M.fileno = function(fd)
+  return iotype(fd) and S.fileno(fd) or fd:fileno()
+end
+M.ftype = function(f)
+  local t = M.FMODE[S.S_IFMT & S.fstmode(M.fileno(f))]
+  if t then return t end
+  return nil, 'file has unknown mode'
+end
+M.isatty = function(fd)
+  return S.isatty(type(fd) == 'number' and fd or M.fileno(fd))
 end
 
 ----------------------------

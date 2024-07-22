@@ -1,3 +1,4 @@
+local iotype = io.type
 
 local T   = require'civtest'
 local M   = require'fd'
@@ -6,6 +7,11 @@ local aeq = T.assertEq
 M.ioSync()
 
 local p = '.out/fd.text'
+
+T.test('bitops', function() -- just checking...
+  aeq(0xFF00, 0xFFFF & (~0x00FF))
+  aeq(0xF0F0, 0xFFFF & (~0x0F0F))
+end)
 
 T.test('open -> _write -> _read', function()
   local f = M.open(p, 'w'); aeq(0, f:code())
@@ -67,6 +73,23 @@ T.asyncTest('FDT:lines', function()
   aeq(nil,        f:read'l')
 end)
 
+T.test('fileno and friends', function()
+  aeq(type(io.stderr), 'userdata')
+  assert(iotype(io.stderr))
+  aeq(0, M.fileno(io.stdin))
+  aeq(2, M.fileno(io.stderr))
+  aeq(false, M.isatty(io.tmpfile()))
+  aeq(false, M.isatty(M.tmpfile()))
+  aeq(true,  M.isatty(io.stderr))
+  aeq(true,  M.isatty(2))
+
+  aeq('chr', M.ftype(io.stdin))
+  aeq('chr', M.ftype(io.stdout))
+  aeq('file', M.ftype(io.tmpfile()))
+  aeq('file', M.ftype( M.tmpfile()))
+end)
+
+
 local pipeTest = function(r, w)
   w:write'hi there'
   aeq('hi', r:read(2)); aeq(' there', r:read(6))
@@ -79,3 +102,4 @@ T.asyncTest('pipe', function()
   w:write'bye'
   aeq('b', r:read(1)); aeq('ye', r:read(2))
 end)
+

@@ -69,23 +69,8 @@ local function qp(p)
   return mty.assertf(M.quote(p), 'path cannot contain "\'": %s', p)
 end
 
-M.fileno = function(f)
-  local fno = f.fileno
-  if fno then return (type(fno) == 'number') and fno or fno(f) end
-  return lib.fileno(f)
-end
-
-M.MODE_STR = {
-  [C.S_IFSOCK] = 'sock', [C.S_IFLNK] = 'link', [C.S_IFREG] = 'file',
-  [C.S_IFBLK]  = 'blk',  [C.S_IFDIR] = 'dir',  [C.S_IFCHR] = 'chr',
-  [C.S_IFIFO]  = 'fifo',
-}
-M.ftype = function(f)
-  return assert(M.MODE_STR[C.S_IFMT & lib.fstmode(M.fileno(f))])
-end
-
 M.pathtype = function(path)
-  return assert(M.MODE_STR[C.S_IFMT & lib.stmode(path)])
+  return assert(fd.FMODE[C.S_IFMT & lib.stmode(path)])
 end
 
 local function _walkcall(ftypeFns, path, ftype)
@@ -224,7 +209,7 @@ end
 
 local function _fnomaybe(f, default)
   if type(f) == 'boolean' then return f end
-  return f and M.fileno(f) or default
+  return f and fd.fileno(f) or default
 end
 -- start the shell in the background.
 -- sh{arg1, arg2, stdin=nostdin, stdout=true, stderr=io.stderr}

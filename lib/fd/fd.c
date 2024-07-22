@@ -573,17 +573,40 @@ static int l_PL_ready(LS* L) {
 // ----------------------
 // -- DEFINE LIBRARY
 
-// (i) -> ~i: bitwise inversion of integer
-static int l_inv(LS* L) {
-  lua_pushinteger(L, ~luaL_checkinteger(L, 1));
+// (io.file) -> (fileno)
+static int l_fileno(LS* L) {
+  luaL_Stream* fs = (luaL_Stream *)luaL_checkudata(L, 1, LUA_FILEHANDLE);
+  lua_pushinteger(L, fileno(fs->f));
   return 1;
 }
+
+// fmode(fileno) -> st_mode (see fd.fmode())
+static int l_fstmode(LS* L) {
+  int fd = luaL_checkinteger(L, 1); struct stat sbuf = {0};
+  if(fstat(fd, &sbuf)) {
+    lua_pushnil(L);
+    lua_pushstring(L, strerror(errno));
+    return 2;
+  }
+  lua_pushinteger(L, sbuf.st_mode);
+  return 1;
+}
+
+// (fileno) -> (isatty)
+static int l_isatty(LS* L) {
+  lua_pushboolean(L, isatty(luaL_checkinteger(L, 1)));
+  return 1;
+}
+
+
 static const struct luaL_Reg fd_sys[] = {
   {"openFD", l_FD_open},   {"openFDT", l_FDT_open},
   {"tmpFD",  l_FD_tmp},    {"tmpFDT",  l_FDT_tmp},
   {"newFD",  l_FD_create}, {"newFDT",  l_FDT_create},
   {"pollList", l_PL_new},
-  {"pipe", l_pipe}, {"inv", l_inv},
+  {"fileno", l_fileno},    {"fstmode", l_fstmode},
+  {"isatty", l_isatty},
+  {"pipe", l_pipe},
   {NULL, NULL},
 };
 
@@ -658,6 +681,13 @@ int luaopen_fd_sys(LS *L) {
   setconstfield(L, O_RDWR);   setconstfield(L, O_APPEND);
   setconstfield(L, O_CREAT);  setconstfield(L, O_TRUNC);
   setconstfield(L, O_NONBLOCK);
+
+  // st_mode constants
+  setconstfield(L, S_IFMT);
+  setconstfield(L, S_IFSOCK); setconstfield(L, S_IFLNK);
+  setconstfield(L, S_IFREG);  setconstfield(L, S_IFBLK);
+  setconstfield(L, S_IFDIR);  setconstfield(L, S_IFCHR);
+  setconstfield(L, S_IFIFO);
 
   // seek constants
   setconstfield(L, SEEK_SET); setconstfield(L, SEEK_CUR);

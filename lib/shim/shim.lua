@@ -1,5 +1,17 @@
-local push, sfmt = table.insert, string.format
+-- shim: use a lua module in lua OR in the shell.
 local M = {}
+
+local push, sfmt = table.insert, string.format
+local lower = string.lower
+
+
+local ENV_VALS = {['true'] = true, ['1'] = true }
+
+-- return nil if DNE, else boolean
+M.getEnvBool = function(k)
+  local v = os.getenv(k); if not v then return end
+  return ENV_VALS[lower(v)] or false
+end
 
 local function addKV(t, k, v)
   local e = t[k]; if e then
@@ -139,6 +151,26 @@ end
 M.new = function(ty, val)
   if val == nil then return end
   return getmetatable(val) and val or ty(val)
+end
+
+local COLOR_YES = {[true]=1,  ['true']=1,  always=1, on=1}
+local COLOR_NO  = {[false]=1, ['false']=1, never=1,  off=1}
+-- return whether to use color based on your --color= arg and
+-- isatty (see fd.lua to get)
+--
+-- https://bixense.com/clicolors/
+M.color = function(color, isatty) --> useColor[bool], error
+  local err
+  if color ~= nil then
+    if COLOR_YES[color] then return true end
+    if COLOR_NO[color]  then return false end
+    if color ~= 'auto' then
+      err = 'invalid --color='..color
+    end
+  end
+  if M.getEnvBool'NO_COLOR'       then return false, err end
+  if M.getEnvBool'CLICOLOR_FORCE' then return true,  err end
+  return M.getEnvBool'CLICOLOR' and isatty, err
 end
 
 local function invalid(msg)
