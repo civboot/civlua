@@ -44,11 +44,14 @@ local M = mod and mod'ff' or {}
 local shim = require'shim'
 local mty = require'metaty'
 local ds = require'ds'
+local pth = require'ds.path'
 local civix = require'civix'
 local push = table.insert
 local fd = require'fd'
+local vt100 = require'vt100'
 
 local s = ds.simplestr
+local sfmt = string.format
 
 -- List arguments: 'path1', 'path2', 'path3'
 M.Args = mty'Args' {
@@ -83,6 +86,26 @@ s[[excl [table]:
 M.DOC = DOC..'\n#############\n# ARGS\n'
       ..(require'doc'(M.Args):match'.-\n(.-)%-%-+ CODE')
 
+local Styler = mty'Styler' {
+  'f [file]', 'color [bool]',
+  'styles [table]',
+  'styled [fn(astyle, ...)]',
+}
+getmetatable(Styler).__call = function(T, t)
+  t.styles = t.styles or {
+    path='G', match='fZ', meta='d',
+    error='R',
+  }
+  t.styled = t.colored or require'vt100'.colored
+  return mty.construct(T, t)
+end
+Styler.sty = function(w, st, ...)
+  if w.color then w.styled(w.f, w.styles[st], ...)
+  else            w.f:write(...) end
+end
+Styler.flush = function(w) return w.f:flush() end
+Styler.close = function(w) return w.f:close() end
+
 local function wln(f, msg, pre, i)
   if pre then f:write(pre) end
   if i then f:write(string.format('% 6i: ', i)) end
@@ -99,7 +122,9 @@ local function _dirFn(path, args, dirs)
     end; if not include then return 'skip' end
   end
   if args.dirs then
-    if args.log then wln(args.log, path, args.dpre) end
+    if args.log then
+      args.log:sty('path', args.dpre or '', pth.nice(path), '\n')
+    end
     if dirs then push(dirs, path) end
   end
 end
@@ -115,8 +140,11 @@ local function _fileFn(path, args, out) -- got a file from walk
   local pat, sub = args.pat, args.sub
   -- if no patterns exit early
   if #pat == 0 then
-    if files and log   then wln(log, to or path, pre) end
-    if out.files       then push(out.files, to or path) end
+    if files and log   then
+      if pre then log:sty(nil, pre) end
+      log:sty('path', pth.nice(to or path), '\n')
+    end
+    if out.files       then push(out.files, to or path)    end
     if args.mut and to then civix.mv(path, to) end
     return
   end
@@ -125,26 +153,30 @@ local function _fileFn(path, args, out) -- got a file from walk
     fpath = (to or path)..'.SUB'; f = io.open(fpath, 'w')
   end
   local l = 1; for line in io.open(path, 'r'):lines() do
-    local m, patFound; for l, p in ipairs(pat) do -- find any matches
-      m = line:find(p); if m then patFound = p; break end
+    local m, m2, patFound; for l, p in ipairs(pat) do -- find any matches
+      m, m2 = line:find(p); if m then patFound = p; break end
     end; if not m then -- no match
-      if f then wln(f, line) end
+      if f then f:write(line, '\n') end
       goto continue
     end
     if files then files = false -- =false -> pnt only once
-      if log       then wln(log, path)       end
-      if out.files then push(out.files, path) end
+      if log       then log:sty('path', pth.nice(path), '\n')   end
+      if out.files then push(out.files, path)         end
     end
     line = (sub and line:gsub(patFound, sub)) or line
     if args.matches then
       if log         then
         local logl = line
         if sub and #line == 0 then logl = '<line removed>' end
-        wln(log, logl, pre, l)
+        if pre then log:sty(nil, pre) end
+        log:sty('meta', sfmt('% 6i: ', l))
+        log:sty(nil, logl:sub(1, m-1))
+        log:sty('match', logl:sub(m, m2))
+        log:sty(nil, logl:sub(m2+1), '\n')
       end
       if out.matches then push(out.matches, line) end
     end
-    if f and #line > 0 then wln(f, line) end -- match
+    if f and #line > 0 then f:write(line, '\n') end -- match
     ::continue:: l = l + 1
   end
   if f then -- close .SUB file and move it
@@ -155,7 +187,7 @@ local function _fileFn(path, args, out) -- got a file from walk
 end
 
 local function _defaultFn(path, ftype, args) if args.log then
-  wln(args.log, sfmt('?? Unknown ftype=%s: %s', ftype, path))
+  args.log:sty(nil, sfmt('?? Unknown ftype=%s: %s', ftype, path), '\n')
 end end
 
 local function argPats(args)
@@ -201,8 +233,12 @@ getmetatable(M).__call = function(_, args, out, isExe)
     files = args.files and {} or nil, dirs = args.dirs and {} or nil,
     matches = args.matches and {} or nil,
   }
-  out.log = args.log
-  args.color = shim.color(args.color, fd.isatty(out.log))
+  if args.log then
+    args.log = Styler{
+      f=args.log,
+      color = shim.color(args.color, fd.isatty(args.log)),
+    }
+  end
   civix.walk(
     args, {
       file=function(path, _ftype)   return _fileFn(path, args, out)      end,

@@ -4,12 +4,11 @@ local M = {}
 local push, sfmt = table.insert, string.format
 local lower = string.lower
 
-
 local ENV_VALS = {['true'] = true, ['1'] = true }
 
 -- return nil if DNE, else boolean
 M.getEnvBool = function(k)
-  local v = os.getenv(k); if not v then return end
+  local v = os.getenv(k); if not v then return v end
   return ENV_VALS[lower(v)] or false
 end
 

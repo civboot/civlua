@@ -7,8 +7,6 @@ local ioopen = io.open
 
 CWD = CWD or os.getenv'PWD' or os.getenv'CD'
 
-print'ele.lua'
-
 -- shim exe function
 M.exe = function(args)
   print'ele exe'
