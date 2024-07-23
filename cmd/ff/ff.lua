@@ -67,10 +67,6 @@ s[[pat[table]:
   'fpat[string]:  (multi) file name pattern to include.',
 s[[fsub[string]:
      file substitute for fpat. Renames files (not directories).]],
-s[[dpat[string]:
-     (multi: any includes)
-     directory name patterns to include.
-     ANY match will cause dir to be included.]],
 s[[excl [table]:
      (multi: any match excludes)
      exclude pattern (default='/%.[^/]+/' -- aka hidden)]],
@@ -115,11 +111,6 @@ end
 local function _dirFn(path, args, dirs)
   for _, excl in ipairs(args.excl) do
     if path:find(excl) then return 'skip' end
-  end
-  if #args.dpat > 0 then local include;
-    for _, dpat in ipairs(args.dpat) do
-      if path:find(dpat) then include = true; break; end
-    end; if not include then return 'skip' end
   end
   if args.dirs then
     if args.log then
@@ -213,7 +204,6 @@ getmetatable(M).__call = function(_, args, out, isExe)
 
   shim.bools(args, 'files', 'matches', 'dirs')
   args.depth = shim.number(args.depth or -1)
-  args.dpat  = shim.list(args.dpat)
   args.excl  = shim.list(shim.excl, {'/%.[^/]+/'}, {})
   shim.short(args, 'd', 'dirs',  true)
   shim.short(args, 'm', 'mut',   true)
