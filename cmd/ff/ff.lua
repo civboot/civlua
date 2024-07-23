@@ -16,8 +16,8 @@ Examples (bash):
   ff path %my%s+name --matches=false  # print paths with match only
   ff path %(name=)%S+ --sub='%1bob'   # change name=anything to name=bob
   # add --mut or -m to actually modify the file contents
-  ff path --fpat='%.txt'    # filter to .txt files
-  ff path --fpat='(.*)%.txt' --fsub='%1.md'  # rename all .txt -> .md
+  ff path --incl='%.txt'    # filter to .txt files
+  ff path --incl='(.*)%.txt' --mv='%1.md'  # rename all .txt -> .md
   # rename OldTestClass -> NewTestClass, 'C' is not case sensitive.
 
 Special:
@@ -45,7 +45,7 @@ local shim = require'shim'
 local mty = require'metaty'
 local ds = require'ds'
 local pth = require'ds.path'
-local civix = require'civix'
+local ix = require'civix'
 local push = table.insert
 local fd = require'fd'
 local vt100 = require'vt100'
@@ -64,13 +64,9 @@ s[[pat[table]:
      content pattern/s which searches inside of files
      and prints the results.]],
   'sub [string]: substitute pattern to go with pat (see lua\'s gsub)',
-  'fpat[string]:  (multi) file name pattern to include.',
-s[[fsub[string]:
-     file substitute for fpat. Renames files (not directories).]],
-s[[dpat[string]:
-     (multi: any includes)
-     directory name patterns to include.
-     ANY match will cause dir to be included.]],
+  'incl[string]:  (multi) file name pattern to include.',
+s[[mv[string]:
+     file substitute for incl. Renames files (not directories).]],
 s[[excl [table]:
      (multi: any match excludes)
      exclude pattern (default='/%.[^/]+/' -- aka hidden)]],
@@ -93,7 +89,7 @@ local Styler = mty'Styler' {
 }
 getmetatable(Styler).__call = function(T, t)
   t.styles = t.styles or {
-    path='G', match='fZ', meta='d',
+    path='G', match='fZ', meta='ld',
     error='R',
   }
   t.styled = t.colored or require'vt100'.colored
@@ -106,21 +102,30 @@ end
 Styler.flush = function(w) return w.f:flush() end
 Styler.close = function(w) return w.f:close() end
 
-local function wln(f, msg, pre, i)
-  if pre then f:write(pre) end
-  if i then f:write(string.format('% 6i: ', i)) end
-  f:write(msg); f:write'\n'
+local function anyMatch(pats, str) --> matching pat, index
+  if not pats then return end
+  for i, pat in ipairs(pats) do
+    if str:find(pat) then return pat, i end
+  end
 end
+local function logPath(log, pre, path, to)
+  if pre then log:sty(nil, pre) end
+  if to then
+    log:sty('meta', 'mv ');  log:sty('path', pth.nice(path))
+    log:sty('meta', ' -> '); log:sty('path', pth.nice(to), '\n')
+  else
+    log:sty('path', pth.nice(path), '\n')
+  end
+end
+local function move(path, to)
+  local dir = pth.last(pth.abs(to))
+  if not ix.exists(dir) then ix.mkDirs(dir) end
+  ix.mv(path, to)
+end
+local function linenum(l) return sfmt('% 6i ', l) end
 
 local function _dirFn(path, args, dirs)
-  for _, excl in ipairs(args.excl) do
-    if path:find(excl) then return 'skip' end
-  end
-  if #args.dpat > 0 then local include;
-    for _, dpat in ipairs(args.dpat) do
-      if path:find(dpat) then include = true; break; end
-    end; if not include then return 'skip' end
-  end
+  if anyMatch(args.excl, path) then return 'skip' end
   if args.dirs then
     if args.log then
       args.log:sty('path', args.dpre or '', pth.nice(path), '\n')
@@ -130,27 +135,25 @@ local function _dirFn(path, args, dirs)
 end
 
 local function _fileFn(path, args, out) -- got a file from walk
-  -- check if the excl and fpat match
-  for _, excl in ipairs(args.excl) do
-    if path:find(excl) then return 'skip' end
-  end
+  -- check if the excl and incl match
+  if anyMatch(args.excl, path) then return 'skip' end
   local log, pre, files, to = args.log, args.fpre, args.files, nil
-  if args.fpat and not path:find(args.fpat) then return end
-  if args.fsub then to = path:gsub(args.fpat, args.fsub) end
+  if args.incl then
+    local incl = anyMatch(args.incl, path)
+    if not incl then return end
+    if args.mv then to = path:gsub(incl, args.mv) end
+  end
   local pat, sub = args.pat, args.sub
   -- if no patterns exit early
   if #pat == 0 then
-    if files and log   then
-      if pre then log:sty(nil, pre) end
-      log:sty('path', pth.nice(to or path), '\n')
-    end
-    if out.files       then push(out.files, to or path)    end
-    if args.mut and to then civix.mv(path, to) end
+    if files and log   then logPath(log, pre, path, to) end
+    if out.files       then push(out.files, to or path) end
+    if args.mut and to then move(path, to)              end
     return
   end
   -- Search for patterns and substitution. If mut then write subs.
-  local f, fpath; if args.mut and args.sub then
-    fpath = (to or path)..'.SUB'; f = io.open(fpath, 'w')
+  local f, tpath; if args.mut and args.sub then
+    tpath = (to or path)..'.SUB'; f = io.open(tpath, 'w')
   end
   local l = 1; for line in io.open(path, 'r'):lines() do
     local m, m2, patFound; for l, p in ipairs(pat) do -- find any matches
@@ -160,19 +163,26 @@ local function _fileFn(path, args, out) -- got a file from walk
       goto continue
     end
     if files then files = false -- =false -> pnt only once
-      if log       then log:sty('path', pth.nice(path), '\n')   end
-      if out.files then push(out.files, path)         end
+      if log then logPath(log, pre, path, to) end
+      if out.files then push(out.files, path) end
+      if args.mut and to then move(path, to)  end
     end
     line = (sub and line:gsub(patFound, sub)) or line
     if args.matches then
-      if log         then
-        local logl = line
-        if sub and #line == 0 then logl = '<line removed>' end
-        if pre then log:sty(nil, pre) end
-        log:sty('meta', sfmt('% 6i: ', l))
-        log:sty(nil, logl:sub(1, m-1))
-        log:sty('match', logl:sub(m, m2))
-        log:sty(nil, logl:sub(m2+1), '\n')
+      if log then
+        if sub then
+          log:sty(nil, pre or '', args.plain and '' or linenum(l), line, '\n')
+        else
+          local logl = line
+          if sub and #line == 0 then logl = '<line removed>' end
+          if not args.plain then
+            if pre then log:sty(nil, pre) end
+            log:sty('meta', linenum(l))
+          end
+          log:sty(nil, logl:sub(1, m-1))
+          log:sty('match', logl:sub(m, m2))
+          log:sty(nil, logl:sub(m2+1), '\n')
+        end
       end
       if out.matches then push(out.matches, line) end
     end
@@ -181,8 +191,8 @@ local function _fileFn(path, args, out) -- got a file from walk
   end
   if f then -- close .SUB file and move it
     f:flush(); f:close()
-    civix.mv(fpath, to or path)
-    if to then civix.rm(path) end
+    ix.mv(tpath, to or path)
+    if to then ix.rm(path) end
   end
 end
 
@@ -205,15 +215,15 @@ getmetatable(M).__call = function(_, args, out, isExe)
   if #args == 0 then push(args, '.') end
   if args.sub then
     assert(#args.pat, 'must specify pat with sub')
-    assert(not args.fsub, 'cannot specify both sub and fsub')
+    assert(not args.mv, 'cannot specify both sub and mv')
   end
-  if args.fsub then assert(
-    args.fpat, 'must specify fpat with fsub'
+  if args.mv then assert(
+    args.incl, 'must specify incl with mv'
   )end
 
   shim.bools(args, 'files', 'matches', 'dirs')
   args.depth = shim.number(args.depth or -1)
-  args.dpat  = shim.list(args.dpat)
+  args.incl  = args.incl and shim.list(args.incl)
   args.excl  = shim.list(shim.excl, {'/%.[^/]+/'}, {})
   shim.short(args, 'd', 'dirs',  true)
   shim.short(args, 'm', 'mut',   true)
@@ -239,7 +249,7 @@ getmetatable(M).__call = function(_, args, out, isExe)
       color = shim.color(args.color, fd.isatty(args.log)),
     }
   end
-  civix.walk(
+  ix.walk(
     args, {
       file=function(path, _ftype)   return _fileFn(path, args, out)      end,
       dir =function(path, _ftype)   return _dirFn(path, args, out.dirs)  end,

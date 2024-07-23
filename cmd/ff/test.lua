@@ -39,11 +39,11 @@ test('ff pat', function()
   local f = io.open('.out/TEST', 'w+')
   ff{dir, pat='a %d1', log=f}
   assertEq(
-    expectSimple('.out/ff/a.txt', '    %i1: a %i1'),
+    expectSimple('.out/ff/a.txt', '    %i1 a %i1'),
     seekRead(f))
   ff{dir, '%a %d1', log=f}
   assertEq(
-    expectSimple('.out/ff/a.txt', '    %i1: a %i1'),
+    expectSimple('.out/ff/a.txt', '    %i1 a %i1'),
     seekRead(f))
 end)
 
@@ -55,7 +55,7 @@ test('ff recursive', function()
   assertEq('', seekRead(f))
   ff{dir, pat='b %d1', log=f} -- default depth=-1
   assertEq(
-    expectSimple('.out/ff/b/b1.txt', '    %i1: b %i1'),
+    expectSimple('.out/ff/b/b1.txt', '    %i1 b %i1'),
     seekRead(f))
 end)
 
@@ -63,14 +63,14 @@ test('ff sub', function()
   local f = io.open('.out/TEST', 'w+')
   ff{dir..'a.txt', pat='(a %d)1', sub='%1A', log=f}
   assertEq(
-    expectSimple('.out/ff/a.txt', '    %i1: a %iA'),
+    expectSimple('.out/ff/a.txt', '    %i1 a %iA'),
     seekRead(f))
 
   f:close(); f = io.open('.out/TEST', 'w+')
   ff{dir..'a.txt', m=true, pat='(a %d)1', sub='%1A',
     log=f}
   assertEq(
-    expectSimple('.out/ff/a.txt', '    %i1: a %iA'),
+    expectSimple('.out/ff/a.txt', '    %i1 a %iA'),
     seekRead(f))
 
   -- now we won't find them (they were substituted)
@@ -82,30 +82,54 @@ test('ff sub', function()
   ff{dir..'a.txt', m=true, pat='(a %d)A', sub='%11',
     log=f}
   assertEq(
-    expectSimple('.out/ff/a.txt', '    %i1: a %i1'),
+    expectSimple('.out/ff/a.txt', '    %i1 a %i1'),
     seekRead(f))
 end)
 
-test('ff fsub', function()
+test('ff mv', function()
   local f = io.open('.out/TEST', 'w+')
-  ff{dir, fpat='b%d.txt', log=f}
+  ff{dir, incl='b%d.txt', log=f}
   local result = lines(seekRead(f)); table.sort(result)
   local expected = {'', ".out/ff/b/b1.txt", ".out/ff/b/b2.txt"}
   assertEq(expected, result)
 
-  ff{dir, fpat='b(%d.txt)', fsub='bb%1', log=f}
+  ff{dir, incl='b(%d.txt)', mv='bb%1', log=f}
   local result = lines(seekRead(f)); table.sort(result)
-  local expected = {'', ".out/ff/b/bb1.txt", ".out/ff/b/bb2.txt"}
+  local expected = {
+    "",
+    "mv .out/ff/b/b1.txt -> .out/ff/b/bb1.txt",
+    "mv .out/ff/b/b2.txt -> .out/ff/b/bb2.txt"
+  }
+
   assertEq(expected, result)
   assertEq('mostly empty', ds.readPath(".out/ff/b/b2.txt"))
 
-  ff{dir, m=true, fpat='b(%d.txt)', fsub='bb%1',
+  ff{dir, m=true, incl='b(%d.txt)', mv='bb%1',
              log=f}
   local result = lines(seekRead(f)); table.sort(result)
-  local expected = {'', ".out/ff/b/bb1.txt", ".out/ff/b/bb2.txt"}
+  local expected = {
+    '',
+    "mv .out/ff/b/b1.txt -> .out/ff/b/bb1.txt",
+    "mv .out/ff/b/b2.txt -> .out/ff/b/bb2.txt",
+  }
   assertEq(expected, result)
   assert(not civix.exists".out/ff/b/b1.txt")
   assert(not civix.exists".out/ff/b/b2.txt")
   assertEq('mostly empty', ds.readPath(".out/ff/b/bb2.txt"))
   assertEq(table.concat(b, '\n'), ds.readPath(".out/ff/b/bb1.txt"))
+end)
+
+test('ff mv pat', function()
+  local f = io.open('.out/TEST', 'w+')
+  ff{dir, '%b (10)$', m=true,
+     incl='(.*/)(.*%d.txt)', mv='%1/b%2',
+     log=f}
+  assertEq(
+    'mv .out/ff/b/bb1.txt -> .out/ff/b/bbb1.txt\n'
+  ..'    10 b 10\n', seekRead(f))
+  assertEq(expected, result)
+  assert(not civix.exists".out/ff/b/bb1.txt")
+  assert(civix.exists".out/ff/b/bbb1.txt")
+
+  -- assertEq(table.concat(b, '\n'), ds.readPath(".out/ff/b/bb1.txt"))
 end)

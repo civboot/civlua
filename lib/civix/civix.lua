@@ -8,11 +8,11 @@ local lib  = require'civix.lib'; local C = lib
 local fd   = require'fd'
 local lap  = require'lap'
 
-local path = require'ds.path'
+local pth = require'ds.path'
 local concat, sfmt = table.concat, string.format
 local push, pop = table.insert, table.remove
 local yield = coroutine.yield
-local pc = path.concat
+local pc = pth.concat
 
 -- TODO: actually implement
 lib.getpagesize = function() return 4096 end
@@ -129,8 +129,9 @@ local RMR_FNS = {dir = ds.noop, default = M.rm, dirDone = M.rmdir }
 M.rmRecursive = function(path)
   M.walk({path}, RMR_FNS, nil)
 end
-M.mkDirs = function(pthArr)
-  local dir = ''; for _, c in ipairs(pthArr) do
+M.mkDirs = function(path)
+  if type(path) == 'string' then path = pth(path) end
+  local dir = ''; for _, c in ipairs(path) do
     dir = pc{dir, c}
     local ok, errno = lib.mkdir(dir)
     if ok or (errno == C.EEXIST) then -- directory created or exists
@@ -138,9 +139,9 @@ M.mkDirs = function(pthArr)
                     dir, lib.strerrno(errno)) end
   end
 end
-M.mkDir = function(pth, parents)
-  if parents then M.mkDirs(path(pth))
-  else mty.assertf(lib.mkdir(pth), "mkdir failed: %s", pth) end
+M.mkDir = function(path, parents)
+  if parents then M.mkDirs(pth(path))
+  else mty.assertf(lib.mkdir(path), "mkdir failed: %s", path) end
 end
 
 -- mkTree(tree) builds a tree of files and dirs at `dir`.
@@ -164,7 +165,7 @@ end
 M.mkTree = function(dir, tree, parents)
   M.mkDir(dir, parents)
   for name, v in pairs(tree) do
-    local p = path.concat{dir, name, type(v) == 'table' and '/' or nil}
+    local p = pc{dir, name, type(v) == 'table' and '/' or nil}
     if     type(v) == 'table'  then M.mkTree(p, v)
     elseif type(v) == 'string' then ds.writePath(p, v)
     elseif type(v) == 'userdata' then
