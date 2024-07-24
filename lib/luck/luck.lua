@@ -90,7 +90,8 @@ M.loadMetas = function(paths)
   return lucks
 end
 
-M.loadall = function(paths)
+M.loadall = function(paths, allenv)
+  allenv = allenv or {}
   local lucks = M.loadMetas(paths)
   local depsMap = {}
   for n, l in pairs(lucks) do depsMap[n] = ds.values(l.deps) end
@@ -101,7 +102,7 @@ M.loadall = function(paths)
   local sorted = ds.dag.sort(depsMap)
   local built = {}
   for _, name in ipairs(sorted) do
-    local env, l = {}, lucks[name]
+    local env, l = ds.copy(allenv), lucks[name]
     if not l then error(mty.format(
       'Cyclic dependency detected involving %q. Sorted: %q',
       name, sorted
@@ -121,11 +122,11 @@ end
 
 -- luck.load(path) -> data
 -- Load a single path which has no dependencies.
-M.load = function(path)
+M.load = function(path, env)
   local dat = df.LinesFile{io.open(path), len=true}
   local meta = M.loadMeta(dat, path)
   assert(not meta or not meta.deps, 'single must have no deps')
-  return assert(M.loadraw(dat))
+  return assert(M.loadraw(dat, env))
 end
 
 return M
