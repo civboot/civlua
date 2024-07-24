@@ -173,6 +173,7 @@ do local modloc = srcloc()
   M.mod.__newindex=function(t, k, v)
     rawset(t, k, v)
     if type(k) ~= 'string' then return end
+    local n = rawget(t, '__name')
     M.mod.save(t.__name..'.'..k, v)
   end
 

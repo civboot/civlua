@@ -12,6 +12,7 @@ local ds  = require'ds'
 local Grid = require'ds.Grid'
 local log = require'ds.log'
 local d8  = require'ds.utf8'
+local acolor = require'asciicolor'
 
 local min = math.min
 local char, byte, slen = string.char, string.byte, string.len
@@ -19,6 +20,8 @@ local lower, upper     = string.lower, string.upper
 local ulen = utf8.len
 local push, unpack, sfmt = table.insert, table.unpack, string.format
 local io = io
+local isup, islow = acolor.isupper, acolor.islower
+local acode = acolor.assertcode
 
 local ty = mty.ty
 
@@ -28,25 +31,6 @@ M.ctrl = ctrl
 
 local DEFAULT = {[''] = true, [' '] = true, z=true}
 local RESET, BOLD, UL, INV = 0, 1, 4, 7
-
--- Write to file using fg+bg 1-2byte ac (AsciiColors) string.
---
--- VT100: assumes style is already reset state.
---        ac=nil resets at start, otherwise resets after writing.
-M.colored = function(f, ac, ...) --> write(...)
-  if not ac then ctrl.color(f, RESET); return f:write(...) end
-  local color = ctrl.color
-  local fg, bg = ac:sub(1,1), ac:sub(2,2)
-  if DEFAULT[bg] then color(f, M.fgColor(fg))
-  else
-    ctrl.colorFB(f, M.fgColor(fg), M.bgColor(bg))
-    if not DEFAULT[bg] and bg==upper(bg) then color(f, UL)   end
-  end
-  if   not DEFAULT[fg] and fg==upper(fg) then color(f, BOLD) end
-  local a, b = f:write(...)
-  color(f, RESET)
-  return a, b
-end
 
 -- VT100 Terminal Emulator
 --   Write the text to display
@@ -82,76 +66,6 @@ M.Term.clear = function(tm)
 end
 
 M.Term.__fmt = function(tm, fmt) return tm.text:__fmt(fmt) end
-
----------------------------------
--- CONSTANTS (and working with them)
-
--- ASCII Color table.
--- This allows applications to set single characters in a Grid and
--- have it map to a color (which is looked up in Fg/Bg Color)
---
--- In general the first character of the colorname is used,
--- i.e. 'w' == white. default is 'zero'
--- Uppercase changes a style:
---   * fg = bold
---   * bg = underlined.
---
--- ASCII Colors (fg-capital=bold, bg-capital=underlined)
-M.AsciiColor = {
-  z = 'zero',          [' '] = 'zero',
-
-  --  (dark)           (light)
-  b = 'black',         w = 'white',
-  d = 'darkgrey',      l = 'lightgrey',
-  r = 'red',           p = 'pink',
-  y = 'yellow',        h = 'honey',
-  g = 'green',         t = 'tea',
-  c = 'cyan',          a = 'aqua',
-  n = 'navy',          s = 'sky', -- blue
-  m = 'magenta',       f = 'fuschia',
-}
-do local rev = {} -- add reverse lookups
-  for k, v in pairs(M.AsciiColor) do rev[v] = k end
-  ds.update(M.AsciiColor, rev)
-end
-
-M.FgColor = { -- foreground
-  zero    = 39,
-
-  -- (dark)      (light)
-  black   = 30,  white = 97,
-  darkgrey = 90, lightgrey = 37,
-  red     = 31,  pink = 91,
-  green   = 32,  tea = 92,
-  yellow = 33,   honey = 93,
-  cyan    = 36,  aqua = 96,
-  navy    = 34,  sky = 94,
-  magenta = 35,  fuschia = 95,
-
-}
-M.BgColor = { -- background
-	zero    = 49,
-  -- (dark)       (light)
-  black    = 40,  white = 107,
-  darkgrey = 100, lightgrey = 47,
-  red      = 41,  pink = 101,
-  yellow   = 43,  honey = 103,
-  green    = 42,  tea = 102,
-  cyan     = 46,  aqua = 106,
-  navy     = 44,  sky = 104,
-  magenta  = 45,  fuschia = 105,
-}
-M.Style = { -- use with color()
-  reset = RESET, bold = BOLD, underline = UL,
-  invert = INV, -- invert fg/bg
-}
-
-M.fgColor = function(c) --> colorCode
-  return M.FgColor[assert(M.AsciiColor[lower(c or 'z')], c)]
-end
-M.bgColor = function(c) --> colorCode
-  return M.BgColor[assert(M.AsciiColor[lower(c or 'z')], c)]
-end
 
 -- Escape Sequences
 local ESC,  LETO, LETR, LBR = 27, byte'O', byte'R', byte'['
@@ -269,12 +183,124 @@ for name, fmt in pairs{
   save='s',      restore='u', reset='c',
   getlc='6n',
 } do ctrl[name] = termFn(name, fmt) end
+local rawcolor, rawcolorFB = ctrl.color, ctrl.colorFB
 
 -- causes terminal to send size as (escaped) cursor position
 ctrl.size = function(f)
   local C = ctrl
   C.save(f); C.down(f, 999); C.right(f, 999)
   C.getlc(f); C.restore(f); f:flush()
+end
+
+---------------------------------
+-- asciicolor constants and functions
+
+-- Foreground Terminal Codes
+M.FgColor = {
+  zero    = 39,
+
+  -- (dark)      (light)
+  black   = 30,  white = 97,
+  darkgrey = 90, lightgrey = 37,
+  red     = 31,  pink = 91,
+  green   = 32,  tea = 92,
+  yellow = 33,   honey = 93,
+  cyan    = 36,  aqua = 96,
+  navy    = 34,  sky = 94,
+  magenta = 35,  fuschia = 95,
+}
+-- Background Terminal Codes
+M.BgColor = {
+	zero    = 49,
+  -- (dark)       (light)
+  black    = 40,  white = 107,
+  darkgrey = 100, lightgrey = 47,
+  red      = 41,  pink = 101,
+  yellow   = 43,  honey = 103,
+  green    = 42,  tea = 102,
+  cyan     = 46,  aqua = 106,
+  navy     = 44,  sky = 104,
+  magenta  = 45,  fuschia = 105,
+}
+-- Style Terminal Codes
+M.Style = {
+  reset = RESET, bold = BOLD, underline = UL,
+  invert = INV, -- invert fg/bg
+}
+
+-- asciicolor code -> vt100 code
+M.Fg, M.Bg = mod and mod'Fg' or {}, mod and mod'Bg' or {}
+for code, name in pairs(acolor.Color) do
+  M.Fg[code]        = M.FgColor[name]
+  M.Fg[upper(code)] = M.FgColor[name]
+  M.Bg[code]        = M.BgColor[name]
+  M.Bg[upper(code)] = M.BgColor[name]
+end
+local Fg, Bg = M.Fg, M.Bg
+
+-- Set the color, taking into account the previous color
+M.colorFB = function(f, fg, bg, fg0, bg0)
+  local bold,     bold0,     ul,       ul0 =
+        isup(fg), isup(fg0), isup(bg), isup(bg0)
+  if (bold ~= bold0) or (ul ~= ul0) then
+    rawcolor(f, 0) -- clear bold/underline
+    if bold then rawcolor(f, BOLD) end
+    if ul   then rawcolor(f, UL)   end
+    if (fg == 'z') and (bg == 'z') then return end -- plain
+  end
+  return rawcolorFB(f, assert(Fg[fg]), assert(Bg[bg]))
+end
+
+-- write to the terminal-like file f using colors fgstr and bgstr
+-- accounting for previous color codes fg, bg
+--
+-- Additional strings (...) are written using plain color.
+--
+-- Return: fg, bg, write(str, ...)
+--   note: fg and bg are the updated color codes
+M.acwrite = function(f, colorFB, fg, bg, fgstr, bgstr, str, ...)
+  fgstr, bgstr = fgstr or '', bgstr or ''
+  local si, slen, chr, fc, bc, w1, w2 = 1, #str
+  for i=1,slen do
+    chr, fc, bc = str:sub(i,i), fgstr:sub(i,i), bgstr:sub(i,i)
+    fc, bc = acode(fc), acode(bc)
+    if fc ~= fg or bc ~= bg then
+      f:write(str:sub(si, i-1)) -- write in previous color
+      w1, w2 = colorFB(f, fc, bc, fg, bg)
+      si, fg, bg = i, fc, bc
+    end
+  end
+  if slen - si > 0 then f:write(str:sub(si)) end -- write end of string
+  if select('#', ...) > 0 then -- write(...) using color=z
+    if fg ~= 'z' or bg ~= 'z' then
+      colorFB(f, 'z', 'z', fg, bg)
+      fg, bg = 'z', 'z'
+    end
+    w1, w2 = f:write(...)
+  end
+  return fg, bg, w1, w2
+end
+
+-- FIXME: remove this
+-- Write to file using fg+bg 1-2byte ac (AsciiColors) string.
+--
+-- VT100: assumes style is already reset state.
+--        ac=nil resets at start, otherwise resets after writing.
+M.colored = function(f, ac, ...) --> write(...)
+  if not ac then ctrl.color(f, RESET); return f:write(...) end
+  local color = ctrl.color
+  local fg, bg = ac:sub(1,1), ac:sub(2,2)
+  if DEFAULT[bg] then color(f, Fg[fg] or error'invalid fg')
+  else
+    ctrl.colorFB(f,
+      Fg[fg] or error'invalid fg',
+      Bg[bg] or error'invalid bg')
+    if not DEFAULT[bg] and bg==upper(bg) then color(f, UL)   end
+  end
+  if   not DEFAULT[fg] and fg==upper(fg) then color(f, BOLD) end
+  local a, b = f:write(...)
+  color(f, RESET)
+  return a, b
 end
 
 -------------------
@@ -303,11 +329,12 @@ M.Term.resize = function(tm)
 end
 
 -- draw the text and color(fg/bg) grids to the screen
+-- FIXME: use acwrite instead
 M.Term.draw = function(tm, fd)
   fd = fd or io.stdout
   local golc, nextline   = ctrl.golc, ctrl.nextline
   local colorFB          = ctrl.colorFB
-  local fgC, bgC, fg, bg = M.fgColor, M.bgColor, nil, nil
+  local fg, bg = nil, nil
   ctrl.hide(fd); ctrl.clear(fd)     -- hide cursor and clear screen
   golc(fd, 1, 1)
   for l=1, tm.text.h do
@@ -317,7 +344,7 @@ M.Term.draw = function(tm, fd)
       if not f or f == ' ' then f = 'z' end
       if not b or b == ' ' then b = 'z' end
       if (f ~= fg) or (b ~= bg) then
-        fg, bg = f, b; colorFB(fd, fgC(f), bgC(b))
+        fg, bg = f, b; colorFB(fd, Fg[f], Bg[b])
       end
       fd:write(chr)
     end
