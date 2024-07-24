@@ -152,7 +152,10 @@ static int l_dir(LS *L) {
 static int l_stmode(LS *L) {
   struct stat sbuf = {0};
   const char* path = luaL_checkstring(L, 1);
-  ASSERT(L, stat(path, &sbuf) == 0, "cannot stat %s: %s", path, SERR);
+  if(stat(path, &sbuf)) {
+    lua_pushnil(L); lua_pushstring(L, SERR);
+    return 2;
+  }
   lua_pushinteger(L, sbuf.st_mode);
   return 1;
 }

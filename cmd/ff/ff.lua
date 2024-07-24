@@ -37,6 +37,7 @@ Short:
   p: --plain=true
   m: --mut=true
   r: --depth='' (infinite recursion)
+  k: --keep_going=true
   F: no special features (%pat parsing, etc)
 ]]
 local M = mod and mod'ff' or {}
@@ -77,6 +78,7 @@ s[[excl [table]:
   'dpre [string]: prefix characters before printing directories', dpre='',
   'plain [bool]: no line numbers', plain=false,
   'color [true|false|always|never]: whether to use color',
+  'keep_going [bool]: (short -k) whether to keep going on errors',
 }
 
 M.DOC = DOC..'\n#############\n# ARGS\n'
@@ -224,10 +226,11 @@ getmetatable(M).__call = function(_, args, out, isExe)
   shim.bools(args, 'files', 'matches', 'dirs')
   args.depth = shim.number(args.depth or -1)
   args.incl  = args.incl and shim.list(args.incl)
-  args.excl  = shim.list(shim.excl, {'/%.[^/]+/'}, {})
+  args.excl  = shim.list(args.excl, {'/%.[^/]+/'}, {})
   shim.short(args, 'd', 'dirs',  true)
   shim.short(args, 'm', 'mut',   true)
   shim.short(args, 'p', 'plain', true)
+  shim.short(args, 'k', 'keep_going', true)
   if args.depth < 0 then args.depth = nil end
   if type(args.log) == 'string' then args.log = io.open(args.log, 'a')
   elseif argsTy == 'string' and not args.log then args.log = io.stdout
@@ -254,6 +257,12 @@ getmetatable(M).__call = function(_, args, out, isExe)
       file=function(path, _ftype)   return _fileFn(path, args, out)      end,
       dir =function(path, _ftype)   return _dirFn(path, args, out.dirs)  end,
       default=function(path, ftype) return _defaultFn(path, ftype, args) end,
+      error=function(path, err)
+        if not args.keep_going then error(sfmt('ERROR %s: %s', path, err)) end
+        args.log:sty('error', '! ')
+        args.log:sty('path',  path, ' [')
+        args.log:sty('error', err, ']\n')
+      end
     },
     args.depth
   )

@@ -70,20 +70,27 @@ local function qp(p)
 end
 
 M.pathtype = function(path)
-  return assert(fd.FMODE[C.S_IFMT & lib.stmode(path)])
+  local sm, err = lib.stmode(path)
+  if not sm then return nil, err end
+  return assert(fd.FMODE[C.S_IFMT & sm])
 end
 
-local function _walkcall(ftypeFns, path, ftype)
+local function _walkcall(ftypeFns, path, ftype, err)
+  if err then return ftypeFns.error(path, err) end
   local fn = ftypeFns[ftype] or ftypeFns.default
   if fn then return fn(path, ftype) end
 end
 
 local function _walk(base, ftypeFns, maxDepth, depth)
+  local err
   if maxDepth and depth >= maxDepth then return end
   for fname, ftype in M.dir(base) do
     local path = pc{base, fname}
-    if ftype == 'unknown' then ftype = M.pathtype(path) end
-    local o = _walkcall(ftypeFns, path, ftype)
+    if ftype == 'unknown' then
+      ftype, err = M.pathtype(path)
+      if not ftype then ftype = 'error' end
+    end
+    local o = _walkcall(ftypeFns, path, ftype, err)
     if o == true then return end
     if o ~= 'skip' and ftype == 'dir' then
       _walk(path, ftypeFns, maxDepth, depth + 1)
@@ -100,15 +107,19 @@ end
 --
 -- ftypeFns must be a table of ftypes (file, dir) and:
 --  * default: called as fallback (if missing ftype key)
+--  * error: called if determining the type caused an error,
+--    typically due to the file not existing.
+--    the call is: error(path, errstr)
 --  * dirDone: called AFTER the directory has been walked
 --
--- The Fn signatures are: (path, depth) -> stopWalk
+-- The Fn signatures are: (path, ftype) -> stopWalk
 -- If either return true then the walk is ended immediately
 -- If dirFn returns 'skip' then the directory is skipped
 M.walk = function(paths, ftypeFns, maxDepth)
   for _, path in ipairs(paths) do
     assert('' ~= path, 'empty path')
-    local ftype = M.pathtype(path); _walkcall(ftypeFns, path, ftype)
+    local ftype, err = M.pathtype(path)
+    _walkcall(ftypeFns, path, ftype, err)
     if ftype == 'dir' then _walk(path, ftypeFns, maxDepth, 0) end
   end
 end
