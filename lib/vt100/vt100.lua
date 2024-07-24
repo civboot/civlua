@@ -19,8 +19,9 @@ local char, byte, slen = string.char, string.byte, string.len
 local lower, upper     = string.lower, string.upper
 local ulen = utf8.len
 local push, unpack, sfmt = table.insert, table.unpack, string.format
+local concat             = table.concat
 local io = io
-local isup, islow = acolor.isupper, acolor.islower
+local isup, islow = ds.isupper, ds.islower
 local acode = acolor.assertcode
 
 local ty = mty.ty
@@ -170,7 +171,7 @@ end
 
 local termFn = function(name, fmt)
   local fmt = '\027['..fmt
-  return function(f, ...) f:write(fmt:format(...)) end
+  return function(f, ...) return f:write(fmt:format(...)) end
 end
 for name, fmt in pairs{
   clear = '2J',       cleareol= 'K',
@@ -259,8 +260,8 @@ end
 -- Return: fg, bg, write(str, ...)
 --   note: fg and bg are the updated color codes
 M.acwrite = function(f, colorFB, fg, bg, fgstr, bgstr, str, ...)
-  fgstr, bgstr = fgstr or '', bgstr or ''
-  local si, slen, chr, fc, bc, w1, w2 = 1, #str
+  str, fgstr, bgstr = str or '', fgstr or '', bgstr or ''
+  local w1, w2, si, slen, chr, fc, bc = true, nil, 1, #str
   for i=1,slen do
     chr, fc, bc = str:sub(i,i), fgstr:sub(i,i), bgstr:sub(i,i)
     fc, bc = acode(fc), acode(bc)
@@ -270,7 +271,7 @@ M.acwrite = function(f, colorFB, fg, bg, fgstr, bgstr, str, ...)
       si, fg, bg = i, fc, bc
     end
   end
-  if slen - si > 0 then f:write(str:sub(si)) end -- write end of string
+  if slen - si >= 0 then f:write(str:sub(si)) end -- write end of string
   if select('#', ...) > 0 then -- write(...) using color=z
     if fg ~= 'z' or bg ~= 'z' then
       colorFB(f, 'z', 'z', fg, bg)
@@ -280,28 +281,7 @@ M.acwrite = function(f, colorFB, fg, bg, fgstr, bgstr, str, ...)
   end
   return fg, bg, w1, w2
 end
-
--- FIXME: remove this
--- Write to file using fg+bg 1-2byte ac (AsciiColors) string.
---
--- VT100: assumes style is already reset state.
---        ac=nil resets at start, otherwise resets after writing.
-M.colored = function(f, ac, ...) --> write(...)
-  if not ac then ctrl.color(f, RESET); return f:write(...) end
-  local color = ctrl.color
-  local fg, bg = ac:sub(1,1), ac:sub(2,2)
-  if DEFAULT[bg] then color(f, Fg[fg] or error'invalid fg')
-  else
-    ctrl.colorFB(f,
-      Fg[fg] or error'invalid fg',
-      Bg[bg] or error'invalid bg')
-    if not DEFAULT[bg] and bg==upper(bg) then color(f, UL)   end
-  end
-  if   not DEFAULT[fg] and fg==upper(fg) then color(f, BOLD) end
-  local a, b = f:write(...)
-  color(f, RESET)
-  return a, b
-end
+local colorFB, acwrite = M.colorFB, M.acwrite
 
 -------------------
 -- Actual VT100 Control Methods
@@ -329,25 +309,16 @@ M.Term.resize = function(tm)
 end
 
 -- draw the text and color(fg/bg) grids to the screen
--- FIXME: use acwrite instead
 M.Term.draw = function(tm, fd)
   fd = fd or io.stdout
   local golc, nextline   = ctrl.golc, ctrl.nextline
-  local colorFB          = ctrl.colorFB
-  local fg, bg = nil, nil
+  local fg, bg, ok, err = 'z', 'z'
   ctrl.hide(fd); ctrl.clear(fd)     -- hide cursor and clear screen
   golc(fd, 1, 1)
   for l=1, tm.text.h do
-    for c=1, tm.text.w do
-      local chr = tm.text[l][c]; if not chr then break end
-      local f, b = tm.fg[l][c], tm.bg[l][c]
-      if not f or f == ' ' then f = 'z' end
-      if not b or b == ' ' then b = 'z' end
-      if (f ~= fg) or (b ~= bg) then
-        fg, bg = f, b; colorFB(fd, Fg[f], Bg[b])
-      end
-      fd:write(chr)
-    end
+    fg, bg, ok, err = acwrite(fd, colorFB, fg, bg,
+      concat(tm.fg[l]), concat(tm.bg[l]), concat(tm.text[l]))
+    assert(ok, err)
     nextline(fd)
   end
   ctrl.color(fd, 0) -- clear color
@@ -444,7 +415,7 @@ M.start = function(stderr, ...); assert(select('#', ...) == 0)
   local mt = {
     __gc = function()
       if not getmetatable(M.ATEXIT) then return end
-      ctrl.clear(io.stdout)
+      ctrl.clear(io.stdout); ctrl.show(io.stdout)
       restoremode(SAVED)
       if exitFn then exitFn() end
    end,

@@ -748,4 +748,13 @@ test('Grid', function()
   g = Grid{h=3, w=20}
   g:insert(1, 1, {"13 5 7 9", " 2 4 6", ""})
     assertEq('13 5 7 9\n 2 4 6\n', str(g))
+
+  g = Grid{h=3, w=20}
+  g:insert(2, 3, "hi")
+    assertEq('\n  hi\n', str(g))
+  g:insert(1, 6, "ab\ncd\nef")
+    assertEq(
+      '     ab\n'
+    ..'  hi cd\n'
+    ..'     ef', str(g))
 end)

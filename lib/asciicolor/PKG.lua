@@ -10,7 +10,7 @@ deps = {
 }
 srcs = {
   'asciicolor.lua',
-  'asciicolor/AcWriter.lua',
+  'asciicolor/style.lua',
 }
 
 

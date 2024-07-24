@@ -1,4 +1,6 @@
+local mty = require'metaty'
 local ds = require'ds'
+local log = require'ds.log'
 local cx = require'civix'
 local vtt = require'vt100.testing'
 
@@ -6,34 +8,46 @@ local pause = tonumber(os.getenv'SHOWTIME') or 0.1
 
 local demobox = function(t, l, c)
   t.l, t.c = l, c
-  local hort = ('-'):rep(11)
-  local hfg  = ('g'):rep(11)
-  local hbg  = ('d'):rep(11)
+  local tw, th = 6, 3 -- text width, height
+  local txt = 'this\n  is a\ndemo\n'
+  local tfg = 'MWLZ\n  dz  \nCgrd\n'
+
+  local hort = ('-'):rep(tw+2)
+  local hfg  = ('g'):rep(tw+2)
+  local hbg  = ('d'):rep(tw+2)
 
   local vert = '+\n'..('|\n'):rep(3)..'+'
-  local vbg  = ('d\n'):rep(#vert)
+  local vbg  = ('d\n'):rep(5)
 
-  t.text:insert(l, c, 'this\n  is a\ndemo\n')
-  t.fg  :insert(l, c, 'Mwlz\n  dz  \nCgrd\n')
-  t.text:insert(l - 1, c - 3,         hort)
-  t.fg  :insert(l - 1, c - 3,         hfg)
-  t.bg  :insert(l - 1, c - 3,         hbg)
+  t.text:insert(l, c, txt)
+  t.fg  :insert(l, c, tfg)
 
-  t.text:insert(l + 3, c - 3,         hort)
-  t.fg  :insert(l + 3, c - 3,         hfg)
-  t.bg  :insert(l + 3, c - 3,         hbg)
+  -- top
+  t.text:insert(l - 1, c - 1,         hort)
+  t.fg  :insert(l - 1, c - 1,         hfg)
+  t.bg  :insert(l - 1, c - 1,         hbg)
 
-  t.text:insert(l - 1, c - 3,         vert)
-  t.bg  :insert(l - 1, c - 3,         vbg)
+  -- bot
+  t.text:insert(l + th, c - 1,         hort)
+  t.fg  :insert(l + th, c - 1,         hfg)
+  t.bg  :insert(l + th, c - 1,         hbg)
 
-  t.text:insert(l - 1, c + #hort - 3, vert)
-  t.bg  :insert(l - 1, c + #hort - 3, vbg)
+  -- left
+  t.text:insert(l - 1, c - 1,         vert)
+  t.bg  :insert(l - 1, c - 1,         vbg)
+
+  -- right
+  t.text:insert(l - 1, c + tw, vert)
+  t.bg  :insert(l - 1, c + tw, vbg)
 end
 
 -- direct demo
 vtt.run(function(t)
   demobox(t, 2, 5)
   demobox(t, 9, 9)
+  log.info('Drawing:\n%s', mty.tostring(t))
+  log.info('Drawing FG:\n%s', mty.tostring(t.fg))
+  log.info('Drawing BG:\n%s', mty.tostring(t.bg))
   t:draw()
   cx.sleep(pause)
   t.l, t.c = 14, 1; t:draw()

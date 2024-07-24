@@ -50,6 +50,8 @@ local ix = require'civix'
 local push = table.insert
 local fd = require'fd'
 local vt100 = require'vt100'
+local AcWriter = require'vt100.AcWriter'
+local astyle = require'asciicolor.style'
 
 local s = ds.simplestr
 local sfmt = string.format
@@ -84,26 +86,6 @@ s[[excl [table]:
 M.DOC = DOC..'\n#############\n# ARGS\n'
       ..(require'doc'(M.Args):match'.-\n(.-)%-%-+ CODE')
 
-local Styler = mty'Styler' {
-  'f [file]', 'color [bool]',
-  'styles [table]',
-  'styled [fn(astyle, ...)]',
-}
-getmetatable(Styler).__call = function(T, t)
-  t.styles = t.styles or {
-    path='G', match='fZ', meta='ld',
-    error='R',
-  }
-  t.styled = t.colored or require'vt100'.colored
-  return mty.construct(T, t)
-end
-Styler.sty = function(w, st, ...)
-  if w.color then w.styled(w.f, w.styles[st], ...)
-  else            w.f:write(...) end
-end
-Styler.flush = function(w) return w.f:flush() end
-Styler.close = function(w) return w.f:close() end
-
 local function anyMatch(pats, str) --> matching pat, index
   if not pats then return end
   for i, pat in ipairs(pats) do
@@ -111,12 +93,12 @@ local function anyMatch(pats, str) --> matching pat, index
   end
 end
 local function logPath(log, pre, path, to)
-  if pre then log:sty(nil, pre) end
+  if pre then log:styled(nil, pre) end
   if to then
-    log:sty('meta', 'mv ');  log:sty('path', pth.nice(path))
-    log:sty('meta', ' -> '); log:sty('path', pth.nice(to), '\n')
+    log:styled('meta', 'mv ');  log:styled('path', pth.nice(path))
+    log:styled('meta', ' -> '); log:styled('path', pth.nice(to), '\n')
   else
-    log:sty('path', pth.nice(path), '\n')
+    log:styled('path', pth.nice(path), '\n')
   end
 end
 local function move(path, to)
@@ -130,7 +112,8 @@ local function _dirFn(path, args, dirs)
   if anyMatch(args.excl, path) then return 'skip' end
   if args.dirs then
     if args.log then
-      args.log:sty('path', args.dpre or '', pth.nice(path), '\n')
+      if args.dpre then args.log:styled('meta', args.dpre) end
+      args.log:styled('path', pth.nice(path), '\n')
     end
     if dirs then push(dirs, path) end
   end
@@ -173,17 +156,20 @@ local function _fileFn(path, args, out) -- got a file from walk
     if args.matches then
       if log then
         if sub then
-          log:sty(nil, pre or '', args.plain and '' or linenum(l), line, '\n')
+          if not args.plain then
+            log:styled('line', (pre or '')..linenum(l))
+          end
+          log:styled(nil, line, '\n')
         else
           local logl = line
           if sub and #line == 0 then logl = '<line removed>' end
           if not args.plain then
-            if pre then log:sty(nil, pre) end
-            log:sty('meta', linenum(l))
+            if pre then log:styled(nil, pre) end
+            log:styled('line', linenum(l))
           end
-          log:sty(nil, logl:sub(1, m-1))
-          log:sty('match', logl:sub(m, m2))
-          log:sty(nil, logl:sub(m2+1), '\n')
+          log:styled(nil, logl:sub(1, m-1))
+          log:styled('match', logl:sub(m, m2))
+          log:styled(nil, logl:sub(m2+1), '\n')
         end
       end
       if out.matches then push(out.matches, line) end
@@ -199,7 +185,7 @@ local function _fileFn(path, args, out) -- got a file from walk
 end
 
 local function _defaultFn(path, ftype, args) if args.log then
-  args.log:sty(nil, sfmt('?? Unknown ftype=%s: %s', ftype, path), '\n')
+  args.log:styled('error', sfmt('?? Unknown ftype=%s: %s', ftype, path), '\n')
 end end
 
 local function argPats(args)
@@ -247,9 +233,10 @@ getmetatable(M).__call = function(_, args, out, isExe)
     matches = args.matches and {} or nil,
   }
   if args.log then
-    args.log = Styler{
-      f=args.log,
+    args.log = astyle.Styler{
+      acwriter = AcWriter{f=args.log},
       color = shim.color(args.color, fd.isatty(args.log)),
+      styles = astyle.dark, -- FIXME: load instead
     }
   end
   ix.walk(
@@ -259,9 +246,9 @@ getmetatable(M).__call = function(_, args, out, isExe)
       default=function(path, ftype) return _defaultFn(path, ftype, args) end,
       error=function(path, err)
         if not args.keep_going then error(sfmt('ERROR %s: %s', path, err)) end
-        args.log:sty('error', '! ')
-        args.log:sty('path',  path, ' [')
-        args.log:sty('error', err, ']\n')
+        args.log:styled('error', '! ')
+        args.log:styled('path',  path, ' ')
+        args.log:styled('error', 'error: '..err, '\n')
       end
     },
     args.depth

@@ -132,6 +132,12 @@ end
 ---------------------
 -- String Functions
 
+-- return the string if it is only uppercase letters
+M.isupper = function(c) return c:match'^%u+$' end --> string?
+
+-- return the string if it is only lowercase letters
+M.islower = function(c) return c:match'^%l+$' end --> string?
+
 M.brief = function(s, maxlen, trunc) --> string | str...
   maxlen, trunc = maxlen or 50, trunc or '...'
   if type(s) ~= 'string' then s = str(s) end

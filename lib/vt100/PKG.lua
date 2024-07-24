@@ -14,6 +14,7 @@ deps = {
 }
 srcs = {
   'vt100.lua',
+  'vt100/AcWriter.lua',
   'vt100/testing.lua',
 }
 
