@@ -23,7 +23,6 @@ M.name = function(t)
   local mt = getmetatable(t)
 end
 
-
 -- insert values into list at i.
 -- Uses __inset "metamethod" if available.
 -- rmlen, if provided, will cause t[i:i+rmlen] to be removed
@@ -243,6 +242,16 @@ end
 ---------------------
 -- Table Functions
 M.isEmpty = function(t) return next(t) == nil end
+
+-- the full length of all pairs
+-- WARNING: very slow, requires iterating the whole table.
+M.pairlen = function(t)
+  local l = 0; for k in pairs(t) do
+    l = l + 1
+    print('!! pairlen', l, sfmt('%q', k))
+  end
+  return l
+end
 
 -- sort table and return it.
 -- Eventually this may use the __sort metamethod

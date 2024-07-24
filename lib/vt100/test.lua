@@ -4,13 +4,11 @@ local M = require'vt100'
 local T = require'civtest'
 local mty = require'metaty'
 local assertEq = T.assertEq
+local ac = require'asciicolor'
 
 local assertHasAsciiColors = function(c)
-  for k in pairs(M.AsciiColor) do
-    if #k > 1 then mty.assertf(c[k], 'missing %q', k) end
-  end
-  for k in pairs(c) do
-    mty.assertf(M.AsciiColor[k], 'extra %q', k)
+  for code, name in pairs(ac.Color) do
+    mty.assertf(c[name], 'missing %q', name)
   end
 end
 T.test('color', function()

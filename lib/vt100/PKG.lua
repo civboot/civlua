@@ -8,6 +8,7 @@ deps = {
   "lua    ~> 5.3",
   "metaty ~> 0.1",
   "ds     ~> 0.1",
+  "asciicolor ~> 0.1",
 
   -- vt100.testing.run also requires: lap, civix, fd
 }
