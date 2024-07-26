@@ -1,0 +1,68 @@
+local mty = require'metaty'
+-- A file that holds 3 byte (24 bit) integers. These are commonly
+-- used for indexing lines.
+--
+-- This object supports get/set index operations including appending.
+-- Every operation (except consecutive writes) requires a file seek.
+local U3File = mty'lines.U3File' {
+  'f     [file]', 'path  [string]',
+  'len   [int]',  '_i [int]', -- len / current file index
+}
+
+local log = require'ds.log'
+local mtype = math.type
+local pack, unpack = string.pack, string.unpack
+
+local index, newindex = mty.index, mty.newindex
+
+-- seek to index. Invariant: i <= len+1
+local function iseek(u3, i)
+  log.trace('!! iseek _i=%s -> i=%s', u3._i, i)
+  if u3._i == i then return end
+  local pos = assert(u3.f:seek('set', (i-1) * 3))
+  assert(pos % 3 == 0, 'not %3')
+end
+
+-- This creates a new index file at path (path=nil uses tmpfile()).
+-- Note: Use load if you want to load an existing index.
+U3File.create = function(T, path) --> U3File?, err
+  local f, err; if path then f, err = io.open(path, 'w+')
+  else                       f, err = io.tmpfile() end
+  if not f then return f, err end
+  return T{f=f, len=0, _i = 1, path=path}
+end
+
+-- load an index file
+U3File.load = function(T, path)
+  local f, err = io.open(path, 'r+')
+  if not f then return nil, err end
+  local bytes = f:seek'end'
+  f:seek('set', bytes - bytes % 3) -- truncate invalid bytes
+  local len = bytes // 3
+  return T{f=f, path=path, len=len, _i=len}
+end
+
+U3File.flush   = function(u3) return u3.file:flush() end
+U3File.close   = function(u3) return u3.file:close() end
+U3File.__pairs = ipairs
+U3File.__len   = function(u3) return u3.len          end
+
+U3File.__index = function(u3, k)
+  if type(k) == 'string' then return index(u3, k) end
+  if k > u3.len then return end
+  iseek(u3, k)
+  local v = unpack('>I3', assert(u3.f:read(3)))
+  u3._i = k + 1
+  return v
+end
+
+U3File.__newindex = function(u3, k, v)
+  if type(k) == 'string' then return newindex(u3, k, v) end
+  local len = u3.len; assert(k <= len + 1, 'newindex OOB')
+  local s = pack('>I3', v) -- pack first to throw errors
+  iseek(u3, k); assert(u3.f:write(s))
+  if k > len then u3.len = k end
+  u3._i = k + 1
+end
+
+return U3File

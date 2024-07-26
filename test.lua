@@ -26,6 +26,7 @@ print'[[core]]'
 
   dofile(dir..'lib/ds/test.lua')
   dofile(dir..'lib/lines/test.lua')
+  dofile(dir..'lib/lines/test_file.lua')
   dofile(dir..'lib/lson/test.lua')
   dofile(dir..'lib/tv/test.lua')
   dofile(dir..'lib/lap/test.lua')

@@ -23,13 +23,14 @@ local extend, clear, replace, merge
 local getOrSet, get, set
 local drain, reverse
 local eval
-local Set, LL, Duration, Epoch
+local Set, Duration, Epoch
 local M = M.auto'ds'
 local d8 = require'ds.utf8'
 local df = require'ds.file'
 local dp = M.dotpath
 local path = require'ds.path'
 local s = M.simplestr
+local LL = require'ds.LL'
 
 ---------------------
 -- ds.lua
@@ -321,24 +322,37 @@ test('Set', function()
   assertEq(Set{'a'}, s:diff(Set{'b', 'c', 'z'}))
 end)
 
-test('LL', function()
-  local ll = LL{}; assert(ll:isEmpty())
-  ll:addFront(42); assertEq(42, ll:popBack())
-  ll:addFront(46); assertEq(46, ll:popBack())
-  assert(ll:isEmpty())
-  ll:addFront(42):addFront(46);
-  assertEq(46, ll.front.v);         assertEq(42, ll.back.v)
-  assertEq(ll.front, ll.back.prv); assertEq(ll.back, ll.front.nxt)
-  assertEq(nil, ll.front.prv);     assertEq(nil, ll.back.nxt)
-  assertEq(42, ll:popBack()) assertEq(46, ll:popBack())
-  assert(ll:isEmpty())
-  assertEq(nil, ll:popBack())
-  ll:addFront(42):addFront(46):addBack(41)
-  assertEq(41, ll.back.v); assertEq(46, ll.front.v)
-  assertEq(42, ll.front.nxt.v);  assertEq(42, ll.back.prv.v);
-  assertEq(46, ll:popFront())
-  assertEq(42, ll.front.v); assertEq(41, ll.back.v)
-  assertEq(ll.front.nxt, ll.back)
+test('LL', function(); local _
+  local h = LL(2)
+  assertEq({2}, h:tolist())
+
+  -- '+' and '-'
+  local res = h - LL(4)      assertEq({2, 4}, h:tolist())
+  local t = h:tail();        assert(rawequal(t, res))
+  _= h - (LL(5) + 6);        assertEq({2, 4, 5, 6}, h:tolist())
+
+  -- pop
+  h = LL:from{1, 2, 3, 4};   assertEq({1, 2, 3, 4}, h:tolist())
+  local n2 = h.r
+  local n3 = n2.r
+    assert(not (rawequal(h, n2) or rawequal(h, n3)))
+    assert(rawequal(n2,  h:get(1)))
+    assert(rawequal(h,   n2.l))
+
+  assertEq(nil, n2:rm())
+    assertEq({1, 3, 4}, h:tolist())
+    assert(rawequal(h.r, n3))
+    assert(rawequal(h,   n3.l))
+    assert(rawequal(n3, h:rm())) -- new head
+
+  -- insert
+  h = LL:from{1, 3, 4}
+  h:insert(2);        assertEq({1, 2, 3, 4},    h:tolist())
+    assert(rawequal(h, h.r.l))
+  h:tail():insert(5); assertEq({1, 2, 3, 4, 5}, h:tolist())
+    assertEq(4, h:tail().l.v)
+
+  assertEq('LL{1 -> 3 -> 5}', str((LL:from{1, 3, 5})))
 end)
 
 test('binary-search', function()

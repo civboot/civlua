@@ -12,6 +12,7 @@ deps = {
 srcs = {
   'lines.lua',
   'lines/Gap.lua',
+  'lines/U3File.lua',
   'lines/testing.lua',
 }
 
