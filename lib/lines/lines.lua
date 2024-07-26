@@ -248,7 +248,6 @@ M.box = function(t, l1, c1, l2, c2) --> lines
     local line = t[l]
     push(b, line and line:sub(c1, c2) or '')
   end
-  require'ds.log'.trace('!! %s.%s -> %s.%s: %q', l1,c1,l2,c2,b)
   return b
 end
 

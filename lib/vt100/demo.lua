@@ -45,7 +45,7 @@ end
 vtt.run(function(t)
   demobox(t, 2, 5)
   demobox(t, 9, 9)
-  log.info('Drawing:\n%s', mty.tostring(t))
+  log.info('Drawing TXT:\n%s', mty.tostring(t))
   log.info('Drawing FG:\n%s', mty.tostring(t.fg))
   log.info('Drawing BG:\n%s', mty.tostring(t.bg))
   t:draw()

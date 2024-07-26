@@ -252,11 +252,7 @@ M.isEmpty = function(t) return next(t) == nil end
 -- the full length of all pairs
 -- WARNING: very slow, requires iterating the whole table.
 M.pairlen = function(t)
-  local l = 0; for k in pairs(t) do
-    l = l + 1
-    print('!! pairlen', l, sfmt('%q', k))
-  end
-  return l
+  local l = 0; for _ in pairs(t) do l = l + 1 end; return l
 end
 
 -- sort table and return it.
@@ -269,9 +265,9 @@ M.geti = function(t, i)
 end
 M.last = function(t) return t[#t] end
 
--- get the first and only element of the list
+-- get the first (and assert only) element of the list
 M.only = function(t)
-  mty.assertf(#t == 1, 'len ~= 1: %s', #t)
+  local l = #t; mty.assertf(l == 1, 'not only: len=%s', l)
   return t[1]
 end
 

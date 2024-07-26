@@ -263,6 +263,9 @@ test('table', function()
   assertEq({2, a=4, b={4, 7, 6, b1=3, b2=4}, c=3}, merge(t, {
     2, a=4, b={[2]=7, [3]=6, b2=4},
   }))
+
+  assertEq(2, M.pairlen{1, 2})
+  assertEq(3, M.pairlen{1, 2, z=4})
 end)
 
 test('list', function()

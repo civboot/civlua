@@ -38,6 +38,7 @@ Short:
   m: --mut=true
   r: --depth='' (infinite recursion)
   k: --keep_going=true
+  s: --silent=true
   F: no special features (%pat parsing, etc)
 ]]
 local M = mod and mod'ff' or {}
@@ -81,6 +82,7 @@ s[[excl [table]:
   'plain [bool]: no line numbers', plain=false,
   'color [true|false|always|never]: whether to use color',
   'keep_going [bool]: (short -k) whether to keep going on errors',
+  "silent [bool]: (short -s) don't print errors",
 }
 
 M.DOC = DOC..'\n#############\n# ARGS\n'
@@ -217,6 +219,7 @@ getmetatable(M).__call = function(_, args, out, isExe)
   shim.short(args, 'm', 'mut',   true)
   shim.short(args, 'p', 'plain', true)
   shim.short(args, 'k', 'keep_going', true)
+  shim.short(args, 's', 'silent',     true)
   if args.depth < 0 then args.depth = nil end
   if type(args.log) == 'string' then args.log = io.open(args.log, 'a')
   elseif argsTy == 'string' and not args.log then args.log = io.stdout
@@ -246,9 +249,10 @@ getmetatable(M).__call = function(_, args, out, isExe)
       default=function(path, ftype) return _defaultFn(path, ftype, args) end,
       error=function(path, err)
         if not args.keep_going then error(sfmt('ERROR %s: %s', path, err)) end
-        args.log:styled('error', '! ')
-        args.log:styled('path',  path, ' ')
-        args.log:styled('error', 'error: '..err, '\n')
+        if not args.silent then
+          args.log:styled('error', sfmt('! (%s)', err), ' ')
+          args.log:styled('path',  path, '\n')
+        end
       end
     },
     args.depth

@@ -11,17 +11,17 @@ M.CONFIG_PATH = '.config/colors.luck'
 
 M.dark = {
   -- Find tools (i.e. ff)
-  path  = 'G', -- file/dir path
-  match = 'Fz',-- search match
+  path  = 'M',  -- file/dir path
+  match = 'Bf', -- search match
   line  = 'ld', -- line number / etc
-  meta  = 'd', -- Meta=metadata, aka line number / etc
-  error = 'RH',
+  meta  = 'd',  -- Meta=metadata such as description of ops, etc
+  error = 'Wr',
 
   -- Code Syntax
   keyword       = 'R', -- for while do etc
   symbol        = 'r', -- = + . etc
   builtin       = 'p', -- builtin fns/mods/names: io sys self etc
-  commentbox    = 'g', -- start/end of comment: -- // /**/ etc
+  commentbox    = 'G', -- start/end of comment: -- // /**/ etc
   commentbody   = 'g', -- content of comment:  /*content*/
   stringbox     = 'M', -- start/end of string: '' "" [[]] etc
   stringbody    = 'm', -- content of string:   "content"
