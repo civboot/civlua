@@ -815,21 +815,20 @@ end
 -- Linked List
 -- module `ll` is for handling a linked-lists as a table
 -- and is more performant.
--- LL is a data object for LL's and may be removed.
 
 -- Tiny linked-list module.
 --   This uses indexes to track linked-lists, making it
 --   extremely memory efficient and fairly performant.
--- 
+--
 -- -- 1 [-> ...]            linked list with just root
 -- local llp, lln, llv = {0}, {0}, {}
--- 
+--
 -- -- 1 -> 2 [-> 1...]      append 2 to root
 -- ll.push(llp, lln, 1, 2); llv[2] = 'value@2'
--- 
+--
 -- -- 3 -> 1 -> 2 [-> 3...] prepend 3 to root
 -- ll.budge(llp, lln, 1, 3); llv[3] = 'value@3'
--- 
+--
 -- -- 3 -> 1 [-> 3...]      pop 2
 -- ll.pop(llp, lln, 2)
 M.ll = mod and mod'll' or {}
@@ -857,45 +856,6 @@ M.ll.budge = function(prev, nxt, node, a)
   prev[node], prev[a] = a, b
 end
 
-M.LL = mty'LL' {
-  'front[&table]', 'back[&table]',
-}
-
-M.LL.isEmpty = function(self)
-  return nil == self.front and assert(nil == self.back)
-end
-
-M.LL.addFront = function(self, v)
-  if nil == v then return end
-  local a = {v=v, nxt=self.front, prv=nil}
-  if self.front then self.front.prv = a end
-  self.front = a
-  if not self.back then self.back = self.front end
-  return self
-end
-
-M.LL.addBack = function(self, v)
-  if nil == v then return end
-  local a = {v=v, nxt=nil, prv=self.back}
-  if self.back then self.back.nxt = a end
-  self.back = a
-  if not self.front then self.front = self.back end
-  return self
-end
-
-M.LL.popFront = function(self)
-  local o = self.front; if o == nil then return end
-  self.front = o.nxt; if self.front then self.front.prv = nil
-                      else self.back = nil end
-  return o.v
-end
-
-M.LL.popBack = function(self)
-  local o = self.back; if o == nil then return end
-  self.back = o.prv; if self.back then self.back.nxt = nil
-                     else self.front = nil end
-  return o.v
-end
 
 ---------------------
 -- Binary Search
