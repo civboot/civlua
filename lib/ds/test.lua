@@ -351,6 +351,8 @@ test('LL', function(); local _
     assert(rawequal(h, h.r.l))
   h:tail():insert(5); assertEq({1, 2, 3, 4, 5}, h:tolist())
     assertEq(4, h:tail().l.v)
+
+  assertEq('LL{1 -> 3 -> 5}', str((LL:from{1, 3, 5})))
 end)
 
 test('binary-search', function()

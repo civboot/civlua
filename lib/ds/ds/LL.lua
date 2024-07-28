@@ -38,7 +38,6 @@ LL.from = function(T, list) --> (head, tail) from list of vals
   return h, t
 end
 
-LL.__call = function(ll) return ll.r end --> ll.r (use with `for`)
 LL.head = function(ll) while ll.l do ll = ll.l end; return ll end
 LL.tail = function(ll) while ll.r do ll = ll.r end; return ll end
 
@@ -69,6 +68,20 @@ LL.rm = function(ll) --> head?
   end
 end
 
+LL.get = function(ll, i) --> node? (at index +/- i)
+  if i < 0 then
+    for i=1,-i do
+      ll = ll.l; if not ll then return end
+    end
+  else
+    for i=1,i do
+      ll = ll.r; if not ll then return end
+    end
+  end
+  return ll
+end
+
+
 -- Add DSL (ll + v). Puts node with v=v at end of ll.
 LL.__add = function(ll, v) --> tail
   local n = LL(v); ll:tail():link(n); return n
@@ -89,20 +102,16 @@ LL.__sub = function(l, r)
   return t
 end
 
-LL.get = function(ll, i) --> node? (at index +/- i)
-  if i < 0 then
-    for i=1,-i do
-      ll = ll.l; if not ll then return end
-    end
-  else
-    for i=1,i do
-      ll = ll.r; if not ll then return end
-    end
-  end
-  return ll
-end
-
+LL.__call = function(ll) return ll.r end --> ll.r (use with `for`)
 LL.__pairs  = ds.nosupport
 LL.__ipairs = ds.nosupport
+LL.__fmt = function(ll, fmt)
+  push(fmt, 'LL{')
+  while true do
+    fmt(ll.v); ll = ll.r
+    if ll then push(fmt, ' -> ') else break end
+  end
+  push(fmt, '}')
+end
 
 return LL

@@ -4,6 +4,8 @@
 local M = (mod and mod'metaty' or {})
 setmetatable(M, getmetatable(M) or {})
 
+local concat = table.concat
+
 local function copy(t)
   local o = {}; for k, v in pairs(t) do o[k] = v end; return o
 end
@@ -300,7 +302,7 @@ M.Fmt.decIndent = function(f)
 end
 M.Fmt.write = function(f, ...)
   if f.to then f.to:write(...); return end
-  local s = (select('#', ...) == 1) and (...) or table.concat{...}
+  local s = (select('#', ...) == 1) and (...) or concat{...}
   rawset(f, #f + 1, s)
 end
 M.Fmt.__newindex = function(f, i, v)
@@ -379,11 +381,11 @@ M.Fmt.__call = function(f, v) f[type(v)](f, v); return f end
 
 M.tostring = function(v, fmt)
   fmt = fmt or M.Fmt{}; assert(#fmt == 0, 'non-empty Fmt')
-  return table.concat(fmt(v))
+  return concat(fmt(v))
 end
 
 M.format = function(fmt, ...)
-  local i, args, tc = 0, {...}, table.concat
+  local i, args, tc = 0, {...}, concat
   local out = fmt:gsub('%%.', function(m)
     if m == '%%' then return '%' end
     i = i + 1
