@@ -1,6 +1,6 @@
 local mty = require'metaty'
 local ds, lines  = require'ds', require'lines'
-local df  = require'ds.file'
+local LFile = require'lines.File'
 local pegl = require'pegl'
 local lua = require'pegl.lua'
 
@@ -78,7 +78,7 @@ end
 M.loadMetas = function(paths)
   local lucks = {}
   for _, path in ipairs(paths) do
-    local dat = df.LinesFile{io.open(path), len=true}
+    local dat = assert(LFile:load(path))
     local l = M.loadMeta(dat, path) or {}
     l = M.Luck:fromMeta(l, dat, path)
     if lucks[l.name] then
@@ -123,7 +123,7 @@ end
 -- luck.load(path) -> data
 -- Load a single path which has no dependencies.
 M.load = function(path, env)
-  local dat = df.LinesFile{io.open(path), len=true}
+  local dat = assert(LFile:load(path))
   local meta = M.loadMeta(dat, path)
   assert(not meta or not meta.deps, 'single must have no deps')
   return assert(M.loadraw(dat, env))

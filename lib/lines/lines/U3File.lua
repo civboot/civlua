@@ -12,12 +12,12 @@ local U3File = mty'lines.U3File' {
 local log = require'ds.log'
 local mtype = math.type
 local pack, unpack = string.pack, string.unpack
+local sfmt = string.format
 
 local index, newindex = mty.index, mty.newindex
 
 -- seek to index. Invariant: i <= len+1
 local function iseek(u3, i)
-  log.trace('!! iseek _i=%s -> i=%s', u3._i, i)
   if u3._i == i then return end
   local pos = assert(u3.f:seek('set', (i-1) * 3))
   assert(pos % 3 == 0, 'not %3')
@@ -42,13 +42,21 @@ U3File.load = function(T, path)
   return T{f=f, path=path, len=len, _i=len}
 end
 
-U3File.flush   = function(u3) return u3.file:flush() end
-U3File.close   = function(u3) return u3.file:close() end
+U3File.__fmt = function(u3, fmt) push(fmt, smft('U3File(len=%s)', #u3)) end
+U3File.flush = function(u3) return u3.f:flush() end
+U3File.close = function(u3) return u3.f:close() end
 U3File.__pairs = ipairs
 U3File.__len   = function(u3) return u3.len          end
+U3File.tolist  = function(u3)
+  local l = {}; for i, v in ipairs(u3) do l[i] = v end
+  return l
+end
 
 U3File.__index = function(u3, k)
-  if type(k) == 'string' then return index(u3, k) end
+  if type(k) == 'string' then
+    local mt = getmetatable(u3)
+    return rawget(mt, k) or index(mt, k)
+  end
   if k > u3.len then return end
   iseek(u3, k)
   local v = unpack('>I3', assert(u3.f:read(3)))
@@ -60,7 +68,8 @@ U3File.__newindex = function(u3, k, v)
   if type(k) == 'string' then return newindex(u3, k, v) end
   local len = u3.len; assert(k <= len + 1, 'newindex OOB')
   local s = pack('>I3', v) -- pack first to throw errors
-  iseek(u3, k); assert(u3.f:write(s))
+  iseek(u3, k)
+  local _, err = u3.f:write(s); if err then error(err) end
   if k > len then u3.len = k end
   u3._i = k + 1
 end

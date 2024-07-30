@@ -1,8 +1,10 @@
-local lines = require'lines'
+local mty = require'metaty'
 local ds = require'ds'
-local testing = require'lines.testing'
 local test, assertEq, assertMatch, assertErrorPat; ds.auto'civtest'
+local lines = require'lines'
+local testing = require'lines.testing'
 local U3File = require'lines.U3File'
+local File = require'lines.File'
 
 local push = table.insert
 
@@ -37,4 +39,51 @@ test('U3File', function()
   local l = {}; for i, v in ipairs(u) do l[i] = v end
   assertEq({10, 20, 33, 44, 55}, l)
   assertEq(5, #u)
+end)
+
+test('reindex', function()
+  local reindex = getmetatable(File).reindex
+  local idx, f = {}, io.tmpfile()
+  local txt = 'hi\nthere\nindex'
+  f:write(txt); f:flush(); f:seek'set'
+  assertEq(#txt, reindex(f, idx))
+    assertEq({0, 3, 9}, idx)
+
+  idx = {} f:write'\n'; f:flush(); f:seek'set'
+  assertEq(#txt + 1, reindex(f, idx))
+    assertEq({0, 3, 9, 15}, idx)
+
+  -- test indexing from a l,pos
+  idx = {0, 3}; f:seek('set', 9)
+  assertEq(#txt + 1, reindex(f, idx, 3, 9))
+    assertEq({0, 3, 9, 15}, idx)
+end)
+
+test('File', function()
+  local f = assert(File:create()); f.cache = ds.Forget{}
+  assertEq('lines.File()', mty.tostring(f))
+  assertEq(0, #f); assertEq({}, f:tolist());
+
+  local dat = {'one', 'two', 'three'}
+  ds.extend(f, dat)
+    assertEq({0, 4, 8}, f.idx:tolist())
+    assertEq('one',   f[1])
+    assertEq('three', f[3])
+    assertEq(dat, f:tolist())
+
+  assertEq('one', f[1])
+  push(f, 'four'); push(dat, 'four')
+    assertEq(dat, f:tolist())
+  assertEq(4, #f); assertEq('four', f[#f])
+
+  f:write': still in line four'; f:flush()
+  assertEq('four: still in line four',          f[4])
+  f:write' and this'
+  assertEq('four: still in line four and this', f[4])
+
+  local small = ds.srcdir()..'testdata/small.txt'
+  assertEq('one\ntwo\nthree\n', ds.readPath(small))
+  f = assert(File:load(small)); f.cache = ds.Forget{}
+  assertEq({'one', 'two', 'three', ''}, f:tolist())
+  assertEq('two', f[2])
 end)

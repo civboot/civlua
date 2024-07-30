@@ -7,7 +7,7 @@ local push, pop, sfmt    = table.insert, table.remove, string.format
 local move, sort, unpack = table.move, table.sort, table.unpack
 local concat             = table.concat
 local ulen, uoff     = utf8.len, utf8.offset
-local max = math.max
+local min, max = math.min, math.max
 local xpcall, traceback = xpcall, debug.traceback
 local resume = coroutine.resume
 local str = mty.tostring
@@ -312,8 +312,8 @@ end
 -- Example:
 --   iend({1, 2, 3, 4, 5}, -3, -2) -> 3, 4
 M.ilast = function(t, starti, endi)
-  local len = #t; endi = endi and math.min(len, len + endi + 1) or len
-  return M.rawislice, {t, endi}, math.min(len - 1, len + starti)
+  local len = #t; endi = endi and min(len, len + endi + 1) or len
+  return M.rawislice, {t, endi}, min(len - 1, len + starti)
 end
 
 -- convert (_, v) iterator into a table by pushing
@@ -351,7 +351,7 @@ M.add = function(t, ...) --> t
 end
 -- replace(t, r): make t's index values the same as r's
 M.replace = function(t, r)
-  return move(r, 1, math.max(#t, #r), 1, t)
+  return move(r, 1, max(#t, #r), 1, t)
 end
 M.update = function(t, add)
   for k, v in pairs(add) do t[k] = v end; return t
@@ -384,7 +384,7 @@ end
 -- drain(t, len=#t) -> t[#t-len:#t]
 -- return len items from the end of t, removing them from t.
 M.drain = function(t, len)
-  local out = {}; for i=1, math.min(#t, len) do push(out, pop(t)) end
+  local out = {}; for i=1, min(#t, len) do push(out, pop(t)) end
   return M.reverse(out)
 end
 
@@ -609,8 +609,8 @@ M.WeakKV = setmetatable(
 
 -- Table that never accepts new indexes. Used to disable caching in tests.
 M.Forget = setmetatable(
-  {__name='Loser', __newindex=M.noop},
-  {__name='Ty<Loser>', __call=mty.constructUnchecked}
+  {__name='Forget', __newindex=M.noop},
+  {__name='Ty<Forget>', __call=mty.constructUnchecked}
 )
 
 -- Table that errors on missing key
@@ -620,6 +620,23 @@ M.Checked = setmetatable(
   },
   {__name='Ty<Checked>', __call=mty.constructUnchecked}
 )
+
+
+-- A slice of anything with start and end indexes.
+-- Note: This object does not hold a reference to the object being
+--   sliced.
+M.Slice = mty'FSlice' {
+  'si [int]: start index',
+  'ei [int]: end index',
+}
+M.Slice.__len = function(s) return s.ei - s.si + 1 end
+
+-- return either a single (new) merged or two sorted Slices.
+M.Slice.merge  = function(a, b) --> first, second?
+  if a.si > b.si     then a, b = b, a end -- fix ordering
+  if a.ei + 1 < b.si then return a, b end -- check overlap
+  return M.FSlice{si=a.si, ei=max(a.ei, b.ei)}
+end
 
 ---------------------
 -- Sentinal, none type, bool()

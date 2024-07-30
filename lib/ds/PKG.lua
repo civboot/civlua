@@ -14,7 +14,6 @@ srcs = {
   'ds/path.lua',
   'ds/utf8.lua',
   'ds/heap.lua',
-  'ds/file.lua',
   'ds/log.lua',
   'ds/Grid.lua',
   'ds/File.lua',

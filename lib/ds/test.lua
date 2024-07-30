@@ -26,7 +26,6 @@ local eval
 local Set, Duration, Epoch
 local M = M.auto'ds'
 local d8 = require'ds.utf8'
-local df = require'ds.file'
 local dp = M.dotpath
 local path = require'ds.path'
 local s = M.simplestr
@@ -605,99 +604,6 @@ test('u8edges', function()
   testU8('𒀀',  {0xF0, 0x92, 0x80, 0x80})
   testU8('🙃', {0xF0, 0x9F, 0x99, 0x83})
   testU8('🧿', {0xF0, 0x9F, 0xA7, 0xBF})
-end)
-
----------------------
--- ds/file.lua
-test('LinesFile_small', function()
-  assertEq(5, df.readLen'testdata/small.txt')
-  local f = io.open('testdata/small.txt')
-  assertEq(5, df.readLen(f)); f:seek'set'
-
-  local lf = df.LinesFile{f, cache=2}
-  assertEq('This is a small file', lf[1])
-  assertEq('it is for testing.',   lf[2])
-  assertEq('',                     lf[3])
-  assertEq(0, lf.cacheMiss)
-  assertEq('This is a small file', lf[1])
-  assertEq(1, lf.cacheMiss)
-  assertEq(nil, rawget(lf, 2))
-  assertEq('it is for testing.',   lf[2])
-  assertEq(1, lf.cacheMiss)
-
-  assertEq('',                     lf[5])
-  assertEq('It ends in a newline', lf[4])
-  assertEq(1, lf.cacheMiss)
-
-  assertEq(math.maxinteger, lf.len)
-  assertEq(nil,             lf[6])
-  assertEq(5,               lf.len)
-  assertEq(nil,             lf[7])
-  assertEq(5,               lf.len)
-end)
-
-test('LinesFile_append', function()
-  local fname = os.tmpname()
-  local lf = df.LinesFile:appendTo{fname, cache=3}
-  lf[1] = 'first line'
-  lf[2] = 'second line'
-  lf:flush()
-  assertEq('first line',  lf[1])
-  assertEq('second line', lf[2])
-  lf[3] = 'third line'
-  lf:flush()
-  assertEq('second line', lf[2])
-  assertEq('third line',  lf[3])
-  assertEq(3,             #lf)
-  lf.file:seek'set'
-  assertEq([[
-first line
-second line
-third line
-]], lf.file:read'a')
-end)
-
-test('IndexedFile_append', function()
-  local f = io.tmpfile()
-  local orig = [[
-hi there
-this file
-
-is indexed
-for speed.
-]]
-  f:write(orig)
-  local fx = df.IndexedFile{f}
-  fx._cache = M.Forget{}
-  local idxf = fx.idx.file
-  idxf:flush()
-  assertEq(0,  fx.idx:getPos(1))
-  assertEq(9,  fx.idx:getPos(2))
-  assertEq(0,  fx.idx:getPos(1))
-  assertEq(19, fx.idx:getPos(3))
-  assertEq(0, fx._seeks)
-  assertEq('hi there',   fx[1])
-  assertEq(1, fx._seeks)
-  assertEq('this file',  fx[2])
-  assertEq('',           fx[3])
-  assertEq('is indexed', fx[4])
-  assertEq('for speed.', fx[5])
-  assertEq(nil,          fx[0])
-  assertEq(nil,          fx[6])
-  assertEq(1, fx._seeks)
-
-  assertEq({'hi there', 'this file', ''}, lines.sub(fx, 1, 3))
-  assertEq(2, fx._seeks)
-  assertEq('there\nthis file\n', lines.sub(fx, 1, 4, 3, 0))
-  assertEq(3, fx._seeks)
-  assertEq('is indexed', fx[4]); assertEq(3, fx._seeks) -- no seek
-
-  local appended = 'and can be appended to'
-  fx[6] = appended; assertEq(4, fx._seeks)
-  fx:flush()
-  assertEq(appended, fx[6]); assertEq(5, fx._seeks)
-  f:seek'set'
-  assertEq(orig..appended..'\n', f:read'a')
 end)
 
 -----------------

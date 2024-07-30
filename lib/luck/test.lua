@@ -2,18 +2,19 @@ METATY_CHECK = true
 local mty = require'metaty'
 local ds = require'ds'
 local test, assertEq, assertErrorPat; ds.auto'civtest'
-local df  = require'ds.file'
+local LFile = require'lines.File'
 local M = require'luck'
 local D = 'lib/luck/'
 
 test("meta", function()
   local path = D..'testdata/small.luck'
-  local f = df.LinesFile{io.open(path), len=true}
+  local f = assert(LFile:load(path)); f.cache = ds.Forget{}
   local meta = M.loadMeta(f, path)
-  assertEq({'small'}, meta); f:close()
+  assertEq({'small'}, meta)
+  f:close()
 
   local path = D..'testdata/withdeps.luck'
-  local f = df.LinesFile{io.open(path), len=true}
+  local f = assert(LFile:load(path)); f.cache = ds.Forget{}
   local meta = M.loadMeta(f, path)
   assertEq({
     'test.withdeps',

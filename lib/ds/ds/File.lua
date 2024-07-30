@@ -1,7 +1,8 @@
 local mty = require'metaty'
--- Base file object which defers to File.f.
+
+-- Base file object which defers to File.f
 --
--- Example:
+-- Example way to extend it:
 --   M.MyFile = mty.extend(require'ds.File', 'MyFile', {'newField'})
 --   M.MyFile.write = function(f, ...) --[[ overwrite write ]] end
 --   local f = assert(MyFile:open('path/to/file.txt', 'w'))

@@ -3,7 +3,6 @@
 local T = require'civtest'
 local M = require'tv'
 local mty = require'metaty'
-local lf = require'ds.file'
 
 local rep = string.rep
 

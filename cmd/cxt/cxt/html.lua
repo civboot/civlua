@@ -8,8 +8,9 @@ local cxt  = require'cxt'
 local shim = require'shim'
 local civtest = require'civtest'
 local add, sfmt = table.insert, string.format
-local ds, lines = require'ds', require'lines'
-local df = require'ds.file'
+local ds    = require'ds'
+local lines = require'lines'
+local LFile = require'lines.File'
 
 local NAME_SYM = '☍'
 
@@ -200,11 +201,8 @@ M.Args = mty'Html' {
 
 setmetatable(M, {
   __call = function(_, args, isExe)
-    local inp = df.LinesFile{
-      io.open(args[1]), cache=10,
-      len=df.readLen(args[1]),
-    }
-    local to = df.LinesFile{io.open(args[2], 'w'), len=0}
+    local inp = LFile:load(args[1])
+    local to = LFile:create(args[2])
     M.convert(inp, to)
     inp:close(); to:flush(); to:close()
   end,
