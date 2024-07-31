@@ -14,6 +14,7 @@ srcs = {
   'lines/Gap.lua',
   'lines/U3File.lua',
   'lines/File.lua',
+  'lines/EdFile.lua',
   'lines/testing.lua',
 }
 

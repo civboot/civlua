@@ -5,6 +5,7 @@ local lines = require'lines'
 local testing = require'lines.testing'
 local U3File = require'lines.U3File'
 local File = require'lines.File'
+local EdFile = require'lines.EdFile'
 
 local push = table.insert
 
@@ -87,3 +88,37 @@ test('File', function()
   assertEq({'one', 'two', 'three', ''}, f:tolist())
   assertEq('two', f[2])
 end)
+
+test('EdFile.index', function()
+  local ef = EdFile{lens={}, dats={
+    ds.Slice{si=1, ei=2},
+    ds.Slice{si=3, ei=6}
+  }}
+
+  -- test indexing logic itself
+  assertEq(1, ef:_datindex(1))
+  assertEq(1, ef:_datindex(2))
+  assertEq({2}, ef.lens)
+
+  assertEq(2, ef:_datindex(3))
+  assertEq({2, 6}, ef.lens)
+  assertEq(2, ef:_datindex(6))
+  assertEq(6, #ef)
+
+  ef.lens[2] = nil
+  assertEq(nil, ef:_datindex(7))
+  assertEq({2, 6}, ef.lens)
+  assertEq(nil, ef:_datindex(0))
+
+  -- test getting the index
+  ef.dats = {
+    {'one', 'two'},
+    {'three', 'four', 'five', 'six'},
+  }
+  ef.lens = {}
+  assertEq('one',   ef[1]); assertEq({2},    ef.lens)
+  assertEq('three', ef[3]); assertEq({2, 6}, ef.lens)
+  assertEq('six',   ef[6])
+  assertEq(6, #ef)
+end)
+

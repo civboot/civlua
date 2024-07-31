@@ -10,7 +10,7 @@ local ulen, uoff     = utf8.len, utf8.offset
 local min, max = math.min, math.max
 local xpcall, traceback = xpcall, debug.traceback
 local resume = coroutine.resume
-local str = mty.tostring
+local str, getmethod = mty.tostring, mty.getmethod
 local EMPTY = {}
 
 ------------------
@@ -25,9 +25,9 @@ end
 
 -- insert values into list at i.
 -- Uses __inset "metamethod" if available.
--- rmlen, if provided, will cause t[i:i+rmlen] to be removed
+-- rmlen, if provided, will cause t[i:i+rmlen] to be removed first
 M.inset = function(t, i, values, rmlen)
-  local meth = mty.getmethod(t, '__inset')
+  local meth = getmethod(t, '__inset')
   if meth then return meth(t, i, values, rmlen) end
   -- impl notes, there are two modes:
   -- * we want to keep some values after i: we cache those values then shift in
@@ -119,6 +119,8 @@ M.sort2 = function(a, b)
   if a <= b then return a, b end; return b, a
 end
 M.repr = function(v) return sfmt('%q', v) end
+
+local lte = M.lte
 
 ---------------------
 -- Number Functions
@@ -845,15 +847,15 @@ end
 --   cmp = ds.lte by default
 --   si = start index, default=1
 --   ei = end index,   default=#t
--- 
+--
 -- Search the sorted table, return i such that:
 -- * cmp(t[i], v) returns true  for indexes <= i
 -- * cmp(t[i], v) returns false for indexes >  i
--- 
+--
 -- If you want a value perfectly equal then check equality
 -- on the resulting index.
 M.binarySearch = function(t, v, cmp, si, ei)
-  return _bs(t, v, cmp or M.lte, si or 1, ei or #t)
+  return _bs(t, v, cmp or lte, si or 1, ei or #t)
 end
 
 ---------------------

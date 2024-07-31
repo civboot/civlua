@@ -93,31 +93,31 @@ end
 File.__len = function(lf) return #lf.idx end
 
 getmetatable(File).__index = nil
-File.__index = function(lf, k)
-  if type(k) == 'string' then
+File.__index = function(lf, i)
+  if type(i) == 'string' then
     local mt = getmetatable(lf)
-    return rawget(mt, k) or index(mt, k)
+    return rawget(mt, i) or index(mt, i)
   end
   local cache = lf.cache
-  local line = cache[k]; if line then return line end
+  local line = cache[i]; if line then return line end
   local f, idx, pos = lf.f, lf.idx, lf._pos
-  if k > #idx then return end -- line num OOB
-  if not pos or k ~= lf._ln then -- update file pos
-    pos = assert(lf.idx[k])
+  if i > #idx then return end -- line num OOB
+  if not pos or i ~= lf._ln then -- update file pos
+    pos = assert(lf.idx[i])
     assert(f:seek('set', pos))
   end
   local err
   line, err = f:read'L'; assert(not err, err)
   line = line or ''; lf._pos = pos + #line
   if line:sub(-1) == '\n' then line = line:sub(1, -2) end
-  lf._ln, cache[k] = k + 1, line
+  lf._ln, cache[i] = i + 1, line
   return line
 end
 
-File.__newindex = function(lf, k, v)
-  if type(k) == 'string' then return newindex(lf, k, v) end
+File.__newindex = function(lf, i, v)
+  if type(i) == 'string' then return newindex(lf, i, v) end
   local f, idx, cache, pos = lf.f, lf.idx, lf.cache, lf._pos
-  local len = #idx; assert(k == len + 1, 'only append allowed')
+  local len = #idx; assert(i == len + 1, 'only append allowed')
   if not pos or lf._ln then pos = assert(f:seek'end') end
   lf._ln, lf._pos = false, false
   if pos == 0 then
@@ -128,7 +128,7 @@ File.__newindex = function(lf, k, v)
     lf._pos = pos + #v + 1
     pos = pos + 1
   end
-  idx[k], cache[k], lf._ln = pos, v, false
+  idx[i], cache[i], lf._ln = pos, v, false
 end
 
 File.__fmt = function(lf, fmt)
