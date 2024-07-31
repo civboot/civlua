@@ -23,12 +23,12 @@ T.test('expand', function()
 end)
 
 T.test('list', function()
-  T.assertEq({'12'}, M.list('12'))
-  T.assertEq({'12', '34'}, M.list({'12', '34'}))
-  T.assertEq({'12', '34'}, M.listSplit({'12 34'}))
-  T.assertEq({'12', '34'}, M.listSplit('12  \n  34'))
+  T.assertEq({'12'},       M.list('12'))
+  T.assertEq({'12', '34'}, M.list{'12', '34'})
+  T.assertEq({'12 34'},    M.listSplit{'12 34'})
+  T.assertEq({'12', '34'}, M.listSplit'12  \n  34')
   T.assertEq({'12', '34', '56', '78'},
-             M.listSplit({'12  \n  34', '56 78'}))
+             M.listSplit'12  \n  34 56 78')
 end)
 
 T.test('duck', function()

@@ -112,18 +112,13 @@ M.list = function(val, default, empty)
   return (type(val) == 'table') and val or {val}
 end
 
--- Duck type: split a value or (flattened) list of values
--- nil results in an empty list
+-- Duck type: if val is a string then splits it
+--   if it's a list leaves alone.
 M.listSplit = function(val, sep)
   if val == nil then return {} end
-  sep = '[^'..(sep or '%s')..']+'; local t = {}
-  if type(val) == 'string' then
-      for m in val:gmatch(sep) do push(t, m) end
-  else
-    for _, v in ipairs(val) do
-      for m in v:gmatch(sep) do push(t, m) end
-    end
-  end
+  if type(val) == 'table' then return val end
+  sep = '[^'..(sep or '%s')..']+'
+  local t = {}; for m in val:gmatch(sep) do push(t, m) end
   return t
 end
 

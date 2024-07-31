@@ -1,3 +1,5 @@
+METATY_CHECK = true
+
 local DOC = [[ff: find+fix files
 ff is a simple utility to find and fix files and file-content.
 
@@ -71,6 +73,7 @@ s[[pat[table]:
   'incl[string]:  (multi) file name pattern to include.',
 s[[mv[string]:
      file substitute for incl. Renames files (not directories).]],
+  'mvcmd[string]: shell command to use for move',
 s[[excl [table]:
      (multi: any match excludes)
      exclude pattern (default='/%.[^/]+/' -- aka hidden)]],
@@ -94,19 +97,22 @@ local function anyMatch(pats, str) --> matching pat, index
     if str:find(pat) then return pat, i end
   end
 end
-local function logPath(log, pre, path, to)
+local function logPath(log, pre, path, to, mvcmd)
   if pre then log:styled(nil, pre) end
   if to then
-    log:styled('meta', 'mv ');  log:styled('path', pth.nice(path))
-    log:styled('meta', ' -> '); log:styled('path', pth.nice(to), '\n')
+    mvcmd = (#mvcmd == 0) and 'mv' or table.concat(mvcmd, ' ')
+    log:styled('meta', mvcmd, '  ')
+    log:styled('path', pth.nice(path), '\n')
+    log:styled('meta', ' -> '); log:styled('path', pth.nice(to),   '\n')
   else
     log:styled('path', pth.nice(path), '\n')
   end
 end
-local function move(path, to)
+local function move(path, to, cmd)
   local dir = pth.last(pth.abs(to))
   if not ix.exists(dir) then ix.mkDirs(dir) end
-  ix.mv(path, to)
+  if #cmd > 0 then ix.sh(ds.extend(ds.copy(cmd), {path, to}))
+  else             ix.mv(path, to) end
 end
 local function linenum(l) return sfmt('% 6i ', l) end
 
@@ -133,9 +139,9 @@ local function _fileFn(path, args, out) -- got a file from walk
   local pat, sub = args.pat, args.sub
   -- if no patterns exit early
   if #pat == 0 then
-    if files and log   then logPath(log, pre, path, to) end
+    if files and log   then logPath(log, pre, path, to, args.mvcmd) end
     if out.files       then push(out.files, to or path) end
-    if args.mut and to then move(path, to)              end
+    if args.mut and to then move(path, to, args.mvcmd)  end
     return
   end
   -- Search for patterns and substitution. If mut then write subs.
@@ -150,9 +156,9 @@ local function _fileFn(path, args, out) -- got a file from walk
       goto continue
     end
     if files then files = false -- =false -> pnt only once
-      if log then logPath(log, pre, path, to) end
-      if out.files then push(out.files, path) end
-      if args.mut and to then move(path, to)  end
+      if log             then logPath(log, pre, path, to, args.mvcmd) end
+      if out.files       then push(out.files, path)       end
+      if args.mut and to then move(path, to, args.mvcmd)  end
     end
     line = (sub and line:gsub(patFound, sub)) or line
     if args.matches then
@@ -210,6 +216,7 @@ getmetatable(M).__call = function(_, args, out, isExe)
   if args.mv then assert(
     args.incl, 'must specify incl with mv'
   )end
+  args.mvcmd = shim.listSplit(args.mvcmd)
 
   shim.bools(args, 'files', 'matches', 'dirs')
   args.depth = shim.number(args.depth or -1)

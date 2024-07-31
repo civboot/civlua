@@ -97,8 +97,10 @@ test('ff mv', function()
   local result = lines(seekRead(f)); table.sort(result)
   local expected = {
     "",
-    "mv .out/ff/b/b1.txt -> .out/ff/b/bb1.txt",
-    "mv .out/ff/b/b2.txt -> .out/ff/b/bb2.txt"
+    " -> .out/ff/b/bb1.txt",
+    " -> .out/ff/b/bb2.txt",
+    "mv  .out/ff/b/b1.txt",
+    "mv  .out/ff/b/b2.txt",
   }
 
   assertEq(expected, result)
@@ -109,8 +111,10 @@ test('ff mv', function()
   local result = lines(seekRead(f)); table.sort(result)
   local expected = {
     '',
-    "mv .out/ff/b/b1.txt -> .out/ff/b/bb1.txt",
-    "mv .out/ff/b/b2.txt -> .out/ff/b/bb2.txt",
+    " -> .out/ff/b/bb1.txt",
+    " -> .out/ff/b/bb2.txt",
+    "mv  .out/ff/b/b1.txt",
+    "mv  .out/ff/b/b2.txt",
   }
   assertEq(expected, result)
   assert(not civix.exists".out/ff/b/b1.txt")
@@ -125,7 +129,8 @@ test('ff mv pat', function()
      incl='(.*/)(.*%d.txt)', mv='%1/b%2',
      log=f}
   assertEq(
-    'mv .out/ff/b/bb1.txt -> .out/ff/b/bbb1.txt\n'
+    'mv  .out/ff/b/bb1.txt\n'
+  ..' -> .out/ff/b/bbb1.txt\n'
   ..'    10 b 10\n', seekRead(f))
   assertEq(expected, result)
   assert(not civix.exists".out/ff/b/bb1.txt")
