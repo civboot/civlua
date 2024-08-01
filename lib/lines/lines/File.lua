@@ -49,13 +49,28 @@ File.create = function(T, path, idx) --> File
   return construct(T, {f=f, path=path, idx=idx, cache=WeakV{}})
 end
 
-File.load = function(T, path, idx)
-  local f, err = io.open(path, 'r+'); if not f   then return nil, err end
+File.reload = function(lf, idx)
+  if lf.f   then lf.f:close();   lf.f   = false end
+  if lf.idx then lf.idx:close(); lf.idx = false end
+  local f, err = io.open(lf.path, 'r+')
+  if not f   then return nil, err end
   if not idx then
-    idx, err = U3File:create();       if not idx then return nil, err end
+    idx, err = U3File:create()
+    if not idx then return nil, err end
   end
   if #idx == 0 then reindex(f, idx) end
-  return construct(T, {f=f, path=path, idx=idx, cache=WeakV{}})
+  lf.f, lf.idx, lf.cache = f, idx, WeakV{}
+  return lf
+end
+
+File.load = function(T, path, idx)
+  return construct(T, {path=path}):reload(idx)
+  -- local f, err = io.open(path, 'r+'); if not f   then return nil, err end
+  -- if not idx then
+  --   idx, err = U3File:create();       if not idx then return nil, err end
+  -- end
+  -- if #idx == 0 then reindex(f, idx) end
+  -- return construct(T, {f=f, path=path, idx=idx, cache=WeakV{}})
 end
 
 File.tolist = function(lf) --> list
@@ -63,7 +78,8 @@ File.tolist = function(lf) --> list
 end
 
 File.close = function(lf)
-  lf.idx:close(); return lf.f:close()
+  if lf.idx then lf.idx:close()             end
+  if lf.f   then lf.f:close(); lf.f = false end
 end
 File.flush = function(lf)
   lf.idx:flush(); return lf.f:flush()

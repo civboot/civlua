@@ -3,9 +3,10 @@ local ds = require'ds'
 local test, assertEq, assertMatch, assertErrorPat; ds.auto'civtest'
 local lines = require'lines'
 local testing = require'lines.testing'
-local U3File = require'lines.U3File'
-local File = require'lines.File'
-local EdFile = require'lines.EdFile'
+local U3File  = require'lines.U3File'
+local File    = require'lines.File'
+local EdFile  = require'lines.EdFile'
+local Gap     = require'lines.Gap'
 
 local push = table.insert
 
@@ -120,5 +121,25 @@ test('EdFile.index', function()
   assertEq('three', ef[3]); assertEq({2, 6}, ef.lens)
   assertEq('six',   ef[6])
   assertEq(6, #ef)
+end)
+
+
+test('EdFile.newindex', function()
+  local S = function(si, ei) return ds.Slice{si=si, ei=ei} end
+  local ef = EdFile:create()
+  assertEq(0, #ef)
+  assertEq({S(1, 0)},    ef.dats)
+
+  push(ef, 'one')
+  assertEq({},           ef.lens)
+  assertEq('one', ef[1])
+  assertEq({1},          ef.lens)
+  assertEq({Gap{'one'}}, ef.dats)
+
+  push(ef, 'two')
+  assertEq('one', ef[1])
+  assertEq('two', ef[2])
+  assertEq({2},          ef.lens)
+  assertEq({Gap{'one', 'two'}}, ef.dats)
 end)
 

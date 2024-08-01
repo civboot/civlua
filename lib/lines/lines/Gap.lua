@@ -23,6 +23,7 @@ local push, pop, concat = table.insert, table.remove, table.concat
 local move              = table.move
 local sub = string.sub
 local max = math.max
+local getmt = getmetatable
 
 getmetatable(Gap).__call = function(T, t)
   if type(t) == 'string' then t = {bot=lines(t), top={}}

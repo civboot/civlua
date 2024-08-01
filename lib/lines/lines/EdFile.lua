@@ -10,7 +10,10 @@ local EdFile = mty'EdFile' {
 local ds = require'ds'
 local U3File = require'lines.U3File'
 local Gap = require'lines.Gap'
+local File = require'lines.File'
+local U3File = require'lines.U3File'
 
+local push = table.insert
 local getmt, MAXINT = getmetatable, math.maxinteger
 local index, newindex = mty.index, mty.newindex
 local gt, binsearch = ds.lt, ds.binarySearch
@@ -18,16 +21,12 @@ local Slice = ds.Slice
 local inset, clear = ds.inset, ds.clear
 
 -- Create a new EdFile (default idx=lines.U3File()).
-EdFile.create = function(T, path, idx) --> EdFile
-  local f, err = io.open(path, 'w+'); if not f   then return nil, err end
-  if idx then assert(#idx == 0, 'idx must be empty')
-  else
-    idx, err = U3File:create();       if not idx then return nil, err end
-  end
+EdFile.create = function(T, ...) --> EdFile
+  local lf, err = File:create(...)
   return mty.construct(T, {
-    f=f, idx=idx,
-    dats={Slice{si=1, ei=0}},
-    lens={0},
+    lf=lf,
+    dats={Slice{si=1, ei=#lf}},
+    lens={},
   })
 end
 
@@ -36,12 +35,13 @@ EdFile._updateLens = function(ef, max)
   local lens, dats, len = ef.lens, ef.dats
   for i=#lens+1, #dats do
     len = (lens[i - 1] or 0) + #dats[i]
-    lens[i] = len; if len >= max then return end
+    lens[i] = len
+    if len >= max then return end
   end
 end
 
 EdFile.__len = function(ef)
-  ef:_updateLens(ef)
+  ef:_updateLens()
   local l = ef.lens; return l[#l]
 end
 
@@ -101,8 +101,8 @@ EdFile.__inset = function(ef, i, values, rmlen)
 
   -- now we skip dat elements that we will completely remove.
   -- note: rmlen might still be > 0 if dat is a #gap > rmlen.
-  local de, len = ds, #dat
-  while len < rmlen do -- skip dats that are totally removed
+  local de, len = ds, dat and #dat or 0
+  while dat and len < rmlen do -- skip dats that are totally removed
     local dlen = #dat
     len, i, rmlen = dlen, i - dlen, rmlen - dlen
     de = de + 1; dat = dats[de]
@@ -119,7 +119,7 @@ EdFile.__inset = function(ef, i, values, rmlen)
       assert(i == 1)
       ldat, dat = dat, Gap()
     end
-    dat:inset(i, values, rmlen)
+    dat:__inset(i, values, rmlen)
   end
 
   if dat   then push(idats, dat)   end
@@ -129,6 +129,11 @@ EdFile.__inset = function(ef, i, values, rmlen)
 
   inset(dats, ds, idats, de - ds + 1)
   clear(lens, ds) -- remove length caches
+end
+
+EdFile.__newindex = function(lf, i, v)
+  if type(i) == 'string' then return newindex(lf, i, v) end
+  lf:__inset(i, {v}, 1)
 end
 
 return EdFile
