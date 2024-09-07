@@ -3,10 +3,15 @@ local ds = require'ds'
 local test, assertEq, assertMatch, assertErrorPat; ds.auto'civtest'
 local lines = require'lines'
 local testing = require'lines.testing'
-local U3File = require'lines.U3File'
-local File = require'lines.File'
+local U3File  = require'lines.U3File'
+local File    = require'lines.File'
+-- local EdFile  = require'lines.EdFile'
+local Gap     = require'lines.Gap'
 
 local push = table.insert
+
+local TXT, IDX = '.out/lines.txt', '.out/lines.idx'
+local SMALL = ds.srcdir()..'testdata/small.txt'
 
 local loadu3s = function(f)
   local pos, t = f:seek'cur', {}
@@ -42,38 +47,38 @@ test('U3File', function()
 end)
 
 test('reindex', function()
-  local reindex = getmetatable(File).reindex
+  local reindex = File._reindex
   local idx, f = {}, io.tmpfile()
   local txt = 'hi\nthere\nindex'
   f:write(txt); f:flush(); f:seek'set'
-  assertEq(#txt, reindex(f, idx))
+  assertEq(#txt, reindex({f=f}, idx))
     assertEq({0, 3, 9}, idx)
 
   idx = {} f:write'\n'; f:flush(); f:seek'set'
-  assertEq(#txt + 1, reindex(f, idx))
+  assertEq(#txt + 1, reindex({f=f}, idx))
     assertEq({0, 3, 9, 15}, idx)
 
   -- test indexing from a l,pos
   idx = {0, 3}; f:seek('set', 9)
-  assertEq(#txt + 1, reindex(f, idx, 3, 9))
+  assertEq(#txt + 1, reindex({f=f}, idx, 3, 9))
     assertEq({0, 3, 9, 15}, idx)
 end)
 
 test('File', function()
   local f = assert(File:create()); f.cache = ds.Forget{}
   assertEq('lines.File()', mty.tostring(f))
-  assertEq(0, #f); assertEq({}, f:tolist());
+  assertEq(0, #f); assertEq({}, ds.icopy(f))
 
   local dat = {'one', 'two', 'three'}
   ds.extend(f, dat)
-    assertEq({0, 4, 8}, f.idx:tolist())
+    assertEq({0, 4, 8}, ds.icopy(f.idx))
     assertEq('one',   f[1])
     assertEq('three', f[3])
-    assertEq(dat, f:tolist())
+    assertEq(dat, ds.icopy(f))
 
   assertEq('one', f[1])
   push(f, 'four'); push(dat, 'four')
-    assertEq(dat, f:tolist())
+    assertEq(dat, ds.icopy(f))
   assertEq(4, #f); assertEq('four', f[#f])
 
   f:write': still in line four'; f:flush()
@@ -81,9 +86,114 @@ test('File', function()
   f:write' and this'
   assertEq('four: still in line four and this', f[4])
 
-  local small = ds.srcdir()..'testdata/small.txt'
-  assertEq('one\ntwo\nthree\n', ds.readPath(small))
-  f = assert(File:load(small)); f.cache = ds.Forget{}
-  assertEq({'one', 'two', 'three', ''}, f:tolist())
+  assertEq('one\ntwo\nthree\n', ds.readPath(SMALL))
+  f = assert(File:load(SMALL)); f.cache = ds.Forget{}
+  assertEq({'one', 'two', 'three', ''}, ds.icopy(f))
   assertEq('two', f[2])
+
+  f = File:create(TXT, U3File:create(IDX))
+  f:write'line 1\nline 2\nline 3'
+  assertEq({0, 7, 14}, ds.icopy(f.idx))
+  assertEq({'line 1', 'line 2', 'line 3'}, ds.icopy(f))
+  f:flush()
+
+  local r = f:reader()
+  assertEq({'line 1', 'line 2', 'line 3'}, ds.icopy(r))
 end)
+
+-- test('EdFile.index', function()
+--   local ef = EdFile{lens={}, dats={
+--     ds.Slice{si=1, ei=2},
+--     ds.Slice{si=3, ei=6},
+--   }}
+-- 
+--   -- test indexing logic itself
+--   assertEq(1, ef:_datindex(1))
+--   assertEq(1, ef:_datindex(2))
+--   assertEq({2}, ef.lens)
+-- 
+--   assertEq(2, ef:_datindex(3))
+--   assertEq({2, 6}, ef.lens)
+--   assertEq(2, ef:_datindex(6))
+--   assertEq(6, #ef)
+-- 
+--   ef.lens[2] = nil
+--   assertEq(nil, ef:_datindex(7))
+--   assertEq({2, 6}, ef.lens)
+--   assertEq(nil, ef:_datindex(0))
+-- 
+--   -- test getting the index
+--   ef.dats = {
+--     {'one', 'two'},
+--     {'three', 'four', 'five', 'six'},
+--   }
+--   ef.lens = {}
+--   assertEq('one',   ef[1]); assertEq({2},    ef.lens)
+--   assertEq('three', ef[3]); assertEq({2, 6}, ef.lens)
+--   assertEq('six',   ef[6])
+--   assertEq(6, #ef)
+-- end)
+-- 
+-- 
+-- test('EdFile.newindex', function()
+--   local S = function(si, ei) return ds.Slice{si=si, ei=ei} end
+--   local ef = EdFile:create()
+--   assertEq(0, #ef)
+--   assertEq({S(1, 0)},    ef.dats)
+-- 
+--   push(ef, 'one')
+--   assertEq({},           ef.lens)
+--   assertEq('one', ef[1])
+--   assertEq({1},          ef.lens)
+--   assertEq({Gap{'one'}}, ef.dats)
+-- 
+--   push(ef, 'two')
+--   assertEq('one', ef[1])
+--   assertEq('two', ef[2])
+--   assertEq({Gap'one\ntwo'}, ef.dats)
+--   assertEq({2}, ef.lens)
+-- end)
+-- 
+-- test('EdIter', function()
+--   local ed = EdFile:load(SMALL, IDX)
+--   local small = {'one', 'two', 'three', ''}
+--   assertEq(small, ds.icopy(ed))
+-- 
+--   local ln, t = {}, {};
+--   for i, line in ed:iter() do push(ln, i); push(t, line) end
+--   assertEq({1, 2, 3, 4}, ln)
+--   assertEq(small, t)
+-- end)
+-- 
+-- test('EdFile.write', function()
+--   local ed = EdFile:create(TXT, IDX)
+--   ed:write'one\nthree\nfive'
+--   ed:flush()
+--   assertEq(3, #ed)
+--   assertEq('one\nthree\nfive', ds.readPath(TXT))
+--   assertEq({ds.Slice{si=1, ei=3}}, ed.dats)
+--   ed:write' 5'
+--   assertEq('five 5', ed[3])
+-- 
+--   ds.inset(ed, 2, {'two'})
+--   local expect = {'one', 'two', 'three', 'five 5'}
+--   assertEq(expect, ds.icopy(ed))
+--   ds.inset(ed, 1, {'zero'}); table.insert(expect, 1, 'zero')
+--   assertEq(expect, ds.icopy(ed))
+--   assertEq({
+--     Gap'zero',
+--     ds.Slice{si=1, ei=1}, -- one
+--     Gap'two',
+--     ds.Slice{si=2, ei=3}, -- three\nfive 5
+--   }, ed.dats)
+-- 
+--   ds.inset(ed, 1, {'zero 0', 'one 1'}, 2)
+--   expect[1] = 'zero 0'; expect[2] = 'one 1'
+--   assertEq(expect, ds.icopy(ed))
+--   assertEq({
+--     Gap'zero 0\none 1',
+--     Gap'two',
+--     ds.Slice{si=2, ei=3}, -- three\nfive 5
+--   }, ed.dats)
+-- end)
+

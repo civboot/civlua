@@ -263,13 +263,11 @@ end
 -------------------------
 -- Save / Load from file
 
--- load lines from file.
--- if f is a string then open as file and close before returning.
--- if f is nil (or the path does not exist) then return nil
-M.load = function(f, close) --> table?
+-- load lines from file or path. On error return (nil, errstr)
+M.load = function(f, close) --> (table?, errstr?)
   local err
   if type(f) == 'string' then close, f, err = true, io.open(f, 'r') end
-  if f       == nil      then return nil, err or 'load(f=nil)'      end
+  if f == nil then return nil, err or 'load(f=nil)' end
   local i, t = 1, {}
   for line in f:lines() do t[i] = line; i = i + 1 end
   if close then f:close() end
