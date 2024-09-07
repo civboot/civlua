@@ -4,7 +4,7 @@ local mty = require'metaty'
 local EdFile = mty'EdFile' {
   'f   [file]: open file', 'path [string]',
   'idx [U3File]: line index of f',
-  'dats [list]: list of Slice | Gap',
+  'dats [list]: list of Slc | Gap',
   'lens [list]: rolling sum of dat lengths for O(n) line lookup',
 }
 
@@ -20,7 +20,7 @@ local EdFile.create = function(T, path, idx) --> EdFile
   end
   return mty.construct(T, {
     f=f, idx=idx,
-    dats={ds.Slice{si=1, ei=0}},
+    dats={ds.Slc{si=1, ei=0}},
     lens={0},
   })
 

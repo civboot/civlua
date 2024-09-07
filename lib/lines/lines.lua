@@ -17,18 +17,30 @@ local push, pop = table.insert, table.remove
 local concat    = table.concat
 local max, min, bound = math.max, math.min, ds.bound
 local sort2 = ds.sort2
+local rawsplit = mty.rawsplit
 
 M.CMAX = 999
 M.CHUNK = 0x4000 -- 16KiB
 
-setmetatable(M, {
-  __call=function(_, text, index)
-    local t = {}
-    for _, line in mty.rawsplit, text, {'\n', index or 1} do
-      push(t, line)
-    end; return t
-  end,
-})
+local new = function(_, text, index)
+  local t = {}
+  for _, line in rawsplit, text, {'\n', index or 1} do
+    push(t, line)
+  end; return t
+end
+setmetatable(M, {__call=new})
+
+-- concat strings and return lines table
+M.args = function(...) --> lines
+  local len = select('#', ...)
+  if     len == 0 then return {}
+  elseif len == 1 then return new(nil, select(1, ...))
+  else                 return new(nil, concat{...}) end
+end
+
+-- join a table with newlines
+M.join = function(t) return concat(t, '\n') end --> string
+local join = M.join
 
 -- insert string at l, c
 --
@@ -76,7 +88,7 @@ local function _lsub(sub, slen, t, ...)
     local last = s[#s]
     s[1] = sub(s[1], c); s[#s] = sub(last, 1, c2)
     if c2 > #last and l2 < len then push(s, '') end
-    s = M.concat(s)
+    s = join(s)
   end
   return s
 end
@@ -199,9 +211,6 @@ M.findBack = function(t, pat, l, c)
     l, c = l - 1, nil
   end
 end
-
--- concat with newlines
-M.concat = function(t) return concat(t, '\n') end
 
 -- remove span (l, c) -> (l2, c2), return what was removed
 M.remove = function(t, ...) --> string|table

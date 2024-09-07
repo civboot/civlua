@@ -7,6 +7,12 @@ local Gap = require'lines.Gap'
 
 local tostring = require'metaty'.tostring
 
+test('new', function()
+  assertEq({'one', 'two 2', ''}, lines'one\ntwo 2\n')
+  assertEq({'one', 'two 2', ''}, lines.args'one\ntwo 2\n')
+  assertEq({'one', 'two 2', ''}, lines.args('one\n', 'two 2\n'))
+end)
+
 test('sort', function()
   local sort = lines.sort
   assertEq({1, 1, 2, 2}, {sort(1, 1, 2, 2)})
@@ -52,18 +58,18 @@ test('inset', function()
   local t = {''}
   assertEq(1, #t)
   lines.inset(t, 'foo bar', 1, 0)
-  assertEq('foo bar', lines.concat(t))
+  assertEq('foo bar', lines.join(t))
   lines.inset(t, 'baz ', 1, 5)
-  assertEq('foo baz bar', lines.concat(t))
+  assertEq('foo baz bar', lines.join(t))
 
   lines.inset(t, '\nand', 1, 4)
-  assertEq('foo\nand baz bar', lines.concat(t))
+  assertEq('foo\nand baz bar', lines.join(t))
   lines.inset(t, 'buz ', 2, 5)
-  assertEq('foo\nand buz baz bar', lines.concat(t))
+  assertEq('foo\nand buz baz bar', lines.join(t))
 
   t = {''}
   lines.inset(t, 'foo\nbar', 1, 1)
-  assertEq('foo\nbar', lines.concat(t))
+  assertEq('foo\nbar', lines.join(t))
 end)
 
 test('remove', function()

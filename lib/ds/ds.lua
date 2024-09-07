@@ -10,7 +10,7 @@ local ulen, uoff     = utf8.len, utf8.offset
 local min, max = math.min, math.max
 local xpcall, traceback = xpcall, debug.traceback
 local resume = coroutine.resume
-local str = mty.tostring
+local str, getmethod = mty.tostring, mty.getmethod
 local EMPTY = {}
 
 ------------------
@@ -25,9 +25,9 @@ end
 
 -- insert values into list at i.
 -- Uses __inset "metamethod" if available.
--- rmlen, if provided, will cause t[i:i+rmlen] to be removed
+-- rmlen, if provided, will cause t[i:i+rmlen] to be removed first
 M.inset = function(t, i, values, rmlen)
-  local meth = mty.getmethod(t, '__inset')
+  local meth = getmethod(t, '__inset')
   if meth then return meth(t, i, values, rmlen) end
   -- impl notes, there are two modes:
   -- * we want to keep some values after i: we cache those values then shift in
@@ -119,6 +119,8 @@ M.sort2 = function(a, b)
   if a <= b then return a, b end; return b, a
 end
 M.repr = function(v) return sfmt('%q', v) end
+
+local lte = M.lte
 
 ---------------------
 -- Number Functions
@@ -337,7 +339,13 @@ M.reverse = function(t)
 end
 
 -- extend(t, list) -> t: move vals to the end of t
-M.extend = function(t, l) return move(l, 1, #l, #t + 1, t) end
+M.extend = function(t, l)
+  local meth = getmethod(t, '__extend')
+  if meth then return meth(t, l) end
+  return move(l, 1, #l, #t + 1, t)
+end
+
+
 -- clear(t, startindex=1, len=#t) -> t: set t[si:si+len-1] = nil
 M.clear  = function(t, si, len)
   -- TODO: (len or #t) - si + 1
@@ -498,15 +506,19 @@ end
 
 ---------------------
 -- Untyped Functions
-M.copy = function(t, update)
-  local out = {}
-  for k, v in pairs(t) do out[k] = v end
-  setmetatable(out, getmetatable(t))
+
+-- Copy list-elements only
+M.icopy = function(t) return move(t, 1, #t, 1, {}) end --> list
+
+-- Copy and update full table
+M.copy = function(t, update) --> new t
+  local out = {}; for k, v in pairs(t) do out[k] = v end
   if update then
     for k, v in pairs(update) do out[k] = v end
   end
-  return out
+  return setmetatable(out, getmetatable(t))
 end
+
 M.deepcopy = function(t)
   local out = {}; for k, v in pairs(t) do
     if 'table' == type(v) then v = M.deepcopy(v) end
@@ -625,18 +637,38 @@ M.Checked = setmetatable(
 -- A slice of anything with start and end indexes.
 -- Note: This object does not hold a reference to the object being
 --   sliced.
-M.Slice = mty'FSlice' {
+M.Slc = mty'Slc' {
   'si [int]: start index',
   'ei [int]: end index',
 }
-M.Slice.__len = function(s) return s.ei - s.si + 1 end
+local Slc = M.Slc
+M.Slc.__len = function(s) return s.ei - s.si + 1 end
 
--- return either a single (new) merged or two sorted Slices.
-M.Slice.merge  = function(a, b) --> first, second?
+-- return either a single (new) merged or two sorted Slcs.
+M.Slc.merge  = function(a, b) --> first, second?
   if a.si > b.si     then a, b = b, a end -- fix ordering
   if a.ei + 1 < b.si then return a, b end -- check overlap
-  return M.FSlice{si=a.si, ei=max(a.ei, b.ei)}
+  return Slc{si=a.si, ei=max(a.ei, b.ei)}
 end
+
+-- Get the front of the slice, where i is n elements from the start.
+M.Slc.front = function(s, i) --> [si:i]
+  local si, ei = s.si, s.ei
+  i = si + i - 1; assert(si <= i and i <= ei, 'Slc OOB')
+  return Slc{si=si, ei=i}
+end
+
+-- Get the back of the slice, where i is n elements from the start.
+M.Slc.back = function(s, i) --> [i:ei]
+  local si, ei = s.si, s.ei
+  i = si + i - 1; assert(si <= i and i <= ei, 'Slc OOB')
+  return Slc{si=i, ei=ei}
+end
+
+M.Slc.__tostring = function(s)
+  return sfmt('Slc[%s:%s]', s.si, s.ei)
+end
+
 
 ---------------------
 -- Sentinal, none type, bool()
@@ -853,7 +885,7 @@ end
 -- If you want a value perfectly equal then check equality
 -- on the resulting index.
 M.binarySearch = function(t, v, cmp, si, ei)
-  return _bs(t, v, cmp or M.lte, si or 1, ei or #t)
+  return _bs(t, v, cmp or lte, si or 1, ei or #t)
 end
 
 ---------------------

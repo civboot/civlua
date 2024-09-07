@@ -266,6 +266,21 @@ test('table', function()
 
   assertEq(2, M.pairlen{1, 2})
   assertEq(3, M.pairlen{1, 2, z=4})
+
+  assertEq({4, 2, 3}, M.icopy{4, 2, 3, a=4})
+end)
+
+test('Slc', function()
+  local Slc = M.Slc
+  local a = Slc{si=2, ei=10}
+  assertEq(9, #a); assertEq('Slc[2:10]', str(a))
+  assertEq(Slc{si=2, ei=4},    a:front(3))
+  assertEq(Slc{si=4, ei=10},   a:back(3))
+  assertEq({Slc{si=2, ei=14}}, {a:merge(Slc{si=4, ei=14})})
+
+  local expect = {Slc{si=2, ei=10}, Slc{si=12, ei=13}}
+  assertEq(expect, {a:merge(Slc{si=12, ei=13})})
+  assertEq(expect, {Slc{si=12, ei=13}:merge(a)})
 end)
 
 test('list', function()
