@@ -177,9 +177,9 @@ test('Gap.extend', function()
   assertEq('123\n456\n7', tostring(g))
 end)
 
--- test('Gap.write', function()
---   local g = Gap''
---   g:write'hi'; assertEq('hi', tostring(g))
---   g:write' there\n'; assertEq('hi there\n', tostring(g))
---   g:write'  next\nline'; assertEq('hi there\n  next\nline', tostring(g))
--- end)
+test('Gap.write', function()
+  local g = Gap''
+  g:write'hi'; assertEq('hi', tostring(g))
+  g:write' there\n'; assertEq('hi there\n', tostring(g))
+  g:write'  next\nline'; assertEq('hi there\n  next\nline', tostring(g))
+end)

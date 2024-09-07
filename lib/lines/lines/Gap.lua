@@ -18,7 +18,7 @@ local Gap = mty'Gap' { 'bot[table]', 'top[table]', 'path [string]' }
 
 local ds, lines  = require'ds', require'lines'
 local lload = lines.load
-local strlines = lines.strings
+local largs = lines.args
 local span = lines.span
 
 local push, pop, concat = table.insert, table.remove, table.concat
@@ -112,7 +112,7 @@ Gap.setGap = function(g, l)
 end
 
 Gap.write = function(g, ...)
-  local t = strlines(...)
+  local t = largs(...)
   local len = #t; if len == 0 then return end
   g:setGap()
   local bot = g.bot; local blen = #bot

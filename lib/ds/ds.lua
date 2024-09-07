@@ -345,7 +345,6 @@ M.extend = function(t, l)
   return move(l, 1, #l, #t + 1, t)
 end
 
-
 -- clear(t, startindex=1, len=#t) -> t: set t[si:si+len-1] = nil
 M.clear  = function(t, si, len)
   -- TODO: (len or #t) - si + 1
@@ -651,24 +650,9 @@ M.Slc.merge  = function(a, b) --> first, second?
   return Slc{si=a.si, ei=max(a.ei, b.ei)}
 end
 
--- Get the front of the slice, where i is n elements from the start.
-M.Slc.front = function(s, i) --> [si:i]
-  local si, ei = s.si, s.ei
-  i = si + i - 1; assert(si <= i and i <= ei, 'Slc OOB')
-  return Slc{si=si, ei=i}
-end
-
--- Get the back of the slice, where i is n elements from the start.
-M.Slc.back = function(s, i) --> [i:ei]
-  local si, ei = s.si, s.ei
-  i = si + i - 1; assert(si <= i and i <= ei, 'Slc OOB')
-  return Slc{si=i, ei=ei}
-end
-
 M.Slc.__tostring = function(s)
   return sfmt('Slc[%s:%s]', s.si, s.ei)
 end
-
 
 ---------------------
 -- Sentinal, none type, bool()
