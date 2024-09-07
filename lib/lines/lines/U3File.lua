@@ -18,6 +18,7 @@ local index, newindex = mty.index, mty.newindex
 
 -- seek to index. Invariant: i <= len+1
 local function iseek(u3, i)
+  log.info('seek %s -> %s', i, (i-1) * 3)
   if u3._i == i then return end
   local pos = assert(u3.f:seek('set', (i-1) * 3))
   assert(pos % 3 == 0, 'not %3')
@@ -32,24 +33,28 @@ U3File.create = function(T, path) --> U3File?, err
   return T{f=f, len=0, _i = 1, path=path}
 end
 
--- load an index file
-U3File.load = function(T, path)
-  local f, err = io.open(path, 'r+')
+-- reload from path
+U3File.reload = function(u3, mode)
+  local f, err = io.open(u3.path, mode or 'r+')
   if not f then return nil, err end
   local bytes = f:seek'end'
   f:seek('set', bytes - bytes % 3) -- truncate invalid bytes
   local len = bytes // 3
-  return T{f=f, path=path, len=len, _i=len}
+  u3.f, u3.len, u3._i = f, len, len
+  return u3
 end
 
-U3File.__fmt = function(u3, fmt) push(fmt, smft('U3File(len=%s)', #u3)) end
-U3File.flush = function(u3) return u3.f:flush() end
-U3File.close = function(u3) return u3.f:close() end
+-- load an index file
+U3File.load = function(T, path, mode)
+  return mty.construct(T, {path=path}):reload(mode)
+end
+
+U3File.flush   = function(u3) return u3.f:flush() end
+U3File.__len   = function(u3) return u3.len       end
 U3File.__pairs = ipairs
-U3File.__len   = function(u3) return u3.len          end
-U3File.tolist  = function(u3)
-  local l = {}; for i, v in ipairs(u3) do l[i] = v end
-  return l
+
+U3File.close = function(u3)
+  if u3.f then u3.f:close(); u3.f = false end
 end
 
 U3File.__index = function(u3, k)
@@ -72,6 +77,12 @@ U3File.__newindex = function(u3, k, v)
   local _, err = u3.f:write(s); if err then error(err) end
   if k > len then u3.len = k end
   u3._i = k + 1
+end
+
+U3File.__fmt = function(u3, fmt)
+  push(fmt, 'U3File(')
+  if u3.path then push(fmt, u3.path) end
+  push(fmt, ')')
 end
 
 return U3File
