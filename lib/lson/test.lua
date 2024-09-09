@@ -3,7 +3,10 @@ local T = require'civtest'
 local M = require'lson'
 local mty = require'metaty'
 local ds  = require'ds'
+local pod = require'ds.pod'
 local lines = require'lines'
+
+local Tm = mod'Tm'
 
 local function testString(encoded, decoded)
   local de = mty.construct(M.De, {l=1, c=1, line=encoded})
@@ -21,7 +24,7 @@ T.test('skipWs', function()
   de:skipWs(); T.assertEq('b', de.line:sub(de.c,de.c))
 end)
 
-local function test(t, enc, expectEncoding)
+local function ltest(t, enc, expectEncoding)
   enc = enc or M.Json{}
   enc(t)
   local encoded = table.concat(enc)
@@ -29,6 +32,8 @@ local function test(t, enc, expectEncoding)
     T.assertEq(expectEncoding, encoded)
   end
   local de = M.De(lines(encoded))
+  print('!! decoding')
+  print(encoded)
   local decoded = de()
   T.assertEq(t, decoded)
   return enc, de
@@ -50,32 +55,42 @@ end)
 
 T.test('round', function()
   local L = M.Lson
-  test({1, 2, 3},      nil,  '[1,2,3]')
-  test({1, 2, 3},      L{},  '[1 2 3]')
+  ltest({1, 2, 3},      nil,  '[1,2,3]')
+  ltest({1, 2, 3},      L{},  '[1 2 3]')
 
-  test({1, a=2},       nil,  '{"a":2,1:1}')
-  test({1, a=2},       L{},  '{|a|:2 1:1}')
+  ltest({1, a=2},       nil,  '{"a":2,1:1}')
+  ltest({1, a=2},       L{},  '{|a|:2 1:1}')
 
-  test({1, a={3,4}},   nil,  '{"a":[3,4],1:1}')
-  test({1, a={3,4}},   L{},  '{|a|:[3 4] 1:1}')
+  ltest({1, a={3,4}},   nil,  '{"a":[3,4],1:1}')
+  ltest({1, a={3,4}},   L{},  '{|a|:[3 4] 1:1}')
 
-  test({1, a={b=3,4}}, nil,  '{"a":{"b":3,1:4},1:1}')
-  test('abc',          nil,  '"abc"')
-  test('abc',          L{},  '|abc|')
+  ltest({1, a={b=3,4}}, nil,  '{"a":{"b":3,1:4},1:1}')
+  ltest('abc',          nil,  '"abc"')
+  ltest('abc',          L{},  '|abc|')
 
-  test('hi\n\there',   nil,  '"hi\\n\\there"')
-  test('hi\n\there',   L{},  '|hi\\n\there|')
+  ltest('hi\n\there',   nil,  '"hi\\n\\there"')
+  ltest('hi\n\there',   L{},  '|hi\\n\there|')
 
-  test('hi\\th|ere',    nil,  [["hi\\th|ere"]])
-  test('hi\\th|ere',    L{},  [[|hi\th\|ere|]])
+  ltest('hi\\th|ere',    nil,  [["hi\\th|ere"]])
+  ltest('hi\\th|ere',    L{},  [[|hi\th\|ere|]])
 
-  test('hello "happy bob"', nil,  [["hello \"happy bob\""]])
-  test('hello "happy bob"', L{},  [[|hello "happy bob"|]])
+  ltest('hello "happy bob"', nil,  [["hello \"happy bob\""]])
+  ltest('hello "happy bob"', L{},  [[|hello "happy bob"|]])
 
-  test([[\p \s]],    nil, [["\\p \\s"]])
-  test([[\p \s \n]], L{}, [[|\p \s \\n|]])
+  ltest([[\p \s]],    nil, [["\\p \\s"]])
+  ltest([[\p \s \n]], L{}, [[|\p \s \\n|]])
 
-  test(true,              nil,  'true')
-  test(ds.none,           nil,  'null')
-  test({[ds.none]=false}, nil, '{null:false}')
+  ltest(true,              nil,  'true')
+  ltest(ds.none,           nil,  'null')
+  ltest({[ds.none]=false}, nil, '{null:false}')
+end)
+
+T.test('lson.pod', function()
+  Tm.A = mty'A' { 'a1', 'a2' }
+  pod(Tm.A)
+  local a = Tm.A{1, a1='hi'}
+  ltest(a, nil, [[{"__type":"Tm.A","a1":"hi",1:1}]])
+  a = Tm.A{a1=Tm.A{a2='bye'}}
+  ltest(a, nil, [[{"__type":"Tm.A","a1":{"__type":"Tm.A","a2":"bye"}}]])
+  ltest({a=Tm.A{a1='hi'}}, nil, [[{"a":{"__type":"Tm.A","a1":"hi"}}]])
 end)

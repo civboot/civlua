@@ -2,16 +2,40 @@
 local M = mod and mod'lson' or {}
 local mty = require'metaty'
 local ds = require'ds'
+local log = require'ds.log'
+local pod = require'ds.pod'
+
 local empty = ds.empty
 local push, concat = table.insert, table.concat
 local sfmt, rep = string.format, string.rep
+local sortKeys = mty.sortKeys
+local toPod, fromPod = pod.toPod, pod.fromPod
+local Json, Lson, De
+
+--------------------
+-- Main Public API
+
+-- Encode lua value to JSON string
+M.json = function(v, pretty)
+  local enc = pretty and Json:pretty{} or Json{}
+  return concat(enc(v))
+end
+
+-- Encode lua value to LSON string
+M.lson = function(v, pretty)
+  local enc = pretty and Lson:pretty{} or Lson{}
+  return concat(enc(v))
+end
+
+-- Decode JSON/LSON string to lua value
+M.decode = function(s) return De(s)() end
 
 ------------------
 -- JSON Encoder
 
 -- Json Encoder (via metaty.Fmt)
 -- This works identically to metaty.Fmt except it overrides
--- how tables are formatted to use JSON instead.
+-- how tables are formatted to use JSON instead of printing them.
 M.Json = mty.extend(mty.Fmt, 'Json', {
   'null [any]: value to use for null', null=ds.none,
   'listStart [string]', listStart = '[',
@@ -40,11 +64,7 @@ M.Json.table = function(f, t)
   if f._depth >= f.maxIndent then
     error'max depth reached (recursion?)'
   end
-  local mt, keys = getmetatable(t)
-  if type(mt) == 'table' then
-    keys = rawget(mt, '__fields')
-  end
-  keys = keys or mty.sortKeys(t)
+  local keys = sortKeys(t)
   f:incIndent()
   if #keys == 0 then
     if #t > 1 then push(f, f.listStart) else push(f, '[') end
@@ -58,6 +78,7 @@ M.Json.table = function(f, t)
   end
 end
 M.Json.__call = function(f, v)
+  v = toPod(v)
   f[type(v)](f, v); return f
 end
 M.Json.tableKey = M.Json.__call
@@ -185,9 +206,8 @@ local DE_FNS = {
   DE_FNS[string.char(c)] = M.deNumber
 end
 
--- De(string or lines) is an iterator of json values in string/lines
--- LSON is a superset of JSON except it ignores commas. All valid JSON
--- is valid LSON.
+-- De(string or lines) -> value-iter
+-- for val in De'["my", "lson"]' do ... end
 M.De = mty'De' {
   'dat [lines]: lines-like data to parse',
   'null [any]: value to use for null', null=ds.none,
@@ -234,26 +254,10 @@ M.De.__call = function(de)
   de:skipWs(true)
   local l, c = de.l, de.c
   if l > #de.dat then return end
-  local fn = DE_FNS[de.line:sub(c, c)]
-  if not fn then error(sfmt(
-    'unrecognized character: %q', de.line:sub(c,c)
-  ))end
-  return fn(de)
+  local fn = DE_FNS[de.line:sub(c, c)] or error(sfmt(
+    'unrecognized character: %q', de.line:sub(c,c)))
+  return fromPod(fn(de))
 end
 
--- Encode lua value to JSON string
-M.json = function(v, pretty)
-  local enc = pretty and M.Json:pretty{} or M.Json{}
-  return table.concat(enc(v))
-end
-
--- Encode lua value to LSON string
-M.lson = function(v, pretty)
-  local enc = pretty and M.Lson:pretty{} or M.Lson{}
-  return table.concat(enc(v))
-end
-
--- Decode JSON string to lua value
-M.decode = function(s) return M.De(s)() end
-
+Json, Lson, De = M.Json, M.Lson, M.De -- locals
 return M

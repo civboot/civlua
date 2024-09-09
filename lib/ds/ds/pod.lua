@@ -30,28 +30,33 @@ M.toPod = function(val) return TO_POD[type(val)](val) end --> PoD
 toPod = M.toPod
 
 -- Depod plain old data into metaty
-M.fromPod = function(pod) return FROM_POD[type(pod)](pod) end --> value
+M.fromPod = function(pod) --> value
+  return (FROM_POD[type(pod)] or error('unknown type: '..type(pod)))
+    (pod)
+end
 fromPod = M.fromPod
 
 M.TO_POD = { -- pod value into pod
-  ['nil'] = ds.iden, bool   = ds.iden,
-  number  = ds.iden, string = ds.iden,
+  ['nil'] = ds.iden, boolean = ds.iden,
+  number  = ds.iden, string  = ds.iden,
   table = function(t)
-    local mt = getmt(t)
-    if mt then return mt.__toPod(t) end
-    local out = {}; for k, v in pairs(t) do
-      out[k] = toPod(v)
+    local mt = getmt(t); if mt then
+      if type(mt) == 'table' then
+        return assert(mt.__toPod, 'does not implement pod')(t)
+      end
+      if mt ~= 'table' then return t end -- is a sentinel
     end
+    local out = {}; for k, v in pairs(t) do out[k] = toPod(v) end
     return out
   end,
 }
 TO_POD = M.TO_POD
 
 M.FROM_POD = { -- fromPod pod into value
-  ['nil'] = ds.iden, bool   = ds.iden,
-  number  = ds.iden, string = ds.iden,
+  ['nil'] = ds.iden, boolean = ds.iden,
+  number  = ds.iden, string  = ds.iden,
   table = function(t)
-    local ty = popk(t, '__type')
+    local ty = rawget(t, '__type')
     return ty and PKG_LOOKUP[ty]:__fromPod(t) or t
   end,
 }
@@ -67,9 +72,7 @@ FROM_POD = M.FROM_POD
 M.__toPod = function(self) --> table
   local t, mt = icopy(self), getmt(self)
   t.__type = PKG_NAMES[mt]
-  for k in pairs(mt.__fields) do
-    t[k] = toPod(rawget(self, k) or rawget(mt, k))
-  end
+  for k in pairs(mt.__fields) do t[k] = toPod(rawget(self, k)) end
   return t
 end
 
@@ -89,6 +92,7 @@ end
 
 if not getmetatable(M) then setmetatable(M, {}) end
 getmetatable(M).__call = function(_, T)
+  assert(PKG_NAMES[T], 'not in PKG_NAMES')
   T.__toPod, T.__fromPod = M.__toPod, M.__fromPod
 end
 

@@ -184,7 +184,7 @@ four
   assertEq('',     M.usub(u8, 100))
 end)
 
-test('pod', function()
+test('isPod', function()
   assertEq(true,  M.isPod(true))
   assertEq(true,  M.isPod(false))
   assertEq(true,  M.isPod(3))
@@ -585,7 +585,7 @@ end)
 
 ---------------------
 -- ds/pod.lua
-test('pod', function()
+test('ds.pod', function()
   local pod = require'ds.pod'
   local test = mod'test'
   test.A = mty'A'{'a', 'b', b=3}
@@ -593,10 +593,16 @@ test('pod', function()
   assertEq('test.A', PKG_NAMES[test.A])
   assertEq(test.A, PKG_LOOKUP['test.A'])
   local a = test.A{1, 2, a='hi'}
-  assertEq({1, 2, a='hi', b=3, __type='test.A'}, pod.toPod(a))
+  assertEq({1, 2, a='hi', __type='test.A'}, pod.toPod(a))
   local result = pod.fromPod(pod.toPod(a))
-  assert(not mty.eq(a, result)) -- note: a.b is nil, result.b is default
-  result.b = nil; assertEq(a, result)
+  assertEq(a, result)
+  assertEq(3, result.b)
+
+  a = test.A{b=test.A{a='inner'}}
+  assertEq(
+    {b={a='inner', __type='test.A'}, __type='test.A'},
+    pod.toPod(a))
+  assertEq(a, pod.fromPod(pod.toPod(a)))
 end)
 
 ---------------------
