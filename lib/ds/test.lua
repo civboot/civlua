@@ -582,6 +582,23 @@ test('error', function()
   assert(not ok)
   assertEq(expect, M.Error.from(msg, cor))
 end)
+
+---------------------
+-- ds/pod.lua
+test('pod', function()
+  local pod = require'ds.pod'
+  local test = mod'test'
+  test.A = mty'A'{'a', 'b', b=3}
+  test.A.__toPod = pod.__toPod; test.A.__fromPod = pod.__fromPod
+  assertEq('test.A', PKG_NAMES[test.A])
+  assertEq(test.A, PKG_LOOKUP['test.A'])
+  local a = test.A{1, 2, a='hi'}
+  assertEq({1, 2, a='hi', b=3, __type='test.A'}, pod.toPod(a))
+  local result = pod.fromPod(pod.toPod(a))
+  assert(not mty.eq(a, result)) -- note: a.b is nil, result.b is default
+  result.b = nil; assertEq(a, result)
+end)
+
 ---------------------
 -- ds/utf8.lua
 

@@ -208,7 +208,6 @@ M.extendFields = function(fields, R)
   return fields, docs
 end
 
-
 M.namedRecord = function(name, R, loc)
   rawset(R, '__name', name)
   R.__fields, R.__docs = M.extendFields({}, R)
