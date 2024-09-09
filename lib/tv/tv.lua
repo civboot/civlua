@@ -3,6 +3,8 @@ local M = mod and mod'tv' or {}
 
 local mty = require'metaty'
 local ds = require'ds'
+local lson = require'lson'
+
 local push, concat = table.insert, table.concat
 local rep = string.rep
 
@@ -32,22 +34,22 @@ M.encodeComment = function(comment) --> string
   local out = {}; for _, line in ds.split(comment, '\n') do
     push(out, "' "..line)
   end
-  return table.concat(out, '\n')
+  return concat(out, '\n')
 end
 M.encodeTypes = function(types) --> string
-  return ': '..table.concat(types, '\t: ')
+  return ': '..concat(types, '\t: ')
 end
 M.encodeNames = function(names) --> string
-  return '| '..table.concat(names, '\t| ')
+  return '| '..concat(names, '\t| ')
 end
 M.encodeRow = function(names, row, types, serdeMap)
   local ec, out = M.encodeCell, {}
   for i, name in ipairs(names) do
     local v = row[name]
     local ser = serdeMap[types and types[i]]
-    out[i] = ec(v, ser and ser.ser)
+    out[i] = ec(v, ser and ser.en)
   end
-  return table.concat(out, '\t')
+  return concat(out, '\t')
 end
 
 -- Encoder. Example:
@@ -91,10 +93,12 @@ end
 
 -----------
 -- Decode
+local deLson = lson.decode
+
 do
 -- Interface for serialization/deserialization of types.
 M.Serde = mty'Serde'{
-  'ser [function(v) -> string]: serializer', ser=tostring,
+  'en  [function(v) -> string]: serializer', en=tostring,
   'de  [function(string) -> v]: deserializer',
 }
 local BOOL = {
@@ -105,9 +109,13 @@ M.bool    = M.Serde { de = function(s)
   local b = BOOL[s]; if b ~= nil then return b end
   error('invalid bool: '..s)
 end }
+
+
 M.integer = M.Serde { de = math.tointeger }
 M.number  = M.Serde { de = tonumber }
 M.string  = M.Serde { de = function(s) return s end }
+M.json    = M.Serde { de = deLson, en=lson.json }
+M.lson    = M.Serde { de = deLson, en=lson.lson }
 end -- Serde
 
 -- Overrideable map of type serializer/deserializer objects.
@@ -121,6 +129,8 @@ M.SerdeMap.integer = M.integer
 M.SerdeMap.number  = M.number
 M.SerdeMap.string  = M.string
 M.SerdeMap.epoch   = M.number
+M.SerdeMap.lson    = M.lson
+M.SerdeMap.json    = M.json
 
 -- decode the matched pattern
 M.cellmatch = function(backs, esc)

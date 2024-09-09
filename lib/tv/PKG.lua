@@ -7,5 +7,8 @@ license  = "UNLICENSE"
 srcs = { 'tv.lua' }
 deps = {
   "lua ~> 5.3",
+  "metaty ~> 0.1",
+  "ds     ~> 0.1",
+  "lson   ~> 0.1",
 }
 

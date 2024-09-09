@@ -593,14 +593,14 @@ test('ds.pod', function()
   assertEq('test.A', PKG_NAMES[test.A])
   assertEq(test.A, PKG_LOOKUP['test.A'])
   local a = test.A{1, 2, a='hi'}
-  assertEq({1, 2, a='hi', __type='test.A'}, pod.toPod(a))
+  assertEq({1, 2, a='hi', ['??']='test.A'}, pod.toPod(a))
   local result = pod.fromPod(pod.toPod(a))
   assertEq(a, result)
   assertEq(3, result.b)
 
   a = test.A{b=test.A{a='inner'}}
   assertEq(
-    {b={a='inner', __type='test.A'}, __type='test.A'},
+    {b={a='inner', ['??']='test.A'}, ['??']='test.A'},
     pod.toPod(a))
   assertEq(a, pod.fromPod(pod.toPod(a)))
 end)

@@ -2,7 +2,8 @@
 --
 -- This module exports the toPod() and fromPod() functions for serialization
 -- libraries to use. These convert a metaty value (or lua concrete value)
--- to/from plain old data and add the '__type' for deserialization.
+-- to/from plain old data and add the configurable TYPE_KEY (default='??') for
+-- deserializing the type.
 --
 -- A (metatable) type can support these methods by by supporting the methods
 -- __fromPod() and __toPod(). This module provides metaty defaults for these
@@ -18,6 +19,9 @@
 -- Alternatively, you can implement these methods yourself. See
 -- the requirements in the function documentation.
 local M = pkg and pkg'ds.serde' or {}
+
+M.TYPE_KEY = '??'
+-- M.TYPE_KEY = '__type'
 
 local ds = require'ds'
 local getmt = getmetatable
@@ -56,7 +60,7 @@ M.FROM_POD = { -- fromPod pod into value
   ['nil'] = ds.iden, boolean = ds.iden,
   number  = ds.iden, string  = ds.iden,
   table = function(t)
-    local ty = rawget(t, '__type')
+    local ty = rawget(t, M.TYPE_KEY)
     return ty and PKG_LOOKUP[ty]:__fromPod(t) or t
   end,
 }
@@ -68,10 +72,10 @@ FROM_POD = M.FROM_POD
 -- plain old data composed of only bool, number, string or non-metatable
 -- values.
 --
--- The returned table has a `__type` field which can be used with PKG_LOOKUP.
+-- The returned table has a TYPE_KEY field which can be used with PKG_LOOKUP.
 M.__toPod = function(self) --> table
   local t, mt = icopy(self), getmt(self)
-  t.__type = PKG_NAMES[mt]
+  t[M.TYPE_KEY] = PKG_NAMES[mt]
   for k in pairs(mt.__fields) do t[k] = toPod(rawget(self, k)) end
   return t
 end
@@ -79,14 +83,14 @@ end
 -- Default metaty __fromPod method.
 --
 -- This implementation converts a table of PoD to the metaty by first
--- converting it's fields (except __type) and then using getmetatable(T).__call
--- to construct it.
+-- converting it's fields (except TYPE_KEY) and then using
+-- getmetatable(T).__call to construct it.
 --
 -- To use this, the metatable.call method must be able to handle the plain
 -- data input, otherwise you need to implement this method yourself.
 M.__fromPod = function(T, pod) --> value
   local t = {}; for k, v in pairs(pod) do t[k] = fromPod(v) end
-  rawset(t, '__type', nil)
+  rawset(t, M.TYPE_KEY, nil)
   return T(t)
 end
 

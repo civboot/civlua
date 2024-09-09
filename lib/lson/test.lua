@@ -89,8 +89,8 @@ T.test('lson.pod', function()
   Tm.A = mty'A' { 'a1', 'a2' }
   pod(Tm.A)
   local a = Tm.A{1, a1='hi'}
-  ltest(a, nil, [[{"__type":"Tm.A","a1":"hi",1:1}]])
+  ltest(a, nil, [[{"??":"Tm.A","a1":"hi",1:1}]])
   a = Tm.A{a1=Tm.A{a2='bye'}}
-  ltest(a, nil, [[{"__type":"Tm.A","a1":{"__type":"Tm.A","a2":"bye"}}]])
-  ltest({a=Tm.A{a1='hi'}}, nil, [[{"a":{"__type":"Tm.A","a1":"hi"}}]])
+  ltest(a, nil, [[{"??":"Tm.A","a1":{"??":"Tm.A","a2":"bye"}}]])
+  ltest({a=Tm.A{a1='hi'}}, nil, [[{"a":{"??":"Tm.A","a1":"hi"}}]])
 end)

@@ -3,8 +3,10 @@
 local T = require'civtest'
 local M = require'tv'
 local mty = require'metaty'
+local pod = require'ds.pod'
 
 local rep = string.rep
+local Tm = mod'Tm'
 
 local assertBackslashes = function(encoded, num)
   local decoded = rep('\\', num)
@@ -22,7 +24,7 @@ end)
 
 local assertCell = function(v, encoded, serde)
   encoded = encoded or v
-  T.assertEq(encoded, M.encodeCell(v,       serde and serde.ser))
+  T.assertEq(encoded, M.encodeCell(v,       serde and serde.en))
   T.assertEq(v,       M.decodeCell(encoded, serde and serde.de))
 end
 T.test('cell', function()
@@ -63,6 +65,7 @@ local assertFull = function(encoded, t, names, types, smap)
   T.assertEq(types, de._types)
   T.assertEq(t, res)
 end
+
 T.test('full', function()
 local names = {'a', 'b', 'c'}
 local types = {'integer', 'string', 'bool'}
@@ -95,6 +98,29 @@ assertFull(
   {a=5,             },
   {                 },
 }, names, types)
+end) -- END test(full)
 
-end) -- END FULL
 
+T.test('json', function()
+Tm.A = mty'A' {'a1'}
+pod(Tm.A)
+
+local names = {'a', 'b'}
+local types = {'json', 'bool'}
+assertFull(
+-- encoded=
+[[' testfile
+: json	: bool
+| a	| b
+{"b":false}	false
+{"c":"hey{}"}	true
+{"??":"Tm.A","a1":"A1"}	
+]],
+-- table=
+{
+  {a={b=false}, b=false},
+  {a={c='hey{}'}, b=true},
+  {a=Tm.A{a1='A1'}},
+}, names, types)
+
+end)
