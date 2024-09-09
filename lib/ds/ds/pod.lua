@@ -10,18 +10,18 @@
 -- methods that should work for most simple metadta types that are already PoD
 -- (PoD). You can make your type as serializable with:
 --
+--   local M = mod'mymod' -- see pkglib for PKG_NAMES, PKG_LOOKUP
 --   local pod = require'ds.pod'
---   MyType = mty'MyType' { ... }
---   pod(MyType)
+--   M.MyType = mty'MyType' { ... }
+--   pod(M.MyType)
 --   -- Or simply:
---   MyType.__toPod, MyType.__fromPod = pod.__toPod, pod.__fromPod
+--   M.MyType.__toPod, M.MyType.__fromPod = pod.__toPod, pod.__fromPod
 --
 -- Alternatively, you can implement these methods yourself. See
 -- the requirements in the function documentation.
 local M = pkg and pkg'ds.serde' or {}
 
 M.TYPE_KEY = '??'
--- M.TYPE_KEY = '__type'
 
 local ds = require'ds'
 local getmt = getmetatable
