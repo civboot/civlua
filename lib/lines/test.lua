@@ -183,3 +183,4 @@ test('Gap.write', function()
   g:write' there\n'; assertEq('hi there\n', tostring(g))
   g:write'  next\nline'; assertEq('hi there\n  next\nline', tostring(g))
 end)
+

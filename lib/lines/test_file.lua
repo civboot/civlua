@@ -44,6 +44,11 @@ test('U3File', function()
   local l = {}; for i, v in ipairs(u) do l[i] = v end
   assertEq({10, 20, 33, 44, 55}, l)
   assertEq(5, #u)
+
+  u = U3File:create(IDX)
+  ds.extend(u, {0, 3, 5, 7})
+  assertEq(0, u[1])
+  assertEq(7, u[4])
 end)
 
 test('reindex', function()
@@ -100,6 +105,12 @@ test('File', function()
   local r = f:reader()
   assertEq({'line 1', 'line 2', 'line 3'}, ds.icopy(r))
 end)
+
+local function edEq(a, b)
+  assertEq(EdFile, getmetatable(a))
+  assertEq(EdFile, getmetatable(b))
+  assertEq(ds.icopy(a), ds.icopy(b))
+end
 
 test('EdFile.index', function()
   local ef = EdFile{lens={}, dats={
@@ -208,3 +219,38 @@ test('EdFile.write', function()
   assertEq(expect, ds.icopy(ed))
 end)
 
+test('EdFile.big', function()
+  local ed = EdFile:create(TXT, IDX)
+  for i=1,100 do push(ed, 'line '..i) end
+  assertEq(100, #ed)
+
+  assertEq(ed[3], 'line 3')
+  assertEq({ds.Slc{si=1, ei=100}}, ed.dats)
+
+  ed[3] = 'line 3.0'
+  assertEq(ed[2], 'line 2')
+  assertEq(ed[3], 'line 3.0')
+  assertEq(ed[4], 'line 4')
+
+  ds.inset(ed, 7, {'line 7.0', 'line 7.1', 'line 7.2'}, 1)
+  assertEq(ed[6], 'line 6')
+  assertEq(ed[7], 'line 7.0')
+  assertEq(ed[10], 'line 8')
+  assertEq(102, #ed)
+end)
+
+local function newEdFile(text, ...)
+  local ed = EdFile:create(...)
+  if type(text) == 'string' then ed:write(text)
+  else ds.extend(ed, text) end
+  ed:flush()
+  return ed
+end
+
+test('EdFile.linesOffset', function()
+  testing.testOffset(newEdFile(testing.DATA.offset))
+end)
+
+test('EdFile.linesRemove', function()
+  testing.testLinesRemove(newEdFile, edEq, ds.noop)
+end)

@@ -5,6 +5,7 @@ local T = require'civtest'
 local mty = require'metaty'
 local assertEq = T.assertEq
 local ds, lines = require'ds', require'lines'
+local log = require'ds.log'
 M.DATA = {}
 
 -- test round-trip offset
@@ -54,58 +55,65 @@ end
 -- Test lines.remove on object. new must accept either a string or table of
 -- lines to create a new object (does NOT need to be copied)
 -- called for various data structures which implement lines
-M.testLinesRemove = function(new)
+M.testLinesRemove = function(new, assertEq, assertEqRemove)
+  local assertEqR = assertEqRemove or T.assertEq
+  local assertEq = assertEq or T.assertEq
   local t = new''
   lines.inset(t, 'foo bar', 1, 0)
-  assertEq({'o b'}, lines.remove(t, 1, 3, 1, 5))
+  assertEqR({'o b'}, lines.remove(t, 1, 3, 1, 5))
   assertEq(new{'foar'}, t)
 
   lines.inset(t, 'ab\n123', 1, 4)
   assertEq(new{'foaab', '123r'}, t)
-  assertEq({'aab', '12'}, lines.remove(t, 1, 3, 2, 2))
+  assertEqR({'aab', '12'}, lines.remove(t, 1, 3, 2, 2))
   assertEq(new{'fo', '3r'}, t)
 
   t = new'a\nb'
-  assertEq({''}, lines.remove(t, 1, 2, 2, 0)) -- remove newline
+  assertEqR({''}, lines.remove(t, 1, 2, 2, 0)) -- remove newline
   assertEq(new{'ab'}, t)
-  assertEq({'ab', ''}, lines.remove(t, 1, 1, 2, 1))
+  assertEqR({'ab', ''}, lines.remove(t, 1, 1, 2, 1))
   assertEq(new{''}, t)
 
   t = new'a\nb'
-  assertEq({'', ''}, lines.remove(t, 1, 2, 1, 2)) -- alternate remove newline
+  assertEqR({'', ''}, lines.remove(t, 1, 2, 1, 2)) -- alternate remove newline
   assertEq(new{'ab'}, t)
 
   t = new'ab\nc'
-  assertEq({'b', 'c'}, lines.remove(t, 1, 2, 2, 1))
+  assertEqR({'b', 'c'}, lines.remove(t, 1, 2, 2, 1))
   assertEq(new{'a', ''}, t)
 
   t = new'ab\nc'
-  assertEq({'b', 'c'}, lines.remove(t, 1, 2, 2, 2))
+  assertEqR({'b', 'c'}, lines.remove(t, 1, 2, 2, 2))
   assertEq(new{'a'}, t)
 
+  log.info'!! -- TEST ab c nd --'
   t = new'ab\nc\n\nd'
-  assertEq({'c', ''}, lines.remove(t, 2, 3))
+  assertEqR({'c', ''}, lines.remove(t, 2, 3))
+  if rawget(t, 'dats') then
+    log.info('!! dats=%q', t.dats)
+    t:flush()
+  end
   assertEq(new{'ab', 'd'}, t)
 
   t = new'ab\nc'
 
-  assertEq({'c'}, lines.remove(t, 2, 1, 2, 1)) -- remove c
+  assertEqR({'c'}, lines.remove(t, 2, 1, 2, 1)) -- remove c
   assertEq(new{'ab', ''}, t)
-  assertEq({''}, lines.remove(t, 1, 3, 2, 0)) -- remove \n (lineskip)
+  assertEqR({''}, lines.remove(t, 1, 3, 2, 0)) -- remove \n (lineskip)
   assertEq(new{'ab'}, t)
 
   t = new'ab\nc'
-  assertEq({'', ''}, lines.remove(t, 1, 3, 1, 3)) -- remove \n (single)
+  assertEqR({'', ''}, lines.remove(t, 1, 3, 1, 3)) -- remove \n (single)
   assertEq(new{'abc'}, t)
 
   t = new'ab\nc\nde\n'
   -- remove \n (single)
-  assertEq({'', ''}, lines.remove(t, 1, 3, 1, 3))
+  assertEqR({'', ''}, lines.remove(t, 1, 3, 1, 3))
   assertEq(new{'abc', 'de', ''}, t)
 
   t = new'a b c\nd e\nf g\nh i\n'
   mty.print('t:', t)
-  assertEq({'d e', 'f g'}, lines.remove(t, 2, 3))
+  assertEqR({'d e', 'f g'}, lines.remove(t, 2, 3))
   assertEq(new{'a b c', 'h i', ''}, t)
 end
 

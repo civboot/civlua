@@ -8,6 +8,8 @@ LOGFN = function(lvl, msg) if LOGLEVEL >= lvl then
   io.stderr:write(string.format('LOG(%s): %s\n', lvl, msg))
 end end
 
+local io_open = io.open
+
 local dir = '' -- leave here incase support is needed for filedir
 
 print'[[core]]'
@@ -26,6 +28,7 @@ print'[[core]]'
 
   dofile(dir..'lib/ds/test.lua')
   dofile(dir..'lib/lines/test.lua')
+  assert(io_open == io.open)
   dofile(dir..'lib/lines/test_file.lua')
   dofile(dir..'lib/lson/test.lua')
   dofile(dir..'lib/tv/test.lua')

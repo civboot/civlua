@@ -135,10 +135,11 @@ end
 
 EdFile.iter = function(ef)   return EdIter(ef) end
 
--- this ONLY flushes the .lf member. To write all data
--- to disk use :dump()
+-- Flush the .lf member (which can only be extended).
+-- To write all data to disk use :dump()
 EdFile.flush = function(ef) return ef.lf:flush() end
 
+-- Dump EdFile to file or path
 EdFile.dumpf = function(ef, f)
   local ef, efx = ef.lf.f, ef.lf.idx
   for i, d in ipairs(ef.dats) do
