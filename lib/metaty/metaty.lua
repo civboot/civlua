@@ -4,11 +4,15 @@
 local M = (mod and mod'metaty' or {})
 setmetatable(M, getmetatable(M) or {})
 
-local concat = table.concat
-
 local function copy(t)
   local o = {}; for k, v in pairs(t) do o[k] = v end; return o
 end
+
+local concat = table.concat
+string.concat = string.concat or function(...)
+  return select('#', ...) > 1 and concat{...} or (...) or ''
+end
+M.strcon = string.concat; local strcon = string.concat
 
 ---------------
 -- Pre module: environment variables
@@ -299,21 +303,24 @@ M.Fmt.decIndent = function(f)
   local ind = f.indent; if not ind then return end
   f._nl = f._nl:sub(1, -1 - #ind); assert(f._nl:sub(1,1) == '\n')
 end
-M.Fmt.write = function(f, ...)
-  if f.to then f.to:write(...); return end
-  local s = (select('#', ...) == 1) and (...) or concat{...}
-  rawset(f, #f + 1, s)
+M.Fmt._write = function(f, str)
+  if f.to then f.to:write(str) else rawset(f, #f + 1, str) end
 end
+M.Fmt.write = function(f, ...)
+  local str = strcon(...)
+  local doIndent = false
+  for _, line in M.split(str, '\n') do
+    if doIndent then f:_write(f._nl) end
+    f:_write(line); doIndent = true
+  end
+end
+
 M.Fmt.__newindex = function(f, i, v)
   if type(i) ~= 'number' then; assert(f.__fields[i], i)
     return rawset(f, i, v)
   end
   assert(i == #f + 1, 'can only append to Fmt')
-  local doIndent = false
-  for _, line in M.split(v, '\n') do
-    if doIndent then f:write(f._nl) end
-    f:write(line); doIndent = true
-  end
+  f:write(v)
 end
 M.Fmt.tableKey = function(f, k)
   if type(k) ~= 'string' or M.KEYWORD[k]
@@ -323,6 +330,7 @@ M.Fmt.tableKey = function(f, k)
     add(f, ']')
   else add(f, k) end
 end
+
 M.Fmt['nil']      = function(f)     add(f, 'nil')             end
 M.Fmt.boolean     = function(f, b)  add(f, tostring(b))       end
 M.Fmt.number      = function(f, n)  add(f, sfmt(f.numfmt, n)) end

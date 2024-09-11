@@ -37,6 +37,13 @@ local function assertErrorPat(errPat, fn, plain)
   )end
 end
 
+test('string.concat', function()
+  assertEq('',   string.concat())
+  assertEq('a',  string.concat('a'))
+  assertEq('ab', string.concat('a', 'b'))
+end)
+
+
 local function splitT(...)
   local t = {}; for st, item in split(...) do
     add(t, {item, st.si, st.ei})
