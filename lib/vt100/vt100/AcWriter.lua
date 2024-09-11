@@ -3,7 +3,9 @@ local log = require'ds.log'
 local acwrite = require'vt100'.acwrite
 local colorFB = require'vt100'.colorFB
 
--- AcWriter, typically used with asciicolors.Styler
+-- a file-like writer which keeps track of fg and bg colors
+--
+-- Typically used with asciicolors.Styler
 local AcWriter = mty'vt100.AcWriter' {
   'f  [file]',
   'fg [string]: current foreground ac letter', fg='z',

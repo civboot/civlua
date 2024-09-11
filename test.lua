@@ -30,27 +30,24 @@ print'[[core]]'
   dofile(dir..'lib/lines/test.lua')
   assert(io_open == io.open)
   dofile(dir..'lib/lines/test_file.lua')
-  dofile(dir..'lib/lson/test.lua')
-  dofile(dir..'lib/tv/test.lua')
   dofile(dir..'lib/lap/test.lua')
   dofile(dir..'lib/fd/test.lua')
-  dofile(dir..'lib/asciicolor/test.lua')
-  dofile(dir..'lib/vt100/test.lua')
-  dofile(dir..'lib/vcds/test.lua')
-  dofile(dir..'lib/doc/test.lua')
 
 print'[[libs]]'
+  dofile(dir..'lib/asciicolor/test.lua')
+  dofile(dir..'lib/vt100/test.lua')
+  dofile(dir..'lib/lson/test.lua')
+  dofile(dir..'lib/tv/test.lua')
+  dofile(dir..'lib/vcds/test.lua')
   dofile(dir..'lib/pegl/tests/test_pegl.lua')
   dofile(dir..'lib/pegl/tests/test_lua.lua')
   dofile(dir..'lib/luck/test.lua')
-  dofile(dir..'cmd/cxt/test.lua')
   dofile(dir..'lib/rebuf/tests/test_motion.lua')
   dofile(dir..'lib/rebuf/tests/test_buffer.lua')
   dofile(dir..'lib/civix/test.lua')
   dofile(dir..'lib/patience/test.lua')
-
-print'[[experiment]]'
-  dofile(dir..'experiment/tso/test.lua')
+  dofile(dir..'lib/doc/test.lua')
+  dofile(dir..'cmd/cxt/test.lua')
 
 print'[[apps]]'
   dofile(dir..'cmd/ff/test.lua')

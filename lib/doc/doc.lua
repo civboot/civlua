@@ -30,18 +30,18 @@ local pth = require'ds.path'
 -- Special:
 --   key=nil      return first key in the table
 --   key=lastKey  return nil
-M.next = next -- from stdlib
+M.next = next
 
 --pcall(fn, ...inp): handle errors.
 --  calls fn(...inp) and returns:
 --    ok=false, error    for errors
 --    ok=true, ...out    for success
-M.pcall = pcall -- from stdlib
+M.pcall = pcall
 
 --select(index, ...inp) -> inp[index:]
 --removes index-1 items from inp stack.
 --If index='#' returns #inp.
-M.select = select -- from stdlib
+M.select = select
 
 -- type(v) -> typeString. Possible values:
 --
@@ -49,7 +49,7 @@ M.select = select -- from stdlib
 --   function thread userdata
 --
 -- See also: metaty.ty(v) for metatypes
-M.type = type -- from stdlib
+M.type = type
 
 -- setmetatable(t, mt) -> t
 -- Sets the metatable on table which adds context (metatype)
@@ -72,13 +72,16 @@ M.type = type -- from stdlib
 --     __call    __name
 --
 -- metaty: __fields   __fmt
-M.setmetatable = setmetatable -- from stdlib
+M.setmetatable = setmetatable
 
 --getmetatable(t) -> mt  See setmetatable.
-M.getmetatable = getmetatable -- from stdlib
+M.getmetatable = getmetatable
 
 -------------------------------
 -- string
+
+-- the builtin lua string module
+M.string = string
 
 -- string.find(subject:str, pat, index=1)
 --  -> (starti, endi, ... match strings)
@@ -119,17 +122,17 @@ M.getmetatable = getmetatable -- from stdlib
 --
 -- assert(    find('yes bob yes',  '(%w+) bob %1'))
 -- assert(not find('yes bob no',   '(%w+) bob %1'))
-M['string.find'] = string.find -- from stdlib
+M['string.find'] = string.find
 
 -- match(subj, pat, init) return the capture groups of pat
 -- or the whole match if no capture groups.
 --
 -- See also: string.find.
-M['string.match'] = string.match -- from stdlib
+M['string.match'] = string.match
 
 
 -- gmatch(subj, pat, init) match iterator function.
-M['string.gmatch'] = string.gmatch -- from stdlib
+M['string.gmatch'] = string.gmatch
 
 -- substring by index (NOT pattern matching).
 --
@@ -137,7 +140,7 @@ M['string.gmatch'] = string.gmatch -- from stdlib
 --
 -- Note: This is confusingly named considering string.gsub uses pattern
 -- matching. Such is life.
-M['string.sub'] = string.sub -- from stdlib
+M['string.sub'] = string.sub
 
 -- Globally Substittue pattern with subpattern.
 --
@@ -154,7 +157,7 @@ M['string.sub'] = string.sub -- from stdlib
 -- gsub = string.gsub
 --   assertEq('yes ann yes',
 --     gsub(  'yes bob yes', '(%w+) bob %1', '%1 ann %1'))
-M['string.gsub'] = string.gsub -- from stdlib
+M['string.gsub'] = string.gsub
 
 -- Format values into a fmt string, i.e: format('%s: %i', 'age', 42)
 --
@@ -178,19 +181,19 @@ M['string.gsub'] = string.gsub -- from stdlib
 -- Directive control structure:
 --
 --   % <fill character>? <fill count> directive
-M['string.format'] = string.format -- from stdlib
+M['string.format'] = string.format
 
 
 -- string.byte(s [i, j]) -> number: get numberic code/s for s[i:j]
-M['string.byte'] = string.byte -- from stdlib
+M['string.byte'] = string.byte
 
 
 -- char(c1, c2, ...) -> string
 -- convert character codes to string and concatenate
-M['string.char'] = string.char -- from stdlib
+M['string.char'] = string.char
 
 -- rep(s, n, sep) -> string -- repeat s n times with separator.
-M['string.rep'] = string.rep -- from stdlib
+M['string.rep'] = string.rep
 
 -- pack(packfmt, ...values) -> string
 -- pack the values into the string using the packfmt.
@@ -209,34 +212,38 @@ M['string.rep'] = string.rep -- from stdlib
 --   x            one byte of padding
 --   X[op]        align to option op, i.e. Xi4
 --   j J n        lua Integer / Unsigned / Number
-M['string.pack'] = string.pack -- from stdlib
+M['string.pack'] = string.pack
 
 
 -- unpack(fmt, str) -> ...
 -- See string.pack for the fmt
-M['string.unpack'] = string.unpack -- from stdlib
+M['string.unpack'] = string.unpack
 
 -- string.packsize(fmt) -> int
 -- Get the size which is used by fmt.
-M['string.packsize'] = string.packsize -- from stdlib
+M['string.packsize'] = string.packsize
 
 -------------------------------
 -- table
+
+-- the builtin lua table module
+M.table = table
+
 -- concatenate values in a table.
 --
 --   table.concat(table, sep='')
 --
 -- assertEq(1..' = '..3, concat{1, ' = ', 3})
 -- assertEq('1, 2, 3',   concat({1, 2, 3}, ', ')
-M['table.concat'] = table.concat -- from stdlib
+M['table.concat'] = table.concat
 
 -- table.remove(table, index=#table) -> ()
 -- remove an item from a table, returning it.
 -- The table is shifted if index < #table.
-M['table.remove'] = table.remove -- from stdlib
+M['table.remove'] = table.remove
 
 -- table.sort(list, function=nil) sort table in-place
-M['table.sort'] = table.sort -- from stdlib
+M['table.sort'] = table.sort
 
 -- insert or add to table (list-like)
 --
@@ -248,7 +255,7 @@ M['table.sort'] = table.sort -- from stdlib
 --
 -- Recommendation:
 --   local add = table.insert; add(t, 4)
-M['table.insert'] = table.insert -- from stdlib
+M['table.insert'] = table.insert
 
 -- table.move(from, siFrom, eiFrom, siTo, to=from) -> to
 -- Note: si=startIndex, ei=endIndex
@@ -262,7 +269,8 @@ M['table.move'] = table.move
 
 -------------------------------
 -- io module
--- Open -> do input and output -> close files.
+
+-- the builtin lua io (input/output) module
 --
 -- Methods:
 --   input(file=nil)  ->  file    get/set stdin
@@ -295,7 +303,7 @@ M['table.move'] = table.move
 --   seek()    ->  get current position
 --   seek'set' ->  set to beginning
 --   seek'end' ->  set to end
-M.io = io -- from stdlib
+M.io = io
 
 -- Execute shell command in separate process.
 --
@@ -306,10 +314,12 @@ M.io = io -- from stdlib
 --   civix.sh: ergonomic blocking shell.
 --
 -- Note: as of Lua5.4 it is not possible to have stderr or both stdin&stdout.
-M['io.popen'] = io.popen -- from stdlib
+M['io.popen'] = io.popen
 
 -------------------------------
 -- os module
+
+-- the builtin lua os module
 --
 -- Useful functions:
 --   exit(rc=0, close=false) exit program with return code
@@ -322,18 +332,16 @@ M['io.popen'] = io.popen -- from stdlib
 --   clock()                 seconds used by process (performance)
 --
 -- Recommendation:
---   civix.epoch() returns nanosec precision, os.time() only sec.
-M.os = os -- from stdlib
+--   use civix.epoch() (nanosec precision) vs os.time() (sec precision)
+M.os = os
 
--------------------------------
--- os.execute and io.popen
 -- Execute shell command via C's `system` API.
 --
 --   os.execute'shell command' -> (ok, "exit", rc)
---   os.execute()              -> shellAvailable
+--   os.execute()              -> isShellAvailable
 --
 -- Recommendation:
---   For all but the simplest cases use io.popen instead.
+--   For all but the simplest cases use io.popen instead
 --
 -- Args:
 --    ok      true on command success, false if rc>0
@@ -344,20 +352,19 @@ M.os = os -- from stdlib
 --    prints whatever was executed. There are no ways to
 --    redirect the output besides piping in the command
 --    string itself.
-M['os.execute'] = os.execute -- from stdlib
+M['os.execute'] = os.execute
 
----------------------
--- Keywords
-
--- Note: non-keywords are not actually stored in this module
--- (their docs are preserved in SRC* globals)
+-- store items in this module in PKG_* variables
 for k, obj in pairs(M) do
   local name = PKG_NAMES[obj]; if name then
-    local newname = name:sub(5)
+    local newname = name:sub(5) -- remove "doc."
     PKG_NAMES[obj] = newname
     PKG_LOOKUP[name] = nil; PKG_LOOKUP[newname] = obj
   end
 end
+
+---------------------
+-- Keywords
 
 -- for is a looping construct with two forms:
 --
@@ -415,7 +422,7 @@ PKG_LOOKUP['for'] = M['for']
 -- most things unless you are:
 --
 -- * modifying the fundamentals of the language (i.e. replacing 'require')
--- * implementing a "protocol" for libraries to communicate global state (i.e. LAP)
+-- * implementing a "protocol" for libraries to communicate global state
 -- * managing true physical state (i.e. robotics, terminal output, etc)
 -- * you are the top-level application (i.e. a game, CLI, etc) and global state
 --   is the best solution.
@@ -426,14 +433,15 @@ PKG_LOOKUP['local'] = M['local']
 -- Doc and DocItem
 
 local VALID = {['function']=true, table=true}
-M.modinfo = function(obj)
+
+M.modinfo = function(obj) --> (name, loc)
   if type(obj) == 'function' then return mty.fninfo(obj) end
   local name, loc = PKG_NAMES[obj], PKG_LOC[obj]
   name = name or (type(obj) == 'table') and rawget(obj, '__name')
   return name, loc
 end
 
-M.findcode = function(loc) --> (comments, code)
+M.findcode = function(loc) --> (commentLines, codeLines)
   if type(loc) ~= 'string' then loc = select(2, M.modinfo(loc)) end
   if not loc then return end
   local path, locLine = loc:match'(.*):(%d+)'
@@ -460,6 +468,11 @@ M.findcode = function(loc) --> (comments, code)
   return ds.reverse(comments), ds.reverse(code)
 end
 
+M.DocItem = mty'DocItem' {
+  'name', 'ty [string]', 'path [string]',
+  'default [any]', 'doc [string]', doc = '',
+}
+
 -- Documentation on a single type
 -- These pull together the various sources of documentation
 -- from the PKG and META_TY specs into a single object.
@@ -468,11 +481,10 @@ end
 M.Doc = mty'Doc' {
   'name', 'ty [Type]: type, can be string',
   'path [str]',
-  'fields [table]', 'other [table]',
-}
-M.DocItem = mty'DocItem' {
-  'name', 'ty [string]', 'path [string]',
-  'default [any]', 'doc [string]', doc = '',
+  'comments [lines]: comments above item',
+  'code [lines]: code which defines the item',
+  'fields [table[name=DocItem]]',
+  'other [table[name=DocItem]]: methods and constants',
 }
 
 local function fmtItems(f, items, name)
@@ -489,25 +501,28 @@ local fmtAttrs = function(d, f)
 end
 
 M.Doc.__fmt = function(d, f)
-	push(f, d.name or '?')
+  push(f, d.name or '?')
   if d.ty   then push(f, sfmt(' [%s]', d.ty)) end
   if d.path then push(f, sfmt(' (%s)', d.path)) end
   fmtAttrs(d, f)
 end
 
-M.DocItem.__tostring = function(di)
-  local ty = di.ty and (': '..mty.tyName(di.ty))
-  local def = type(di.default) ~= 'nil' and mty.format(' = %q', di.default)
-  ty = (ty or '')..(def or '')
-  local doc = di.doc ~= '' and
-    sfmt('\n| %s\n', di.doc:gsub('\n', '\n| ')) or ''
 
-  local path; if di.path then
-    path = di.path:match'([^/]*/[^/]+:%d+)'
-    path = path and sfmt('(%s)', path)
-  end
+M.DocItem.typeStr = function(di) return di.ty and mty.tyName(di.ty) end
+M.DocItem.defaultStr = function(di)
+  return di.default ~= nil and mty.format(' = %q', di.default)
+end
+M.DocItem.shortPath = function(di)
+  return di.path and di.path:match'([^/]*/[^/]+:%d+)'
+end
+M.DocItem.__tostring = function(di)
+  local ty = (di.ty and (': '..di:typeStr()) or '')..(di:defaultStr() or '')
+  local path = di:shortPath()
+  local doc = di.doc ~= '' and sfmt('\n| %s\n', di.doc:gsub('\n', '\n| '))
   return sfmt('%-16s%-20s%s%s',
-    di.name or '?', ty or '', path or '', doc)
+    di.name or '?', ty or '',
+    path and sfmt('(%s)', path) or '',
+    doc or '')
 end
 
 getmetatable(M.Doc).__call = function(T, obj)
@@ -516,7 +531,12 @@ getmetatable(M.Doc).__call = function(T, obj)
     name=name, path=path,
     ty=mty.tyName(mty.ty(obj)),
   })
+  d.comments, d.code = M.findcode(path)
+  if d.comments then M.stripComments(d.comments) end
+
   if type(obj) ~= 'table' then return d end
+
+  -- fields
   d.fields, d.other = {}, {}
   local fields = rawget(obj, '__fields')
   if fields then
@@ -536,8 +556,6 @@ getmetatable(M.Doc).__call = function(T, obj)
   for _, k in ipairs(other) do
     local v = obj[k]
     local ty = mty.ty(v)
-    local _, vloc = M.modinfo(v)
-    vloc = vloc and sfmt('[%s]', vloc) or nil
     push(d.other, M.DocItem {
       name=k, ty=v and mty.ty(v), path=select(2, M.modinfo(v)),
     })
@@ -551,22 +569,28 @@ M.stripComments = function(com)
   local pat = '^%-%-'..string.rep('%s?', #ind)..'(.*)%s*'
   for i, l in ipairs(com) do com[i] = l:match(pat) or l end
 end
-M.full = function(obj)
+
+-- Find the object or name and return the Doc item
+M.find = function(obj) --> Doc
   if type(obj) == 'string' then
     obj = PKG_LOOKUP[obj] or _G[obj] or require(obj)
        or error(obj..' not found')
   end
-  local d = M.Doc(obj)
-  local com, code = M.findcode(d.path)
-  if not com then com, code = {}, {} end
+  return M.Doc(obj)
+end
+
+-- Get the full documentation as a list of lines.
+M.full = function(obj)
+  local d = M.find(obj)
   local f = mty.Fmt{}
   push(f, sfmt('## %s (%s) ty=%s\n',
     d.name, pth.nice(d.path or '?/?'), d.ty or '?'))
-  M.stripComments(com)
-  for _, l in ipairs(com) do push(f, l); push(f, '\n') end
+  for _, l in ipairs(d.comments or {}) do push(f, l); push(f, '\n') end
   fmtAttrs(d, f)
-  if #code > 0 then push(f, '---- CODE ----\n') end
-  for _, l in ipairs(code) do push(f, l); push(f, '\n') end
+  if d.code and #d.code > 0 then
+    push(f, '---- CODE ----\n')
+    for _, l in ipairs(d.code) do push(f, l); push(f, '\n') end
+  end
   return table.concat(f)
 end
 

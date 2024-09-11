@@ -18,6 +18,9 @@ M.dark = {
   error = 'Wr',
 
   -- Code Syntax
+  api           = 'B', -- api, i.e. public function/class name
+  type          = 'c', -- type signature
+  var           = 'g', -- variable name
   keyword       = 'R', -- for while do etc
   symbol        = 'r', -- = + . etc
   builtin       = 'p', -- builtin fns/mods/names: io sys self etc
