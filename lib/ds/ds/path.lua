@@ -112,13 +112,22 @@ M.rmleft = function(path, rm)
   return ds.rmleft(path, rm, M.itemeq)
 end
 
--- return a nice short path (string) that is resolved and readable.
+-- return a nice path (string) that is resolved and readable.
+--
+-- It's 'nice' because it has no '/../' or '/./' elements
+-- and has CWD stripped.
 M.nice = function(path, wd) --> string
   wd = wd or M.cwd()
   path, wd = M.resolve(path, wd), M(wd)
   M.rmleft(path, wd)
   if #path == 0 or path[1] == '' then path[1] = './' end
   return M.concat(path)
+end
+
+-- Return only the parent dir and final item.
+-- This is often used for documentation/etc
+M.short = function(path, wd)
+  return M.nice(path, wd):match'([^/]*/[^/]+)'
 end
 
 -- first/middle/last -> ("first", "middle/last")

@@ -89,7 +89,8 @@ s[[excl [table]:
 }
 
 M.DOC = DOC..'\n#############\n# ARGS\n'
-      ..(require'doc'(M.Args):match'.-\n(.-)%-%-+ CODE')
+      ..require'doc'(M.Args)
+--      ..(require'doc'(M.Args):match'.-\n(.-)%-%-+ CODE')
 
 local function anyMatch(pats, str) --> matching pat, index
   if not pats then return end
@@ -246,7 +247,6 @@ getmetatable(M).__call = function(_, args, out, isExe)
     args.log = astyle.Styler{
       acwriter = AcWriter{f=args.log},
       color = shim.color(args.color, fd.isatty(args.log)),
-      styles = astyle.dark, -- FIXME: load instead
     }
   end
   ix.walk(

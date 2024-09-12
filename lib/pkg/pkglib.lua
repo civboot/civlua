@@ -115,7 +115,7 @@ M.modules = function(pkgsrcs)
   for mname, mpath in pairs(pkgsrcs) do
     if     type(mname) == 'string' then -- already set
     elseif type(mname) == 'number' then
-		  mname = mpath:gsub('%.lua$', ''):gsub('/', '.')
+       mname = mpath:gsub('%.lua$', ''):gsub('/', '.')
     else error('invalid srcs key type: '..type(mname)) end
     mods[mname] = passert(mpath)
   end
@@ -153,6 +153,23 @@ M.get = function(name, fallback)
   end
   error(sfmt('PKG %s found but not sub-module %q', pkgname, name))
 end
+
+-- get any path with '.' in it
+--
+-- This is mostly used by help/etc functions
+M.getpath = function(path)
+  if type(path) == 'string' then -- split by '.'
+    local t = {}; for m in path:gmatch'[^.]+' do push(t, m) end
+  end
+  local obj
+  for i=1,#path do
+    local v = obj and ds.get(obj, ds.slice(path, i))
+    if v then return v end
+    obj = pget(table.concat(path, '.', 1, i))
+  end
+  return obj
+end
+
 
 -----------------------
 -- MOD

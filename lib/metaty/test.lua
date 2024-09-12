@@ -8,6 +8,8 @@ local mty, split, Fmt = M, M.split, M.Fmt
 
 local add, sfmt = table.insert, string.format
 
+local Tm = mod'Tm'
+
 local function test(name, fn)
   print('# Test', name)
   fn()
@@ -77,7 +79,7 @@ test('ty', function()
   assert(mt       == M.ty(setmetatable({}, mt)))
 end)
 
-test('tyName', function()
+test('name', function()
   assertEq('string', M.tyName('string'))
   assertEq('string', M.tyName(M.ty('hi')))
 
@@ -90,6 +92,14 @@ test('tyName', function()
   local mt = {__name='F'}
   assertEq('F', M.tyName(mt))
   assertEq('F', M.tyName(M.ty(setmetatable({}, mt))))
+
+  assertEq('string', M.name'hi')
+  assertEq('table',  M.name{})
+  assertEq('foo',    M.name(setmetatable({}, {__name='foo'})))
+
+  Tm.A = mty'A'
+  assertEq('Tm.A',   M.name(Tm.A))
+  assertEq('Tm.A',   PKG_NAMES[Tm.A])
 end)
 
 test('record', function()

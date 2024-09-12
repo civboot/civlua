@@ -6,27 +6,30 @@ local ds = require'ds'
 local log = require'ds.log'
 local pth = require'ds.path'
 local ac = require'asciicolor'
+local civix = require'civix'
+
+local construct = mty.construct
 
 M.CONFIG_PATH = '.config/colors.luck'
 
 M.dark = {
   -- Find tools (i.e. ff)
-  path  = 'M',  -- file/dir path
+  path  = 'm',  -- file/dir path
   match = 'Bf', -- search match
   line  = 'ld', -- line number / etc
   meta  = 'd',  -- Meta=metadata such as description of ops, etc
   error = 'Wr',
 
   -- Code Syntax
-  api           = 'B', -- api, i.e. public function/class name
-  type          = 'c', -- type signature
+  api           = 'G', -- api, i.e. public function/class name
+  type          = 'h', -- type signature
   var           = 'g', -- variable name
   keyword       = 'R', -- for while do etc
   symbol        = 'r', -- = + . etc
   builtin       = 'p', -- builtin fns/mods/names: io sys self etc
-  commentbox    = 'G', -- start/end of comment: -- // /**/ etc
-  commentbody   = 'g', -- content of comment:  /*content*/
-  stringbox     = 'M', -- start/end of string: '' "" [[]] etc
+  commentbox    = 'bw', -- start/end of comment: -- // /**/ etc
+  commentbody   = 'z', -- content of comment:  /*content*/
+  stringbox     = 'd', -- start/end of string: '' "" [[]] etc
   stringbody    = 'm', -- content of string:   "content"
   char          = 'm', -- single character: 'c'
   number        = 'm', -- float or integer: 0 1.0 0xFF etc
@@ -39,29 +42,45 @@ M.dark = {
 M.mode = function() return CLIMODE or os.getenv'CLIMODE' end
 
 M.stylePath = function() return pth.concat{pth.home(), CONFIG_PATH} end
+
 M.loadStyle = function(path, mode)
   path = path or M.stylePath()
   mode = mode or M.mode() or 'dark'
   local style = M[mode]
-  local f = io.open(path); if f then f:close() -- path exists
+  if civix.isFile(path) then
+    log.info('loading style from %s', path)
     local cfg = require'luck'.load(path, {MODE = mode})
     return ds.update(ds.copy(style), cfg)
   end
   return style
 end
 
+M.defaultAcWriter = function(f)
+  return require'vt100.AcWriter'{f=f or mty.Fmt{to=io.stdout}}
+end
+
 M.Styler = mty'Styler' {
-  'acwriter [AcWriter]: see vt100.AcWriter as example',
-  "styles [table]: table of 'fb' styles, aka the user's config",
-  'color [boolean]: disables color if set to false',
+  'acwriter [AcWriter]: default=defaultAcWriter()',
+  "style [table]: default=loadStyle()",
+  'color [boolean]: disables color if set to false', color=true
 }
+getmetatable(M.Styler).__call = function(T, t)
+  t = t or {}
+  t.acwriter = t.acwriter or M.defaultAcWriter(ds.popk(t, 'f'))
+  t.style = t.style or M.loadStyle()
+  t.color = t.color == nil and true or t.color
+  return construct(T, t)
+end
+
+M.Styler.incIndent = function(st) st.acwriter.f:incIndent() end
+M.Styler.decIndent = function(st) st.acwriter.f:decIndent() end
 
 M.Styler.flush = function(st) return st.acwriter:flush() end
 
 -- Example: st:styled('path', 'path/to/foo.txt', '\n')
 M.Styler.styled = function(st, style, str, ...)
   if not st.color then return st.acwriter:write(str, ...) end
-  local len, fb = #str, st.styles[style] or ''
+  local len, fb = #str, st.style[style] or ''
   return st.acwriter:acwrite(
     fb:sub(1,1):rep(len), fb:sub(2,2):rep(len),
     str, ...)

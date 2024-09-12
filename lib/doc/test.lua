@@ -34,23 +34,21 @@ T.test('findcode', function()
 end)
 
 local eFn =
-'## doc_test.exampleFn (lib/doc/test.lua:5) ty=function\
+"[{h1}[:doc_test.exampleFn] [@/lib/doc/test.lua:5] [@function]]\
 document a fn\
-another line\
----- CODE ----\
-M.exampleFn = function() end\
-'
+another line"
+
 
 local mDoc =
-"## doc_test (lib/doc/test.lua:1) ty=Ty<doc_test>\
+"[{h1}[:doc_test] [@/lib/doc/test.lua:1] [@Ty<doc_test>]]\
 \
-## Methods, Etc\
-  Example         : Ty<Example>       (doc/test.lua:11)\
-  __name          : string            \
-  exampleFn       : function          (doc/test.lua:5)\
----- CODE ----\
-local M = mod'doc_test'\
-"
+[{table}\
++ [Methods, Etc]|\
++ [:Example]      [@Ty<Example>]       | [@/lib/doc/test.lua:11]\
++ [:__name]       [@string]            | nil\
++ [:exampleFn]    [@function]          | [@/lib/doc/test.lua:5]\
+]"
+
 T.test('doc.get', function()
   T.assertEq(eFn,     doc(M.exampleFn))
   T.assertEq(mDoc,    doc(M))

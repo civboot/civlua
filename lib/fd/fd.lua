@@ -167,8 +167,7 @@ local modeFn = function(mode)
   return fn
 end
 S.FD.__index.read = function(fd, mode)
-  local out = modeFn(mode)(fd, mode)
-  return out
+  return modeFn(mode)(fd, mode)
 end
 
 S.FD.__index.lines = function(fd, mode)

@@ -18,13 +18,13 @@ local pc = pth.concat
 lib.getpagesize = function() return 4096 end
 
 ds.update(M, {
-	-- file types
-	SOCK = "sock", LINK = "link",
-	FILE = "file", BLK  = "blk",
-	DIR  = "dir",  CHR  = "chr",
-	FIFO = "fifo",
+  -- file types
+  SOCK = "sock", LINK = "link",
+  FILE = "file", BLK  = "blk",
+  DIR  = "dir",  CHR  = "chr",
+  FIFO = "fifo",
 
-	dir = lib.dir, rm=lib.rm, rmdir = lib.rmdir,
+  dir = lib.dir, rm=lib.rm, rmdir = lib.rmdir,
   exists = lib.exists,
 
   -- TODO: probably good to catch return code for cross-filesystem
@@ -47,7 +47,7 @@ M.SH_SET = { debug=false, host=false }
 -- Time Functions
 -- Sleep for the specified duration.
 --   sleep(duration)
--- 
+--
 -- time can be a Duration or float (seconds).
 -- A negative duration results in a noop.
 M.sleep = function(d)
@@ -74,6 +74,8 @@ M.pathtype = function(path)
   if not sm then return nil, err end
   return assert(fd.FMODE[C.S_IFMT & sm])
 end
+M.isFile = function(path) return M.pathtype(path) == 'file' end
+M.isDir  = function(path) return M.pathtype(path) == 'dir'  end
 
 local function _walkcall(ftypeFns, path, ftype, err)
   if err then return ftypeFns.error(path, err) end

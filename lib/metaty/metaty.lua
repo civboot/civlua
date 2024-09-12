@@ -60,10 +60,11 @@ end
 -- Given an object (function, table, userdata) return it's name.
 -- return nil if it's not one of the above types
 M.name = function(o)
-  return type(o) == 'function' and M.fninfo(o)
-      or type(t) == 'table'    and M.tyName(M.ty(o))
-      or type(t) == 'userdata' and M.tyName(getmetatable(o), 'userdata')
-      or nil
+  local ty = type(o)
+  return ty == 'function' and M.fninfo(o)
+      or ty == 'table'    and M.tyName(M.ty(o))
+      or ty == 'userdata' and M.tyName(getmetatable(o), 'userdata')
+      or ty
 end
 
 M.callable = function(obj) --> bool: return if obj is callable
@@ -293,6 +294,7 @@ M.Fmt.pretty = function(F, t)
   return F(t)
 end
 
+M.Fmt.getIndent = function(f) return f._depth end
 M.Fmt.incIndent = function(f)
   f._depth = f._depth + 1
   if f.indent then f._nl = f._nl..f.indent end

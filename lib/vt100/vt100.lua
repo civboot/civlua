@@ -13,6 +13,7 @@ local Grid = require'ds.Grid'
 local log = require'ds.log'
 local d8  = require'ds.utf8'
 local acolor = require'asciicolor'
+local style = require'asciicolor.style'
 
 local min = math.min
 local char, byte, slen = string.char, string.byte, string.len

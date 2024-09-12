@@ -249,7 +249,12 @@ end
 
 ---------------------
 -- Table Functions
-M.isEmpty = function(t) return next(t) == nil end
+M.isEmpty = function(t) return t == nil or next(t) == nil end
+
+-- push the fmt:format(...) to the table
+--
+-- Example: [$pushfmt(t, 'a=%s b=%s', a, b)]
+M.pushfmt = function(t, fmt, ...) push(t, sfmt(fmt, ...)) end
 
 -- the full length of all pairs
 -- WARNING: very slow, requires iterating the whole table.
@@ -308,9 +313,15 @@ M.islice = function(t, starti, endi)
   return M.rawislice, {t, endi or #t}, (starti or 1) - 1
 end
 
+M.slice = function(t, starti, endi) --> t[starti:endi]
+  local sl = {}
+  for i=starti or 1,endi or #t do push(sl, t[i]) end
+  return sl
+end
+
 -- iend(t, starti, endi=-1): get islice from the end.
 --   starti and endi must be negative.
--- 
+--
 -- Example:
 --   iend({1, 2, 3, 4, 5}, -3, -2) -> 3, 4
 M.ilast = function(t, starti, endi)
@@ -1081,8 +1092,9 @@ M.Error.msgh = function(msg, level)
   return M.Error.from(msg, traceback('', (level or 1) + 1))
 end
 
--- Run the fn, return one of:
--- success(true, fnresults...); failure(false, ds.Error)
+-- try to run the fn. Similar to pcall. Return one of:
+--   success(true, fnresults...)
+--   failure(false, ds.Error)
 M.try = function(fn, ...) return xpcall(fn, M.Error.msgh, ...) end
 
 -- Same as coroutine.resume except returns ok, err

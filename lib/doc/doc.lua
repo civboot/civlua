@@ -1,20 +1,11 @@
-local ERROR = [[
-doc module requires global `mod` function/class, such as one of:
-
-  require'pkg':install()
-  mod = require'pkg'.mod
-
-See lib/pkg/README.md for details
-https://github.com/civboot/civlua/tree/main/lib/pkg
-
-Note: also requires PKG_LOC and PKG_NAMES globals to be defined.
-]]
 -- Get documentation for lua types and stynatx.
 -- Examples:
 --    doc(string.find)
 --    doc'for'
 --    doc(myMod.myFunction)
-local M = mod and mod'doc' or error(ERROR)
+local M = mod and mod'doc' or {}
+local builtin = require'doc.lua'
+
 assert(PKG_LOC and PKG_NAMES, ERROR)
 
 local mty  = require'metaty'
@@ -23,411 +14,7 @@ local sfmt = string.format
 local push = table.insert
 local pth = require'ds.path'
 
---------------------
--- Global Functions
-
--- next(tbl, key) -> nextKey
--- Special:
---   key=nil      return first key in the table
---   key=lastKey  return nil
-M.next = next
-
---pcall(fn, ...inp): handle errors.
---  calls fn(...inp) and returns:
---    ok=false, error    for errors
---    ok=true, ...out    for success
-M.pcall = pcall
-
---select(index, ...inp) -> inp[index:]
---removes index-1 items from inp stack.
---If index='#' returns #inp.
-M.select = select
-
--- type(v) -> typeString. Possible values:
---
---   "nil" number string boolean table
---   function thread userdata
---
--- See also: metaty.ty(v) for metatypes
-M.type = type
-
--- setmetatable(t, mt) -> t
--- Sets the metatable on table which adds context (metatype)
--- as well as affects behavior of operators (metamethods)
---
---     t[k]     t[k]=v      NOTE: ONLY CALLED WHEN KEY
---     __index  __newindex        IS MISSING
---
---     +         -        *        /       //        %
---     __add     __sub    __mul    __div   __idiv    __mod
---               __unm
---
---     &         |        ~        <<      >>        ^
---     __band    __bor    __bnot   __shl   __shr     __pow
---
---     ==        <        <=       #        ..
---     __eq      __lt     __le     __len    __concat
---
---     t()       __tostring
---     __call    __name
---
--- metaty: __fields   __fmt
-M.setmetatable = setmetatable
-
---getmetatable(t) -> mt  See setmetatable.
-M.getmetatable = getmetatable
-
--------------------------------
--- string
-
--- the builtin lua string module
-M.string = string
-
--- string.find(subject:str, pat, index=1)
---  -> (starti, endi, ... match strings)
---
--- Find the pattern in the subject string, starting at the index.
---
--- assertEq({2, 4},       {find('%w+', ' bob is nice')})
--- assertEq({2, 7, 'is'}, {find(' bob is nice', '%w+ (%w+)')})
---
--- Character classes for matching specific sets:
---
---     .   all characters
---     %a  letters
---     %c  control characters
---     %d  digits
---     %l  lower case letters
---     %p  punctuation characters
---     %s  space characters
---     %u  upper case letters
---     %w  alphanumeric characters
---     %x  hexadecimal digits
---     %z  the character with representation 0
---
--- Magic characters, `.` indicates one character, more indicates many:
---
---     %.     selects a character class or escapes a magic char
---     (...)  create a group
---     [...]  create your own character class
---     [^..]  inversion of [...]
---     +.     match one or more of previous class  (NOT group)
---     *.     match zero or more of previous class (NOT group)
---     ?      match zero or one of previous class  (NOT group)
---     ^...   if at pat[1], match only beggining of text
---     ...$   if at pat[#pat], match only end of text
---
--- Also: %[1-9] refers to a the previously matched group
--- and matches it's exact content.
---
--- assert(    find('yes bob yes',  '(%w+) bob %1'))
--- assert(not find('yes bob no',   '(%w+) bob %1'))
-M['string.find'] = string.find
-
--- match(subj, pat, init) return the capture groups of pat
--- or the whole match if no capture groups.
---
--- See also: string.find.
-M['string.match'] = string.match
-
-
--- gmatch(subj, pat, init) match iterator function.
-M['string.gmatch'] = string.gmatch
-
--- substring by index (NOT pattern matching).
---
---   string.sub(subject: str, start: num, end: num) -> str[s:e]
---
--- Note: This is confusingly named considering string.gsub uses pattern
--- matching. Such is life.
-M['string.sub'] = string.sub
-
--- Globally Substittue pattern with subpattern.
---
---   string.gsub(subject: str, pat, subpat, index=1) -> str
---
--- Reference:
---   string.find for pattern documentation.
---
--- The subpattern has no special characters except:
---
---   %%     a literal %
---   %1-9   a matched group from pat
---
--- gsub = string.gsub
---   assertEq('yes ann yes',
---     gsub(  'yes bob yes', '(%w+) bob %1', '%1 ann %1'))
-M['string.gsub'] = string.gsub
-
--- Format values into a fmt string, i.e: format('%s: %i', 'age', 42)
---
--- string.format(fmt: str, ...) -> str
---
--- Examples:
---   sfmt = string.format
---   assertEq('age: 42',    sfmt('%s: %i',   'age', 42))
---   assertEq('age:    42', sfmt('%s: %5i',  'age', 42))
---   assertEq('age: 00042', sfmt('%s: %05i', 'age', 42)
---
--- Directives:
---
---   %%    literal % char
---   %d    decimal
---   %o    octal
---   %x    hexidecimal (%X uppercase)
---   %f    floating point
---   %s    string
---
--- Directive control structure:
---
---   % <fill character>? <fill count> directive
-M['string.format'] = string.format
-
-
--- string.byte(s [i, j]) -> number: get numberic code/s for s[i:j]
-M['string.byte'] = string.byte
-
-
--- char(c1, c2, ...) -> string
--- convert character codes to string and concatenate
-M['string.char'] = string.char
-
--- rep(s, n, sep) -> string -- repeat s n times with separator.
-M['string.rep'] = string.rep
-
--- pack(packfmt, ...values) -> string
--- pack the values into the string using the packfmt.
---
--- Packfmt:
---   <  >  =      little / big / native endian
---   ![n]         max alignment = n bytes
---   b B          signed / unsigned byte
---   h H l L      native short(h) and long(l) + unsigned vers
---   i[n] I[n]    signed/unsigned int with n bytes
---   f d          native float / double
---   T            size_t
---   c[n]         fixed-sized string of n bytes (unaligned)
---   z            zero-terminated string        (unaligned)
---   s[n]         counted string of size n count
---   x            one byte of padding
---   X[op]        align to option op, i.e. Xi4
---   j J n        lua Integer / Unsigned / Number
-M['string.pack'] = string.pack
-
-
--- unpack(fmt, str) -> ...
--- See string.pack for the fmt
-M['string.unpack'] = string.unpack
-
--- string.packsize(fmt) -> int
--- Get the size which is used by fmt.
-M['string.packsize'] = string.packsize
-
--------------------------------
--- table
-
--- the builtin lua table module
-M.table = table
-
--- concatenate values in a table.
---
---   table.concat(table, sep='')
---
--- assertEq(1..' = '..3, concat{1, ' = ', 3})
--- assertEq('1, 2, 3',   concat({1, 2, 3}, ', ')
-M['table.concat'] = table.concat
-
--- table.remove(table, index=#table) -> ()
--- remove an item from a table, returning it.
--- The table is shifted if index < #table.
-M['table.remove'] = table.remove
-
--- table.sort(list, function=nil) sort table in-place
-M['table.sort'] = table.sort
-
--- insert or add to table (list-like)
---
--- local t = {}
--- table.insert(t, 'd')    -- {'d'
--- table.insert(t, 'e')    -- {'d', 'e'}
--- table.insert(t, 'b', 1) -- {'b', 'd', 'e'}
--- table.insert(t, 'c', 2) -- {'b', 'c', 'd', 'e'}
---
--- Recommendation:
---   local add = table.insert; add(t, 4)
-M['table.insert'] = table.insert
-
--- table.move(from, siFrom, eiFrom, siTo, to=from) -> to
--- Note: si=startIndex, ei=endIndex
--- Equivalent to the following, though done in a way
--- that will properly handle overlapping data
---   ti = siTo
---   for fi=siFrom,eiFrom do
---     to[ti] = from[fi]; ti = ti + 1
---   end
-M['table.move'] = table.move
-
--------------------------------
--- io module
-
--- the builtin lua io (input/output) module
---
--- Methods:
---   input(file=nil)  ->  file    get/set stdin
---   output(file=nil) ->  file    get/set stdout
---   tmpfile() -> file            note: removed on program exit
---   popen()   -> file            see io.popen
---   lines(path or file) -> iter  close when done, fail=error
---   type(f) -> "[closed ]file"   get whether f is a file
---
--- file object:
---   read(format="l")   read a file according to format
---   lines(format="l")  get iterator for reading format
---   write(a, b, ...)   write strings a, b, ... in order
---   flush()            flush (save) all writes
---   seek(whence, offset)
---   setvbuf("no|full|line", sizeHint=appropriateSize)
---
--- format (read, etc)                  (in Lua<=5.2)
---   a       read all text                        *a
---   l       read next line, skip EOL             *l
---   L       read next line, keep EOL             *L
---   n       read and return a number             *n
---   number  read an exact number of bytes, EOF=nil
---   0       EOF=nil, notEOF=''
---
--- seek
---   whence="set"  offset from beginning of file (0)
---   whence="cur"  offset from current position
---   whence="end"  offset from end of file (use negative)
---   seek()    ->  get current position
---   seek'set' ->  set to beginning
---   seek'end' ->  set to end
-M.io = io
-
--- Execute shell command in separate process.
---
--- io.popen(command, mode='r|w') -> file
---
--- Reference:
---   os.execute: docs on file:close()
---   civix.sh: ergonomic blocking shell.
---
--- Note: as of Lua5.4 it is not possible to have stderr or both stdin&stdout.
-M['io.popen'] = io.popen
-
--------------------------------
--- os module
-
--- the builtin lua os module
---
--- Useful functions:
---   exit(rc=0, close=false) exit program with return code
---   date()                  get the date. See os.date
---   execute'command'        execute command, see os.execute
---   getenv(varname)         get environment variable
---   remove(path)            rm path
---   rename(old, new)        mv old new
---   tmpname() -> path       create temporary file
---   clock()                 seconds used by process (performance)
---
--- Recommendation:
---   use civix.epoch() (nanosec precision) vs os.time() (sec precision)
-M.os = os
-
--- Execute shell command via C's `system` API.
---
---   os.execute'shell command' -> (ok, "exit", rc)
---   os.execute()              -> isShellAvailable
---
--- Recommendation:
---   For all but the simplest cases use io.popen instead
---
--- Args:
---    ok      true on command success, false if rc>0
---    "exit"  always literal "exit" if command completed
---    rc      the return code of the command
---
--- Prints:
---    prints whatever was executed. There are no ways to
---    redirect the output besides piping in the command
---    string itself.
-M['os.execute'] = os.execute
-
--- store items in this module in PKG_* variables
-for k, obj in pairs(M) do
-  local name = PKG_NAMES[obj]; if name then
-    local newname = name:sub(5) -- remove "doc."
-    PKG_NAMES[obj] = newname
-    PKG_LOOKUP[name] = nil; PKG_LOOKUP[newname] = obj
-  end
-end
-
----------------------
--- Keywords
-
--- for is a looping construct with two forms:
---
--- Numeric:
---   for: for i=si,ei,period do
---     -- code using [si -> ei] (inclusive) with period --
---   end
---
--- Generic:
---   for i, v, etc in explist do
---       -- code using a, b, etc here --
---   end
---
--- A Generic for destructures to:
---   do -- Note: $vars are not accessible
---     local $fn, $state, $index = explist
---     while true do
---       local i, v, etc = $f($state, $index)
---       if i == nil then break end
---       $index = i
---       -- code using i, v, etc here
---     end
---   end
---
--- The goal in writing a stateless iterator function is to match this
--- loop's API as much as possible. Note that $index and $state are
--- names reflecting how the variables are used for i/pairs.
---
--- Example rewriting ipairs:
---
---   local function rawipairs(t, i)
---     i = i + 1
---     if i > #t then return nil end
---     return i, t[i]
---   end
---
---   local function ipairs_(t)
---     return rawipairs, t, 0
---   end
---
--- Example rewriting pairs using next(t, key)
---
---   function pairs(t)
---     return next, t, nil
---   end
---
--- See also:
---   metaty.split is a more complex example.
-M['for'] = function() end
-PKG_LOOKUP['for'] = M['for']
-
--- local x = (expression)
---
--- Define a local (instead of a global) variable. Prefer local variables for
--- most things unless you are:
---
--- * modifying the fundamentals of the language (i.e. replacing 'require')
--- * implementing a "protocol" for libraries to communicate global state
--- * managing true physical state (i.e. robotics, terminal output, etc)
--- * you are the top-level application (i.e. a game, CLI, etc) and global state
---   is the best solution.
-M['local'] = function() end
-PKG_LOOKUP['local'] = M['local']
+local sfmt, pushfmt = string.format, ds.pushfmt
 
 ---------------------
 -- Doc and DocItem
@@ -470,7 +57,7 @@ end
 
 M.DocItem = mty'DocItem' {
   'name', 'ty [string]', 'path [string]',
-  'default [any]', 'doc [string]', doc = '',
+  'default [any]', 'doc [string]'
 }
 
 -- Documentation on a single type
@@ -488,41 +75,54 @@ M.Doc = mty'Doc' {
 }
 
 local function fmtItems(f, items, name)
-  push(f, '\n## '..name); f:incIndent(); push(f, '\n')
+  pushfmt(f, '[{table}')
+  pushfmt(f, '\n+ [%s]|', name)
   for i, item in ipairs(items) do
-    push(f, item:__tostring());
-    if i < #items then push(f, '\n') end
+    push(f, '\n+ '); f(item)
   end
-  f:decIndent(); push(f, '\n')
+  push(f, '\n]')
 end
 local fmtAttrs = function(d, f)
-  if d.fields and next(d.fields) then fmtItems(f, d.fields, 'Fields') end
-  if d.other  and next(d.other)  then fmtItems(f, d.other, 'Methods, Etc') end
+  if d.fields and next(d.fields) then
+    push(f, '\n'); fmtItems(f, d.fields, 'Fields')
+  end
+  if d.other  and next(d.other) then
+    push(f, '\n'); fmtItems(f, d.other, 'Methods, Etc')
+  end
 end
 
 M.Doc.__fmt = function(d, f)
-  push(f, d.name or '?')
-  if d.ty   then push(f, sfmt(' [%s]', d.ty)) end
-  if d.path then push(f, sfmt(' (%s)', d.path)) end
+ local path = d.path and sfmt(' [@/%s]', d.path) or ''
+ local ty = d.ty and sfmt(' [@%s]', d.ty) or ''
+  pushfmt(f, '[{h%s}[:%s]%s%s]\n', f:getIndent() + 1, d.name, path, ty)
+  for i, l in ipairs(d.comments or {}) do
+    push(f, l); if i < #d.comments then push(f, '\n') end
+  end
   fmtAttrs(d, f)
 end
-
 
 M.DocItem.typeStr = function(di) return di.ty and mty.tyName(di.ty) end
 M.DocItem.defaultStr = function(di)
   return di.default ~= nil and mty.format(' = %q', di.default)
 end
-M.DocItem.shortPath = function(di)
-  return di.path and di.path:match'([^/]*/[^/]+:%d+)'
+local function diFullFmt(f, name, ty, path, doc)
+  f:incIndent(); pushfmt(f, '%-16s%-20s |\n%s%s', name, ty, path, doc)
+  f:decIndent()
 end
-M.DocItem.__tostring = function(di)
-  local ty = (di.ty and (': '..di:typeStr()) or '')..(di:defaultStr() or '')
-  local path = di:shortPath()
-  local doc = di.doc ~= '' and sfmt('\n| %s\n', di.doc:gsub('\n', '\n| '))
-  return sfmt('%-16s%-20s%s%s',
-    di.name or '?', ty or '',
-    path and sfmt('(%s)', path) or '',
-    doc or '')
+M.DocItem.__fmt = function(di, f)
+  local name = di.name and sfmt('[:%s]', di.name) or '(unnamed)'
+  local ty = di.ty or ''
+  local path = di.path and sfmt('[@/%s]', pth.nice(di.path))
+  if di.doc and di.doc ~= '' then
+    return diFullFmt(f, name, ty, path and (path..'\n') or '', di.doc)
+  end
+  local fmt = sfmt('%-16s%-20s | %s', name, ty, path)
+  if #fmt <= 80 then push(f, fmt)
+  else diFullfmt(f, name, ty, path or '', '') end
+end
+
+local function cleanFieldTy(ty)
+  return ty:match'^%[.*%]$' and ty:sub(2,-2) or ty
 end
 
 getmetatable(M.Doc).__call = function(T, obj)
@@ -542,8 +142,11 @@ getmetatable(M.Doc).__call = function(T, obj)
   if fields then
     local docs   = rawget(obj, '__docs') or {}
     for _, field in ipairs(fields) do
+      local ty = fields[field]
+      ty = type(ty) == 'string' and cleanFieldTy(ty) or false
       push(d.fields, M.DocItem{
-        name=field, ty=fields[field], default=rawget(obj, field),
+        name=field, ty=ty and sfmt('[$%s]', ty),
+        default=rawget(obj, field),
         doc = docs[field],
       })
     end
@@ -554,10 +157,11 @@ getmetatable(M.Doc).__call = function(T, obj)
   end end
   other = ds.orderedKeys(other)
   for _, k in ipairs(other) do
-    local v = obj[k]
-    local ty = mty.ty(v)
+    local v = obj[k]; local ty = type(v)
+    local ty = (ty == 'table') and mty.tyName(mty.ty(v)) or ty
     push(d.other, M.DocItem {
-      name=k, ty=v and mty.ty(v), path=select(2, M.modinfo(v)),
+      name=k, ty=sfmt('[@%s]', ty),
+      path=select(2, M.modinfo(v)),
     })
   end
   return d
@@ -570,28 +174,34 @@ M.stripComments = function(com)
   for i, l in ipairs(com) do com[i] = l:match(pat) or l end
 end
 
+local pget = require'pkglib'.get
+
+-- get any path with '.' in it
+--
+-- This is mostly used by help/etc functions
+M.getpath = function(path)
+  path = type(path) == 'string' and ds.splitList(path, '%.') or path
+  local obj
+  for i=1,#path do
+    local v = obj and ds.get(obj, ds.slice(path, i))
+    if v then return v end
+    obj = pget(table.concat(path, '.', 1, i))
+  end
+  return obj
+end
+
 -- Find the object or name and return the Doc item
 M.find = function(obj) --> Doc
   if type(obj) == 'string' then
-    obj = PKG_LOOKUP[obj] or _G[obj] or require(obj)
-       or error(obj..' not found')
+    obj = PKG_LOOKUP[obj] or _G[obj]
+      or M.getpath(obj)   or require(obj) or error(obj..' not found')
   end
   return M.Doc(obj)
 end
 
 -- Get the full documentation as a list of lines.
 M.full = function(obj)
-  local d = M.find(obj)
-  local f = mty.Fmt{}
-  push(f, sfmt('## %s (%s) ty=%s\n',
-    d.name, pth.nice(d.path or '?/?'), d.ty or '?'))
-  for _, l in ipairs(d.comments or {}) do push(f, l); push(f, '\n') end
-  fmtAttrs(d, f)
-  if d.code and #d.code > 0 then
-    push(f, '---- CODE ----\n')
-    for _, l in ipairs(d.code) do push(f, l); push(f, '\n') end
-  end
-  return table.concat(f)
+  return table.concat(mty.Fmt{}(M.find(obj)))
 end
 
 getmetatable(M).__call = function(_, obj) return M.full(obj) end
