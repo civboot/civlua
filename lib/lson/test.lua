@@ -32,7 +32,6 @@ local function ltest(t, enc, expectEncoding)
     T.assertEq(expectEncoding, encoded)
   end
   local de = M.De(lines(encoded))
-  print('!! decoding')
   print(encoded)
   local decoded = de()
   T.assertEq(t, decoded)

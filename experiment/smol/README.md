@@ -31,7 +31,7 @@ This means that the ONLY codes emitted are:
 The special case 3 is this: a non-previously emitted code will be emitted
 without ever having been emitted before in the case where we have re-built the
 previous word plus its first character. In that case we never actually emitted
-the code of prevWord!! Fortunately for us, this will simply cause us to emit
+the code of prevWord! Fortunately for us, this will simply cause us to emit
 `nextCode-1` so we can handle this special case in the decoder!
 
 This condition is fairly rare (it occurs only 8 times in a 1MiB file of text),

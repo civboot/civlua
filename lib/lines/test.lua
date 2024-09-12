@@ -184,3 +184,15 @@ test('Gap.write', function()
   g:write'  next\nline'; assertEq('hi there\n  next\nline', tostring(g))
 end)
 
+test('Writer', function()
+  local W = require'lines.Writer'; local w = W{}
+  w:write'hi there'
+  assertEq(W{'hi there'}, w)
+  w:write' bob'
+  assertEq(W{'hi there bob'}, w)
+  w:write'\nand jane'
+  assertEq(W{'hi there bob', 'and jane'}, w)
+  w:write' and sue\nand zebe\n'
+  assertEq(W{'hi there bob', 'and jane and sue',
+             'and zebe', ''}, w)
+end)

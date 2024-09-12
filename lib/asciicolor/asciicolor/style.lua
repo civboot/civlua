@@ -8,7 +8,8 @@ local pth = require'ds.path'
 local ac = require'asciicolor'
 local civix = require'civix'
 
-local construct = mty.construct
+local construct, newindex = mty.construct, mty.newindex
+local sfmt = string.format
 
 M.CONFIG_PATH = '.config/colors.luck'
 
@@ -20,6 +21,11 @@ M.dark = {
   meta  = 'd',  -- Meta=metadata such as description of ops, etc
   error = 'Wr',
 
+  -- Document Styles
+  code = 'zB',
+  bold = 'Z', ul = 'zZ', boldul = 'ZZ',
+  h1 = 'N', h2 = 'S', h3 = 'W', h4 = 'Z',
+
   -- Code Syntax
   api           = 'G', -- api, i.e. public function/class name
   type          = 'h', -- type signature
@@ -28,9 +34,9 @@ M.dark = {
   symbol        = 'r', -- = + . etc
   builtin       = 'p', -- builtin fns/mods/names: io sys self etc
   commentbox    = 'bw', -- start/end of comment: -- // /**/ etc
-  commentbody   = 'z', -- content of comment:  /*content*/
+  comment       = 'zB', -- content of comment:  /*content*/
   stringbox     = 'd', -- start/end of string: '' "" [[]] etc
-  stringbody    = 'm', -- content of string:   "content"
+  string        = 'm', -- content of string inside quotes
   char          = 'm', -- single character: 'c'
   number        = 'm', -- float or integer: 0 1.0 0xFF etc
   literal       = 'm', -- other literal: null, bool, date, regex, etc
@@ -39,15 +45,32 @@ M.dark = {
 }
 -- TODO: light
 
+M.ascii = {}
+for k, fmt in pairs {
+  type = '[%s]', error = '! %s !',
+  h1 = '# %s', h2 = '## %s', h3 = '### %s', h4 = '#### %s',
+} do
+  M.ascii[k] = function(st, str, ...)
+    return st.acwriter:write(sfmt(fmt, str), ...)
+  end
+end
+M.ascii.code = function(st, str, ...)
+  if str:sub(1,1) == '\n' then
+    st:incIndent(); st:write(str); st:decIndent()
+  elseif str:find'%s' then st:write(sfmt('[$%s]', str))
+  else                     st:write('$', str) end
+  st:write(...)
+end
+
 M.mode = function() return CLIMODE or os.getenv'CLIMODE' end
 
 M.stylePath = function() return pth.concat{pth.home(), CONFIG_PATH} end
 
-M.loadStyle = function(path, mode)
-  path = path or M.stylePath()
+M.loadStyle = function(mode, path)
   mode = mode or M.mode() or 'dark'
-  local style = M[mode]
-  if civix.isFile(path) then
+  path = (path == true) and M.stylePath() or path
+  local style = assert(M[mode], style)
+  if path and civix.isFile(path) then
     log.info('loading style from %s', path)
     local cfg = require'luck'.load(path, {MODE = mode})
     return ds.update(ds.copy(style), cfg)
@@ -59,6 +82,10 @@ M.defaultAcWriter = function(f)
   return require'vt100.AcWriter'{f=f or mty.Fmt{to=io.stdout}}
 end
 
+-- Create a styler
+--
+-- Note: pass f (file) to create the default AcWriter with the file.
+-- Note: pass mode, stylepath to control loadStyle
 M.Styler = mty'Styler' {
   'acwriter [AcWriter]: default=defaultAcWriter()',
   "style [table]: default=loadStyle()",
@@ -67,10 +94,12 @@ M.Styler = mty'Styler' {
 getmetatable(M.Styler).__call = function(T, t)
   t = t or {}
   t.acwriter = t.acwriter or M.defaultAcWriter(ds.popk(t, 'f'))
-  t.style = t.style or M.loadStyle()
+  t.style = t.style or M.loadStyle(
+    ds.popk(t, 'mode'), ds.popk(t, 'stylepath'))
   t.color = t.color == nil and true or t.color
   return construct(T, t)
 end
+M.Styler.__tostring = function() return 'Styler{...}' end
 
 M.Styler.incIndent = function(st) st.acwriter.f:incIndent() end
 M.Styler.decIndent = function(st) st.acwriter.f:decIndent() end
@@ -81,14 +110,24 @@ M.Styler.flush = function(st) return st.acwriter:flush() end
 M.Styler.styled = function(st, style, str, ...)
   if not st.color then return st.acwriter:write(str, ...) end
   local len, fb = #str, st.style[style] or ''
-  return st.acwriter:acwrite(
-    fb:sub(1,1):rep(len), fb:sub(2,2):rep(len),
-    str, ...)
+  if type(fb) == 'function' then
+    return fb(st, str, ...)
+  else
+    return st.acwriter:acwrite(
+      fb:sub(1,1):rep(len), fb:sub(2,2):rep(len),
+      str, ...)
+  end
 end
 
 -- write as plain
 M.Styler.write = function(st, ...)
   return st.acwriter:acwrite(nil, nil, ...)
+end
+
+M.Styler.__newindex = function(st, k, v)
+  if type(k) ~= 'number' then return newindex(st, k, v) end
+  assert(k == 1, 'cannot push non 1')
+  st.acwriter:write(v)
 end
 
 return M

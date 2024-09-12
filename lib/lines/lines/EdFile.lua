@@ -198,8 +198,6 @@ end
 
 -- insert into EdFile's dats.
 EdFile.__inset = function(ef, i, values, rmlen)
-  log.info('!! __inset i=%q values=%q rmlen=%q', i, values, rmlen)
-  log.info('!!   %q', ef.dats)
   assert(not ef.readonly, 'attempt to modify readonly file')
   rmlen = rmlen or 0
 
@@ -220,11 +218,9 @@ EdFile.__inset = function(ef, i, values, rmlen)
     if dl then if (dl - df > 1) then
       -- update rmlen with dropped dats
       rmlen = rmlen - (lens[dl-1]-lens[df + 1])
-      log.info('!!   rmlen after dropped %s', rmlen)
     elseif df == dl then dl = nil end end
   end
 
-  log.info('  !! i=%s df=%s, dl=%s, len=%s', i, df, dl, lens[df-1])
   local dats, rdats, ldat = ef.dats, {}, nil
   local first, fi, ei = dats[df], i - (lens[df-1] or 0)
 
@@ -234,23 +230,18 @@ EdFile.__inset = function(ef, i, values, rmlen)
     -- split up first slice
     if 1 < fi then
       local slc = Slc{si=first.si, ei=first.si + fi - 2}
-      log.info('!! first front %q', slc)
       push(rdats, slc)
     end
     if dl then
       rmlen = rmlen - (#first - fi)
-      log.info('!! rmlen=%s df=%s dl=%s', rmlen, df, dl)
       assert(rmlen > 0, 'programmer error')
     elseif (fi + rmlen) <= first.ei then -- put Slc at end
       local slc = Slc{si=(first.si+fi-1) + rmlen, ei=first.ei}
-      log.info('!! first back %q', slc)
       rmlen, ldat = 0, slc
     end
     fi, first = 1, nil
   else
     local rmfirst = min(rmlen, #first - fi + 1)
-    log.info('!! Gap.rmfirst=%s rmlen=%s #first=%s fi=%s',
-             rmfirst, rmlen, #first, fi)
     if rmfirst > 0 then
       first:__inset(fi, nil, rmfirst)
       rmlen = rmlen - rmfirst
@@ -260,7 +251,6 @@ EdFile.__inset = function(ef, i, values, rmlen)
   local last, li
   if dl then
     last = dats[dl]
-    log.info('!! last %s %q rmlen=%s', dl, last, rmlen)
     if getmt(last) == Slc then
       if rmlen < #last then
         ldat = Slc{si=last.si + rmlen, ei=last.ei}

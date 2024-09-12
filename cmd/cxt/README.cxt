@@ -7,7 +7,7 @@ It should not take more than a few minutes to know how to read and write
 documentation.
 
 cxt is an ultra-simple markup language which is designed to be as easy as
-possible to parse (for computers [/and] humans) while still using as few
+possible to parse (for computers [,and] humans) while still using as few
 characters as possible to express format for common cases.
 
 cxt is designed to: [+
@@ -26,9 +26,9 @@ There are two ways to specify attributes for a block: [+
 
 The following attributes and shortcuts are supported
 [###
-  b i u   bold (*), italic (/) and underlined (_)
-  * / _   Example: [*bold] [/italic] [_underlined]
-                   [{*/_}bold italic and underlined]
+  b i u   bold (*), italic (,) and underlined (_)
+  * , _   Example: [*bold] [,italic] [_underlined]
+                   [{*,_}bold italic and underlined]
 
   code    inline or block code (depending on whether newlines exist)
    $       shortcut: [$inline code]
@@ -43,7 +43,9 @@ The following attributes and shortcuts are supported
             * list item 2
           ]
 
-  table   table syntax, see demos
+  table   table syntax, see demos.
+  row=+   control delimiters with row/col attrs.
+  col=|
 
   hidden  hidden block, used for comments and/or assigning attributes
    !      Example: [!hidden block]
@@ -62,6 +64,9 @@ The following attributes and shortcuts are supported
   href    hyper reference, aka a url.
   <href>
 
+   /      a path, typically relative to project or website root.
+          Example: [/path/to/file.lua]
+
   name    sets the name of the block.
    n      Used with: [@name]  href=#name  anyAttr=@name
    :      shortcut: [{: ...}name]
@@ -79,6 +84,7 @@ The following attributes and shortcuts are supported
             [@Civboot] clones the block (removing name and hidden)
             [<@Civboot>Civboot Project] has href=http://civboot.org
               note: the default for "value" is "href" if it exists.
+
 ]###
 
 [{:h2}Demos]
@@ -105,9 +111,9 @@ end
 
 [*Text Formatting]
 
-[*bold], [/italic] and [_underlined]
+[*bold], [,italic] and [_underlined]
 [##
-[*bold], [/italic] and [_underlined]
+[*bold], [,italic] and [_underlined]
 ]##
 
 [{b i href=http://civboot.org}bold italic link]

@@ -32,15 +32,18 @@ M.trimTokenStart = function(p, t)
   if mty.ty(t) ~= M.Token then return t end
   local l1, c1, l2, c2 = t:span()
   local line = p.dat[l1]
-  local s = p:tokenStr(t); c1 = line:find('[^ ]', c1)
+  local s = p:tokenStr(t); c1 = line:find('[^ ]', c1) or c1
   return M.Token:encode(p, l1, c1, l2, c2)
 end
 
-M.trimTokenLast = function(p, t)
+M.trimTokenLast = function(p, t, trimNl)
   if mty.ty(t) ~= M.Token then return t end
   local l1, c1, l2, c2 = t:span()
   local line = p.dat[l2]
   while line:sub(c2,c2) == ' ' do c2 = c2 - 1 end
+  if trimNl and l2 > l1 and c2 == 0 then
+    l2 = l2 - 1; c2 = #p.dat[l2]
+  end
   return M.Token:encode(p, l1, c1, l2, c2)
 end
 

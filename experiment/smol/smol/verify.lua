@@ -18,7 +18,6 @@ M.VERIFY_DEC = '.out/verify.dec'
 
 local function encodeDirect(inpPath, bits, encw, enc)
   for code, cbits in enc do
-    -- mty.pnt('!! encodeDirect', code, cbits)
     encw(code, cbits)
   end
   encw:finish()
@@ -77,7 +76,6 @@ M.verify = mty.doc[[Verify encoding.
     name, bits, inpPath, 100 * encSize / inpSize, encSize//1024, inpSize//1024
   )
 
-  -- mty.pntf('!! Decoding from encoded file bits')
   -- This tests that we can decode the file itself
   encf:seek'set'; decf:seek'set'
   local readCodes = smol.ReadBits{
@@ -86,7 +84,6 @@ M.verify = mty.doc[[Verify encoding.
   local dec = decoder(readCodes, bits, encExtra)
   for code in dec do
     local str = finalDecode(code)
-    -- mty.pntf('!! decoded2 -> %q', str)
     decf:write(str)
   end
 

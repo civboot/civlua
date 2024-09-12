@@ -95,15 +95,14 @@ local function bracketedStr(p, node, raw, ws, c)
 end
 
 local fmtAttr = {
-  ['*'] = 'b', ['/'] = 'i', ['_'] ='u',
+  ['*'] = 'b', [','] = 'i', ['_'] ='u',
   ['"'] = 'quote',
   [':'] = 'name', -- both here and txtCtrl. This sets node.name=true
 }
 local strAttr = {
   ['!'] = 'hidden',   ['$'] = 'code',
-  ['.'] = 'path',
 }
-local txtCtrl = {[':'] = 'name', ['@'] = 'clone'}
+local txtCtrl = {[':'] = 'name', ['@'] = 'clone', ['/'] = 'path'}
 local shortAttrs = {n='name', v='value'}
 
 local function parseAttrs(p, node)
@@ -170,6 +169,8 @@ end
 local function parseTable(p, tbl)
   if p.line and p.c > #p.line then p:incLine() end
   local rowDel, colDel = tbl.row or '+', tbl.col or '|'
+
+  -- alternative end lambda
   local altEnd = function(p, node, l, c)
     if p.c == 1 then
       local c1, c2 = p.line:find'%S'; if c2 then
@@ -180,6 +181,7 @@ local function parseTable(p, tbl)
     local b1, b2 = p.line:find('[', p.c, true)
     if not b1 or b1 > c1 then return {colDel, l, c} end
   end
+
   local row, r = {}, true while r do
     if p:isEof() then p:error'Expected a table got EOF' end
     local col = {}; r = M.content(p, col, false, altEnd)
@@ -195,9 +197,9 @@ local function parseTable(p, tbl)
   end
   if #row > 0 then add(tbl, row) end
   for _, row in ipairs(tbl) do
-    for _, col in ipairs(row) do
+    for c, col in ipairs(row) do
       col[1]    = pegl.trimTokenStart(p, col[1])
-      col[#col] = pegl.trimTokenLast (p, col[#col])
+      col[#col] = pegl.trimTokenLast (p, col[#col], c == #row)
     end
   end
 end
@@ -224,7 +226,7 @@ M.content = function(p, node, isRoot, altEnd)
   if p.line == nil then
     assert(isRoot, "Expected ']' but reached end of file")
     return addToken(p, node, l, c, p.l - 1, #p.dat[p.l - 1])
-  elseif #p.line == 0 then
+  elseif #p.line == 0 and p.dat[l+1] then
     add(node, {pos={l}, br=true})
     p:incLine(); skipWs(p); l, c = p.l, p.c
     goto loop
@@ -315,20 +317,24 @@ local function getNamed(node, named, name)
 end
 
 local function resolveFetches(p, node, named)
-  if mty.ty(node) == Token then return node end
+  local nty = mty.ty(node)
+  if nty == Token or nty == 'string' then return node end
   if node.clone then
-    local n = ds.copy(getNamed(node, named, node.clone))
-    n.hidden, n.name, n.value = nil, nil, nil
-    return n
+    local n = named[node.clone]; if n then
+      local n = ds.copy(n)
+      n.hidden, n.name, n.value = nil, nil, nil
+      return n
+    else return node end
   end
   -- replace all @attr values
   for k, v in pairs(node) do
     if type(k) ~= 'number' and type(v) == 'string' and v:sub(1,1) == '@' then
-      local n = getNamed(node, named, v:sub(2))
-      local attr = n.value or (n.href and 'href') or 'text'
-      if attr == 'text' then v = nodeText(p, n, v)
-      else                   v = n[attr] end
-      node[k] = v
+      local n = named[v:sub(2)]; if n then
+        local attr = n.value or (n.href and 'href') or 'text'
+        if attr == 'text' then v = nodeText(p, n, v)
+        else                   v = n[attr] end
+        node[k] = v
+      end
     end
   end
   for i, n in ipairs(node) do node[i] = resolveFetches(p, n, named) end
@@ -351,7 +357,7 @@ end
 local SKIP_FOR_STR = ds.Set{'pos', 'raw'}
 M.parsedStrings = function(p, node)
   if type(node) ~= 'table' then return node end
-  if mty.ty(node) == Token   then return p:tokenStr(node) end
+  if mty.ty(node) == Token then return p:tokenStr(node) end
   local n = {}
   for k, v in pairs(node) do
     if not SKIP_FOR_STR[k] then
@@ -378,11 +384,14 @@ M.htmlFmt  = ds.Set{'b', 'i', 'u'}
 M.Writer = mty'Writer' {
   'src', 'to',
   'indent[int]',
+  'style [string]: see asciicolor.style',
 }
 M.Writer.fromParser = function(ty_, p, to)
   return ty_{src=p.dat, to=to or {}, indent=0}
 end
-M.Writer.tokenStr = function(w, t) return t:decode(w.src) end
+M.Writer.tokenStr = function(w, t)
+  return (type(t) == 'string') and t or t:decode(w.src)
+end
 M.Writer.__index = function(w, l)
   local m = getmetatable(w)[l]; if m then return m end
   if type(l) ~= 'number' then return end
@@ -390,8 +399,11 @@ M.Writer.__index = function(w, l)
 end
 M.Writer.__newindex = function(w, l, line)
   if type(l) ~= 'number' then return rawset(w, l, line) end
-  w.to[l] = line
+  if w.style then w.to:styled(w.style, line)
+  else            w.to[l] = line end
 end
 M.Writer.__len = function(w) return #w.to end
+M.Writer.incIndent = function(w) return w.to:incIndent() end
+M.Writer.decIndent = function(w) return w.to:decIndent() end
 
 return M

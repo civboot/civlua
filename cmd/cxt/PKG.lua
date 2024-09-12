@@ -6,6 +6,7 @@ homepage = "https://github.com/civboot/civlua/blob/main/cmd/cxt/README.md"
 license  = "UNLICENSE"
 srcs = {
   'cxt.lua',
+  'cxt/term.lua',
   'cxt/html.lua',
 }
 deps = {

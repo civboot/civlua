@@ -34,19 +34,19 @@ T.test('findcode', function()
 end)
 
 local eFn =
-"[{h1}[:doc_test.exampleFn] [@/lib/doc/test.lua:5] [@function]]\
+"[{h1}Function [:doc_test.exampleFn] [/lib/doc/test.lua:5] [@function] ]\
 document a fn\
 another line"
 
 
 local mDoc =
-"[{h1}[:doc_test] [@/lib/doc/test.lua:1] [@Ty<doc_test>]]\
+"[{h1}Module [:doc_test] [/lib/doc/test.lua:1] [@Mod<doc_test>] ]\
 \
 [{table}\
-+ [Methods, Etc]|\
-+ [:Example]      [@Ty<Example>]       | [@/lib/doc/test.lua:11]\
++ [*Methods, Etc] | blah\
++ [:Example]      [@Ty<Example>]       | [/lib/doc/test.lua:11]\
 + [:__name]       [@string]            | nil\
-+ [:exampleFn]    [@function]          | [@/lib/doc/test.lua:5]\
++ [:exampleFn]    [@function]          | [/lib/doc/test.lua:5]\
 ]"
 
 T.test('doc.get', function()

@@ -86,11 +86,9 @@ M.testLinesRemove = function(new, assertEq, assertEqRemove)
   assertEqR({'b', 'c'}, lines.remove(t, 1, 2, 2, 2))
   assertEq(new{'a'}, t)
 
-  log.info'!! -- TEST ab c nd --'
   t = new'ab\nc\n\nd'
   assertEqR({'c', ''}, lines.remove(t, 2, 3))
   if rawget(t, 'dats') then
-    log.info('!! dats=%q', t.dats)
     t:flush()
   end
   assertEq(new{'ab', 'd'}, t)

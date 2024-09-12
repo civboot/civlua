@@ -204,11 +204,11 @@ do local modloc = srcloc()
   end
 
   setmetatable(M.mod, {
-    __name='Ty<Mod>',
+    __name='Mod',
     __call=function(T, name)
       assert(type(name) == 'string', 'must provide name str')
       local m = setmetatable({__name=name}, {
-        __name=sfmt('Ty<%s>', name),
+        __name=sfmt('Mod<%s>', name),
         __index=M.mod.__index,
         __newindex=M.mod.__newindex,
       })
@@ -216,6 +216,12 @@ do local modloc = srcloc()
       return m
     end,
   })
+end
+
+M.isMod = function(t)
+  if type(t) ~= 'table' then return false end
+  local mt = getmetatable(t)
+  return mt and mt.__name and mt.__name:find'^Mod<'
 end
 
 -- override globals {require, mod}

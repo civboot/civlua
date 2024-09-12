@@ -52,7 +52,11 @@ M.newFD = S.newFD; M.newFDT=S.newFDT
 M.PIPE_BUF = 512 -- POSIX.1
 
 S.FD.__close  = S.FD.__index.close
+S.FD.__name = 'fd.FD'
+S.FD.__tostring = function(fd) return sfmt('FD(%s)', fd:fileno()) end
 S.FDT.__close = S.FDT.__index.close
+S.FDT.__name = 'fd.FDT'
+S.FDT.__tostring = S.FD.__tostring
 
 M.finishRunning = function(fd, kind, ...)
   while fd:code() == S.FD_RUNNING do yield(kind or true, ...) end
@@ -295,7 +299,10 @@ M.type   = function(fd)
   return iotype(fd)
 end
 M.fileno = function(fd)
-  return iotype(fd) and S.fileno(fd) or fd:fileno()
+  if iotype(fd) then return S.fileno(fd) end
+  if type(fd) == 'userdata' then return fd:fileno() end
+  local meth = rawget(getmetatable(fd), 'fileno')
+  return meth and meth(fd)
 end
 M.ftype = function(f)
   local t = M.FMODE[S.S_IFMT & S.fstmode(M.fileno(f))]
@@ -303,7 +310,8 @@ M.ftype = function(f)
   return nil, 'file has unknown mode'
 end
 M.isatty = function(fd)
-  return S.isatty(type(fd) == 'number' and fd or M.fileno(fd))
+  fd = type(fd) == 'number' and fd or M.fileno(fd)
+  return fd and S.isatty(fd)
 end
 
 ----------------------------

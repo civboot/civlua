@@ -13,6 +13,7 @@ local ds   = require'ds'
 local sfmt = string.format
 local push = table.insert
 local pth = require'ds.path'
+local pkglib = require'pkglib'
 
 local sfmt, pushfmt = string.format, ds.pushfmt
 
@@ -66,6 +67,7 @@ M.DocItem = mty'DocItem' {
 --
 -- Example: metaty.tostring(doc(myObj))
 M.Doc = mty'Doc' {
+  'obj [any]: the object being documented',
   'name', 'ty [Type]: type, can be string',
   'path [str]',
   'comments [lines]: comments above item',
@@ -76,7 +78,7 @@ M.Doc = mty'Doc' {
 
 local function fmtItems(f, items, name)
   pushfmt(f, '[{table}')
-  pushfmt(f, '\n+ [%s]|', name)
+  pushfmt(f, '\n+ [*%s] | blah', name)
   for i, item in ipairs(items) do
     push(f, '\n+ '); f(item)
   end
@@ -92,9 +94,14 @@ local fmtAttrs = function(d, f)
 end
 
 M.Doc.__fmt = function(d, f)
- local path = d.path and sfmt(' [@/%s]', d.path) or ''
- local ty = d.ty and sfmt(' [@%s]', d.ty) or ''
-  pushfmt(f, '[{h%s}[:%s]%s%s]\n', f:getIndent() + 1, d.name, path, ty)
+  local path = d.path and sfmt(' [/%s]', d.path) or ''
+  local ty = d.ty and sfmt(' [@%s]', d.ty) or ''
+  local prefix = type(d.obj) == 'function' and 'Function'
+              or pkglib.isMod(d.obj) and 'Module'
+              or mty.isRecord(d.obj) and 'Record'
+              or type(d.obj)
+  pushfmt(f, '[{h%s}%s [:%s]%s%s ]\n', f:getIndent() + 1,
+          prefix, d.name, path, ty)
   for i, l in ipairs(d.comments or {}) do
     push(f, l); if i < #d.comments then push(f, '\n') end
   end
@@ -112,7 +119,7 @@ end
 M.DocItem.__fmt = function(di, f)
   local name = di.name and sfmt('[:%s]', di.name) or '(unnamed)'
   local ty = di.ty or ''
-  local path = di.path and sfmt('[@/%s]', pth.nice(di.path))
+  local path = di.path and sfmt('[/%s]', pth.nice(di.path))
   if di.doc and di.doc ~= '' then
     return diFullFmt(f, name, ty, path and (path..'\n') or '', di.doc)
   end
@@ -128,7 +135,7 @@ end
 getmetatable(M.Doc).__call = function(T, obj)
   local name, path = M.modinfo(obj)
   local d = mty.construct(T, {
-    name=name, path=path,
+    obj=obj, name=name, path=path,
     ty=mty.tyName(mty.ty(obj)),
   })
   d.comments, d.code = M.findcode(path)
@@ -174,7 +181,6 @@ M.stripComments = function(com)
   for i, l in ipairs(com) do com[i] = l:match(pat) or l end
 end
 
-local pget = require'pkglib'.get
 
 -- get any path with '.' in it
 --
@@ -185,7 +191,7 @@ M.getpath = function(path)
   for i=1,#path do
     local v = obj and ds.get(obj, ds.slice(path, i))
     if v then return v end
-    obj = pget(table.concat(path, '.', 1, i))
+    obj = pkglib.get(table.concat(path, '.', 1, i))
   end
   return obj
 end

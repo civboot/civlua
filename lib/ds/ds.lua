@@ -964,10 +964,8 @@ end
 M.BiMap = mty'BiMap'{}
 
 getmetatable(M.BiMap).__call = function(ty_, t)
-  local keys = {}; for k, v in pairs(t) do
-    if not t[v] then push(keys, k) end
-  end
-  for _, k in pairs(keys) do t[t[k]] = k end
+  local rev = {}; for k, v in pairs(t) do rev[v] = k end
+  for k, v in pairs(rev) do t[k] = v end
   return setmetatable(t, ty_)
 end
 M.BiMap.__fields = nil

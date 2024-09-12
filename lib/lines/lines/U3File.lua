@@ -75,7 +75,6 @@ U3File.__newindex = function(u3, k, v)
   local len = u3.len; assert(k <= len + 1, 'newindex OOB')
   local s = pack('>I3', v) -- pack first to throw errors
   iseek(u3, k)
-  log.info('!! u3.write i=%s', k)
   local _, err = u3.f:write(s); if err then error(err) end
   if k > len then u3.len = k end
   u3._i = k + 1

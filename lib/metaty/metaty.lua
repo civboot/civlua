@@ -232,6 +232,12 @@ M.namedRecord = function(name, R, loc)
   return R
 end
 
+M.isRecord = function(t)
+  if type(t) ~= 'table' then return false end
+  local mt = getmetatable(t)
+  return mt and mt.__name and mt.__name:find'^Ty<'
+end
+
 M.record = function(name)
   assert(type(name) == 'string' and #name > 0,
          'must set __name=string')

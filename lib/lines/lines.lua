@@ -37,6 +37,7 @@ M.args = function(...) --> lines
   elseif len == 1 then return new(nil, select(1, ...))
   else                 return new(nil, concat{...}) end
 end
+local args = M.args
 
 -- join a table with newlines
 M.join = function(t) return concat(t, '\n') end --> string
@@ -287,6 +288,20 @@ M.dump = function(t, f, close, chunk)
   end
   if #dat > 0 then f:write(concat(dat, '\n')) end
   if close then f:close() end
+end
+
+-- Logic to make a table behave like a file:write(...) method.
+--
+-- This is NOT performant, especially for large lines.
+M.write = function(t, ...) --> true
+  local w = args(...); if #w == 0 then return true end
+  local len, first = #t, w[1]
+  if first ~= '' then
+    if len == 0 then t[1] = first
+    else             t[len] = t[len]..first end
+  end
+  for i=2,#w do t[len + i - 1] = w[i] end
+  return true
 end
 
 return M
