@@ -42,6 +42,8 @@ M.help = function(args, isExe)
     }
     local d = mty.tostring(doc.find(args[1]))
     require'cxt.term'{d, st}
+    io.stdout:write'\n'
+    io.stdout:flush()
   end)
   if not ok then
     mty.print(string.format('Error %s:', args[0]), err)

@@ -76,14 +76,14 @@ s[[mv[string]:
   'mvcmd[string]: shell command to use for move',
 s[[excl [table]:
      (multi: any match excludes)
-     exclude pattern (default='/%.[^/]+/' -- aka hidden)]],
+     exclude pattern ([$default='/%.[^/]+/'] -- aka hidden)]],
   'mut [bool]: if true files may be modified, else dry run',
     mut=false,
   'log: path or (Lua) filehandle to log to.',
   'fpre[string]: prefix characters before printing files',        fpre='',
   'dpre [string]: prefix characters before printing directories', dpre='',
   'plain [bool]: no line numbers', plain=false,
-  'color [true|false|always|never]: whether to use color',
+  'color [string]: whether to use color (true|false|always|never)',
   'keep_going [bool]: (short -k) whether to keep going on errors',
   "silent [bool]: (short -s) don't print errors",
 }

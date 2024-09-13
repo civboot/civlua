@@ -40,11 +40,12 @@ end
 
 local function serializeRow(w, row, nl)
   w:incIndent(); if nl then push(w, '\n') end
+  w:incIndent();
   for i, col in ipairs(row) do
     if i ~= 1 then push(w, '\t') end
     M.serialize(w, col)
   end
-  w:decIndent()
+  w:decIndent(); w:decIndent()
 end
 
 local SER_KIND = {

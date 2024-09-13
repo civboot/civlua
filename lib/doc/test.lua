@@ -43,10 +43,10 @@ local mDoc =
 "[{h1}Module [:doc_test] [/lib/doc/test.lua:1] [@Mod<doc_test>] ]\
 \
 [{table}\
-+ [*Methods, Etc] | blah\
-+ [:Example]      [@Ty<Example>]       | [/lib/doc/test.lua:11]\
-+ [:__name]       [@string]            | nil\
-+ [:exampleFn]    [@function]          | [/lib/doc/test.lua:5]\
++ [*Methods, Etc]\
++ [:Example]       | [[[@Ty<Example>]]] [/lib/doc/test.lua:11]\
++ [:__name]        | [[[@string]]] \
++ [:exampleFn]     | [[[@function]]] [/lib/doc/test.lua:5]\
 ]"
 
 T.test('doc.get', function()
@@ -76,4 +76,34 @@ T.test('pairs', function()
   assert(#r == 3)
   assert(r[1] == 1); assert(r[2] == 2); assert(r[3] == 10);
   assert(r.a == 8);  assert(r.hello == 'hi')
+end)
+
+T.test('record', function()
+  -- documentation for A
+  M.A = mty'A' {
+    'a1 [int]: an int',
+    'a2 [string]', a2 = 'default'
+  }
+  M.A.method = function() end
+
+  local expect =
+"[{h1}Record [:doc_test.A] [/lib/doc/test.lua:85] [@Ty<A>] ]\
+\
+[{table}\
++ [*Fields]\
++ [:a1]            | [$int]               \
+  an int\
++ [:a2]            | [$string]            \
+]\
+[{table}\
++ [*Methods, Etc]\
++ [:__docs]        | [@table]             \
++ [:__fields]      | [@table]             \
++ [:__index]       | [@Ty<A>]             [/lib/doc/test.lua:85]\
++ [:__name]        | [@string]            \
++ [:__newindex]    | [@function]          [/lib/metaty/metaty.lua:180]\
++ [:method]        | [@function]          [/lib/doc/test.lua:86]\
+]"
+
+  T.assertEq(expect,     doc(M.A))
 end)

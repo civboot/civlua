@@ -274,7 +274,7 @@ M.content = function(p, node, isRoot, altEnd)
   elseif ctrl == '['   then l, c = p.l, p.c - 1; goto loop
   elseif ctrl == '<' then
     sub.href = p:tokenStr(assert(p:parse{PIN, Pat'[^>]*', '>'}[1]))
-  else p:error"Unrecognized control character after '['" end
+  else p:error(sfmt( "Unrecognized control character after '[': %q", ctrl)) end
   -- parse table depending on kind
   if raw           then bracketedStr(p, sub, raw, ws)
   elseif sub.table then parseTable(p, sub)

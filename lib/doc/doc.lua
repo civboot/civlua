@@ -78,7 +78,7 @@ M.Doc = mty'Doc' {
 
 local function fmtItems(f, items, name)
   pushfmt(f, '[{table}')
-  pushfmt(f, '\n+ [*%s] | blah', name)
+  pushfmt(f, '\n+ [*%s]', name)
   for i, item in ipairs(items) do
     push(f, '\n+ '); f(item)
   end
@@ -113,19 +113,26 @@ M.DocItem.defaultStr = function(di)
   return di.default ~= nil and mty.format(' = %q', di.default)
 end
 local function diFullFmt(f, name, ty, path, doc)
-  f:incIndent(); pushfmt(f, '%-16s%-20s |\n%s%s', name, ty, path, doc)
+  f:incIndent(); pushfmt(f, '%-16s | %-20s %s%s', name, ty, path, doc)
   f:decIndent()
 end
 M.DocItem.__fmt = function(di, f)
   local name = di.name and sfmt('[:%s]', di.name) or '(unnamed)'
-  local ty = di.ty or ''
+  local ty = di.ty and sfmt('[[%s]]', di.ty) or ''
   local path = di.path and sfmt('[/%s]', pth.nice(di.path))
-  if di.doc and di.doc ~= '' then
-    return diFullFmt(f, name, ty, path and (path..'\n') or '', di.doc)
+  local default = di.default and mty.format('= [$%q]', di.default)
+  if path and default then path = '\n'..path end
+  path, default = path or '', default or ''
+  if path:sub(1,1) == '\n' or (di.doc and di.doc ~= '') then
+    f:incIndent()
+    pushfmt(f, '%-16s | %s %s%s\n%s', name, ty, default, path, di.doc)
+    f:decIndent()
+  else
+    pushfmt(f, '%-16s | %s %s%s', name, ty, default, path)
   end
-  local fmt = sfmt('%-16s%-20s | %s', name, ty, path)
-  if #fmt <= 80 then push(f, fmt)
-  else diFullfmt(f, name, ty, path or '', '') end
+  -- local fmt = sfmt('%-16s | %-20s %s', name, ty, path)
+  -- if #fmt <= 80 then push(f, fmt)
+  -- else diFullfmt(f, name, ty, path or '', '') end
 end
 
 local function cleanFieldTy(ty)

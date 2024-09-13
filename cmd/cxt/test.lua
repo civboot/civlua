@@ -313,14 +313,14 @@ local _, node, p = term.convert(
 "[{h1}[:doc_test] [/lib/doc/test.lua:1] [@Ty<doc_test>] ]\
 \
 [{table}\
-+ [*Methods, Etc] | blah\
++ [*Methods, Etc]\
 + [:Example]      [@Ty<Example>]       | [/lib/doc/test.lua:11]\
 + [:__name]       [@string]            | \
 ]", sty)
   local expect =
 "doc_test lib/doc/test.lua:1 Ty<doc_test> \
 \
-  Methods, Etc\9blah\
+  Methods, Etc\
   Example      Ty<Example>\9lib/doc/test.lua:11\
   __name       string\9 "
   assertEq(expect, table.concat(w, '\n'))
