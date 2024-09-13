@@ -45,23 +45,6 @@ M.dark = {
 }
 -- TODO: light
 
-M.ascii = {}
-for k, fmt in pairs {
-  type = '[%s]', error = '! %s !',
-  h1 = '# %s', h2 = '## %s', h3 = '### %s', h4 = '#### %s',
-} do
-  M.ascii[k] = function(st, str, ...)
-    return st.acwriter:write(sfmt(fmt, str), ...)
-  end
-end
-M.ascii.code = function(st, str, ...)
-  if str:sub(1,1) == '\n' then
-    st:incIndent(); st:write(str); st:decIndent()
-  elseif str:find'%s' then st:write(sfmt('[$%s]', str))
-  else                     st:write('$', str) end
-  st:write(...)
-end
-
 M.mode = function() return CLIMODE or os.getenv'CLIMODE' end
 
 M.stylePath = function() return pth.concat{pth.home(), CONFIG_PATH} end
@@ -110,13 +93,9 @@ M.Styler.flush = function(st) return st.acwriter:flush() end
 M.Styler.styled = function(st, style, str, ...)
   if not st.color then return st.acwriter:write(str, ...) end
   local len, fb = #str, st.style[style] or ''
-  if type(fb) == 'function' then
-    return fb(st, str, ...)
-  else
-    return st.acwriter:acwrite(
-      fb:sub(1,1):rep(len), fb:sub(2,2):rep(len),
-      str, ...)
-  end
+  return st.acwriter:acwrite(
+    fb:sub(1,1):rep(len), fb:sub(2,2):rep(len),
+    str, ...)
 end
 
 -- write as plain
