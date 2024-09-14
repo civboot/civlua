@@ -39,8 +39,7 @@ M.help = function(args, isExe)
     local st = astyle.Styler{
       color=shim.color(args.color, fd.isatty(io.stdout)),
     }
-    local d = mty.tostring(doc.find(args[1]))
-    require'cxt.term'{d, st}
+    require'cxt.term'{doc(args), to=st}
     io.stdout:write'\n'
     io.stdout:flush()
   end)

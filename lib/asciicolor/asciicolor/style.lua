@@ -22,7 +22,7 @@ M.dark = {
   error = 'Wr',
 
   -- Document Styles
-  code = 'zB',
+  code = 'hb',
   bold = 'Z', ul = 'zZ', boldul = 'ZZ',
   h1 = 'N', h2 = 'S', h3 = 'W', h4 = 'Z',
 
@@ -34,7 +34,7 @@ M.dark = {
   symbol        = 'r', -- = + . etc
   builtin       = 'p', -- builtin fns/mods/names: io sys self etc
   commentbox    = 'bw', -- start/end of comment: -- // /**/ etc
-  comment       = 'zB', -- content of comment:  /*content*/
+  comment       = 'zb', -- content of comment:  /*content*/
   stringbox     = 'd', -- start/end of string: '' "" [[]] etc
   string        = 'm', -- content of string inside quotes
   char          = 'm', -- single character: 'c'
@@ -62,7 +62,9 @@ M.loadStyle = function(mode, path)
 end
 
 M.defaultAcWriter = function(f)
-  return require'vt100.AcWriter'{f=f or mty.Fmt{to=io.stdout}}
+  f = f or io.stdout
+  f = mty.ty(f) == mty.Fmt and f or mty.Fmt{to=f}
+  return require'vt100.AcWriter'{f=f}
 end
 
 -- Create a styler

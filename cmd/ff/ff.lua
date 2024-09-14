@@ -89,7 +89,7 @@ s[[excl [table]:
 }
 
 M.DOC = DOC..'\n#############\n# ARGS\n'
-      ..require'doc'(M.Args)
+      -- ..require'doc'(M.Args)
 --      ..(require'doc'(M.Args):match'.-\n(.-)%-%-+ CODE')
 
 local function anyMatch(pats, str) --> matching pat, index

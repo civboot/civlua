@@ -325,9 +325,11 @@ T.test('src2', function()
 end)
 
 local ERR_EXPECT =
-"stack: src %-> block %-> stmt %-> fnlocal %-> fnbody %-> block %-> stmt %-> varset %-> exp %-> op2exp %-> exp %-> exp1 %-> table\
-parser expected: \"}\"\
-Got: 3} %-%- '2 3' is invalid"
+"[LINE 2.22]          x = 1 + {2 3} -- '2 3' is invalid\
+                               ^\
+Cause: parser expected: \"}\"\
+Got: 3} -- '2 3' is invalid\
+Parse stack: src -> block -> stmt -> fnlocal -> fnbody -> block -> stmt -> varset -> exp -> op2exp -> exp -> exp1 -> table"
 
 T.test('error', function()
   T.assertErrorPat(
@@ -338,7 +340,8 @@ T.test('error', function()
           x = 1 + {2 3} -- '2 3' is invalid
         end
       ]], src, RootSpec{dbg=false})
-    end -- plain true)
+    end,
+    true -- plain
   )
 end)
 

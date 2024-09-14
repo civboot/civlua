@@ -20,176 +20,176 @@ M.keyword = function() return setmetatable({}, Keyword) end
 --------------------
 -- Global Functions
 
--- next(tbl, key) -> nextKey
--- Special:
---   key=nil      return first key in the table
---   key=lastKey  return nil
-M.next = next
+--- Get the next key in the table. Used for iterating through tables.
+--- If [$key=nil] returns the first key. Returns [$nil] when [$key] is
+--- the last key.
+M.next = next--(tbl, key) --> nextKey
 
---pcall(fn, ...inp): handle errors.
---  calls fn(...inp) and returns:
---    ok=false, error    for errors
---    ok=true, ...out    for success
-M.pcall = pcall
+--- call a function but catch errors. Returns [$ok] followed by the function
+--- results. If not ok, returns the error.
+M.pcall = pcall--(fn, ...) --> ok, fn(...)
 
---select(index, ...inp) -> inp[index:]
---removes index-1 items from inp stack.
---If index='#' returns #inp.
-M.select = select
+--- select elements in varargs [$...] at and after index.
+---
+--- Special value: if [$index='#'] then returns length of [$...]
+M.select = select--(index, ...) -> ...
 
--- type(v) -> typeString. Possible values:
---
---   "nil" number string boolean table
---   function thread userdata
---
--- See also: metaty.ty(v) for metatypes
-M.type = type
+--- Get the type of [$val]. Possible return values are: [+
+---   * data: nil number string boolean table
+---   * other: function thread userdata
+--- ]
+--- [" See also: metaty.ty(v) for metatypes]
+M.type = type--(val) --> string
 
--- setmetatable(t, mt) -> t
--- Sets the metatable on table which adds context (metatype)
--- as well as affects behavior of operators (metamethods)
---
---     t[k]     t[k]=v      NOTE: ONLY CALLED WHEN KEY
---     __index  __newindex        IS MISSING
---
---     +         -        *        /       //        %
---     __add     __sub    __mul    __div   __idiv    __mod
---               __unm
---
---     &         |        ~        <<      >>        ^
---     __band    __bor    __bnot   __shl   __shr     __pow
---
---     ==        <        <=       #        ..
---     __eq      __lt     __le     __len    __concat
---
---     t()       __tostring
---     __call    __name
---
--- metaty: __fields   __fmt
-M.setmetatable = setmetatable
+--- Sets the metatable on the table which can get gotten with
+--- [$getmetatable] and affects the behavior of operators.
+---
+--- All metamethods: [##
+--- __index    (i.e. t[k])     NOTE: these are only called
+--- __newindex (i.e. t[k] = v)       when key is missing!
+---
+--- __call     (i.e. t())
+--- __tostring (i.e. tostring(t))
+---
+--- +         -        *        /       //        %
+--- __add     __sub    __mul    __div   __idiv    __mod
+---           __unm
+---
+--- &         |        ~        <<      >>        ^
+--- __band    __bor    __bnot   __shl   __shr     __pow
+---
+--- ==        <        <=       #        ..
+--- __eq      __lt     __le     __len    __concat
+---
+--- __name
+--- ]##
+---
+--- [" See also metaty metamethods: __fields   __fmt]
+M.setmetatable = setmetatable-->(t, mt) -> t
 
---getmetatable(t) -> mt  See setmetatable.
-M.getmetatable = getmetatable
+--- See setmetatable.
+M.getmetatable = getmetatable--(t) --> mt
 
--- tostring(v) --> tostring
--- Convert any value to a string, calling __tostring on metatable.
-M.tostring = tostring
+--- Convert any value to a string by calling __tostring or using lua's default.
+M.tostring = tostring--(v) --> string
 
 -------------------------------
 -- string
 
--- the builtin lua string module.
---
--- string literal values can use [+
---   * `'single quotes'`
---   * `"double quotes"`
---   * [==[raw string with any number of = symbols ]==]`
--- ]
---
--- `\` characters can be used to escape special characters,
--- except in raw bracketed strings. Common escaped characters
--- are `\'` (literal `'`), `\n` (newline) and `\t` (tab).
+--- the builtin lua string module.
+---
+--- string literal values can use [+
+---   * [$'single quotes']
+---   * [$"double quotes"]
+---   * [$[==[raw string with any number of = symbols ]==]]
+--- ]
+---
+--- [$\] characters can be used to escape special characters,
+--- except in raw bracketed strings. Common escaped characters
+--- are [$\'] (literal [$']), [$\n] (newline) and [$\t] (tab).
 M.string = string
 
--- string.find(subject:str, pat, index=1)
---  -> (starti, endi, ... match strings)
---
--- Find the pattern in the subject string, starting at the index.
---
--- assertEq({2, 4},       {find('%w+', ' bob is nice')})
--- assertEq({2, 7, 'is'}, {find(' bob is nice', '%w+ (%w+)')})
---
--- Character classes for matching specific sets:
---
---     .   all characters
---     %a  letters
---     %c  control characters
---     %d  digits
---     %l  lower case letters
---     %p  punctuation characters
---     %s  space characters
---     %u  upper case letters
---     %w  alphanumeric characters
---     %x  hexadecimal digits
---     %z  the character with representation 0
---
--- Magic characters, `.` indicates one character, more indicates many:
---
---     %.     selects a character class or escapes a magic char
---     (...)  create a group
---     [...]  create your own character class
---     [^..]  inversion of [...]
---     +.     match one or more of previous class  (NOT group)
---     *.     match zero or more of previous class (NOT group)
---     ?      match zero or one of previous class  (NOT group)
---     ^...   if at pat[1], match only beggining of text
---     ...$   if at pat[#pat], match only end of text
---
--- Also: %[1-9] refers to a the previously matched group
--- and matches it's exact content.
---
--- assert(    find('yes bob yes',  '(%w+) bob %1'))
--- assert(not find('yes bob no',   '(%w+) bob %1'))
-M['string.find'] = string.find
+--- Find the pattern in the subj (subject) string, starting at the index.
+--- returns the si (start index), ei (end index) and match groups
+---
+--- [{## lang=lua}
+--- assertEq({2, 4},       {find('%w+', ' bob is nice')})
+--- assertEq({2, 7, 'is'}, {find(' bob is nice', '%w+ (%w+)')})
+--- ]##
+---
+--- Character classes for matching specific sets: [##
+---   .   all characters
+---   %a  letters
+---   %c  control characters
+---   %d  digits
+---   %l  lower case letters
+---   %p  punctuation characters
+---   %s  space characters
+---   %u  upper case letters
+---   %w  alphanumeric characters
+---   %x  hexadecimal digits
+---   %z  the character with representation 0
+--- ]##
+---
+--- Magic characters, [$.] indicates one character, more indicates many [##
+---     %.     selects a character class or escapes a magic char
+---     (...)  create a group
+---     [...]  create your own character class
+---     [^..]  inversion of [...]
+---     +.     match one or more of previous class  (NOT group)
+---     *.     match zero or more of previous class (NOT group)
+---     ?      match zero or one of previous class  (NOT group)
+---     ^...   if at pat[1], match only beggining of text
+---     ...$   if at pat[#pat], match only end of text
+---     %1-9   matches the previously matched group index EXACTLY
+--- ]##
+M['string.find'] = string.find--(subj, pat, index=1) --> (si, ei, ...matches)
 
--- match(subj, pat, init) return the capture groups of pat
--- or the whole match if no capture groups.
---
--- See also: string.find.
-M['string.match'] = string.match
+--- Return the capture groups of pat or the whole match if no capture groups.
+--- index: where to start the search and can be negative.
+---
+--- See also: string.find.
+M['string.match'] = string.match--(subj, pat, index=1) --> ...groups
 
 
--- gmatch(subj, pat, init) match iterator function.
-M['string.gmatch'] = string.gmatch
+--- Return an iterator function that when called returns the next capture group.
+--- index: where to start the search and can be negative.
+---
+--- See also: string.find.
+M['string.gmatch'] = string.gmatch--(subj, pat, index=1) --> iterator()
 
--- substring by index (NOT pattern matching).
---
---   string.sub(subject: str, start: num, end: num) -> str[s:e]
---
--- Note: This is confusingly named considering string.gsub uses pattern
--- matching. Such is life.
-M['string.sub'] = string.sub
+--- Return substring by index. [$("1234"):sub(3,4) == "34"]
+---
+--- ["Note: This is confusingly named considering string.gsub uses pattern
+---         matching. Such is life.]
+M['string.sub'] = string.sub--(subj, si, ei) --> str[si:ei]
 
--- Globally Substittue pattern with subpattern.
---
---   string.gsub(subject: str, pat, subpat, index=1) -> str
---
--- Reference:
---   string.find for pattern documentation.
---
--- The subpattern has no special characters except:
---
---   %%     a literal %
---   %1-9   a matched group from pat
---
--- gsub = string.gsub
---   assertEq('yes ann yes',
---     gsub(  'yes bob yes', '(%w+) bob %1', '%1 ann %1'))
-M['string.gsub'] = string.gsub
+--- Substittue all matches of pattern with repl, returning the new string.
+---
+--- [$repl] can be a: [+
+---  * [@string]: replace with the string except [$%1-9] will be
+---    a matched group from [$pat] and [$%%] is a literal [$%].
+---  * [@table]: the table will be queried for every match using
+---    the first capture as key.
+---  * [$function(...matches) -> string]: the function will be called
+---    with all match groups for each match.
+--- ]
+---
+--- See also: string.find for pattern documentation.
+M['string.gsub'] = string.gsub--(subj, pat, repl, index=1) --> string
 
--- Format values into a fmt string, i.e: format('%s: %i', 'age', 42)
---
--- string.format(fmt: str, ...) -> str
---
--- Examples:
---   sfmt = string.format
---   assertEq('age: 42',    sfmt('%s: %i',   'age', 42))
---   assertEq('age:    42', sfmt('%s: %5i',  'age', 42))
---   assertEq('age: 00042', sfmt('%s: %05i', 'age', 42)
---
--- Directives:
---
---   %%    literal % char
---   %d    decimal
---   %o    octal
---   %x    hexidecimal (%X uppercase)
---   %f    floating point
---   %s    string
---
--- Directive control structure:
---
---   % <fill character>? <fill count> directive
-M['string.format'] = string.format
+--- Format values into a fmt string, i.e: [$format('%s: %i', 'age', 42)]
+---
+--- Directives:
+--- [{table}
+--- + [$%%] | literal % char
+--- + [$%d] | decimal
+--- + [$%o] | octal
+--- + [$%x] | hexidecimal (%X uppercase)
+--- + [$%f] | floating point
+--- + [$%s] | string
+--- ]
+---
+--- Directive control structure: [##
+---   % (specifier width)? directive
+--- ]##
+---
+--- Where [$width] is an integer and [$specifier] can be one of [{table}
+--- + [$+] | right justify using the width (the default)
+--- + [$-] | left justify using the width
+--- + [$ ] | prefix a positive number with a space
+--- + [$#] | prefix o, x or X directives with 0, 0x and 0X respectively
+--- + [$0] | left-pad a number with spaces
+--- ]
+---
+--- Examples: [{## lang=lua}
+---   sfmt = string.format
+---   assertEq('age: 42',    sfmt('%s: %i',   'age', 42))
+---   assertEq('age:    42', sfmt('%s: %5i',  'age', 42))
+---   assertEq('age: 42,     sfmt('%s: %-5i', 'age', 42))
+---   assertEq('age: 00042', sfmt('%s: %05i', 'age', 42)
+--- ]##
+M['string.format'] = string.format--(fmt: str, ...) --> str
 
 
 -- string.byte(s [i, j]) -> number: get numberic code/s for s[i:j]
@@ -250,7 +250,8 @@ M['table.concat'] = table.concat
 -- The table is shifted if index < #table.
 M['table.remove'] = table.remove
 
--- table.sort(list, function=nil) sort table in-place
+-- [$table.sort(list, comp=lt)]: sort table in-place.
+-- [$comp(a, b) -> aIsFirst]
 M['table.sort'] = table.sort
 
 -- insert or add to table (list-like)

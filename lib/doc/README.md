@@ -11,7 +11,7 @@ Usage (see also [Installation](#Installation]))
 require'pkglib':install() -- adds 'mod'
 require'civ' -- (optional) requires all civ modules for demo
 local doc = require'doc'
-print(doc('ds.heap.Heap'))
+print(doc'ds.heap.Heap')
 ```
 
 prints out:

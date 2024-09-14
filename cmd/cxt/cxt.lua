@@ -228,7 +228,12 @@ M.content = function(p, node, isRoot, altEnd)
   local l, c = p.l, p.c
   ::loop::
   if p.line == nil then
-    assert(isRoot, "Expected ']' but reached end of file")
+    if not isRoot then error(
+      "!! ERROR on input:\n\n"
+       ..table.concat(p.dat, '\n')
+       .."\n\n!! Error: Expected ']' but reached end of file"
+    )
+    end
     return addToken(p, node, l, c, p.l - 1, #p.dat[p.l - 1])
   elseif #p.line == 0 and p.dat[l+1] then
     add(node, {pos={l}, br=true})

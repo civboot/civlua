@@ -49,6 +49,8 @@ end
 local CONCRETE_TYPES = {
   ['nil']=true, boolean=true, number=true, string=true
 }
+-- return whether the value is concrete (nil, boolean, number, string)
+M.isConcrete = function(v) return CONCRETE_TYPES[type(v)] end
 
 -- return true if the value is "plain old data".
 --

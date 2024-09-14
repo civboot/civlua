@@ -53,11 +53,17 @@ local SER_KIND = {
   token = function(w, node) push(w, w:tokenStr(node)) end,
   br    = function(w, node) return push(w, '\n')      end,
   table = function(w, node)
-    local prevSty = w.style
     if #node == 0 then return end
-    push(w, '  ')
-    w.style = 'bold'; serializeRow(w, node[1]); w.style = prevSty
-    for r=2,#node do serializeRow(w, node[r], true) end
+    w:incIndent()
+    for r, row in ipairs(node) do
+      push(w, '\n+ ')
+      -- if r == 1 then push(w, '  + ') else push(w, '\n+ ') end
+      for c, col in ipairs(row) do
+        if c ~= 1 then push(w, '\t') end
+        w:incIndent(); M.serialize(w, col); w:decIndent()
+      end
+    end
+    w:decIndent()
   end,
   list = function(w, node)
     w:incIndent()

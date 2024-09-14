@@ -2,6 +2,13 @@ METATY_CHECK = true
 
 local pkg = require'pkglib'
 local mty = require'metaty'
+local Mt = mod'Mt'
+--- Example docs
+Mt.A = mty'A' {
+  'a1 [string]: docs for a1'
+  ..'more docs for a1',
+}
+
 local ds  = require'ds'
 local Writer = require'lines.Writer'
 local M = require'cxt'
@@ -43,6 +50,10 @@ test('simple', function()
   })
   M.assertParse('has \\[ and \\] in it\n\\and \\\\foo', {
     'has ', '[ and ', '] in it\n', '\\and ', '\\foo',
+  })
+
+  M.assertParse('with \\[[@foo]\\] okay', {
+    'with ', '[', {'foo', clone='foo'}, '] okay',
   })
 end)
 
@@ -154,13 +165,14 @@ end)
 
 
 test('table', function()
-  M.assertParse([[
+  local doc = [[
 [{table}
 + [*h]1 | h2   | h3
 + r1.1  | r1.2 | r1.3
 + r2.1  | r2.2 | r2.3
 ]
-]],
+]]
+  local noIndent = M.assertParse(doc,
   { -- src
     { table=true,
       { -- header
@@ -181,6 +193,14 @@ test('table', function()
     },
     '\n',
   })
+  local docIndent = [[
+[{table}
+  + [*h]1 | h2   | h3
+  + r1.1  | r1.2 | r1.3
+  + r2.1  | r2.2 | r2.3
+]
+]]
+  --M.assertParse(docIndent, noIndent)
 end)
 
 test('named', function()
@@ -306,7 +326,6 @@ the end\
 local _, node, p = term.convert(
 --"[{h1}[:doc_test] [/lib/doc/test.lua:1] [@Ty<doc_test>]]\
 "[{h1}[:doc_test] [/lib/doc/test.lua:1] [@Ty<doc_test>] ]\
-\
 [{table}\
 + [*Methods, Etc]\
 + [:Example]      [@Ty<Example>]       | [/lib/doc/test.lua:11]\
@@ -315,10 +334,17 @@ local _, node, p = term.convert(
   local expect =
 "doc_test lib/doc/test.lua:1 Ty<doc_test> \
 \
-  Methods, Etc\
-  Example      Ty<Example>\9lib/doc/test.lua:11\
-  __name       string\9 "
+  + Methods, Etc\
+  + Example      Ty<Example>\9lib/doc/test.lua:11\
+  + __name       string\9 "
   assertEq(expect, table.concat(w, '\n'))
+
+  ds.clear(w)
 
 end)
 
+
+test('doc', function()
+  local d = require'doc'{Mt.A}
+  M.parse(d)
+end)

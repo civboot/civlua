@@ -6,6 +6,7 @@ local lines   = require'lines'
 local civtest = require'civtest'
 local extend  = ds.extend
 local push, sfmt = table.insert, string.format
+local srep = string.rep
 local str, pushfmt = mty.tostring, ds.pushfmt
 local ty = mty.ty
 
@@ -56,6 +57,7 @@ M.nodeSpan = function(t)
   return l1, c1, select(3, lst:span())
 end
 
+-- Configuration for the spec. TODO: rename this.
 M.RootSpec = mty'RootSpec' {
   'skipEmpty [function]:   fn(p) default=skip whitespace',
   'skipComment [function]: fn(p) -> Token for found comment',
@@ -365,16 +367,11 @@ M.parse = function(dat, spec, root)
   return p:parse(spec), p
 end
 
-M.assertParse=function(t) -- {dat, spec, expect, dbg=false, root=RootSpec{}}
-  assert(t.dat, 'dat'); assert(t.spec, 'spec')
-  local root = (t.root and ds.copy(t.root)) or M.RootSpec{}
-  root.dbg   = t.dbg or root.dbg
-  local node, parser = M.parse(t.dat, t.spec, root)
-  local result = parser:toStrTokens(node)
-  if not t.expect and t.parseOnly then return end
-  if not mty.eq(t.expect, result) then
-    local eStr = table.concat(root.newFmt()(t.expect))
-    local rStr = table.concat(root.newFmt()(result))
+M.Parser.assertNode = function(p, expect, node, root)
+  local result = p:toStrTokens(node)
+  if not mty.eq(expect, result) then
+    local eStr = table.concat(p.root.newFmt()(expect))
+    local rStr = table.concat(p.root.newFmt()(result))
     if eStr ~= rStr then
       print('\n#### EXPECT:'); print(eStr)
       print('\n#### RESULT:'); print(rStr)
@@ -388,6 +385,16 @@ M.assertParse=function(t) -- {dat, spec, expect, dbg=false, root=RootSpec{}}
     end
     assert(false, 'failed parse test')
   end
+  return result
+end
+
+M.assertParse=function(t) -- {dat, spec, expect, dbg=false, root=RootSpec{}}
+  assert(t.dat, 'dat'); assert(t.spec, 'spec')
+  local root = (t.root and ds.copy(t.root)) or M.RootSpec{}
+  root.dbg   = t.dbg or root.dbg
+  local node, parser = M.parse(t.dat, t.spec, root)
+  if not t.expect and t.parseOnly then return end
+  local result = parser:assertNode(t.expect, node)
   return result, node, parser
 end
 
@@ -404,6 +411,8 @@ end
 M.Parser.__tostring=function() return 'Parser()' end
 M.Parser.new = function(T, dat, root)
   dat = (type(dat)=='string') and lines(dat) or dat
+  print('!! parsing')
+  print(table.concat(dat, '\n'))
   return mty.construct(T, {
     dat=dat, l=1, c=1, line=dat[1], lines=#dat,
     root=root or M.RootSpec{},
@@ -443,7 +452,7 @@ M.Parser.skipEmpty=function(p)
 end
 M.Parser.state   =function(p) return {l=p.l, c=p.c, line=p.line} end
 M.Parser.setState=function(p, st) p.l, p.c, p.line = st.l, st.c, st.line end
--- TODO: rename toStrNodes
+-- convert to token strings for test assertion
 M.Parser.toStrTokens=function(p, n)
   if not n then return nil end
   if ty(n) == M.Token then
@@ -454,10 +463,15 @@ M.Parser.toStrTokens=function(p, n)
   t.kind=n.kind
   return t
 end
--- (p, token) -> str
-M.Parser.tokenStr = function(p, t)
-  return t:decode(p.dat)
+--- recursively mutate table converting all Tokens to strings
+M.Parser.makeStrTokens = function(p, t) --> t
+  for k, v in pairs(t) do
+    if ty(v) == M.Token       then t[k] = p:tokenStr(v)
+    elseif type(v) == 'table' then p:makeStrTokens(v) end
+  end
+  return t
 end
+M.Parser.tokenStr = function(p, t) return t:decode(p.dat) end --> string
 -- recurse through the start of list and trim the start of first token
 M.Parser.trimTokenStart = function(p, list)
   local t, list = M.firstToken(list); assert(list)
@@ -501,7 +515,10 @@ M.Parser.checkPin=function(p, pin, expect)
   )end
 end
 M.Parser.error=function(p, msg)
-  mty.errorf("ERROR %s.%s\nstack: %s\n%s", p.l, p.c, fmtStack(p), msg)
+  local lmsg = sfmt('[LINE %s.%s]', p.l, p.c)
+  mty.errorf("ERROR\n%s%s\n%s\nCause: %s\nParse stack: %s",
+    lmsg, p.line, srep(' ', #lmsg + p.c - 2)..'^',
+    msg, fmtStack(p))
 end
 M.Parser.parseAssert=function(p, spec)
   local n = p:parse(spec); if not n then p:error(mty.format(
@@ -525,7 +542,8 @@ M.Parser.dbgLeave=function(p, n)
   return n
 end
 M.Parser.dbgMatched=function(p, spec)
-  if p.root.dbg then p:dbg('MATCH: %s', str(spec)) end end
+  if p.root.dbg then p:dbg('MATCH: %s', str(spec)) end
+end
 M.Parser.dbgMissed=function(p, spec, note)
   if p.root.dbg then p:dbg('MISS: %s%s', str(spec), (note or '')) end
 end

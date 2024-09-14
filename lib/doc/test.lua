@@ -1,11 +1,11 @@
 local M = mod'doc_test'
 
--- document a fn
--- another line
+--- document a fn
+--- another line
 M.exampleFn = function() end
 
--- document a metaty
--- another line
+--- document a metaty
+--- another line
 M.Example  = require'metaty''Example'{
   'a [int]', a=4,
 }
@@ -22,25 +22,26 @@ T.assertEq('lib/doc/test.lua:11', PKG_LOC[M.Example])
 
 T.test('findcode', function()
   local com, code = doc.findcode(M.exampleFn)
-  T.assertEq({"-- document a fn", "-- another line"}, com)
+  T.assertEq({"--- document a fn", "--- another line"}, com)
   T.assertEq({"M.exampleFn = function() end"}, code)
 
   com, code = doc.findcode(M.Example)
-  T.assertEq('-- document a metaty', com[1])
-  T.assertEq('-- another line',      com[2])
+  T.assertEq('--- document a metaty', com[1])
+  T.assertEq('--- another line',      com[2])
   T.assertEq([[M.Example  = require'metaty''Example'{]], code[1])
   T.assertEq([[  'a [int]', a=4,]], code[2])
   T.assertEq('}', code[3])
 end)
 
 local eFn =
-"[{h1}Function [:doc_test.exampleFn] [/lib/doc/test.lua:5] [@function] ]\
+"[{h2}Function [:doc_test.exampleFn] [/lib/doc/test.lua:5] [@function] ]\
+[$M.exampleFn = function() end]\
 document a fn\
 another line"
 
 
 local mDoc =
-"[{h1}Module [:doc_test] [/lib/doc/test.lua:1] [@Mod<doc_test>] ]\
+"[{h2}Module [:doc_test] [/lib/doc/test.lua:1] [@Mod<doc_test>] ]\
 \
 [{table}\
 + [*Methods, Etc]\
@@ -50,8 +51,10 @@ local mDoc =
 ]"
 
 T.test('doc.get', function()
-  T.assertEq(eFn,     doc(M.exampleFn))
-  T.assertEq(mDoc,    doc(M))
+  T.assertEq(eFn,     doc{M.exampleFn})
+  T.assertEq(eFn,     doc'doc_test.exampleFn')
+  T.assertEq(mDoc,    doc{M})
+  T.assertEq(mDoc,    doc'doc_test')
 end)
 
 -- This was used to craft the for documentation
@@ -81,7 +84,7 @@ end)
 T.test('record', function()
 
   local expect =
-"[{h1}Record [:doc_test.Example] [/lib/doc/test.lua:11] [@Ty<Example>] ]\
+"[{h2}Record [:doc_test.Example] [/lib/doc/test.lua:11] [@Ty<Example>] ]\
 document a metaty\
 another line\
 [{table}\
@@ -98,5 +101,5 @@ another line\
 + [$method]        | \\[[@function]\\] [/lib/doc/test.lua:12]\
 ]"
 
-  T.assertEq(expect,     doc(M.Example))
+  T.assertEq(expect,     doc{M.Example})
 end)

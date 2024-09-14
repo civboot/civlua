@@ -44,7 +44,8 @@ end
 -- Helper for PKG.lua files loading compiled dynamic libraries
 M.LIB_EXT = '.so'; if M.UNAME == 'Windows' then M.UNAME = '.dll' end
 
-M.PKGS = false -- loaded pkgs
+-- discover() sets this as table[name, dir]
+M.PKGS = false
 
 -- These are modified before loading the package.
 -- The package can inspect it to (for example) know it's version string,
@@ -91,9 +92,7 @@ local function _discover(pkgdir)
   local pkgpath = pjoin(pkgdir, 'PKG.lua')
   if not pexists(pkgpath) then return end
   local pkg = M.load('PKG', pkgpath)
-  if pkg.name:find'%.' then
-    error("pkg name cannot contain '.': "..pkg.name)
-  end
+  if pkg.name:find'%.' then error("pkg name cannot contain '.': "..pkg.name) end
   M.PKGS[pkg.name] = pkgdir
   if not pkg.pkgs then return end
   for _, dir in ipairs(pkg.pkgs) do
@@ -122,22 +121,27 @@ M.modules = function(pkgsrcs)
   return mods
 end
 
+-- get pkg's PKG.lua values
+M.getpkg = function(pkgname) --> PKG, pkgdir
+  if not M.PKGS then
+    M.discover(assert(os.getenv'LUA_PKGS' or '', 'must export LUA_PKGS'))
+  end
+  local pkgdir = M.PKGS[pkgname]; if not pkgdir then return end
+  return M.load(pkgname, pjoin(pkgdir, 'PKG.lua')), pkgdir
+end
+
 -- get the package. The API is identical to 'require' except
 -- it uses LUA_PKGS to search.
 M.get = function(name, fallback)
   fallback = (fallback == nil) and M.require or fallback
   local mod = package.loaded[name]; if mod then return mod end
-  if not M.PKGS then
-    M.discover(assert(os.getenv'LUA_PKGS' or '', 'must export LUA_PKGS'))
-  end
   -- use fallback if pkg doesn't exist
   local pkgname = name:match'(.*)%.' or name
-  local pkgdir = M.PKGS[pkgname]
-  if not pkgdir then
+  local pkg, pkgdir = M.getpkg(pkgname)
+  if not pkg then
     if fallback then return fallback(name) end
-    error(sfmt('name %s (pkgname=%q) not found', name, pkgname))
+    error(sfmt('name %s (pkgname=%s) not found', name, pkgname))
   end
-  local pkg = M.load(pkgname, pjoin(pkgdir, 'PKG.lua'))
   -- search in srcs for lua modules
   for mname, mpath in pairs(M.modules(pkg.srcs)) do
     if mname == name and type(mpath) == 'string' and mpath:match'%.lua$' then
@@ -231,7 +235,7 @@ M.install = function()
 end
 
 return setmetatable(M, {
-  __call = function(p, ...) return M.get(...) end,
+  __call = function(_, ...) return M.get(...) end,
   __index = function(_, k) error('pkglib does not have field: '..k) end,
   __newindex = function(_, k) error'do not modify pkg'           end,
 })

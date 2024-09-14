@@ -1,13 +1,18 @@
--- Get documentation for lua types and stynatx.
--- Examples:
---    doc(string.find)
---    doc'for'
---    doc(myMod.myFunction)
+-- Get documentation for lua types and syntax. Examples:
+--- [##
+--- doc{string.find}
+--- doc'for'
+--- doc'myMod.myFunction'
+--- doc{'someMod', --pkg} -- full pkg documentation
+--- ]##
+---
+--- Note: depends on pkg for lookup.
 local M = mod and mod'doc' or {}
 local builtin = require'doc.lua'
 
 assert(PKG_LOC and PKG_NAMES, ERROR)
 
+local shim = require'shim'
 local mty  = require'metaty'
 local ds   = require'ds'
 local sfmt = string.format
@@ -24,12 +29,14 @@ local VALID = {['function']=true, table=true}
 
 M.modinfo = function(obj) --> (name, loc)
   if type(obj) == 'function' then return mty.fninfo(obj) end
+  if ds.isConcrete(obj)      then return type(obj), nil end
   local name, loc = PKG_NAMES[obj], PKG_LOC[obj]
   name = name or (type(obj) == 'table') and rawget(obj, '__name')
   return name, loc
 end
 
 M.findcode = function(loc) --> (commentLines, codeLines)
+  if loc == nil then return end
   if type(loc) ~= 'string' then loc = select(2, M.modinfo(loc)) end
   if not loc then return end
   local path, locLine = loc:match'(.*):(%d+)'
@@ -49,7 +56,7 @@ M.findcode = function(loc) --> (commentLines, codeLines)
   end
   for l=#code+1, #lines do local
     line = lines[l]
-    if not line:find'^%-%-' then
+    if not line:find'^%-%-%-' then
       table.move(lines, #code+1, l-1, 1, comments); break
     end
   end
@@ -61,19 +68,19 @@ M.DocItem = mty'DocItem' {
   'default [any]', 'doc [string]'
 }
 
--- Documentation on a single type
--- These pull together the various sources of documentation
--- from the PKG and META_TY specs into a single object.
---
--- Example: metaty.tostring(doc(myObj))
+--- Documentation on a single type
+--- These pull together the various sources of documentation
+--- from the PKG and META_TY specs into a single object.
+---
+--- Example: [$metaty.tostring(doc.Doc(myObj))]
 M.Doc = mty'Doc' {
   'obj [any]: the object being documented',
   'name', 'ty [Type]: type, can be string',
   'path [str]',
   'comments [lines]: comments above item',
   'code [lines]: code which defines the item',
-  'fields [table[name=DocItem]]',
-  'other [table[name=DocItem]]: methods and constants',
+  'fields [table{name=DocItem}]',
+  'other [table{name=DocItem}]: methods and constants',
 }
 
 local function fmtItems(f, items, name)
@@ -94,14 +101,17 @@ local fmtAttrs = function(d, f)
 end
 
 M.Doc.__fmt = function(d, f)
-  local path = d.path and sfmt(' [/%s]', d.path) or ''
+  local path = d.path and sfmt(' [/%s]', pth.nice(d.path)) or ''
   local ty = d.ty and sfmt(' [@%s]', d.ty) or ''
   local prefix = type(d.obj) == 'function' and 'Function'
               or pkglib.isMod(d.obj) and 'Module'
               or mty.isRecord(d.obj) and 'Record'
               or type(d.obj)
-  pushfmt(f, '[{h%s}%s [:%s]%s%s ]\n', f:getIndent() + 1,
+  pushfmt(f, '[{h%s}%s [:%s]%s%s ]\n', f:getIndent() + 2,
           prefix, d.name, path, ty)
+  if type(d.obj) == 'function' and d.code and d.code[1] then
+    pushfmt(f, '[$%s]\n', d.code[1])
+  end
   for i, l in ipairs(d.comments or {}) do
     push(f, l); if i < #d.comments then push(f, '\n') end
   end
@@ -130,9 +140,6 @@ M.DocItem.__fmt = function(di, f)
   else
     pushfmt(f, '%-16s | %s %s%s', name, ty, default, path)
   end
-  -- local fmt = sfmt('%-16s | %-20s %s', name, ty, path)
-  -- if #fmt <= 80 then push(f, fmt)
-  -- else diFullfmt(f, name, ty, path or '', '') end
 end
 
 local function cleanFieldTy(ty)
@@ -147,8 +154,8 @@ getmetatable(M.Doc).__call = function(T, obj)
   })
   d.comments, d.code = M.findcode(path)
   if d.comments then M.stripComments(d.comments) end
-
   if type(obj) ~= 'table' then return d end
+  if type(getmetatable(obj)) ~= 'table' then return d end
 
   -- fields
   d.fields, d.other = {}, {}
@@ -183,15 +190,13 @@ end
 
 M.stripComments = function(com)
   if #com == 0 then return end
-  local ind = com[1]:match'^%-%-(%s+)' or ''
-  local pat = '^%-%-'..string.rep('%s?', #ind)..'(.*)%s*'
+  local ind = com[1]:match'^%-%-%-(%s+)' or ''
+  local pat = '^%-%-%-'..string.rep('%s?', #ind)..'(.*)%s*'
   for i, l in ipairs(com) do com[i] = l:match(pat) or l end
 end
 
 
--- get any path with '.' in it
---
--- This is mostly used by help/etc functions
+--- get any path with [$.] in it. This is mostly used by help/etc functions
 M.getpath = function(path)
   path = type(path) == 'string' and ds.splitList(path, '%.') or path
   local obj
@@ -203,19 +208,61 @@ M.getpath = function(path)
   return obj
 end
 
--- Find the object or name and return the Doc item
-M.find = function(obj) --> Doc
-  if type(obj) == 'string' then
-    obj = PKG_LOOKUP[obj] or _G[obj]
-      or M.getpath(obj)   or require(obj) or error(obj..' not found')
+--- Find the object or name in pkgs
+M.find = function(obj) --> Object
+  if type(obj) ~= 'string' then return obj end
+  return PKG_LOOKUP[obj] or rawget(_G, obj) or M.getpath(obj)
+end
+
+-- compare so items with [$.] come last in a sort
+local function modcmp(a, b)
+  if a:find'%.' then
+    if not b:find'%.' then return false end -- b is first
+  elseif b:find'%.'   then return true  end -- a is first
+  return a < b
+end
+
+--- expand a module's documentation
+M.fmtmod = function(f, mod) --> Fmt
+  local d = M.Doc(mod)
+  pushfmt(f, '[{h2}Module %s [/%s]]\n', d.name, d.path)
+  ds.extend(f, table.concat(d.comments, '\n'))
+  for _, k in ipairs(ds.orderedKeys(mod)) do
+    push(f, '\n'); f:incIndent()
+    f(M.Doc(mod[k]))
+    f:decIndent(); push(f, '\n')
   end
-  return M.Doc(obj)
+  return f
 end
 
--- Get the full documentation as a list of lines.
-M.full = function(obj)
-  return table.concat(mty.Fmt{}(M.find(obj)))
+--- expand a PKG's documentation
+M.fmtpkg = function(f, pkgname) --> Fmt
+  local pkg, pkgdir = pkglib.getpkg(pkgname)
+  if not pkg then error('could not find pkg '..pkgname) end
+  pushfmt(f, '[{h1}Package %s [/%s/PKG.lua]]\n', pkgname, pth.nice(pkgdir))
+  local mods = pkglib.modules(pkg.srcs)
+  push(f, '\n')
+  for _, modname in ipairs(ds.sort(ds.keys(mods), modcmp)) do
+    local obj = pkglib.get(modname)
+    if pkglib.isMod(obj) then M.fmtmod(f, obj) else f(M.Doc(obj)) end
+    push(f, '\n\n')
+  end
+  return f
 end
 
-getmetatable(M).__call = function(_, obj) return M.full(obj) end
+--- return the pkg docs as a string.
+M.pkg = function(pkgname) return table.concat(M.fmtpkg(mty.Fmt{}, pkgname)) end
+
+M.exe = function(args, isExe)
+  args = shim.parseStr(args)
+  if args.pkg then return M.pkg(args[1]) end
+  local obj = assert(args[1], 'must provide object to find docs for')
+  obj = M.find(obj) or error('not found: '..mty.tostring(args[1]))
+  if args.pkg then error'not impl'
+  else return table.concat(mty.Fmt{}(M.Doc(obj))) end
+end
+
+M.shim = shim{help = 'get documentation', exe = M.exe}
+
+getmetatable(M).__call = function(_, args) return M.exe(args) end
 return M
