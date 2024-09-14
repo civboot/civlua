@@ -1,11 +1,13 @@
 -- rd: recursive descent parser
 
-local mty, ty = require'metaty'; ty = mty.ty
+local mty     = require'metaty'
 local ds      = require'ds'
 local lines   = require'lines'
 local civtest = require'civtest'
 local extend  = ds.extend
-local add, sfmt = table.insert, string.format
+local push, sfmt = table.insert, string.format
+local str, pushfmt = mty.tostring, ds.pushfmt
+local ty = mty.ty
 
 local M = {}
 local function zero() return 0 end
@@ -27,24 +29,31 @@ M.Token.encode=function(ty_, p, l, c, l2, c2, kind)
   return M.Token{M.encodeSpan(l, c, l2, c2), kind=kind}
 end
 M.Token.decode = function(t, dat) return lines.sub(dat, M.decodeSpan(t[1])) end
-
-M.trimTokenStart = function(p, t)
-  if mty.ty(t) ~= M.Token then return t end
-  local l1, c1, l2, c2 = t:span()
-  local line = p.dat[l1]
-  local s = p:tokenStr(t); c1 = line:find('[^ ]', c1) or c1
-  return M.Token:encode(p, l1, c1, l2, c2)
+M.Token.__fmt = function(t, f)
+  push(f, 'Tkn'); if t.kind then pushfmt(f, '<%s>', t.kind) end
+  pushfmt(f, '(%s.%s %s.%s)', t:span())
 end
 
-M.trimTokenLast = function(p, t, trimNl)
-  if mty.ty(t) ~= M.Token then return t end
-  local l1, c1, l2, c2 = t:span()
-  local line = p.dat[l2]
-  while line:sub(c2,c2) == ' ' do c2 = c2 - 1 end
-  if trimNl and l2 > l1 and c2 == 0 then
-    l2 = l2 - 1; c2 = #p.dat[l2]
+local TOKEN_TY = {string=true, [M.Token]=true}
+M.firstToken = function(list) --> t, listWithToken
+  if TOKEN_TY[ty(list)] then return list, nil end
+  local t = list[1]; while not TOKEN_TY[ty(t)] do
+    list = t; t = list[1]
   end
-  return M.Token:encode(p, l1, c1, l2, c2)
+  return t, list
+end
+M.lastToken = function(list) --> t, listWithToken
+  if TOKEN_TY[ty(list)] then return list, nil end
+  local t = list[#list]; while not TOKEN_TY[ty(t)] do
+    list = t; t = list[#list]
+  end
+  return t, list
+end
+
+M.nodeSpan = function(t)
+  local fst, lst = M.firstToken(t), M.lastToken(t)
+  local l1, c1 = fst:span()
+  return l1, c1, select(3, lst:span())
 end
 
 M.RootSpec = mty'RootSpec' {
@@ -66,34 +75,25 @@ M.Parser = mty'Parser'{
 }
 
 M.fmtSpec = function(s, f)
-  if type(s) == 'string' then
-    return add(f, string.format("%q", s))
-  end
-  if type(s) == 'function' then
-    return add(f, mty.tostring(s))
-  end
+  if type(s) == 'string'   then return pushfmt(f, "%q", s) end
+  if type(s) == 'function' then return push(f, str(s)) end
   if s.name or s.kind then
-    add(f, '<'); add(f, s.name or s.kind); add(f, '>')
+    push(f, '<'); push(f, s.name or s.kind); push(f, '>')
     return
   end
-  if mty.ty(s) ~= 'table' then add(f, mty.tyName(mty.ty(s))) end
+  if ty(s) ~= 'table' then push(f, mty.tyName(ty(s))) end
 
-  f:incIndent(); add(f, f.tableStart)
+  f:incIndent(); push(f, f.tableStart)
   for i, sub in ipairs(s) do
-    f(sub); if i < #s then add(f, ' ') end
+    f(sub); if i < #s then push(f, ' ') end
   end
-  f:decIndent(); add(f, f.tableEnd)
+  f:decIndent(); push(f, f.tableEnd)
 end
 M.specToStr = function(s, fmt)
   local fmt = fmt or mty.Fmt:pretty()
   M.fmtSpec(s, fmt)
   return table.concat(fmt)
 end
-
-local FIELDS = {
-  {'kind', 'string'},
-  {'name', 'string'}, -- for fmt only
-}
 
 M.specTy = function(name)
   return mty(name){'kind [string]', 'name [string]', __fmt=M.fmtSpec}
@@ -111,7 +111,7 @@ local KEY_FORM =
   "construct Keys like Keys{{'kw1', 'kw2', kw3=true, kw4={sub-keys}, kind=...}"
 
 local function constructKeys(keys)
-  assert(mty.ty(keys) == 'table', KEY_FORM)
+  assert(ty(keys) == 'table', KEY_FORM)
   for i=1,#keys do
     keys[keys[i]] = true;
     keys[i] = nil end
@@ -120,7 +120,7 @@ local function constructKeys(keys)
     else mty.assertf(
       type(k) == 'string', 'number key after list items: %s', k)
     end
-    if mty.ty(v) == 'table' then keys[k] = constructKeys(v)
+    if ty(v) == 'table' then keys[k] = constructKeys(v)
     elseif v ~= true then mty.errorf('%s: %q', KEY_FORM, v) end
   end
   return keys
@@ -254,6 +254,7 @@ end
 
 -------------------
 -- Pat
+
 M.Pat.parse = function(self, p)
   p:skipEmpty()
   for _, pat in ipairs(self) do
@@ -273,7 +274,7 @@ local function _seqAdd(p, out, spec, t)
   elseif shouldUnpack(spec, t) then
     p:dbgUnpack(spec, t)
     extend(out, t)
-  else add(out, t) end
+  else push(out, t) end
 end
 
 M.parseSeq = function(p, seq)
@@ -303,6 +304,7 @@ M.Seq.parse = function(seq, p) return M.parseSeq(p, seq) end
 
 -------------------
 -- Or
+
 M.Or.parse = function(or_, p)
   p:skipEmpty()
   p:dbgEnter(or_)
@@ -321,6 +323,7 @@ end
 
 -------------------
 -- Many
+
 M.Many.parse = function(many, p)
   p:skipEmpty()
   local out = {}
@@ -328,7 +331,7 @@ M.Many.parse = function(many, p)
   while true do
     local t = M.parseSeq(p, many)
     if not t then break end
-    if ty(t) ~= M.Token and #t == 1 then add(out, t[1])
+    if ty(t) ~= M.Token and #t == 1 then push(out, t[1])
     else _seqAdd(p, out, many, t) end
   end
   if #out < many.min then
@@ -341,6 +344,7 @@ end
 
 -------------------
 -- Misc
+
 local SPEC_TY = {
   ['function']=function(p, fn) p:skipEmpty() return fn(p) end,
   string=function(p, kw)
@@ -354,8 +358,8 @@ local SPEC_TY = {
   table=function(p, tbl) return M.parseSeq(p, tbl) end,
 }
 
--- parse('hi + there', {Pat{'\w+'}, '+', Pat{'\w+'}})
--- Returns tokens: 'hi', {'+', kind='+'}, 'there'
+-- [$parse('hi + there', {Pat{'\w+'}, '+', Pat{'\w+'}})]
+-- Returns tokens: [$'hi', {'+', kind='+'}, 'there']
 M.parse = function(dat, spec, root)
   local p = M.Parser:new(dat, root)
   return p:parse(spec), p
@@ -394,6 +398,9 @@ M.assertParseError=function(t)
     t.plain)
 end
 
+-------------------
+-- Parser Methods
+
 M.Parser.__tostring=function() return 'Parser()' end
 M.Parser.new = function(T, dat, root)
   dat = (type(dat)=='string') and lines(dat) or dat
@@ -405,11 +412,10 @@ M.Parser.new = function(T, dat, root)
   })
 end
 M.Parser.parse = function(p, spec)
-  local T = mty.ty(spec)
+  local T = ty(spec)
   local specFn = SPEC_TY[T]
   if specFn then return specFn(p, spec)
-  else           return spec:parse(p)
-  end
+  else           return spec:parse(p) end
 end
 M.Parser.peek = function(p, pat)
   if p:isEof() then return nil end
@@ -444,7 +450,7 @@ M.Parser.toStrTokens=function(p, n)
     local t = p:tokenStr(n)
     return n.kind and {t, kind=n.kind} or t
   elseif #n == 0 then return n end
-  local t={} for _, n in ipairs(n) do add(t, p:toStrTokens(n)) end
+  local t={} for _, n in ipairs(n) do push(t, p:toStrTokens(n)) end
   t.kind=n.kind
   return t
 end
@@ -452,15 +458,37 @@ end
 M.Parser.tokenStr = function(p, t)
   return t:decode(p.dat)
 end
+-- recurse through the start of list and trim the start of first token
+M.Parser.trimTokenStart = function(p, list)
+  local t, list = M.firstToken(list); assert(list)
+  if type(t) == 'string' then return end
+  local l1, c1, l2, c2 = t:span()
+  local line = p.dat[l1]
+  local s = p:tokenStr(t); c1 = line:find('[^ ]', c1) or c1
+  list[1] = M.Token:encode(p, l1, c1, l2, c2)
+end
+
+-- recurse through the end of list and trim the end of last token
+M.Parser.trimTokenLast = function(p, list, trimNl)
+  local t, list = M.lastToken(list); assert(list)
+  if type(t) == 'string' then return end
+  local l1, c1, l2, c2 = t:span()
+  local line = p.dat[l2]
+  while line:sub(c2,c2) == ' ' do c2 = c2 - 1 end
+  if trimNl and l2 > l1 and c2 == 0 then
+    l2 = l2 - 1; c2 = #p.dat[l2]
+  end
+  list[#list] = M.Token:encode(p, l1, c1, l2, c2)
+end
 
 local function fmtStack(p)
   local stk = p.stack
   local b = {}; for _, v in ipairs(stk) do
     if v == true then -- skip
-    elseif type(v) == 'string' then add(b, v)
-    else add(b, mty.tostring(v)) end
+    elseif type(v) == 'string' then push(b, v)
+    else push(b, mty.tostring(v)) end
   end
-  add(b, sfmt('%s', p.stackLast))
+  pushfmt(b, '%s', p.stackLast)
   return table.concat(b, ' -> ')
 end
 M.Parser.checkPin=function(p, pin, expect)
@@ -469,7 +497,7 @@ M.Parser.checkPin=function(p, pin, expect)
     "parser expected: %q\nGot: %s",
     expect, p.line:sub(p.c))
   )else p:error(
-    "parser reached EOF but expected: "..mty.tostring(expect)
+    "parser reached EOF but expected: "..str(expect)
   )end
 end
 M.Parser.error=function(p, msg)
@@ -483,43 +511,31 @@ M.Parser.parseAssert=function(p, spec)
   return n
 end
 
-M.Token.__fmt = function(t, f)
-  add(f, 'Tkn')
-  if t.kind then add(f, sfmt('<%s>', t.kind)) end
-  add(f, sfmt('(%s.%s %s.%s)', t:span()))
-end
-
-M.isKeyword = function(t) return #t == 1 and t.kind == t[1] end
-
 M.Parser.dbgEnter=function(p, spec)
-  add(p.stack, spec.kind or spec.name or true)
+  push(p.stack, spec.kind or spec.name or true)
   if not p.root.dbg then return end
-  p:dbg('ENTER: %s', mty.tostring(spec))
+  p:dbg('ENTER: %s', str(spec))
   p.dbgLevel = p.dbgLevel + 1
 end
 M.Parser.dbgLeave=function(p, n)
   local sn = table.remove(p.stack); p.stackLast = sn
   if not p.root.dbg then return n end
   p.dbgLevel = p.dbgLevel - 1
-  p:dbg('LEAVE: %s', mty.tostring(n or sn))
+  p:dbg('LEAVE: %s', str(n or sn))
   return n
 end
 M.Parser.dbgMatched=function(p, spec)
-  if not p.root.dbg then return end
-  p:dbg('MATCH: %s', mty.tostring(spec))
-end
+  if p.root.dbg then p:dbg('MATCH: %s', str(spec)) end end
 M.Parser.dbgMissed=function(p, spec, note)
-  if not p.root.dbg then return end
-  p:dbg('MISS: %s%s', mty.tostring(spec), (note or ''))
+  if p.root.dbg then p:dbg('MISS: %s%s', str(spec), (note or '')) end
 end
 M.Parser.dbgUnpack=function(p, spec, t)
-  if not p.root.dbg then return end
-  p:dbg('UNPACK: %s :: %s', mty.tostring(spec), mty.tostring(t))
+  if p.root.dbg then p:dbg('UNPACK: %s :: %s', str(spec), str(t)) end
 end
 M.Parser.dbg=function(p, fmt, ...)
   if not p.root.dbg then return end
   local msg = sfmt(fmt, ...)
-  mty.print(string.format('%%%s%s (%s.%s)',
+  mty.print(sfmt('%%%s%s (%s.%s)',
     string.rep('* ', p.dbgLevel), msg, p.l, p.c))
 end
 
@@ -533,6 +549,8 @@ local n16 = {kind='n16', -- base 16 number
 }
 local num = M.Or{name='num', n16, n10}
 M.common = {num=num, n10=n10, n16=n16}
+
+M.isKeyword = function(t) return #t == 1 and t.kind == t[1] end
 
 -- Debugging keywords(KW), names(N) and numbers(NUM/HEX)
 M.testing = {}
@@ -550,14 +568,14 @@ M.testing.KW = KW
 
 -- formatting parsed so it can be copy/pasted
 local fmtKindNum = function(name, f, t)
-  add(f, name..sfmt('{%s%s%s}',
+  push(f, name..sfmt('{%s%s%s}',
     mty.eq(t[1],M.EMPTY) and '' or 'neg=1 ', t[2],
     (mty.eq(t[3],M.EMPTY) and '') or (','..t[4])
 ))end
 M.fmtKinds = {
-  EOF   = function(f, t) add(f, 'EOF')   end,
-  EMPTY = function(f, t) add(f, 'EMPTY') end,
-  name  = function(f, t) add(f, sfmt('N%q', t[1])) end,
+  EOF   = function(f, t) push(f, 'EOF')   end,
+  EMPTY = function(f, t) push(f, 'EMPTY') end,
+  name  = function(f, t) pushfmt(f, 'N%q', t[1]) end,
   n10   = function(...) fmtKindNum('NUM', ...) end,
   n16   = function(...) fmtKindNum('HEX', ...) end,
 }
@@ -566,7 +584,7 @@ M.FmtPegl = mty'FmtPegl' {
   'kinds [table]: kind -> fmtFn', kinds=M.fmtKinds,
 }
 M.FmtPegl.__call = function(ft, f, t)
-  if M.isKeyword(t) then add(f, sfmt('KW%q', t[1])); return end
+  if M.isKeyword(t) then pushfmt(f, 'KW%q', t[1]); return end
   local fmtK = t.kind and ft.kinds and ft.kinds[t.kind]
   if fmtK then fmtK(f, t) else mty.Fmt.table(f, t) end
 end
@@ -574,30 +592,6 @@ M.RootSpec.newFmt = function()
   local f = mty.Fmt:pretty{}
   f.table = M.FmtPegl{}
   return f
-end
-
-M.firstToken = function(t)
-  if mty.ty(t) == M.Token then return t end
-  while true do
-    for _, v in ipairs(t) do
-      v = M.firstToken(v); if v then return v end
-    end
-  end
-end
-
-M.lastToken = function(t)
-  if mty.ty(t) == M.Token then return t end
-  while true do
-    for _, v in ds.ireverse(t) do
-      v = M.lastToken(v); if v then return v end
-    end
-  end
-end
-
-M.nodeSpan = function(t)
-  local fst, lst = M.firstToken(t), M.lastToken(t)
-  local l1, c1 = fst:span()
-  return l1, c1, select(3, lst:span())
 end
 
 return M

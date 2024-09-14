@@ -79,31 +79,24 @@ T.test('pairs', function()
 end)
 
 T.test('record', function()
-  -- documentation for A
-  M.A = mty'A' {
-    'a1 [int]: an int',
-    'a2 [string]', a2 = 'default'
-  }
-  M.A.method = function() end
 
   local expect =
-"[{h1}Record [:doc_test.A] [/lib/doc/test.lua:85] [@Ty<A>] ]\
-\
+"[{h1}Record [:doc_test.Example] [/lib/doc/test.lua:11] [@Ty<Example>] ]\
+document a metaty\
+another line\
 [{table}\
 + [*Fields]\
-+ [:a1]            | [$int]               \
-  an int\
-+ [:a2]            | [$string]            \
++ [:a]             | [[[$int]]] = [$4]\
 ]\
 [{table}\
 + [*Methods, Etc]\
-+ [:__docs]        | [@table]             \
-+ [:__fields]      | [@table]             \
-+ [:__index]       | [@Ty<A>]             [/lib/doc/test.lua:85]\
-+ [:__name]        | [@string]            \
-+ [:__newindex]    | [@function]          [/lib/metaty/metaty.lua:180]\
-+ [:method]        | [@function]          [/lib/doc/test.lua:86]\
++ [:__docs]        | [[[@table]]] \
++ [:__fields]      | [[[@table]]] \
++ [:__index]       | [[[@Ty<Example>]]] [/lib/doc/test.lua:11]\
++ [:__name]        | [[[@string]]] \
++ [:__newindex]    | [[[@function]]] [/lib/metaty/metaty.lua:180]\
++ [:method]        | [[[@function]]] [/lib/doc/test.lua:12]\
 ]"
 
-  T.assertEq(expect,     doc(M.A))
+  T.assertEq(expect,     doc(M.Example))
 end)

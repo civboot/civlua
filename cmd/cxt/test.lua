@@ -115,18 +115,16 @@ A list:[+
 ]
 ]],
   {
-    'A list:', {list=true,
-      {'first item\n'},
+    "A list:", { list=true,
+      {"first item"},
       {
-        'second item:',
-        { list=true,
-          {'sub first\n'},
-          {'sub second\n'},
-        },
-        '\n'
+        "second item:", { list=true,
+          {"sub first"}, {"sub second"},
+        }, ""
       },
-    }, '\n',
-  }, true)
+    }, "\n"
+  },
+  true)
 
 end)
 
@@ -141,16 +139,17 @@ test('nested', function()
 ]
 ]],
   {
-    {list=true,
+    { list=true,
       {
-        "list item\n", {br=true}, {
-          code=true, block=true,
-          "\n",
-          "with inner code\n",
-        }, "\n",
+        "list item\n",
+        {br=true},
+        { block=true, code=true,
+          "\n", "with inner code\n",
+        }, ""
       },
-    }, "\n",
+    }, "\n"
   }, true)
+
 end)
 
 
@@ -225,15 +224,11 @@ listing:[+
 ]
 ]],{
     "listing:<ul>",
-      "<li>one",
-      "</li>",
+      "<li>one</li>",
       "<li>two<ul>",
-        "<li>three",
-        "</li>",
-        "<li>four",
-        "</li>",
-      "</ul>",
-      "</li>",
+        "<li>three</li>",
+        "<li>four</li>",
+      "</ul></li>",
     "</ul>",
   })
 
@@ -300,11 +295,11 @@ Code:\
 function foo() return 'hello world' end\
 \
 bold italic path/to/thing \
-* item 1\
-* item 2 with code\
-\
+  * item 1\
+  * item 2 with code\
 the end\
 "
+
   assertEq(expect, table.concat(w, '\n'))
 
   ds.clear(w)

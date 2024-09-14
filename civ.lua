@@ -36,9 +36,8 @@ Get help for any lua module (including ones in civlib)]]
 M.help = function(args, isExe)
   if #args == 0 then print(M.HELP) return end
   local ok, err = ds.try(function()
-    local color = shim.color(args.color, fd.isatty(io.stdout))
     local st = astyle.Styler{
-      color=color, mode=(not color) and 'ascii' or nil,
+      color=shim.color(args.color, fd.isatty(io.stdout)),
     }
     local d = mty.tostring(doc.find(args[1]))
     require'cxt.term'{d, st}

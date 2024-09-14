@@ -102,17 +102,18 @@ local function _walk(base, ftypeFns, maxDepth, depth)
 end
 
 
--- walk the paths up to depth, calling ftypeFns[ftype] for
+-- walk the paths up to depth, calling [$ftypeFns[ftype]] for
 -- each item encountered.
 --
 -- If depth is nil/false then the depth is infinite.
 --
--- ftypeFns must be a table of ftypes (file, dir) and:
+-- ftypeFns must be a table of ftypes (file, dir) and: [+
 --  * default: called as fallback (if missing ftype key)
 --  * error: called if determining the type caused an error,
 --    typically due to the file not existing.
 --    the call is: error(path, errstr)
 --  * dirDone: called AFTER the directory has been walked
+-- ]
 --
 -- The Fn signatures are: (path, ftype) -> stopWalk
 -- If either return true then the walk is ended immediately

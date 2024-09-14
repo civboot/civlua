@@ -161,6 +161,7 @@ local function parseList(p, list)
       local c1, c2 = p.line:find(ipat, p.c)
       p.c = c2 + 1
     end
+    p:trimTokenLast(item, true)
     add(list, item)
     if not r then break end
   end
@@ -198,8 +199,8 @@ local function parseTable(p, tbl)
   if #row > 0 then add(tbl, row) end
   for _, row in ipairs(tbl) do
     for c, col in ipairs(row) do
-      col[1]    = pegl.trimTokenStart(p, col[1])
-      col[#col] = pegl.trimTokenLast (p, col[#col], c == #row)
+      p:trimTokenStart(col)
+      p:trimTokenLast(col, c == #row)
     end
   end
 end

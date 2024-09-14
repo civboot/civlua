@@ -60,10 +60,12 @@ local SER_KIND = {
     for r=2,#node do serializeRow(w, node[r], true) end
   end,
   list = function(w, node)
-    push(w, '\n')
+    w:incIndent()
     for _, item in ipairs(node) do
-      push(w, '* '); M.serialize(w, item)
+      push(w, '\n* ');
+      w:incIndent(); M.serialize(w, item); w:decIndent()
     end
+    w:decIndent()
   end,
   code = function(w, node)
     local prevSty = w.style
