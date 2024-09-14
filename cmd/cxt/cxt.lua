@@ -53,6 +53,8 @@ end
 
 -- find the end of a [##raw block]##
 local function bracketedStrRaw(p, node, raw, ws)
+  local ws, w1 = p.line:find'^%s+' -- leading whitespace
+  ws = ws and p.line:sub(ws, w1) or nil
   local l, c, closePat = p.l, p.c, '%]'..string.rep(RAW, raw)
   local closePatStart = '^'..closePat
   if p.c > #p.line then p:incLine() end
@@ -79,8 +81,8 @@ end
 
 -- A string that ends in a closed bracket and handles balanced brackets.
 -- Returns: Token, which does NOT include the closePat
-local function bracketedStr(p, node, raw, ws, c)
-  if raw > 0 then return bracketedStrRaw(p, node, raw, ws) end
+local function bracketedStr(p, node, raw)
+  if raw > 0 then return bracketedStrRaw(p, node, raw) end
   local l, c, nested = p.l, p.c, 1
   while nested > 0 do
     if p:isEof()     then p:error"Got EOF, expected matching ']'" end
@@ -221,6 +223,7 @@ local function incLine(p, node, l1, c1)
   return p.l, p.c
 end
 
+-- parse normal content, adding to node
 M.content = function(p, node, isRoot, altEnd)
   local l, c = p.l, p.c
   ::loop::
@@ -236,23 +239,21 @@ M.content = function(p, node, isRoot, altEnd)
     local e = altEnd(p, node, l, c); if e then
     return e end
   end
-  local c1, c2 = p.line:find('[%[%]]', p.c); if not c2 then
+  ::refind::
+  local c1, c2 = p.line:find('\\?[%[%]\\]', p.c); if not c2 then
     l, c = incLine(p, node, l, c)
     goto loop
   end
-  -- detect leading whitespace
-  local ws, w1 = p.line:find'^%s+'
-  ws = ws and p.line:sub(ws, w1) or nil
   p.c = c2 + 1
+  if c1 ~= c2 then -- \escaped
+    addToken(p, node, l, c, p.l, c1-1)
+    c = c2; goto loop
+  end
+  -- found unescaped syntax character: [ ] \
+  if p.line:sub(c2,c2) == '\\' then goto refind end -- '\*' --> '\*'
   addToken(p, node, l, c, p.l, c2-1)
   local posL, posC = p.l, p.c
-  if p.line:sub(c1,c2) == ']' then
-    if p.line:sub(c2+1, c2+1) == ']' then
-      l, c = p.l, p.c; p.c = p.c + 1
-      goto loop
-    end
-    return
-  end
+  if p.line:sub(c1,c2) == ']' then return end -- end of this content
   local raw, ctrl = nil, p.line:sub(p.c, p.c)
   if ctrl == '' then
     p:error("expected control char after '['")
@@ -262,9 +263,6 @@ M.content = function(p, node, isRoot, altEnd)
     p.c, raw = c2 + 1, c2 - c1 + 1
   end
   p.c = p.c + 1
-  -- if p.c > #p.line then
-  --   p:incLine(); skipWs(p)
-  -- end
   local sub = {}
   if     raw           then sub.raw, sub.code       = raw, true
   elseif txtCtrl[ctrl] then -- handled after content
@@ -272,12 +270,11 @@ M.content = function(p, node, isRoot, altEnd)
   elseif strAttr[ctrl] then sub[strAttr[ctrl]], raw = true, 0
   elseif ctrl == '+'   then sub.list                = true
   elseif ctrl == '{'   then raw = parseAttrs(p, sub)
-  elseif ctrl == '['   then l, c = p.l, p.c - 1; goto loop
   elseif ctrl == '<' then
     sub.href = p:tokenStr(assert(p:parse{PIN, Pat'[^>]*', '>'}[1]))
   else p:error(sfmt( "Unrecognized control character after '[': %q", ctrl)) end
   -- parse table depending on kind
-  if raw           then bracketedStr(p, sub, raw, ws)
+  if raw           then bracketedStr(p, sub, raw)
   elseif sub.table then parseTable(p, sub)
   elseif sub.list  then parseList(p, sub)
   else                  M.content(p, sub) end

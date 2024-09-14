@@ -44,9 +44,9 @@ local mDoc =
 \
 [{table}\
 + [*Methods, Etc]\
-+ [:Example]       | [[[@Ty<Example>]]] [/lib/doc/test.lua:11]\
-+ [:__name]        | [[[@string]]] \
-+ [:exampleFn]     | [[[@function]]] [/lib/doc/test.lua:5]\
++ [$Example]       | \\[[@Ty<Example>]\\] [/lib/doc/test.lua:11]\
++ [$__name]        | \\[[@string]\\] \
++ [$exampleFn]     | \\[[@function]\\] [/lib/doc/test.lua:5]\
 ]"
 
 T.test('doc.get', function()
@@ -86,16 +86,16 @@ document a metaty\
 another line\
 [{table}\
 + [*Fields]\
-+ [:a]             | [[[$int]]] = [$4]\
++ [$a]             | \\[[@int]\\] = [$4]\
 ]\
 [{table}\
 + [*Methods, Etc]\
-+ [:__docs]        | [[[@table]]] \
-+ [:__fields]      | [[[@table]]] \
-+ [:__index]       | [[[@Ty<Example>]]] [/lib/doc/test.lua:11]\
-+ [:__name]        | [[[@string]]] \
-+ [:__newindex]    | [[[@function]]] [/lib/metaty/metaty.lua:180]\
-+ [:method]        | [[[@function]]] [/lib/doc/test.lua:12]\
++ [$__docs]        | \\[[@table]\\] \
++ [$__fields]      | \\[[@table]\\] \
++ [$__index]       | \\[[@Ty<Example>]\\] [/lib/doc/test.lua:11]\
++ [$__name]        | \\[[@string]\\] \
++ [$__newindex]    | \\[[@function]\\] [/lib/metaty/metaty.lua:180]\
++ [$method]        | \\[[@function]\\] [/lib/doc/test.lua:12]\
 ]"
 
   T.assertEq(expect,     doc(M.Example))

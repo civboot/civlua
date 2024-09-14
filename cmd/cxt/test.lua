@@ -41,8 +41,8 @@ test('simple', function()
     '\n', {br=true},
     'with ', {'break', b=true},
   })
-  M.assertParse('has [[ and ]] in it\nand [[foo', {
-    'has ', '[ and ', '] in it\n', 'and ', '[foo',
+  M.assertParse('has \\[ and \\] in it\n\\and \\\\foo', {
+    'has ', '[ and ', '] in it\n', '\\and ', '\\foo',
   })
 end)
 

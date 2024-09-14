@@ -47,29 +47,23 @@ possible to parse (for computers <i>and</i> humans) while still using as few
 characters as possible to express format for common cases.
 <p>
 cxt is designed to: <ul>
-<li>Make document writing easy.
-</li>
-<li>Make document parsing easy.
-</li>
-<li>Make reading of raw (text) documents easy.
-</li>
-<li>Make consuming structured data from documents easy.
-</li>
+<li>Make document writing easy.</li>
+<li>Make document parsing easy.</li>
+<li>Make reading of raw (text) documents easy.</li>
+<li>Make consuming structured data from documents easy.</li>
 </ul>
-CXT contains only two special characters for deliniating formatting controls:
-[*A surrounded block], where '*' (the first character) indicates the block
-control.
+CXT contains only thre special characters for deliniating formatting controls:
+brackets <code>[]</code> and a way to escape them <code>\</code>.
 <p>
 There are two ways to specify attributes for a block: <ul>
-<li>full attributes: <code>[{attr1 attr2 attr3=value}block text]</code>
-</li>
-<li>shortcut: <code>[*block text]</code> where '*' is one of the shortcut values below</li>
+<li>full: <code>[{*, attr1 attr2=value}bold italic with attr 1 and 2]</code></li>
+<li>shortcut: <code>[*bold text]</code> where <code>*</code> can be any of the shortcuts below</li>
 </ul>
 <p>
 The following attributes and shortcuts are supported
-<code class="block">  b i u   bold (*), italic (/) and underlined (_)
-  * / _   Example: [*bold] [/italic] [_underlined]
-                   [{*/_}bold italic and underlined]
+<code class="block">  b i u   bold (*), italic (,) and underlined (_)
+  * , _   Example: [*bold] [,italic] [_underlined]
+                   [{*,_}bold italic and underlined]
 
   code    inline or block code (depending on whether newlines exist)
    $       shortcut: [$inline code]
@@ -84,7 +78,9 @@ The following attributes and shortcuts are supported
             * list item 2
           ]
 
-  table   table syntax, see demos
+  table   table syntax, see demos.
+  row=+   control delimiters with row/col attrs.
+  col=|
 
   hidden  hidden block, used for comments and/or assigning attributes
    !      Example: [!hidden block]
@@ -103,6 +99,9 @@ The following attributes and shortcuts are supported
   href    hyper reference, aka a url.
   &lt;href&gt;
 
+   /      a path, typically relative to project or website root.
+          Example: [/path/to/file.lua]
+
   name    sets the name of the block.
    n      Used with: [@name]  href=#name  anyAttr=@name
    :      shortcut: [{: ...}name]
@@ -120,7 +119,18 @@ The following attributes and shortcuts are supported
             [@Civboot] clones the block (removing name and hidden)
             [&lt;@Civboot&gt;Civboot Project] has href=http://civboot.org
               note: the default for "value" is "href" if it exists.
+
+ escapes
+   \[    literal [
+   \]    literal ]
+   \\    literal \
+   \*    literal \*, where * is any other character
 </code>
+<p>
+<blockquote> Note:
+Any value after a bracket besides <code> {...} b i u * , _ $ " + ! / : v @ </code>
+is invalid.
+</blockquote>
 <p>
 <h2><a id="Demos" href="#Demos">☍</a>Demos</h2>
 <b>Inline Code</b>
@@ -144,7 +154,7 @@ end
 <b>Text Formatting</b>
 <p>
 <b>bold</b>, <i>italic</i> and <u>underlined</u>
-<code class="block">[*bold], [/italic] and [_underlined]
+<code class="block">[*bold], [,italic] and [_underlined]
 </code>
 <p>
 <a href="http://civboot.org"><b><i>bold italic link</i></b></a>
@@ -153,27 +163,20 @@ end
 <p>
 <b>List</b>
 <ul>
-<li>example list
-</li>
+<li>example list</li>
 <li>with sub list:<ul>
-<li>sub item
-</li>
+<li>sub item</li>
 <li>multi-line
 <p>
-sub item.
-</li>
+sub item.</li>
 <li>inner code block
 <code class="block">function example()
   print'example inner block'
 end
-</code>
-</li>
-<li>final sub
-</li>
-</ul>
-</li>
-<li>final item
-</li>
+</code></li>
+<li>final sub</li>
+</ul></li>
+<li>final item</li>
 </ul>
 <code class="block">[+
 * example list
@@ -210,20 +213,17 @@ defaults to '|'. The row deliminiter is only recognized at the start of a line.
 <tr>
 <th>col 1</th>
 <th>col 2</th>
-<th>col 3
-</th>
+<th>col 3</th>
 </tr>
 <tr>
 <td>row <b>1.1</b></td>
 <td>row 1.2</td>
-<td>row 1.3
-</td>
+<td>row 1.3</td>
 </tr>
 <tr>
 <td>row <b>1.1</b></td>
 <td>row 1.2</td>
-<td>row 1.3
-</td>
+<td>row 1.3</td>
 </tr>
 </table>
 <code class="block">[{table}
@@ -241,8 +241,7 @@ sub-lists:
 </th>
 <th>2nd named column
 </th>
-<th>3rd named column
-</th>
+<th>3rd named column</th>
 </tr>
 <tr>
 <td>long row 1.1
@@ -255,16 +254,14 @@ Even includes new line!
 <code class="block">function example()
   return "code block"
 end
-</code>
-</td>
+</code></td>
 </tr>
 <tr>
 <td>row 2.1
 </td>
 <td>row 2.2
 </td>
-<td>row 2.3
-</td>
+<td>row 2.3</td>
 </tr>
 </table>
 <p>
@@ -314,6 +311,13 @@ A visible named block: [{:href=https://github.com/civboot/civlua}civlua]
 
 You can also link to named blocks with [$href=#name], for instance the "Demos"
 header is named [&lt;#Demos&gt;Demos].
+</code>
+<p>
+<b>Escaping [brackets]</b>
+<p>
+You can [escape] brackets to render them directly. You can also escape '\'.
+<p>
+<code class="block">You can \[escape\] brackets to render them directly. You can also escape '\\'.
 </code>
 <p>
 <h2>UNLICENSE</h2>

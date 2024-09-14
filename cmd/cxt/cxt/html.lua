@@ -205,6 +205,7 @@ M.Args = mty'Html' {
 
 setmetatable(M, {
   __call = function(_, args, isExe)
+    print('cxt.html', args[1], args[2])
     local inp = LFile:load(args[1])
     local to = LFile:create(args[2])
     M.convert(inp, to)

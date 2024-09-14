@@ -16,13 +16,13 @@ cxt is designed to: [+
  * Make reading of raw (text) documents easy.
  * Make consuming structured data from documents easy.
 ]
-CXT contains only two special characters for deliniating formatting controls:
-[[*A surrounded block]], where '*' (the first character) indicates the block
-control.
+CXT contains only thre special characters for deliniating formatting controls:
+brackets [$[]] and a way to escape them [$\].
 
 There are two ways to specify attributes for a block: [+
-* full attributes: [$[{attr1 attr2 attr3=value}block text]]
-* shortcut: [$[*block text]] where '*' is one of the shortcut values below]
+* full: [$[{*, attr1 attr2=value}bold italic with attr 1 and 2]]
+* shortcut: [$[*bold text]] where [$*] can be any of the shortcuts below
+]
 
 The following attributes and shortcuts are supported
 [###
@@ -85,7 +85,17 @@ The following attributes and shortcuts are supported
             [<@Civboot>Civboot Project] has href=http://civboot.org
               note: the default for "value" is "href" if it exists.
 
+ escapes
+   \[    literal [
+   \]    literal ]
+   \\    literal \
+   \*    literal \*, where * is any other character
 ]###
+
+[" Note:
+   Any value after a bracket besides [$ {...} b i u * , _ $ " + ! / : v @ ]
+   is invalid.
+]
 
 [{:h2}Demos]
 [*Inline Code]
@@ -254,6 +264,14 @@ A visible named block: [{:href=https://github.com/civboot/civlua}civlua]
 
 You can also link to named blocks with [$href=#name], for instance the "Demos"
 header is named [<#Demos>Demos].
+]##
+
+[*Escaping \[brackets\]]
+
+You can \[escape\] brackets to render them directly. You can also escape '\\'.
+
+[##
+You can \[escape\] brackets to render them directly. You can also escape '\\'.
 ]##
 
 [{h2}UNLICENSE]

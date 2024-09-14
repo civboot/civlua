@@ -117,8 +117,8 @@ local function diFullFmt(f, name, ty, path, doc)
   f:decIndent()
 end
 M.DocItem.__fmt = function(di, f)
-  local name = di.name and sfmt('[:%s]', di.name) or '(unnamed)'
-  local ty = di.ty and sfmt('[[%s]]', di.ty) or ''
+  local name = di.name and sfmt('[$%s]', di.name) or '(unnamed)'
+  local ty = di.ty and sfmt('\\[%s\\]', di.ty) or ''
   local path = di.path and sfmt('[/%s]', pth.nice(di.path))
   local default = di.default and mty.format('= [$%q]', di.default)
   if path and default then path = '\n'..path end
@@ -159,7 +159,7 @@ getmetatable(M.Doc).__call = function(T, obj)
       local ty = fields[field]
       ty = type(ty) == 'string' and cleanFieldTy(ty) or false
       push(d.fields, M.DocItem{
-        name=field, ty=ty and sfmt('[$%s]', ty),
+        name=field, ty=ty and sfmt('[@%s]', ty),
         default=rawget(obj, field),
         doc = docs[field],
       })
