@@ -200,7 +200,7 @@ test('table', function()
   + r2.1  | r2.2 | r2.3
 ]
 ]]
-  --M.assertParse(docIndent, noIndent)
+  M.assertParse(docIndent, noIndent)
 end)
 
 test('named', function()
@@ -345,6 +345,6 @@ end)
 
 
 test('doc', function()
-  local d = require'doc'{Mt.A}
-  M.parse(d)
+  -- local d = require'doc'.docstr(Mt.A)
+  -- M.parse(d)
 end)

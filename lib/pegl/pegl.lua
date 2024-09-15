@@ -411,8 +411,6 @@ end
 M.Parser.__tostring=function() return 'Parser()' end
 M.Parser.new = function(T, dat, root)
   dat = (type(dat)=='string') and lines(dat) or dat
-  print('!! parsing')
-  print(table.concat(dat, '\n'))
   return mty.construct(T, {
     dat=dat, l=1, c=1, line=dat[1], lines=#dat,
     root=root or M.RootSpec{},

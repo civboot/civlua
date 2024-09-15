@@ -249,20 +249,39 @@ M.fmtpkg = function(f, pkgname) --> Fmt
   end
   return f
 end
-
 --- return the pkg docs as a string.
-M.pkg = function(pkgname) return table.concat(M.fmtpkg(mty.Fmt{}, pkgname)) end
+M.pkgstr = function(pkgname) return table.concat(M.fmtpkg(mty.Fmt{}, pkgname)) end
 
-M.exe = function(args, isExe)
-  args = shim.parseStr(args)
-  if args.pkg then return M.pkg(args[1]) end
-  local obj = assert(args[1], 'must provide object to find docs for')
+--- return the formatted Doc for [$obj]
+--- If [$obj] is a string it is looked up in pkgs.
+M.docstr = function(obj) --> string
   obj = M.find(obj) or error('not found: '..mty.tostring(args[1]))
-  if args.pkg then error'not impl'
-  else return table.concat(mty.Fmt{}(M.Doc(obj))) end
+  return table.concat(mty.Fmt{}(M.Doc(obj)))
 end
 
-M.shim = shim{help = 'get documentation', exe = M.exe}
+--- [$help 'path.of.object']
+---
+--- If no path is given shows all available packages
+--- (filter with [$local=true])
+M.Cmd = mty'Cmd' {
+  'pkg [bool]: if true uses PKG.lua (and all sub-modules)',
+  'cmds [bool]: show all modules with a .exe function (intended to run as a command)',
+  'full [bool]: if true displays the full API of all pkgs/mods',
+  'local [bool]: if true only unpacks local pkgs/mods',
+  'color [string|bool]: whether to use color [$true false always never]',
+}
+
+M.exe = function(args, isExe)
+  args = M.Cmd(shim.parseStr(args))
+  if args.pkg then return M.pkg(args[1]) end
+  local obj = assert(args[1], 'must provide object to find docs for')
+  local str = args.pkg and M.pkgstr(obj) or M.docstr(obj)
+  require'cxt.term'{str, to=require'asciicolor.style'.Styler{
+    color=shim.color(args.color, require'fd'.isatty(io.stdout)),
+  }}
+end
+
+M.shim = shim{help = 'doc help', exe = M.exe}
 
 getmetatable(M).__call = function(_, args) return M.exe(args) end
 return M

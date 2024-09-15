@@ -83,7 +83,7 @@ s[[excl [table]:
   'fpre[string]: prefix characters before printing files',        fpre='',
   'dpre [string]: prefix characters before printing directories', dpre='',
   'plain [bool]: no line numbers', plain=false,
-  'color [string]: whether to use color (true|false|always|never)',
+  'color [string]: whether to use color [$true|false|always|never]',
   'keep_going [bool]: (short -k) whether to keep going on errors',
   "silent [bool]: (short -s) don't print errors",
 }

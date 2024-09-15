@@ -1,10 +1,10 @@
 #!/usr/bin/lua
-mod = mod or require'pkg'.mod
+mod = mod or require'pkglib'.mod
 
 -- civ module: packaged dev environment
 local M = mod'civ'
 
-CWD = false
+MAIN, CWD = false, false
 DOC,          METATY_CHECK  = false, false
 LOGLEVEL,     LOGFN         = false, false
 LAP_READY,    LAP_ASYNC     = false, false
@@ -30,11 +30,8 @@ civtest.assertGlobals(initG)
 local sfmt = string.format
 
 
-M.HELP = [[help module.any.object
-Get help for any lua module (including ones in civlib)]]
-
 M.help = function(args, isExe)
-  if #args == 0 then print(M.HELP) return end
+  args = M.Help(shim.parse(args))
   local ok, err = ds.try(function()
     local st = astyle.Styler{
       color=shim.color(args.color, fd.isatty(io.stdout)),
@@ -49,9 +46,10 @@ M.help = function(args, isExe)
 end
 
 shim {
-  help=DOC,
+  help='run a shim command from a PKG',
   subs = {
-    help = {help=M.HELP, exe=M.help},
+    -- help = {exe=M.help, help=doc{M.Help}},
+    doc  = doc.shim,
     ele  = ele,
     ff   = ff.shim,
     rock = rock.shim,

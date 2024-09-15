@@ -175,13 +175,14 @@ end
 
 local function checkHelp(sh, args)
   if args.help == true and sh.help then
-    print(sh.help);
+    local h = {sh.help}
     if sh.subs then
-      print('Subcommands:\n')
+      push(h, '[{h2}Subcommands:]')
       local t = {}; for k in pairs(sh.subs) do table.insert(t, k) end
       table.sort(t)
-      for _, s in ipairs(t) do print('  '..s) end
+      for _, s in ipairs(t) do push(h, '  '..s) end
     end
+    require'cxt.term'{table.concat(h, '\n')}
     os.exit(0)
   end
 end

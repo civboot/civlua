@@ -51,10 +51,10 @@ local mDoc =
 ]"
 
 T.test('doc.get', function()
-  T.assertEq(eFn,     doc{M.exampleFn})
-  T.assertEq(eFn,     doc'doc_test.exampleFn')
-  T.assertEq(mDoc,    doc{M})
-  T.assertEq(mDoc,    doc'doc_test')
+  T.assertEq(eFn,     doc.docstr(M.exampleFn))
+  T.assertEq(eFn,     doc.docstr'doc_test.exampleFn')
+  T.assertEq(mDoc,    doc.docstr(M))
+  T.assertEq(mDoc,    doc.docstr'doc_test')
 end)
 
 -- This was used to craft the for documentation
@@ -101,5 +101,5 @@ another line\
 + [$method]        | \\[[@function]\\] [/lib/doc/test.lua:12]\
 ]"
 
-  T.assertEq(expect,     doc{M.Example})
+  T.assertEq(expect,     doc.docstr(M.Example))
 end)

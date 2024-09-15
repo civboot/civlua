@@ -72,7 +72,7 @@ local function bracketedStrRaw(p, node, raw, ws)
     local c1, c2 = p.line:find(closePat, p.c)
     if c2 then
       p.c = c2 + 1; local lt, ct = p.l, c1 - 1
-      return addToken(p, node, l, c, lt, ct)
+      return addToken(p, node, l, c, lt, ct) --> nil
     end
     p:incLine(); node.block = true
     ::continue::
@@ -175,23 +175,28 @@ local function parseTable(p, tbl)
 
   -- alternative end lambda
   local altEnd = function(p, node, l, c)
-    if p.c == 1 then
-      local c1, c2 = p.line:find'%S'; if c2 then
-        if p.line:sub(c2,c2) == rowDel then return {rowDel, l, c} end
-      end
+    if not p.line:sub(1, p.c-1):find'%S' then -- only parsed ws
+      local _, c2 = p.line:find'%S'           -- look for row start
+      if c2 and (p.line:sub(c2,c2) == rowDel) then return {rowDel, l, c} end
     end
     local c1, c2 = p.line:find(colDel, p.c, true); if not c1 then return end
     local b1, b2 = p.line:find('[', p.c, true)
     if not b1 or b1 > c1 then return {colDel, l, c} end
   end
 
-  local row, r = {}, true while r do
+  local row, r = {}, true
+  while r do
     if p:isEof() then p:error'Expected a table got EOF' end
     local col = {}; r = M.content(p, col, false, altEnd)
     if r then
       local delim, l, c = table.unpack(r)
       local c1, c2 = p.line:find(delim, p.c, true)
-      addToken(p, col, l, c, p.l, c1 - 1); p.c = c2 + 1
+      if delim == colDel then
+        addToken(p, col, l, c, p.l, c1 - 1)
+      else assert(delim == rowDel)
+        addToken(p, col, l, c, p.l - 1, #p.dat[p.l - 1])
+      end
+      p.c = c2 + 1
       if #col > 0 then add(row, col) end
       if delim == rowDel then
         if #row > 0 then add(tbl, row); row = {} end
@@ -229,20 +234,19 @@ M.content = function(p, node, isRoot, altEnd)
   ::loop::
   if p.line == nil then
     if not isRoot then error(
-      "!! ERROR on input:\n\n"
+      "! ERROR on input:\n\n"
        ..table.concat(p.dat, '\n')
-       .."\n\n!! Error: Expected ']' but reached end of file"
+       .."\n\n! Error: Expected ']' but reached end of file"
     )
     end
-    return addToken(p, node, l, c, p.l - 1, #p.dat[p.l - 1])
+    return addToken(p, node, l, c, p.l - 1, #p.dat[p.l - 1]) --> nil
   elseif #p.line == 0 and p.dat[l+1] then
     add(node, {pos={l}, br=true})
     p:incLine(); skipWs(p); l, c = p.l, p.c
     goto loop
   elseif p.c > #p.line then l, c = incLine(p, node, l, c); goto loop end
   if altEnd then
-    local e = altEnd(p, node, l, c); if e then
-    return e end
+    local e = altEnd(p, node, l, c); if e then return e end
   end
   ::refind::
   local c1, c2 = p.line:find('\\?[%[%]\\]', p.c); if not c2 then
@@ -371,9 +375,11 @@ M.parsedStrings = function(p, node)
   return n
 end
 
-M.assertParse = function(dat, expected, dbg)
+M.assertParse = function(dat, expected, dbg) --> node
   local node, p = M.parse(dat, dbg)
-  civtest.assertEq(expected, M.parsedStrings(p, node))
+  node = M.parsedStrings(p, node)
+  civtest.assertEq(expected, node)
+  return node
 end
 
 M.fmtAttr = fmtAttr

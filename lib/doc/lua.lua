@@ -19,7 +19,6 @@ M.keyword = function() return setmetatable({}, Keyword) end
 
 --------------------
 -- Global Functions
-
 --- Get the next key in the table. Used for iterating through tables.
 --- If [$key=nil] returns the first key. Returns [$nil] when [$key] is
 --- the last key.
@@ -75,7 +74,6 @@ M.tostring = tostring--(v) --> string
 
 -------------------------------
 -- string
-
 --- the builtin lua string module.
 ---
 --- string literal values can use [+
@@ -160,26 +158,25 @@ M['string.gsub'] = string.gsub--(subj, pat, repl, index=1) --> string
 
 --- Format values into a fmt string, i.e: [$format('%s: %i', 'age', 42)]
 ---
---- Directives:
---- [{table}
---- + [$%%] | literal % char
---- + [$%d] | decimal
---- + [$%o] | octal
---- + [$%x] | hexidecimal (%X uppercase)
---- + [$%f] | floating point
---- + [$%s] | string
+--- Directives: [{table}
+---   + [$%%] | literal % char
+---   + [$%d] | decimal
+---   + [$%o] | octal
+---   + [$%x] | hexidecimal (%X uppercase)
+---   + [$%f] | floating point
+---   + [$%s] | string
 --- ]
 ---
---- Directive control structure: [##
+--- Directive control structure (ignore spaces): [##
 ---   % (specifier width)? directive
 --- ]##
 ---
 --- Where [$width] is an integer and [$specifier] can be one of [{table}
---- + [$+] | right justify using the width (the default)
---- + [$-] | left justify using the width
---- + [$ ] | prefix a positive number with a space
---- + [$#] | prefix o, x or X directives with 0, 0x and 0X respectively
---- + [$0] | left-pad a number with spaces
+---   + [$+] | right justify to width (the default)
+---   + [$-] | left justify to width
+---   + [$ ] | prefix a positive number with a space
+---   + [$#] | prefix o, x or X directives with 0, 0x and 0X respectively
+---   + [$0] | left-pad a number with zeros
 --- ]
 ---
 --- Examples: [{## lang=lua}
@@ -191,252 +188,289 @@ M['string.gsub'] = string.gsub--(subj, pat, repl, index=1) --> string
 --- ]##
 M['string.format'] = string.format--(fmt: str, ...) --> str
 
+--- Get ASCII (integer) codes for [$s[si:ei]]
+---
+--- Example: [$assertEq({98, 99}, {string.byte('abcd', 2, 3)})]
+M['string.byte'] = string.byte--(str, si=1, ei=si) --> ...ints
 
--- string.byte(s [i, j]) -> number: get numberic code/s for s[i:j]
-M['string.byte'] = string.byte
-
-
--- char(c1, c2, ...) -> string
 -- convert character codes to string and concatenate
-M['string.char'] = string.char
+M['string.char'] = string.char-- char(c1, c2, ...) --> string
 
--- rep(s, n, sep) -> string -- repeat s n times with separator.
-M['string.rep'] = string.rep
+-- repeat str n times with separator
+M['string.rep'] = string.rep-- rep(str, n, sep) -> string
 
--- pack(packfmt, ...values) -> string
--- pack the values into the string using the packfmt.
---
--- Packfmt:
---   <  >  =      little / big / native endian
---   ![n]         max alignment = n bytes
---   b B          signed / unsigned byte
---   h H l L      native short(h) and long(l) + unsigned vers
---   i[n] I[n]    signed/unsigned int with n bytes
---   f d          native float / double
---   T            size_t
---   c[n]         fixed-sized string of n bytes (unaligned)
---   z            zero-terminated string        (unaligned)
---   s[n]         counted string of size n count
---   x            one byte of padding
---   X[op]        align to option op, i.e. Xi4
---   j J n        lua Integer / Unsigned / Number
-M['string.pack'] = string.pack
+--- pack the values as bytes into the string using the strtys.
+---
+--- strtys is a string of the form: [{table}
+---   + [$ <  >  =] | (start only) little / big / native endian
+---   + [$ !#     ] | (start only) max alignment = [$#] bytes
+---   + [$ b B    ] | signed / unsigned byte
+---   + [$ h H l L] | native short(h) and long(l) + unsigned vers
+---   + [$ i# I#  ] | signed/unsigned int with [$#] bytes
+---   + [$ f d    ] | native float / double
+---   + [$ T      ] | size_t
+---   + [$ c#     ] | fixed-sized string of [$#] bytes (unaligned)
+---   + [$ z      ] | zero-terminated string        (unaligned)
+---   + [$ s#     ] | counted string of size [$#] bytes
+---   + [$ x      ] | one byte of padding
+---   + [$ Xo     ] | align to option [$o], i.e. [$Xi4]
+---   + [$ j J n  ] | lua Integer / Unsigned / Number
+--- ]
+---
+--- Example: [{## lang=lua}
+--- assertEq(string.pack('>i2i2', 0x1234, 0x5678) == '\x12\x34\x56\x78')]
+--- ]##
+M['string.pack'] = string.pack--(strtys, ...values) -> string
 
 
--- unpack(fmt, str) -> ...
--- See string.pack for the fmt
-M['string.unpack'] = string.unpack
+--- See [@string.pack] for the fmt
+M['string.unpack'] = string.unpack--(strtys, str) -> ...
 
--- string.packsize(fmt) -> int
--- Get the size which is used by fmt.
-M['string.packsize'] = string.packsize
+--- Get the size which is used by strtys.
+M['string.packsize'] = string.packsize--(strtys) -> int
 
 -------------------------------
 -- table
-
--- the builtin lua table module
+--- the builtin lua table module
+---
+--- Tables act as BOTH a map (of keys -> values) and a list (ordered values
+--- starting at index=1).
+---
+--- You can access the keys with [$t[key]] or if they are a string without
+--- special characters with [$t.key].
+---
+--- Examples: [{## lang=lua}
+--- t = {'first', 'second', 'third', key='hi'}
+--- assertEq('first', t[1])
+--- assertEq('third', t[3])
+--- assertEq('hi',    t.key)
+--- assertEq(#t, 3) -- the length of the "list" part
+--- ]##
+---
+--- [" WARNING: A table's length is defined as ANY index who's next value
+---   is [$nil`]. That means using a table as a list with "holes" likely
+---   won't work for you.
+--- ]
 M.table = table
 
--- concatenate values in a table.
+-- concatenate a table of strings with optional separator.
 --
---   table.concat(table, sep='')
---
+-- Examples: [{## lang=lua}
+-- concat = table.concat
 -- assertEq(1..' = '..3, concat{1, ' = ', 3})
 -- assertEq('1, 2, 3',   concat({1, 2, 3}, ', ')
-M['table.concat'] = table.concat
+-- ]##
+M['table.concat'] = table.concat--(t, sep='') --> string
 
--- table.remove(table, index=#table) -> ()
 -- remove an item from a table, returning it.
--- The table is shifted if index < #table.
-M['table.remove'] = table.remove
+-- The table is shifted if index < #table which may cost up to O(n)
+M['table.remove'] = table.remove--(t, index=#table) --> t[index]
 
--- [$table.sort(list, comp=lt)]: sort table in-place.
--- [$comp(a, b) -> aIsFirst]
-M['table.sort'] = table.sort
+--- sort a table in place using a comparison function [$cmp] who's behavior
+--- must be: [$cmp(a, b) --> makeAFirst]
+M['table.sort'] = table.sort--(list, cmp=lt) --> nil
 
--- insert or add to table (list-like)
---
--- local t = {}
--- table.insert(t, 'd')    -- {'d'
--- table.insert(t, 'e')    -- {'d', 'e'}
--- table.insert(t, 'b', 1) -- {'b', 'd', 'e'}
--- table.insert(t, 'c', 2) -- {'b', 'c', 'd', 'e'}
---
--- Recommendation:
---   local add = table.insert; add(t, 4)
+--- insert or push to table (list-like)
+---
+--- Example: [{## lang=lua}
+--- local push = table.insert
+---   local t = {}
+---
+---   -- push/append behavior
+---   push(t, 'd')            -- {'d'
+---   push(t, 'e')            -- {'d', 'e'}
+---
+---   -- insert behavior
+---   table.insert(t, 'b', 1) -- {'b', 'd', 'e'}
+---   table.insert(t, 'c', 2) -- {'b', 'c', 'd', 'e'}
+---   assertEq({'b', 'c', 'd', 'e'}, t)
+--- ]##
 M['table.insert'] = table.insert
 
--- table.move(from, siFrom, eiFrom, siTo, to=from) -> to
--- Note: si=startIndex, ei=endIndex
--- Equivalent to the following, though done in a way
--- that will properly handle overlapping data
---   ti = siTo
---   for fi=siFrom,eiFrom do
---     to[ti] = from[fi]; ti = ti + 1
---   end
-M['table.move'] = table.move
+--- Move values from one list to another.
+--- Note that [$si=startIndex] and [$ei=endIndex] (inclusive).
+---
+--- Equivalent to the following, though done in a way
+--- that will properly handle overlapping data: [{## lang=lua}
+---   ti = siTo
+---   for fi=siFrom,eiFrom do
+---     to[ti] = from[fi]; ti = ti + 1
+---   end
+--- ]##
+M['table.move'] = table.move --(from, siFrom, eiFrom, siTo, to=from) -> to
 
 -------------------------------
 -- io module
 
--- the builtin lua io (input/output) module
---
--- Methods:
---   input(file=nil)  ->  file    get/set stdin
---   output(file=nil) ->  file    get/set stdout
---   tmpfile() -> file            note: removed on program exit
---   popen()   -> file            see io.popen
---   lines(path or file) -> iter  close when done, fail=error
---   type(f) -> "[closed ]file"   get whether f is a file
---
--- file object:
---   read(format="l")   read a file according to format
---   lines(format="l")  get iterator for reading format
---   write(a, b, ...)   write strings a, b, ... in order
---   flush()            flush (save) all writes
---   seek(whence, offset)
---   setvbuf("no|full|line", sizeHint=appropriateSize)
---
--- format (read, etc)                  (in Lua<=5.2)
---   a       read all text                        *a
---   l       read next line, skip EOL             *l
---   L       read next line, keep EOL             *L
---   n       read and return a number             *n
---   number  read an exact number of bytes, EOF=nil
---   0       EOF=nil, notEOF=''
---
--- seek
---   whence="set"  offset from beginning of file (0)
---   whence="cur"  offset from current position
---   whence="end"  offset from end of file (use negative)
---   seek()    ->  get current position
---   seek'set' ->  set to beginning
---   seek'end' ->  set to end
+--- the builtin lua io (input/output) module
+---
+--- Module Functions: [{table}
+--- + [$ input(file=nil)  ->  file  ] |  get/set stdin
+--- + [$ output(file=nil) ->  file  ] |  get/set stdout
+--- + [$ tmpfile() -> file          ] |  note: removed on program exit
+--- + [$ popen()   -> file          ] |  see io.popen
+--- + [$ lines(path or file) -> iter] |  close when done, fail=error
+--- + [$ type(f) -> "[closed ]file" ] |  get whether f is a file
+--- ]
+---
+--- File Methods: [{table}
+--- + [$ read(format="l")  ] | read a file according to format
+--- + [$ lines(format="l") ] | get iterator for reading format
+--- + [$ write(a, b, ...)  ] | write strings a, b, ... in order
+--- + [$ flush()           ] | flush (save) all writes
+--- + [$ seek(whence, offset)] | see seek section below
+--- + [$ setvbuf("no|full|line", sizeHint=appropriateSize)] see function
+--- ]
+---
+--- Format paramater used in read/etc [{table}
+--- + format |  behavior                | (in Lua<=5.2)
+--- + a      |  read all text                        *a
+--- + l      |  read next line, skip EOL             *l
+--- + L      |  read next line, keep EOL             *L
+--- + n      |  read and return a number             *n
+--- + number |  read an exact number of bytes, EOF=nil
+--- + 0      |  EOF=nil, notEOF=''
+--- ]
+---
+--- seek [{table}
+--- + [$ whence="set" ] | offset from beginning of file (0)
+--- + [$ whence="cur" ] | offset from current position
+--- + [$ whence="end" ] | offset from end of file (use negative)
+--- + [$ seek()       ] | get current position
+--- + [$ seek'set'    ] | set to beginning
+--- + [$ seek'end'    ] | set to end
+--- ]
 M.io = io
 
--- Execute shell command in separate process.
---
--- io.popen(command, mode='r|w') -> file
---
--- Reference:
---   os.execute: docs on file:close()
---   civix.sh: ergonomic blocking shell.
---
--- Note: as of Lua5.4 it is not possible to have stderr or both stdin&stdout.
-M['io.popen'] = io.popen
+--- Execute shell command in separate process.
+---
+--- See also: [+
+---   * [$os.execute()]: docs on file:close()
+---   * [/lib/civix][$.sh()]: ergonomic blocking shell.
+--- ]
+M['io.popen'] = io.popen--(command, mode='r|w') -> file
 
 -------------------------------
 -- os module
 
--- the builtin lua os module
---
--- Useful functions:
---   exit(rc=0, close=false) exit program with return code
---   date()                  get the date. See os.date
---   execute'command'        execute command, see os.execute
---   getenv(varname)         get environment variable
---   remove(path)            rm path
---   rename(old, new)        mv old new
---   tmpname() -> path       create temporary file
---   clock()                 seconds used by process (performance)
---
--- Recommendation:
---   use civix.epoch() (nanosec precision) vs os.time() (sec precision)
+--- the builtin lua os module
+---
+--- Useful functions: [{table}
+--- + [$exit(rc=0, close=false)] | exit program with return code
+--- + [$date()]                  | get the date. See os.date
+--- + [$execute'command']        | execute command, see os.execute
+--- + [$getenv(varname)]         | get environment variable
+--- + [$remove(path)]            | rm path
+--- + [$rename(old, new)]        | mv old new
+--- + [$tmpname() -> path]       | create temporary file
+--- + [$clock()]                 | seconds used by process (performance)
+--- ]
+---
+--- Recommendations: [+
+--- * use civix.epoch() (nanosec precision) vs os.time() (sec precision)
+--- ]
 M.os = os
 
--- Execute shell command via C's `system` API.
---
---   os.execute'shell command' -> (ok, "exit", rc)
---   os.execute()              -> isShellAvailable
---
--- Recommendation:
---   For all but the simplest cases use io.popen instead
---
--- Args:
---    ok      true on command success, false if rc>0
---    "exit"  always literal "exit" if command completed
---    rc      the return code of the command
---
--- Prints:
---    prints whatever was executed. There are no ways to
---    redirect the output besides piping in the command
---    string itself.
-M['os.execute'] = os.execute
+--- Execute shell command via C's `system` API. Returns: [+
+---   * ok:      true on command success, false if rc>0
+---   * "exit":  always literal "exit" if command completed
+---   * rc:      the return code of the command
+--- ]
+--- [{## lang=lua}
+---   os.execute'shell command' -> (ok, "exit", rc)
+---   os.execute()              -> isShellAvailable
+--- ]##
+---
+--- Prints whatever was executed. There are no ways to
+--- redirect the output besides piping in the command
+--- string itself.
+---
+--- Recommendation:
+---   For all but the simplest cases use io.popen instead
+M['os.execute'] = os.execute--(string) --> (ok, "exit", rc)
 
 ---------------------
 -- Keywords
 
--- for is a looping construct with two forms:
---
--- Numeric:
---   for: for i=si,ei,period do
---     -- code using [si -> ei] (inclusive) with period --
---   end
---
--- Generic:
---   for i, v, etc in explist do
---       -- code using a, b, etc here --
---   end
---
--- A Generic for destructures to:
---   do -- Note: $vars are not accessible
---     local $fn, $state, $index = explist
---     while true do
---       local i, v, etc = $f($state, $index)
---       if i == nil then break end
---       $index = i
---       -- code using i, v, etc here
---     end
---   end
---
--- The goal in writing a stateless iterator function is to match this
--- loop's API as much as possible. Note that $index and $state are
--- names reflecting how the variables are used for i/pairs.
---
--- Example rewriting ipairs:
---
---   local function rawipairs(t, i)
---     i = i + 1
---     if i > #t then return nil end
---     return i, t[i]
---   end
---
---   local function ipairs_(t)
---     return rawipairs, t, 0
---   end
---
--- Example rewriting pairs using next(t, key)
---
---   function pairs(t)
---     return next, t, nil
---   end
---
--- See also:
---   metaty.split is a more complex example.
+--- for is a looping construct with two forms:
+---
+--- Numeric: [{## lang=lua}
+---   for i=si,ei,period do -- period=1 by default
+---     ... do something with i
+---   end
+---
+---   -- is basically the same as
+---   local i = si
+---   while i <= ei do i = i + si
+---     ... do something with i
+---   end
+--- ]##
+---
+--- Generic: [{## lang=lua}
+---   for i, v, etc in (nextfn, state, _index) do
+---     .. do something with i, v, ...
+---   end
+---
+---   -- is almost the same as
+---   while true do
+---     local i, v, etc = nextfn(state, _index)
+---     if i == nil then break end
+---     _index = i -- note: C internal, _index from lua doesn't change
+---     ... code using i, v, etc here
+---   end
+--- ]##
+---
+--- The goal in writing a stateless iterator function is to match this
+--- loop's API as much as possible.
+---
+--- Example rewriting ipairs: [{## lang=lua}
+---   local function rawipairs(t, i)
+---     i = i + 1
+---     if i > #t then return nil end
+---     return i, t[i]
+---   end
+---   local function myipairs_(t)
+---     return rawipairs, t, 0
+---   end
+---   for i, v in myipairs{5, 6, 7} do
+---     iterates through (1, 5) -> (2, 6) -> (3, 7)
+---   end
+--- ]##
+---
+--- Example rewriting pairs using [$next(t, key)]: [{## lang=lua}
+---   function mypairs(t)
+---     return next, t, nil
+---   end
+---   for k, v in mypairs{a=1, b=2, c=3} do
+---     iterates through ('a', 1) -> ('b', 2) -> ('c', 3)
+---   end
+--- ]##
+---
+--- See also: [@metaty.split] is a more complex example.
 M['for'] = function() end
 PKG_LOOKUP['for'] = M['for']
 
--- local x = (expression)
---
--- Define a local (instead of a global) variable. Prefer local variables for
--- most things unless you are:
---
--- * modifying the fundamentals of the language (i.e. replacing 'require')
--- * implementing a "protocol" for libraries to communicate global state
--- * managing true physical state (i.e. robotics, terminal output, etc)
--- * you are the top-level application (i.e. a game, CLI, etc) and global state
---   is the best solution.
+--- [$local x = (expression)]
+---
+--- Define a local (instead of a global) variable. Prefer local variables for
+--- most things unless you are: [+
+--- * modifying the fundamentals of the language (i.e. replacing 'require')
+--- * implementing a "protocol" for libraries to communicate global state
+--- * managing true physical state (i.e. robotics, terminal output, etc)
+--- * you are the top-level application (i.e. a game, CLI, etc) and global state
+---   is the best solution.
+--- ]
 M['local'] = M.keyword()
 PKG_LOOKUP['local'] = M['local']
 
--- boolean true value
+-- boolean [$true] value
 M['true'] = M.keyword()
--- boolean false value
+-- boolean [$false] value
 M['false'] = M.keyword()
--- nil value, the the absense of a value. Used for: [+
---   * a variable is not set or has been set to nil
---   * a table key is not set or has been set to nil
--- ]
+--- [$nil] value, the the absense of a value. Used for: [+
+---   * a variable is not set or has been set to [$nil]
+---   * a table key is not set or has been set to [$nil]
+--- ]
 M['nil'] = M.keyword()
 
 -- store items in this module in PKG_* variables
