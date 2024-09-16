@@ -24,7 +24,6 @@ local fd      = require'fd'
 local doc   = require'doc'
 local ff    = require'ff'
 local ele   = require'ele'
-local rock  = require'pkgrock'
 local astyle = require'asciicolor.style'
 civtest.assertGlobals(initG)
 
@@ -48,7 +47,7 @@ end
 if M == MAIN then
   local cmd = table.remove(arg, 1)
   if not cmd then print'Usage: civ.lua pkg ...'; os.exit(1) end
-  require(cmd).main(arg)
+  require(cmd).main(shim.parse(arg))
 end
 -- shim {
 --   help='run a shim command from a PKG',

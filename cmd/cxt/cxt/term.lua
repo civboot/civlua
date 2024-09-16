@@ -1,5 +1,6 @@
 -- cxt for the terminal, either plain text or vt100/etc
 local M = assert(mod'cxt.term')
+MAIN = MAIN or M
 
 local mty  = require'metaty'
 local ds = require'ds'
@@ -106,9 +107,15 @@ M.convert = function(dat, to)
 end
 
 -- Example: {'cxt to parse', out=file, mode='dark'}
-getmetatable(M).__call = function(_, args, isExe) --> Styler
+M.main = function(args)
+  args = shim.parseStr(args)
+  local f = args.out or ds.popk(args, 2)
+  if args.help or #args ~= 1 then
+    local msg = 'Usage: cxt.term{"write [*to] stdout", to=io.stdout}'
+    if M == MAIN then print(msg); os.exit(args.help and 0 or 1) end
+    return args.help and msg or error(msg)
+  end
   local inp = lines(args[1])
-  local f = args[2] or args.out
   if type(f) == 'string' then f = LFile:create(f) end
   local f = f or io.stdout
   local styler = style.Styler{
@@ -118,10 +125,7 @@ getmetatable(M).__call = function(_, args, isExe) --> Styler
   M.convert(inp, styler)
   return styler
 end
+getmetatable(M).__call = function(_, ...) return M.main(...) end
 
-M.shim = shim {
-  help = 'print cxt doc to terminal',
-  exe = M,
-}
-
+if M == MAIN then M.main(shim.parse(arg)); os.exit(0) end
 return M

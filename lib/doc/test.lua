@@ -43,8 +43,7 @@ another line"
 local mDoc =
 "[{h2}Module [:doc_test] [/lib/doc/test.lua:1] [@Mod<doc_test>] ]\
 \
-[{table}\
-+ [*Methods, Etc]\
+[*Other:] [{table}\
 + [$Example]       | \\[[@Ty<Example>]\\] [/lib/doc/test.lua:11]\
 + [$__name]        | \\[[@string]\\] \
 + [$exampleFn]     | \\[[@function]\\] [/lib/doc/test.lua:5]\
@@ -87,12 +86,10 @@ T.test('record', function()
 "[{h2}Record [:doc_test.Example] [/lib/doc/test.lua:11] [@Ty<Example>] ]\
 document a metaty\
 another line\
-[{table}\
-+ [*Fields]\
+[*Fields:] [{table}\
 + [$a]             | \\[[@int]\\] = [$4]\
 ]\
-[{table}\
-+ [*Methods, Etc]\
+[*Other:] [{table}\
 + [$__docs]        | \\[[@table]\\] \
 + [$__fields]      | \\[[@table]\\] \
 + [$__index]       | \\[[@Ty<Example>]\\] [/lib/doc/test.lua:11]\

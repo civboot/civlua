@@ -1,13 +1,24 @@
-local DOC = [[
-pkgrock: utility for publishing PKG.lua directories
+local M = mod'pkgrock'
+MAIN = MAIN or M
+local mty = require'metaty'
 
-Example (sh):
-  , rock lib/pkg --create --gitops='add commit tag' \
-    --gitpush='origin main --tags' --upload=$ROCKAPI
-]]
+--- utility for publishing PKG.lua directories. Usage: [##
+---   pkgrock dir1 dir2 ...args]
+--- ]##
+---
+--- Example (sh): [##
+---   , rock lib/pkg --create --gitops='add commit tag' \
+---     --gitpush='origin main --tags' --upload=$ROCKAPI
+--- ]##
+M.ARGS = mty'pkgrock' {
+  [[help   [bool]: get help]],
+  [[create [bool]   creates the rocks from PKG.lua files]],
+  [[gitops [string] one or more: add,commit,tag]],
+  [[gitpush[string] where to push, i.e: 'origin main']],
+  [[upload [string] set to the luarocks api key]],
+}
 
 local pkg = require'pkglib'
-local mty = require'metaty'
 local ds  = require'ds'
 local shim = require'shim'
 local civix = require'civix'
@@ -15,16 +26,6 @@ local push, sfmt = table.insert, string.format
 local pth = require'ds.path'
 
 local UPLOAD = [[luarocks upload %s --api-key=%s]]
-
-local M = {DOC=DOC}
-
--- pkgrock dir1 dir2 ...args
-M.ARGS = mty'pkgrock' {
-  [[create [bool]   creates the rocks from PKG.lua files]],
-  [[gitops [string] one or more: add,commit,tag]],
-  [[gitpush[string] where to push, i.e: 'origin main']],
-  [[upload [string] set to the luarocks api key]],
-}
 
 M.rockpath = function(dir, tag)
   return pth.concat{dir, tag..'.rockspec'}
@@ -79,7 +80,8 @@ local function execute(...)
   if not os.execute(cmd) then error('execute failed: '..cmd) end
 end
 
-M.exe = function(t)
+M.main = function(t)
+  local t, sty = shim.setup(M.ARGS, t); if t.help then return end
   if t.gitops then
     assert(os.execute'git diff --quiet --exit-code', 'git repo has diffs')
   end
@@ -124,5 +126,5 @@ M.exe = function(t)
   end end
 end
 
-M.shim = shim{help = M.DOC, exe = M.exe}
+if M == MAIN then M.main(shim.parse(arg)); os.exit(0) end
 return M

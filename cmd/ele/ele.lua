@@ -1,14 +1,16 @@
 -- extendable lua editor
-local M = mod and mod'ele' or {}
+local M = mod'ele'
+MAIN = MAIN or M
+CWD = CWD or os.getenv'PWD' or os.getenv'CD'
+
 local lap = require'lap'
 local log = require'ds.log'
 local fd = require'fd'
 local ioopen = io.open
 
-CWD = CWD or os.getenv'PWD' or os.getenv'CD'
-
 -- shim exe function
-M.exe = function(args)
+M.main = function(args)
+  args = shim.parseStr(args)
   print'ele exe'
   local vt = require'vt100'
   log.info('ele exe', args)
@@ -48,4 +50,8 @@ M.exe = function(args)
   return s, l
 end
 
-return require'shim'(M)
+if M == MAIN then
+  M.main(shim.parse(arg)); os.exit(0)
+end
+
+return M

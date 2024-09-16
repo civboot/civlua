@@ -7,7 +7,8 @@
 --- ]##
 ---
 --- Note: depends on pkg for lookup.
-local M = mod and mod'doc' or {}; MAIN = MAIN or M
+local M = mod and mod'doc' or setmetatable({}, {})
+MAIN = MAIN or M
 local builtin = require'doc.lua'
 
 assert(PKG_LOC and PKG_NAMES, ERROR)
@@ -83,20 +84,17 @@ M.Doc = mty'Doc' {
   'other [table{name=DocItem}]: methods and constants',
 }
 
-local function fmtItems(f, items, name)
+M.fmtItems = function(f, items)
   pushfmt(f, '[{table}')
-  pushfmt(f, '\n+ [*%s]', name)
-  for i, item in ipairs(items) do
-    push(f, '\n+ '); f(item)
-  end
+  for i, item in ipairs(items) do push(f, '\n+ '); f(item) end
   push(f, '\n]')
 end
 local fmtAttrs = function(d, f)
   if d.fields and next(d.fields) then
-    push(f, '\n'); fmtItems(f, d.fields, 'Fields')
+    push(f, '\n[*Fields:] '); M.fmtItems(f, d.fields)
   end
   if d.other  and next(d.other) then
-    push(f, '\n'); fmtItems(f, d.other, 'Methods, Etc')
+    push(f, '\n[*Other:] '); M.fmtItems(f, d.other)
   end
 end
 
@@ -146,6 +144,23 @@ local function cleanFieldTy(ty)
   return ty:match'^%[.*%]$' and ty:sub(2,-2) or ty
 end
 
+M.fields = function(obj)
+  local fields = rawget(obj, '__fields')
+  if not fields then return end
+  local out = {}
+  local docs = rawget(obj, '__docs') or {}
+  for _, field in ipairs(fields) do
+    local ty = fields[field]
+    ty = type(ty) == 'string' and cleanFieldTy(ty) or false
+    push(out, M.DocItem{
+      name=field, ty=ty and sfmt('[@%s]', ty),
+      default=rawget(obj, field),
+      doc = docs[field],
+    })
+  end
+  return out
+end
+
 getmetatable(M.Doc).__call = function(T, obj)
   local name, path = M.modinfo(obj)
   local d = mty.construct(T, {
@@ -158,21 +173,9 @@ getmetatable(M.Doc).__call = function(T, obj)
   if type(getmetatable(obj)) ~= 'table' then return d end
 
   -- fields
-  d.fields, d.other = {}, {}
-  local fields = rawget(obj, '__fields')
-  if fields then
-    local docs   = rawget(obj, '__docs') or {}
-    for _, field in ipairs(fields) do
-      local ty = fields[field]
-      ty = type(ty) == 'string' and cleanFieldTy(ty) or false
-      push(d.fields, M.DocItem{
-        name=field, ty=ty and sfmt('[@%s]', ty),
-        default=rawget(obj, field),
-        doc = docs[field],
-      })
-    end
-  end
+  d.fields, d.other = M.fields(obj) or {}, {}
   local other = ds.copy(obj)
+  local fields = rawget(obj, '__fields')
   if fields then for k in pairs(other) do -- remove shared fields
     if fields[k] then other[k] = nil end
   end end
@@ -271,7 +274,7 @@ M.Cmd = mty'Cmd' {
   'color [string|bool]: whether to use color [$true false always never]',
 }
 
-M.exe = function(args, isExe)
+M.main = function(args)
   args = M.Cmd(shim.parseStr(args))
   if args.pkg then return M.pkg(args[1]) end
   local obj = assert(args[1], 'must provide object to find docs for')
@@ -280,8 +283,7 @@ M.exe = function(args, isExe)
     color=shim.color(args.color, require'fd'.isatty(io.stdout)),
   }}
 end
-
-M.shim = shim{help = 'doc help', exe = M.exe}
-
 getmetatable(M).__call = function(_, args) return M.exe(args) end
+
+if M == MAIN then M.main(shim.parse(arg)); os.exit(0) end
 return M

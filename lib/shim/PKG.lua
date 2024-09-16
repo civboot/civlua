@@ -7,4 +7,7 @@ license  = "UNLICENSE"
 srcs = { 'shim.lua' }
 deps = {
   "lua ~> 5.3",
+
+  -- OPTIONAL: needed for setup() and checkHelp()
+  -- doc ~> "0.1",
 }

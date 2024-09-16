@@ -221,7 +221,14 @@ M.main = function(args)
 
   args = M.Main(args)
   local color = shim.color(args.color, fd.isatty(args.log))
-  if shim.checkHelp(args, args.log, color) then return end
+
+  args.help = shim.boolean(args.help);
+  local styler = astyle.Styler{
+    acwriter = AcWriter{f=args.log}, color = color,
+  }
+  if args.log then args.log = styler end
+  mty.print('!! ff.args', args)
+  if args.help then return shim.styleHelp(styler, M.Main) end
 
   -- args.dpre    = args.dpre or '\n'
   local out = args.out or {
@@ -229,11 +236,6 @@ M.main = function(args)
     dirs = args.dirs and {} or nil,
     matches = args.matches and {} or nil,
   }
-  if args.log then
-    args.log = astyle.Styler{
-      acwriter = AcWriter{f=args.log}, color = color,
-    }
-  end
   ix.walk(
     args, {
       file=function(path, _ftype)   return _fileFn(path, args, out)      end,

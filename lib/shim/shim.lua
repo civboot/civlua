@@ -6,83 +6,12 @@ local lower = string.lower
 
 local ENV_VALS = {['true'] = true, ['1'] = true }
 
-------------------
--- REMOVE: remove these
-
--- return nil if DNE, else boolean
-M.getEnvBool = function(k)
-  local v = os.getenv(k); if not v then return v end
-  return ENV_VALS[lower(v)] or false
-end
-
--- return whether the script has been executed directly
--- depth should be incremented for each function this is
--- called inside of.
--- stackoverflow.com/questions/49375638
-M.isExe = function(depth)
-  return _G.arg and not pcall(debug.getlocal, 5 + (depth or 0), 1)
-end
-assert(not M.isExe(), "Don't call shim directly")
-
-local function invalid(msg)
-  io.stderr:write(msg); io.stderr:write'\n'
-  io.stderr:write(DOC)
-  os.exit(1)
-end
-
-local function checkHelp(sh, args)
-  if args.help == true and sh.help then
-    local h = {sh.help}
-    if sh.subs then
-      push(h, '[{h2}Subcommands:]')
-      local t = {}; for k in pairs(sh.subs) do table.insert(t, k) end
-      table.sort(t)
-      for _, s in ipairs(t) do push(h, '  '..s) end
-    end
-    require'cxt.term'{table.concat(h, '\n')}
-    os.exit(0)
-  end
-end
-
-local function shimcall(sh)
-  local args = M.parse(_G.arg)
-  ::loop::
-  if sh.exe then
-    checkHelp(sh, args)
-    return sh.exe(args, true)
-  end
-  local sub = args[1] and sh.subs[args[1]]; if not sub then
-    print('?? missing sub', sh)
-    checkHelp(sh, args)
-    invalid('Missing or unknown subcommand, use --help for usage')
-  end
-  sh = sub; table.remove(args, 1)
-  goto loop
-end
-
-getmetatable(M).__call = function(ty_, sh)
-  if rawget(sh, 'exe') and rawget(sh, 'subs') then error(
-    'must specify exe OR subs, not both'
-  )end
-  if not (sh.exe or sh.subs) then error(
-    'must specify one of: exe, subs'
-  )end
-  if _G.arg and M.isExe(1) then
-    shimcall(sh)
-    os.exit(0)
-  end
-  local mt = getmetatable(sh) or setmetatable(sh, {__name='SHIM'})
-  mt.__call=shimcall
-  return sh
-end
-
---------------------------
--- KEEP
-
 -- Parse either a string or list and convert them to key=value table.
 -- v can be either a list of [${'strings', '--option=foo'}]
 -- or [${'strings", option='foo'}] or a combination of both. If v is a string then
 -- it is split on whitespace and parsed as a list.
+--
+-- Note: this handles repeat keys by creating and appending a list for that key.
 M.parse = function(v) --> args
   if type(v) == 'string' then return M.parseStr(v)
   else                        return M.parseList(v) end
@@ -96,6 +25,22 @@ local function addKV(t, k, v)
   else t[k] = v end
 end
 
+-- parses the string by splitting via whitespace.
+-- Asserts the string contains no special chars: '"[]
+-- This is for convinience, use a table if it's not enough.
+--
+-- Note: if the input is already a table it just returns it.
+M.parseStr = function(str) --> args
+  str = str or {}
+  if type(str) == 'table' then return str end
+  if str:find'[%[%]\'"]' then error(
+    [[parseStr does not support chars '"[]: ]]..str
+  )end
+  local args = {}; for a in str:gmatch'%S+' do push(args, a) end
+  return M.parseList(args)
+end
+
+--- Note: typically use parse() or parseStr() instead.
 M.parseList = function(strlist) --> args
   local t = {}; for i, arg in ipairs(strlist) do
     if arg:find'^%-%w+' then
@@ -109,20 +54,6 @@ M.parseList = function(strlist) --> args
     else        push(t, arg) end
   end
   return t
-end
-
--- parses the string by splitting via whitespace.
--- Asserts the string contains no special chars: '"[]
--- This is for convinience, use a table if it's not enough.
---
--- Note: if the input is already a table it just returns it.
-M.parseStr = function(str) --> args
-  if type(str) == 'table' then return str end
-  if str:find'[%[%]\'"]' then error(
-    [[parseStr does not support chars '"[]: ]]..str
-  )end
-  local args = {}; for a in str:gmatch'%S+' do push(args, a) end
-  return M.parseList(args)
 end
 
 --- Helper for dealing with [$-s --short] arguments. Mutates
@@ -187,6 +118,14 @@ M.listSplit = function(val, sep)
   return t
 end
 
+--- Duck type: get a file handle.
+--- If [$v or default] is a string then open the file in mode [$default='w+']
+M.file = function(v, default, mode--[[w+]]) --> file, error?
+  v = v or default
+  if type(v) == 'string' then return io.open(v, mode or 'w+') end
+  return v
+end
+
 -- expand string keys into [$--key=value], ordered alphabetically.
 -- This is mostly useful for interfacing with non-lua shells.
 M.expand = function(args)
@@ -215,10 +154,10 @@ end
 
 local COLOR_YES = {[true]=1,  ['true']=1,  always=1, on=1}
 local COLOR_NO  = {[false]=1, ['false']=1, never=1,  off=1}
--- return whether to use color based on your --color= arg and
--- isatty (see fd.lua to get)
---
--- https://bixense.com/clicolors/
+
+-- Return whether to use color based on your --color= arg and
+-- isatty (see fd.isatty())
+-- [" Reference: https://bixense.com/clicolors/]
 M.color = function(color, isatty) --> useColor[bool], error
   local err
   if color ~= nil then
@@ -233,20 +172,40 @@ M.color = function(color, isatty) --> useColor[bool], error
   return M.getEnvBool'CLICOLOR' and isatty, err
 end
 
---- Duck type: get a file handle.
---- If [$v or default] is a string then open the file in mode [$default='w+']
-M.file = function(v, default, mode--[[w+]]) --> file, error?
-  v = v or default
-  if type(v) == 'string' then return io.open(v, mode or 'w+') end
-  return v
+-- return nil if env var does not exist, else boolean (true for 'true' or '1')
+M.getEnvBool = function(k)
+  local v = os.getenv(k); if not v then return v end
+  return ENV_VALS[lower(v)] or false
 end
 
---- If args.help is true write help to [$to]
-M.checkHelp = function(args, to, color) --> gaveHelp
-  if M.boolean(args.help) then
-    require'cxt.term'{require'doc'.docstr(getmetatable(args)), to=to, color=color}
-    return true
+--- Performs common setup by parsing and constructing an Args metaty, getting
+--- the standard `to` attribute and checking help and printing to [$to] if
+--- requested.
+---
+--- Returns the constructed Args and Styler.
+---
+--- [" Note: This method depends on the [$doc] module]
+M.setup = function(Args, args) --> args, styler
+  args = Args(M.parseStr(args))
+  local to = M.file(args.to, io.stdout)
+  local styler = require'asciicolor.style'.Styler{
+    f = to, color = M.color(args.color, require'fd'.isatty(to)),
+  }
+  if args.help then M.styleHelp(styler, Args) end
+  return args, styler
+end
+
+--- Write doc string to [$styler]. Typically you use [$setup()] instead.
+---
+--- [" Note: This method depends on the [$doc] module]
+M.styleHelp = function(styler, Args)
+  local mty, doc = require'metaty', require'doc'
+  local d, fmt = doc.Doc(Args), mty.Fmt{}
+  for _, line in ipairs(d.comments or {}) do fmt:write(line, '\n') end
+  if d.fields and #d.fields > 0 then
+    fmt:write'\nNamed args: '; doc.fmtItems(fmt, d.fields)
   end
+  require'cxt.term'{table.concat(fmt), to=styler}
 end
 
 return M
