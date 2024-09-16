@@ -299,7 +299,7 @@ test('term', function()
     out=mty.Fmt{to=w}, color=false,
   }
   assertEq(false, sty.color)
-  assertEq(W{'code not code'}, w)
+  assertEq(W{'code not code', ''}, w)
 
   ds.clear(w)
   local _, node, p = term.convert([[
@@ -332,7 +332,6 @@ bold italic path/to/thing \
   * item 2 with code\
 the end\
 "
-
   assertEq(expect, table.concat(w, '\n'))
 
   ds.clear(w)
@@ -351,9 +350,6 @@ local _, node, p = term.convert(
   + Example      Ty<Example>\9lib/doc/test.lua:11\
   + __name       string\9 "
   assertEq(expect, table.concat(w, '\n'))
-
-  ds.clear(w)
-
 end)
 
 

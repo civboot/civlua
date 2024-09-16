@@ -29,36 +29,10 @@ civtest.assertGlobals(initG)
 
 local sfmt = string.format
 
-M.help = function(args, isExe)
-  args = M.Help(shim.parse(args))
-  local ok, err = ds.try(function()
-    local st = astyle.Styler{
-      color=shim.color(args.color, fd.isatty(io.stdout)),
-    }
-    require'cxt.term'{doc(args), to=st}
-    io.stdout:write'\n'
-    io.stdout:flush()
-  end)
-  if not ok then
-    mty.print(string.format('Error %s:', args[0]), err)
-  end
-end
-
 if M == MAIN then
   local cmd = table.remove(arg, 1)
   if not cmd then print'Usage: civ.lua pkg ...'; os.exit(1) end
   require(cmd).main(shim.parse(arg))
 end
--- shim {
---   help='run a shim command from a PKG',
---   subs = {
---     -- help = {exe=M.help, help=doc{M.Help}},
---     doc  = doc.shim,
---     ele  = ele,
---     ff   = ff.shim,
---     rock = rock.shim,
---     ['cxt.html'] = require'cxt.html'.shim,
---   },
--- }
 
 return M

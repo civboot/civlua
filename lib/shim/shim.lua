@@ -195,17 +195,4 @@ M.setup = function(Args, args) --> args, styler
   return args, styler
 end
 
---- Write doc string to [$styler]. Typically you use [$setup()] instead.
----
---- [" Note: This method depends on the [$doc] module]
-M.styleHelp = function(styler, Args)
-  local mty, doc = require'metaty', require'doc'
-  local d, fmt = doc.Doc(Args), mty.Fmt{}
-  for _, line in ipairs(d.comments or {}) do fmt:write(line, '\n') end
-  if d.fields and #d.fields > 0 then
-    fmt:write'\nNamed args: '; doc.fmtItems(fmt, d.fields)
-  end
-  require'cxt.term'{table.concat(fmt), to=styler}
-end
-
 return M

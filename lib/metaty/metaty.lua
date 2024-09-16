@@ -322,6 +322,7 @@ M.Fmt.write = function(f, ...)
     f:_write(line); doIndent = true
   end
 end
+M.Fmt.flush = function(f) if f.to then f.to:flush() end end
 
 M.Fmt.__newindex = function(f, i, v)
   if type(i) ~= 'number' then; assert(f.__fields[i], i)

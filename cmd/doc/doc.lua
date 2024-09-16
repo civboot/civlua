@@ -9,7 +9,6 @@
 --- Note: depends on pkg for lookup.
 local M = mod and mod'doc' or setmetatable({}, {})
 MAIN = MAIN or M
-local builtin = require'doc.lua'
 
 assert(PKG_LOC and PKG_NAMES, ERROR)
 
@@ -20,6 +19,8 @@ local sfmt = string.format
 local push = table.insert
 local pth = require'ds.path'
 local pkglib = require'pkglib'
+local style = require'asciicolor.style'
+local fd = require'fd'
 
 local sfmt, pushfmt = string.format, ds.pushfmt
 
@@ -201,6 +202,7 @@ end
 
 --- get any path with [$.] in it. This is mostly used by help/etc functions
 M.getpath = function(path)
+  require'doc.lua' -- ensure that builtins are included
   path = type(path) == 'string' and ds.splitList(path, '%.') or path
   local obj
   for i=1,#path do
@@ -214,7 +216,7 @@ end
 --- Find the object or name in pkgs
 M.find = function(obj) --> Object
   if type(obj) ~= 'string' then return obj end
-  return PKG_LOOKUP[obj] or rawget(_G, obj) or M.getpath(obj)
+  return PKG_LOOKUP[obj] or M.getpath(obj) or rawget(_G, obj)
 end
 
 -- compare so items with [$.] come last in a sort
@@ -262,28 +264,41 @@ M.docstr = function(obj) --> string
   return table.concat(mty.Fmt{}(M.Doc(obj)))
 end
 
---- [$help 'path.of.object']
+--- Get the helpstr for Args type (comments + fields).
 ---
---- If no path is given shows all available packages
---- (filter with [$local=true])
-M.Cmd = mty'Cmd' {
+--- This is used if a function has an associated type for just arg-checking.
+M.helpstr = function(Args) --> string
+  local d, fmt = M.Doc(Args), mty.Fmt{}
+  for _, line in ipairs(d.comments or {}) do fmt:write(line, '\n') end
+  if d.fields and #d.fields > 0 then
+    fmt:write'\nNamed args: '; M.fmtItems(fmt, d.fields)
+  end
+  return table.concat(fmt)
+end
+
+M.styleHelp = function(styler, Args) require'cxt.term'{M.helpstr(Args), to=styler} end
+
+--- Get documentation for an object or package. Usage: [{## lang=lua}
+---  help 'path.of.object'
+--- ]##
+---
+--- If no path is given shows all available packages.
+M.Args = mty'Args' {
   'pkg [bool]: if true uses PKG.lua (and all sub-modules)',
-  'cmds [bool]: show all modules with a .exe function (intended to run as a command)',
   'full [bool]: if true displays the full API of all pkgs/mods',
   'local [bool]: if true only unpacks local pkgs/mods',
   'color [string|bool]: whether to use color [$true false always never]',
 }
 
 M.main = function(args)
-  args = M.Cmd(shim.parseStr(args))
-  if args.pkg then return M.pkg(args[1]) end
-  local obj = assert(args[1], 'must provide object to find docs for')
+  args = M.Args(shim.parseStr(args))
+  local to = style.Styler:default(io.stdout, args.color)
+  if args.help then return M.styleHelp(to, M.Args) end
   local str = args.pkg and M.pkgstr(obj) or M.docstr(obj)
-  require'cxt.term'{str, to=require'asciicolor.style'.Styler{
-    color=shim.color(args.color, require'fd'.isatty(io.stdout)),
-  }}
+  require'cxt.term'{str, to=to}
+  to:write'\n'
 end
-getmetatable(M).__call = function(_, args) return M.exe(args) end
+getmetatable(M).__call = function(_, args) return M.main(args) end
 
 if M == MAIN then M.main(shim.parse(arg)); os.exit(0) end
 return M

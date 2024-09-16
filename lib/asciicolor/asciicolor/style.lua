@@ -1,11 +1,13 @@
 -- style text from a user's config.
 local M = mod and mod'asciicolor.style' or {}
 
+local shim = require'shim'
 local mty = require'metaty'
 local ds = require'ds'
 local log = require'ds.log'
 local pth = require'ds.path'
 local ac = require'asciicolor'
+local fd = require'fd'
 local civix = require'civix'
 
 local construct, newindex = mty.construct, mty.newindex
@@ -19,6 +21,7 @@ M.dark = {
   match = 'Bf', -- search match
   line  = 'ld', -- line number / etc
   meta  = 'd',  -- Meta=metadata such as description of ops, etc
+  notify = 'C', -- make very visible
   error = 'Wr',
 
   -- Document Styles
@@ -76,6 +79,19 @@ M.Styler = mty'Styler' {
   "style [table]: default=loadStyle()",
   'color [boolean]: disables color if set to false', color=true
 }
+
+--- Get the default styler.
+---
+--- Example: [$styler = style.Styler(io.stdout, args.color)]
+M.Styler.default = function(T, to--[[io.stdout]], colorArg) --> Styler
+  to = to or io.stdout
+  return M.Styler {
+    acwriter = M.defaultAcWriter(to),
+    style = M.loadStyle(),
+    color = shim.color(colorArg, fd.isatty(to)),
+  }
+end
+
 getmetatable(M.Styler).__call = function(T, t)
   t = t or {}
   t.acwriter = t.acwriter or M.defaultAcWriter(ds.popk(t, 'f'))

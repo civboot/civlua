@@ -10,12 +10,13 @@ local mty = require'metaty'
 ---   , rock lib/pkg --create --gitops='add commit tag' \
 ---     --gitpush='origin main --tags' --upload=$ROCKAPI
 --- ]##
-M.ARGS = mty'pkgrock' {
+M.Args = mty'pkgrock' {
   [[help   [bool]: get help]],
   [[create [bool]   creates the rocks from PKG.lua files]],
   [[gitops [string] one or more: add,commit,tag]],
   [[gitpush[string] where to push, i.e: 'origin main']],
   [[upload [string] set to the luarocks api key]],
+  [[color  [string]: whether to print in color]],
 }
 
 local pkg = require'pkglib'
@@ -32,10 +33,10 @@ M.rockpath = function(dir, tag)
 end
 
 -- make a rock and return rock, rockpath, PKG
-M.makerock = function(dir)
+M.makerock = function(style, dir)
   local path = dir
   if not dir:find'/PKG.lua$' then path = pth.concat{dir, 'PKG.lua'} end
-  print('... loading pkg', path)
+  style('... loading pkg', path)
   local p = pkg.load('noname', path)
   local rock = p.rockspec or {}
   rock.rockspec_format = rock.rockspec_format or "3.0"
@@ -55,7 +56,7 @@ M.makerock = function(dir)
     type = 'builtin', modules = pkg.modules(p.srcs),
   }
   local rpath = M.rockpath(dir, tag)
-  print('... writing rockspec', rpath)
+  style('... writing rockspec', rpath)
   local fmt = mty.Fmt:pretty{
     to=io.open(rpath, 'w'),
     indexEnd = ',\n', keyEnd=',\n'
@@ -74,29 +75,35 @@ M.loadrock = function(dir)
   return rpath, pkg.load(p.name, rpath)
 end
 
-local function execute(...)
+local function execute(styler, ...)
   local cmd = string.format(...)
-  print('executing:', cmd)
+  styler:style('code', 'executing:\t'..cmd)
   if not os.execute(cmd) then error('execute failed: '..cmd) end
 end
 
 M.main = function(t)
-  local t, sty = shim.setup(M.ARGS, t); if t.help then return end
+  t = M.Args(shim.parseStr(t))
+  local to = require'asciicolor.style'.Styler:default(nil, t.color)
+  local style = function(...)
+    to:styled('notify', table.concat({...}, '\t'))
+    to:write'\n'
+  end
+  if t.help then return require'doc'.styleHelp(to, M.Args) end
   if t.gitops then
     assert(os.execute'git diff --quiet --exit-code', 'git repo has diffs')
   end
   local gitops = ds.Set(shim.listSplit(t.gitops))
   local tags, rpaths = {}, {}
   if t.create then for _, dir in ipairs(t) do
-    print('making rock', dir)
-    M.makerock(dir)
+    style('making rock', dir)
+    M.makerock(style, dir)
   end end
   for _, dir in ipairs(t) do
     local rpath, rock = M.loadrock(dir)
     push(rpaths, rpath); push(tags, assert(rock.source.tag))
   end
   if gitops.tag then
-    print'... getting tags'
+    style'... getting tags'
     local out = civix.sh'git tag'
     local exist = ds.Set(require'lines'(out))
       :union(ds.Set(tags))
@@ -105,24 +112,24 @@ M.main = function(t)
     )end
   end
   if gitops.add then for _, rp in ipairs(rpaths) do
-    print('git add:', rp)
-    execute([[git add -f %s]], rp)
+    style('git add:', rp)
+    execute(styler, [[git add -f %s]], rp)
   end end
   if gitops.commit then
-    print'... commiting'
-    execute([[git commit -am 'pkgrock: %s']], table.concat(tags, ' '))
+    style'... commiting'
+    execute(styler, [[git commit -am 'pkgrock: %s']], table.concat(tags, ' '))
   end
   if gitops.tag then for _, tag in ipairs(tags) do
-    print('add tag:', tag)
-    execute([[git tag '%s']], tag)
+    style('add tag:', tag)
+    execute(styler, [[git tag '%s']], tag)
   end end
   if t.gitpush then
-    print'... pushing'
-    execute([[git push %s]], t.gitpush)
+    style'... pushing'
+    execute(styler, [[git push %s]], t.gitpush)
   end
   if t.upload then for _, rp in ipairs(rpaths) do
-    print('uploading', rp)
-    execute(UPLOAD, rp, t.upload)
+    style('uploading', rp)
+    execute(styler, UPLOAD, rp, t.upload)
   end end
 end
 

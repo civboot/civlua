@@ -1,8 +1,20 @@
 -- cxt for the terminal, either plain text or vt100/etc
 local M = assert(mod'cxt.term')
 MAIN = MAIN or M
-
 local mty  = require'metaty'
+
+--- Render cxt on a terminal.
+---
+--- Will render an input string or --inp=file.
+M.Args = mty'Args' {
+  'help [boolean]: get help',
+  'inp  [path|file]: input file',
+  'out  [path|file]: output file (default=stdout)',
+  'color [string]: whether to use color',
+  'mode  [string]: style mode (light|dark)',
+  'style [string]: the path to get the style config',
+}
+
 local ds = require'ds'
 local shim = require'shim'
 local pegl = require'pegl'
@@ -20,7 +32,7 @@ local push = table.insert
 local KIND_ORDER = ds.BiMap {
   'hidden', 'table', 'list', 'br', 'quote',
   'code', 'block', 'name', 'path', 'clone',
-  'h1', 'h2', 'h3', 'bold',
+  'h1', 'h2', 'h3', 'h4', 'b', 'u',
 }
 
 
@@ -28,6 +40,7 @@ M.STYLES = {
   h1 = 'h1', h2 = 'h2', h3 = 'h3', h4 = 'h4',
   code = 'code', block = 'code', path = 'path',
   clone = 'var', name = 'api',
+  b = 'bold', u='ul',
 }
 
 local function nodeKind(n)
@@ -108,21 +121,20 @@ end
 
 -- Example: {'cxt to parse', out=file, mode='dark'}
 M.main = function(args)
-  args = shim.parseStr(args)
-  local f = args.out or ds.popk(args, 2)
-  if args.help or #args ~= 1 then
-    local msg = 'Usage: cxt.term{"write [*to] stdout", to=io.stdout}'
-    if M == MAIN then print(msg); os.exit(args.help and 0 or 1) end
-    return args.help and msg or error(msg)
-  end
-  local inp = lines(args[1])
-  if type(f) == 'string' then f = LFile:create(f) end
-  local f = f or io.stdout
+  args = M.Args(shim.parseStr(args))
+  args.out = args.out or io.stdout
   local styler = style.Styler{
-    f=f, color=shim.color(args.color, fd.isatty(f)),
-    style = style.loadStyle(args.mode),
+    acwriter=style.defaultAcWriter(args.out),
+    color=shim.color(args.color, fd.isatty(args.out)),
+    style=style.loadStyle(args.mode),
   }
-  M.convert(inp, styler)
+  if args.help then return require'doc'.styleHelp(styler, M.Args) end
+  if #args > 0 then     args.inp = lines(table.concat(args, ' '))
+  elseif args.inp then  args.inp = LFile:load(shim.file(args.inp))
+    error'must provide input'
+  end
+  M.convert(args.inp, styler)
+  styler:write'\n'
   return styler
 end
 getmetatable(M).__call = function(_, ...) return M.main(...) end

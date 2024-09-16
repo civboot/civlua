@@ -13,6 +13,7 @@ local fd = require'fd'
 local vt100 = require'vt100'
 local AcWriter = require'vt100.AcWriter'
 local astyle = require'asciicolor.style'
+local doc = require'doc'
 
 local s = ds.simplestr
 local sfmt = string.format
@@ -220,15 +221,11 @@ M.main = function(args)
   args.log = shim.file(args.log, io.stdout, 'a')
 
   args = M.Main(args)
-  local color = shim.color(args.color, fd.isatty(args.log))
 
   args.help = shim.boolean(args.help);
-  local styler = astyle.Styler{
-    acwriter = AcWriter{f=args.log}, color = color,
-  }
+  local styler = astyle.Styler:default(args.log, args.color)
   if args.log then args.log = styler end
-  mty.print('!! ff.args', args)
-  if args.help then return shim.styleHelp(styler, M.Main) end
+  if args.help then return doc.styleHelp(styler, M.Main) end
 
   -- args.dpre    = args.dpre or '\n'
   local out = args.out or {
@@ -254,9 +251,7 @@ M.main = function(args)
   if args.log then args.log:flush() end
   return out
 end
-
-if M == MAIN then M.main(shim.parse(arg)); os.exit(0) end
-
 getmetatable(M).__call = function(_, ...) return M.main(...) end
 
+if M == MAIN then M.main(shim.parse(arg)); os.exit(0) end
 return M
