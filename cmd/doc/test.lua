@@ -34,14 +34,14 @@ T.test('findcode', function()
 end)
 
 local eFn =
-"[{h2}Function [:doc_test.exampleFn] [/cmd/doc/test.lua:5] [@function] ]\
+"[{h2}Function [{style=api}doc_test.exampleFn] [/cmd/doc/test.lua:5]]\
 [$M.exampleFn = function() end]\
 document a fn\
 another line"
 
 
 local mDoc =
-"[{h2}Module [:doc_test] [/cmd/doc/test.lua:1] [@Mod<doc_test>] ]\
+"[{h2}Module [{style=api}doc_test] [/cmd/doc/test.lua:1]]\
 \
 [*Other:] [{table}\
 + [$Example]       | \\[[@Ty<Example>]\\] [/cmd/doc/test.lua:11]\
@@ -83,7 +83,7 @@ end)
 T.test('record', function()
 
   local expect =
-"[{h2}Record [:doc_test.Example] [/cmd/doc/test.lua:11] [@Ty<Example>] ]\
+"[{h2}Record [{style=api}doc_test.Example] [/cmd/doc/test.lua:11]]\
 document a metaty\
 another line\
 [*Fields:] [{table}\

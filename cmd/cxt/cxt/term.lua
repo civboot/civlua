@@ -32,7 +32,7 @@ local push = table.insert
 local KIND_ORDER = ds.BiMap {
   'hidden', 'table', 'list', 'br', 'quote',
   'code', 'block', 'name', 'path', 'clone',
-  'h1', 'h2', 'h3', 'h4', 'b', 'u',
+  'h1', 'h2', 'h3', 'h4', 'b', 'u', 'class',
 }
 
 
@@ -106,7 +106,7 @@ M.serialize = function(w, node)
   if fn then return fn(w, node) end
 
   local prevSty = w.style
-  w.style = M.STYLES[kind] or prevSty
+  w.style = M.STYLES[kind] or node.style or prevSty
   for _, n in ipairs(node) do M.serialize(w, n) end
   w.style = prevSty
 end

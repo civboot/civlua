@@ -567,9 +567,9 @@ M.writePath = function(path, text)
   return out
 end
 
-M.fileWithText = function(path, text, mode)
+M.fileWithText = function(path, text, mode) --> file
   local f = mty.assertf(
-    io.open(path, mode or 'w+'), 'invalid %s', path)
+    io.open(path, mode or 'w+'), 'invalid path: %s', path)
   f:write(text); f:flush(); f:seek'set'
   return f
 end

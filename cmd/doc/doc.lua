@@ -101,13 +101,12 @@ end
 
 M.Doc.__fmt = function(d, f)
   local path = d.path and sfmt(' [/%s]', pth.nice(d.path)) or ''
-  local ty = d.ty and sfmt(' [@%s]', d.ty) or ''
   local prefix = type(d.obj) == 'function' and 'Function'
               or pkglib.isMod(d.obj) and 'Module'
               or mty.isRecord(d.obj) and 'Record'
               or type(d.obj)
-  pushfmt(f, '[{h%s}%s [:%s]%s%s ]\n', f:getIndent() + 2,
-          prefix, d.name, path, ty)
+  pushfmt(f, '[{h%s}%s [{style=api}%s]%s]\n', f:getIndent() + 2,
+          prefix, d.name, path)
   if type(d.obj) == 'function' and d.code and d.code[1] then
     pushfmt(f, '[$%s]\n', d.code[1])
   end
@@ -232,10 +231,12 @@ M.fmtmod = function(f, mod) --> Fmt
   local d = M.Doc(mod)
   pushfmt(f, '[{h2}Module %s [/%s]]\n', d.name, d.path)
   ds.extend(f, table.concat(d.comments, '\n'))
-  for _, k in ipairs(ds.orderedKeys(mod)) do
-    push(f, '\n'); f:incIndent()
+  local keys = ds.orderedKeys(mod)
+  for i, k in ipairs(keys) do
+    f:incIndent()
     f(M.Doc(mod[k]))
-    f:decIndent(); push(f, '\n')
+    f:decIndent()
+    if i < #keys then push(f, '\n') end
   end
   return f
 end
@@ -244,13 +245,13 @@ end
 M.fmtpkg = function(f, pkgname) --> Fmt
   local pkg, pkgdir = pkglib.getpkg(pkgname)
   if not pkg then error('could not find pkg '..pkgname) end
-  pushfmt(f, '[{h1}Package %s [/%s/PKG.lua]]\n', pkgname, pth.nice(pkgdir))
+  pushfmt(f, '\n[{h1}Package %s [/%s/PKG.lua]]\n', pkgname, pth.nice(pkgdir))
   local mods = pkglib.modules(pkg.srcs)
-  push(f, '\n')
-  for _, modname in ipairs(ds.sort(ds.keys(mods), modcmp)) do
+  mods = ds.sort(ds.keys(mods), modcmp)
+  for i, modname in ipairs(mods) do
     local obj = pkglib.get(modname)
     if pkglib.isMod(obj) then M.fmtmod(f, obj) else f(M.Doc(obj)) end
-    push(f, '\n\n')
+    if i < #mods then push(f, '\n') end
   end
   return f
 end
@@ -294,7 +295,7 @@ M.main = function(args)
   args = M.Args(shim.parseStr(args))
   local to = style.Styler:default(io.stdout, args.color)
   if args.help then return M.styleHelp(to, M.Args) end
-  local str = args.pkg and M.pkgstr(obj) or M.docstr(obj)
+  local str = args.pkg and M.pkgstr(args[1]) or M.docstr(args[1])
   require'cxt.term'{str, to=to}
   to:write'\n'
 end
