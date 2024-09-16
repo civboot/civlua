@@ -18,7 +18,7 @@ local doc = require'doc'
 local T = require'civtest'
 T.assertEq(mod.__newindex, getmetatable(M.Example).__newindex)
 T.assertEq('doc_test.Example',    PKG_NAMES[M.Example])
-T.assertEq('lib/doc/test.lua:11', PKG_LOC[M.Example])
+T.assertEq('cmd/doc/test.lua:11', PKG_LOC[M.Example])
 
 T.test('findcode', function()
   local com, code = doc.findcode(M.exampleFn)
@@ -34,19 +34,19 @@ T.test('findcode', function()
 end)
 
 local eFn =
-"[{h2}Function [:doc_test.exampleFn] [/lib/doc/test.lua:5] [@function] ]\
+"[{h2}Function [:doc_test.exampleFn] [/cmd/doc/test.lua:5] [@function] ]\
 [$M.exampleFn = function() end]\
 document a fn\
 another line"
 
 
 local mDoc =
-"[{h2}Module [:doc_test] [/lib/doc/test.lua:1] [@Mod<doc_test>] ]\
+"[{h2}Module [:doc_test] [/cmd/doc/test.lua:1] [@Mod<doc_test>] ]\
 \
 [*Other:] [{table}\
-+ [$Example]       | \\[[@Ty<Example>]\\] [/lib/doc/test.lua:11]\
++ [$Example]       | \\[[@Ty<Example>]\\] [/cmd/doc/test.lua:11]\
 + [$__name]        | \\[[@string]\\] \
-+ [$exampleFn]     | \\[[@function]\\] [/lib/doc/test.lua:5]\
++ [$exampleFn]     | \\[[@function]\\] [/cmd/doc/test.lua:5]\
 ]"
 
 T.test('doc.get', function()
@@ -83,7 +83,7 @@ end)
 T.test('record', function()
 
   local expect =
-"[{h2}Record [:doc_test.Example] [/lib/doc/test.lua:11] [@Ty<Example>] ]\
+"[{h2}Record [:doc_test.Example] [/cmd/doc/test.lua:11] [@Ty<Example>] ]\
 document a metaty\
 another line\
 [*Fields:] [{table}\
@@ -92,10 +92,10 @@ another line\
 [*Other:] [{table}\
 + [$__docs]        | \\[[@table]\\] \
 + [$__fields]      | \\[[@table]\\] \
-+ [$__index]       | \\[[@Ty<Example>]\\] [/lib/doc/test.lua:11]\
++ [$__index]       | \\[[@Ty<Example>]\\] [/cmd/doc/test.lua:11]\
 + [$__name]        | \\[[@string]\\] \
 + [$__newindex]    | \\[[@function]\\] [/lib/metaty/metaty.lua:180]\
-+ [$method]        | \\[[@function]\\] [/lib/doc/test.lua:12]\
++ [$method]        | \\[[@function]\\] [/cmd/doc/test.lua:12]\
 ]"
 
   T.assertEq(expect,     doc.docstr(M.Example))

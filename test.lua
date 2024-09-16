@@ -47,10 +47,10 @@ print'[[libs]]'
   dofile(dir..'lib/rebuf/tests/test_buffer.lua')
   dofile(dir..'lib/civix/test.lua')
   dofile(dir..'lib/patience/test.lua')
-  dofile(dir..'lib/doc/test.lua')
-  dofile(dir..'cmd/cxt/test.lua')
 
 print'[[apps]]'
+  dofile(dir..'cmd/doc/test.lua')
+  dofile(dir..'cmd/cxt/test.lua')
   dofile(dir..'cmd/ff/test.lua')
 
 print'[[ele]]'

@@ -23,10 +23,10 @@ pkgs = {
   'lib/rebuf',
   'lib/civix',
   'lib/patience',
-  'lib/doc',
-  'cmd/cxt', -- lib + cmd
 
   -- cmd
+  'cmd/cxt', -- lib + cmd
+  'cmd/doc', -- lib + cmd
   'cmd/ff',
   'cmd/pkgrock',
   'cmd/ele',
