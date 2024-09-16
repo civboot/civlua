@@ -1,49 +1,7 @@
-METATY_CHECK = true
+--- ff: find fix command. See --help for details
+local M = mod and mod'ff' or setmetatable({}, {})
+MAIN = MAIN or M
 
-local DOC = [[ff: find+fix files
-ff is a simple utility to find and fix files and file-content.
-
-References:
-  string.find for pat
-  string.gsub for sub
-
-Examples (bash):
-  ff path                   # print files at path (recursively)
-  ff path --dir             # also print directories
-  ff path --depth=3         # recurse to depth 3 (default=1)
-  ff path --depth=          # recurse infinitely (depth=-1)
-  ff path --depth=-1        # recurse infinitely (depth=-1)
-  ff path --pat='my%s+name' # find Lua pattern like "my  name" in files at path
-  ff path %my%s+name        # shortcut for --pat=my%s+name
-  ff path %my%s+name --matches=false  # print paths with match only
-  ff path %(name=)%S+ --sub='%1bob'   # change name=anything to name=bob
-  # add --mut or -m to actually modify the file contents
-  ff path --incl='%.txt'    # filter to .txt files
-  ff path --incl='(.*)%.txt' --mv='%1.md'  # rename all .txt -> .md
-  # rename OldTestClass -> NewTestClass, 'C' is not case sensitive.
-
-Special:
-  indexed %arg will be converged to --pat=arg
-
-Stdout:
-  In shell prints files, directories and content matched, depending on
-  the arguments.
-  In Lua will only print if `log` is specified.
-
-Returns (lua only):
-  returns (files, dirs, matches) which may be nil depending on the
-  files/dirs/matches arguments.
-
-Short:
-  d: --dirs=true
-  p: --plain=true
-  m: --mut=true
-  r: --depth='' (infinite recursion)
-  k: --keep_going=true
-  s: --silent=true
-  F: no special features (%pat parsing, etc)
-]]
-local M = mod and mod'ff' or {}
 
 local shim = require'shim'
 local mty = require'metaty'
@@ -59,16 +17,51 @@ local astyle = require'asciicolor.style'
 local s = ds.simplestr
 local sfmt = string.format
 
--- List arguments: 'path1', 'path2', 'path3'
-M.Args = mty'Args' {
+--- ff: a simple utility to find and fix files and file-content
+---
+--- List args: %patShortcut path1 path2
+---
+--- Examples (bash): [{## lang=bash}
+---   ff path                   # print files at path (recursively)
+---   ff path --dir             # also print directories
+---   ff path --depth=3         # recurse to depth 3 (default=1)
+---   ff path --depth=          # recurse infinitely (depth=-1)
+---   ff path --depth=-1        # recurse infinitely (depth=-1)
+---   ff path --pat='my%s+name' # find Lua pattern like "my  name" in files at path
+---   ff path %my%s+name        # shortcut for --pat=my%s+name
+---   ff path %my%s+name --matches=false  # print paths with match only
+---   ff path %(name=)%S+ --sub='%1bob'   # change name=anything to name=bob
+---   # add --mut or -m to actually modify the file contents
+---   ff path --incl='%.txt'    # filter to .txt files
+---   ff path --incl='(.*)%.txt' --mv='%1.md'  # rename all .txt -> .md
+---   # rename OldTestClass -> NewTestClass, 'C' is not case sensitive.
+--- ]##
+---
+--- Special: indexed %arg will be converged to --pat=arg
+---
+--- Shorts: [##
+---   d: --dirs=true
+---   p: --plain=true
+---   m: --mut=true
+---   r: --depth='' (infinite recursion)
+---   k: --keep_going=true
+---   s: --silent=true
+---   F: no special features (%pat parsing, etc)
+--- ]##
+M.Main = mty'Main' {
+  'help [bool]: get help',
+  'out [table]: (lua only) stores files/dirs',
+  'log [string|file]: where to log',
+
   'depth[int]:    depth to recurse (default=infinite)',
   'files[bool]:   log/return files or substituted files.',   files=true,
   'matches[bool]: log/return the matches or substitutions.', matches=true,
   'dirs[bool]:    log/return directories.',                  dirs=false,
 s[[pat[table]:
-     (shortcut: %foo == --pat=foo; multi: sub uses first)
-     content pattern/s which searches inside of files
-     and prints the results.]],
+     (shortcut: %foo ==> --pat=foo)
+     content pattern/s which searches inside of files and prints the results.
+     If there are multiple [$pat] then ANY are considered a match and [$sub]
+     uses the first match.]],
   'sub [string]: substitute pattern to go with pat (see lua\'s gsub)',
   'incl[string]:  (multi) file name pattern to include.',
 s[[mv[string]:
@@ -79,7 +72,6 @@ s[[excl [table]:
      exclude pattern ([$default='/%.[^/]+/'] -- aka hidden)]],
   'mut [bool]: if true files may be modified, else dry run',
     mut=false,
-  'log: path or (Lua) filehandle to log to.',
   'fpre[string]: prefix characters before printing files',        fpre='',
   'dpre [string]: prefix characters before printing directories', dpre='',
   'plain [bool]: no line numbers', plain=false,
@@ -87,10 +79,6 @@ s[[excl [table]:
   'keep_going [bool]: (short -k) whether to keep going on errors',
   "silent [bool]: (short -s) don't print errors",
 }
-
-M.DOC = DOC..'\n#############\n# ARGS\n'
-      -- ..require'doc'(M.Args)
---      ..(require'doc'(M.Args):match'.-\n(.-)%-%-+ CODE')
 
 local function anyMatch(pats, str) --> matching pat, index
   if not pats then return end
@@ -206,8 +194,9 @@ local function argPats(args)
   end; return ds.extend(ds.reverse(pat), shim.list(args.pat))
 end
 
-getmetatable(M).__call = function(_, args, out, isExe)
-  local argsTy = type(args); args = shim.parseStr(args, true)
+M.main = function(args)
+  local argsTy = type(args)
+  args = shim.parse(args)
   args.pat = argPats(args)
   if #args == 0 then push(args, '.') end
   if args.sub then
@@ -229,24 +218,21 @@ getmetatable(M).__call = function(_, args, out, isExe)
   shim.short(args, 'k', 'keep_going', true)
   shim.short(args, 's', 'silent',     true)
   if args.depth < 0 then args.depth = nil end
-  if type(args.log) == 'string' then args.log = io.open(args.log, 'a')
-  elseif argsTy == 'string' and not args.log then args.log = io.stdout
-  end
+  args.log = shim.file(args.log, io.stdout, 'a')
 
-  if isExe then local ok;
-    ok, args = pcall(M.Args, args)
-    if not ok then io.stderr:write(args, '\n'); os.exit(1) end
-  else args = M.Args(args) end
+  args = M.Main(args)
+  local color = shim.color(args.color, fd.isatty(args.log))
+  if shim.checkHelp(args, args.log, color) then return end
 
   -- args.dpre    = args.dpre or '\n'
-  out = out or {
-    files = args.files and {} or nil, dirs = args.dirs and {} or nil,
+  local out = args.out or {
+    files = args.files and {} or nil,
+    dirs = args.dirs and {} or nil,
     matches = args.matches and {} or nil,
   }
   if args.log then
     args.log = astyle.Styler{
-      acwriter = AcWriter{f=args.log},
-      color = shim.color(args.color, fd.isatty(args.log)),
+      acwriter = AcWriter{f=args.log}, color = color,
     }
   end
   ix.walk(
@@ -268,12 +254,11 @@ getmetatable(M).__call = function(_, args, out, isExe)
   return out
 end
 
-M.exe = function(args, isExe)
-  assert(isExe)
-  if args.depth == '' then args.depth = -1 end
-  args.log = io.stdout
-  M(args, {}, true)
+if M == MAIN then
+  main(arg)
+  os.exit(0)
 end
 
-M.shim = shim{help = M.DOC, exe = M.exe}
+getmetatable(M).__call = M.main
+
 return M

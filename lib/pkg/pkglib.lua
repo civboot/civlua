@@ -235,7 +235,10 @@ M.install = function()
 end
 
 return setmetatable(M, {
-  __call = function(_, ...) return M.get(...) end,
+  __call = function(_, ...)
+    require = M.get
+    mod     = M.mod
+  end,
   __index = function(_, k) error('pkglib does not have field: '..k) end,
   __newindex = function(_, k) error'do not modify pkg'           end,
 })

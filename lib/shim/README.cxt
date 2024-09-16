@@ -1,0 +1,8 @@
+[{h1}shim: write scripts for Lua, execute from shell]
+
+`shim` is a tiny Lua module that makes it easy to write utilities that work
+from either bash or Lua.
+
+See [/lib/shim/helloworld.lua] for an example lua script.
+
+[{! replace_lua} require'doc'{'shim', pkg=true, full=true}]

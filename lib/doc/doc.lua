@@ -7,7 +7,7 @@
 --- ]##
 ---
 --- Note: depends on pkg for lookup.
-local M = mod and mod'doc' or {}
+local M = mod and mod'doc' or {}; MAIN = MAIN or M
 local builtin = require'doc.lua'
 
 assert(PKG_LOC and PKG_NAMES, ERROR)

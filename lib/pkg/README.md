@@ -48,7 +48,12 @@ First of all is the global `mod` function/type. Lua modules can define their `M`
 self-documenting depending on whether `mod` is available.
 
 ```
+#!/usr/bin/env -S lua -e require'pkglib'()
 local M = mod and mod'myModName' or {}
+
+-- Use if this is a script + library to tell whether this is the main
+MAIN = MAIN or M
+local isMain = (MAIN == M) -- for demonstration
 
 -- PKG_LOC[M.myFn]  -> path/to/file.lua:123
 -- PKG_NAMES[M.myFn] -> 'myModName.myFn'
