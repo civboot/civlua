@@ -1,5 +1,6 @@
 -- Serialize cxt nodes as html
 local M = mod and mod'cxt.html' or {}
+MAIN = MAIN or M
 
 local mty  = require'metaty'
 local pegl = require'pegl'
@@ -14,9 +15,14 @@ local LFile = require'lines.File'
 local NAME_SYM = '☍'
 
 M.htmlHead = [[<style>
-p  { margin-top: 0.5em; margin-bottom: 0.0em; }
-ul { margin-top: 0.0em; margin-bottom: 0.5em; }
-li { margin-top: 0.0em; margin-bottom: 0.0em; }
+h1 { margin-top: 0.5em; margin-bottom: 0.3em; }
+h2 { margin-top: 0.3em; margin-bottom: 0.2em; }
+h3 { margin-top: 0.2em; margin-bottom: 0.1em; }
+h4 { margin-top: 0.1em; margin-bottom: 0.05em; }
+
+p  { margin-top: 0.3em; margin-bottom: 0.0em; }
+ul { margin-top: 0.1em; margin-bottom: 0.5em; }
+li { margin-top: 0.1em; margin-bottom: 0.0em; }
 blockquote {
   border: 1px solid #999;  border-radius: 0.1em;
   padding: 5px;            background-color: mintcream;
@@ -130,7 +136,7 @@ local function _serialize(w, line, node) --> line
     for ri, row in ipairs(node) do
       addLine(w, {'<tr>'})
       for _, col in ipairs(row) do
-        local el = (ri == 1) and 'th' or 'td'
+        local el = row.header and 'th' or 'td'
         line = {'<'..el..'>'}
         line = _serialize(w, line, col)
         push(line, '</'..el..'>')
@@ -151,7 +157,8 @@ local function _serialize(w, line, node) --> line
   elseif node.code then
     local s = {}; for _, n in ipairs(node) do push(s, w:tokenStr(n)) end
     s = table.concat(s)
-    if s:sub(1, 1) == '\n' then s = s:sub(2) end
+    if s:sub(1, 1) == '\n' then s = s:sub(2)    end
+    if s:sub(-1)   == '\n' then s = s:sub(1,-2) end
     s = s:gsub('[&<>]', CODE_REPL)
     push(line, s)
   else
@@ -197,24 +204,19 @@ M.assertHtml = function(cxtDat, expectedHtml, dbg)
   civtest.assertEq(expectedHtml, w.to)
 end
 
--- Convert cxt doc to html
-M.Args = mty'Html' {
-  'cxt[string]: path to cxt file',
-  'out[string]: path to html file output',
-}
+M.main = function(args)
+  if #args < 2 then
+    print'Usage: cxt path/to/file.cxt path/to/file.html'
+    return 1
+  end
+  print('cxt.html', args[1], '-->', args[2])
+  local inp = LFile:load(args[1])
+  local to  = LFile:create(args[2])
+  M.convert(inp, to)
+  inp:close(); to:flush(); to:close()
+  return 0
+end
 
-setmetatable(M, {
-  __call = function(_, args, isExe)
-    print('cxt.html', args[1], args[2])
-    local inp = LFile:load(args[1])
-    local to = LFile:create(args[2])
-    M.convert(inp, to)
-    inp:close(); to:flush(); to:close()
-  end,
-})
-M.shim = shim {
-  help = 'Convert cxt doc to html',
-  exe = M,
-}
+if M == MAIN then os.exit(M.main(arg)) end
 
 return M

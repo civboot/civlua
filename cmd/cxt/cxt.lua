@@ -53,6 +53,7 @@ end
 
 -- find the end of a [##raw block]##
 local function bracketedStrRaw(p, node, raw, ws)
+  node.code = node.code or (node.lang and true)
   local ws, w1 = p.line:find'^%s+' -- leading whitespace
   ws = ws and p.line:sub(ws, w1) or nil
   local l, c, closePat = p.l, p.c, '%]'..string.rep(RAW, raw)
@@ -171,39 +172,45 @@ end
 
 local function parseTable(p, tbl)
   if p.line and p.c > #p.line then p:incLine() end
-  local rowDel, colDel = tbl.row or '+', tbl.col or '|'
+  local rowDel, headDel, colDel = tbl.row or '+', tbl.head or '#', tbl.col or '|'
+  local rowStart = {[rowDel]=true, [headDel]=true}
 
   -- alternative end lambda
   local altEnd = function(p, node, l, c)
     if not p.line:sub(1, p.c-1):find'%S' then -- only parsed ws
       local _, c2 = p.line:find'%S'           -- look for row start
-      if c2 and (p.line:sub(c2,c2) == rowDel) then return {rowDel, l, c} end
+      if c2 and rowStart[p.line:sub(c2,c2)] then return {p.line:sub(c2,c2), l, c} end
     end
     local c1, c2 = p.line:find(colDel, p.c, true); if not c1 then return end
     local b1, b2 = p.line:find('[', p.c, true)
     if not b1 or b1 > c1 then return {colDel, l, c} end
   end
 
-  local row, r = {}, true
-  while r do
+  local r, content, row = 1
+  repeat
     if p:isEof() then p:error'Expected a table got EOF' end
-    local col = {}; r = M.content(p, col, false, altEnd)
-    if r then
-      local delim, l, c = table.unpack(r)
-      local c1, c2 = p.line:find(delim, p.c, true)
-      if delim == colDel then
-        addToken(p, col, l, c, p.l, c1 - 1)
-      else assert(delim == rowDel)
-        addToken(p, col, l, c, p.l - 1, #p.dat[p.l - 1])
-      end
-      p.c = c2 + 1
+    local col = {}; content = M.content(p, col, false, altEnd)
+    if not content then
       if #col > 0 then add(row, col) end
-      if delim == rowDel then
-        if #row > 0 then add(tbl, row); row = {} end
-      end
-    elseif #col > 0 then add(row, col) end
-  end
-  if #row > 0 then add(tbl, row) end
+      break
+    end
+    local delim, l, c = table.unpack(content)
+    local c1, c2 = p.line:find(delim, p.c, true)
+    if delim == colDel then
+      addToken(p, col, l, c, p.l, c1 - 1)
+    else assert(rowStart[delim])
+      addToken(p, col, l, c, p.l - 1, #p.dat[p.l - 1])
+    end
+    p.c = c2 + 1
+    if row then add(row, col) end
+    if rowStart[delim] then -- save current row and start the next row
+      if row then add(tbl, row) end
+      row = {}
+      if delim == rowDel then        row.row = r; r = r + 1
+      else                           row.header = true end
+    end
+  until not content
+  if row and #row > 0 then add(tbl, row) end
   for _, row in ipairs(tbl) do
     for c, col in ipairs(row) do
       p:trimTokenStart(col)

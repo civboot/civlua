@@ -1,4 +1,4 @@
-MAIN = false
+MAIN = {}
 DOC, METATY_CHECK              = false, true
 LAP_READY,    LAP_ASYNC        = false, false
 LAP_FNS_SYNC, LAP_FNS_ASYNC    = false, false

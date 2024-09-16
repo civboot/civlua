@@ -55,6 +55,8 @@ test('simple', function()
   M.assertParse('with \\[[@foo]\\] okay', {
     'with ', '[', {'foo', clone='foo'}, '] okay',
   })
+
+  M.assertParse('empty [{}block works].', {'empty ', {'block works'}, '.'})
 end)
 
 test('block', function()
@@ -167,26 +169,26 @@ end)
 test('table', function()
   local doc = [[
 [{table}
-+ [*h]1 | h2   | h3
-+ r1.1  | r1.2 | r1.3
-+ r2.1  | r2.2 | r2.3
+# [*h]1     | h2   | h3
++ [{}+r1.1] | r1.2 | r1.3
++ [{}|r2.1] | r2.2 | r2.3
 ]
 ]]
   local noIndent = M.assertParse(doc,
   { -- src
     { table=true,
-      { -- header
+      { header=true,
         {"", {b=true, 'h'}, '1'},
         {"h2"},
         {"h3"},
       },
-      { -- row 1
-        {"r1.1"},
+      { row = 1,
+        {"", {"+r1.1"}, ""}, -- note: trimToken* causes ""
         {"r1.2"},
         {"r1.3"},
       },
-      { -- row 2
-        {"r2.1"},
+      { row = 2,
+        {"", {"|r2.1"}, ""},
         {"r2.2"},
         {"r2.3"},
       },
@@ -195,16 +197,15 @@ test('table', function()
   })
   local docIndent = [[
 [{table}
-  + [*h]1 | h2   | h3
-  + r1.1  | r1.2 | r1.3
-  + r2.1  | r2.2 | r2.3
+  # [*h]1 | h2   | h3
+  + [{}+r1.1] | r1.2 | r1.3
+  + [{}|r2.1] | r2.2 | r2.3
 ]
 ]]
   M.assertParse(docIndent, noIndent)
 end)
 
 test('named', function()
-
   M.assertParse([[
 [{n=n1 href=hi.com}N1]
 [@n1]
@@ -254,7 +255,7 @@ listing:[+
 
   html.assertHtml([[
 [{table}
-+ [*h]1 | h2   | h3
+# [*h]1 | h2   | h3
 + r1.1  | r1.2 | r1.3
 + r2.1  | r2.2 | r2.3
 ]
@@ -277,6 +278,18 @@ listing:[+
     "</tr>",
   "</table>",
   })
+
+  html.assertHtml([[
+Some [$inline code] and: [##
+code 1
+code 2
+]##
+next line.
+]], {
+  "Some <code>inline code</code> and: <code class=\"block\">code 1",
+  "code 2</code>",
+  "next line."
+})
 end)
 
 test('term', function()

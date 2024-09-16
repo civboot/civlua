@@ -1,7 +1,7 @@
+#!/usr/bin/env -S lua -e "require'pkglib'()"
 --- ff: find fix command. See --help for details
 local M = mod and mod'ff' or setmetatable({}, {})
 MAIN = MAIN or M
-
 
 local shim = require'shim'
 local mty = require'metaty'
@@ -195,8 +195,7 @@ local function argPats(args)
 end
 
 M.main = function(args)
-  local argsTy = type(args)
-  args = shim.parse(args)
+  args = shim.parseStr(args)
   args.pat = argPats(args)
   if #args == 0 then push(args, '.') end
   if args.sub then
@@ -254,11 +253,8 @@ M.main = function(args)
   return out
 end
 
-if M == MAIN then
-  main(arg)
-  os.exit(0)
-end
+if M == MAIN then M.main(shim.parse(arg)); os.exit(0) end
 
-getmetatable(M).__call = M.main
+getmetatable(M).__call = function(_, ...) return M.main(...) end
 
 return M

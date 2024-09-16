@@ -1,4 +1,4 @@
-#!/usr/bin/lua
+#!/usr/bin/env -S lua -e "require'pkglib'()"
 local pkglib = require'pkglib'
 mod = mod or pkglib.mod
 
