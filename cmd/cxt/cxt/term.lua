@@ -43,6 +43,8 @@ M.STYLES = {
   b = 'bold', u='ul',
 }
 
+M.HEADER = {h1=40, h2=20, h3=2, h4=1}
+
 local function nodeKind(n)
   if type(n) == 'string' or mty.ty(n) == Token then
     return 'token'
@@ -104,8 +106,14 @@ M.serialize = function(w, node)
   local kind = nodeKind(node)
   local fn = SER_KIND[kind]
   if fn then return fn(w, node) end
-
+  local header = M.HEADER[kind]
   local prevSty = w.style
+  if header then
+    w.style = 'meta'
+    push(w, string.rep('#', header))
+    if header > 4 then push(w, '\n# ') else push(w, ' ') end
+  end
+
   w.style = M.STYLES[kind] or node.style or prevSty
   for _, n in ipairs(node) do M.serialize(w, n) end
   w.style = prevSty

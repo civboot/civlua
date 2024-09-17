@@ -19,7 +19,7 @@
 --
 -- Alternatively, you can implement these methods yourself. See
 -- the requirements in the function documentation.
-local M = pkg and pkg'ds.serde' or {}
+local M = mod and mod'ds.pod' or {}
 
 M.TYPE_KEY = '??'
 
@@ -29,11 +29,11 @@ local icopy, popk, none = ds.icopy, ds.popk
 
 local toPod, fromPod, TO_POD, FROM_POD
 
--- Serialize value t into plain old data
+--- Serialize value t into plain old data
 M.toPod = function(val) return TO_POD[type(val)](val) end --> PoD
 toPod = M.toPod
 
--- Depod plain old data into metaty
+--- Depod plain old data into metaty
 M.fromPod = function(pod) --> value
   return (FROM_POD[type(pod)] or error('unknown type: '..type(pod)))
     (pod)

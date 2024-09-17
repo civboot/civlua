@@ -319,7 +319,8 @@ function foo() return 'hello world' end
 the end
 ]], sty)
 local expect =
-"Heading 1\
+"########################################\
+# Heading 1\
 Some text\
 ... more text\
 \
@@ -344,7 +345,8 @@ local _, node, p = term.convert(
 + [:__name]       [@string]            | \
 ]", sty)
   local expect =
-"doc_test lib/doc/test.lua:1 Ty<doc_test> \
+"########################################\
+# doc_test lib/doc/test.lua:1 Ty<doc_test> \
 \
   + Methods, Etc\
   + Example      Ty<Example>\9lib/doc/test.lua:11\

@@ -606,6 +606,69 @@ test('ds.pod', function()
 end)
 
 ---------------------
+-- ds/Iter.lua
+test('ds.Iter', function()
+  local It = require'ds.Iter'
+  local t = {4, 5, 'six', 7}
+
+  local isNumber = function(v) return type(v) == 'number' end
+  local numberVals = function(k, v) return isNumber(v)    end
+  local plus2 = function(v) return v + 2 end
+  local vToString = function(k, v) return k, tostring(v)  end
+
+  assertEq(t, It:ofList(t):to())
+  assertEq(t, It:of(t):to())
+  assertEq(t, It:ofList(t):valsTo())
+  assertEq({1, 2, 3, 4}, It:ofList(t):keysTo())
+
+  assertEq({4, 5, [4]=7}, It:ofList(t):filter(numberVals):to())
+  assertEq({1, 2, 4}, It:ofList(t):filter(numberVals):keysTo())
+  assertEq({4, 5, 7}, It:ofList(t):filter(numberVals):valsTo())
+
+  assertEq({4, 5, 7}, It:ofList(t):filterV(isNumber):valsTo())
+  assertEq({6, 7, 9},
+    It:ofList(t):filterV(isNumber):mapV(plus2):valsTo())
+
+  local strs = {'4', '5', 'six', '7'}
+  assertEq(strs, It:ofList(t):map(vToString):to())
+  assertEq(strs, It:ofList(t):mapV(tostring):to())
+  assertEq({1, 2, 3, 4}, It:ofList(t):mapV(tostring):keysTo())
+
+  assertEq({['1'] = 4, ['2'] = 5, ['3'] = 'six', ['4'] = 7},
+    It:of(t):mapK(tostring):to())
+
+  local lk = {11, 22, 33, 44, 55, 'unused', 77, six=666}
+  assertEq({11, 22, 33,  44}, It:ofList(t):lookupK(lk):keysTo())
+  assertEq({44, 55, 666, 77}, It:of(t):lookupV(lk):to())
+
+
+  local it = It:ofList(t):lookupK(lk)
+  local res = {}; for k, v in it do push(res, k)end
+  assertEq({11, 22, 33,  44}, res)
+
+  -- local it = It:ofList(t):lookupK(lk)
+  -- local res = {}; for k, v in it:iter() do push(res, k)end
+  -- assertEq({11, 22, 33,  44}, res)
+
+  -- local it = It:ofList(t):lookupV(lk)
+  -- local res = {}; for k, v in it:iter() do res[k] = v end
+  -- assertEq({44, 55, 666, 77}, res)
+
+  -- use a big table
+  local t = {}; for i=100,1,-1 do t[sfmt('%03i', i)] = i end
+  assertEq(t['001'], 1); assertEq(t['100'], 100);
+  local expect = {}; for i=1,100  do expect[i] = i end
+  assertEq(expect, It:ofOrdMap(t):valsTo())
+  assertEq(expect, It:ofOrdMap(t):index():to())
+
+  assertEq({a=1, b=2, c=3}, It:of{'a', 'b', 'c'}:swap():to())
+
+  local t = {10, 20, 30, 40, 50, 60}
+  assertEq({40, 50, 60},             It:ofSlc(t, 4):valsTo())
+  assertEq({[4]=40, [5]=50, [6]=60}, It:ofSlc(t, 4):to())
+end)
+
+---------------------
 -- ds/utf8.lua
 
 local function testU8(expect, chrs)

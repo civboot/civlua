@@ -15,7 +15,7 @@ assert(PKG_LOC and PKG_NAMES, ERROR)
 local shim = require'shim'
 local mty  = require'metaty'
 local ds   = require'ds'
-local sfmt = string.format
+local sfmt, srep = string.format, string.rep
 local push = table.insert
 local pth = require'ds.path'
 local pkglib = require'pkglib'
@@ -94,24 +94,26 @@ local fmtAttrs = function(d, f)
   if d.fields and next(d.fields) then
     push(f, '\n[*Fields:] '); M.fmtItems(f, d.fields)
   end
-  if d.other  and next(d.other) then
+  if d.other and next(d.other) then
     push(f, '\n[*Other:] '); M.fmtItems(f, d.other)
   end
 end
 
 M.Doc.__fmt = function(d, f)
   local path = d.path and sfmt(' [/%s]', pth.nice(d.path)) or ''
+  local name = PKG_NAMES[d.obj]
   local prefix = type(d.obj) == 'function' and 'Function'
               or pkglib.isMod(d.obj) and 'Module'
               or mty.isRecord(d.obj) and 'Record'
+              or (type(d.obj) == 'table') and 'Table'
               or type(d.obj)
-  pushfmt(f, '[{h%s}%s [{style=api}%s]%s]\n', f:getIndent() + 2,
-          prefix, d.name, path)
+  pushfmt(f, '[{h%s}%s [{style=api}%s]%s]', f:getIndent() + 2,
+          prefix, name or d.name or '(unnamed)', path)
   if type(d.obj) == 'function' and d.code and d.code[1] then
-    pushfmt(f, '[$%s]\n', d.code[1])
+    pushfmt(f, '\n[$%s]', d.code[1])
   end
   for i, l in ipairs(d.comments or {}) do
-    push(f, l); if i < #d.comments then push(f, '\n') end
+    push(f, '\n'); push(f, l)
   end
   fmtAttrs(d, f)
 end
@@ -227,16 +229,23 @@ local function modcmp(a, b)
 end
 
 --- expand a module's documentation
-M.fmtmod = function(f, mod) --> Fmt
+M.fmtmod = function(f, mod, skip) --> Fmt
   local d = M.Doc(mod)
   pushfmt(f, '[{h2}Module %s [/%s]]\n', d.name, d.path)
   ds.extend(f, table.concat(d.comments, '\n'))
+  if skip then
+    local rm = {}; for k, obj in pairs(mod) do
+      local name = PKG_NAMES[obj]; if skip[name] then push(rm, name) end
+    end
+    for _, k in rm do mod[k] = nil end
+  end
   local keys = ds.orderedKeys(mod)
   for i, k in ipairs(keys) do
-    f:incIndent()
-    f(M.Doc(mod[k]))
-    f:decIndent()
-    if i < #keys then push(f, '\n') end
+    local obj = mod[k]
+    if skip and skip[PKG_NAMES[obj]] then goto continue end
+    f:incIndent(); f(M.Doc(mod[k])); f:decIndent()
+    if i < #keys then push(f, '\n\n') end
+    ::continue::
   end
   return f
 end
@@ -245,13 +254,26 @@ end
 M.fmtpkg = function(f, pkgname) --> Fmt
   local pkg, pkgdir = pkglib.getpkg(pkgname)
   if not pkg then error('could not find pkg '..pkgname) end
-  pushfmt(f, '\n[{h1}Package %s [/%s/PKG.lua]]\n', pkgname, pth.nice(pkgdir))
-  local mods = pkglib.modules(pkg.srcs)
+  pushfmt(f, '[{h1}Package %s [/%s/PKG.lua]]\n', pkgname, pth.nice(pkgdir))
+  if pkg.summary then pushfmt(f, '%s', pkg.summary) end
+  push(f, ' [{table}')
+  pushfmt(f, '\n+ [*version] | [$%s]', pkg.version or '(no version)')
+  if pkg.homepage then pushfmt(f, '\n+ [*homepage] | %s', pkg.homepage) end
+  if pkg.main then push(f, '\n+ [*main()] | can be run as script') end
+  push(f, ']\n')
+
+  local mods = ds.copy(pkglib.modules(pkg.srcs))
+  local skip = {}
+  if pkg.main then
+    local main = M.find(pkg.main)
+              or error('could not find PKG.main = '..pkg.main)
+    M.fmthelp(f, main); skip[PKG_NAMES[main]] = true
+  end
   mods = ds.sort(ds.keys(mods), modcmp)
   for i, modname in ipairs(mods) do
     local obj = pkglib.get(modname)
     if pkglib.isMod(obj) then M.fmtmod(f, obj) else f(M.Doc(obj)) end
-    if i < #mods then push(f, '\n') end
+    if i < #mods then f:write'\n\n' end
   end
   return f
 end
@@ -265,16 +287,23 @@ M.docstr = function(obj) --> string
   return table.concat(mty.Fmt{}(M.Doc(obj)))
 end
 
+
+M.fmthelp = function(f, Args)
+  local d = M.Doc(Args)
+  for i, line in ipairs(d.comments or {}) do
+    f:write(line); if i < #d.comments then f:write'\n' end
+  end
+  if d.fields and #d.fields > 0 then
+    f:write'\nNamed args: '; M.fmtItems(f, d.fields)
+  end
+  return f
+end
+
 --- Get the helpstr for Args type (comments + fields).
 ---
 --- This is used if a function has an associated type for just arg-checking.
 M.helpstr = function(Args) --> string
-  local d, fmt = M.Doc(Args), mty.Fmt{}
-  for _, line in ipairs(d.comments or {}) do fmt:write(line, '\n') end
-  if d.fields and #d.fields > 0 then
-    fmt:write'\nNamed args: '; M.fmtItems(fmt, d.fields)
-  end
-  return table.concat(fmt)
+  return table.concat(M.fmthelp(mty.Fmt{}, Args))
 end
 
 M.styleHelp = function(styler, Args) require'cxt.term'{M.helpstr(Args), to=styler} end

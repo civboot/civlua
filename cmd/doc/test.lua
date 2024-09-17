@@ -42,7 +42,6 @@ another line"
 
 local mDoc =
 "[{h2}Module [{style=api}doc_test] [/cmd/doc/test.lua:1]]\
-\
 [*Other:] [{table}\
 + [$Example]       | \\[[@Ty<Example>]\\] [/cmd/doc/test.lua:11]\
 + [$__name]        | \\[[@string]\\] \

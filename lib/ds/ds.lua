@@ -46,6 +46,8 @@ end
 
 ---------------------
 -- Pseudo Types
+
+--- the only four non-mutable data types in lua
 local CONCRETE_TYPES = {
   ['nil']=true, boolean=true, number=true, string=true
 }
@@ -293,6 +295,7 @@ M.keys = function(t)
 end
 
 M.inext = ipairs{} -- next(t, key) but with indexes
+local inext = M.inext
 
 -- inext but reversed.
 M.iprev = function(t, i)
@@ -302,7 +305,6 @@ end
 -- ipairs reversed
 M.ireverse = function(t) return M.iprev, t, #t + 1 end
 
--- for i, v in rawislice({t, endi}, starti)
 M.rawislice = function(state, i)
   i = i + 1; if i > state[2] then return end
   return i, state[1][i]
@@ -312,7 +314,10 @@ end
 --   Unlike other i* functions, this ignores length
 --   except as the default value of endi
 M.islice = function(t, starti, endi)
-  return M.rawislice, {t, endi or #t}, (starti or 1) - 1
+  if endi then
+    return M.rawislice, {t, endi}, (starti or 1) - 1
+  end
+  return inext, t, (starti or 1) - 1
 end
 
 M.slice = function(t, starti, endi) --> t[starti:endi]
@@ -479,10 +484,10 @@ M.indexOfPat = function(strs, pat)
 end
 
 -- popit(t, i) -> t[i]  -- also, the length of t is reduced by 1
--- 
+--
 -- popit (aka pop-index-top) will return the value at t[i], replacing it with the
 -- value at the end (aka top) of the list.
--- 
+--
 -- if i > #t returns nil and doesn't affect the size of the list.
 M.popit = function(t, i)
   local len = #t; if i > len then return end
@@ -492,10 +497,10 @@ end
 
 -- walk(tbl, fieldFn, tableFn, maxDepth, state)
 -- Walk the table up to depth maxDepth (or infinite if nil).
--- 
+--
 -- fieldFn(key, value, state)  -> stop  is called for every non-table value.
 -- tableFn(key, tblValue, state) -> stop is called for every table value
--- 
+--
 -- If tableFn stop==ds.SKIP (i.e. 'skip') then that table is not recursed.
 -- Else if stop then the walk is halted immediately
 M.walk = function(t, fieldFn, tableFn, maxDepth, state)
@@ -537,20 +542,6 @@ M.deepcopy = function(t)
     out[k] = v
   end
   return setmetatable(out, getmetatable(t))
-end
-
-M.iter = function(l)
-  local i = 0
-  return function()
-    i = i + 1; if i <= #l then return i, l[i] end
-  end
-end
-
-M.iterV = function(l)
-  local i = 0
-  return function()
-    i = i + 1; if i <= #l then return l[i] end
-  end
 end
 
 ---------------------
@@ -687,10 +678,10 @@ M.sentinel = function(name, mt)
   return setmetatable({}, mt)
 end
 
--- none: "set as none" vs nil aka "unset"
---
--- none is a sentinel value. Use it in APIs where there is an
--- "unset but none" such as JSON's "null".
+--- none: "set as none" vs nil aka "unset"
+---
+--- none is a sentinel value. Use it in APIs where there is an
+--- "unset but none" such as JSON's "null".
 M.none = M.sentinel('none', {__metatable='none'})
 
 -- convert to boolean (none aware)
