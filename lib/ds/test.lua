@@ -268,6 +268,9 @@ test('table', function()
   assertEq(3, M.pairlen{1, 2, z=4})
 
   assertEq({4, 2, 3}, M.icopy{4, 2, 3, a=4})
+
+  assertEq({'a', 'b', 'c'}, M.orderedKeys{a=1, b=2, c=3})
+  assertEq({'a', 'b', 'c', a=1, b=2, c=3}, M.pushSortedKeys{a=1, b=2, c=3})
 end)
 
 test('Slc', function()

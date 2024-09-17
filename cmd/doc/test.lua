@@ -13,9 +13,13 @@ M.Example.method = function() end
 
 METATY_CHECK = true
 
+local pkglib = require'pkglib'
 local mty = require'metaty'
-local doc = require'doc'
 local T = require'civtest'
+local doc = require'doc'
+
+local str = mty.tostring
+
 T.assertEq(mod.__newindex, getmetatable(M.Example).__newindex)
 T.assertEq('doc_test.Example',    PKG_NAMES[M.Example])
 T.assertEq('cmd/doc/test.lua:11', PKG_LOC[M.Example])
@@ -63,14 +67,48 @@ local eFn =
 document a fn\
 another line"
 
+local doFmt = function(fn, obj)
+  local f = mty.Fmt{}
+  fn(f, obj)
+  return table.concat(f, '\n')
+end
 
-local mDoc =
-"[{h2}Module [{style=api}doc_test] [/cmd/doc/test.lua:1]]\
-[*Other:] [{table}\
-+ [$Example]       | \\[[@Ty<Example>]\\] [/cmd/doc/test.lua:11]\
-+ [$__name]        | \\[[@string]\\] \
-+ [$exampleFn]     | \\[[@function]\\] [/cmd/doc/test.lua:5]\
-]"
+T.test('doc fn', function()
+  local res = doc.construct(M.exampleFn, nil, 0)
+  T.assertEq(
+    '[$doc_test.exampleFn] | \\[function\\] [/cmd/doc/test.lua:5]',
+    doFmt(doc.fmtDocItem, res))
+
+  local res = doc.construct(M.exampleFn, nil, 1)
+  T.assertEq('Function', res.docTy)
+  T.assertEq(
+"[{h3}Function [{style=api}doc_test.exampleFn] [/cmd/doc/test.lua:5]]\
+document a fn\
+another line\
+\
+[$M.exampleFn = function() end]",
+    doFmt(doc.fmtDoc, res))
+end)
+
+
+T.test('doc ty', function()
+  local res = doc.construct(M.Example, nil, 0)
+  T.assertEq(
+    "[$doc_test.Example] | \\[Ty<Example>\\] [/cmd/doc/test.lua:11]",
+    str(res))
+
+  local res = doc.construct(M.Example, nil, 1)
+  T.assertEq(
+    '',
+    str(res))
+end)
+
+-- T.test('doc module', function()
+--   local fm = dofile'cmd/doc/docfake.lua'
+--   local res = doc.construct(fm, '??', 5)
+--   print('!! doc module', mty.ty(res))
+--   T.assertEq('', str(res))
+-- end)
 
 -- T.test('doc.get', function()
 --   T.assertEq(eFn,     doc.docstr(M.exampleFn))

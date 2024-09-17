@@ -36,18 +36,9 @@ local objTyStr = function(obj)
   return (ty == 'table') and mty.tyName(mty.ty(obj)) or ty
 end
 local isConcrete = function(obj)
-  return mty.isConcrete(obj) or (getmetatable(obj) == nil)
+  return ds.isConcrete(obj) or (getmetatable(obj) == nil)
 end
 
---    local ty = fields[field]
---    ty = (type(ty) == 'string') and cleanFieldTy(ty) or false
---    push(d.fields, M.DocItem{
---      name=field, ty=ty and sfmt('[@%s]', ty),
---      default=rawget(obj, field),
---      doc = docs[field],
---    })
---    t[field] = nil
---
 --- Documentation on a single type
 --- These pull together the various sources of documentation
 --- from the PKG and META_TY specs into a single object.
@@ -69,6 +60,7 @@ M.Doc = mty'Doc' {
   'mods   [table]: sub modules (for PKG)',
   'lvl    [int]: level inside another type (nil or 1)',
 }
+M.Doc.__tostring = function(d) return sfmt('Doc%q', d.name) end
 
 M.DocItem = mty'DocItem' {
   'obj [any]',
@@ -76,6 +68,7 @@ M.DocItem = mty'DocItem' {
   'path [string]',
   'default [any]', 'doc [string]'
 }
+M.DocItem.__tostring = function(di) return sfmt('DocItem%q', di.name) end
 
 --- return the object's "document type"
 M.type = function(obj)
@@ -92,32 +85,39 @@ local constructPkg
 --- get a Doc or DocItem. If expand is true then recurse.
 M.construct = function(obj, key, expand, lvl) --> Doc | DocItem
   expand = expand or 0
-  local docTy = M.type(obj)
+  local docTy = assert(M.type(obj))
   if docTy == 'Package' then return constructPkg(obj, expand) end
 
   local name, path = M.modinfo(obj)
   local d = {
     obj=obj, path=path,
-    name=name or key, pkgname=PKG_NAMES[obj],
+    name=key or name, pkgname=PKG_NAMES[obj],
     ty=objTyStr(obj),
   }
   local comments, code = M.findcode(path)
   if comments then M.stripComments(comments) end
-  if expand <= 0 or ((#comments == 0) and isConcrete(obj)) then
-    return M.DocInfo(d)
+  if comments and #comments == 0 then comments = nil end
+  if code     and #code == 0     then code = nil end
+  if expand <= 0 or (not comments and isConcrete(obj))
+    and (docTy == 'Table' or docTy == 'Value') then
+    return M.DocItem(d)
   end
-  if type(obj) ~= 'table' then return M.Doc(d) end
+  d.lvl, d.docTy, d.comments, d.code = lvl, docTy, comments, code
+  d = M.Doc(d)
+  if type(obj) ~= 'table' then return d end
 
-  d.lvl, d.docTy, d.call = lvl, docTy, mty.getmethod(obj, '__call')
+  d.call = mty.getmethod(obj, '__call')
   local t = ds.copy(obj) -- we will remove from t as we go
+  setmetatable(t, nil)
 
   -- get fields as DocItems
   d.fields = rawget(obj, '__fields'); if d.fields then
+    d.fields = ds.copy(d.fields)
     local fdocs = rawget(obj, '__docs') or {}
     for k, field in ipairs(d.fields) do
       t[field] = nil
       local ty = d.fields[field]
-      ty = type(ty) == 'string' and cleanFieldTy(ty) or nil
+      ty = type(ty) == 'string' and M.cleanFieldTy(ty) or nil
       d.fields[k] = M.DocItem {
         name=k, ty=ty, default=rawget(obj, field),
         doc = fdocs[field],
@@ -137,15 +137,14 @@ M.construct = function(obj, key, expand, lvl) --> Doc | DocItem
   end
 
   local function finish(attr, lvl)
-    local t = d[attr]
+    local t = d[attr]; ds.pushSortedKeys(t)
     if #t == 0 then d[t] = nil; return end
-    ds.pushSortedKeys(t)
     for _, k in ipairs(t) do
       t[k] = M.construct(t[k], k, expand - 1, lvl)
     end
   end
   d.values = t
-  if #d.fields == 0 then d.fields = nil end
+  if d.fields and #d.fields == 0 then d.fields = nil end
   finish'values'; finish'tys'; finish'mods'
   finish('fns', (d.docTy == 'Record' or d.docTy == 'Table') and 1 or nil)
   return d
@@ -215,7 +214,7 @@ M.findcode = function(loc) --> (commentLines, codeLines)
   return ds.reverse(comments), ds.reverse(code)
 end
 
-local function cleanFieldTy(ty)
+M.cleanFieldTy = function(ty)
   return ty:match'^%[.*%]$' and ty:sub(2,-2) or ty
 end
 
@@ -242,7 +241,7 @@ end
 ---------------------
 -- Format to CXT
 
-M.DocItem.__fmt = function(di, f)
+M.fmtDocItem = function(f, di)
   local name = di.name and sfmt('[$%s]', di.name) or '(unnamed)'
   local ty = di.ty and sfmt('\\[%s\\]', di.ty) or ''
   local path = di.path and sfmt('[/%s]', pth.nice(di.path))
@@ -258,31 +257,26 @@ M.DocItem.__fmt = function(di, f)
   end
 end
 
-M.fmtItems = function(f, items)
-  pushfmt(f, '[{table}')
-  for i, item in ipairs(items) do push(f, '\n+ '); f(item) end
-  push(f, '\n]')
-end
 M.fmtAttr = function(f, name, attr)
   if not attr or not next(attr) then return end
   local docs, dis = {}, {}
   for _, k in ipairs(attr) do
     if mty.ty(attr[k]) == M.Doc then push(docs, k)
-    else push(dis, k) end -- DocInfo and values
+    else push(dis, k) end -- DocItem and values
   end
   if #dis > 0 then
-    pushfmt('[*%s: ] [{table}', name)
-    for i, k in dis do
+    pushfmt(f, '\n[*%s: ] [{table}', name)
+    for i, k in ipairs(dis) do
       local v = attr[k]
       push(f, '\n+ ')
-      if mty.ty(v) == M.DocItem then f(v) -- has __fmt already
+      if mty.ty(v) == M.DocItem then fmtDocItem(f, v)
       else pushfmt(f, '[*%s] | [##', k); f(v); push(f, ']') end
-      if i < #dis then push(f, '\n') end
     end
+    push(f, '\n]')
   end
   if #docs > 0 then
     for i, k in ipairs(docs) do
-      push(f, '\n\n'); f(attr[k])
+      push(f, '\n'); fmtDoc(f, attr[k])
     end
   end
 end
@@ -290,6 +284,7 @@ end
 local HEADERS = {Package=1, Module=2, Record=3, Table=3}
 M.docHeader = function(docTy, lvl)
   if docTy == 'Function' then return 3 + (lvl or 0) end
+  return assert(HEADERS[docTy])
 end
 
 M.fmtMeta = function(f, m)
@@ -300,7 +295,9 @@ M.fmtMeta = function(f, m)
   pushfmt(f, '\n]')
 end
 
-M.Doc.__fmt = function(d, f)
+M.fmtDoc = function(f, d)
+  print('!! doc.__fmt', tostring(d))
+  print('!! traceback', ds.traceback())
   local path = d.path and sfmt(' [/%s]', pth.nice(d.path)) or ''
   local name = d.pkgname or d.name
   pushfmt(f, '[{h%s}%s [{style=api}%s]%s]',
@@ -309,23 +306,31 @@ M.Doc.__fmt = function(d, f)
           d.pkgname or d.name or '(unnamed)', path)
   if d.meta then M.fmtMeta(f, d.meta) end
   if d.comments then
-    for i, l in ipairs(d.comments) do f:write('\n', l) end
+    mty.print('!! comments', d.comments)
+    for i, l in ipairs(d.comments) do
+      print('!! pushing comment:', l)
+      push(f, '\n'); push(f, l)
+    end
   end
   if type(d.obj) == 'function' and d.code and d.code[1] then
-    pushfmt(f, '\n[$%s]', d.code[1])
+    pushfmt(f, '\n\n[$%s]', d.code[1])
   end
   if d.fields then M.fmtAttr(f, 'Fields',  d.fields) end
-  if d.values then
-    M.fmtAttr(f, 'Values',  d.values)
-  end
+  if d.values then M.fmtAttr(f, 'Values',  d.values) end
   if d.tys    then M.fmtAttr(f, 'Records', d.tys) end
-  if d.fns    then
+  if d.fns then
     local name = (d.docTy == 'Record') and 'Methods' or 'Functions'
     M.fmtAttr(f, name, d.fns)
   end
   if d.mods then
     for _, m in ipairs(d.mods) do
-      push(f, '\n\n'); f(d.mods[m])
+      push(f, '\n\n'); fmtDoc(d.mods[m])
+    end
+  end
+  if d.tys then
+    print('!!   tys...')
+    for k, v in pairs(d.tys) do
+      mty.print('!!     tys', tostring(k), tostring(v))
     end
   end
 end

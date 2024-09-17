@@ -87,11 +87,11 @@ M.newTable  = function() return {}    end
 M.eq        = function(a, b) return a == b end
 
 M.srcloc = function(level) --> "/path/to/dir/file.lua:10"
-  local tb  = debug.traceback(nil, 2 + (level or 0))
+  local tb  = traceback(nil, 2 + (level or 0))
   return assert(tb:match'.*traceback:%s+([^\n]+:%d+)')
 end
 M.shortloc = function(level) --> "dir/file.lua:10"
-  local tb  = debug.traceback(nil, 2 + (level or 0))
+  local tb  = traceback(nil, 2 + (level or 0))
   return assert(tb:match'.*traceback:%s+[^\n]-([^\n/]*/[^/\n]+:%d+)')
 end
 local shortloc = M.shortloc
@@ -1049,12 +1049,16 @@ M.IGNORE_TRACE = {
   ["[C]: in ?"]=true,
 }
 -- convert the string traceback into a list
-M.tracelist = function(tbstr) --> {traceback}
+M.tracelist = function(tbstr, level) --> {traceback}
+  tbstr = tbstr or traceback(2 + (level or 0))
   local ig, tb = M.IGNORE_TRACE, {}
   for l in tbstr:gmatch'%s*([^\n]*)' do
     if not ig[l] then push(tb, l) end
   end
   return tb
+end
+M.traceback = function(level)
+  return concat(M.tracelist(nil, 1 + (level or 0)), '\n    ')
 end
 
 -- Error message, traceback and cause
