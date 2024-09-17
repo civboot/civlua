@@ -66,7 +66,7 @@ end
 
 M.defaultAcWriter = function(f)
   f = f or io.stdout
-  f = mty.ty(f) == mty.Fmt and f or mty.Fmt{to=f}
+  f = (mty.ty(f) == mty.Fmt) and f or mty.Fmt:pretty{to=f}
   return require'vt100.AcWriter'{f=f}
 end
 

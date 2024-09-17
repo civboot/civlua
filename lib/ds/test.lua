@@ -666,6 +666,9 @@ test('ds.Iter', function()
   local t = {10, 20, 30, 40, 50, 60}
   assertEq({40, 50, 60},             It:ofSlc(t, 4):valsTo())
   assertEq({[4]=40, [5]=50, [6]=60}, It:ofSlc(t, 4):to())
+
+  assertEq({[2]=20, [4]=40}, It:of(t):keyIn{[2]=1,  [4]=1}:to())
+  assertEq({[2]=20, [4]=40}, It:of(t):valIn{[20]=1, [40]=1}:to())
 end)
 
 ---------------------

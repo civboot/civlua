@@ -127,7 +127,9 @@ M.getpkg = function(pkgname) --> PKG, pkgdir
     M.discover(assert(os.getenv'LUA_PKGS' or '', 'must export LUA_PKGS'))
   end
   local pkgdir = M.PKGS[pkgname]; if not pkgdir then return end
-  return M.load(pkgname, pjoin(pkgdir, 'PKG.lua')), pkgdir
+  local pkg = M.load(pkgname, pjoin(pkgdir, 'PKG.lua'))
+  pkg.PKG_DIR = pkgdir
+  return pkg, pkgdir
 end
 
 -- get the package. The API is identical to 'require' except
@@ -222,11 +224,16 @@ do local modloc = srcloc()
   })
 end
 
+M.isPkg = function(t)
+  return type(t) == 'table' and rawget(t, 'PKG_DIR')
+end
+
 M.isMod = function(t)
   if type(t) ~= 'table' then return false end
   local mt = getmetatable(t)
   return mt and mt.__name and mt.__name:find'^Mod<'
 end
+
 
 -- override globals {require, mod}
 M.install = function()

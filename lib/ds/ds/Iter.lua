@@ -26,6 +26,9 @@ local rawislice, inext = ds.rawislice, ds.inext
 
 local swapKV = function(k, v) return v, k end
 
+--------------------------------
+-- Constructors
+
 --- construct from table of [${nextFn, state, startK}] (see [$help 'for']).
 --- Examples: [{## lang=lua}
 ---   it = Iter{pairs(t)}  -- recommendation: use It:of(t) instead
@@ -63,6 +66,9 @@ Iter.ofSlc = function(T, t, starti, endi)
   end
   return T{inext, t, (starti or 1) - 1}
 end
+
+--------------------------------
+-- Mapping methods
 
 --- emit [$k, fn(v)] for each non-nil result
 ---
@@ -127,6 +133,40 @@ Iter.lookupV = function(it, t) --> it
   end)
 end
 
+--- emit [$k, v] for each non-nil [$t[k]]
+Iter.keyIn = function(it, t) --> it
+  return it:map(function(k, v)
+    if t[k] ~= nil then return k, v end
+  end)
+end
+
+--- emit [$k, v] for each nil [$t[k]]
+Iter.keyNotIn = function(it, t) --> it
+  return it:map(function(k, v)
+    if t[k] == nil then return k, v end
+  end)
+end
+
+--- emit [$k, v] for each non-nil [$t[v]]
+Iter.valIn = function(it, t) --> it
+  return it:map(function(k, v)
+    if t[v] ~= nil then return k, v end
+  end)
+end
+
+--- emit [$k, v] for each nil [$t[v]]
+Iter.valNotIn = function(it, t) --> it
+  return it:map(function(k, v)
+    if t[v] == nil then return k, v end
+  end)
+end
+
+--- emit [$k, v] after calling [$fn(k, v)].
+--- The results of the fn are ignored
+Iter.listen = function(it, fn)
+  return it:map(function(k, v) fn(k, v); return k, v end)
+end
+
 --- emit [$i, k], dropping values. [$i] starts at [$1] and increments each
 --- time called.
 ---
@@ -139,8 +179,19 @@ end
 --- emit [$v, k] (swaps key and value)
 Iter.swap = function(it) return it:map(swapKV) end --> it
 
------------------------
+--------------------------------
 -- Collecting Methods
+
+--- run the iterator over all functions
+Iter.run = function(it) --> nil
+  local li, k = it._li
+  for key, v in unpack(it) do
+    k = key; for i=-1,li,-1 do
+      k = it[i](k, v); if k == nil then goto skip end
+    end
+    ::skip::
+  end
+end
 
 --- collect non-nil [$k, v] as a table.
 Iter.to = function(it, to) --> to

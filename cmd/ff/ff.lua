@@ -1,5 +1,5 @@
 #!/usr/bin/env -S lua -e "require'pkglib'()"
---- ff: find fix command. See --help for details
+--- ff module (see [$ff.Main] for docs)
 local M = mod and mod'ff' or setmetatable({}, {})
 MAIN = MAIN or M
 
@@ -18,11 +18,11 @@ local doc = require'doc'
 local s = ds.simplestr
 local sfmt = string.format
 
---- ff: a simple utility to find and fix files and file-content
+--- a simple utility to find and fix files and file-content
 ---
---- List args: %patShortcut path1 path2
+--- List args: [$%patShortcut path1 path2]
 ---
---- Examples (bash): [{## lang=bash}
+--- [*Examples (bash):] [{## lang=bash}
 ---   ff path                   # print files at path (recursively)
 ---   ff path --dir             # also print directories
 ---   ff path --depth=3         # recurse to depth 3 (default=1)
@@ -38,9 +38,9 @@ local sfmt = string.format
 ---   # rename OldTestClass -> NewTestClass, 'C' is not case sensitive.
 --- ]##
 ---
---- Special: indexed %arg will be converged to --pat=arg
+--- [*Special:] [$indexed %arg will be converged to --pat=arg]
 ---
---- Shorts: [##
+--- [*Shorts:] [##
 ---   d: --dirs=true
 ---   p: --plain=true
 ---   m: --mut=true

@@ -191,7 +191,7 @@ local function parseTable(p, tbl)
     if p:isEof() then p:error'Expected a table got EOF' end
     local col = {}; content = M.content(p, col, false, altEnd)
     if not content then
-      if #col > 0 then add(row, col) end
+      if row and #col > 0 then add(row, col) end
       break
     end
     local delim, l, c = table.unpack(content)

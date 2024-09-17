@@ -15,6 +15,7 @@ assert(PKG_LOC and PKG_NAMES, ERROR)
 local shim = require'shim'
 local mty  = require'metaty'
 local ds   = require'ds'
+local Iter = require'ds.Iter'
 local sfmt, srep = string.format, string.rep
 local push = table.insert
 local pth = require'ds.path'
@@ -24,8 +25,157 @@ local fd = require'fd'
 
 local sfmt, pushfmt = string.format, ds.pushfmt
 
+--- Find the object or name in pkgs
+M.find = function(obj) --> Object
+  if type(obj) ~= 'string' then return obj end
+  return PKG_LOOKUP[obj] or M.getpath(obj) or rawget(_G, obj)
+end
+
+local objTyStr = function(obj)
+  local ty = type(obj)
+  return (ty == 'table') and mty.tyName(mty.ty(obj)) or ty
+end
+local isConcrete = function(obj)
+  return mty.isConcrete(obj) or (getmetatable(obj) == nil)
+end
+
+--    local ty = fields[field]
+--    ty = (type(ty) == 'string') and cleanFieldTy(ty) or false
+--    push(d.fields, M.DocItem{
+--      name=field, ty=ty and sfmt('[@%s]', ty),
+--      default=rawget(obj, field),
+--      doc = docs[field],
+--    })
+--    t[field] = nil
+--
+--- Documentation on a single type
+--- These pull together the various sources of documentation
+--- from the PKG and META_TY specs into a single object.
+---
+--- Example: [$metaty.tostring(doc.Doc(myObj))]
+M.Doc = mty'Doc' {
+  'obj [any]: the object being documented',
+  'name[string]', 'pkgname[string]',
+  'ty [Type]: type, can be string', 'docTy [string]',
+  'path [str]',
+  'meta [table]: metadata, mostly used for PKG',
+  'comments [lines]: comments above item',
+  'code [lines]: code which defines the item',
+  'call   [function]',
+  'fields [table{name=DocItem}]: (for metatys)',
+  'values [table]: raw values that are not the other types',
+  'tys    [table]: table of values',
+  'fns    [table]: methods or functions',
+  'mods   [table]: sub modules (for PKG)',
+  'lvl    [int]: level inside another type (nil or 1)',
+}
+
+M.DocItem = mty'DocItem' {
+  'obj [any]',
+  'name', 'pkgname [string]', 'ty [string]',
+  'path [string]',
+  'default [any]', 'doc [string]'
+}
+
+--- return the object's "document type"
+M.type = function(obj)
+  return type(obj) == 'function' and 'Function'
+      or pkglib.isMod(obj)       and 'Module'
+      or mty.isRecord(obj)       and 'Record'
+      or pkglib.isPkg(obj)       and 'Package'
+      or (type(obj) == 'table')  and 'Table'
+      or 'Value'
+end
+
+local constructPkg
+
+--- get a Doc or DocItem. If expand is true then recurse.
+M.construct = function(obj, key, expand, lvl) --> Doc | DocItem
+  expand = expand or 0
+  local docTy = M.type(obj)
+  if docTy == 'Package' then return constructPkg(obj, expand) end
+
+  local name, path = M.modinfo(obj)
+  local d = {
+    obj=obj, path=path,
+    name=name or key, pkgname=PKG_NAMES[obj],
+    ty=objTyStr(obj),
+  }
+  local comments, code = M.findcode(path)
+  if comments then M.stripComments(comments) end
+  if expand <= 0 or ((#comments == 0) and isConcrete(obj)) then
+    return M.DocInfo(d)
+  end
+  if type(obj) ~= 'table' then return M.Doc(d) end
+
+  d.lvl, d.docTy, d.call = lvl, docTy, mty.getmethod(obj, '__call')
+  local t = ds.copy(obj) -- we will remove from t as we go
+
+  -- get fields as DocItems
+  d.fields = rawget(obj, '__fields'); if d.fields then
+    local fdocs = rawget(obj, '__docs') or {}
+    for k, field in ipairs(d.fields) do
+      t[field] = nil
+      local ty = d.fields[field]
+      ty = type(ty) == 'string' and cleanFieldTy(ty) or nil
+      d.fields[k] = M.DocItem {
+        name=k, ty=ty, default=rawget(obj, field),
+        doc = fdocs[field],
+      }
+    end
+  end
+
+  -- get other buckets
+  d.fns, d.tys, d.mods = {}, {}, {}
+  for k, v in pairs(t) do
+    if type(v) == 'function' then
+      if PKG_NAMES[v] then d.fns[k] = v; t[k] = nil end
+      -- else keep as "value"
+    elseif pkglib.isMod(v)  then d.mods[k]   = v; t[k] = nil
+    elseif mty.isRecord(v)  then d.tys[k]    = v; t[k] = nil
+    end
+  end
+
+  local function finish(attr, lvl)
+    local t = d[attr]
+    if #t == 0 then d[t] = nil; return end
+    ds.pushSortedKeys(t)
+    for _, k in ipairs(t) do
+      t[k] = M.construct(t[k], k, expand - 1, lvl)
+    end
+  end
+  d.values = t
+  if #d.fields == 0 then d.fields = nil end
+  finish'values'; finish'tys'; finish'mods'
+  finish('fns', (d.docTy == 'Record' or d.docTy == 'Table') and 1 or nil)
+  return d
+end
+
+-- compare so items with [$.] come last in a sort
+local function modcmp(a, b)
+  if a:find'%.' then
+    if not b:find'%.' then return false end -- b is first
+  elseif b:find'%.'   then return true  end -- a is first
+  return a < b
+end
+
+constructPkg = function(pkg, expand) --> Doc
+  local d = M.Doc{}
+  d.name, d.path = pkg.name, pkg.PKGDIR
+  d.meta = {
+    summary = pkg.summary, version = pkg.version,
+    homepage = pkg.homepage,
+  }
+  d.mods = pkglib.modules(pkg.srcs)
+  ds.pushSortedKeys(d.mods, modcmp)
+  for i, mname in ipairs(d.mods) do
+    d.mods[mname] = M.construct(pkglib.get(mname), mname, expand - 1)
+  end
+  return d
+end
+
 ---------------------
--- Doc and DocItem
+-- Helpers
 
 local VALID = {['function']=true, table=true}
 
@@ -65,67 +215,33 @@ M.findcode = function(loc) --> (commentLines, codeLines)
   return ds.reverse(comments), ds.reverse(code)
 end
 
-M.DocItem = mty'DocItem' {
-  'name', 'ty [string]', 'path [string]',
-  'default [any]', 'doc [string]'
-}
-
---- Documentation on a single type
---- These pull together the various sources of documentation
---- from the PKG and META_TY specs into a single object.
----
---- Example: [$metaty.tostring(doc.Doc(myObj))]
-M.Doc = mty'Doc' {
-  'obj [any]: the object being documented',
-  'name', 'ty [Type]: type, can be string',
-  'path [str]',
-  'comments [lines]: comments above item',
-  'code [lines]: code which defines the item',
-  'fields [table{name=DocItem}]',
-  'other [table{name=DocItem}]: methods and constants',
-}
-
-M.fmtItems = function(f, items)
-  pushfmt(f, '[{table}')
-  for i, item in ipairs(items) do push(f, '\n+ '); f(item) end
-  push(f, '\n]')
-end
-local fmtAttrs = function(d, f)
-  if d.fields and next(d.fields) then
-    push(f, '\n[*Fields:] '); M.fmtItems(f, d.fields)
-  end
-  if d.other and next(d.other) then
-    push(f, '\n[*Other:] '); M.fmtItems(f, d.other)
-  end
+local function cleanFieldTy(ty)
+  return ty:match'^%[.*%]$' and ty:sub(2,-2) or ty
 end
 
-M.Doc.__fmt = function(d, f)
-  local path = d.path and sfmt(' [/%s]', pth.nice(d.path)) or ''
-  local name = PKG_NAMES[d.obj]
-  local prefix = type(d.obj) == 'function' and 'Function'
-              or pkglib.isMod(d.obj) and 'Module'
-              or mty.isRecord(d.obj) and 'Record'
-              or (type(d.obj) == 'table') and 'Table'
-              or type(d.obj)
-  pushfmt(f, '[{h%s}%s [{style=api}%s]%s]', f:getIndent() + 2,
-          prefix, name or d.name or '(unnamed)', path)
-  if type(d.obj) == 'function' and d.code and d.code[1] then
-    pushfmt(f, '\n[$%s]', d.code[1])
-  end
-  for i, l in ipairs(d.comments or {}) do
-    push(f, '\n'); push(f, l)
-  end
-  fmtAttrs(d, f)
+M.stripComments = function(com)
+  if #com == 0 then return end
+  local ind = com[1]:match'^%-%-%-(%s+)' or ''
+  local pat = '^%-%-%-'..string.rep('%s?', #ind)..'(.*)%s*'
+  for i, l in ipairs(com) do com[i] = l:match(pat) or l end
 end
 
-M.DocItem.typeStr = function(di) return di.ty and mty.tyName(di.ty) end
-M.DocItem.defaultStr = function(di)
-  return di.default ~= nil and mty.format(' = %q', di.default)
+--- get any path with [$.] in it. This is mostly used by help/etc functions
+M.getpath = function(path)
+  require'doc.lua' -- ensure that builtins are included
+  path = type(path) == 'string' and ds.splitList(path, '%.') or path
+  local obj
+  for i=1,#path do
+    local v = obj and ds.get(obj, ds.slice(path, i))
+    if v then return v end
+    obj = pkglib.get(table.concat(path, '.', 1, i))
+  end
+  return obj
 end
-local function diFullFmt(f, name, ty, path, doc)
-  f:incIndent(); pushfmt(f, '%-16s | %-20s %s%s', name, ty, path, doc)
-  f:decIndent()
-end
+
+---------------------
+-- Format to CXT
+
 M.DocItem.__fmt = function(di, f)
   local name = di.name and sfmt('[$%s]', di.name) or '(unnamed)'
   local ty = di.ty and sfmt('\\[%s\\]', di.ty) or ''
@@ -142,171 +258,77 @@ M.DocItem.__fmt = function(di, f)
   end
 end
 
-local function cleanFieldTy(ty)
-  return ty:match'^%[.*%]$' and ty:sub(2,-2) or ty
+M.fmtItems = function(f, items)
+  pushfmt(f, '[{table}')
+  for i, item in ipairs(items) do push(f, '\n+ '); f(item) end
+  push(f, '\n]')
 end
-
-M.fields = function(obj)
-  local fields = rawget(obj, '__fields')
-  if not fields then return end
-  local out = {}
-  local docs = rawget(obj, '__docs') or {}
-  for _, field in ipairs(fields) do
-    local ty = fields[field]
-    ty = type(ty) == 'string' and cleanFieldTy(ty) or false
-    push(out, M.DocItem{
-      name=field, ty=ty and sfmt('[@%s]', ty),
-      default=rawget(obj, field),
-      doc = docs[field],
-    })
+M.fmtAttr = function(f, name, attr)
+  if not attr or not next(attr) then return end
+  local docs, dis = {}, {}
+  for _, k in ipairs(attr) do
+    if mty.ty(attr[k]) == M.Doc then push(docs, k)
+    else push(dis, k) end -- DocInfo and values
   end
-  return out
-end
-
-getmetatable(M.Doc).__call = function(T, obj)
-  local name, path = M.modinfo(obj)
-  local d = mty.construct(T, {
-    obj=obj, name=name, path=path,
-    ty=mty.tyName(mty.ty(obj)),
-  })
-  d.comments, d.code = M.findcode(path)
-  if d.comments then M.stripComments(d.comments) end
-  if type(obj) ~= 'table' then return d end
-  if type(getmetatable(obj)) ~= 'table' then return d end
-
-  -- fields
-  d.fields, d.other = M.fields(obj) or {}, {}
-  local other = ds.copy(obj)
-  local fields = rawget(obj, '__fields')
-  if fields then for k in pairs(other) do -- remove shared fields
-    if fields[k] then other[k] = nil end
-  end end
-  other = ds.orderedKeys(other)
-  for _, k in ipairs(other) do
-    local v = obj[k]; local ty = type(v)
-    local ty = (ty == 'table') and mty.tyName(mty.ty(v)) or ty
-    push(d.other, M.DocItem {
-      name=k, ty=sfmt('[@%s]', ty),
-      path=select(2, M.modinfo(v)),
-    })
-  end
-  return d
-end
-
-M.stripComments = function(com)
-  if #com == 0 then return end
-  local ind = com[1]:match'^%-%-%-(%s+)' or ''
-  local pat = '^%-%-%-'..string.rep('%s?', #ind)..'(.*)%s*'
-  for i, l in ipairs(com) do com[i] = l:match(pat) or l end
-end
-
-
---- get any path with [$.] in it. This is mostly used by help/etc functions
-M.getpath = function(path)
-  require'doc.lua' -- ensure that builtins are included
-  path = type(path) == 'string' and ds.splitList(path, '%.') or path
-  local obj
-  for i=1,#path do
-    local v = obj and ds.get(obj, ds.slice(path, i))
-    if v then return v end
-    obj = pkglib.get(table.concat(path, '.', 1, i))
-  end
-  return obj
-end
-
---- Find the object or name in pkgs
-M.find = function(obj) --> Object
-  if type(obj) ~= 'string' then return obj end
-  return PKG_LOOKUP[obj] or M.getpath(obj) or rawget(_G, obj)
-end
-
--- compare so items with [$.] come last in a sort
-local function modcmp(a, b)
-  if a:find'%.' then
-    if not b:find'%.' then return false end -- b is first
-  elseif b:find'%.'   then return true  end -- a is first
-  return a < b
-end
-
---- expand a module's documentation
-M.fmtmod = function(f, mod, skip) --> Fmt
-  local d = M.Doc(mod)
-  pushfmt(f, '[{h2}Module %s [/%s]]\n', d.name, d.path)
-  ds.extend(f, table.concat(d.comments, '\n'))
-  if skip then
-    local rm = {}; for k, obj in pairs(mod) do
-      local name = PKG_NAMES[obj]; if skip[name] then push(rm, name) end
+  if #dis > 0 then
+    pushfmt('[*%s: ] [{table}', name)
+    for i, k in dis do
+      local v = attr[k]
+      push(f, '\n+ ')
+      if mty.ty(v) == M.DocItem then f(v) -- has __fmt already
+      else pushfmt(f, '[*%s] | [##', k); f(v); push(f, ']') end
+      if i < #dis then push(f, '\n') end
     end
-    for _, k in rm do mod[k] = nil end
   end
-  local keys = ds.orderedKeys(mod)
-  for i, k in ipairs(keys) do
-    local obj = mod[k]
-    if skip and skip[PKG_NAMES[obj]] then goto continue end
-    f:incIndent(); f(M.Doc(mod[k])); f:decIndent()
-    if i < #keys then push(f, '\n\n') end
-    ::continue::
+  if #docs > 0 then
+    for i, k in ipairs(docs) do
+      push(f, '\n\n'); f(attr[k])
+    end
   end
-  return f
 end
 
---- expand a PKG's documentation
-M.fmtpkg = function(f, pkgname) --> Fmt
-  local pkg, pkgdir = pkglib.getpkg(pkgname)
-  if not pkg then error('could not find pkg '..pkgname) end
-  pushfmt(f, '[{h1}Package %s [/%s/PKG.lua]]\n', pkgname, pth.nice(pkgdir))
-  if pkg.summary then pushfmt(f, '%s', pkg.summary) end
-  push(f, ' [{table}')
+local HEADERS = {Package=1, Module=2, Record=3, Table=3}
+M.docHeader = function(docTy, lvl)
+  if docTy == 'Function' then return 3 + (lvl or 0) end
+end
+
+M.fmtMeta = function(f, m)
+  pushfmt(f, '[{table}')
+  if pkg.summary then pushfmt(f, '\n+ [*summary] | %s', d.summary) end
   pushfmt(f, '\n+ [*version] | [$%s]', pkg.version or '(no version)')
   if pkg.homepage then pushfmt(f, '\n+ [*homepage] | %s', pkg.homepage) end
-  if pkg.main then push(f, '\n+ [*main()] | can be run as script') end
-  push(f, ']\n')
-
-  local mods = ds.copy(pkglib.modules(pkg.srcs))
-  local skip = {}
-  if pkg.main then
-    local main = M.find(pkg.main)
-              or error('could not find PKG.main = '..pkg.main)
-    M.fmthelp(f, main); skip[PKG_NAMES[main]] = true
-  end
-  mods = ds.sort(ds.keys(mods), modcmp)
-  for i, modname in ipairs(mods) do
-    local obj = pkglib.get(modname)
-    if pkglib.isMod(obj) then M.fmtmod(f, obj) else f(M.Doc(obj)) end
-    if i < #mods then f:write'\n\n' end
-  end
-  return f
-end
---- return the pkg docs as a string.
-M.pkgstr = function(pkgname) return table.concat(M.fmtpkg(mty.Fmt{}, pkgname)) end
-
---- return the formatted Doc for [$obj]
---- If [$obj] is a string it is looked up in pkgs.
-M.docstr = function(obj) --> string
-  obj = M.find(obj) or error('not found: '..mty.tostring(args[1]))
-  return table.concat(mty.Fmt{}(M.Doc(obj)))
+  pushfmt(f, '\n]')
 end
 
-
-M.fmthelp = function(f, Args)
-  local d = M.Doc(Args)
-  for i, line in ipairs(d.comments or {}) do
-    f:write(line); if i < #d.comments then f:write'\n' end
+M.Doc.__fmt = function(d, f)
+  local path = d.path and sfmt(' [/%s]', pth.nice(d.path)) or ''
+  local name = d.pkgname or d.name
+  pushfmt(f, '[{h%s}%s [{style=api}%s]%s]',
+          M.docHeader(d.docTy, d.lvl),
+          assert(d.docTy),
+          d.pkgname or d.name or '(unnamed)', path)
+  if d.meta then M.fmtMeta(f, d.meta) end
+  if d.comments then
+    for i, l in ipairs(d.comments) do f:write('\n', l) end
   end
-  if d.fields and #d.fields > 0 then
-    f:write'\nNamed args: '; M.fmtItems(f, d.fields)
+  if type(d.obj) == 'function' and d.code and d.code[1] then
+    pushfmt(f, '\n[$%s]', d.code[1])
   end
-  return f
+  if d.fields then M.fmtAttr(f, 'Fields',  d.fields) end
+  if d.values then
+    M.fmtAttr(f, 'Values',  d.values)
+  end
+  if d.tys    then M.fmtAttr(f, 'Records', d.tys) end
+  if d.fns    then
+    local name = (d.docTy == 'Record') and 'Methods' or 'Functions'
+    M.fmtAttr(f, name, d.fns)
+  end
+  if d.mods then
+    for _, m in ipairs(d.mods) do
+      push(f, '\n\n'); f(d.mods[m])
+    end
+  end
 end
-
---- Get the helpstr for Args type (comments + fields).
----
---- This is used if a function has an associated type for just arg-checking.
-M.helpstr = function(Args) --> string
-  return table.concat(M.fmthelp(mty.Fmt{}, Args))
-end
-
-M.styleHelp = function(styler, Args) require'cxt.term'{M.helpstr(Args), to=styler} end
 
 --- Get documentation for an object or package. Usage: [{## lang=lua}
 ---  help 'path.of.object'

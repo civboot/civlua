@@ -394,6 +394,19 @@ M.Fmt.table = function(f, t)
   if multi then add(f, f.tableEnd) else add(f, '}') end
 end
 M.Fmt.__call = function(f, v) f[type(v)](f, v); return f end
+--- fmt ... separated by sep
+M.Fmt.concat = function(f, sep, ...)
+  f(select(1, ...))
+  for i=2,select('#', ...) do
+    add(f, sep); f(select(i, ...))
+  end
+
+end
+--- fmt ... separated by tabs
+M.Fmt.tabulated = function(f, ...) return f:concat('\t', ...) end
+
+--- fmt ... separated by newlines
+M.Fmt.lined = function(f, ...) return f:concat('\n', ...) end
 
 M.tostring = function(v, fmt)
   fmt = fmt or M.Fmt{}; assert(#fmt == 0, 'non-empty Fmt')
@@ -420,7 +433,6 @@ M.fprint = function(f, ...)
     if i < len then f:write'\t' end
   end; f:write'\n'
 end
-
 
 -- print(...) but with Fmt
 M.print  = function(...) return M.fprint(M.Fmt{to=io.stdout}, ...) end

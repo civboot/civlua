@@ -94,6 +94,7 @@ M.shortloc = function(level) --> "dir/file.lua:10"
   local tb  = debug.traceback(nil, 2 + (level or 0))
   return assert(tb:match'.*traceback:%s+[^\n]-([^\n/]*/[^/\n]+:%d+)')
 end
+local shortloc = M.shortloc
 M.srcdir = function(level) --> "/path/to/dir/"
   return M.srcloc(1 + (level or 0)):match'^(.*/)[^/]+$'
 end
@@ -259,6 +260,7 @@ M.isEmpty = function(t) return t == nil or next(t) == nil end
 --
 -- Example: [$pushfmt(t, 'a=%s b=%s', a, b)]
 M.pushfmt = function(t, fmt, ...) push(t, sfmt(fmt, ...)) end
+local pushfmt = M.pushfmt
 
 -- the full length of all pairs
 -- WARNING: very slow, requires iterating the whole table.
@@ -384,11 +386,19 @@ end
 M.updateKeys = function(t, add, keys)
   for _, k in ipairs(keys) do t[k] = add[k] end; return t
 end
-M.orderedKeys = function(t)
+M.orderedKeys = function(t, cmpFn)
   local keys = {}; for k in pairs(t) do push(keys, k) end
-  sort(keys)
+  sort(keys, cmpFn)
   return keys
 end
+--- adds all [$key=index] to the table so the keys can
+--- be iterated using [$for _, k in ipairs(t)]
+M.pushSortedKeys = function(t, cmpFn)
+  local keys = M.orderedKeys(t, cmpFn)
+  for i, k in ipairs(keys) do t[i] = k end
+  return t
+end
+
 -- recursively update t with add. This will call update on inner tables as
 -- well.
 -- Note: treats list indexes as normal keys (does not append)
@@ -1096,6 +1106,17 @@ M.resume = function(th) --> ok, err|...
   local ok, a, b, c = resume(th)
   if ok then return ok, a, b, c end
   return nil, M.Error.from(a, th)
+end
+
+--- Like print but starts with [$[dbg short/path: ]]
+--- and uses metaty.format for all values. Also indents the output.
+M.dbg = function(...)
+  local fmt = mty.Fmt{to=io.stderr, indent='  '}
+  fmt:incIndent()
+  pushfmt(fmt, '###[dbg %s] ', shortloc(2))
+  fmt:tabulated(...)
+  fmt:decIndent()
+  push(fmt, '\n')
 end
 
 -----------------------
