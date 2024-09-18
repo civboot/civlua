@@ -18,7 +18,7 @@ local doc = require'doc'
 local s = ds.simplestr
 local sfmt = string.format
 
---- a simple utility to find and fix files and file-content
+--- A simple utility to find and fix files and file-content
 ---
 --- List args: [$%patShortcut path1 path2]
 ---

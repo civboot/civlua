@@ -20,6 +20,7 @@ local index, newindex = mty.index, mty.newindex
 local function iseek(u3, i)
   if u3._i == i then return end
   local to = (i-1) * 3
+  print('!! iseek', to)
   local pos = assert(u3.f:seek('set', to))
   log.info('seek i=%s pos=%s -> got=%s (u3len=%s)', i, to, pos, #u3)
   assert(pos % 3 == 0, 'pos incorrect')

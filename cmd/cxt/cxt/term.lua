@@ -137,10 +137,9 @@ M.main = function(args)
     style=style.loadStyle(args.mode),
   }
   if args.help then return require'doc'.styleHelp(styler, M.Args) end
-  if #args > 0 then     args.inp = lines(table.concat(args, ' '))
-  elseif args.inp then  args.inp = LFile:load(shim.file(args.inp))
-    error'must provide input'
-  end
+  if #args > 0    then args.inp = lines(table.concat(args, ' '))
+  elseif args.inp then args.inp = LFile:create(shim.file(args.inp))
+  else error'must provide input' end
   M.convert(args.inp, styler)
   styler:write'\n'
   return styler

@@ -225,7 +225,7 @@ do local modloc = srcloc()
 end
 
 M.isPkg = function(t)
-  return type(t) == 'table' and rawget(t, 'PKG_DIR')
+  return type(t) == 'table' and rawget(t, 'PKG_DIR') and true
 end
 
 M.isMod = function(t)

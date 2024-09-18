@@ -416,9 +416,8 @@ M.popk = function(t, key) --> t[k]: pop key
   local val = t[key]; t[key] = nil; return val
 end
 
--- drain(t, len=#t) -> t[#t-len:#t]
--- return len items from the end of t, removing them from t.
-M.drain = function(t, len)
+--- return len items from the end of [$t], removing them from [$t]
+M.drain = function(t, len--[[#t]]) --> drained
   local out = {}; for i=1, min(#t, len) do push(out, pop(t)) end
   return M.reverse(out)
 end
@@ -434,8 +433,8 @@ M.setIfNil = function(t, k, v)
 end
 M.emptyTable = function() return {} end
 
--- remove (mutate) the left side of the table (list).
--- noop if rm is not exactly equal to the left side.
+--- remove (mutate) the left side of the table (list).
+--- noop if rm is not exactly equal to the left side.
 M.rmleft = function(t, rm, eq--[[ds.eq]]) --> t (mutated)
   eq = eq or ds.eq
   for i, v in ipairs(rm) do
@@ -449,21 +448,21 @@ M.rmleft = function(t, rm, eq--[[ds.eq]]) --> t (mutated)
   return t
 end
 
--- used with ds.get and ds.set
--- Example:
---   local dp = require'ds'.dotpath
---   ds.get(t, dp'a.b.c')
+--- used with ds.get and ds.set. Example [{## lang=lua}
+---   local dp = require'ds'.dotpath
+---   ds.get(t, dp'a.b.c')
+--- ]##
 M.dotpath = function(dots) --> list split by '.'
   local p = {}; for v in dots:gmatch'[^%.]+' do push(p, v) end
   return p
 end
 
--- get the value at the path or nil if the value or any
--- intermediate table is missing.
--- [##
---   get(t, {'a', 2, 'c'})  -> t.a?[2]?.c?
---   get(t, dotpath'a.b.c') -> t.a?.b?.c?
--- ]##
+--- get the value at the path or nil if the value or any
+--- intermediate table is missing.
+--- [{## lang=lua}
+---   get(t, {'a', 2, 'c'})  -> t.a?[2]?.c?
+---   get(t, dotpath'a.b.c') -> t.a?.b?.c?
+--- ]##
 M.get = function(t, path) --> value? at path
   for _, k in ipairs(path) do
     t = t[k]; if t == nil then return nil end
@@ -471,11 +470,11 @@ M.get = function(t, path) --> value? at path
   return t
 end
 
--- set the value at path using newFn (default=ds.newTable) to create
--- missing intermediate tables.
--- [##
---   set(t, dotpath'a.b.c', 2) -> t.a?.b?.c = 2
--- ]##
+--- set the value at path using newFn (default=ds.newTable) to create
+--- missing intermediate tables.
+--- [{## lang=lua}
+---   set(t, dotpath'a.b.c', 2) -> t.a?.b?.c = 2
+--- ]##
 M.set = function(d, path, value, newFn)
   newFn = newFn or M.emptyTable
   local len = #path; assert(len > 0, 'empty path')
@@ -493,26 +492,23 @@ M.indexOfPat = function(strs, pat)
   for i, s in ipairs(strs) do if s:find(pat) then return i end end
 end
 
--- popit(t, i) -> t[i]  -- also, the length of t is reduced by 1
---
--- popit (aka pop-index-top) will return the value at t[i], replacing it with the
--- value at the end (aka top) of the list.
---
--- if i > #t returns nil and doesn't affect the size of the list.
-M.popit = function(t, i)
+--- popit (aka pop-index-top) will return the value at [$t[i]], replacing it
+--- with the value at the end (aka top) of the list.
+---
+--- if [$i > #t] returns nil and doesn't affect the size of the list.
+M.popit = function(t, i) --> t[i] and length of t is reduced by 1
   local len = #t; if i > len then return end
   local o = t[i]; t[i] = t[len]; t[len] = nil
   return o
 end
 
--- walk(tbl, fieldFn, tableFn, maxDepth, state)
--- Walk the table up to depth maxDepth (or infinite if nil).
---
--- fieldFn(key, value, state)  -> stop  is called for every non-table value.
--- tableFn(key, tblValue, state) -> stop is called for every table value
---
--- If tableFn stop==ds.SKIP (i.e. 'skip') then that table is not recursed.
--- Else if stop then the walk is halted immediately
+--- Walk the table up to depth maxDepth (or infinite if nil) [+
+--- * [$fieldFn(key, value, state)    -> stop] is called for every non-table value.
+--- * [$tableFn(key, tblValue, state) -> stop] is called for every table value
+--- ]
+---
+--- If tableFn [$stop==ds.SKIP] (i.e. 'skip') then that table is not recursed.
+--- Else if stop then the walk is halted immediately
 M.walk = function(t, fieldFn, tableFn, maxDepth, state)
   if maxDepth then
     maxDepth = maxDepth - 1; if maxDepth < 0 then return end
@@ -533,11 +529,10 @@ end
 
 ---------------------
 -- Untyped Functions
-
--- Copy list-elements only
+--- Copy list-elements only
 M.icopy = function(t) return move(t, 1, #t, 1, {}) end --> list
 
--- Copy and update full table
+--- Copy and update full table
 M.copy = function(t, update) --> new t
   local out = {}; for k, v in pairs(t) do out[k] = v end
   if update then
@@ -557,7 +552,7 @@ end
 ---------------------
 -- File Functions
 M.readPath = function(path)
-  local f = mty.assertf(io.open(path), 'invalid %s', path)
+  local f, err = assert(io.open(path))
   local out = f:read('a'); f:close()
   return out
 end
@@ -575,8 +570,8 @@ M.fileWithText = function(path, text, mode) --> file
   return f
 end
 
--- fdMv(fdTo, fdFrom): memonic fdTo = fdFrom
--- Read data from fdFrom and write to fdTo, then flush.
+--- Read data from fdFrom and write to fdTo, then flush.
+--- [" memonic: fdTo = fdFrom]
 M.fdMv = function(fdTo, fdFrom)
   while true do
     local d = fdFrom:read(4096); if not d then break end
@@ -588,7 +583,7 @@ end
 ---------------------
 -- Source Code Functions
 
--- convert lines-like table into chunk for eval
+--- convert lines-like table into chunk for eval
 M.lineschunk =
 (function(dat)
   local i = 1
@@ -614,31 +609,31 @@ end
 ---------------------
 -- Low-level Types
 
--- Weak key table, see docs on '__mode'
+--- Weak key table, see docs on [$__mode]
 M.WeakK = setmetatable(
   {__name='WeakK', __mode='k'}, {
   __name='Ty<WeakK>', __call=mty.constructUnchecked,
 })
 
--- Weak value table, see docs on '__mode'
+--- Weak value table, see docs on [$__mode]
 M.WeakV = setmetatable(
   {__name='WeakV', __mode='v'}, {
   __name='Ty<WeakV>', __call=mty.constructUnchecked,
 })
 
--- Weak key+value table, see docs on '__mode'
+--- Weak key+value table, see docs on [$__mode]
 M.WeakKV = setmetatable(
   {__name='WeakKV', __mode='kv'}, {
   __name='Ty<WeakKV>', __call=mty.constructUnchecked,
 })
 
--- Table that never accepts new indexes. Used to disable caching in tests.
+--- Table that never accepts new indexes. Used to disable caching in tests.
 M.Forget = setmetatable(
   {__name='Forget', __newindex=M.noop},
   {__name='Ty<Forget>', __call=mty.constructUnchecked}
 )
 
--- Table that errors on missing key
+--- Table that errors on missing key
 M.Checked = setmetatable(
   {__name='Checked', __metatable='table',
    __index=function(_, k) error('unknown key: '..k) end,
@@ -647,9 +642,9 @@ M.Checked = setmetatable(
 )
 
 
--- A slice of anything with start and end indexes.
--- Note: This object does not hold a reference to the object being
---   sliced.
+--- A slice of anything with start and end indexes.
+--- ["Note: This object does not hold a reference to the object being
+---   sliced.]
 M.Slc = mty'Slc' {
   'si [int]: start index',
   'ei [int]: end index',
@@ -657,7 +652,7 @@ M.Slc = mty'Slc' {
 local Slc = M.Slc
 M.Slc.__len = function(s) return s.ei - s.si + 1 end
 
--- return either a single (new) merged or two sorted Slcs.
+--- return either a single (new) merged or two sorted Slcs.
 M.Slc.merge  = function(a, b) --> first, second?
   if a.si > b.si     then a, b = b, a end -- fix ordering
   if a.ei + 1 < b.si then return a, b end -- check overlap
@@ -672,12 +667,12 @@ end
 -- Sentinal, none type, bool()
 
 local _si=function() error('invalid operation on sentinel', 2) end
--- sentinel(name, metatable)
--- Use to create a "sentinel type". Return the (singular) instance.
---
--- Sentinels are "single values" commonly used for things like: none, empty, EOF, etc.
--- They have most metatable methods disallowed and are immutable down. Methods can
--- only be set by the provided metatable value.
+--- [$sentinel(name, metatable)]
+--- Use to create a "sentinel type". Return the (singular) instance.
+---
+--- Sentinels are "single values" commonly used for things like: none, empty, EOF, etc.
+--- They have most metatable methods disallowed and are immutable down. Methods can
+--- only be set by the provided metatable value.
 M.sentinel = function(name, mt)
   mt = M.update({
     __name=name, __tostring=function() return name end,
@@ -694,17 +689,17 @@ end
 --- "unset but none" such as JSON's "null".
 M.none = M.sentinel('none', {__metatable='none'})
 
--- convert to boolean (none aware)
+--- convert to boolean (none aware)
 M.bool =
 (function(v) return not rawequal(M.none, v) and v and true or false end)
 
--- An immutable empty table
+--- An immutable empty table
 M.empty = setmetatable({}, {
   __newindex = function() error('mutate ds.empty', 2) end,
   __metatable = 'table',
 })
 
--- Immutable table
+--- Immutable table
 M.Imm = mty'Imm' {}
 local IMM_DATA = '<!imm data!>'
 getmetatable(M.Imm).__call = function(T, t)
@@ -851,7 +846,7 @@ M.Set.union = function(self, s)
   return both
 end
 
--- items in self but not in s
+--- items in self but not in s
 M.Set.diff = function(self, s)
   local left = M.Set{}
   for k in pairs(self) do if not s[k] then left[k] = true end end
@@ -871,17 +866,15 @@ local function _bs(t, v, cmp, si, ei)
   else                  return _bs(t, v, cmp, si, mi - 1) end
 end
 
--- binarySearch(t, v, cmp, si, ei) -> i
---   cmp = ds.lte by default
---   si = start index, default=1
---   ei = end index,   default=#t
--- 
--- Search the sorted table, return i such that:
--- * cmp(t[i], v) returns true  for indexes <= i
--- * cmp(t[i], v) returns false for indexes >  i
--- 
--- If you want a value perfectly equal then check equality
--- on the resulting index.
+--- [$binarySearch(t, v, cmp=ds.lte, si=1, ei=#t) -> i]
+---
+--- Search the sorted table, return i such that: [+
+--- * [$cmp(t[i], v)] returns true  for indexes <= i
+--- * [$cmp(t[i], v)] returns false for indexes >  i
+--- ]
+---
+--- If you want a value perfectly equal then check equality
+--- on the resulting index.
 M.binarySearch = function(t, v, cmp, si, ei)
   return _bs(t, v, cmp or lte, si or 1, ei or #t)
 end
@@ -889,9 +882,9 @@ end
 ---------------------
 -- Binary Tree
 
--- ds.bt: indexed table as Binary Tree.
--- These functions treat an indexed table as a binary tree
--- where root is at index=1.
+--- indexed table as Binary Tree.
+--- These functions treat an indexed table as a binary tree
+--- where root is at [$index=1]
 M.bt = mod and mod'bt' or {}
 M.bt.left = function(t, i)    return t[i * 2]     end
 M.bt.right = function(t, i)   return t[i * 2 + 1] end
@@ -903,7 +896,7 @@ M.bt.parenti = function(t, i) return   i // 2     end
 ---------------------
 -- Directed Acyclic Graph
 
--- Functions for working with directed acyclic graphs.
+--- Functions for working with directed acyclic graphs.
 M.dag = mod and mod'dag' or {}
 
 local function _dagSort(st, name, parents)
@@ -914,18 +907,17 @@ local function _dagSort(st, name, parents)
   push(st.out, name)
 end
 
--- dag.sort(depsMap) -> sortedDeps
--- 
--- Sort the directed acyclic graph. depsMap must behave like a table which:
--- 
---   for pairs(depsMap) -> nodeName, ...
---   depsMap[nodeName]  -> nodeDeps (list)
--- 
--- If depsMap is a map of pkg -> depPkgs then the result is the order the pkgs
--- should be built.
--- 
--- Note: this function does NOT detect cycles.
-M.dag.sort = function(depsMap)
+--- Sort the directed acyclic graph. depsMap must behave like a table which:
+--- [{## lang=lua}
+---   for pairs(depsMap) -> nodeName, ...
+---   depsMap[nodeName]  -> nodeDeps (list)
+--- ]##
+---
+--- If depsMap is a map of pkg -> depPkgs then the result is the order the pkgs
+--- should be built.
+---
+--- Note: this function does NOT detect cycles.
+M.dag.sort = function(depsMap) --> sortedDeps
   local state = {depsMap=depsMap, out={}, visited={}}
   for name, parents in pairs(depsMap) do
     _dagSort(state, name, parents)
@@ -933,7 +925,7 @@ M.dag.sort = function(depsMap)
   return state.out
 end
 
--- dag.reverseMap(childrenMap) -> parentsMap (or vice-versa)
+--- dag.reverseMap(childrenMap) -> parentsMap (or vice-versa)
 M.dag.reverseMap = function(childrenMap)
   local pmap = {}
   for pname, children in pairs(childrenMap) do
@@ -945,10 +937,8 @@ M.dag.reverseMap = function(childrenMap)
   return pmap
 end
 
--- dag.missing(depsMap) -> missingDeps
--- 
--- Given a depsMap return missing deps (items in a deps with no name).
-M.dag.missing = function(depsMap)
+--- Given a depsMap return missing deps (items in a deps with no name).
+M.dag.missing = function(depsMap) --> missingDeps
   local missing = {}; for n, deps in pairs(depsMap) do
     for _, dep in ipairs(deps) do
       if not depsMap[dep] then missing[dep] = true end
@@ -959,11 +949,12 @@ end
 
 ---------------------
 -- BiMap
--- BiMap{} -> biMap: Bidirectional Map
--- maps both key -> value and value -> key
--- must use `:remove` (instead of `bm[k] = nil` to handle deletions.
---
--- Note that pairs() will return BOTH directions (in an unspecified order)
+
+--- Bidirectional Map.
+--- Maps both [$key -> value] and [$value -> key].
+--- Must use [$:remove] (instead of [$bm[k] = nil] to handle deletions.
+---
+--- Note that [$pairs()] will return BOTH directions (in an unspecified order)
 M.BiMap = mty'BiMap'{}
 
 getmetatable(M.BiMap).__call = function(ty_, t)

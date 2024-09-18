@@ -15,6 +15,7 @@ METATY_CHECK = true
 
 local pkglib = require'pkglib'
 local mty = require'metaty'
+local ds = require'ds'
 local T = require'civtest'
 local doc = require'doc'
 
@@ -61,16 +62,12 @@ T.test('findcode', function()
   T.assertEq('}', code[3])
 end)
 
-local eFn =
-"[{h2}Function [{style=api}doc_test.exampleFn] [/cmd/doc/test.lua:5]]\
-[$M.exampleFn = function() end]\
-document a fn\
-another line"
+
 
 local doFmt = function(fn, obj)
   local f = mty.Fmt{}
   fn(f, obj)
-  return table.concat(f, '\n')
+  return table.concat(f)
 end
 
 T.test('doc fn', function()
@@ -95,45 +92,46 @@ T.test('doc ty', function()
   local res = doc.construct(M.Example, nil, 0)
   T.assertEq(
     "[$doc_test.Example] | \\[Ty<Example>\\] [/cmd/doc/test.lua:11]",
-    str(res))
+    doFmt(doc.fmtDocItem, res))
 
   local res = doc.construct(M.Example, nil, 1)
   T.assertEq(
-    '',
-    str(res))
+"[{h3}Record [{style=api}doc_test.Example] [/cmd/doc/test.lua:11]]\
+document a metaty\
+another line\
+\
+[*Fields: ] [{table}\
++ [$a]             | \\[int\\] = [$4]\
+]\
+[*Values: ] [{table}\
++ [$__docs]        | \\[table\\] \
++ [$__fields]      | \\[table\\] \
++ [$__name]        | \\[string\\] \
+]\
+[*Records: ] [{table}\
++ [$__index]       | \\[Ty<Example>\\] [/cmd/doc/test.lua:11]\
+]\
+[*Methods: ] [{table}\
++ [$__newindex]    | \\[function\\] [/lib/metaty/metaty.lua:180]\
++ [$method]        | \\[function\\] [/cmd/doc/test.lua:12]\
+]",
+    doFmt(doc.fmtDoc, res))
 end)
 
--- T.test('doc module', function()
---   local fm = dofile'cmd/doc/docfake.lua'
---   local res = doc.construct(fm, '??', 5)
---   print('!! doc module', mty.ty(res))
---   T.assertEq('', str(res))
--- end)
+T.test('doc module', function()
+  local dir = 'cmd/doc/test/'
+  local fm = dofile(dir..'docfake.lua')
 
--- T.test('doc.get', function()
---   T.assertEq(eFn,     doc.docstr(M.exampleFn))
---   T.assertEq(eFn,     doc.docstr'doc_test.exampleFn')
---   T.assertEq(mDoc,    doc.docstr(M))
---   T.assertEq(mDoc,    doc.docstr'doc_test')
--- end)
+  local comments, code = doc.findcode(fm)
+  T.assertEq({
+    "--- fake lua module for testing doc.",
+    "---",
+    "--- module documentation.",
+  }, comments)
 
--- T.test('record', function()
--- 
---   local expect =
--- "[{h2}Record [{style=api}doc_test.Example] [/cmd/doc/test.lua:11]]\
--- document a metaty\
--- another line\
--- [*Fields:] [{table}\
--- + [$a]             | \\[[@int]\\] = [$4]\
--- ]\
--- [*Other:] [{table}\
--- + [$__docs]        | \\[[@table]\\] \
--- + [$__fields]      | \\[[@table]\\] \
--- + [$__index]       | \\[[@Ty<Example>]\\] [/cmd/doc/test.lua:11]\
--- + [$__name]        | \\[[@string]\\] \
--- + [$__newindex]    | \\[[@function]\\] [/lib/metaty/metaty.lua:180]\
--- + [$method]        | \\[[@function]\\] [/cmd/doc/test.lua:12]\
--- ]"
--- 
---   T.assertEq(expect,     doc.docstr(M.Example))
--- end)
+  local res = doFmt(doc.fmtDoc, doc.construct(fm, nil, 5))
+  res = res..'\n'
+  -- ds.writePath(dir..'docfake.cxt', res)
+  local cxt = ds.readPath(dir..'docfake.cxt')
+  T.assertEq(res, cxt)
+end)

@@ -40,10 +40,14 @@ File._reindex = function(lf, idx, l, pos) --> endPos
   return pos
 end
 
--- Create a new File at path (default idx=lines.U3File()).
+--- Create a new File at path (default idx=lines.U3File()).
+---
+--- if path is a file then uses it.
 File.create = function(T, path, idx) --> File
-  local f, err; if path then f, err = io.open(path, 'w+')
-                else         f, err = io.tmpfile() end
+  local f, err;
+  if type(path) == 'string' then f, err = io.open(path, 'w+')
+  elseif not path then           f, err = io.tmpfile()
+  else                           f, path = path, nil end
   if not f then return nil, err end
   if not idx or type(idx) == 'string' then
     idx, err = U3File:create(idx)

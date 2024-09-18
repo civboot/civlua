@@ -39,6 +39,12 @@ local isConcrete = function(obj)
   return ds.isConcrete(obj) or (getmetatable(obj) == nil)
 end
 
+local _construct = function(T, d)
+  assert(d.name, 'must set name')
+  assert(d.docTy, 'must set docTy')
+  return mty.construct(T, d)
+end
+
 --- Documentation on a single type
 --- These pull together the various sources of documentation
 --- from the PKG and META_TY specs into a single object.
@@ -49,6 +55,7 @@ M.Doc = mty'Doc' {
   'name[string]', 'pkgname[string]',
   'ty [Type]: type, can be string', 'docTy [string]',
   'path [str]',
+  'main [Doc]: main Args, mostly used for PKG',
   'meta [table]: metadata, mostly used for PKG',
   'comments [lines]: comments above item',
   'code [lines]: code which defines the item',
@@ -60,6 +67,7 @@ M.Doc = mty'Doc' {
   'mods   [table]: sub modules (for PKG)',
   'lvl    [int]: level inside another type (nil or 1)',
 }
+getmetatable(M.Doc).__call = _construct
 M.Doc.__tostring = function(d) return sfmt('Doc%q', d.name) end
 
 M.DocItem = mty'DocItem' {
@@ -68,32 +76,43 @@ M.DocItem = mty'DocItem' {
   'path [string]',
   'default [any]', 'doc [string]'
 }
+getmetatable(M.DocItem).__call = _construct
 M.DocItem.__tostring = function(di) return sfmt('DocItem%q', di.name) end
 
 --- return the object's "document type"
 M.type = function(obj)
   return type(obj) == 'function' and 'Function'
+      or pkglib.isPkg(obj)       and 'Package'
       or pkglib.isMod(obj)       and 'Module'
       or mty.isRecord(obj)       and 'Record'
-      or pkglib.isPkg(obj)       and 'Package'
       or (type(obj) == 'table')  and 'Table'
       or 'Value'
 end
 
-local constructPkg
-
 --- get a Doc or DocItem. If expand is true then recurse.
-M.construct = function(obj, key, expand, lvl) --> Doc | DocItem
+M.construct = function(obj, key, expand, lvl) return M._Construct{}(obj, key, expand, lvl) end
+
+--- internal type to construct Doc and DocItems
+M._Construct = mty'_Construct' {
+  'done [table]: objects already documented',
+}
+getmetatable(M._Construct).__call = function(T, t)
+  return mty.construct(T, {done={}})
+end
+
+M._Construct.__call = function(c, obj, key, expand, lvl) --> Doc | DocItem
+  assert(obj)
   expand = expand or 0
   local docTy = assert(M.type(obj))
-  if docTy == 'Package' then return constructPkg(obj, expand) end
-
+  if docTy == 'Package' then return c:pkg(obj, expand) end
   local name, path = M.modinfo(obj)
   local d = {
-    obj=obj, path=path,
-    name=key or name, pkgname=PKG_NAMES[obj],
+    obj=obj, path=path, docTy=docTy,
+    name=assert(key or name), pkgname=PKG_NAMES[obj],
     ty=objTyStr(obj),
   }
+  if c.done[obj] then return M.DocItem(d) end
+  c.done[obj] = true
   local comments, code = M.findcode(path)
   if comments then M.stripComments(comments) end
   if comments and #comments == 0 then comments = nil end
@@ -102,9 +121,11 @@ M.construct = function(obj, key, expand, lvl) --> Doc | DocItem
     and (docTy == 'Table' or docTy == 'Value') then
     return M.DocItem(d)
   end
-  d.lvl, d.docTy, d.comments, d.code = lvl, docTy, comments, code
+  d.lvl, d.comments, d.code = lvl, comments, code
   d = M.Doc(d)
   if type(obj) ~= 'table' then return d end
+  local mt = getmetatable(obj)
+  if mt ~= nil and type(mt) ~= 'table' then return d end
 
   d.call = mty.getmethod(obj, '__call')
   local t = ds.copy(obj) -- we will remove from t as we go
@@ -114,13 +135,13 @@ M.construct = function(obj, key, expand, lvl) --> Doc | DocItem
   d.fields = rawget(obj, '__fields'); if d.fields then
     d.fields = ds.copy(d.fields)
     local fdocs = rawget(obj, '__docs') or {}
-    for k, field in ipairs(d.fields) do
+    for i, field in ipairs(d.fields) do
       t[field] = nil
       local ty = d.fields[field]
       ty = type(ty) == 'string' and M.cleanFieldTy(ty) or nil
-      d.fields[k] = M.DocItem {
-        name=k, ty=ty, default=rawget(obj, field),
-        doc = fdocs[field],
+      d.fields[field] = M.DocItem {
+        name=field, ty=ty, default=rawget(obj, field),
+        doc = fdocs[field], docTy = 'Field',
       }
     end
   end
@@ -138,9 +159,9 @@ M.construct = function(obj, key, expand, lvl) --> Doc | DocItem
 
   local function finish(attr, lvl)
     local t = d[attr]; ds.pushSortedKeys(t)
-    if #t == 0 then d[t] = nil; return end
+    if #t == 0 then d[attr] = nil; return end
     for _, k in ipairs(t) do
-      t[k] = M.construct(t[k], k, expand - 1, lvl)
+      t[k] = c(t[k], k, expand - 1, lvl)
     end
   end
   d.values = t
@@ -150,7 +171,7 @@ M.construct = function(obj, key, expand, lvl) --> Doc | DocItem
   return d
 end
 
--- compare so items with [$.] come last in a sort
+--- compare so items with [$.] come last in a sort
 local function modcmp(a, b)
   if a:find'%.' then
     if not b:find'%.' then return false end -- b is first
@@ -158,17 +179,27 @@ local function modcmp(a, b)
   return a < b
 end
 
-constructPkg = function(pkg, expand) --> Doc
-  local d = M.Doc{}
-  d.name, d.path = pkg.name, pkg.PKGDIR
+M._Construct.pkg = function(c, pkg, expand) --> Doc
+  local d = M.Doc{
+    docTy = 'Package', name = pkg.name, path = pkg.PKGDIR,
+  }
   d.meta = {
     summary = pkg.summary, version = pkg.version,
     homepage = pkg.homepage,
   }
+  if pkg.main then
+    local m = mty.assertf(
+      M.find(pkg.main), 'PKG %s: main not found', d.name)
+    m = c(m, nil, expand - 1)
+    d.main = M.Doc {
+      name = pkg.main, docTy = 'Args',
+      comments = m.comments, fields = m.fields,
+    }
+  end
   d.mods = pkglib.modules(pkg.srcs)
   ds.pushSortedKeys(d.mods, modcmp)
   for i, mname in ipairs(d.mods) do
-    d.mods[mname] = M.construct(pkglib.get(mname), mname, expand - 1)
+    d.mods[mname] = c(M.find(mname), mname, expand - 1)
   end
   return d
 end
@@ -203,11 +234,13 @@ M.findcode = function(loc) --> (commentLines, codeLines)
   lines = ds.reverse(table.move(lines, lines.left, lines.right, 1, {}))
   local code, comments = {}, {}
   for l, line in ipairs(lines) do
-    if line:find'^%w[^-=]+=' then table.move(lines, 1, l, 1, code); break end
+    if line:find'^%w[^-=]+=' then
+      table.move(lines, 1, l, 1, code); break
+    end
   end
-  for l=#code+1, #lines do local
+  for l=#code+1, #lines+1 do local
     line = lines[l]
-    if not line:find'^%-%-%-' then
+    if not line or not line:find'^%-%-%-' then
       table.move(lines, #code+1, l-1, 1, comments); break
     end
   end
@@ -269,19 +302,19 @@ M.fmtAttr = function(f, name, attr)
     for i, k in ipairs(dis) do
       local v = attr[k]
       push(f, '\n+ ')
-      if mty.ty(v) == M.DocItem then fmtDocItem(f, v)
+      if mty.ty(v) == M.DocItem then M.fmtDocItem(f, v)
       else pushfmt(f, '[*%s] | [##', k); f(v); push(f, ']') end
     end
     push(f, '\n]')
   end
   if #docs > 0 then
     for i, k in ipairs(docs) do
-      push(f, '\n'); fmtDoc(f, attr[k])
+      push(f, '\n'); M.fmtDoc(f, attr[k])
     end
   end
 end
 
-local HEADERS = {Package=1, Module=2, Record=3, Table=3}
+local HEADERS = {Package=1, Module=2, Record=3, Table=3, Args=2}
 M.docHeader = function(docTy, lvl)
   if docTy == 'Function' then return 3 + (lvl or 0) end
   return assert(HEADERS[docTy])
@@ -289,33 +322,39 @@ end
 
 M.fmtMeta = function(f, m)
   pushfmt(f, '[{table}')
-  if pkg.summary then pushfmt(f, '\n+ [*summary] | %s', d.summary) end
-  pushfmt(f, '\n+ [*version] | [$%s]', pkg.version or '(no version)')
-  if pkg.homepage then pushfmt(f, '\n+ [*homepage] | %s', pkg.homepage) end
+  if m.summary then pushfmt(f, '\n+ [*summary] | %s', m.summary) end
+  pushfmt(f, '\n+ [*version] | [$%s]', m.version or '(no version)')
+  if m.homepage then pushfmt(f, '\n+ [*homepage] | %s', m.homepage) end
   pushfmt(f, '\n]')
 end
 
 M.fmtDoc = function(f, d)
-  print('!! doc.__fmt', tostring(d))
-  print('!! traceback', ds.traceback())
-  local path = d.path and sfmt(' [/%s]', pth.nice(d.path)) or ''
-  local name = d.pkgname or d.name
-  pushfmt(f, '[{h%s}%s [{style=api}%s]%s]',
-          M.docHeader(d.docTy, d.lvl),
-          assert(d.docTy),
-          d.pkgname or d.name or '(unnamed)', path)
+  if d.docTy ~= 'Args' then assert(d.docTy, tostring(d))
+    local path = d.path and sfmt(' [/%s]', pth.nice(d.path)) or ''
+    local name = d.pkgname or d.name
+    pushfmt(f, '[{h%s}%s [{style=api}%s]%s]',
+            M.docHeader(d.docTy, d.lvl),
+            assert(d.docTy),
+            d.pkgname or d.name or '(unnamed)', path)
+  end
   if d.meta then M.fmtMeta(f, d.meta) end
   if d.comments then
-    mty.print('!! comments', d.comments)
     for i, l in ipairs(d.comments) do
-      print('!! pushing comment:', l)
       push(f, '\n'); push(f, l)
     end
   end
-  if type(d.obj) == 'function' and d.code and d.code[1] then
-    pushfmt(f, '\n\n[$%s]', d.code[1])
+  if d.main then
+    M.fmtDoc(f, d.main)
   end
-  if d.fields then M.fmtAttr(f, 'Fields',  d.fields) end
+  if type(d.obj) == 'function' and d.code and d.code[1] then
+    if d.comments or d.meta then push(f, '\n') end
+    pushfmt(f, '\n[$%s]', d.code[1])
+  end
+  local any = d.fields or d.values or d.tys or d.fns
+  if any or d.mods then push(f, '\n') end
+  if d.fields then
+    M.fmtAttr(f, d.docTy == 'Args' and 'Named Args' or 'Fields', d.fields)
+  end
   if d.values then M.fmtAttr(f, 'Values',  d.values) end
   if d.tys    then M.fmtAttr(f, 'Records', d.tys) end
   if d.fns then
@@ -323,16 +362,18 @@ M.fmtDoc = function(f, d)
     M.fmtAttr(f, name, d.fns)
   end
   if d.mods then
+    if any then push(f, '\n') end
     for _, m in ipairs(d.mods) do
-      push(f, '\n\n'); fmtDoc(d.mods[m])
+      push(f, '\n'); M.fmtDoc(f, d.mods[m])
     end
   end
-  if d.tys then
-    print('!!   tys...')
-    for k, v in pairs(d.tys) do
-      mty.print('!!     tys', tostring(k), tostring(v))
-    end
-  end
+end
+
+M.fmt = function(f, d)
+  if     mty.ty(d) == M.Doc     then M.fmtDoc(f, d)
+  elseif mty.ty(d) == M.DocItem then M.fmtDocItem(f, d)
+  else error'not a Doc or DocItem' end
+  return f
 end
 
 --- Get documentation for an object or package. Usage: [{## lang=lua}
@@ -351,8 +392,22 @@ M.main = function(args)
   args = M.Args(shim.parseStr(args))
   local to = style.Styler:default(io.stdout, args.color)
   if args.help then return M.styleHelp(to, M.Args) end
-  local str = args.pkg and M.pkgstr(args[1]) or M.docstr(args[1])
-  require'cxt.term'{str, to=to}
+  local obj, expand = args[1], args.full and 10 or 1
+  assert(obj, 'arg[1] must be the item to find')
+  local c = M._Construct{}
+  local d;
+  if args.pkg then
+    obj = pkglib.getpkg(obj) or error('could not find pkg: '..obj)
+    d = c:pkg(obj, expand)
+  else
+    if type(obj) == 'string' then
+      obj = M.find(obj) or error('could not find obj: '..obj)
+    end
+    d = c(obj, nil, expand)
+  end
+  local f = mty.Fmt{}
+  M.fmt(f, d)
+  require'cxt.term'{table.concat(f), to=to}
   to:write'\n'
 end
 getmetatable(M).__call = function(_, args) return M.main(args) end
