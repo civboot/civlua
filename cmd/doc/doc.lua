@@ -72,7 +72,7 @@ M.Doc.__tostring = function(d) return sfmt('Doc%q', d.name) end
 
 M.DocItem = mty'DocItem' {
   'obj [any]',
-  'name', 'pkgname [string]', 'ty [string]',
+  'name', 'pkgname [string]', 'ty [string]', 'docTy [string]',
   'path [string]',
   'default [any]', 'doc [string]'
 }
