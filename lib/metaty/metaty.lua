@@ -1,7 +1,8 @@
+G = G or _G
 -- metaty: simple but effective Lua type system using metatable
 --
 -- See README.md for documentation.
-local M = (mod and mod'metaty' or {})
+local M = (G.mod and G.mod'metaty' or {})
 setmetatable(M, getmetatable(M) or {})
 
 local function copy(t)
@@ -26,7 +27,7 @@ M.isEnv = function(var)
 end
 M.isEnvG = function(var) -- is env or globals
   local e = M.isEnv(var); if e ~= nil then return e end
-  return _G[var]
+  return G[var]
 end
 local CHECK  = M.isEnvG'METATY_CHECK' or false -- private
 M.getCheck = function() return CHECK end
@@ -222,7 +223,7 @@ M.namedRecord = function(name, R, loc)
     __newindex=mod and mod.__newindex,
   }
   local R = setmetatable(R, mt)
-  if METATY_CHECK then
+  if G.METATY_CHECK then
     mt.__call    = M.constructChecked
     mt.__index   = M.index
     rawset(R, '__newindex', rawget(R, '__newindex') or M.newindex)

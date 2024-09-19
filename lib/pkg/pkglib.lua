@@ -8,7 +8,7 @@ local M = {require=require}
 -- Documentation globals
 local weakk = {__mode='k'}
 PKG_NAMES  = PKG_NAMES  or setmetatable({}, weakk)        -- obj -> name
-PKG_LOC   = PKG_LOC   or setmetatable({}, weakk)        -- obj -> path:loc
+PKG_LOC   = PKG_LOC     or setmetatable({}, weakk)        -- obj -> path:loc
 PKG_LOOKUP = PKG_LOOKUP or setmetatable({}, {__mode='v'}) -- name -> obj
 
 -- pkg.UNAME is the platform, typically: Windows, Linux or Darwin
@@ -234,11 +234,29 @@ M.isMod = function(t)
   return mt and mt.__name and mt.__name:find'^Mod<'
 end
 
+M.G = setmetatable({}, {
+  __name='G(init globals)',
+  __index    = function(_, k)    return rawget(_G, k)    end,
+  __newindex = function(g, k, v) return rawset(_G, k, v) end,
+})
+
+local noG = function(_, k)
+  error(sfmt(
+    'global %s is nil/unset. Initialize with G.%s = non_nil_value', k, k
+  ))
+end
+
+-- make globals typosafe
+M.safeGlobal = function()
+  if not rawget(_G, 'G') then rawset(_G, 'G', M.G) end
+  setmetatable(_G, {__name='_G(globals)', __index=noG, __newindex=noG})
+end
 
 -- override globals {require, mod}
 M.install = function()
-  require = M.get
-  mod     = M.mod
+  M.safeGlobal()
+  G.require = M.get
+  G.mod     = G.mod or M.mod
 end
 
 return setmetatable(M, {

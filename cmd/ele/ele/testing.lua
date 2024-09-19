@@ -1,5 +1,5 @@
 -- helpers for testing ele and related libraries
-M = mod and mod'ele.testing' or {}
+local M = mod and mod'ele.testing' or {}
 
 local buffer = require'rebuf.buffer'
 local eb = require'ele.bindings'

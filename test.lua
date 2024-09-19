@@ -1,11 +1,9 @@
-MAIN = {}
-DOC, METATY_CHECK              = false, true
-LAP_READY,    LAP_ASYNC        = false, false
-LAP_FNS_SYNC, LAP_FNS_ASYNC    = false, false
+G = G or _G
+G.MAIN = {}
 
 -- for early tests / libs to log
-LOGLEVEL = tonumber(os.getenv'LOGLEVEL') or 4
-LOGFN = function(lvl, msg) if LOGLEVEL >= lvl then
+G.LOGLEVEL = tonumber(os.getenv'LOGLEVEL') or 4
+G.LOGFN = function(lvl, msg) if LOGLEVEL >= lvl then
   io.stderr:write(string.format('LOG(%s): %s\n', lvl, msg))
 end end
 

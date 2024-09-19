@@ -1,10 +1,12 @@
+G = G or _G
+--- module for writing simple tests
+local M = G.mod and G.mod'civtest' or {}
+
 local mty = require'metaty'
 local ds = require'ds'
 local lines = require'lines'
 
 local add, sfmt = table.insert, string.format
-
-local M = {}
 
 -----------
 -- Asserting
@@ -62,18 +64,9 @@ M.assertMatch = function(expectPat, result)
   end
 end
 
-M.assertGlobals = function(prevG)
-  local newG = {}; for k in pairs(_G) do
-    if prevG[k] == nil then add(newG, k) end
-  end
-  if #newG ~= 0 then error("New globals: "..mty.tostring(newG)) end
-end
-
 M.test = function(name, fn)
-  local ge = ds.copy(_G)
   print('# Test', name)
   fn()
-  M.assertGlobals(ge)
   collectgarbage()
 end
 
@@ -86,8 +79,6 @@ M.asyncTest = function(name, fn)
 
   print('# Test', name, "(async)")
   Lap:run{fn}
-
-  M.assertGlobals(ge)
   collectgarbage()
 end
 

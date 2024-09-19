@@ -97,8 +97,8 @@ local function _walk(base, ftypeFns, maxDepth, depth)
     if o ~= 'skip' and ftype == 'dir' then
       _walk(path, ftypeFns, maxDepth, depth + 1)
     end
- 	end
-  if ftypeFns.dirDone then ftypeFns.dirDone(base, ftype) end
+  end
+  if ftypeFns.dirDone then ftypeFns.dirDone(base, 'dir') end
 end
 
 

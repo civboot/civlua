@@ -327,7 +327,7 @@ test("eval", function()
   assertEq(3, three)
   local ok, three = eval('seven = 7', env)
   assert(ok); assertEq({seven=7}, env)
-  assert(not seven) -- did not modify globals
+  assert(not G.seven) -- did not modify globals
 end)
 
 test('Set', function()

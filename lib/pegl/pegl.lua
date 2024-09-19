@@ -72,7 +72,7 @@ M.Parser = mty'Parser'{
   'root [RootSpec]',
   'stack [table]',
   'stackLast',
-  'commentLC [table]',
+  'commentLC [table]: table of {line={col=CommentToken}}',
   'dbgLevel [number]', dbgLevel = 0,
 }
 
@@ -188,7 +188,7 @@ M.skipEmpty = function(p)
     if sc then
       cL = p.commentLC[p.l]; cmt = (cL and cL[p.c]) or sc(p)
       if cmt then -- cache for later and advance
-        p:dbg('COMMENT: %s.%s', p.l, c)
+        p:dbg('COMMENT: %s.%s', p.l, p.c)
         cL = p.commentLC[p.l]
         if not cL then cL = {}; p.commentLC[p.l] = cL end
         cL[p.c] = cmt

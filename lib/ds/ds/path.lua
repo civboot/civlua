@@ -18,7 +18,7 @@ getmetatable(M).__call = function(_, p)
 end
 
 -- get current working directory
-M.cwd = function() return CWD or os.getenv'PWD' or os.getenv'CD' end
+M.cwd = function() return G.CWD or os.getenv'PWD' or os.getenv'CD' end
 
 -- get the user's home directory
 M.home = function() return HOME or os.getenv'HOME'

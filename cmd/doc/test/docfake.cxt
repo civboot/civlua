@@ -24,7 +24,7 @@ Documentation for A
 [*Records: ] [{table}
 + [$__index]       | \[Ty<A>\] [/cmd/doc/test/docfake.lua:21]
 ]
-[{h4}Function [{style=api}metaty.newindex] [/lib/metaty/metaty.lua:180]]
+[{h4}Function [{style=api}metaty.newindex] [/lib/metaty/metaty.lua:181]]
 [$M.newindex = function(r, k, v)]
 [{h4}Function [{style=api}A.meth1] [/cmd/doc/test/docfake.lua:24]]
 docs for meth1

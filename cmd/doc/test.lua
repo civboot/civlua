@@ -112,7 +112,7 @@ another line\
 + [$__index]       | \\[Ty<Example>\\] [/cmd/doc/test.lua:11]\
 ]\
 [*Methods: ] [{table}\
-+ [$__newindex]    | \\[function\\] [/lib/metaty/metaty.lua:180]\
++ [$__newindex]    | \\[function\\] [/lib/metaty/metaty.lua:181]\
 + [$method]        | \\[function\\] [/cmd/doc/test.lua:12]\
 ]",
     doFmt(doc.fmtDoc, res))

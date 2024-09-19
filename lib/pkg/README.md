@@ -3,8 +3,8 @@
 Basic usage is to update your `.bashrc` with:
 
 ```
-LUA_PATH="path/to/pkg/?.lua;etc..."
-LUA_PKGS="path/to/mod1;path/to/mod2;etc..."
+LUA_PATH="path/to/civlua/lib/pkg/?.lua;..."
+LUA_PKGS="path/to/pkg1;path/to/pkg2;..."
 alias luap="lua -e \"require'pkglib'.install()\""
 ```
 
@@ -37,66 +37,92 @@ This has several advantages:
 * performance: the `PKG.lua` locations are cached for future lookups whereas
   `LUA_PATH` must search every path every time.
 
+
 ## PKG Protocol
 pkg exports a few OPTIONAL global variables. Other libraries which override
-require or want to create self-documenting code are encouraged to use these
-(first checking they are available). These variables enable self-documenting lua
-code that can be inspected at runtime.
+`require` or want to create self-documenting code are encouraged to use these
+in the following way in order to support both normal and pkglib environments:
 
-First of all is the global `mod` function/type. Lua modules can define their `M`
-(module) variable like the following, which makes their module optionally
-self-documenting depending on whether `mod` is available.
+* `G = G or _G` to define/get undefined globals in a typosafe way
+  * pkglib overrides `_G` so that access to **undefined** globals throws an
+    error (fixing Lua's biggest mistake). Note that **defined** globals behave
+    normally with no performance penalty.
+  * Usage: `G.myGlobal = G.myGlobal or true` will define the global `myGlobal`
+    as `true` if it is not already defined.
+* `local M = mod and mod'myModName' or {}` to initialize your module. This
+  enables self-documenting modules.
+* `G.MAIN = G.MAIN or M` should be run before you `require` other libraries, but
+  only if your module is runnable from the command line.
+  * Why: later (at the bottom of your script) you can do
+    `if M == MAIN then M.main(arg); os.exit(0) end` to make your library run as
+    a script when called directly.
+  * This is never required for libraries. It is REQUIRED if your script can be
+    run from the command line and installs pkg-protocol libraries in it's
+    dependency tree, as many libraries behave differently when called directly
+    (i.e. they will run a command and exit).
 
+Example module template:
 ```
-#!/usr/bin/env -S lua -e require'pkglib'()
-local M = mod and mod'myModName' or {}
+#!/usr/bin/env -S lua -e "require'pkglib'()"
+--- this module is now self documenting. See the documentation
+--- of it or any sub-item with: [$doc 'myModName.item']
+local M = mod and mod'myModName' or {} -- self-documenting module
+G = G or _G                            -- typosafe globals
+G.MAIN = G.MAIN or M                   -- (cmdline script only)
 
--- Use if this is a script + library to tell whether this is the main
-MAIN = MAIN or M
-local isMain = (MAIN == M) -- for demonstration
+--- docs for myFn
+M.myFn = function() ... end --> returnType
 
--- PKG_LOC[M.myFn]  -> path/to/file.lua:123
--- PKG_NAMES[M.myFn] -> 'myModName.myFn'
--- PKG_LOOKUP['myModName.myFn'] -> M.myFn
-M.myFn = function() ... end
+--- docs for main function when run directly
+M.main = function(args)
+  ... use as a script
+end
+
+-- run as a script
+if M == MAIN then M.main(arg); os.exit(0) end
+
+return M -- return as a library
 ```
 
-These variables are used by libraries like [../doc](../doc/README.md).
+See also: [../doc](../doc/README.md)
 
-## Library Authors
+## For Library Authors
 
-How to create packages:
-* Add a `PKG.lua` in your library's root.
-* Define global variables for the required fields:
-  * `name`: the name of your package (`package` in [rockspec])
-  * `version`: [rockspec] version string, i.e `"0.1-5"`
-  * `url`: url to the source code, i.e. `"git+http://github.com/civboot/civlua"`
-  * `srcs`: source files to include relative to pkgs, either in path form (`mod.lua`)
-    or in keyval form (`mod = 'path/to/mod.lua'`).
-  * `dirs`: causes pkg search to continue in the given sub-directories.
-    Can be used to construct trees of packages.
-  * `rockspec`: (optional) provide starting rockspec when generating it
+To define a pkg you just need to add a `PKG.lua` file in your library's root
+which defines the following globals 
+* `name`: the name of your package (maps to `package` in [rockspec])
+* `version`: [rockspec] version string, i.e `"0.1-5"`
+* `url`: url to the source code, i.e. `"git+http://github.com/civboot/civlua"`
+* `srcs`: source files to include relative to pkgs, either in path form (`mod.lua`)
+  or in keyval form (`mod = 'path/to/mod.lua'`).
+* `dirs`: causes pkg search to continue in the given sub-directories.
+  Can be used to construct trees of packages.
+* `rockspec`: (optional) provide starting rockspec when generating it
+
+> Note: you don't need to use `G` for `PKG.lua` files as it's run in a sandbox.
 
 [rockspec]: https://github.com/luarocks/luarocks/wiki/Rockspec-format
 
+
 ## Why?
 I am personally using this library to maintain 10+ projects at
-[civlua](http://github.com/civboot/civlua) and will be making a `pkgrock`
-cmd utility to help me.
+[civlua](http://github.com/civboot/civlua). PKG files can be converted
+to rockspec using `./civ.lua pkgrock --help`
 
-## How?
+
+## How do `PKG.lua` files work?
 `PKG.lua` files are executed in a sandbox. Their environment has access to only
 the following, which are in their global variables:
 
+* `pairs ipairs error assert`
+* from string: `format`
+* from table: `insert sort concat`
 ```
-UNAME   LIB_EXT -- examples: "Linux",".so"  "Windows",".dll"
-string.format
-table.insert  table.sort  table.concat
-pairs   ipairs
-error   assert
-```
+It also has the globals `UNAME, LIB_EXT` which can be values such as
+`"Linux",".so"` or `"Windows",".dll"` and are for loading C libraries.
 
-> Note: PKG.lua files can use `format(...)` but not `string.format(...)`. It is
-> this way to prevent accidentally leaking values into the `string` table, etc.
+> Note: PKG.lua files can use `format(...)` but not `string.format(...)`. This
+> prevents accidentally leaking values into the `string` table, etc.
 
-The globals the script creates are then read as the configuration.
+Any globals that a PKG.lua script defines are used as the configuration (see
+"For Library Authors" section).

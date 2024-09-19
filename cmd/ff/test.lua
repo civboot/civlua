@@ -132,7 +132,6 @@ test('ff mv pat', function()
     'mv  .out/ff/b/bb1.txt\n'
   ..' -> .out/ff/b/bbb1.txt\n'
   ..'    10 b 10\n', seekRead(f))
-  assertEq(expected, result)
   assert(not civix.exists".out/ff/b/bb1.txt")
   assert(civix.exists".out/ff/b/bbb1.txt")
 

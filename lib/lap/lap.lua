@@ -1,9 +1,6 @@
-
--- lap protocol globals
-LAP_READY = LAP_READY or {}
-LAP_FNS_SYNC  = LAP_FNS_SYNC  or {}
-LAP_FNS_ASYNC = LAP_FNS_ASYNC or {}
-LAP_TRACE = LAP_TRACE or {}
+G = G or _G
+--- superpower your libraries run either sync or async
+local M = G.mod and G.mod'lap' or {}
 
 local mty = require'metaty'
 local ds = require'ds'
@@ -17,9 +14,15 @@ local log = require'ds.log'
 local errorFrom = ds.Error.from
 local TRACE = log.LEVEL.TRACE
 
-local M = {_async = {}, _sync = {}}
+M._async = {}; M._sync = {}
 
-LAP_CORS = LAP_CORS or ds.WeakKV{}
+-- lap protocol globals
+G.LAP_READY     = G.LAP_READY or {}
+G.LAP_FNS_SYNC  = G.LAP_FNS_SYNC  or {}
+G.LAP_FNS_ASYNC = G.LAP_FNS_ASYNC or {}
+G.LAP_TRACE     = G.LAP_TRACE or {}
+G.LAP_CORS      = G.LAP_CORS or ds.WeakKV{}
+G.LAP_ASYNC     = G.LAP_ASYNC or false
 
 M.formatCorErrors = function(corErrors)
   local f = mty.Fmt{}

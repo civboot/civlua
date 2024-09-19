@@ -13,8 +13,6 @@ local push = table.insert
 local span, lsub = lines.span, lines.sub
 local max = math.max
 
-INT_ID = INT_ID or 1
-
 M.Edit = mty'Edit' {
   'id[int]',
   'container', -- parent (Window/Model)

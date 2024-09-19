@@ -1,12 +1,11 @@
 -- defines ele.Ed
-
 local mty    = require'metaty'
 local ds     = require'ds'
 local path   = require'ds.path'
 local log    = require'ds.log'
 local Gap    = require'lines.Gap'
 local Buffer = require'rebuf.buffer'.Buffer
-local Edit = require'ele.edit'.Edit
+local Edit   = require'ele.edit'.Edit
 local push, pop, concat = table.insert, table.remove, table.concat
 
 -- Ed is the global editor state that actions have access to.
@@ -57,7 +56,6 @@ Ed.buffer = function(ed, v) --> Buffer
     end
   end
   local id = #ed.buffers + 1
-  if type(f) == 'string' then log.info('opening file: %s', f) end
   ed.buffers[id] = Buffer{
     id=id, dat=ed.newDat(v), tmp=not v and {} or nil
   }

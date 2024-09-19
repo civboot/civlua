@@ -48,14 +48,14 @@ M.dark = {
 }
 -- TODO: light
 
-M.mode = function() return CLIMODE or os.getenv'CLIMODE' end
+M.mode = function() return G.CLIMODE or os.getenv'CLIMODE' end
 
 M.stylePath = function() return pth.concat{pth.home(), CONFIG_PATH} end
 
 M.loadStyle = function(mode, path)
   mode = mode or M.mode() or 'dark'
   path = (path == true) and M.stylePath() or path
-  local style = assert(M[mode], style)
+  local style = M[mode] or error('styles not found: '..mode)
   if path and civix.isFile(path) then
     log.info('loading style from %s', path)
     local cfg = require'luck'.load(path, {MODE = mode})

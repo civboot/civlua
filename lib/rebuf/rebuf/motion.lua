@@ -74,7 +74,7 @@ M.forword = function(s, begin) begin = begin or 1
     local k = wordKind(ch)
     if k ~= kStart then
       if kStart ~= 'ws' and k == 'ws' then
-        kStart = ws -- find first non-whitespace
+        kStart = 'ws' -- find first non-whitespace
       else return i end
     end
     i = i + 1

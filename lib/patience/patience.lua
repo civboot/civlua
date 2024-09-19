@@ -106,7 +106,7 @@ M.diffI = function(diff, linesB, linesC, b, b2, c, c2)
   end
 
   for i=#lis,0,-1 do
-    m = lis[i]; local bNext, cNext
+    local m = lis[i]; local bNext, cNext
     if m then bNext, cNext = m[1]-1, m[2]-1
     else      bNext, cNext = b2, c2 end
     M.diffI(diff, linesB, linesC, b, bNext, c, cNext)

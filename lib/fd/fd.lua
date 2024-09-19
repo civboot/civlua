@@ -1,3 +1,4 @@
+G = G or _G
 -- filedescriptor: direct control of filedescriptors.
 -- async operations support the LAP (see lib/lap) protocol.
 --
@@ -5,11 +6,11 @@
 local M = mod and mod'fd' or {}
 
 -- protocol globals (CIV and LAP protocols)
-CWD = CWD or os.getenv'PWD' or os.getenv'CD' -- current working dir
-LAP_FNS_ASYNC = LAP_FNS_ASYNC or {}
-LAP_FNS_SYNC  = LAP_FNS_SYNC  or {}
+G.CWD = G.CWD or os.getenv'PWD' or os.getenv'CD' -- current working dir
+G.LAP_FNS_ASYNC = G.LAP_FNS_ASYNC or {}
+G.LAP_FNS_SYNC  = G.LAP_FNS_SYNC  or {}
 
-local trace = LOG and LOG.trace or function() end
+local trace = G.LOG and G.LOG.trace or function() end
 local S = require'fd.sys' -- fd.c, fd.h
 
 local sfmt      = string.format
@@ -252,7 +253,7 @@ M.open = function(...)
 end
 M.close   = function(fd) fd:close() end
 M.tmpfileFn = function(sysFn)
-  local f = sysFn(template or ''); M.finishRunning(f, 'sleep', 0.005)
+  local f = sysFn(); M.finishRunning(f, 'sleep', 0.005)
   if f:code() ~= 0 then error(sfmt("tmp failed: %s", f:codestr())) end
   return f
 end
@@ -335,7 +336,6 @@ local function copyKeysM(keys, from, to)
   for k in keys:gmatch'%w+' do
     to[k] = assert(rawget(from, k) or M[k])
   end
-  return cache
 end
 copyKeysM(IO_KEYS, io, M.io)
 

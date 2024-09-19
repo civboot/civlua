@@ -66,7 +66,7 @@ M.keyinput = function(ed, ev, evsend)
     ed.error('bindings.%s(keys) -> invalid keys: %s', n, err)
   end
 end
-M.hotkey = keyinput
+M.hotkey = M.keyinput
 
 ----------------------------------
 -- UTILITY

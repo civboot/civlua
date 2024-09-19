@@ -10,7 +10,7 @@
 local M = mod and mod'doc' or setmetatable({}, {})
 MAIN = MAIN or M
 
-assert(PKG_LOC and PKG_NAMES, ERROR)
+assert(PKG_LOC and PKG_NAMES, 'must use pkglib or equivalent')
 
 local shim = require'shim'
 local mty  = require'metaty'
