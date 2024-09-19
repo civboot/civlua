@@ -1,4 +1,5 @@
-G = G or _G
+local G = G or _G
+
 --- superpower your libraries run either sync or async
 local M = G.mod and G.mod'lap' or {}
 

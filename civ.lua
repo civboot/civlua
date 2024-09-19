@@ -1,9 +1,8 @@
 #!/usr/bin/env -S lua -e "require'pkglib'()"
-local pkglib = require'pkglib'
-mod = mod or pkglib.mod
+local G = G or _G
 
 -- civ module: packaged dev environment
-local M = mod'civ'; MAIN = MAIN or M
+local M = G.mod'civ'; G.MAIN = G.MAIN or M
 
 local shim    = require'shim'
 local mty     = require'metaty'

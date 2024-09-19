@@ -1,4 +1,4 @@
-G = G or _G
+local G = G or _G
 -- filedescriptor: direct control of filedescriptors.
 -- async operations support the LAP (see lib/lap) protocol.
 --

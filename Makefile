@@ -1,6 +1,6 @@
 
 LUA_VERSION = lua
-LUA = lua -e "require'pkglib':install()"
+LUA = lua -e "require'pkglib'()"
 
 .PHONY: ele
 
@@ -8,6 +8,7 @@ all: test demo
 
 test: build
 	mkdir -p ./.out/
+	# make test
 	$(LUA) test.lua
 	# Tests complete
 

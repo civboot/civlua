@@ -1,3 +1,5 @@
+local G = G or _G
+
 -- style text from a user's config.
 local M = mod and mod'asciicolor.style' or {}
 

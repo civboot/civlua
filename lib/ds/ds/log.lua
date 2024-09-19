@@ -1,3 +1,5 @@
+local G = G or _G
+
 -- Simple logging library.
 --
 -- This module has the functions {trace info warn err crit} with the signature:
@@ -12,7 +14,7 @@
 -- This module also sets (if not already set) the global LOGFN to ds.logFn
 -- which logs to stderr. This fn is called with signature
 -- function(level, srcloc, message, data)
-local M = mod and mod'ds.log' or {}
+local M = G.mod and G.mod'ds.log' or {}
 local mty = require'metaty'
 local ds = require'ds'
 local push, concat, sfmt = table.insert, table.concat, string.format
@@ -36,9 +38,9 @@ end
 function M.levelStr(lvl) return M.LEVEL[M.levelInt(lvl)] end
 -- set the global logging level (default=os.getenv'LOGLEVEL')
 function M.setLevel(lvl)
-  _G.LOGLEVEL = M.levelInt(lvl or os.getenv'LOGLEVEL' or 0)
+  G.LOGLEVEL = M.levelInt(lvl or os.getenv'LOGLEVEL' or 0)
 end
-M.setLevel(LOGLEVEL)
+M.setLevel(G.LOGLEVEL)
 
 function M.logFn(lvl, loc, msg, data)
   if LOGLEVEL < lvl then return end
@@ -50,7 +52,7 @@ function M.logFn(lvl, loc, msg, data)
   io.stderr:write(concat(f))
   io.stderr:flush()
 end
-LOGFN = LOGFN or M.logFn -- GLOBAL
+G.LOGFN = G.LOGFN or M.logFn
 
 local function logfmt(fmt, ...) --> string, data?
   local i, args, nargs = 0, {...}, select('#', ...)

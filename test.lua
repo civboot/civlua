@@ -1,4 +1,4 @@
-G = G or _G
+local G = G or _G
 G.MAIN = {}
 
 -- for early tests / libs to log
@@ -14,9 +14,6 @@ local dir = '' -- leave here incase support is needed for filedir
 print'[[core]]'
   dofile(dir..'lib/metaty/test.lua')
   dofile(dir..'lib/civtest/test.lua')
-  assert(os.execute[[
-    lua -e "require'pkglib'.install()" lib/shim/test.lua --test=test.lua
-  ]])
 
   local log = require'ds.log'
   LOGFN = log.logFn; log.setLevel()

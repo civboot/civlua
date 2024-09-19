@@ -1,7 +1,7 @@
 local ERROR = [[
 doc module requires global `mod` function/class, such as one of:
 
-  require'pkg':install()
+  require'pkg'()
   mod = require'pkg'.mod
 
 See lib/pkg/README.md for details

@@ -8,8 +8,7 @@ in the lua stdlibrary.
 
 Usage (see also [Installation](#Installation]))
 ```
-require'pkglib':install() -- adds 'mod'
-require'civ' -- (optional) requires all civ modules for demo
+require'pkglib'() -- adds 'mod'
 local doc = require'doc'
 print(doc'ds.heap.Heap')
 ```
@@ -50,7 +49,7 @@ while in the `civ/` directory. Adapt it for other usecases:
 ```
 LUA_PATH="./lib/pkg/?.lua"
 LUA_PKGS="./"
-alias luap="lua -e \"require'pkglib':install()\""
+alias luap="lua -e \"require'pkglib'()\""
 function luahelp() {
   luap -e "require'civ'; print(require'doc'('$1'))"
 }

@@ -25,6 +25,19 @@ T.assertEq(mod.__newindex, getmetatable(M.Example).__newindex)
 T.assertEq('doc_test.Example',    PKG_NAMES[M.Example])
 T.assertEq('cmd/doc/test.lua:11', PKG_LOC[M.Example])
 
+local rmPaths = function(str) return str:gsub('(/.-):%d+', '%1:000') end
+T.assertEq('blah blah foo/bar.baz:000 blah blah',
+  rmPaths('blah blah foo/bar.baz:100 blah blah'))
+T.assertEq('a b c/cmd/doc/test.lua:000 def',
+  rmPaths('a b c/cmd/doc/test.lua:11 def'))
+
+local doFmt = function(fn, obj)
+  local f = mty.Fmt{}
+  fn(f, obj)
+  return rmPaths(table.concat(f))
+end
+
+
 -- This was used to craft the for documentation
 T.test('pairs', function()
   local function rawipairs(t, i)
@@ -63,23 +76,16 @@ T.test('findcode', function()
 end)
 
 
-
-local doFmt = function(fn, obj)
-  local f = mty.Fmt{}
-  fn(f, obj)
-  return table.concat(f)
-end
-
 T.test('doc fn', function()
   local res = doc.construct(M.exampleFn, nil, 0)
   T.assertEq(
-    '[$doc_test.exampleFn] | \\[function\\] [/cmd/doc/test.lua:5]',
+    '[$doc_test.exampleFn] | \\[function\\] [/cmd/doc/test.lua:000]',
     doFmt(doc.fmtDocItem, res))
 
   local res = doc.construct(M.exampleFn, nil, 1)
   T.assertEq('Function', res.docTy)
   T.assertEq(
-"[{h3}Function [{style=api}doc_test.exampleFn] [/cmd/doc/test.lua:5]]\
+"[{h3}Function [{style=api}doc_test.exampleFn] [/cmd/doc/test.lua:000]]\
 document a fn\
 another line\
 \
@@ -91,12 +97,12 @@ end)
 T.test('doc ty', function()
   local res = doc.construct(M.Example, nil, 0)
   T.assertEq(
-    "[$doc_test.Example] | \\[Ty<Example>\\] [/cmd/doc/test.lua:11]",
+    "[$doc_test.Example] | \\[Ty<Example>\\] [/cmd/doc/test.lua:000]",
     doFmt(doc.fmtDocItem, res))
 
   local res = doc.construct(M.Example, nil, 1)
   T.assertEq(
-"[{h3}Record [{style=api}doc_test.Example] [/cmd/doc/test.lua:11]]\
+"[{h3}Record [{style=api}doc_test.Example] [/cmd/doc/test.lua:000]]\
 document a metaty\
 another line\
 \
@@ -109,11 +115,11 @@ another line\
 + [$__name]        | \\[string\\] \
 ]\
 [*Records: ] [{table}\
-+ [$__index]       | \\[Ty<Example>\\] [/cmd/doc/test.lua:11]\
++ [$__index]       | \\[Ty<Example>\\] [/cmd/doc/test.lua:000]\
 ]\
 [*Methods: ] [{table}\
-+ [$__newindex]    | \\[function\\] [/lib/metaty/metaty.lua:181]\
-+ [$method]        | \\[function\\] [/cmd/doc/test.lua:12]\
++ [$__newindex]    | \\[function\\] [/lib/metaty/metaty.lua:000]\
++ [$method]        | \\[function\\] [/cmd/doc/test.lua:000]\
 ]",
     doFmt(doc.fmtDoc, res))
 end)
@@ -131,7 +137,7 @@ T.test('doc module', function()
 
   local res = doFmt(doc.fmtDoc, doc.construct(fm, nil, 5))
   res = res..'\n'
-  -- ds.writePath(dir..'docfake.cxt', res)
+  -- ds.writePath(dir..'docfake.cxt', res) -- uncomment to update, then check diff!
   local cxt = ds.readPath(dir..'docfake.cxt')
-  T.assertEq(res, cxt)
+  T.assertEq(cxt, res)
 end)

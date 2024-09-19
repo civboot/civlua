@@ -1,9 +1,16 @@
 -- pkg: better lua pkg creation and importing
 -- usage:
---   require'pkglib'.install()
+--   require'pkglib'()
+print'!! imported pkglib'
 
 local push, sfmt = table.insert, string.format
-local M = {require=require}
+local M = setmetatable({}, {
+  __name='Mod<pkglib>',
+  __index = function(_, k) error('pkglib does not have field: '..k) end,
+})
+
+-- cache globals / fallback
+M.require = require
 
 -- Documentation globals
 local weakk = {__mode='k'}
@@ -249,23 +256,18 @@ end
 --- make globals typosafe
 M.safeGlobal = function()
   -- define method for explicit access
-  G = G or M.G
+  rawset(_G, 'G', rawget(_G, 'G') or M.G)
   -- override _G (globals table) to throw error on undefined access
   setmetatable(_G, {__name='_G(globals)', __index=noG, __newindex=noG})
 end
 
--- override globals {require, mod}
-M.install = function()
+--- call pkglib to "install" it, making [$require] use [$pkglib.get]
+--- and adding [$G] and [$mod] globals.
+getmetatable(M).__call = function()
   M.safeGlobal()
   G.require = M.get
   G.mod     = G.mod or M.mod
 end
 
-return setmetatable(M, {
-  __call = function(_, ...)
-    require = M.get
-    mod     = M.mod
-  end,
-  __index = function(_, k) error('pkglib does not have field: '..k) end,
-  __newindex = function(_, k) error'do not modify pkg'           end,
-})
+getmetatable(M).__newindex = function() error'do not modify pkg' end
+return M

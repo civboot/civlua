@@ -1,4 +1,5 @@
-G = G or _G
+local G = G or _G
+
 --- module for writing simple tests
 local M = G.mod and G.mod'civtest' or {}
 
@@ -75,8 +76,6 @@ M.asyncTest = function(name, fn)
   local lap = require'lap'
   local civix = require'civix'
   local Lap = civix.Lap()
-  local ge = ds.copy(_G)
-
   print('# Test', name, "(async)")
   Lap:run{fn}
   collectgarbage()

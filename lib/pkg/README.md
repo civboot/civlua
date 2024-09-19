@@ -43,7 +43,7 @@ pkg exports a few OPTIONAL global variables. Other libraries which override
 `require` or want to create self-documenting code are encouraged to use these
 in the following way in order to support both normal and pkglib environments:
 
-* `G = G or _G` to define/get undefined globals in a typosafe way
+* `local G = G or _G` to define/get undefined globals in a typosafe way
   * pkglib overrides `_G` so that access to **undefined** globals throws an
     error (fixing Lua's biggest mistake). Note that **defined** globals behave
     normally with no performance penalty.
@@ -67,7 +67,7 @@ Example module template:
 --- this module is now self documenting. See the documentation
 --- of it or any sub-item with: [$doc 'myModName.item']
 local M = mod and mod'myModName' or {} -- self-documenting module
-G = G or _G                            -- typosafe globals
+local G = G or _G                            -- typosafe globals
 G.MAIN = G.MAIN or M                   -- (cmdline script only)
 
 --- docs for myFn

@@ -1,4 +1,5 @@
-G = G or _G
+local G = G or _G
+
 -- metaty: simple but effective Lua type system using metatable
 --
 -- See README.md for documentation.
