@@ -246,9 +246,11 @@ local noG = function(_, k)
   ))
 end
 
--- make globals typosafe
+--- make globals typosafe
 M.safeGlobal = function()
-  if not rawget(_G, 'G') then rawset(_G, 'G', M.G) end
+  -- define method for explicit access
+  G = G or M.G
+  -- override _G (globals table) to throw error on undefined access
   setmetatable(_G, {__name='_G(globals)', __index=noG, __newindex=noG})
 end
 
