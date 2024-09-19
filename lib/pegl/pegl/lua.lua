@@ -248,7 +248,7 @@ local src = {name='src', block, Eof}
 M.root = pegl.RootSpec{skipComment=skipComment}
 local parse = function(dat, spec, root)
   root = root or M.root
-  -- FIXME: this is mutating the global!!
+  -- FIXME: this is mutating the global!
   if not root.skipComment then root.skipComment = skipComment end
   return pegl.parse(dat, spec, root)
 end

@@ -182,53 +182,59 @@ Iter.swap = function(it) return it:map(swapKV) end --> it
 --------------------------------
 -- Collecting Methods
 
---- run the iterator over all functions
-Iter.run = function(it) --> nil
+--- run the iterator over all values, calling [$fn(k, v)] for each.
+--- return the first [$k, v] where the fn returns a truthy value.
+Iter.find = function(it, fn) --> k, v
   local li, k = it._li
-  for key, v in unpack(it) do
-    k = key; for i=-1,li,-1 do
-      k = it[i](k, v); if k == nil then goto skip end
-    end
-    ::skip::
-  end
-end
-
---- collect non-nil [$k, v] as a table.
-Iter.to = function(it, to) --> to
-  local li, to, k, v = it._li, to or {}
   for key, v in unpack(it) do
     k = key; for i=-1,li,-1 do
       k, v = it[i](k, v); if k == nil then goto skip end
     end
-    to[k] = v
+    if fn(k, v) then return k, v end
     ::skip::
   end
+end
+
+
+local allFn = function(k, v) return not v end -- stop on first falsy
+--- return true if any of the values are truthy
+Iter.all = function(it) return not it:find(allFn) end
+
+local anyFn = function(k, v) return v end     -- stop on first true
+--- return true if any of the values are truthy
+Iter.any = function(it) return not not it:find(anyFn) end
+
+--- run the iterator over all values, calling [$fn(k, v)] for each.
+Iter.run = function(it, fn) --> nil
+  local li, k = it._li
+  for key, v in unpack(it) do
+    k = key; for i=-1,li,-1 do
+      k, v = it[i](k, v); if k == nil then goto skip end
+    end
+    fn(k, v)
+    ::skip::
+  end
+end
+
+
+--- collect non-nil [$k, v] into table-like object [$to]
+Iter.to = function--(it, to={}) --> to
+  (it, to) to = to or {}
+  it:run(function(k, v) to[k] = v end)
+  return to
+end
+
+--- collect emitted [$k] as a list (vals are dropped)
+Iter.keysTo = function--(it, to={}) --> to
+  (it, to) to = to or {}
+  it:run(function(k) push(to, k) end)
   return to
 end
 
 --- collect emitted [$v] as a list (keys are dropped)
-Iter.valsTo = function(it, to) --> to
-  local li, to, k, v = it._li, to or {}
-  for key, v in unpack(it) do
-    k = key; for i=-1,li,-1 do
-      k, v = it[i](k, v); if k == nil then goto skip end
-    end
-    push(to, v)
-    ::skip::
-  end
-  return to
-end
-
---- collect emitted [$v] as a list (vals are dropped)
-Iter.keysTo = function(it, to) --> to
-  local li, to, k, v = it._li, to or {}
-  for key, v in unpack(it) do
-    k = key; for i=-1,li,-1 do
-      k, v = it[i](k, v); if k == nil then goto skip end
-    end
-    push(to, k)
-    ::skip::
-  end
+Iter.valsTo = function--(it, to={}) --> to
+  (it, to) to = to or {}
+  it:run(function(k, v) push(to, v) end)
   return to
 end
 

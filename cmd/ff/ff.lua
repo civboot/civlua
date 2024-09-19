@@ -7,6 +7,7 @@ local shim = require'shim'
 local mty = require'metaty'
 local ds = require'ds'
 local pth = require'ds.path'
+local Iter = require'ds.Iter'
 local ix = require'civix'
 local push = table.insert
 local fd = require'fd'
@@ -20,7 +21,7 @@ local sfmt = string.format
 
 --- A simple utility to find and fix files and file-content
 ---
---- List args: [$%patShortcut path1 path2]
+--- List args: [$%patARg pathArg1 pathArg2]
 ---
 --- [*Examples (bash):] [{## lang=bash}
 ---   ff path                   # print files at path (recursively)
@@ -33,8 +34,8 @@ local sfmt = string.format
 ---   ff path %my%s+name --matches=false  # print paths with match only
 ---   ff path %(name=)%S+ --sub='%1bob'   # change name=anything to name=bob
 ---   # add --mut or -m to actually modify the file contents
----   ff path --incl='%.txt'    # filter to .txt files
----   ff path --incl='(.*)%.txt' --mv='%1.md'  # rename all .txt -> .md
+---   ff path --path='%.txt'    # filter to .txt files
+---   ff path --path='(.*)%.txt' --mv='%1.md'  # rename all .txt -> .md
 ---   # rename OldTestClass -> NewTestClass, 'C' is not case sensitive.
 --- ]##
 ---
@@ -51,34 +52,47 @@ local sfmt = string.format
 --- ]##
 M.Main = mty'Main' {
   'help [bool]: get help',
-  'out [table]: (lua only) stores files/dirs',
-  'log [string|file]: where to log',
 
-  'depth[int]:    depth to recurse (default=infinite)',
-  'files[bool]:   log/return files or substituted files.',   files=true,
-  'matches[bool]: log/return the matches or substitutions.', matches=true,
-  'dirs[bool]:    log/return directories.',                  dirs=false,
+  -- major inputs
 s[[pat[table]:
      (shortcut: %foo ==> --pat=foo)
      content pattern/s which searches inside of files and prints the results.
      If there are multiple [$pat] then ANY are considered a match and [$sub]
      uses the first match.]],
-  'sub [string]: substitute pattern to go with pat (see lua\'s gsub)',
-  'incl[string]:  (multi) file name pattern to include.',
-s[[mv[string]:
-     file substitute for incl. Renames files (not directories).]],
-  'mvcmd[string]: shell command to use for move',
-s[[excl [table]:
-     (multi: any match excludes)
-     exclude pattern ([$default='/%.[^/]+/'] -- aka hidden)]],
+  -- nopat: todo, skips if nopat is anywhere in the LINE
+  'sub    [string]:  substitute pattern to go with pat (see lua\'s gsub)',
+  'path   [strings]: file path include pattern (note: "pat"h)',
+  'nopath [strings]: file path exclude pattern',
+  'incl   [strings]: only include files which contain any incl',
+  'excl   [strings]: do not include files which contain any excl',
+
+  -- path/replacement related
+  'depth[int]: depth to recurse (default=infinite)',
+  'pathsub[string]: substitute path names, passed to cmd (default=mv)',
+s[[cmd [string|list|function]
+   execute [$cmd(from, to)] on each matching file where [$to] is the result of
+   pathsub (or nil if pathsub is not provided)
+   If [$cmd] string or list then [$civix.sh] is used to execute via the
+   system shell.]],
+  'mv[string]: file substitute for [$path]',      -- FIXME: remove mv* and replace with cmd
+  'mvcmd[string]: shell command to use for move', --        call string / table / function on each matched
   'mut [bool]: if true files may be modified, else dry run',
     mut=false,
+  'keep_going [bool]: (short -k) whether to keep going on errors',
+
+  -- formatting related
+  'color [string]: whether to use color [$true|false|always|never]',
+  'plain [bool]: no line numbers', plain=false,
   'fpre[string]: prefix characters before printing files',        fpre='',
   'dpre [string]: prefix characters before printing directories', dpre='',
-  'plain [bool]: no line numbers', plain=false,
-  'color [string]: whether to use color [$true|false|always|never]',
-  'keep_going [bool]: (short -k) whether to keep going on errors',
+
+  -- output related
   "silent [bool]: (short -s) don't print errors",
+  'log [string|file]: where to log',
+  'files[bool]:   log/return files or substituted files.',   files=true,
+  'matches[bool]: log/return the matches or substitutions.', matches=true,
+  'dirs[bool]:    log/return directories.',                  dirs=false,
+  'out [table]: (lua only) stores files/dirs',
 }
 
 local function anyMatch(pats, str) --> matching pat, index
@@ -98,16 +112,35 @@ local function logPath(log, pre, path, to, mvcmd)
     log:styled('path', pth.nice(path), '\n')
   end
 end
+local function linenum(l) return sfmt('% 6i ', l) end
+local _logMatch = function(args, l, line, m, m2)
+  local log = args.log
+  if args.sub then
+    if not args.plain then
+      log:styled('line', (args.fpre or '')..linenum(l))
+    end
+    log:styled(nil, line, '\n')
+  else
+    local logl = line
+    if args.sub and #line == 0 then logl = '<line removed>' end
+    if not args.plain then
+      if args.fpre then log:styled(nil, args.fpre) end
+      log:styled('line', linenum(l))
+    end
+    log:styled(nil, logl:sub(1, m-1))
+    log:styled('match', logl:sub(m, m2))
+    log:styled(nil, logl:sub(m2+1), '\n')
+  end
+end
 local function move(path, to, cmd)
   local dir = pth.last(pth.abs(to))
   if not ix.exists(dir) then ix.mkDirs(dir) end
   if #cmd > 0 then ix.sh(ds.extend(ds.copy(cmd), {path, to}))
   else             ix.mv(path, to) end
 end
-local function linenum(l) return sfmt('% 6i ', l) end
 
 local function _dirFn(path, args, dirs)
-  if anyMatch(args.excl, path) then return 'skip' end
+  if anyMatch(args.nopath, path) then return 'skip' end
   if args.dirs then
     if args.log then
       if args.dpre then args.log:styled('meta', args.dpre) end
@@ -118,14 +151,25 @@ local function _dirFn(path, args, dirs)
 end
 
 local function _fileFn(path, args, out) -- got a file from walk
-  -- check if the excl and incl match
-  if anyMatch(args.excl, path) then return 'skip' end
+  -- check if the path and nopath match
+  if anyMatch(args.nopath, path) then return 'skip' end
   local log, pre, files, to = args.log, args.fpre, args.files, nil
-  if args.incl then
-    local incl = anyMatch(args.incl, path)
-    if not incl then return end
-    if args.mv then to = path:gsub(incl, args.mv) end
+  if args.path then
+    local pathPat = anyMatch(args.path, path)
+    if not pathPat then return end
+    if args.mv then to = path:gsub(pathPat, args.mv) end
   end
+
+  -- check whether the file is excluded
+  if args.excl and Iter{io.lines(path)}
+    :find(function(l) return anyMatch(args.excl, l) end)
+    then return end
+
+  -- check whether the file is included
+  if args.incl and not Iter{io.lines(path)}
+    :find(function(l) return anyMatch(args.incl, l) end)
+    then return end
+
   local pat, sub = args.pat, args.sub
   -- if no patterns exit early
   if #pat == 0 then
@@ -138,38 +182,25 @@ local function _fileFn(path, args, out) -- got a file from walk
   local f, tpath; if args.mut and args.sub then
     tpath = (to or path)..'.SUB'; f = io.open(tpath, 'w')
   end
+
   local l = 1; for line in io.open(path, 'r'):lines() do
-    local m, m2, patFound; for l, p in ipairs(pat) do -- find any matches
+    local m, m2, patFound
+    for l, p in ipairs(pat) do -- find any matches
       m, m2 = line:find(p); if m then patFound = p; break end
-    end; if not m then -- no match
+    end
+    if not m then -- no match
       if f then f:write(line, '\n') end
       goto continue
     end
-    if files then files = false -- =false -> pnt only once
+    -- matched: record that we found a pat in file on first match
+    if files then files = false
       if log             then logPath(log, pre, path, to, args.mvcmd) end
       if out.files       then push(out.files, path)       end
       if args.mut and to then move(path, to, args.mvcmd)  end
     end
-    line = (sub and line:gsub(patFound, sub)) or line
+    if sub then line = line:gsub(patFound, sub) end
     if args.matches then
-      if log then
-        if sub then
-          if not args.plain then
-            log:styled('line', (pre or '')..linenum(l))
-          end
-          log:styled(nil, line, '\n')
-        else
-          local logl = line
-          if sub and #line == 0 then logl = '<line removed>' end
-          if not args.plain then
-            if pre then log:styled(nil, pre) end
-            log:styled('line', linenum(l))
-          end
-          log:styled(nil, logl:sub(1, m-1))
-          log:styled('match', logl:sub(m, m2))
-          log:styled(nil, logl:sub(m2+1), '\n')
-        end
-      end
+      if log         then _logMatch(args, l, line, m, m2) end
       if out.matches then push(out.matches, line) end
     end
     if f and #line > 0 then f:write(line, '\n') end -- match
@@ -204,14 +235,15 @@ M.main = function(args)
     assert(not args.mv, 'cannot specify both sub and mv')
   end
   if args.mv then assert(
-    args.incl, 'must specify incl with mv'
+    args.path, 'must specify path with mv'
   )end
   args.mvcmd = shim.listSplit(args.mvcmd)
 
   shim.bools(args, 'files', 'matches', 'dirs')
-  args.depth = shim.number(args.depth or -1)
-  args.incl  = args.incl and shim.list(args.incl)
-  args.excl  = shim.list(args.excl, {'/%.[^/]+/'}, {})
+  args.depth  = shim.number(args.depth or -1)
+  args.excl   = args.excl  and shim.list(args.excl)
+  args.path   = args.path  and shim.list(args.path)
+  args.nopath = shim.list(args.nopath, {'/%.[^/]+/'}, {})
   shim.short(args, 'd', 'dirs',  true)
   shim.short(args, 'm', 'mut',   true)
   shim.short(args, 'p', 'plain', true)

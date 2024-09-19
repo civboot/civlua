@@ -88,12 +88,12 @@ end)
 
 test('ff mv', function()
   local f = io.open('.out/TEST', 'w+')
-  ff{dir, incl='b%d.txt', log=f}
+  ff{dir, path='b%d.txt', log=f}
   local result = lines(seekRead(f)); table.sort(result)
   local expected = {'', ".out/ff/b/b1.txt", ".out/ff/b/b2.txt"}
   assertEq(expected, result)
 
-  ff{dir, incl='b(%d.txt)', mv='bb%1', log=f}
+  ff{dir, path='b(%d.txt)', mv='bb%1', log=f}
   local result = lines(seekRead(f)); table.sort(result)
   local expected = {
     "",
@@ -106,7 +106,7 @@ test('ff mv', function()
   assertEq(expected, result)
   assertEq('mostly empty', ds.readPath(".out/ff/b/b2.txt"))
 
-  ff{dir, m=true, incl='b(%d.txt)', mv='bb%1',
+  ff{dir, m=true, path='b(%d.txt)', mv='bb%1',
              log=f}
   local result = lines(seekRead(f)); table.sort(result)
   local expected = {
@@ -126,7 +126,7 @@ end)
 test('ff mv pat', function()
   local f = io.open('.out/TEST', 'w+')
   ff{dir, '%b (10)$', m=true,
-     incl='(.*/)(.*%d.txt)', mv='%1/b%2',
+     path='(.*/)(.*%d.txt)', mv='%1/b%2',
      log=f}
   assertEq(
     'mv  .out/ff/b/bb1.txt\n'
@@ -136,4 +136,11 @@ test('ff mv pat', function()
   assert(civix.exists".out/ff/b/bbb1.txt")
 
   -- assertEq(table.concat(b, '\n'), ds.readPath(".out/ff/b/bb1.txt"))
+end)
+
+test('ff incl/excl', function()
+  local f = io.open('.out/TEST', 'w+')
+  ff{dir, '%44', excl='a ', log=f, matches=false}
+  assertEq('.out/ff/b/bbb1.txt\n', seekRead(f))
+  -- TODO: add incl and test it
 end)

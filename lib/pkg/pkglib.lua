@@ -1,7 +1,6 @@
 -- pkg: better lua pkg creation and importing
 -- usage:
 --   require'pkglib'()
-print'!! imported pkglib'
 
 local push, sfmt = table.insert, string.format
 local M = setmetatable({}, {

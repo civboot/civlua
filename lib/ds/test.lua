@@ -672,6 +672,11 @@ test('ds.Iter', function()
 
   assertEq({[2]=20, [4]=40}, It:of(t):keyIn{[2]=1,  [4]=1}:to())
   assertEq({[2]=20, [4]=40}, It:of(t):valIn{[20]=1, [40]=1}:to())
+
+  assertEq(true,  It:of{true, true, true}:all())
+  assertEq(false, It:of{true, false, true}:all())
+  assertEq(true,  It:of{false, false, true, false}:any())
+  assertEq(false, It:of{false, false, false, false}:any())
 end)
 
 ---------------------
