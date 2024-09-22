@@ -1,6 +1,7 @@
 -- Actions builtin plugin
 local M = mod and mod'ele.actions' or {}
 local mty = require'metaty'
+local fmt = require'fmt'
 local ds = require'ds'
 local log = require'ds.log'
 local lines = require'lines'
@@ -43,7 +44,7 @@ M.keyinput = function(ed, ev, evsend)
   nxt = nxt or fallback
   if not callable(nxt) then
     if not type(nxt) == 'table' then
-      K.keep = nil; mty.errorf('%q is neither fn or table', K.chord)
+      K.keep = nil; fmt.errorf('%q is neither fn or table', K.chord)
     end
     K.next, K.keep = nxt, true
     return
@@ -186,7 +187,7 @@ end
 
 M.nav = function(ed, ev, evsend)
   local to = assert(ev[1], 'nav: must provide index 1 for to')
-  to = mty.assertf(ed.ext.nav[to], 'nav: invalid to=%q', to)
+  to = fmt.assertf(ed.ext.nav[to], 'nav: invalid to=%q', to)
   to(ed, ev, evsend)
 end
 

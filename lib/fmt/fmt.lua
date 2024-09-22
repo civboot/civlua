@@ -57,8 +57,9 @@ M.Fmt = mty'Fmt' {
   -- overrideable methods
   'table [function]', 'string [function]',
 }
+local Fmt = M.Fmt
 
-M.Fmt.pretty = function(F, t)
+Fmt.pretty = function(F, t)
   t.tableStart = t.tableStart or '{\n'
   t.tableEnd   = t.tableEnd   or '\n}'
   t.listEnd    = t.listEnd    or '\n'
@@ -69,7 +70,7 @@ end
 
 --- add to the indent level and get the new value
 --- call with [$add=nil] to just get the current level
-M.Fmt.level = function(f, add) --> int: current level
+Fmt.level = function(f, add) --> int: current level
   local l = f._level
   if add then
     l = l + add; assert(l >= 0, 'fmt._level cannot be negative')
@@ -78,11 +79,11 @@ M.Fmt.level = function(f, add) --> int: current level
   return l
 end
 
-M.Fmt.flush = function(f) if f.to then f.to:flush() end end
-M.Fmt._write = function(f, str)
+Fmt.flush = function(f) if f.to then f.to:flush() end end
+Fmt._write = function(f, str)
   if f.to then f.to:write(str) else rawset(f, #f + 1, str) end
 end
-M.Fmt.write = function(f, ...)
+Fmt.write = function(f, ...)
   local str = strcon(...)
   local doIndent = false
   for _, line in split(str, '\n') do
@@ -90,7 +91,7 @@ M.Fmt.write = function(f, ...)
     f:_write(line); doIndent = true
   end
 end
-M.Fmt.styled = function(f, style, text, ...)
+Fmt.styled = function(f, style, text, ...)
   if not style or not f.style then f:write(text, ...); return end
   local to, doIndent = f.to, false
   for _, line in split(text, '\n') do
@@ -103,7 +104,7 @@ M.Fmt.styled = function(f, style, text, ...)
     to:write(line); doIndent = true
   end
 end
-M.Fmt.__newindex = function(f, i, v)
+Fmt.__newindex = function(f, i, v)
   if type(i) ~= 'number' then; assert(f.__fields[i], i)
     return rawset(f, i, v)
   end
@@ -111,7 +112,7 @@ M.Fmt.__newindex = function(f, i, v)
   f:write(v)
 end
 
-M.Fmt.tableKey = function(f, k)
+Fmt.tableKey = function(f, k)
   if type(k) ~= 'string' or KEYWORD[k]
      or tonumber(k) or k:find'[^_%w]' then
     add(f, '[');
@@ -120,16 +121,16 @@ M.Fmt.tableKey = function(f, k)
   else add(f, k) end
 end
 
-M.Fmt['nil']      = function(f)     add(f, 'nil')             end
-M.Fmt.boolean     = function(f, b)  add(f, tostring(b))       end
-M.Fmt.number      = function(f, n)  add(f, sfmt(f.numfmt, n)) end
-M.Fmt.string      = function(f, s)  add(f, sfmt(f.strfmt, s)) end
-M.Fmt.thread      = function(f, th) add(f, tostring(th))      end
-M.Fmt.userdata    = function(f, ud) add(f, tostring(ud))      end
-M.Fmt['function'] = function(f, fn) add(f, sfmt('fn%q[%s]', mty.fninfo(fn))) end
+Fmt['nil']      = function(f)     add(f, 'nil')             end
+Fmt.boolean     = function(f, b)  add(f, tostring(b))       end
+Fmt.number      = function(f, n)  add(f, sfmt(f.numfmt, n)) end
+Fmt.string      = function(f, s)  add(f, sfmt(f.strfmt, s)) end
+Fmt.thread      = function(f, th) add(f, tostring(th))      end
+Fmt.userdata    = function(f, ud) add(f, tostring(ud))      end
+Fmt['function'] = function(f, fn) add(f, sfmt('fn%q[%s]', mty.fninfo(fn))) end
 
 -- format items in table "list"
-M.Fmt.items = function(f, t, hasKeys, listEnd)
+Fmt.items = function(f, t, hasKeys, listEnd)
   local len = #t; for i=1,len do
     f(t[i])
     if (i < len) or hasKeys then add(f, f.indexEnd) end
@@ -138,7 +139,7 @@ M.Fmt.items = function(f, t, hasKeys, listEnd)
 end
 
 -- format key/vals in table "map"
-M.Fmt.keyvals = function(f, t, keys)
+Fmt.keyvals = function(f, t, keys)
   local klen, kset, kend = #keys, f.keySet, f.keyEnd
   for i, k in ipairs(keys) do
     f:tableKey(k); add(f, kset);
@@ -152,7 +153,7 @@ end
 -- Recursively format a table.
 -- Yes this is complicated. No, there is no way to really improve
 -- this while preserving the features.
-M.Fmt.table = function(f, t)
+Fmt.table = function(f, t)
   if f._level >= f.maxIndent then return add(f, DEPTH_ERROR) end
   local mt, keys = getmetatable(t), nil
   if (mt ~= 'table') and (type(mt) == 'string') then
@@ -173,23 +174,22 @@ M.Fmt.table = function(f, t)
   f:level(-1)
   if multi then add(f, f.tableEnd) else add(f, '}') end
 end
-M.Fmt.__call = function(f, v) f[type(v)](f, v); return f end
+Fmt.__call = function(f, v) f[type(v)](f, v); return f end
 --- fmt ... separated by sep
-M.Fmt.concat = function(f, sep, ...)
+Fmt.concat = function(f, sep, ...)
   f(select(1, ...))
   for i=2,select('#', ...) do
     add(f, sep); f(select(i, ...))
   end
-
 end
 --- fmt ... separated by tabs
-M.Fmt.tabulated = function(f, ...) return f:concat('\t', ...) end
+Fmt.tabulated = function(f, ...) return f:concat('\t', ...) end
 
 --- fmt ... separated by newlines
-M.Fmt.lined = function(f, ...) return f:concat('\n', ...) end
+Fmt.lined = function(f, ...) return f:concat('\n', ...) end
 
 M.tostring = function(v, fmt)
-  fmt = fmt or M.Fmt{}; assert(#fmt == 0, 'non-empty Fmt')
+  fmt = fmt or Fmt{}; assert(#fmt == 0, 'non-empty Fmt')
   return concat(fmt(v))
 end
 
@@ -199,7 +199,7 @@ M.format = function(fmt, ...)
     if m == '%%' then return '%' end
     i = i + 1
     return m ~= '%q' and sfmt(m, args[i])
-      or tc(M.Fmt{}(args[i]))
+      or tc(Fmt{}(args[i]))
   end)
   assert(i == #args, 'invalid #args')
   return out
@@ -215,12 +215,24 @@ M.fprint = function(f, ...)
 end
 
 -- print(...) but with Fmt
-M.print  = function(...) return M.fprint(M.Fmt{to=io.stdout}, ...) end
+M.print  = function(...) return M.fprint(Fmt{to=io.stdout}, ...) end
 -- pretty print(...) with Fmt:pretty
-M.pprint = function(...) return M.fprint(M.Fmt:pretty{to=io.stdout}, ...) end
-M.eprint = function(...) return M.fprint(M.Fmt{to=io.stderr}, ...) end
+M.pprint = function(...) return M.fprint(Fmt:pretty{to=io.stdout}, ...) end
+M.eprint = function(...) return M.fprint(Fmt{to=io.stderr}, ...) end
 
 M.errorf  = function(...)    error(M.format(...), 2)             end
 M.assertf = function(a, ...) return a or error(M.format(...), 2) end
 
+-- --- Like print but starts with [$[dbg short/path: ]]
+-- --- and uses metaty.format for all values. Also indents the output.
+-- M.dbg = function(...)
+--   local fmt = Fmt{to=io.stderr, indent='  '}
+--   fmt:level(1)
+--   pushfmt(fmt, '###[dbg %s] ', shortloc(2))
+--   fmt:tabulated(...)
+--   fmt:level(-1)
+--   push(fmt, '\n')
+-- end
+
+getmetatable(M).__call = function(_, v) return concat(Fmt{}(v)) end
 return M

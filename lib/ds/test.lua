@@ -10,11 +10,11 @@ local pop = table.remove
 local sfmt = string.format
 
 local mty = require'metaty'
+local fmt = require'fmt'
 local M, lines = require'ds', require'lines'
 local testing = require'lines.testing'
 
 local test, assertEq, assertMatch, assertErrorPat; M.auto'civtest'
-local str = mty.tostring
 
 local min, max, bound, isWithin, sort2, decAbs
 local indexOf, copy, deepcopy
@@ -83,7 +83,7 @@ test('bool and none', function()
   assert(not mty.eq(none, {}))
   assertEq('none', getmetatable(none))
   assertEq('none', mty.ty(none))
-  assertEq('none', str(none))
+  assertEq('none', fmt(none))
   local err = 'invalid operation on sentinel'
   assertErrorPat(err, function() none.foo = 3 end)
   assertErrorPat(err, function() return #none end)
@@ -111,7 +111,7 @@ test('imm', function()
   assertEq(t, j)
 
   assert(t ~= k); assert(not mty.eq(t, k))
-  assertEq('{1, k=5}', str(M.Imm{1, k=5}))
+  assertEq('{1, k=5}', fmt(M.Imm{1, k=5}))
   assertEq('table', mty.tyName(M.Imm{}))
 
   assertEq({1, 2, v=3}, j) -- table vs Imm
@@ -270,7 +270,7 @@ end)
 test('Slc', function()
   local Slc = M.Slc
   local a = Slc{si=2, ei=10}
-  assertEq(9, #a); assertEq('Slc[2:10]', str(a))
+  assertEq(9, #a); assertEq('Slc[2:10]', fmt(a))
   assertEq({Slc{si=2, ei=14}}, {a:merge(Slc{si=4, ei=14})})
 
   local expect = {Slc{si=2, ei=10}, Slc{si=12, ei=13}}
@@ -361,7 +361,7 @@ test('LL', function(); local _
   h:tail():insert(5); assertEq({1, 2, 3, 4, 5}, h:tolist())
     assertEq(4, h:tail().l.v)
 
-  assertEq('LL{1 -> 3 -> 5}', str((LL:from{1, 3, 5})))
+  assertEq('LL{1 -> 3 -> 5}', fmt((LL:from{1, 3, 5})))
 end)
 
 test('binary-search', function()
@@ -528,14 +528,14 @@ test('bimap', function()
   bm[3] = 'three'
   assertEq(bm[3], 'three'); assertEq(bm.three, 3)
   assertEq('BiMap{"one", "two", "three", one=1, three=3, two=2}',
-           str(bm))
+           fmt(bm))
 
   local bm = M.BiMap{a='A'}
   assertEq(bm.a, 'A'); assertEq(bm.A, 'a')
   bm.b = 'B'
   assertEq(bm.b, 'B'); assertEq(bm.B, 'b')
   assertEq('BiMap{A="a", B="b", a="A", b="B"}'
-         , str(bm))
+         , fmt(bm))
 end)
 
 test('deq', function()
@@ -762,33 +762,33 @@ end)
 test('Grid', function()
   local Grid = require'ds.Grid'
   local g = Grid{h=3, w=20}
-    assertEq('\n\n', str(g))
+    assertEq('\n\n', fmt(g))
   g:insert(2, 2, 'hello')
-    assertEq('\n hello\n', str(g))
+    assertEq('\n hello\n', fmt(g))
   g:insert(2, 4, ' is my friend') -- keeps 'he'
-    assertEq('\n he is my friend\n', str(g))
+    assertEq('\n he is my friend\n', fmt(g))
 
-  g:clear(); assertEq('\n\n', str(g))
+  g:clear(); assertEq('\n\n', fmt(g))
   g:insert(1, 3, 'hi\n  bye\nfin')
     assertEq('  hi\n'
            ..'    bye\n'
-           ..'  fin', str(g))
+           ..'  fin', fmt(g))
 
   g:insert(1, 10, 'there\nthen\n!')
     assertEq('  hi     there\n'
            ..'    bye  then\n'
-           ..'  fin    !', str(g))
+           ..'  fin    !', fmt(g))
 
   g = Grid{h=3, w=20}
   g:insert(1, 1, {"13 5 7 9", " 2 4 6", ""})
-    assertEq('13 5 7 9\n 2 4 6\n', str(g))
+    assertEq('13 5 7 9\n 2 4 6\n', fmt(g))
 
   g = Grid{h=3, w=20}
   g:insert(2, 3, "hi")
-    assertEq('\n  hi\n', str(g))
+    assertEq('\n  hi\n', fmt(g))
   g:insert(1, 6, "ab\ncd\nef")
     assertEq(
       '     ab\n'
     ..'  hi cd\n'
-    ..'     ef', str(g))
+    ..'     ef', fmt(g))
 end)

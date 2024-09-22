@@ -1,21 +1,36 @@
 
 local T = require'civtest'
+local mty = require'metaty'
 local M = require'fmt'
+local fmt = M
 
 local test, assertEq, assertMatch = T.test, T.assertEq, T.assertMatch
-local str = M.tostring
 
 test("tostring", function()
-  assertEq('"a123"',    str("a123"))
-  assertEq('"123"',     str("123"))
-  assertEq('"abc def"', str("abc def"))
-  assertEq('423',       str(423))
-  assertEq('1A',        str(26, M.Fmt{numfmt='%X'}))
-  assertEq('true',      str(true))
-  assertMatch('fn"fmt.errorf"%[.*/fmt%.lua:%d+%]', str(M.errorf))
-  assertMatch('{hi=4}', str{hi=4})
+  assertEq('"a123"',    fmt("a123"))
+  assertEq('"123"',     fmt("123"))
+  assertEq('"abc def"', fmt("abc def"))
+  assertEq('423',       fmt(423))
+  assertEq('1A',        M.tostring(26, M.Fmt{numfmt='%X'}))
+  assertEq('true',      fmt(true))
+  assertMatch('fn"fmt.errorf"%[.*/fmt%.lua:%d+%]', fmt(M.errorf))
+  assertMatch('{hi=4}', fmt{hi=4})
   assertMatch('{hi=4}',
-    str(setmetatable({hi=4}, {}))
+    fmt(setmetatable({hi=4}, {}))
+  )
+end)
+
+test("tostring", function()
+  assertEq('"a123"',    fmt("a123"))
+  assertEq('"123"',     fmt("123"))
+  assertEq('"abc def"', fmt("abc def"))
+  assertEq('423',       fmt(423))
+  assertEq('1A',        M.tostring(26, M.Fmt{numfmt='%X'}))
+  assertEq('true',      fmt(true))
+  assertMatch('fn"fmt.errorf"%[.*/fmt%.lua:%d+%]', fmt(M.errorf))
+  assertMatch('{hi=4}', fmt{hi=4})
+  assertMatch('{hi=4}',
+    fmt(setmetatable({hi=4}, {}))
   )
 end)
 
@@ -40,4 +55,16 @@ test('format', function()
     M.format('hi %q! %s', 'Bob', 'Goodbye'))
   assertEq('running point: {x=3, y=7}...',
     M.format('%s point: %q...', 'running', {x=3, y=7}))
+end)
+
+test('record', function()
+  local A = mty'A'{'a2[any]', 'a1[any]'}
+  local B = mty'B'{
+    'b1[number]', 'b2[number] (default=32)',
+    'a[A]'
+  }
+  assertEq('A{a2=5, a1="hi"}', fmt(A{a1='hi', a2=5}))
+  assertEq('B{b1=5, b2=7, a=A{a2=4, a1="hi"}}', fmt(B{
+    b1=5, b2=7, a=A{a1='hi', a2=4},
+  }))
 end)

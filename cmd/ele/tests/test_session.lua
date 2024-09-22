@@ -2,6 +2,7 @@
 
 local T = require'civtest'
 local mty = require'metaty'
+local fmt = require'fmt'
 local ds, lines = require'ds', require'lines'
 local log = require'ds.log'
 local etest = require'ele.testing'
@@ -11,7 +12,6 @@ local Buffer = require'rebuf.buffer'.Buffer
 local Fake = require'vt100.testing'.Fake
 local path = require'ds.path'
 
-local str = mty.tostring
 local aeq = T.assertEq
 
 local _CWD = CWD
@@ -54,7 +54,7 @@ Test{'session', dat='', function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
   local b, t = ed.edit.buf, ed.display
   aeq('command', ed.mode)
-  aeq('\n\n', str(t))
+  aeq('\n\n', fmt(t))
 
   s:play'Z' -- unknown
     aeq(1, #ed.error)
@@ -68,28 +68,28 @@ Test{'session', dat='', function(tst)
 
   s:play'9 space 8'; ed:draw()
     aeq('9 8', b.dat[1])
-    aeq('9 8\n\n', str(t))
+    aeq('9 8\n\n', fmt(t))
   aeq(log.LogTable{}, ed.error)
 
   s:play'space 7 return 6'
-    aeq('9 8 7\n6\n', str(t))
+    aeq('9 8 7\n6\n', fmt(t))
 end}
 
 Test{'move', dat=LINES3, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
   aeq(3, #e.buf)
   aeq('command', ed.mode)
-  aeq('\n\n', str(ed.display))
+  aeq('\n\n', fmt(ed.display))
 
   s:play'' -- draw
-    aeq('1 3 5 7 9\n 2 4 6\n', str(ed.display))
+    aeq('1 3 5 7 9\n 2 4 6\n', fmt(ed.display))
 
   s:play'j';   aeq({2, 1}, {e.l, e.c})
-    aeq(LINES3, str(ed.display))
+    aeq(LINES3, fmt(ed.display))
   s:play'2 k'; aeq({1, 1}, {e.l, e.c})
   s:play'$';   aeq({1, 9}, {e.l, e.c})
   s:play'j';   aeq({2, 7}, {e.l, e.c})
-    aeq(LINES3, str(ed.display))
+    aeq(LINES3, fmt(ed.display))
 
   s:play'0';   aeq({2, 1}, {e.l, e.c})
   s:play'2 w'; aeq({2, 4}, {e.l, e.c})
@@ -103,7 +103,7 @@ Test{'backspace', dat=LINES3, function(tst)
   s:play'l l';    aeq({1, 3}, {e.l, e.c})
   s:play'i back'; aeq({1, 2}, {e.l, e.c})
     aeq('13 5 7 9', b[1])
-  aeq('13 5 7 9\n 2 4 6\n', str(ed.display))
+  aeq('13 5 7 9\n 2 4 6\n', fmt(ed.display))
 end}
 
 Test{'open', open=SMALL, th=9, tw=30, function(tst)
@@ -114,7 +114,7 @@ Test{'open', open=SMALL, th=9, tw=30, function(tst)
   aeq(SMALL, b.dat.path)
   s:play'' -- draws
     aeq('-- a small lua file for tests', b[1])
-    aeq(ds.readPath(SMALL), str(ed.display))
+    aeq(ds.readPath(SMALL), fmt(ed.display))
   s:play'd f space'
     aeq('a small lua file for tests', b[1])
   e = ed:open(SMALL)

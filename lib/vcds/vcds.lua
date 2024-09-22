@@ -2,6 +2,7 @@
 local M = mod and mod'vcds' or {}
 
 local mty = require'metaty'
+local fmt = require'fmt'
 local ds  = require'ds'
 local push, sfmt = table.insert, string.format
 
@@ -68,7 +69,7 @@ M.apply = function(base, changes, out)
       for i=l, l + p:len() - 1 do push(out, assert(base[i], 'base OOB')) end
       l = l + p:len()
     else
-      mty.assertf(pty == M.Change, 'patch type must be Keep|Change: %s', pty)
+      fmt.assertf(pty == M.Change, 'patch type must be Keep|Change: %s', pty)
       if p.add then for _, a in ipairs(p.add) do push(out, a) end end
       l = l + p.rem
     end
@@ -114,7 +115,7 @@ local DiffsExtender = setmetatable({
         de.cl = de.cl + 1
       end; de.bl = de.bl + ch:len()
     else
-      mty.assertf(chTy == M.Change, "changes must be Keep|Change: %s", chTy)
+      fmt.assertf(chTy == M.Change, "changes must be Keep|Change: %s", chTy)
       for _, a in ipairs(ch.add) do
         push(diffs, M.Diff('+', de.cl, a)); de.cl = de.cl + 1
       end
@@ -288,7 +289,7 @@ local function patchApplyChange(p, base, ch)
   while (iadd <= #ch.add) or (irem <= #ch.rem) do
     local bline = base[p.bl]
     local aline, rline = ch.add[iadd], ch.rem[irem]
-    mty.assertf(rline ~= aline, '!removed == added: %s', rline)
+    fmt.assertf(rline ~= aline, '!removed == added: %s', rline)
     if bline == rline then irem = irem + 1
     elseif iadd <= #ch.add then
       if bline == aline then p.bl = p.bl + 1 end

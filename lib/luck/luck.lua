@@ -1,4 +1,5 @@
 local mty = require'metaty'
+local fmt = require'fmt'
 local ds, lines  = require'ds', require'lines'
 local LFile = require'lines.File'
 local pegl = require'pegl'
@@ -48,7 +49,7 @@ M.loadMeta = function(dat, path)
   local ok, res = ds.eval(
     'return '..lines.sub(dat, pegl.nodeSpan(meta)),
     {}, 'luck metadata of '..path)
-  mty.assertf(ok, 'Failed to load luck metadata: %s\nError:%s', path, meta)
+  fmt.assertf(ok, 'Failed to load luck metadata: %s\nError:%s', path, meta)
   return res
 end
 
@@ -97,19 +98,19 @@ M.loadall = function(paths, allenv)
   for n, l in pairs(lucks) do depsMap[n] = ds.values(l.deps) end
   local missing = ds.dag.missing(depsMap)
   if not ds.isEmpty(missing) then error(
-    'Unknown dependencies: '..mty.tostring(missing)
+    'Unknown dependencies: '..fmt(missing)
   )end
   local sorted = ds.dag.sort(depsMap)
   local built = {}
   for _, name in ipairs(sorted) do
     local env, l = ds.copy(allenv), lucks[name]
-    if not l then error(mty.format(
+    if not l then error(fmt.format(
       'Cyclic dependency detected involving %q. Sorted: %q',
       name, sorted
     ))end
     for localName, depName in pairs(l.deps) do
       local dep = built[depName]
-      if not dep then error(mty.format(
+      if not dep then error(fmt.format(
         'Cyclic dependency detected involving %q and %q. Sorted: %q',
         name, depName, sorted
       ))end

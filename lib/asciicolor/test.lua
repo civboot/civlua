@@ -2,6 +2,7 @@ METATY_CHECK = true
 
 local T = require'civtest'
 local mty = require'metaty'
+local fmt = require'fmt'
 local ds = require'ds'
 local Writer = require'lines.Writer'
 local M = require'asciicolor'
@@ -19,13 +20,13 @@ T.test('nochange', function()
   -- color has lowercase as well as empty+space
   VALID[''] = true; VALID[' '] = true
   for k in pairs(M.Color) do
-    mty.assertf(VALID[k], 'Color: %q is not in VALID', k)
+    fmt.assertf(VALID[k], 'Color: %q is not in VALID', k)
   end
 
   -- CODES also has uppercase
   for c in LETTERS:gmatch'%S+' do VALID[c:upper()] = true end
   for k in pairs(M.CODES) do
-    mty.assertf(VALID[k], 'CODES: %q is not in VALID', k)
+    fmt.assertf(VALID[k], 'CODES: %q is not in VALID', k)
   end
   aeq(NUM_LET     + 2, ds.pairlen(M.Color))
   aeq(NUM_LET * 2 + 2, ds.pairlen(M.CODES))

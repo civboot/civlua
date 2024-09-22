@@ -5,6 +5,7 @@ MAIN = MAIN or M -- must be before imports
 
 local shim = require'shim'
 local mty  = require'metaty'
+local fmt  = require'fmt'
 local fd  = require'fd'
 local doc = require'doc'
 local style = require'asciicolor.style'
@@ -21,7 +22,7 @@ M.Args = mty'Args' {
 M.main = function(args)
   local args = M.Args(shim.parseStr(args))
   local styler = style.Styler:default(args.to, args.color)
-  mty.assertf(style.dark[args.style],
+  fmt.assertf(style.dark[args.style],
               'Error: %s is not a valid style', args.style)
   if args.help then return require'doc'.styleHelp(styler, M.Args) end
   local msg = table.concat(args, ' ')

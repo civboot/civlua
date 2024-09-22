@@ -15,11 +15,10 @@ METATY_CHECK = true
 
 local pkglib = require'pkglib'
 local mty = require'metaty'
+local fmt = require'fmt'
 local ds = require'ds'
 local T = require'civtest'
 local doc = require'doc'
-
-local str = mty.tostring
 
 T.assertEq(mod.__newindex, getmetatable(M.Example).__newindex)
 T.assertEq('doc_test.Example',    PKG_NAMES[M.Example])
@@ -32,7 +31,7 @@ T.assertEq('a b c/cmd/doc/test.lua:000 def',
   rmPaths('a b c/cmd/doc/test.lua:11 def'))
 
 local doFmt = function(fn, obj)
-  local f = mty.Fmt{}
+  local f = fmt.Fmt{}
   fn(f, obj)
   return rmPaths(table.concat(f))
 end

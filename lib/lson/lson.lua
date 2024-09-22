@@ -1,6 +1,7 @@
 
 local M = mod and mod'lson' or {}
 local mty = require'metaty'
+local fmt = require'fmt'
 local ds = require'ds'
 local log = require'ds.log'
 local pod = require'ds.pod'
@@ -36,7 +37,7 @@ M.decode = function(s) return De(s)() end
 -- Json Encoder (via metaty.Fmt)
 -- This works identically to metaty.Fmt except it overrides
 -- how tables are formatted to use JSON instead of printing them.
-M.Json = mty.extend(mty.Fmt, 'Json', {
+M.Json = mty.extend(fmt.Fmt, 'Json', {
   'null [any]: value to use for null', null=ds.none,
   'listStart [string]', listStart = '[',
   'listEnd [string]',   listEnd   = ']',
@@ -47,7 +48,7 @@ M.Json.pretty = function(E, t)
   t.listStart = t.listStart or '[\n'
   t.listEnd   = t.listEnd   or '\n]'
   t.keySet    = t.keySet    or ': '
-  return mty.Fmt.pretty(E, t)
+  return fmt.Fmt.pretty(E, t)
 end
 
 -- note: %q formats ALL newlines with a '\' in front of them
@@ -111,7 +112,7 @@ M.Lson.pretty = function(E, t)
   t.indexEnd  = t.indexEnd  or '\n'
   t.keyEnd    = t.keyEnd    or '\n'
   t.keySet    = t.keySet    or ': '
-  return mty.Fmt.pretty(E, t)
+  return fmt.Fmt.pretty(E, t)
 end
 
 -------------------------------

@@ -3,12 +3,13 @@ METATY_CHECK = true
 local M = require'vt100'
 local T = require'civtest'
 local mty = require'metaty'
+local fmt = require'fmt'
 local assertEq = T.assertEq
 local ac = require'asciicolor'
 
 local assertHasAsciiColors = function(c)
   for code, name in pairs(ac.Color) do
-    mty.assertf(c[name], 'missing %q', name)
+    fmt.assertf(c[name], 'missing %q', name)
   end
 end
 T.test('color', function()

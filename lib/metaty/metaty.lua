@@ -410,23 +410,6 @@ M.Fmt.tabulated = function(f, ...) return f:concat('\t', ...) end
 --- fmt ... separated by newlines
 M.Fmt.lined = function(f, ...) return f:concat('\n', ...) end
 
-M.tostring = function(v, fmt)
-  fmt = fmt or M.Fmt{}; assert(#fmt == 0, 'non-empty Fmt')
-  return concat(fmt(v))
-end
-
-M.format = function(fmt, ...)
-  local i, args, tc = 0, {...}, concat
-  local out = fmt:gsub('%%.', function(m)
-    if m == '%%' then return '%' end
-    i = i + 1
-    return m ~= '%q' and sfmt(m, args[i])
-      or tc(M.Fmt{}(args[i]))
-  end)
-  assert(i == #args, 'invalid #args')
-  return out
-end
-
 M.fprint = function(f, ...)
   local len = select('#', ...)
   for i=1,len do
@@ -441,8 +424,5 @@ M.print  = function(...) return M.fprint(M.Fmt{to=io.stdout}, ...) end
 -- pretty print(...) with Fmt:pretty
 M.pprint = function(...) return M.fprint(M.Fmt:pretty{to=io.stdout}, ...) end
 M.eprint = function(...) return M.fprint(M.Fmt{to=io.stderr}, ...) end
-
-M.errorf  = function(...)    error(M.format(...), 2)             end
-M.assertf = function(a, ...) return a or error(M.format(...), 2) end
 
 return M

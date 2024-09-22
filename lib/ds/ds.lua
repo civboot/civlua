@@ -3,6 +3,7 @@
 local M = mod and mod'ds' or {}
 
 local mty = require'metaty'
+local fmt = require'fmt'
 local push, pop, sfmt    = table.insert, table.remove, string.format
 local sfind = string.find
 local move, sort, unpack = table.move, table.sort, table.unpack
@@ -11,7 +12,7 @@ local ulen, uoff     = utf8.len, utf8.offset
 local min, max = math.min, math.max
 local xpcall, traceback = xpcall, debug.traceback
 local resume = coroutine.resume
-local str, getmethod = mty.tostring, mty.getmethod
+local getmethod = mty.getmethod
 local EMPTY = {}
 
 M.PlainStyler = mty'PlainStyler' {}
@@ -255,7 +256,7 @@ M.last = function(t) return t[#t] end
 
 -- get the first (and assert only) element of the list
 M.only = function(t)
-  local l = #t; mty.assertf(l == 1, 'not only: len=%s', l)
+  local l = #t; fmt.assertf(l == 1, 'not only: len=%s', l)
   return t[1]
 end
 
@@ -533,13 +534,13 @@ M.readPath = function(path)
 end
 
 M.writePath = function(path, text)
-  local f = mty.assertf(io.open(path, 'w'), 'invalid %s', path)
+  local f = fmt.assertf(io.open(path, 'w'), 'invalid %s', path)
   local out = f:write(text); f:close()
   return out
 end
 
 M.fileWithText = function(path, text, mode) --> file
-  local f = mty.assertf(
+  local f = fmt.assertf(
     io.open(path, mode or 'w+'), 'invalid path: %s', path)
   f:write(text); f:flush(); f:seek'set'
   return f
@@ -1045,7 +1046,7 @@ M.Error.__fmt = function(e, fmt)
     fmt(e.cause); push(fmt, '\n')
   end
 end
-M.Error.__tostring = function(e) return str(e) end
+M.Error.__tostring = function(e) return fmt(e) end
 
 -- create the error from the arguments.
 -- tb can be one of: coroutine|string|table
@@ -1076,17 +1077,6 @@ M.resume = function(th) --> ok, err|...
   local ok, a, b, c = resume(th)
   if ok then return ok, a, b, c end
   return nil, M.Error.from(a, th)
-end
-
---- Like print but starts with [$[dbg short/path: ]]
---- and uses metaty.format for all values. Also indents the output.
-M.dbg = function(...)
-  local fmt = mty.Fmt{to=io.stderr, indent='  '}
-  fmt:level(1)
-  pushfmt(fmt, '###[dbg %s] ', shortloc(2))
-  fmt:tabulated(...)
-  fmt:level(-1)
-  push(fmt, '\n')
 end
 
 -----------------------

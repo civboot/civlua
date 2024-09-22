@@ -4,6 +4,7 @@ local M = mod and mod'cxt' or {}
 
 local pkg = require'pkglib'
 local mty = require'metaty'
+local fmt = require'fmt'
 local ds  = require'ds'; local lines = require'lines'
 local civtest = require'civtest'
 local add, sfmt = table.insert, string.format
@@ -120,7 +121,7 @@ local function parseAttrs(p, node)
       val = (val == pegl.EMPTY) and true or p:tokenStr(val[2])
       node[p:tokenStr(attr[1])] = val
     else
-      mty.assertf(attr.kind == 'raw', 'kind: %s', attr.kind)
+      fmt.assertf(attr.kind == 'raw', 'kind: %s', attr.kind)
       if raw then
         p.l, p.c = l, c; p:error'multiple raw (##...) attributes'
       end
@@ -411,7 +412,7 @@ end
 M.Writer.__index = function(w, l)
   local m = getmetatable(w)[l]; if m then return m end
   if type(l) ~= 'number' then return end
-  mty.errorf('index cxt.Writer: %s', l)
+  fmt.errorf('index cxt.Writer: %s', l)
 end
 M.Writer.__newindex = function(w, l, line)
   if type(l) ~= 'number' then return rawset(w, l, line) end

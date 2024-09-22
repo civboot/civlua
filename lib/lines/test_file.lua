@@ -1,4 +1,5 @@
 local mty = require'metaty'
+local fmt = require'fmt'
 local ds = require'ds'
 local test, assertEq, assertMatch, assertErrorPat; ds.auto'civtest'
 local lines = require'lines'
@@ -71,7 +72,7 @@ end)
 
 test('File', function()
   local f = assert(File:create()); f.cache = ds.Forget{}
-  assertEq('lines.File()', mty.tostring(f))
+  assertEq('lines.File()', fmt(f))
   assertEq(0, #f); assertEq({}, ds.icopy(f))
 
   local dat = {'one', 'two', 'three'}

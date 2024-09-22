@@ -16,8 +16,11 @@ local G = G or _G
 -- function(level, srcloc, message, data)
 local M = G.mod and G.mod'ds.log' or {}
 local mty = require'metaty'
+local fmt = require'fmt'
 local ds = require'ds'
+
 local push, concat, sfmt = table.insert, table.concat, string.format
+local Fmt = fmt.Fmt
 
 M.time = function() return os.date():match'%d%d:%d%d:%d%d' end
 
@@ -44,7 +47,7 @@ M.setLevel(G.LOGLEVEL)
 
 function M.logFn(lvl, loc, msg, data)
   if LOGLEVEL < lvl then return end
-  local f = mty.Fmt:pretty{sfmt('%s %s %s: %s',
+  local f = Fmt:pretty{sfmt('%s %s %s: %s',
      SHORT[lvl], M.time(), loc, msg
   )}
   if data then push(f, ' '); f(data) end
@@ -56,12 +59,11 @@ G.LOGFN = G.LOGFN or M.logFn
 
 local function logfmt(fmt, ...) --> string, data?
   local i, args, nargs = 0, {...}, select('#', ...)
-  local Fmt, tc = mty.Fmt, table.concat
   local msg = fmt:gsub('%%.', function(m)
     if m == '%%' then return '%' end
     i = i + 1
     return m ~= '%q' and sfmt(m, args[i])
-      or tc(Fmt{}(args[i]))
+      or concat(Fmt{}(args[i]))
   end)
   if (i ~= nargs) and (i ~= nargs - 1) then error(
     'invalid #args: '..nargs..' %fmts='..i

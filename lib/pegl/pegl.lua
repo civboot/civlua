@@ -1,13 +1,14 @@
 -- rd: recursive descent parser
 
 local mty     = require'metaty'
+local fmt     = require'fmt'
 local ds      = require'ds'
 local lines   = require'lines'
 local civtest = require'civtest'
 local extend  = ds.extend
 local push, sfmt = table.insert, string.format
 local srep = string.rep
-local str, pushfmt = mty.tostring, ds.pushfmt
+local pushfmt = ds.pushfmt
 local ty = mty.ty
 
 local M = {}
@@ -78,7 +79,7 @@ M.Parser = mty'Parser'{
 
 M.fmtSpec = function(s, f)
   if type(s) == 'string'   then return pushfmt(f, "%q", s) end
-  if type(s) == 'function' then return push(f, str(s)) end
+  if type(s) == 'function' then return push(f, fmt(s)) end
   if s.name or s.kind then
     push(f, '<'); push(f, s.name or s.kind); push(f, '>')
     return
@@ -92,7 +93,7 @@ M.fmtSpec = function(s, f)
   f:level(-1); push(f, f.tableEnd)
 end
 M.specToStr = function(s, fmt)
-  local fmt = fmt or mty.Fmt:pretty()
+  local fmt = fmt or fmt.Fmt:pretty()
   M.fmtSpec(s, fmt)
   return table.concat(fmt)
 end
@@ -119,11 +120,11 @@ local function constructKeys(keys)
     keys[i] = nil end
   for k, v in pairs(keys) do
     if k == true then assert(v == true)
-    else mty.assertf(
+    else fmt.assertf(
       type(k) == 'string', 'number key after list items: %s', k)
     end
     if ty(v) == 'table' then keys[k] = constructKeys(v)
-    elseif v ~= true then mty.errorf('%s: %q', KEY_FORM, v) end
+    elseif v ~= true then fmt.errorf('%s: %q', KEY_FORM, v) end
   end
   return keys
 end
@@ -498,28 +499,28 @@ local function fmtStack(p)
   local b = {}; for _, v in ipairs(stk) do
     if v == true then -- skip
     elseif type(v) == 'string' then push(b, v)
-    else push(b, mty.tostring(v)) end
+    else push(b, fmt(v)) end
   end
   pushfmt(b, '%s', p.stackLast)
   return table.concat(b, ' -> ')
 end
 M.Parser.checkPin=function(p, pin, expect)
   if not pin then return end
-  if p.line then p:error(mty.format(
+  if p.line then p:error(fmt.format(
     "parser expected: %q\nGot: %s",
     expect, p.line:sub(p.c))
   )else p:error(
-    "parser reached EOF but expected: "..str(expect)
+    "parser reached EOF but expected: "..fmt(expect)
   )end
 end
 M.Parser.error=function(p, msg)
   local lmsg = sfmt('[LINE %s.%s]', p.l, p.c)
-  mty.errorf("ERROR\n%s%s\n%s\nCause: %s\nParse stack: %s",
+  fmt.errorf("ERROR\n%s%s\n%s\nCause: %s\nParse stack: %s",
     lmsg, p.line, srep(' ', #lmsg + p.c - 2)..'^',
     msg, fmtStack(p))
 end
 M.Parser.parseAssert=function(p, spec)
-  local n = p:parse(spec); if not n then p:error(mty.format(
+  local n = p:parse(spec); if not n then p:error(fmt.format(
     "parser expected: %q\nGot: %s",
     spec, p.line:sub(p.c))
   )end
@@ -529,24 +530,24 @@ end
 M.Parser.dbgEnter=function(p, spec)
   push(p.stack, spec.kind or spec.name or true)
   if not p.root.dbg then return end
-  p:dbg('ENTER: %s', str(spec))
+  p:dbg('ENTER: %s', fmt(spec))
   p.dbgLevel = p.dbgLevel + 1
 end
 M.Parser.dbgLeave=function(p, n)
   local sn = table.remove(p.stack); p.stackLast = sn
   if not p.root.dbg then return n end
   p.dbgLevel = p.dbgLevel - 1
-  p:dbg('LEAVE: %s', str(n or sn))
+  p:dbg('LEAVE: %s', fmt(n or sn))
   return n
 end
 M.Parser.dbgMatched=function(p, spec)
-  if p.root.dbg then p:dbg('MATCH: %s', str(spec)) end
+  if p.root.dbg then p:dbg('MATCH: %s', fmt(spec)) end
 end
 M.Parser.dbgMissed=function(p, spec, note)
-  if p.root.dbg then p:dbg('MISS: %s%s', str(spec), (note or '')) end
+  if p.root.dbg then p:dbg('MISS: %s%s', fmt(spec), (note or '')) end
 end
 M.Parser.dbgUnpack=function(p, spec, t)
-  if p.root.dbg then p:dbg('UNPACK: %s :: %s', str(spec), str(t)) end
+  if p.root.dbg then p:dbg('UNPACK: %s :: %s', fmt(spec), fmt(t)) end
 end
 M.Parser.dbg=function(p, fmt, ...)
   if not p.root.dbg then return end
@@ -602,10 +603,10 @@ M.FmtPegl = mty'FmtPegl' {
 M.FmtPegl.__call = function(ft, f, t)
   if M.isKeyword(t) then pushfmt(f, 'KW%q', t[1]); return end
   local fmtK = t.kind and ft.kinds and ft.kinds[t.kind]
-  if fmtK then fmtK(f, t) else mty.Fmt.table(f, t) end
+  if fmtK then fmtK(f, t) else fmt.Fmt.table(f, t) end
 end
 M.RootSpec.newFmt = function()
-  local f = mty.Fmt:pretty{}
+  local f = fmt.Fmt:pretty{}
   f.table = M.FmtPegl{}
   return f
 end

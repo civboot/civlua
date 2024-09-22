@@ -4,6 +4,7 @@ local G = G or _G
 local M = G.mod and G.mod'lap' or {}
 
 local mty = require'metaty'
+local fmt = require'fmt'
 local ds = require'ds'
 local heap = require'ds.heap'
 
@@ -26,7 +27,7 @@ G.LAP_CORS      = G.LAP_CORS or ds.WeakKV{}
 G.LAP_ASYNC     = G.LAP_ASYNC or false
 
 M.formatCorErrors = function(corErrors)
-  local f = mty.Fmt{}
+  local f = fmt.Fmt{}
   for i, ce in ipairs(corErrors) do
     push(f, sfmt('Coroutine Error #%s:\n', i))
     f(ce); push(f, '\n')

@@ -1,11 +1,10 @@
 
+local fmt = require'fmt'
 local lines = require'lines'
 local ds = require'ds'
 local testing = require'lines.testing'
 local test, assertEq, assertMatch, assertErrorPat; ds.auto'civtest'
 local Gap = require'lines.Gap'
-
-local tostring = require'metaty'.tostring
 
 test('new', function()
   assertEq({'one', 'two 2', ''}, lines'one\ntwo 2\n')
@@ -93,33 +92,33 @@ end)
 
 test('Gap.set', function()
   local g = Gap'ab\nc\n\nd'
-  assertEq('ab\nc\n\nd', tostring(g))
+  assertEq('ab\nc\n\nd', fmt(g))
   assertEq({'ab', 'c', '', 'd'}, g.bot)
   g:setGap(3)
   assertEq({'ab', 'c', ''}, g.bot)
   assertEq({'d'},           g.top)
-  assertEq('ab\nc\n\nd', tostring(g))
+  assertEq('ab\nc\n\nd', fmt(g))
 end)
 
 test('Gap.inset', function()
   assertEq(1, #Gap'')
   local g = Gap(); assertEq(0, #g)
   lines.inset(g, 'foo bar', 1, 0)
-  assertEq('foo bar', tostring(g))
+  assertEq('foo bar', fmt(g))
   g:setGap(1)
   assertEq(1, #g); assertEq(1, #g.bot)
 
   lines.inset(g, 'baz ', 1, 5)
-  assertEq('foo baz bar', tostring(g))
+  assertEq('foo baz bar', fmt(g))
 
   lines.inset(g, '\nand', 1, 4)
-  assertEq('foo\nand baz bar', tostring(g))
+  assertEq('foo\nand baz bar', fmt(g))
   lines.inset(g, 'buz ', 2, 5)
-  assertEq('foo\nand buz baz bar', tostring(g))
+  assertEq('foo\nand buz baz bar', fmt(g))
 
   g = Gap()
   lines.inset(g, 'foo\nbar', 1, 1)
-  assertEq('foo\nbar', tostring(g))
+  assertEq('foo\nbar', fmt(g))
 end)
 
 test('Gap.remove', function()
@@ -174,14 +173,14 @@ end)
 test('Gap.extend', function()
   local g = Gap'123'
   ds.extend(g, {'456', '7'})
-  assertEq('123\n456\n7', tostring(g))
+  assertEq('123\n456\n7', fmt(g))
 end)
 
 test('Gap.write', function()
   local g = Gap''
-  g:write'hi'; assertEq('hi', tostring(g))
-  g:write' there\n'; assertEq('hi there\n', tostring(g))
-  g:write'  next\nline'; assertEq('hi there\n  next\nline', tostring(g))
+  g:write'hi'; assertEq('hi', fmt(g))
+  g:write' there\n'; assertEq('hi there\n', fmt(g))
+  g:write'  next\nline'; assertEq('hi there\n  next\nline', fmt(g))
 end)
 
 test('Writer', function()

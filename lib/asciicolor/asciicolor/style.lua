@@ -5,6 +5,7 @@ local M = mod and mod'asciicolor.style' or {}
 
 local shim = require'shim'
 local mty = require'metaty'
+local fmt = require'fmt'
 local ds = require'ds'
 local log = require'ds.log'
 local pth = require'ds.path'
@@ -68,7 +69,7 @@ end
 
 M.defaultAcWriter = function(f)
   f = f or io.stdout
-  f = (mty.ty(f) == mty.Fmt) and f or mty.Fmt:pretty{to=f}
+  f = (mty.ty(f) == fmt.Fmt) and f or fmt.Fmt:pretty{to=f}
   return require'vt100.AcWriter'{f=f}
 end
 

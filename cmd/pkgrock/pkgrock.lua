@@ -1,6 +1,7 @@
 local M = mod'pkgrock'
 MAIN = MAIN or M
 local mty = require'metaty'
+local fmt = require'fmt'
 
 --- utility for publishing PKG.lua directories. Usage: [##
 ---   pkgrock dir1 dir2 ...args]
@@ -57,7 +58,7 @@ M.makerock = function(style, dir)
   }
   local rpath = M.rockpath(dir, tag)
   style('... writing rockspec', rpath)
-  local fmt = mty.Fmt:pretty{
+  local fmt = fmt.Fmt:pretty{
     to=io.open(rpath, 'w'),
     indexEnd = ',\n', keyEnd=',\n'
   }

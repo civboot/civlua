@@ -14,6 +14,7 @@ assert(PKG_LOC and PKG_NAMES, 'must use pkglib or equivalent')
 
 local shim = require'shim'
 local mty  = require'metaty'
+local fmt  = require'fmt'
 local ds   = require'ds'
 local Iter = require'ds.Iter'
 local sfmt, srep = string.format, string.rep
@@ -48,8 +49,6 @@ end
 --- Documentation on a single type
 --- These pull together the various sources of documentation
 --- from the PKG and META_TY specs into a single object.
----
---- Example: [$metaty.tostring(doc.Doc(myObj))]
 M.Doc = mty'Doc' {
   'obj [any]: the object being documented',
   'name[string]', 'pkgname[string]',
@@ -188,7 +187,7 @@ M._Construct.pkg = function(c, pkg, expand) --> Doc
     homepage = pkg.homepage,
   }
   if pkg.main then
-    local m = mty.assertf(
+    local m = fmt.assertf(
       M.find(pkg.main), 'PKG %s: main not found', d.name)
     m = c(m, nil, expand - 1)
     d.main = M.Doc {
@@ -278,7 +277,7 @@ M.fmtDocItem = function(f, di)
   local name = di.name and sfmt('[$%s]', di.name) or '(unnamed)'
   local ty = di.ty and sfmt('\\[%s\\]', di.ty) or ''
   local path = di.path and sfmt('[/%s]', pth.nice(di.path))
-  local default = di.default and mty.format('= [$%q]', di.default)
+  local default = di.default and fmt.format('= [$%q]', di.default)
   if path and default then path = '\n'..path end
   path, default = path or '', default or ''
   if path:sub(1,1) == '\n' or (di.doc and di.doc ~= '') then
@@ -405,7 +404,7 @@ M.main = function(args)
     end
     d = c(obj, nil, expand)
   end
-  local f = mty.Fmt{}
+  local f = fmt.Fmt{}
   M.fmt(f, d)
   require'cxt.term'{table.concat(f), to=to}
   to:write'\n'

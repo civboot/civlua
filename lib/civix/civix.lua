@@ -2,6 +2,7 @@
 local M = mod and mod'civix' or {}
 
 local mty  = require'metaty'
+local fmt  = require'fmt'
 local ds   = require'ds'
 local shim = require'shim'
 local lib  = require'civix.lib'; local C = lib
@@ -71,7 +72,7 @@ M.monoSec = function() return M.mono():asSeconds()    end
 -- Core Filesystem
 
 local function qp(p)
-  return mty.assertf(M.quote(p), 'path cannot contain "\'": %s', p)
+  return fmt.assertf(M.quote(p), 'path cannot contain "\'": %s', p)
 end
 
 M.pathtype = function(path)
@@ -219,13 +220,13 @@ M.mkDirs = function(path)
     dir = pc{dir, c}
     local ok, errno = lib.mkdir(dir)
     if ok or (errno == C.EEXIST) then -- directory created or exists
-    else mty.errorf('failed to create directory: %s (%s)', 
+    else fmt.errorf('failed to create directory: %s (%s)', 
                     dir, lib.strerrno(errno)) end
   end
 end
 M.mkDir = function(path, parents)
   if parents then M.mkDirs(pth(path))
-  else mty.assertf(lib.mkdir(path), "mkdir failed: %s", path) end
+  else fmt.assertf(lib.mkdir(path), "mkdir failed: %s", path) end
 end
 
 -- mkTree(tree) builds a tree of files and dirs at `dir`.
@@ -390,7 +391,7 @@ M.sh = function(cmd)
   local sh, other = M._sh(cmd); sh:start()
   local out, err = sh:finish(other)
   local rc = sh:wait(); if rc ~= 0 then
-    mty.errorf('Command failed with rc=%s: %q%s', rc, cmd,
+    fmt.errorf('Command failed with rc=%s: %q%s', rc, cmd,
       (out and (#out > 0) and ('\nSTDOUT:\n'..out) or ''))
   end
   return out, err, sh

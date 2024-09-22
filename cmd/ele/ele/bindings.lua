@@ -5,6 +5,7 @@
 local M = mod and mod'ele.keys' or {}
 
 local mty = require'metaty'
+local fmt = require'fmt'
 local ds = require'ds'
 local et = require'ele.types'
 local log = require'ds.log'
@@ -44,7 +45,7 @@ M.chord = function(str) --> keylist
 end
 
 M.literal = function(key)
-  return mty.assertf(et.term.literal(key),
+  return fmt.assertf(et.term.literal(key),
     'invalid literal: %q', key)
 end
 M.chordstr = function(chord)

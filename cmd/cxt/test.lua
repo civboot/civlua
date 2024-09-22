@@ -2,6 +2,7 @@ METATY_CHECK = true
 
 local pkg = require'pkglib'
 local mty = require'metaty'
+local fmt = require'fmt'
 local Mt = mod'Mt'
 --- Example docs
 Mt.A = mty'A' {
@@ -296,7 +297,7 @@ test('term', function()
   local W = Writer; local w = W{}
   local sty = term{
     '[$code] not code',
-    out=mty.Fmt{to=w}, color=false,
+    out=fmt.Fmt{to=w}, color=false,
   }
   assertEq(false, sty.color)
   assertEq(W{'code not code', ''}, w)

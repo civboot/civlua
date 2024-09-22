@@ -7,6 +7,7 @@ license  = "UNLICENSE"
 deps = {
   "lua    ~> 5.3",
   "metaty ~> 0.1",
+  "fmt    ~> 0.1",
 }
 srcs = {
   'ds.lua',

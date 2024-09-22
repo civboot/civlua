@@ -1,4 +1,5 @@
 local mty = require'metaty'
+local fmt = require'fmt'
 local ds = require'ds'
 local log = require'ds.log'
 local cx = require'civix'
@@ -45,9 +46,9 @@ end
 vtt.run(function(t)
   demobox(t, 2, 5)
   demobox(t, 9, 9)
-  log.info('Drawing TXT:\n%s', mty.tostring(t))
-  log.info('Drawing FG:\n%s', mty.tostring(t.fg))
-  log.info('Drawing BG:\n%s', mty.tostring(t.bg))
+  log.info('Drawing TXT:\n%s', fmt(t))
+  log.info('Drawing FG:\n%s', fmt(t.fg))
+  log.info('Drawing BG:\n%s', fmt(t.bg))
   t:draw()
   cx.sleep(pause)
   t.l, t.c = 14, 1; t:draw()
@@ -60,7 +61,7 @@ end)
 -- 
 --   T:clear()
 --   et.diagonal(ft)
---   local e = Edit(nil, Buffer.new(mty.tostring(ft)))
+--   local e = Edit(nil, Buffer.new(fmt(ft)))
 --   for tl=1,T.h do
 --     e:draw(T); T:flush(); x.sleep(et.SLEEP)
 --     e.l, e.c = tl, e.c + 4
