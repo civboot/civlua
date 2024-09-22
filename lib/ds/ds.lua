@@ -164,12 +164,11 @@ M.find = function(subj, pat, si, plain) --> ms, me, pi
 end
 
 -- split strings
-M.split = mty.split
-M.splitList = function(...)
+M.split = mty.split         --(s, sep) --> strIter
+M.splitList = function(...) --(s, sep) --> strList
   local t = {}; for _, v in mty.split(...) do push(t, v) end
   return t
 end
-
 
 M.q1str = function(s)
   return "'"..sfmt("%q", s):sub(2, -2)

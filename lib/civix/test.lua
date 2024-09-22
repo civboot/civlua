@@ -2,6 +2,7 @@ METATY_CHECK = true
 
 local mty = require'metaty'
 local ds = require'ds'
+local Iter = require'ds.Iter'
 local T = require'civtest'
 local assertEq, assertErrorPat; ds.auto'civtest'
 local fd = require'fd'
@@ -108,9 +109,26 @@ T.test('walk', function()
     push(paths, path); push(types, ty); push(depths, w:depth())
   end
   assertEq({
-      ".out/civix/a.txt", ".out/civix/b/", ".out/civix/b/b1.txt",
-      ".out/civix/b/b2.txt" }, paths)
-  assertEq({'file', 'dir', 'file', 'file'}, types)
-  assertEq({1,      2,     2,       2},     depths)
+      ".out/civix/", ".out/civix/a.txt",
+      ".out/civix/b/",
+        ".out/civix/b/b1.txt",
+        ".out/civix/b/b2.txt" }, paths)
+  assertEq({'dir', 'file', 'dir', 'file', 'file'}, types)
+  assertEq({1,     1,      2,     2,       2},     depths)
   assertEq(nil, w()); assertEq(nil, w());
+
+  local w = M.Walk{d}
+  local saw = {}; local function see(path) push(saw, path) end
+  local skipB = function(path, ptype)
+    return not path:find'/b/' or w:skip()
+  end
+  local expect = {".out/civix/", ".out/civix/a.txt", ".out/civix/b/"}
+  assertEq(expect, Iter{w}:listen(skipB):keysTo())
+
+  w = M.Walk{d}
+  assertEq(
+    {".out/civix/", ".out/civix/a.txt"},
+    Iter{w}:listen(see):filterK(skipB):keysTo())
+  assertEq(expect, saw)
+
 end)

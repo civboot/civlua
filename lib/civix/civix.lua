@@ -148,18 +148,21 @@ getmetatable(M.Walk).__call = function(T, t)
 end
 --- get the depth of the current directory being walked
 M.Walk.depth = function(w) return #w._dirs end
-
---- use walk as iterator
+--- skip the current directory level
+M.Walk.skip = function(w) pop(w._dirs) end
 M.Walk.__call = function(w) --> path, ftype
-  while w.pi <= #w do
-    while #w._dirs > 0 do
-      local path, err = w._dirs[#w._dirs](w) -- DFS: top of stack
-      if path then return path, err end
-      pop(w._dirs) -- else _WalkDir is done, pop it.
-    end
-    -- get next "root" path as a WalkDir
-    w.pi = w.pi + 1; if w.pi <= #w then w:_deeper(w[w.pi]) end
+  local pi = w.pi if pi > #w then return end
+  while #w._dirs > 0 do
+    local path, err = w._dirs[#w._dirs](w) -- DFS: top of stack
+    if path then return path, err end
+    pop(w._dirs) -- else _WalkDir is done, pop it.
   end
+  pi = pi + 1; w.pi = pi;
+  local path = w[pi]; if not path then return end
+  local ftype = M.pathtype(path)
+  if ftype == 'dir' then path = toDir(path); w:_deeper(path)
+  else                   path = toNonDir(path) end
+  return path, ftype -- emit the 'root' path
 end
 --- walk one level deeper by pushing onto _dirs stack.
 M.Walk._deeper = function(w, path)
@@ -170,17 +173,17 @@ end
 
 --- Walk a single directory
 M._WalkDir = mty'_WalkDir' {
-  'base [string]: current base path',
-  'ftypes [list]',
+  'ftypes [table]: path -> ftype map',
   '_i [int]: current index',
+  'base [string]: base directory',
 }
 getmetatable(M._WalkDir).__call = function(T, t)
-  local ftypes, base = {}, assert(t.base)
+  local base, ftypes = t.base, {}
   for fname, ftype in M.dir(base) do
     local path = pc{base, fname}
     if ftype == 'unknown' then ftype = M.pathtype(path) end
-    push(t, (ftype=='dir') and toDir(path) or toNonDir(path))
-    push(ftypes, ftype)
+    path = (ftype=='dir') and toDir(path) or toNonDir(path)
+    push(t, path); ftypes[path] = ftype
   end
   sort(t, cmpDirsLast) -- always return files first
   t._i, t.ftypes = 0, ftypes
@@ -189,8 +192,8 @@ end
 M._WalkDir.__call = function(wd, walk) --> path, ftype
   local i = wd._i; if i >= #wd then return end
   i = i + 1; wd._i = i
-  local path, ftype = wd[i], wd.ftypes[i]
-  if ftype == 'dir' then walk:_deeper(path) end
+  local path = wd[i]; local ftype = wd.ftypes[path]
+  if i > 0 and ftype == 'dir' then walk:_deeper(path) end
   return path, ftype
 end
 
