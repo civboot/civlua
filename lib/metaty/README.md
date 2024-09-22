@@ -58,8 +58,6 @@ PKG_LOOKUP['myMod.Pos'] = M.Pos
 * `tostring(v)` convert `v` to string using `Fmt` (expands tables)
 * `format(pat, ...)` simplified `string.format` except `%q` uses `Fmt` (expands
   tables).
-* `eprint(...)` print to stderr (NOT stdout) using `Fmt` (expands tables)
-* `eprintf(pat, ...)` shortcut for `eprint(format(pat, ...))`
 
 ## Why?
 

@@ -724,13 +724,15 @@ test('log', function()
   local fn, lvl = assert(LOGFN), assert(LOGLEVEL)
   local logs = {}
   LOGLEVEL = L.levelInt'INFO'
-  LOGFN = function(lvl, loc, msg, data)
-    push(logs, {lvl, msg, data}) -- skip loc
+  LOGFN = function(lvl, loc, ...)
+    push(logs, {lvl, ...}) -- skip loc
   end
   L.info'test info';              assertEq({4, 'test info'}, pop(logs))
-  L.info('test %s', 'fmt');       assertEq({4, 'test fmt'}, pop(logs))
-  L.info('test %s', 'data', {1});
-    assertEq({4, 'test data', {1}}, pop(logs))
+  L.info('test %s', 'fmt')
+    assertEq({4, 'test %s', 'fmt'}, pop(logs))
+
+  L.info('test %s', 'data', {1})
+    assertEq({4, 'test %s', 'data', {1}}, pop(logs))
 
   LOGLEVEL = L.levelInt'WARN'
   L.info'test no log'; assertEq(0, #logs)
@@ -741,8 +743,9 @@ test('log', function()
   LOGLEVEL = L.levelInt'INFO'
   -- test writing
   local cxt = ' [%d:]+ ds/test.lua:%d+: '
-  local stderr = io.stderr
-  local f = io.tmpfile(); io.stderr = f
+  local iofmt = io.fmt
+  local f = io.tmpfile()
+  io.fmt = fmt.Fmt:pretty{to=f}
   local assertLog = function(lvl, expect, fn, ...)
     f:seek'set'; fn(...); f:seek'set'
     local res = f:read'a'
@@ -751,9 +754,9 @@ test('log', function()
   end
   assertLog('I', 'test 42\n', L.info, 'test %s', 42)
   assertLog('I', 'test data {1}\n', L.info, 'test %s', 'data', {1})
-  assertLog('I', 't {\n  1, 2, \n  key=42\n}\n',
+  assertLog('I', 't {\n    1, 2, \n    key=42\n  }\n',
             L.info, 't', {1, 2, key=42})
-  io.stderr = stderr
+  io.fmt = iofmt
   LOGLEVEL = lvl
 end)
 

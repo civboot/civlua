@@ -175,6 +175,23 @@ Fmt.table = function(f, t)
   if multi then add(f, f.tableEnd) else add(f, '}') end
 end
 Fmt.__call = function(f, v) f[type(v)](f, v); return f end
+
+--- like string.format but use [$Fmt] for [$%q].
+--- Doesn't return the string, instead writes to [$Fmt]
+Fmt.format = function(f, fmt, ...) --> varargsUsed
+  local i, lasti, args = 0, 1, {...}
+  fmt:gsub('()(%%.)', function(si, m)
+    f:write(fmt:sub(lasti, si-1)); lasti = si + #m
+    if m == '%%' then f:write'%'
+    else
+      i = i + 1;
+      if m == '%q' then f(args[i]) else f:write(sfmt(m, args[i])) end
+    end
+  end)
+  f:write(fmt:sub(lasti))
+  return i
+end
+
 --- fmt ... separated by sep
 Fmt.concat = function(f, sep, ...)
   f(select(1, ...))
@@ -194,34 +211,15 @@ M.tostring = function(v, fmt)
 end
 
 M.format = function(fmt, ...)
-  local i, args, tc = 0, {...}, concat
-  local out = fmt:gsub('%%.', function(m)
-    if m == '%%' then return '%' end
-    i = i + 1
-    return m ~= '%q' and sfmt(m, args[i])
-      or tc(Fmt{}(args[i]))
-  end)
-  assert(i == #args, 'invalid #args')
-  return out
+  local f = Fmt{}
+  assert(f:format(fmt, ...) == select('#', ...),
+         'invalid number of %args')
+  return concat(f)
 end
+local format = M.format
 
-M.fprint = function(f, ...)
-  local len = select('#', ...)
-  for i=1,len do
-    local v = select(i, ...)
-    if type(v) == 'string' then f:write(v) else f(v) end
-    if i < len then f:write'\t' end
-  end; f:write'\n'
-end
-
--- print(...) but with Fmt
-M.print  = function(...) return M.fprint(Fmt{to=io.stdout}, ...) end
--- pretty print(...) with Fmt:pretty
-M.pprint = function(...) return M.fprint(Fmt:pretty{to=io.stdout}, ...) end
-M.eprint = function(...) return M.fprint(Fmt{to=io.stderr}, ...) end
-
-M.errorf  = function(...)    error(M.format(...), 2)             end
-M.assertf = function(a, ...) return a or error(M.format(...), 2) end
+M.errorf  = function(...)    error(format(...), 2)             end
+M.assertf = function(a, ...) return a or error(format(...), 2) end
 
 -- --- Like print but starts with [$[dbg short/path: ]]
 -- --- and uses metaty.format for all values. Also indents the output.
@@ -233,6 +231,21 @@ M.assertf = function(a, ...) return a or error(M.format(...), 2) end
 --   fmt:level(-1)
 --   push(fmt, '\n')
 -- end
+
+io.fmt = io.fmt or Fmt{to=io.stderr}
+
+M.fprint = function(f, ...)
+  local len = select('#', ...)
+  for i=1,len do
+    local v = select(i, ...)
+    if type(v) == 'string' then f:write(v) else f(v) end
+    if i < len then f:write'\t' end
+  end; f:write'\n'
+end
+local fprint = M.fprint
+
+-- print(...) but using [$io.fmt]
+M.print  = function(...) return fprint(io.fmt, ...) end
 
 getmetatable(M).__call = function(_, v) return concat(Fmt{}(v)) end
 return M

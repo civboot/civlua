@@ -21,6 +21,7 @@ local ds = require'ds'
 
 local push, concat, sfmt = table.insert, table.concat, string.format
 local Fmt = fmt.Fmt
+local io = io
 
 M.time = function() return os.date():match'%d%d:%d%d:%d%d' end
 
@@ -45,35 +46,20 @@ function M.setLevel(lvl)
 end
 M.setLevel(G.LOGLEVEL)
 
-function M.logFn(lvl, loc, msg, data)
+function M.logFn(lvl, loc, fmt, ...)
   if LOGLEVEL < lvl then return end
-  local f = Fmt:pretty{sfmt('%s %s %s: %s',
-     SHORT[lvl], M.time(), loc, msg
-  )}
-  if data then push(f, ' '); f(data) end
-  push(f, '\n')
-  io.stderr:write(concat(f))
-  io.stderr:flush()
+  local f, lasti, i, args, nargs = io.fmt, 1, 0, {...}, select('#', ...)
+  push(f, sfmt('%s %s %s: ', SHORT[lvl], M.time(), loc)); f:flush()
+  f:level(1)
+  local nargs, i = select('#', ...), f:format(fmt, ...)
+  if i == (nargs - 1) then push(f, ' '); f(args[i + 1]) -- data
+  elseif i ~= nargs then error('invalid #args: '..nargs..' %fmts='..i) end
+  f:level(-1); f:write'\n'; f:flush()
 end
 G.LOGFN = G.LOGFN or M.logFn
 
-local function logfmt(fmt, ...) --> string, data?
-  local i, args, nargs = 0, {...}, select('#', ...)
-  local msg = fmt:gsub('%%.', function(m)
-    if m == '%%' then return '%' end
-    i = i + 1
-    return m ~= '%q' and sfmt(m, args[i])
-      or concat(Fmt{}(args[i]))
-  end)
-  if (i ~= nargs) and (i ~= nargs - 1) then error(
-    'invalid #args: '..nargs..' %fmts='..i
-  )end
-  return msg, args[i + 1]
-end
-M.logfmt = logfmt
-
 local function _log(lvl, fmt, ...)
-  LOGFN(lvl, ds.shortloc(2), logfmt(fmt, ...))
+  LOGFN(lvl, ds.shortloc(2), fmt, ...)
 end
 
 function M.crit(...)  if LOGLEVEL >= 1 then _log(1, ...) end end
@@ -82,11 +68,8 @@ function M.warn(...)  if LOGLEVEL >= 3 then _log(3, ...) end end
 function M.info(...)  if LOGLEVEL >= 4 then _log(4, ...) end end
 function M.trace(...) if LOGLEVEL >= 5 then _log(5, ...) end end
 
--- Log to a table. This is typically used for in tests/etc
+--- used in tests
 M.LogTable = mty.record'LogTable'{}
-M.LogTable.__call = function(lc, ...)
-  local msg, data = logfmt(...)
-  push(lc, {msg=msg, data=data})
-end
+M.LogTable.__call = function(lt, ...) push(lt, {...}) end
 
 return M

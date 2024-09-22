@@ -549,10 +549,10 @@ end
 M.Parser.dbgUnpack=function(p, spec, t)
   if p.root.dbg then p:dbg('UNPACK: %s :: %s', fmt(spec), fmt(t)) end
 end
-M.Parser.dbg=function(p, fmt, ...)
+M.Parser.dbg=function(p, fmtstr, ...)
   if not p.root.dbg then return end
-  local msg = sfmt(fmt, ...)
-  mty.print(sfmt('%%%s%s (%s.%s)',
+  local msg = sfmt(fmtstr, ...)
+  fmt.print(sfmt('%%%s%s (%s.%s)',
     string.rep('* ', p.dbgLevel), msg, p.l, p.c))
 end
 

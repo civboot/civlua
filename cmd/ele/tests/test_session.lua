@@ -58,7 +58,7 @@ Test{'session', dat='', function(tst)
 
   s:play'Z' -- unknown
     aeq(1, #ed.error)
-    T.assertMatch('unbound chord: Z', ed.error[1].msg)
+    T.assertMatch('unbound chord: Z', fmt(ed.error[1]))
   ds.clear(ed.error)
 
   s:play'i'

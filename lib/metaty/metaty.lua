@@ -419,8 +419,6 @@ M.fprint = function(f, ...)
   end; f:write'\n'
 end
 
--- print(...) but with Fmt
-M.print  = function(...) return M.fprint(M.Fmt{to=io.stdout}, ...) end
 -- pretty print(...) with Fmt:pretty
 M.pprint = function(...) return M.fprint(M.Fmt:pretty{to=io.stdout}, ...) end
 M.eprint = function(...) return M.fprint(M.Fmt{to=io.stderr}, ...) end
