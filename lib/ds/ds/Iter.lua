@@ -242,7 +242,7 @@ end
 Iter.reset = function(it) it._nextK = it[3] end
 
 --- use as an iterator.
-Iter.__call = function(it, _, state)
+Iter.__call = function(it)
   local li, k, v = it._li, it._nextK
   ::skip::
   k, v = it[1](it[2], k); if k == nil then return end
@@ -257,5 +257,13 @@ Iter.iter = function(it)
   return it
 end
 Iter.__ipairs = ds.nosupport
+
+
+--- create an iterator that returns a single value
+Iter.single = function(k, v) --> (k, v)->nil
+  local done = false; return function()
+    if not done then done = true; return k, v end
+  end
+end
 
 return Iter

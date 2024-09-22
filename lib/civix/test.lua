@@ -100,3 +100,17 @@ T.test('fd-perf', function()
   assert(data == res)
   -- assert(count > 50, tostring(count))
 end)
+
+T.test('walk', function()
+  local d = mkTestTree()
+  local paths, types, depths = {}, {}, {}
+  local w = M.Walk{d}; for path, ty in w do
+    push(paths, path); push(types, ty); push(depths, w:depth())
+  end
+  assertEq({
+      ".out/civix/a.txt", ".out/civix/b/", ".out/civix/b/b1.txt",
+      ".out/civix/b/b2.txt" }, paths)
+  assertEq({'file', 'dir', 'file', 'file'}, types)
+  assertEq({1,      2,     2,       2},     depths)
+  assertEq(nil, w()); assertEq(nil, w());
+end)

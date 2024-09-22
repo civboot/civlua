@@ -406,7 +406,6 @@ local function assertPath(fn, expect, p)
   assertEq(expect, fn(path(p))) -- pass in table
 end
 test('path', function()
-
   assertEq({'a', 'b', 'c'},  path('a/b/c'))
   assertEq({'/', 'b', 'c'},  path('/b/c'))
   assertEq({'a', 'b', 'c/'}, path('a/b/c/'))
@@ -471,6 +470,14 @@ test('path', function()
   assertEq({'', '/b/'},    {pl'/b/'})
   assertEq({'', '/'},      {pl'/'})
 
+  assertEq(true, path.isDir('/'))
+  assertEq('/',  path.toDir('/'))
+  assertEq('a/', path.toDir('a'))
+  assertEq('a',  path.toNonDir('a'))
+  assertEq('a',  path.toNonDir('a/'))
+
+  assertEq({'y', 'z/z', 'a/', 'a/b/'},
+    M.sort({'a/', 'a/b/', 'z/z', 'y'}, path.cmpDirsLast))
 end)
 
 local heap = require'ds.heap'

@@ -145,4 +145,28 @@ M.last = function(path)
   return a, b
 end
 
+--- return whether the path looks like a dir.
+--- Note: civlua tries to make all ftype='dir' paths end in '/'
+---   but other libraries or APIs may not conform to this.
+M.isDir = function(path) return path:sub(-1) == '/' end
+local isDir = M.isDir
+M.toDir = function(path) --> path/
+  return (path:sub(-1) ~= '/') and (path..'/') or path
+end
+
+M.toNonDir = function(path) --> path (without ending /)
+  return (path:sub(-1) == '/') and path:sub(1,-2) or path
+end
+
+--- path comparison function for [$table.sort] that sorts
+--- dirs last, else alphabetically.
+M.cmpDirsLast = function(a, b)
+  if isDir(a) then
+    if isDir(b) then return a < b end
+    return false
+  elseif isDir(b) then return true end
+  return a < b
+end
+
+
 return M

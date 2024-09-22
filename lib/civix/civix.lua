@@ -10,9 +10,14 @@ local lap  = require'lap'
 
 local pth = require'ds.path'
 local concat, sfmt = table.concat, string.format
+local sort = table.sort
 local push, pop = table.insert, table.remove
 local yield = coroutine.yield
 local pc = pth.concat
+local construct = mty.construct
+
+local toDir, toNonDir = pth.toDir, pth.toNonDir
+local cmpDirsLast = pth.cmpDirsLast
 
 -- TODO: actually implement
 lib.getpagesize = function() return 4096 end
@@ -101,7 +106,6 @@ local function _walk(base, ftypeFns, maxDepth, depth)
   if ftypeFns.dirDone then ftypeFns.dirDone(base, 'dir') end
 end
 
-
 -- walk the paths up to depth, calling [$ftypeFns[ftype]] for
 -- each item encountered.
 --
@@ -125,6 +129,69 @@ M.walk = function(paths, ftypeFns, maxDepth)
     _walkcall(ftypeFns, path, ftype, err)
     if ftype == 'dir' then _walk(path, ftypeFns, maxDepth, 0) end
   end
+end
+
+--- Walk the directory tree as a iterator of [$path, ftype]. Can walk either a
+--- single path [$Walk'path/'] or a list of paths [$Walk{'a/', 'b.txt'}]. [+
+--- * Note: all [$ftype=='dir'] paths end in [$/].
+--- * Warning: you may want to handle [$ftype=='error']
+--- ]
+M.Walk = mty'Walk' {
+  'maxDepth [int]: maximum depth to walk (default=infinite)',
+  'pi [int]: the current (root) path being walked', pi = 0,
+  '_dirs [table]: a stack of WalkDirs that are being walked',
+}
+getmetatable(M.Walk).__call = function(T, t)
+  if type(t) == 'string' then t = {t} end
+  t._dirs = {}
+  return construct(T, t)
+end
+--- get the depth of the current directory being walked
+M.Walk.depth = function(w) return #w._dirs end
+
+--- use walk as iterator
+M.Walk.__call = function(w) --> path, ftype
+  while w.pi <= #w do
+    while #w._dirs > 0 do
+      local path, err = w._dirs[#w._dirs](w) -- DFS: top of stack
+      if path then return path, err end
+      pop(w._dirs) -- else _WalkDir is done, pop it.
+    end
+    -- get next "root" path as a WalkDir
+    w.pi = w.pi + 1; if w.pi <= #w then w:_deeper(w[w.pi]) end
+  end
+end
+--- walk one level deeper by pushing onto _dirs stack.
+M.Walk._deeper = function(w, path)
+  if not w.maxDepth or #w._dirs <= w.maxDepth then
+    push(w._dirs, M._WalkDir{base=path})
+  end
+end
+
+--- Walk a single directory
+M._WalkDir = mty'_WalkDir' {
+  'base [string]: current base path',
+  'ftypes [list]',
+  '_i [int]: current index',
+}
+getmetatable(M._WalkDir).__call = function(T, t)
+  local ftypes, base = {}, assert(t.base)
+  for fname, ftype in M.dir(base) do
+    local path = pc{base, fname}
+    if ftype == 'unknown' then ftype = M.pathtype(path) end
+    push(t, (ftype=='dir') and toDir(path) or toNonDir(path))
+    push(ftypes, ftype)
+  end
+  sort(t, cmpDirsLast) -- always return files first
+  t._i, t.ftypes = 0, ftypes
+  return construct(T, t)
+end
+M._WalkDir.__call = function(wd, walk) --> path, ftype
+  local i = wd._i; if i >= #wd then return end
+  i = i + 1; wd._i = i
+  local path, ftype = wd[i], wd.ftypes[i]
+  if ftype == 'dir' then walk:_deeper(path) end
+  return path, ftype
 end
 
 -- A very simple ls (list paths) implementation
