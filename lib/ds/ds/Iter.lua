@@ -21,6 +21,7 @@ local ds = require'ds'
 local select, unpack = select, table.unpack
 local pairs, ipairs = pairs, ipairs
 local push, sort = table.insert, table.sort
+local concat = table.concat
 local construct = mty.construct
 local rawislice, inext = ds.rawislice, ds.inext
 
@@ -237,6 +238,8 @@ Iter.valsTo = function--(it, to={}) --> to
   it:run(function(k, v) push(to, v) end)
   return to
 end
+
+Iter.concat = function(it, sep) return concat(it:to(), sep) end
 
 --- reset the iterator to run from the start
 Iter.reset = function(it) it._nextK = it[3] end

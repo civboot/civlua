@@ -1,6 +1,7 @@
 
 local mty = require'metaty'
 local ds = require'ds'
+local Iter = require'ds.Iter'
 local test, assertEq; local T = ds.auto'civtest'
 local Keep, Change, toChanges; ds.auto'vcds'
 local add, concat = table.insert, table.concat
@@ -49,7 +50,7 @@ test('example', function()
   assertEq({{5, 5}, {2, 4}, {1, 3}}, lis)
 
   local diff = M.diff(linesA, linesB)
-  assertEq(EXPECT, '\n'..ds.concatToStrs(diff, '\n')..'\n')
+  assertEq(EXPECT, '\n'..Iter:of(diff):mapV(tostring):concat'\n'..'\n')
 
   local chngs = toChanges(diff)
   assertEq({
@@ -79,7 +80,7 @@ T.test('complex', function()
   assertEq({{3,3}, {2,2}}, lis)
 
   local diff = M.diff(linesA, linesB)
-  T.assertEq(EXPECT, '\n'..ds.concatToStrs(diff, '\n')..'\n')
+  assertEq(EXPECT, '\n'..Iter:of(diff):mapV(tostring):concat'\n'..'\n')
 
   local chngs = toChanges(diff)
   assertEq({

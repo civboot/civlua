@@ -18,6 +18,7 @@ local concat    = table.concat
 local max, min, bound = math.max, math.min, ds.bound
 local sort2 = ds.sort2
 local rawsplit = mty.rawsplit
+local inset = ds.inset
 
 M.CMAX = 999
 M.CHUNK = 0x4000 -- 16KiB
@@ -43,12 +44,14 @@ local args = M.args
 M.join = function(t) return concat(t, '\n') end --> string
 local join = M.join
 
+local sinsert = function (s, i, v) return s:sub(1, i-1)..v..s:sub(i) end
+
 -- insert string at l, c
 --
 -- Note: this is NOT performant (O(N)) for large tables.
 -- See: lib/rebuf/gap.lua (or similar) for handling real-world workloads.
 M.inset = function(t, s, l, c)
-  ds.inset(t, l, M(ds.strInsert(t[l] or '', c or 1, s)), 1)
+  inset(t, l, M(sinsert(t[l] or '', c or 1, s)), 1)
 end
 
 -- Address lines span via either (l,l2) or (l,c, l2,c2)
@@ -96,20 +99,6 @@ end
 
 M.sub  = function(...) return _lsub(string.sub, string.len, ...) end
 M.usub = function(...) return _lsub(ds.usub,     utf8.len,   ...) end
-
-M.diff = function(linesL, linesR)
-  local i = 1
-  while i <= #linesL and i <= #linesR do
-    local lL, lR = linesL[i], linesR[i]
-    if lL ~= lR then
-      return i, assert(ds.diffCol(lL, lR))
-    end
-    i = i + 1
-  end
-  if #linesL < #linesR then return #linesL + 1, 1 end
-  if #linesR < #linesL then return #linesR + 1, 1 end
-  return nil
-end
 
 -- create a table of lineText -> {lineNums}
 M.map = function(lines)

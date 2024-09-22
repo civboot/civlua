@@ -7,40 +7,71 @@ local mty = require'metaty'
 local ds = require'ds'
 local lines = require'lines'
 
-local add, sfmt = table.insert, string.format
+local push, sfmt = table.insert, string.format
 
 -----------
 -- Asserting
 
+-- simple diff algorithm... this can probably be improved
+local matches = function(s, m)
+  local out = {}; for v in string.gmatch(s, m) do
+    push(out, v) end
+  return out
+end
+local explode = function(s) return matches(s, '.') end
+local diffCol = function(sL, sR)
+  local i, sL, sR = 1, explode(sL), explode(sR)
+  while i <= #sL and i <= #sR do
+    if sL[i] ~= sR[i] then return i end
+    i = i + 1
+  end
+  if #sL < #sR then return #sL + 1 end
+  if #sR < #sL then return #sR + 1 end
+  return nil
+end
+local diff = function(linesL, linesR)
+  local i = 1
+  while i <= #linesL and i <= #linesR do
+    local lL, lR = linesL[i], linesR[i]
+    if lL ~= lR then
+      return i, assert(diffCol(lL, lR))
+    end
+    i = i + 1
+  end
+  if #linesL < #linesR then return #linesL + 1, 1 end
+  if #linesR < #linesL then return #linesR + 1, 1 end
+  return nil
+end
+
 M.diffFmt = function(f, sE, sR)
   local linesE = lines(sE)
   local linesR = lines(sR)
-  local l, c = lines.diff(linesE, linesR)
+  local l, c = diff(linesE, linesR)
   mty.assertf(l and c, '%s, %s\n', l, c)
-  add(f, sfmt("! Difference line=%q (", l))
-  add(f, sfmt('lines[%q|%q]', #linesE, #linesR))
-  add(f, sfmt(' strlen[%q|%q])\n', #sE, #sR))
-  add(f, '! EXPECT: '); add(f, linesE[l] or '<empty>'); add(f, '\n')
-  add(f, '! RESULT: '); add(f, linesR[l] or '<empty>'); add(f, '\n')
-  add(f, string.rep(' ', c - 1 + 10))
-  add(f, sfmt('^ (column %q)\n', c))
-  add(f, '! END DIFF\n')
+  push(f, sfmt("! Difference line=%q (", l))
+  push(f, sfmt('lines[%q|%q]', #linesE, #linesR))
+  push(f, sfmt(' strlen[%q|%q])\n', #sE, #sR))
+  push(f, '! EXPECT: '); push(f, linesE[l] or '<empty>'); push(f, '\n')
+  push(f, '! RESULT: '); push(f, linesR[l] or '<empty>'); push(f, '\n')
+  push(f, string.rep(' ', c - 1 + 10))
+  push(f, sfmt('^ (column %q)\n', c))
+  push(f, '! END DIFF\n')
 end
 
 M.assertEq = function(expect, result, pretty)
   if mty.eq(expect, result) then return end
   local f = (pretty or pretty == nil) and mty.Fmt:pretty{}
           or mty.Fmt{}
-  add(f, "! Values not equal:")
-  add(f, "\n! EXPECT: "); f(expect)
-  add(f, "\n! RESULT: "); f(result)
-  add(f, '\n')
+  push(f, "! Values not equal:")
+  push(f, "\n! EXPECT: "); f(expect)
+  push(f, "\n! RESULT: "); f(result)
+  push(f, '\n')
   if type(expect) == 'string' and type(result) == 'string' then
     M.diffFmt(f, expect, result)
   elseif mty.ty(expect) ~= mty.ty(result) then
     local tyn = function(v) return mty.tyName(mty.ty(v)) end
-    add(f, sfmt('! TYPES:  %s != %s',
-                tyn(expect), tyn(result)))
+    push(f, sfmt('! TYPES:  %s != %s',
+                 tyn(expect), tyn(result)))
   end
   error(table.concat(f))
 end

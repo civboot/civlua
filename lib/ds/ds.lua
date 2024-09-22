@@ -4,6 +4,7 @@ local M = mod and mod'ds' or {}
 
 local mty = require'metaty'
 local push, pop, sfmt    = table.insert, table.remove, string.format
+local sfind = string.find
 local move, sort, unpack = table.move, table.sort, table.unpack
 local concat             = table.concat
 local ulen, uoff     = utf8.len, utf8.offset
@@ -145,31 +146,21 @@ M.isupper = function(c) return c:match'^%u+$' end --> string?
 -- return the string if it is only lowercase letters
 M.islower = function(c) return c:match'^%l+$' end --> string?
 
-M.brief = function(s, maxlen, trunc) --> string | str...
-  maxlen, trunc = maxlen or 50, trunc or '...'
-  if type(s) ~= 'string' then s = str(s) end
-  return (#s <= maxlen) and s or (s:sub(1,maxlen)..trunc)
-end
-
 M.trim = function(subj, pat, index)
   pat = pat and ('^'..pat..'*(.-)'..pat..'*$') or '^%s*(.-)%s*$'
   return subj:match(pat, index)
 end
 
---- return the first i characters and the remainder
-M.strDivide = function(s, i)
-  return s:sub(1, i), s:sub(i+1)
-end
-
--- insert the value string at index
-M.strInsert = function (s, i, v)
-  return s:sub(1, i-1) .. v .. s:sub(i)
-end
-
-M.matches = function(s, m)
-  local out = {}; for v in string.gmatch(s, m) do
-    push(out, v) end
-  return out
+--- search for one or more patterns in subj.
+--- return the match start and end as well as the index
+--- of the pattern matched (if [$pat] is a list)
+M.find = function(subj, pat, si, plain) --> ms, me, pi
+  si = si or 1
+  if type(pat) == 'string' then return sfind(subj, pat, si, plain) end
+  for pi, p in ipairs(pat) do
+    local ms, me = sfind(subj, p, si, plain)
+    if ms then return ms, me, pi end
+  end
 end
 
 -- split strings
@@ -178,22 +169,7 @@ M.splitList = function(...)
   local t = {}; for _, v in mty.split(...) do push(t, v) end
   return t
 end
-M.explode = function(s) return M.matches(s, '.') end
-M.concatToStrs = function(t, sep)
-  local o = {}; for _, v in ipairs(t) do push(o, str(v)) end
-  return concat(o, sep)
-end
 
-M.diffCol = function(sL, sR)
-  local i, sL, sR = 1, M.explode(sL), M.explode(sR)
-  while i <= #sL and i <= #sR do
-    if sL[i] ~= sR[i] then return i end
-    i = i + 1
-  end
-  if #sL < #sR then return #sL + 1 end
-  if #sR < #sL then return #sR + 1 end
-  return nil
-end
 
 M.q1str = function(s)
   return "'"..sfmt("%q", s):sub(2, -2)

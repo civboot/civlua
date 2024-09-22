@@ -18,7 +18,7 @@ local str = mty.tostring
 
 local min, max, bound, isWithin, sort2, decAbs
 local indexOf, copy, deepcopy
-local strInsert, strDivide, trim
+local trim
 local extend, clear, replace, merge
 local getOrSet, get, set
 local drain, reverse
@@ -141,12 +141,6 @@ test("number", function()
 end)
 
 test("str", function()
-  assertEq("12 34 56", strInsert("1256", 3, " 34 "))
-  assertEq("78 1256", strInsert("1256", 1, "78 "))
-  assertEq("1256 78", strInsert("1256", 5, " 78"))
-  local a, b = strDivide('12345', 3)
-  assertEq(a, '123'); assertEq(b, '45')
-
   assertEq('hi there', trim('  hi there\n '))
   assertEq('hi there', trim('hi there'))
   local multi = [[  one

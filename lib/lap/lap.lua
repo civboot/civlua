@@ -316,11 +316,6 @@ M.Lap.execute = function(lap, cor, note) --> errstr?
     log.trace("execute %s %s %q [%q]", cor, status(cor), note, LAP_CORS[cor])
   end
   local ok, kind, a, b = resume(cor)
-  if LOGLEVEL >= TRACE and LAP_TRACE[cor] then
-    log.trace("finished %s [%q] -> %s, %q [%q , %q]",
-      cor, LAP_CORS[cor], ok and 'ok' or '!err!',
-      ds.brief(kind), ds.brief(a), ds.brief(b))
-  end
   if not ok then return kind end -- error
   local fn = LAP_UPDATE[kind]
   if fn then return fn(lap, cor, a, b)

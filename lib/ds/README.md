@@ -10,7 +10,7 @@ It contains the following functions and types. All types use
 
 - comparable: `min`, `max`, `bound`, `isWithin`
 - number: `isOdd`, `isEven`, `decAbs` (decrement absolute)
-- string: `strDivide`, `strInsert`, `explode` (make table of characters),
+- string: `strInsert`, `explode` (make table of characters),
   `concatToStrs`, (whitespace) `trimWs` and `split`, `matches` (gmatch table)
   `diffCol` (find column diff)
 - lines submodule: `lines(text)` to get table of lines, `span`, `sub(l, c,
