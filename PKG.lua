@@ -6,6 +6,7 @@ pkgs = {
   -- Core
   'lib/shim',
   'lib/metaty',
+  'lib/fmt',
   'lib/civtest',
   'lib/ds',
   'lib/lines',

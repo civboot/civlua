@@ -1,0 +1,18 @@
+[{h1}fmt module: format and style lua types]
+
+API / Architecture: [+
+* [$metaty] (or any other type library) defines types and sets [$__fields] on
+  the metatable.
+* [$fmt.Fmt] defines the formatter which has methods/settings: [+
+  * [$to [file|Styler]]: where to write to. Default is to push to self,
+    treating Fmt as a list of strings.
+  * [$style [boolean]] to enable/disable styling. Set to [$true] if [$to=styler]
+    AND you want color/etc.
+  * [$__call(f, v)]: call with any value to use [$__fmt] method or default.
+  * [$__newindex(k, v)]: [$push(f, str)] like a normal table of strings.
+  * [$write(...)]: write like a normal file
+  * [$styled(style, text, ...)]: style [$text] and [$write(...)] using a
+    provided styler (i.e. [$asciicolor.style.Styler])
+  * [$level(add)] to increase/decrease the indentation level.
+  ]
+]

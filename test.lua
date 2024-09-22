@@ -13,6 +13,7 @@ local dir = '' -- leave here incase support is needed for filedir
 
 print'[[core]]'
   dofile(dir..'lib/metaty/test.lua')
+  dofile(dir..'lib/fmt/test.lua')
   dofile(dir..'lib/civtest/test.lua')
 
   local log = require'ds.log'
