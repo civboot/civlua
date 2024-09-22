@@ -10,9 +10,6 @@ M.Args = mty'Args' {
   'help [boolean]: get help',
   'inp  [path|file]: input file',
   'out  [path|file]: output file (default=stdout)',
-  'color [string]: whether to use color',
-  'mode  [string]: style mode (light|dark)',
-  'style [string]: the path to get the style config',
 }
 
 local ds = require'ds'
@@ -127,22 +124,16 @@ M.convert = function(dat, to)
   return w, node, p
 end
 
--- Example: {'cxt to parse', out=file, mode='dark'}
 M.main = function(args)
   args = M.Args(shim.parseStr(args))
-  args.out = args.out or io.stdout
-  local styler = style.Styler{
-    acwriter=style.defaultAcWriter(args.out),
-    color=shim.color(args.color, fd.isatty(args.out)),
-    style=style.loadStyle(args.mode),
-  }
-  if args.help then return require'doc'.styleHelp(styler, M.Args) end
+  args.out = args.out or io.fmt
+  if args.help then return require'doc'.styleHelp(args.out, M.Args) end
   if #args > 0    then args.inp = lines(table.concat(args, ' '))
   elseif args.inp then args.inp = LFile:create(shim.file(args.inp))
   else error'must provide input' end
-  M.convert(args.inp, styler)
-  styler:write'\n'
-  return styler
+  M.convert(args.inp, args.out)
+  args.out:write'\n'
+  return args.out
 end
 getmetatable(M).__call = function(_, ...) return M.main(...) end
 

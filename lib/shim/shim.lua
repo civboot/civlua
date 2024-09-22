@@ -155,23 +155,6 @@ end
 local COLOR_YES = {[true]=1,  ['true']=1,  always=1, on=1}
 local COLOR_NO  = {[false]=1, ['false']=1, never=1,  off=1}
 
--- Return whether to use color based on your --color= arg and
--- isatty (see fd.isatty())
--- [" Reference: https://bixense.com/clicolors/]
-M.color = function(color, isatty) --> useColor[bool], error
-  local err
-  if color ~= nil then
-    if COLOR_YES[color] then return true end
-    if COLOR_NO[color]  then return false end
-    if color ~= 'auto' then
-      err = 'invalid --color='..color
-    end
-  end
-  if M.getEnvBool'NO_COLOR'       then return false, err end
-  if M.getEnvBool'CLICOLOR_FORCE' then return true,  err end
-  return M.getEnvBool'CLICOLOR' and isatty, err
-end
-
 -- return nil if env var does not exist, else boolean (true for 'true' or '1')
 M.getEnvBool = function(k)
   local v = os.getenv(k); if not v then return v end

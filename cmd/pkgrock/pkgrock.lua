@@ -17,7 +17,6 @@ M.Args = mty'pkgrock' {
   [[gitops [string] one or more: add,commit,tag]],
   [[gitpush[string] where to push, i.e: 'origin main']],
   [[upload [string] set to the luarocks api key]],
-  [[color  [string]: whether to print in color]],
 }
 
 local pkg = require'pkglib'
@@ -34,10 +33,10 @@ M.rockpath = function(dir, tag)
 end
 
 -- make a rock and return rock, rockpath, PKG
-M.makerock = function(style, dir)
+M.makerock = function(styled, dir)
   local path = dir
   if not dir:find'/PKG.lua$' then path = pth.concat{dir, 'PKG.lua'} end
-  style('... loading pkg', path)
+  styled('... loading pkg', path)
   local p = pkg.load('noname', path)
   local rock = p.rockspec or {}
   rock.rockspec_format = rock.rockspec_format or "3.0"
@@ -57,7 +56,7 @@ M.makerock = function(style, dir)
     type = 'builtin', modules = pkg.modules(p.srcs),
   }
   local rpath = M.rockpath(dir, tag)
-  style('... writing rockspec', rpath)
+  styled('... writing rockspec', rpath)
   local fmt = fmt.Fmt:pretty{
     to=io.open(rpath, 'w'),
     indexEnd = ',\n', keyEnd=',\n'
@@ -84,8 +83,9 @@ end
 
 M.main = function(t)
   t = M.Args(shim.parseStr(t))
-  local to = require'asciicolor.style'.Styler:default(nil, t.color)
-  local style = function(...)
+  require'civ'.setup()
+  local to = io.fmt
+  local styled = function(...)
     to:styled('notify', table.concat({...}, '\t'))
     to:write'\n'
   end
@@ -96,8 +96,8 @@ M.main = function(t)
   local gitops = ds.Set(shim.listSplit(t.gitops))
   local tags, rpaths = {}, {}
   if t.create then for _, dir in ipairs(t) do
-    style('making rock', dir)
-    M.makerock(style, dir)
+    styled('making rock', dir)
+    M.makerock(styled, dir)
   end end
   for _, dir in ipairs(t) do
     local rpath, rock = M.loadrock(dir)
@@ -113,24 +113,24 @@ M.main = function(t)
     )end
   end
   if gitops.add then for _, rp in ipairs(rpaths) do
-    style('git add:', rp)
-    execute(styler, [[git add -f %s]], rp)
+    styled('git add:', rp)
+    execute(io.fmt, [[git add -f %s]], rp)
   end end
   if gitops.commit then
     style'... commiting'
-    execute(styler, [[git commit -am 'pkgrock: %s']], table.concat(tags, ' '))
+    execute(io.fmt, [[git commit -am 'pkgrock: %s']], table.concat(tags, ' '))
   end
   if gitops.tag then for _, tag in ipairs(tags) do
-    style('add tag:', tag)
-    execute(styler, [[git tag '%s']], tag)
+    styled('add tag:', tag)
+    execute(io.fmt, [[git tag '%s']], tag)
   end end
   if t.gitpush then
     style'... pushing'
-    execute(styler, [[git push %s]], t.gitpush)
+    execute(io.fmt, [[git push %s]], t.gitpush)
   end
   if t.upload then for _, rp in ipairs(rpaths) do
-    style('uploading', rp)
-    execute(styler, UPLOAD, rp, t.upload)
+    styled('uploading', rp)
+    execute(io.fmt, UPLOAD, rp, t.upload)
   end end
 end
 

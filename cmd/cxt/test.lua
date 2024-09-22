@@ -297,9 +297,8 @@ test('term', function()
   local W = Writer; local w = W{}
   local sty = term{
     '[$code] not code',
-    out=fmt.Fmt{to=w}, color=false,
+    out=fmt.Fmt{to=w}
   }
-  assertEq(false, sty.color)
   assertEq(W{'code not code', ''}, w)
 
   ds.clear(w)

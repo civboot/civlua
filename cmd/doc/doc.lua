@@ -105,6 +105,7 @@ M._Construct.__call = function(c, obj, key, expand, lvl) --> Doc | DocItem
   local docTy = assert(M.type(obj))
   if docTy == 'Package' then return c:pkg(obj, expand) end
   local name, path = M.modinfo(obj)
+  if path and path:find'%[' then path = '(internal)' end
   local d = {
     obj=obj, path=path, docTy=docTy,
     name=assert(key or name), pkgname=PKG_NAMES[obj],
@@ -112,7 +113,9 @@ M._Construct.__call = function(c, obj, key, expand, lvl) --> Doc | DocItem
   }
   if c.done[obj] then return M.DocItem(d) end
   c.done[obj] = true
-  local comments, code = M.findcode(path)
+  local comments, code; if path and path ~= '(internal)' then
+    comments, code = M.findcode(path)
+  end
   if comments then M.stripComments(comments) end
   if comments and #comments == 0 then comments = nil end
   if code     and #code == 0     then code = nil end
@@ -381,15 +384,15 @@ end
 ---
 --- If no path is given shows all available packages.
 M.Args = mty'Args' {
+  'help [bool]: get help',
   'pkg [bool]: if true uses PKG.lua (and all sub-modules)',
   'full [bool]: if true displays the full API of all pkgs/mods',
   'local [bool]: if true only unpacks local pkgs/mods',
-  'color [string|bool]: whether to use color [$true false always never]',
 }
 
 M.main = function(args)
   args = M.Args(shim.parseStr(args))
-  local to = style.Styler:default(io.stdout, args.color)
+  local to = io.fmt
   if args.help then return M.styleHelp(to, M.Args) end
   local obj, expand = args[1], args.full and 10 or 1
   assert(obj, 'arg[1] must be the item to find')
@@ -406,10 +409,12 @@ M.main = function(args)
   end
   local f = fmt.Fmt{}
   M.fmt(f, d)
-  require'cxt.term'{table.concat(f), to=to}
+  require'cxt.term'{table.concat(f), out=to}
   to:write'\n'
 end
 getmetatable(M).__call = function(_, args) return M.main(args) end
 
-if M == MAIN then M.main(shim.parse(arg)); os.exit(0) end
+if M == MAIN then
+  M.main(shim.parse(arg)); os.exit(0)
+end
 return M

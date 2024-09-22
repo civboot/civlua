@@ -67,42 +67,15 @@ M.loadStyle = function(mode, path)
   return style
 end
 
-M.defaultAcWriter = function(f)
-  f = f or io.stdout
-  f = (mty.ty(f) == fmt.Fmt) and f or fmt.Fmt:pretty{to=f}
-  return require'vt100.AcWriter'{f=f}
-end
-
 -- Create a styler
 --
 -- Note: pass f (file) to create the default AcWriter with the file.
 -- Note: pass mode, stylepath to control loadStyle
 M.Styler = mty'Styler' {
-  'acwriter [AcWriter]: default=defaultAcWriter()',
+  'acwriter [AcWriter]',
   "style [table]: default=loadStyle()",
-  'color [boolean]: disables color if set to false', color=true
 }
 
---- Get the default styler.
----
---- Example: [$styler = style.Styler(io.stdout, args.color)]
-M.Styler.default = function(T, to--[[io.stdout]], colorArg) --> Styler
-  to = to or io.stdout
-  return M.Styler {
-    acwriter = M.defaultAcWriter(to),
-    style = M.loadStyle(),
-    color = shim.color(colorArg, fd.isatty(to)),
-  }
-end
-
-getmetatable(M.Styler).__call = function(T, t)
-  t = t or {}
-  t.acwriter = t.acwriter or M.defaultAcWriter(ds.popk(t, 'f'))
-  t.style = t.style or M.loadStyle(
-    ds.popk(t, 'mode'), ds.popk(t, 'stylepath'))
-  t.color = t.color == nil and true or t.color
-  return construct(T, t)
-end
 M.Styler.__tostring = function() return 'Styler{...}' end
 
 M.Styler.level = function(st, add) return st.acwriter.f:level(add) end
@@ -110,7 +83,6 @@ M.Styler.flush = function(st) return st.acwriter:flush() end
 
 -- Example: st:styled('path', 'path/to/foo.txt', '\n')
 M.Styler.styled = function(st, style, str, ...)
-  if not st.color then return st.acwriter:write(str, ...) end
   local len, fb = #str, st.style[style] or ''
   return st.acwriter:acwrite(
     fb:sub(1,1):rep(len), fb:sub(2,2):rep(len),

@@ -81,7 +81,6 @@ s[[cmd [string|list|function]
   'keep_going [bool]: (short -k) whether to keep going on errors',
 
   -- formatting related
-  'color [string]: whether to use color [$true|false|always|never]',
   'plain [bool]: no line numbers', plain=false,
   'fpre[string]: prefix characters before printing files',        fpre='',
   'dpre [string]: prefix characters before printing directories', dpre='',

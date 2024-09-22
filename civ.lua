@@ -13,7 +13,10 @@ local acs = require'asciicolor.style'
 local AcWriter = require'vt100.AcWriter'
 local shim = require'shim'
 
+local SETUP = false
 M.setupFmt = function()
+  if SETUP then return end
+  SETUP = true
   local to, style = io.stderr, false
   if fd.isatty(io.stderr) then
     style = shim.getEnvBool'COLOR'
@@ -38,9 +41,8 @@ M.main = function(arg) --> int: return code
   require(cmd).main(shim.parse(arg))
 end
 
-print('!! civ.lua', M == MAIN)
 if M == MAIN then
-  os.exit(M.main(arg) or 0)
+  os.exit(M.main(arg))
 end
 
 return M
