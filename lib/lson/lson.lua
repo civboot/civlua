@@ -9,7 +9,7 @@ local pod = require'ds.pod'
 local empty = ds.empty
 local push, concat = table.insert, table.concat
 local sfmt, rep = string.format, string.rep
-local sortKeys = mty.sortKeys
+local sortKeys = fmt.sortKeys
 local toPod, fromPod = pod.toPod, pod.fromPod
 local Json, Lson, De
 

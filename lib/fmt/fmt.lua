@@ -221,17 +221,6 @@ local format = M.format
 M.errorf  = function(...)    error(format(...), 2)             end
 M.assertf = function(a, ...) return a or error(format(...), 2) end
 
--- --- Like print but starts with [$[dbg short/path: ]]
--- --- and uses metaty.format for all values. Also indents the output.
--- M.dbg = function(...)
---   local fmt = Fmt{to=io.stderr, indent='  '}
---   fmt:level(1)
---   pushfmt(fmt, '###[dbg %s] ', shortloc(2))
---   fmt:tabulated(...)
---   fmt:level(-1)
---   push(fmt, '\n')
--- end
-
 io.fmt = io.fmt or Fmt{to=io.stderr}
 
 M.fprint = function(f, ...)

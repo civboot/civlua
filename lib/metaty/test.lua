@@ -4,7 +4,7 @@ local ge = {}; for k in pairs(_G) do table.insert(ge, k) end
 local M = require'metaty'
 assert(M.getCheck())
 
-local mty, split, Fmt = M, M.split, M.Fmt
+local mty, split = M, M.split
 
 local add, sfmt = table.insert, string.format
 
@@ -18,10 +18,9 @@ end
 local function assertEq(expect, result)
   if M.eq(expect, result) then return end
   local f = Fmt:pretty{}
-  add(f, "! Values not equal:")
-  add(f, "\n! EXPECT: "); f(expect)
-  add(f, "\n! RESULT: "); f(result); add(f, '\n')
-  error(table.concat(f), 2)
+  print("! EXPECT: ", tostring(expect))
+  print("! RESULT: ", tostring(result))
+  error'Values not mty.eq'
 end
 
 local function assertMatch(expectPat, result)
