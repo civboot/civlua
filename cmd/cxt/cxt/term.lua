@@ -55,13 +55,13 @@ local function nodeKind(n)
 end
 
 local function serializeRow(w, row, nl)
-  w:incIndent(); if nl then push(w, '\n') end
-  w:incIndent();
+  w:level(1); if nl then push(w, '\n') end
+  w:level(1);
   for i, col in ipairs(row) do
     if i ~= 1 then push(w, '\t') end
     M.serialize(w, col)
   end
-  w:decIndent(); w:decIndent()
+  w:level(-1); w:level(-1)
 end
 
 local SER_KIND = {
@@ -70,24 +70,24 @@ local SER_KIND = {
   br    = function(w, node) return push(w, '\n')      end,
   table = function(w, node)
     if #node == 0 then return end
-    w:incIndent()
+    w:level(1)
     for r, row in ipairs(node) do
       push(w, '\n+ ')
       -- if r == 1 then push(w, '  + ') else push(w, '\n+ ') end
       for c, col in ipairs(row) do
         if c ~= 1 then push(w, '\t') end
-        w:incIndent(); M.serialize(w, col); w:decIndent()
+        w:level(1); M.serialize(w, col); w:level(-1)
       end
     end
-    w:decIndent()
+    w:level(-1)
   end,
   list = function(w, node)
-    w:incIndent()
+    w:level(1)
     for _, item in ipairs(node) do
       push(w, '\n* ');
-      w:incIndent(); M.serialize(w, item); w:decIndent()
+      w:level(1); M.serialize(w, item); w:level(-1)
     end
-    w:decIndent()
+    w:level(-1)
   end,
   code = function(w, node)
     local prevSty = w.style

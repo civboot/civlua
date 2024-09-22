@@ -61,19 +61,17 @@ M.Json.string = function(enc, s)
 end
 M.Json.table = function(f, t)
   if rawequal(t, f.null) then return push(f, 'null') end
-  if f._depth >= f.maxIndent then
-    error'max depth reached (recursion?)'
-  end
+  if f._level >= f.maxIndent then error'max depth reached (recursion?)' end
   local keys = sortKeys(t)
-  f:incIndent()
+  f:level(1)
   if #keys == 0 then
     if #t > 1 then push(f, f.listStart) else push(f, '[') end
-    f:items(t, next(keys)); f:decIndent()
+    f:items(t, next(keys)); f:level(-1)
     if #t > 1 then push(f, f.listEnd)   else push(f, ']') end
   else -- has non-list keys
     for i in ipairs(t) do push(keys, i) end
     if #keys > 1 then push(f, f.tableStart) else push(f, '{') end
-    f:keyvals(t, keys); f:decIndent()
+    f:keyvals(t, keys); f:level(-1)
     if #keys > 1 then push(f, f.tableEnd)   else push(f, '}') end
   end
 end

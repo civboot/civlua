@@ -14,6 +14,8 @@ local resume = coroutine.resume
 local str, getmethod = mty.tostring, mty.getmethod
 local EMPTY = {}
 
+M.PlainStyler = mty'PlainStyler' {}
+
 ------------------
 -- DS psudo-metaevents
 -- these use new "metaevent" (similar to __len) that tables can override
@@ -151,15 +153,13 @@ M.trim = function(subj, pat, index)
   return subj:match(pat, index)
 end
 
---- search for one or more patterns in subj.
---- return the match start and end as well as the index
---- of the pattern matched (if [$pat] is a list)
-M.find = function(subj, pat, si, plain) --> ms, me, pi
+--- find any of a list of patterns. Return the match [$start, end] as well as
+--- the [$index, pat] of the pattern matched.
+M.find = function(subj, pats, si, plain) --> ms, me, pi, pat
   si = si or 1
-  if type(pat) == 'string' then return sfind(subj, pat, si, plain) end
-  for pi, p in ipairs(pat) do
+  for pi, p in ipairs(pats) do
     local ms, me = sfind(subj, p, si, plain)
-    if ms then return ms, me, pi end
+    if ms then return ms, me, pi, p end
   end
 end
 
@@ -793,12 +793,12 @@ M.Set.__fmt = function(self, f)
   push(f, 'Set'); push(f, f.tableStart);
   local keys = {}; for k in ipairs(self) do push(keys, k) end
   sort(keys)
-  if #keys > 1 then f:incIndent() end
+  if #keys > 1 then f:level(1) end
   for i, k in ipairs(keys) do
     f:fmt(k)
     if i < #keys then push(f, f.indexEnd) end
   end
-  if #keys > 1 then f:decIndent() end
+  if #keys > 1 then f:level(-1) end
   push(f, f.tableEnd)
 end
 
@@ -1082,10 +1082,10 @@ end
 --- and uses metaty.format for all values. Also indents the output.
 M.dbg = function(...)
   local fmt = mty.Fmt{to=io.stderr, indent='  '}
-  fmt:incIndent()
+  fmt:level(1)
   pushfmt(fmt, '###[dbg %s] ', shortloc(2))
   fmt:tabulated(...)
-  fmt:decIndent()
+  fmt:level(-1)
   push(fmt, '\n')
 end
 

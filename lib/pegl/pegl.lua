@@ -85,11 +85,11 @@ M.fmtSpec = function(s, f)
   end
   if ty(s) ~= 'table' then push(f, mty.tyName(ty(s))) end
 
-  f:incIndent(); push(f, f.tableStart)
+  f:level(1); push(f, f.tableStart)
   for i, sub in ipairs(s) do
     f(sub); if i < #s then push(f, ' ') end
   end
-  f:decIndent(); push(f, f.tableEnd)
+  f:level(-1); push(f, f.tableEnd)
 end
 M.specToStr = function(s, fmt)
   local fmt = fmt or mty.Fmt:pretty()

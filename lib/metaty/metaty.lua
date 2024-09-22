@@ -11,6 +11,7 @@ local function copy(t)
 end
 
 local concat = table.concat
+local srep = string.rep
 string.concat = string.concat or function(...)
   return select('#', ...) > 1 and concat{...} or (...) or ''
 end
@@ -285,7 +286,7 @@ M.Fmt = M.record'Fmt' {
   "maxIndent [int]",     maxIndent  = 20,
   "numfmt    [string]",  numfmt     = '%q',
   "strfmt    [string]",  strfmt     = '%q',
-  "_depth    [int]",     _depth     = 0,
+  "_level    [int]",     _level     = 0,
  [[_nl [string] (default='\n') newline, indent is added/removed]],
    _nl = '\n',
 
@@ -302,16 +303,15 @@ M.Fmt.pretty = function(F, t)
   return F(t)
 end
 
-M.Fmt.getIndent = function(f) return f._depth end
-M.Fmt.incIndent = function(f)
-  f._depth = f._depth + 1
-  if f.indent then f._nl = f._nl..f.indent end
-end
-M.Fmt.decIndent = function(f)
-  if f._depth <= 0 then error'unballanced indent' end
-  f._depth = f._depth - 1
-  local ind = f.indent; if not ind then return end
-  f._nl = f._nl:sub(1, -1 - #ind); assert(f._nl:sub(1,1) == '\n')
+--- add to the indent level and get the new value
+--- call with [$add=nil] to just get the current level
+M.Fmt.level = function(f, add) --> int: current level
+  local l = f._level
+  if add then
+    l = l + add; assert(l >= 0, 'fmt._level cannot be negative')
+    f._level, f._nl = l, '\n'..srep(f.indent, l)
+  end
+  return l
 end
 M.Fmt._write = function(f, str)
   if f.to then f.to:write(str) else rawset(f, #f + 1, str) end
@@ -375,7 +375,7 @@ end
 -- Yes this is complicated. No, there is no way to really improve
 -- this while preserving the features.
 M.Fmt.table = function(f, t)
-  if f._depth >= f.maxIndent then return add(f, M.DEPTH_ERROR) end
+  if f._level >= f.maxIndent then return add(f, M.DEPTH_ERROR) end
   local mt, keys = getmetatable(t), nil
   if (mt ~= 'table') and (type(mt) == 'string') then
     return add(f, tostring(t))
@@ -388,11 +388,11 @@ M.Fmt.table = function(f, t)
   end
   keys = keys or M.sortKeys(t)
   local multi = #t + #keys > 1 -- use multiple lines
-  f:incIndent()
+  f:level(1)
   if multi then add(f, f.tableStart) else add(f, '{') end
   f:items(t, next(keys), multi and (#t>0) and (#keys>0) and f.listEnd)
   f:keyvals(t, keys)
-  f:decIndent()
+  f:level(-1)
   if multi then add(f, f.tableEnd) else add(f, '}') end
 end
 M.Fmt.__call = function(f, v) f[type(v)](f, v); return f end

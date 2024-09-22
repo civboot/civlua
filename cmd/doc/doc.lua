@@ -282,9 +282,9 @@ M.fmtDocItem = function(f, di)
   if path and default then path = '\n'..path end
   path, default = path or '', default or ''
   if path:sub(1,1) == '\n' or (di.doc and di.doc ~= '') then
-    f:incIndent()
+    f:level(1)
     pushfmt(f, '%-16s | %s %s%s\n%s', name, ty, default, path, di.doc)
-    f:decIndent()
+    f:level(-1)
   else
     pushfmt(f, '%-16s | %s %s%s', name, ty, default, path)
   end

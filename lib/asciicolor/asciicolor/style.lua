@@ -104,9 +104,7 @@ getmetatable(M.Styler).__call = function(T, t)
 end
 M.Styler.__tostring = function() return 'Styler{...}' end
 
-M.Styler.incIndent = function(st) st.acwriter.f:incIndent() end
-M.Styler.decIndent = function(st) st.acwriter.f:decIndent() end
-
+M.Styler.level = function(st, add) return st.acwriter.f:level(add) end
 M.Styler.flush = function(st) return st.acwriter:flush() end
 
 -- Example: st:styled('path', 'path/to/foo.txt', '\n')

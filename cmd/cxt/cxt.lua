@@ -419,7 +419,6 @@ M.Writer.__newindex = function(w, l, line)
   else            w.to[l] = line end
 end
 M.Writer.__len = function(w) return #w.to end
-M.Writer.incIndent = function(w) return w.to:incIndent() end
-M.Writer.decIndent = function(w) return w.to:decIndent() end
+M.Writer.level = function(w, add) return w.to:level(add) end
 
 return M
