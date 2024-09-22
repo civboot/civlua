@@ -236,5 +236,6 @@ local fprint = M.fprint
 -- print(...) but using [$io.fmt]
 M.print  = function(...) return fprint(io.fmt, ...) end
 
+--- directly call fmt for better [$tostring]
 getmetatable(M).__call = function(_, v) return concat(Fmt{}(v)) end
 return M

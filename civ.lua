@@ -3,25 +3,44 @@ local G = G or _G
 
 -- civ module: packaged dev environment
 local M = G.mod'civ'; G.MAIN = G.MAIN or M
+require'pkglib'()
+G.METATY_CHECK = true
 
-local shim    = require'shim'
-local mty     = require'metaty'
-local civtest = require'civtest'
-local ds      = require'ds'
-local pth     = require'ds.path'
-local fd      = require'fd'
+local fmt = require'fmt'
+local fd  = require'fd'
+local ac  = require'asciicolor'
+local acs = require'asciicolor.style'
+local AcWriter = require'vt100.AcWriter'
+local shim = require'shim'
 
-local doc   = require'doc'
-local ff    = require'ff'
-local ele   = require'ele'
-local astyle = require'asciicolor.style'
+M.setupFmt = function()
+  local to, style = io.stderr, false
+  if fd.isatty(io.stderr) then
+    style = shim.getEnvBool'COLOR'
+    if style or (style == nil) then
+      local styler = acs.Styler {
+        acwriter = AcWriter {f=io.stderr},
+        style = acs.loadStyle(),
+      }
+      to, style = styler, true
+    end
+  end
+  io.fmt = fmt.Fmt{to=to, style=style}
+end
 
-local sfmt = string.format
-
-if M == MAIN then
+M.main = function(arg) --> int: return code
+  M.setupFmt()
   local cmd = table.remove(arg, 1)
-  if not cmd then print'Usage: civ.lua pkg ...'; os.exit(1) end
+  if not cmd then
+    io.fmt:styled('error', 'Usage: civ.lua pkg ...')
+    return 1
+  end
   require(cmd).main(shim.parse(arg))
+end
+
+print('!! civ.lua', M == MAIN)
+if M == MAIN then
+  os.exit(M.main(arg) or 0)
 end
 
 return M

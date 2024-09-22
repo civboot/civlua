@@ -250,13 +250,11 @@ M.main = function(args)
   shim.short(args, 'k', 'keep_going', true)
   shim.short(args, 's', 'silent',     true)
   if args.depth < 0 then args.depth = nil end
-  args.log = shim.file(args.log, io.stdout, 'a')
+  args.log = assert(args.log or io.fmt)
 
   args = M.Main(args)
 
   args.help = shim.boolean(args.help);
-  local styler = astyle.Styler:default(args.log, args.color)
-  if args.log then args.log = styler end
   if args.help then return doc.styleHelp(styler, M.Main) end
 
   -- args.dpre    = args.dpre or '\n'
