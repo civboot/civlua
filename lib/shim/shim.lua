@@ -43,10 +43,9 @@ end
 --- Note: typically use parse() or parseStr() instead.
 M.parseList = function(strlist) --> args
   local t = {}; for i, arg in ipairs(strlist) do
-    if arg:find'^%-%w+' then
-      for c in arg:sub(2):gmatch('.') do
-        addKV(t, c, true)
-      end
+    if arg == '--' then -- lone '--' indicates special parsing
+      table.move(strlist, i, #strlist, #t+1, t)
+      break
     elseif arg:find'^%-%-[^-]+' then
       local k, v = arg:match('(.-)=(.*)', 3)
       if k then addKV(t, k, v)

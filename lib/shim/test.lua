@@ -8,13 +8,15 @@ T.test('parse', function()
   T.assertEq({c={'1', '2'}},      ps'--c=1 --c=2')
   T.assertEq({c={'1', '2', '3'}}, ps'--c=1 --c=2 --c=3')
 
-  T.assertEq({a=true, b=true, c='foo'}, p{'-ab', '--c=foo'})
+  T.assertEq({'-ab', c='foo'}, p{'-ab', '--c=foo'})
+  T.assertEq({'ab', '--', '--bob=1', c='foo'},
+            p{'ab', '--c=foo', '--', '--bob=1'})
 end)
 
 T.test('parseStr', function()
   T.assertEq({'a', 'b', c='42'}, ps'a   b --c=42')
   T.assertEq({c={'1', '2'}},     ps'--c=1   --c=2')
-  T.assertEq({a=true, b=true, c='foo'}, ps'-ab --c=foo')
+  T.assertEq({'-ab', c='foo'},   ps'-ab --c=foo')
 end)
 
 T.test('expand', function()

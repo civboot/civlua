@@ -342,7 +342,7 @@ M.extend = function(t, l)
 end
 
 -- clear(t, startindex=1, len=#t) -> t: set t[si:si+len-1] = nil
-M.clear  = function(t, si, len)
+M.clear = function(t, si, len)
   -- TODO: (len or #t) - si + 1
   return move(EMPTY, 1, len or #t, si or 1, t)
 end
