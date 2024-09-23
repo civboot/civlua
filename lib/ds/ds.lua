@@ -446,6 +446,14 @@ M.get = function(t, path) --> value? at path
   return t
 end
 
+-- same as ds.get but uses [$rawget].
+M.rawget = function(t, path) --> value? at path
+  for _, k in ipairs(path) do
+    t = rawget(t, k); if t == nil then return nil end
+  end
+  return t
+end
+
 --- set the value at path using newFn (default=ds.newTable) to create
 --- missing intermediate tables.
 --- [{## lang=lua}

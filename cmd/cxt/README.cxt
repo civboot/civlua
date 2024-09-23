@@ -1,7 +1,6 @@
 [{h1}cxt: text markup for civilization]
 ["[*Note:] This file is created using cxt. The source is at
-  [$./README.cxt]
-]
+  [$./README.cxt] ]
 
 It should not take more than a few minutes to know how to read and write
 documentation.
@@ -97,10 +96,8 @@ The following attributes and shortcuts are supported
 
 [" Note:
    Any value after a bracket besides [$ {...} b i u * , _ $ " + ! / : v @ ]
-   is invalid.
-]
+   is invalid.]
 
-[!--------------------------------!]
 [{:h2}Demos]
 
 [{h3}Inline Code:]

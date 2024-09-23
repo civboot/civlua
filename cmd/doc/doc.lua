@@ -12,19 +12,24 @@ MAIN = MAIN or M
 
 assert(PKG_LOC and PKG_NAMES, 'must use pkglib or equivalent')
 
+local pkglib = require'pkglib'
 local shim = require'shim'
 local mty  = require'metaty'
+local fd = require'fd'
 local fmt  = require'fmt'
 local ds   = require'ds'
+local pth = require'ds.path'
 local Iter = require'ds.Iter'
+local lines = require'lines'
+local style = require'asciicolor.style'
+
 local sfmt, srep = string.format, string.rep
 local push = table.insert
-local pth = require'ds.path'
-local pkglib = require'pkglib'
-local style = require'asciicolor.style'
-local fd = require'fd'
 
 local sfmt, pushfmt = string.format, ds.pushfmt
+
+local INTERNAL = '(internal)'
+local COMMAND_NAME = 'when executed directly'
 
 --- Find the object or name in pkgs
 M.find = function(obj) --> Object
@@ -57,7 +62,7 @@ M.Doc = mty'Doc' {
   'main [Doc]: main Args, mostly used for PKG',
   'meta [table]: metadata, mostly used for PKG',
   'comments [lines]: comments above item',
-  'code [lines]: code which defines the item',
+  'code   [lines]: code which defines the item',
   'call   [function]',
   'fields [table{name=DocItem}]: (for metatys)',
   'values [table]: raw values that are not the other types',
@@ -99,13 +104,28 @@ getmetatable(M._Construct).__call = function(T, t)
   return mty.construct(T, {done={}})
 end
 
+--- get fields as DocItems removing from t
+local setFields = function(d, t)
+  d.fields = rawget(d.obj, '__fields'); if not d.fields then return end
+  d.fields = ds.copy(d.fields)
+  local fdocs = rawget(d.obj, '__docs') or {}
+  for i, field in ipairs(d.fields) do
+    t[field] = nil
+    local ty = d.fields[field]
+    ty = type(ty) == 'string' and M.cleanFieldTy(ty) or nil
+    d.fields[field] = M.DocItem {
+      name=field, ty=ty, default=rawget(d.obj, field),
+      doc = fdocs[field], docTy = 'Field',
+    }
+  end
+end
+
 M._Construct.__call = function(c, obj, key, expand, lvl) --> Doc | DocItem
   assert(obj)
   expand = expand or 0
   local docTy = assert(M.type(obj))
   if docTy == 'Package' then return c:pkg(obj, expand) end
   local name, path = M.modinfo(obj)
-  if path and path:find'%[' then path = '(internal)' end
   local d = {
     obj=obj, path=path, docTy=docTy,
     name=assert(key or name), pkgname=PKG_NAMES[obj],
@@ -113,9 +133,7 @@ M._Construct.__call = function(c, obj, key, expand, lvl) --> Doc | DocItem
   }
   if c.done[obj] then return M.DocItem(d) end
   c.done[obj] = true
-  local comments, code; if path and path ~= '(internal)' then
-    comments, code = M.findcode(path)
-  end
+  local comments, code = M.findcode(path)
   if comments then M.stripComments(comments) end
   if comments and #comments == 0 then comments = nil end
   if code     and #code == 0     then code = nil end
@@ -133,20 +151,7 @@ M._Construct.__call = function(c, obj, key, expand, lvl) --> Doc | DocItem
   local t = ds.copy(obj) -- we will remove from t as we go
   setmetatable(t, nil)
 
-  -- get fields as DocItems
-  d.fields = rawget(obj, '__fields'); if d.fields then
-    d.fields = ds.copy(d.fields)
-    local fdocs = rawget(obj, '__docs') or {}
-    for i, field in ipairs(d.fields) do
-      t[field] = nil
-      local ty = d.fields[field]
-      ty = type(ty) == 'string' and M.cleanFieldTy(ty) or nil
-      d.fields[field] = M.DocItem {
-        name=field, ty=ty, default=rawget(obj, field),
-        doc = fdocs[field], docTy = 'Field',
-      }
-    end
-  end
+  setFields(d, t)
 
   -- get other buckets
   d.fns, d.tys, d.mods = {}, {}, {}
@@ -183,20 +188,20 @@ end
 
 M._Construct.pkg = function(c, pkg, expand) --> Doc
   local d = M.Doc{
-    docTy = 'Package', name = pkg.name, path = pkg.PKGDIR,
+    docTy = 'Package', name = pkg.name, path = pkg.dir,
   }
   d.meta = {
     summary = pkg.summary, version = pkg.version,
     homepage = pkg.homepage,
   }
+  if pkg.doc then
+    print('!! pkg.doc', pkg.PKG_DIR, pkg.doc)
+    d.comments = lines.load(pth.concat{pkg.dir, pkg.doc})
+  end
   if pkg.main then
     local m = fmt.assertf(
       M.find(pkg.main), 'PKG %s: main not found', d.name)
-    m = c(m, nil, expand - 1)
-    d.main = M.Doc {
-      name = pkg.main, docTy = 'Args',
-      comments = m.comments, fields = m.fields,
-    }
+    d.main = c:main(m)
   end
   d.mods = pkglib.modules(pkg.srcs)
   ds.pushSortedKeys(d.mods, modcmp)
@@ -204,6 +209,14 @@ M._Construct.pkg = function(c, pkg, expand) --> Doc
     d.mods[mname] = c(M.find(mname), mname, expand - 1)
   end
   return d
+end
+
+M._Construct.main = function(c, obj) --> Doc
+  local d = c(obj, nil, 1)
+  return M.Doc {
+    name = d.name, docTy = 'Command',
+    comments = d.comments, fields = d.fields,
+  }
 end
 
 ---------------------
@@ -216,11 +229,12 @@ M.modinfo = function(obj) --> (name, loc)
   if ds.isConcrete(obj)      then return type(obj), nil end
   local name, loc = PKG_NAMES[obj], PKG_LOC[obj]
   name = name or (type(obj) == 'table') and rawget(obj, '__name')
+  if loc and loc:find'%[' then loc = INTERNAL end
   return name, loc
 end
 
 M.findcode = function(loc) --> (commentLines, codeLines)
-  if loc == nil then return end
+  if not loc or loc == INTERNAL then return end
   if type(loc) ~= 'string' then loc = select(2, M.modinfo(loc)) end
   if not loc then return end
   local path, locLine = loc:match'(.*):(%d+)'
@@ -266,7 +280,7 @@ M.getpath = function(path)
   path = type(path) == 'string' and ds.splitList(path, '%.') or path
   local obj
   for i=1,#path do
-    local v = obj and ds.get(obj, ds.slice(path, i))
+    local v = obj and ds.rawget(obj, ds.slice(path, i))
     if v then return v end
     obj = pkglib.get(table.concat(path, '.', 1, i))
   end
@@ -316,7 +330,7 @@ M.fmtAttr = function(f, name, attr)
   end
 end
 
-local HEADERS = {Package=1, Module=2, Record=3, Table=3, Args=2}
+local HEADERS = {Package=1, Module=2, Record=3, Table=3, Command=2}
 M.docHeader = function(docTy, lvl)
   if docTy == 'Function' then return 3 + (lvl or 0) end
   return assert(HEADERS[docTy])
@@ -331,14 +345,13 @@ M.fmtMeta = function(f, m)
 end
 
 M.fmtDoc = function(f, d)
-  if d.docTy ~= 'Args' then assert(d.docTy, tostring(d))
-    local path = d.path and sfmt(' [/%s]', pth.nice(d.path)) or ''
-    local name = d.pkgname or d.name
-    pushfmt(f, '[{h%s}%s [{style=api}%s]%s]',
-            M.docHeader(d.docTy, d.lvl),
-            assert(d.docTy),
-            d.pkgname or d.name or '(unnamed)', path)
-  end
+  local path = d.path and sfmt(' [/%s]', pth.nice(d.path)) or ''
+  local name = d.pkgname or d.name
+  pushfmt(f, '[{h%s}%s [{style=api}%s]%s]',
+          M.docHeader(d.docTy, d.lvl),
+          assert(d.docTy),
+          (d.docTy == 'Command') and COMMAND_NAME
+          or d.pkgname or d.name or '(unnamed)', path)
   if d.meta then M.fmtMeta(f, d.meta) end
   if d.comments then
     for i, l in ipairs(d.comments) do
@@ -355,7 +368,7 @@ M.fmtDoc = function(f, d)
   local any = d.fields or d.values or d.tys or d.fns
   if any or d.mods then push(f, '\n') end
   if d.fields then
-    M.fmtAttr(f, d.docTy == 'Args' and 'Named Args' or 'Fields', d.fields)
+    M.fmtAttr(f, d.docTy == 'Command' and 'Named Args' or 'Fields', d.fields)
   end
   if d.values then M.fmtAttr(f, 'Values',  d.values) end
   if d.tys    then M.fmtAttr(f, 'Records', d.tys) end
@@ -366,7 +379,7 @@ M.fmtDoc = function(f, d)
   if d.mods then
     if any then push(f, '\n') end
     for _, m in ipairs(d.mods) do
-      push(f, '\n'); M.fmtDoc(f, d.mods[m])
+      push(f, '\n'); M.fmt(f, d.mods[m])
     end
   end
 end

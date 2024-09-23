@@ -2,6 +2,7 @@ name    = 'cxt'
 version = '0.1-0'
 url     = 'git+http://github.com/civboot/civlua'
 summary  = "text markup for civilization"
+doc      = 'README.cxt'
 homepage = "https://github.com/civboot/civlua/blob/main/cmd/cxt/README.md"
 license  = "UNLICENSE"
 srcs = {

@@ -27,9 +27,12 @@ local Token = assert(require'pegl'.Token)
 local push = table.insert
 
 local KIND_ORDER = ds.BiMap {
-  'hidden', 'table', 'list', 'br', 'quote',
-  'code', 'block', 'name', 'path', 'clone',
-  'h1', 'h2', 'h3', 'h4', 'b', 'u', 'class',
+  'hidden', 
+  'table', 'list', 'quote',
+
+  'h1', 'h2', 'h3', 'h4',
+  'br', 'code', 'block', 'name', 'path', 'clone',
+  'b', 'u', 'class',
 }
 
 

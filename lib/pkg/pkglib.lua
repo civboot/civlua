@@ -134,7 +134,7 @@ M.getpkg = function(pkgname) --> PKG, pkgdir
   end
   local pkgdir = M.PKGS[pkgname]; if not pkgdir then return end
   local pkg = M.load(pkgname, pjoin(pkgdir, 'PKG.lua'))
-  pkg.PKG_DIR = pkgdir
+  pkg.PKG_DIR = pkgdir; pkg.dir = pkgdir
   return pkg, pkgdir
 end
 
