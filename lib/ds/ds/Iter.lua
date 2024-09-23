@@ -206,8 +206,8 @@ local anyFn = function(k, v) return v end     -- stop on first true
 Iter.any = function(it) return not not it:find(anyFn) end
 
 --- run the iterator over all values, calling [$fn(k, v)] for each.
-Iter.run = function(it, fn) --> nil
-  local li, k = it._li
+Iter.run = function(it, fn--[[noop]]) --> nil
+  local li, fn, k = it._li, fn or ds.noop
   for key, v in unpack(it) do
     k = key; for i=-1,li,-1 do
       k, v = it[i](k, v); if k == nil then goto skip end

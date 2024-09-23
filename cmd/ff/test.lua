@@ -3,6 +3,7 @@
 -- and then using it to
 
 local pkg = require'pkglib'
+local shim = require'shim'
 local mty = require'metaty'
 local fmt = require'fmt'
 local ds, lines = require'ds', require'lines'
@@ -10,12 +11,12 @@ local civix  = require'civix'
 local test, assertEq; ds.auto'civtest'
 local ff = require'ff'
 
-local add, sfmt = table.insert, string.format
+local push, sfmt = table.insert, string.format
 
 local dir = '.out/ff/'
 if civix.exists(dir) then civix.rmRecursive(dir) end
-local a = {}; for i=1,100 do add(a, 'a '..i) end
-local b = {}; for i=1,100 do add(b, 'b '..i) end
+local a = {}; for i=1,100 do push(a, 'a '..i) end
+local b = {}; for i=1,100 do push(b, 'b '..i) end
 
 civix.mkTree(dir, {
   ['a.txt'] = table.concat(a, '\n'),
@@ -30,118 +31,96 @@ local function seekRead(f)
   f:seek'set'; return s
 end
 
-local function expectSimple(path, fmt)
-  local expect = {path}
-  for i=1,9 do add(expect, sfmt(fmt, i, i)) end
-  return table.concat(expect, '\n')..'\n'
+local function expectSimple(fmt)
+  local t = {}
+  for i=1,9 do push(t, sfmt(fmt, i, i)) end
+  return table.concat(t, '\n')..'\n'
 end
 
-test('ff pat', function()
-  local f = fmt.Fmt{to=io.open('.out/TEST', 'w+')}
-  ff{dir, pat='a %d1', log=f}
-  assertEq(
-    expectSimple('.out/ff/a.txt', '    %i1 a %i1'),
-    seekRead(f.to))
-  ff{dir, '%a %d1', log=f}
-  assertEq(
-    expectSimple('.out/ff/a.txt', '    %i1 a %i1'),
-    seekRead(f.to))
+local function simpleSub(fmt, subfmt)
+  local t = {}
+  for i=1,9 do
+    push(t, sfmt(fmt, i, i))
+    push(t, sfmt(subfmt, i))
+  end
+  return table.concat(t, '\n')..'\n'
+end
+
+test('ff.Main', function()
+  local m = ff.Main{'a', 'p:b/c', '-b', '-p:%.ef', 'r:r1/', '--', 'r2/'}
+  assertEq(mty.construct(ff.Main, {
+    root={'r2/', 'r1/'},
+    pat={'a'},    nopat={'b'},
+    path={'b/c'}, nopath={'%.ef'},
+  }), m)
+
+  local m = ff.Main(shim.parse{'a', '--sub=b', 'p:dir/',
+                                '--', 'root/', '--weird'})
+  assertEq(mty.construct(ff.Main, {
+    root={'root/', '--weird'},
+    pat={'a'},    nopat={},
+    path={'dir/'}, nopath={},
+    sub = 'b',
+  }), m)
 end)
 
-test('ff recursive', function()
-  local f = fmt.Fmt{to=io.open('.out/TEST', 'w+')}
-  ff{dir, pat='b %d1', depth=1, log=f}
-  assertEq('', seekRead(f.to))
-  ff{dir, pat='b %d1', depth=1, log=f}
-  assertEq('', seekRead(f.to))
-  ff{dir, pat='b %d1', log=f} -- default depth=-1
-  assertEq(
-    expectSimple('.out/ff/b/b1.txt', '    %i1 b %i1'),
-    seekRead(f.to))
+local function runFF(args) --> ok, paths, stdout, stderr
+  local f, out = fmt.Fmt{to=io.tmpfile()}, io.tmpfile()
+  local iofmt, ioout = io.fmt, io.stdout
+  io.fmt, io.stdout = f, out
+  local ok, paths = ds.try(ff, args)
+  io.fmt, io.stdout = iofmt, ioout
+  f.to:seek'set'; out:seek'set'
+  return ok, paths, out:read'a', f.to:read'a'
+end
+
+local function testA()
+  local ok, res, stdout, stderr = runFF{'a %d1', '--', dir}
+  assert(ok, res)
+  assertEq({dir..'a.txt'}, res)
+  assertEq(dir..'a.txt\n', stdout)
+  assertEq(expectSimple'    %i1 a %i1', stderr)
+end
+
+test('ff_find', function()
+  testA()
+
+  local bArgs = {'b %d1', '--', dir}
+  local ok, res, stdout, stderr = runFF(ds.copy(bArgs))
+  assert(ok, res)
+  assertEq({dir..'b/b1.txt'}, res)
+  assertEq(dir..'b/b1.txt\n', stdout)
+  assertEq(expectSimple'    %i1 b %i1', stderr)
+
+  -- adding /b/ does nothing
+  local ok, res, stdout, stderr = runFF{'b %d1', 'p:/b/', 'r:'..dir}
+  assert(ok, res);
+  assertEq({dir..'b/b1.txt'}, res)
 end)
 
-test('ff sub', function()
-  local f = fmt.Fmt{to=io.open('.out/TEST', 'w+')}
-  ff{dir..'a.txt', pat='(a %d)1', sub='%1A', log=f}
-  assertEq(
-    expectSimple('.out/ff/a.txt', '    %i1 a %iA'),
-    seekRead(f.to))
+test('ff_sub', function()
+  local subArgs = {'a (%d1)', sub='s %1', '--', dir}
+  local ok, res, stdout, stderr = runFF(ds.copy(subArgs))
+  assert(ok, res)
+  assertEq({dir..'a.txt'}, res)
+  assertEq(simpleSub('    %i1 a %i1', '   --> s %i1'), stderr)
 
-  f.to:close(); f.to = io.open('.out/TEST', 'w+')
-  ff{dir..'a.txt', m=true, pat='(a %d)1', sub='%1A',
-    log=f}
-  assertEq(
-    expectSimple('.out/ff/a.txt', '    %i1 a %iA'),
-    seekRead(f.to))
+  testA() -- not mutated
 
-  -- now we won't find them (they were substituted)
-  f.to:close(); f.to = io.open('.out/TEST', 'w+')
-  ff{dir..'a.txt', pat='a %d1', log=f}
-  assertEq('', seekRead(f.to))
+  -- mutate it with sub
+  local ok, res, stdout, stderr = runFF(ds.copy(subArgs, {mut=true}))
+  assert(ok, res)
+  assertEq({dir..'a.txt'}, res)
+  assertEq(simpleSub('    %i1 a %i1', '   --> s %i1'), stderr)
 
-  -- change it back
-  ff{dir..'a.txt', m=true, pat='(a %d)A', sub='%11',
-    log=f}
-  assertEq(
-    expectSimple('.out/ff/a.txt', '    %i1 a %i1'),
-    seekRead(f.to))
-end)
+  -- there are no more 'a %i1'
+  local ok, res, stdout, stderr = runFF(ds.copy(subArgs))
+  assert(ok, res)
+  assertEq({}, res); assertEq('', stderr) -- no matches
 
-test('ff mv', function()
-  local f = fmt.Fmt{to=io.open('.out/TEST', 'w+')}
-  ff{dir, path='b%d.txt', log=f}
-  local result = lines(seekRead(f.to)); table.sort(result)
-  local expected = {'', ".out/ff/b/b1.txt", ".out/ff/b/b2.txt"}
-  assertEq(expected, result)
-
-  ff{dir, path='b(%d.txt)', mv='bb%1', log=f}
-  local result = lines(seekRead(f.to)); table.sort(result)
-  local expected = {
-    "",
-    " -> .out/ff/b/bb1.txt",
-    " -> .out/ff/b/bb2.txt",
-    "mv  .out/ff/b/b1.txt",
-    "mv  .out/ff/b/b2.txt",
-  }
-
-  assertEq(expected, result)
-  assertEq('mostly empty', ds.readPath(".out/ff/b/b2.txt"))
-
-  ff{dir, m=true, path='b(%d.txt)', mv='bb%1',
-             log=f}
-  local result = lines(seekRead(f.to)); table.sort(result)
-  local expected = {
-    '',
-    " -> .out/ff/b/bb1.txt",
-    " -> .out/ff/b/bb2.txt",
-    "mv  .out/ff/b/b1.txt",
-    "mv  .out/ff/b/b2.txt",
-  }
-  assertEq(expected, result)
-  assert(not civix.exists".out/ff/b/b1.txt")
-  assert(not civix.exists".out/ff/b/b2.txt")
-  assertEq('mostly empty', ds.readPath(".out/ff/b/bb2.txt"))
-  assertEq(table.concat(b, '\n'), ds.readPath(".out/ff/b/bb1.txt"))
-end)
-
-test('ff mv pat', function()
-  local f = fmt.Fmt{to=io.open('.out/TEST', 'w+')}
-  ff{dir, '%b (10)$', m=true,
-     path='(.*/)(.*%d.txt)', mv='%1/b%2',
-     log=f}
-  assertEq(
-    'mv  .out/ff/b/bb1.txt\n'
-  ..' -> .out/ff/b/bbb1.txt\n'
-  ..'    10 b 10\n', seekRead(f.to))
-  assert(not civix.exists".out/ff/b/bb1.txt")
-  assert(civix.exists".out/ff/b/bbb1.txt")
-
-  -- assertEq(table.concat(b, '\n'), ds.readPath(".out/ff/b/bb1.txt"))
-end)
-
-test('ff incl/excl', function()
-  local f = fmt.Fmt{to=io.open('.out/TEST', 'w+')}
-  ff{dir, '%44', excl='a ', log=f, matches=false}
-  assertEq('.out/ff/b/bbb1.txt\n', seekRead(f.to))
-  -- TODO: add incl and test it
+  -- there are 's %i1'
+  local ok, res, stdout, stderr = runFF{'s %d1', 'r:'..dir}
+  assert(ok, res)
+  assertEq({dir..'a.txt'}, res)
+  assertEq(expectSimple'    %i1 s %i1', stderr)
 end)
