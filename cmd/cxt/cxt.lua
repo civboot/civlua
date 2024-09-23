@@ -17,6 +17,9 @@ local pegl = ds.auto'pegl'
 
 local RAW = '#'
 
+--- escape the string so it renders literally
+M.escape = function(str) return str:gsub('([\\%[%]])', '\\%1') end
+
 ------------------------
 -- Parsing
 -- The only thing PEGL is leveraged for is parsing the attributes because

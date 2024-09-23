@@ -12,7 +12,6 @@ local fmt = require'fmt'
 ---     --gitpush='origin main --tags' --upload=$ROCKAPI
 --- ]##
 M.Args = mty'pkgrock' {
-  [[help   [bool]: get help]],
   [[create [bool]   creates the rocks from PKG.lua files]],
   [[gitops [string] one or more: add,commit,tag]],
   [[gitpush[string] where to push, i.e: 'origin main']],
@@ -89,7 +88,6 @@ M.main = function(t)
     to:styled('notify', table.concat({...}, '\t'))
     to:write'\n'
   end
-  if t.help then return require'doc'.styleHelp(to, M.Args) end
   if t.gitops then
     assert(os.execute'git diff --quiet --exit-code', 'git repo has diffs')
   end

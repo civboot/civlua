@@ -17,6 +17,15 @@ local Keyword = {
 }
 M.keyword = function() return setmetatable({}, Keyword) end
 
+local undocumented = function(name)
+  local t = {}
+  for k, v in pairs(_G[name]) do
+    k = name..'.'..k; if not rawget(M, k) then t[k] = v end
+  end
+  return t
+end
+
+
 --------------------
 -- Global Functions
 --- Get the next key in the table. Used for iterating through tables.
@@ -229,6 +238,9 @@ M['string.unpack'] = string.unpack--(strtys, str) -> ...
 --- Get the size which is used by strtys.
 M['string.packsize'] = string.packsize--(strtys) -> int
 
+--- not documented: see [$string] module
+for k, v in pairs(undocumented'io') do M[k] = v end
+
 -------------------------------
 -- table
 --- the builtin lua table module
@@ -350,6 +362,9 @@ M.io = io
 --- ]
 M['io.popen'] = io.popen--(command, mode='r|w') -> file
 
+--- not documented: see [$io] module
+for k, v in pairs(undocumented'io') do M[k] = v end
+
 -------------------------------
 -- os module
 
@@ -388,6 +403,9 @@ M.os = os
 --- Recommendation:
 ---   For all but the simplest cases use io.popen instead
 M['os.execute'] = os.execute--(string) --> (ok, "exit", rc)
+
+--- not documented: see [$os] module
+for k, v in pairs(undocumented'os') do M[k] = v end
 
 ---------------------
 -- Keywords

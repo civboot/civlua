@@ -34,6 +34,12 @@ end
 M.main = function(arg) --> int: return code
   M.setupFmt()
   local cmd = table.remove(arg, 1)
+  if cmd == 'help' then
+    cmd = assert(table.remove(arg, 1), 'Usage: help command')
+    io.fmt:styled('bold', 'Help for command '..cmd, '\n')
+    local mod = require(cmd)
+    return require'doc'{rawget(mod, 'Main') or rawget(mod, 'main')}
+  end
   if not cmd then
     io.fmt:styled('error', 'Usage: civ.lua pkg ...')
     return 1

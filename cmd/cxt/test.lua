@@ -24,6 +24,9 @@ local pegl = ds.auto'pegl'
 
 local KW, N, NUM, HEX; ds.auto(testing)
 
+test('escape', function()
+  assertEq('foo \\[bar\\] \\\\ baz', M.escape'foo [bar] \\ baz')
+end)
 
 test('simple', function()
   M.assertParse('hi there', {'hi there'})

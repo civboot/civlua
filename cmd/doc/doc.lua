@@ -23,6 +23,7 @@ local Iter = require'ds.Iter'
 local lines = require'lines'
 local style = require'asciicolor.style'
 
+local escape = require'cxt'.escape
 local sfmt, srep = string.format, string.rep
 local push = table.insert
 
@@ -34,7 +35,8 @@ local COMMAND_NAME = 'when executed directly'
 --- Find the object or name in pkgs
 M.find = function(obj) --> Object
   if type(obj) ~= 'string' then return obj end
-  return PKG_LOOKUP[obj] or M.getpath(obj) or rawget(_G, obj)
+  return PKG_LOOKUP[obj] or M.getpath(obj)
+      or ds.rawget(G, ds.dotpath(obj))
 end
 
 local objTyStr = function(obj)
@@ -236,7 +238,7 @@ end
 M.findcode = function(loc) --> (commentLines, codeLines)
   if not loc or loc == INTERNAL then return end
   if type(loc) ~= 'string' then loc = select(2, M.modinfo(loc)) end
-  if not loc then return end
+  if not loc or loc:find'%[' then return end
   local path, locLine = loc:match'(.*):(%d+)'
   if not path then error('loc path invalid: '..loc) end
   local l, lines, locLine = 1, ds.Deq{}, tonumber(locLine)
@@ -291,9 +293,9 @@ end
 -- Format to CXT
 
 M.fmtDocItem = function(f, di)
-  local name = di.name and sfmt('[$%s]', di.name) or '(unnamed)'
-  local ty = di.ty and sfmt('\\[%s\\]', di.ty) or ''
-  local path = di.path and sfmt('[/%s]', pth.nice(di.path))
+  local name = di.name and sfmt('[$%s]', escape(di.name or '(unnamed)'))
+  local ty = di.ty and sfmt('\\[%s\\]', escape(di.ty)) or ''
+  local path = di.path and sfmt('[/%s]', escape(pth.nice(di.path)))
   local default = di.default and fmt.format('= [$%q]', di.default)
   if path and default then path = '\n'..path end
   path, default = path or '', default or ''
@@ -345,13 +347,14 @@ M.fmtMeta = function(f, m)
 end
 
 M.fmtDoc = function(f, d)
-  local path = d.path and sfmt(' [/%s]', pth.nice(d.path)) or ''
+  local path = d.path and sfmt(' [/%s]', escape(pth.nice(d.path))) or ''
   local name = d.pkgname or d.name
   pushfmt(f, '[{h%s}%s [{style=api}%s]%s]',
           M.docHeader(d.docTy, d.lvl),
-          assert(d.docTy),
+          escape(assert(d.docTy)),
           (d.docTy == 'Command') and COMMAND_NAME
-          or d.pkgname or d.name or '(unnamed)', path)
+          or d.pkgname or d.name or '(unnamed)',
+          path)
   if d.meta then M.fmtMeta(f, d.meta) end
   if d.comments then
     for i, l in ipairs(d.comments) do
@@ -409,8 +412,8 @@ M.main = function(args)
   if args.help then return M.styleHelp(to, M.Args) end
   local obj, expand = args[1], args.full and 10 or 1
   assert(obj, 'arg[1] must be the item to find')
-  local c = M._Construct{}
-  local d;
+  local c, d = M._Construct{}
+  local name = (type(obj) == 'string') and obj or nil
   if args.pkg then
     obj = pkglib.getpkg(obj) or error('could not find pkg: '..obj)
     d = c:pkg(obj, expand)
@@ -418,7 +421,7 @@ M.main = function(args)
     if type(obj) == 'string' then
       obj = M.find(obj) or error('could not find obj: '..obj)
     end
-    d = c(obj, nil, expand)
+    d = c(obj, name, expand)
   end
   local f = fmt.Fmt{}
   M.fmt(f, d)

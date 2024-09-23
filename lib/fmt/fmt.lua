@@ -92,7 +92,7 @@ Fmt.write = function(f, ...)
   end
 end
 Fmt.styled = function(f, style, text, ...)
-  if not style or not f.style then f:write(text, ...); return end
+  if not f.style then f:write(text, ...); return end
   local to, doIndent = f.to, false
   for _, line in split(text, '\n') do
     if doIndent then f:_write(f._nl) end

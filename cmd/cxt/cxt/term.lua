@@ -7,7 +7,6 @@ local mty  = require'metaty'
 ---
 --- Will render an input string or --inp=file.
 M.Args = mty'Args' {
-  'help [boolean]: get help',
   'inp  [path|file]: input file',
   'out  [path|file]: output file (default=stdout)',
 }
@@ -130,7 +129,6 @@ end
 M.main = function(args)
   args = M.Args(shim.parseStr(args))
   args.out = args.out or io.fmt
-  if args.help then return require'doc'.styleHelp(args.out, M.Args) end
   if #args > 0    then args.inp = lines(table.concat(args, ' '))
   elseif args.inp then args.inp = LFile:create(shim.file(args.inp))
   else error'must provide input' end
