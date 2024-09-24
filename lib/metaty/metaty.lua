@@ -1,8 +1,6 @@
 local G = G or _G
 
--- metaty: simple but effective Lua type system using metatable
---
--- See README.md for documentation.
+--- metaty: simple but effective Lua type system using metatable
 local M = (G.mod and G.mod'metaty' or {})
 setmetatable(M, getmetatable(M) or {})
 
@@ -23,7 +21,7 @@ local IS_ENV = { ['true']=true,   ['1']=true,
                  ['false']=false, ['0']=false, ['']=false }
 local EMPTY = {}
 
--- isEnv: returns boolean for below values, else nil
+--- isEnv: returns boolean for below values, else nil
 M.isEnv = function(var)
   var = os.getenv(var); if var then return IS_ENV[var] end
 end
@@ -34,10 +32,9 @@ end
 local CHECK  = M.isEnvG'METATY_CHECK' or false -- private
 M.getCheck = function() return CHECK end
 
--- get method of table if it exists.
--- This first looks for the item directly on the table, then the item
--- in the table's metatable. It does NOT use the table's normal __index
--- as many of them will fail.
+--- get method of table if it exists.
+--- This first looks for the item directly on the table, then the item
+--- in the table's metatable. It does NOT use the table's normal [$__index].
 M.getmethod = function(t, method)
   return rawget(t, method) or rawget(getmetatable(t) or EMPTY, method)
 end
@@ -52,16 +49,16 @@ M.ty = function(o) --> Type: string or metatable
   return t == 'table' and getmetatable(o) or t
 end
 
--- Given a type return it's name
-M.tyName = function(T, default) --> name
+--- Given a type return it's name
+M.tyName = function(T, default) --> string
   local Tty = type(T)
   return Tty == 'string' and T
     or ((Tty == 'table') and rawget(T, '__name'))
     or default or Tty
 end
 
--- Given an object (function, table, userdata) return it's name.
--- return nil if it's not one of the above types
+--- Given an object (function, table, userdata) return its name.
+--- return nil if it's not one of the above types
 M.name = function(o)
   local ty = type(o)
   return ty == 'function' and M.fninfo(o)
@@ -76,7 +73,7 @@ M.callable = function(obj) --> bool: return if obj is callable
 end
 M.metaget = function(t, k)   return rawget(getmetatable(t), k) end
 
--- keywords https://www.lua.org/manual/5.4/manual.html
+--- keywords https://www.lua.org/manual/5.4/manual.html
 M.KEYWORD = {}; for kw in string.gmatch([[
 and       break     do        else      elseif    end
 false     for       function  goto      if        in
@@ -103,11 +100,9 @@ M.fninfo = function(fn)
   return name or 'function', loc
 end
 
--- rawsplit(subj, ctx) -> (ctx, splitstr)
--- Note: prefer split
---
---   for ctx, line in rawsplit, text, {'\n', 1} do ... end
-M.rawsplit = function(subj, ctx)
+--- You probably want split instead.
+--- Usage: [$for ctx, line in rawsplit, text, {'\n', 1} do]
+M.rawsplit = function(subj, ctx) --> (state, splitstr)
   local pat, i = table.unpack(ctx)
   if not i then return end
   if i > #subj then
@@ -119,15 +114,14 @@ M.rawsplit = function(subj, ctx)
   return ctx, subj:sub(ctx.si, ctx.ei)
 end
 
--- split(subj:str, pat="%s+", index=1) -> iterator (ctx, str)
--- split the subj by pattern.
--- ctx has two keys: si (start index) and ei (end index)
---
--- Eample:
---   for ctx, line in split(text, '\n') do -- split lines
---     ... do something with line
---   end
-M.split = function(subj, pat, index)
+--- split the subj by pattern. [$ctx] has two keys: [$si] (start index) and
+--- [$ei] (end index)
+--- [{## lang=lua}
+--- for ctx, line in split(text, '\n') do -- split lines
+---   ... do something with line
+--- end
+--- ]##
+M.split = function(subj, pat--[[%s+]], index--[[1]]) --> (cxt, str) iter
   return M.rawsplit, subj, {pat or '%s+', index or 1}
 end
 
@@ -162,8 +156,8 @@ M.eqDeep = function(a, b)
   return aLen == bLen
 end
 
--- eq(a, b) -> bool: compare tables or anything else
-M.eq = function(a, b) return NATIVE_TY_EQ[type(a)](a, b) end
+--- compare tables or anything else
+M.eq = function(a, b) return NATIVE_TY_EQ[type(a)](a, b) end --> bool
 
 -----------------------
 -- record
@@ -251,7 +245,7 @@ getmetatable(M).__call = function(T, name)
   return M.record(name)
 end
 
--- Extend the Type with (optional) new name and (optional) additional fields.
+--- Extend the Type with (optional) new name and (optional) additional fields.
 M.extend = function(Type, name, fields)
   name, fields = name or Type.__name, fields or {}
   local E, mt = copy(Type), copy(getmetatable(Type))

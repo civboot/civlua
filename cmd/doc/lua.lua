@@ -28,6 +28,7 @@ end
 
 --------------------
 -- Global Functions
+
 --- Get the next key in the table. Used for iterating through tables.
 --- If [$key=nil] returns the first key. Returns [$nil] when [$key] is
 --- the last key.
