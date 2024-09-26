@@ -334,8 +334,7 @@ M.reverse = function(t)
   return t
 end
 
--- extend(t, list) -> t: move vals to the end of t
-M.extend = function(t, l)
+M.extend = function(t, l) --> t: move vals to end of t
   local meth = getmethod(t, '__extend')
   if meth then return meth(t, l) end
   return move(l, 1, #l, #t + 1, t)

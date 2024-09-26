@@ -160,6 +160,18 @@ M.getEnvBool = function(k)
   return ENV_VALS[lower(v)] or false
 end
 
+--- pop raw arguments after '--'
+--- Removes them (including '--') from args.
+M.popRaw = function(args, to) --> to
+  local ri; for i, v in ipairs(args) do
+    if v == '--' then ri = i; break end
+  end; if not ri then return end
+  local to = to or {}
+  local raw = table.move(args, ri+1, #args, #to+1, to)
+  for i=ri,#args do args[i] = nil end -- clear from args
+  return to
+end
+
 --- Performs common setup by parsing and constructing an Args metaty, getting
 --- the standard `to` attribute and checking help and printing to [$to] if
 --- requested.

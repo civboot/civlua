@@ -140,11 +140,7 @@ getmetatable(M.Main).__call = function(T, args)
   for _, k in ipairs{'root', 'pat', 'nopat', 'path', 'nopath'} do
     args[k] = shim.list(args[k])
   end
-  -- args after -- are root
-  local rooti = ds.indexOf(args, '--'); if rooti then
-    table.move(args, rooti+1, #args, #args.root+1, args.root)
-    ds.clear(args, rooti)
-  end
+  shim.popRaw(args, args.root)
   M.parseColons(args)
   return construct(T, args)
 end

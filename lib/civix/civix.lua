@@ -329,10 +329,9 @@ M.ShFin = mty'ShFin'{
   'stdin [file]', 'stdout [file]', 'stderr [file]',
   "input [string]: write to then close stdin (either self's or shell's)",
 }
--- sh:finish{ShFin} -> out, err
--- finish files (in sh or other) by writing other.input to stdin and reading
--- stdout/stderr.  All processes are done asynchronously
-M.Sh.finish = function(sh, other)
+--- finish files (in sh or other) by writing other.input to stdin and reading
+--- stdout/stderr.  All processes are done asynchronously
+M.Sh.finish = function(sh, other) --> out, err
   other = M.ShFin(other or {})
   local inpf = other.stdin  or sh.stdin
   local outf = other.stdout or sh.stdout
@@ -370,24 +369,24 @@ M._sh = function(cmd) --> Sh
   return M.Sh(sh), other
 end
 
--- sh(cmd) -> out, err, sh
--- Execute the command in another process via execvp (system shell). Throws an
--- error if the command fails.
---
--- if cmd is a table, the following keys are treated as special. If you need any
--- of these then you must use M.Sh directly (recommendation: use Plumb)
---
---   stdin[string|file]: the process's stdin. If string it will be sent to stdin.
---   stdout[file]: the process's stdout. out will be nil if this is set
---   stderr[file]: the process's stderr (default=io.stderr)
---
--- Note: use Plumb{...}:run() if you want to pipe multiple shells together.
---
--- COMMAND                               BASH
--- sh'ls foo/bar'                     -- ls foo/bar
--- sh{'ls', 'foo/bar', 'dir w spc/'}  -- ls foo/bar "dir w spc/"
--- sh{stdin='sent to stdin', 'cat'}     -- echo "sent to stdin" | cat
-M.sh = function(cmd)
+--- Execute the command in another process via execvp (system shell). Throws an
+--- error if the command fails.
+---
+--- if cmd is a table, the following keys are treated as special. If you need any
+--- of these then you must use M.Sh directly (recommendation: use Plumb) [+
+--- * [$stdin[string|file]] the process's stdin. If string it will be sent to stdin.
+--- * [$stdout[file]] the process's stdout. out will be nil if this is set
+--- * [$stderr[file]] the process's stderr (default=io.stderr)
+--- ]
+---
+--- Note: use [$Plumb{...}:run()] if you want to pipe multiple shells together.
+--- [{table}
+--- # Command                               Bash
+--- + [$sh'ls foo/bar']                    | [$ls foo/bar]
+--- + [$sh{'ls', 'foo/bar', 'dir w spc/'}] | [$ls foo/bar "dir w spc/"]
+--- + [$sh{stdin='sent to stdin', 'cat'}]  | [$echo "sent to stdin" | cat]
+--- ]
+M.sh = function(cmd) --> out, err, sh
   local sh, other = M._sh(cmd); sh:start()
   local out, err = sh:finish(other)
   local rc = sh:wait(); if rc ~= 0 then
