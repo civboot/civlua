@@ -512,6 +512,7 @@ end
 
 ---------------------
 -- Untyped Functions
+
 --- Copy list-elements only
 M.icopy = function(t) return move(t, 1, #t, 1, {}) end --> list
 
@@ -957,14 +958,15 @@ end
 
 ---------------------
 -- Deq Buffer
--- Deq() -> Deq, a deque
--- Use as a first in/out with deq:push(v)/deq()
---
--- Main methods:
---   pushLeft()  pushRight()
---   popLeft()   popRight()
---
--- Calling it is the same as popLeft (use as iterator)
+
+--- [$Deq() -> Deq], a deque
+--- Use as a first in/out with [$deq:push(v)/deq()]
+---
+--- Main methods: [##
+---   pushLeft()  pushRight()
+---   popLeft()   popRight()
+--- ]
+--- Calling it is the same as popLeft (use as iterator)
 M.Deq = mty'Deq'{
   'right [number]',
   'left  [number]'
@@ -1035,8 +1037,8 @@ M.traceback = function(level)
   return concat(M.tracelist(nil, 1 + (level or 0)), '\n    ')
 end
 
--- Error message, traceback and cause
--- NOTE: you should only use this for printing/logging/etc.
+--- Error message, traceback and cause
+--- NOTE: you should only use this for printing/logging/etc.
 M.Error = mty'Error' {
   'msg [string]', 'traceback [table]', 'cause [Error]',
 }
@@ -1055,8 +1057,8 @@ M.Error.__fmt = function(e, fmt)
 end
 M.Error.__tostring = function(e) return fmt(e) end
 
--- create the error from the arguments.
--- tb can be one of: coroutine|string|table
+--- create the error from the arguments.
+--- tb can be one of: [$coroutine|string|table]
 M.Error.from = function(msg, tb, cause)
   tb = (type(tb) == 'thread') and traceback(tb) or tb
   return M.Error{
@@ -1066,21 +1068,19 @@ M.Error.from = function(msg, tb, cause)
   }
 end
 
--- for use with xpcall. See: try
+--- for use with xpcall. See: try
 M.Error.msgh = function(msg, level)
   return M.Error.from(msg, traceback('', (level or 1) + 1))
 end
 
--- try to run the fn. Similar to pcall. Return one of:
---   success(true, fnresults...)
---   failure(false, ds.Error)
+--- try to run the fn. Similar to pcall. Return one of:
+---   success(true, fnresults...)
+---   failure(false, ds.Error)
 M.try = function(fn, ...) return xpcall(fn, M.Error.msgh, ...) end
 
--- Same as coroutine.resume except returns ok, err
--- where Err is an ds.Error object (has traceback)
---
--- Only returns up to 4 items
-M.resume = function(th) --> ok, err|...
+--- Same as coroutine.resume except uses a ds.Error object for errors
+--- (has traceback)
+M.resume = function(th) --> ok, err, b, c
   local ok, a, b, c = resume(th)
   if ok then return ok, a, b, c end
   return nil, M.Error.from(a, th)
@@ -1089,8 +1089,8 @@ end
 -----------------------
 -- Import helpers
 
--- auto-set nil locals using require(mod)
--- local x, y, z; ds.auto'mm' -- sets x=mm.x; y=mm.y; z=mm.z
+--- auto-set nil locals using require(mod)
+--- [$local x, y, z; ds.auto'mm' -- sets x=mm.x; y=mm.y; z=mm.z]
 M.auto = function(mod, i)
   mod, i = type(mod) == 'string' and require(mod) or mod, i or 1
   while true do
@@ -1105,17 +1105,16 @@ M.auto = function(mod, i)
   return mod, i
 end
 
--- indexrequire: `R.foo` is same as `require'foo'`
--- This is mostly used in scripts/etc
+--- indexrequire: [$R.foo] is same as [$require'foo']
+--- This is mostly used in scripts/etc
 M.R = setmetatable({}, {
   __index=function(_, k) return require(k) end,
   __newindex=function() error"don't set fields" end,
 })
 
--- Include a resource (raw data) relative to the current file.
---
--- Example:
---   M.myData = ds.resource'data/myData.csv'
+--- Include a resource (raw data) relative to the current file.
+---
+--- Example: [$M.myData = ds.resource'data/myData.csv']
 M.resource = function(relpath)
   return M.readPath(M.srcdir(1)..relpath)
 end

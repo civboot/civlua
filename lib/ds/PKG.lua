@@ -19,5 +19,4 @@ srcs = {
   'ds/heap.lua',
   'ds/log.lua',
   'ds/Grid.lua',
-  'ds/File.lua',
 }

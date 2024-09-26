@@ -25,13 +25,11 @@ Documentation for A
 + [$__index]       | \[Ty<A>\] [/cmd/doc/test/docfake.lua:000]
 ]
 [{h4}Function [{style=api}metaty.newindex] [/lib/metaty/metaty.lua:000]]
-[$M.newindex = function(r, k, v)]
+Signature: [$(r, k, v)]
 [{h4}Function [{style=api}A.meth1] [/cmd/doc/test/docfake.lua:000]]
+Signature: [$() end --> thing]
 docs for meth1
-
-[$M.A.meth1 = function() end --> thing]
 [{h3}Function [{style=api}docfake.fun1] [/cmd/doc/test/docfake.lua:000]]
+Signature: [$() end --> thing]
 this is a function.
 it has documentation.
-
-[$M.fun1 = function() end --> thing]

@@ -1,6 +1,5 @@
 local mty = require'metaty'
 --- fluent iterator
----
 --- [{## lang=lua}
 --- isNumber = function(v) return type(v) == 'number' end
 --- t = {4, 5, 'six', 7}

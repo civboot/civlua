@@ -1,4 +1,4 @@
--- shim: use a lua module in lua OR in the shell.
+--- shim: use a lua module in lua OR in the shell.
 local M = mod and mod'shim' or setmetatable({}, {})
 
 local push, sfmt = table.insert, string.format
@@ -6,18 +6,18 @@ local lower = string.lower
 
 local ENV_VALS = {['true'] = true, ['1'] = true }
 
--- Parse either a string or list and convert them to key=value table.
--- v can be either a list of [${'strings', '--option=foo'}]
--- or [${'strings", option='foo'}] or a combination of both. If v is a string then
--- it is split on whitespace and parsed as a list.
---
--- Note: this handles repeat keys by creating and appending a list for that key.
+--- Parse either a string or list and convert them to key=value table.
+--- v can be either a list of [${'strings', '--option=foo'}]
+--- or [${'strings", option='foo'}] or a combination of both. If v is a string then
+--- it is split on whitespace and parsed as a list.
+---
+--- Note: this handles repeat keys by creating and appending a list for that key.
 M.parse = function(v) --> args
   if type(v) == 'string' then return M.parseStr(v)
   else                        return M.parseList(v) end
 end
 
--- Add k,v to table, turning into a list if it already exists.
+--- Add k,v to table, turning into a list if it already exists.
 local function addKV(t, k, v)
   local e = t[k]; if e then
     if type(e) == 'table' then push(e, v)
@@ -25,11 +25,11 @@ local function addKV(t, k, v)
   else t[k] = v end
 end
 
--- parses the string by splitting via whitespace.
--- Asserts the string contains no special chars: '"[]
--- This is for convinience, use a table if it's not enough.
---
--- Note: if the input is already a table it just returns it.
+--- parses the string by splitting via whitespace.
+--- Asserts the string contains no special chars: '"[]
+--- This is for convinience, use a table if it's not enough.
+---
+--- Note: if the input is already a table it just returns it.
 M.parseStr = function(str) --> args
   str = str or {}
   if type(str) == 'table' then return str end
@@ -66,8 +66,8 @@ local BOOLS = {
   [false]=false, ['false']=false, ['no']=false, ['0']=false,
 }
 
--- Duck type: always return a boolean (except for nil).
--- See BOOLS (above) for mapping.
+--- Duck type: always return a boolean (except for nil).
+--- See BOOLS (above) for mapping.
 M.boolean = function(v)
   if v == nil then return nil end
   local b = BOOLS[v] if b ~= nil then return b end
@@ -79,7 +79,7 @@ M.bools = function(args, ...)
   end
 end
 
--- Duck type: always return a number
+--- Duck type: always return a number
 M.number = function(num)
   if num == nil then return nil end
   return (type(num)=='number') and num or tonumber(num)
@@ -89,10 +89,10 @@ local TOSTR = {
   ['nil'] = '', boolean = tostring, number = tostring,
   string = tostring,
 }
--- Duck type: always return a string
--- This is useful for some APIs where you want to convert
--- number/true/false to strings
--- Converts nil to ''
+--- Duck type: always return a string
+--- This is useful for some APIs where you want to convert
+--- number/true/false to strings
+--- Converts nil to ''
 M.string = function(v)
   local f = TOSTR[type(v)]; if f then return f(v) end
   error('invalid type for shim.string: '..type(v))
@@ -107,8 +107,8 @@ M.list = function(val, default, empty)
   return (type(val) == 'table') and val or {val}
 end
 
--- Duck type: if val is a string then splits it
--- if it's a list leaves alone.
+--- Duck type: if val is a string then splits it
+--- if it's a list leaves alone.
 M.listSplit = function(val, sep)
   if val == nil then return {} end
   if type(val) == 'table' then return val end
@@ -125,8 +125,8 @@ M.file = function(v, default, mode--[[w+]]) --> file, error?
   return v
 end
 
--- expand string keys into [$--key=value], ordered alphabetically.
--- This is mostly useful for interfacing with non-lua shells.
+--- expand string keys into [$--key=value], ordered alphabetically.
+--- This is mostly useful for interfacing with non-lua shells.
 M.expand = function(args)
   local out, keys = {}, {}
   for k, v in pairs(args) do
@@ -140,19 +140,6 @@ M.expand = function(args)
   return out
 end
 
-
--- Duck type: if value does not have a metatable then call T(val)
--- Note: strings DO have a metatable.
---
--- This is primarily used for types which have a __call constructor,
--- such as metaty types.
-M.new = function(T, val)
-  if val == nil then return end
-  return getmetatable(val) and val or T(val)
-end
-
-local COLOR_YES = {[true]=1,  ['true']=1,  always=1, on=1}
-local COLOR_NO  = {[false]=1, ['false']=1, never=1,  off=1}
 
 -- return nil if env var does not exist, else boolean (true for 'true' or '1')
 M.getEnvBool = function(k)

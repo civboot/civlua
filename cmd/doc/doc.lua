@@ -356,6 +356,10 @@ M.fmtDoc = function(f, d)
           or d.pkgname or d.name or '(unnamed)',
           path)
   if d.meta then M.fmtMeta(f, d.meta) end
+  if type(d.obj) == 'function' and d.code and d.code[1] then
+    local sig = d.code[1]:match'function.-(%(.-%).*)'
+    if sig then push(f, '\nSignature: '); pushfmt(f, '[$%s]', sig) end
+  end
   if d.comments then
     for i, l in ipairs(d.comments) do
       push(f, '\n'); push(f, l)
@@ -363,10 +367,6 @@ M.fmtDoc = function(f, d)
   end
   if d.main then
     M.fmtDoc(f, d.main)
-  end
-  if type(d.obj) == 'function' and d.code and d.code[1] then
-    if d.comments or d.meta then push(f, '\n') end
-    pushfmt(f, '\n[$%s]', d.code[1])
   end
   local any = d.fields or d.values or d.tys or d.fns
   if any or d.mods then push(f, '\n') end

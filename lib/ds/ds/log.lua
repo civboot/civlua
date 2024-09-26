@@ -1,19 +1,20 @@
 local G = G or _G
 
--- Simple logging library.
---
--- This module has the functions {trace info warn err crit} with the signature:
--- function(fmt, ... [, data])
--- * the ... are the format args which behave like metaty.format (aka %q
---   formats tables/etc).
--- * data is optional arbitrary data that can be serialized/formatted.
---
--- To enable logging the user should set a global (or env var) LOGLEVEL
--- to oneof: C/CRIT/1 E/ERROR/2 W/WARN/3 I/INFO/4 T/TRACE/5
---
--- This module also sets (if not already set) the global LOGFN to ds.logFn
--- which logs to stderr. This fn is called with signature
--- function(level, srcloc, message, data)
+--- Simple logging library.
+---
+--- This module has the functions [$trace info warn err crit] with the signature:
+--- [$function(fmt, ... [, data])] [+
+--- * the ... are the format args which behave like [$fmt.format] (aka [$%q]
+---   formats tables/etc).
+--- * data is optional arbitrary data that can be serialized/formatted.
+--- ]
+---
+--- To enable logging the user should set a global (or env var) LOGLEVEL
+--- to oneof: C/CRIT/1 E/ERROR/2 W/WARN/3 I/INFO/4 T/TRACE/5
+---
+--- This module also sets (if not already set) the global LOGFN to [$ds.logFn]
+--- which logs to stderr. This fn is called with signature
+--- [$function(level, srcloc, fmt, ...)]
 local M = G.mod and G.mod'ds.log' or {}
 local mty = require'metaty'
 local fmt = require'fmt'
@@ -40,8 +41,9 @@ function M.levelInt(lvl)
   return M.LEVEL[lvl] and lvl or error('invalid lvl: '..tostring(lvl))
 end
 function M.levelStr(lvl) return M.LEVEL[M.levelInt(lvl)] end
--- set the global logging level (default=os.getenv'LOGLEVEL')
-function M.setLevel(lvl)
+
+--- set the global logging level (default=os.getenv'LOGLEVEL')
+M.setLevel = function(lvl)
   G.LOGLEVEL = M.levelInt(lvl or os.getenv'LOGLEVEL' or 0)
 end
 M.setLevel(G.LOGLEVEL)

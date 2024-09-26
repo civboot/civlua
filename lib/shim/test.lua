@@ -41,18 +41,4 @@ T.test('duck', function()
   T.assertEq(false, M.boolean(false))
   T.assertEq(false, M.boolean'false')
   T.assertEq(nil, M.boolean(nil))
-
-  -- new
-  local function add1(v) return v + 1 end
-  T.assertEq(5, M.new(add1, 4))
-
-  local t = setmetatable({}, {})
-  assert(t == M.new(nil, t))
-
-  local mt = setmetatable({}, {
-    __call=function(ty_, t) return setmetatable(t, ty_) end
-  })
-  local t = {}; local res = M.new(mt, t)
-  assert(t == t)
-  assert(getmetatable(t) == mt)
 end)

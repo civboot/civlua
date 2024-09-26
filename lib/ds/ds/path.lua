@@ -1,5 +1,5 @@
--- working with paths
--- Call directly to convert a list|str to a list of path components.
+--- working with paths
+--- Call directly to convert a list|str to a list of path components.
 local M = mod and mod'ds.path' or setmetatable({}, {__name='ds.path'})
 
 local mty = require'metaty'
@@ -17,14 +17,14 @@ getmetatable(M).__call = function(_, p)
   return p
 end
 
--- get current working directory
+--- get current working directory
 M.cwd = function() return G.CWD or os.getenv'PWD' or os.getenv'CD' end
 
--- get the user's home directory
+--- get the user's home directory
 M.home = function() return HOME or os.getenv'HOME'
                         or os.getenv'HOMEDIR'      end
 
--- join a table of path components
+--- join a table of path components
 M.concat = function(t) --> string
   if #t == 0 then return '' end
   local root = (t[1]:sub(1,1)=='/') and '/' or ''
@@ -36,7 +36,7 @@ M.concat = function(t) --> string
   end; return root..table.concat(out, '/')..dir
 end
 
--- return whether a path has any '..' components
+--- return whether a path has any '..' components
 M.hasBacktrack = function(path) --> bool. path: [str|list]
   if type(path) == 'string' then
     return path:match'^%.%.$' or path:match'^%.%./'
@@ -51,9 +51,9 @@ M.ext = function(path) --> string. path: [str|list]
   return path:match'.*%.([^/]+)$'
 end
 
--- Ensure the path is absolute, using the wd (default=cwd()) if necessary
---
--- This preserves the type of the input: str -> str; table -> table
+--- E-nsure the path is absolute, using the wd (default=cwd()) if necessary
+---
+--- This preserves the type of the input: str -> str; table -> table
 M.abs = function(path, wd) --> /absolute/path
   if type(path) == 'string' then
     if (path:sub(1,1) == '/') then return path end
@@ -66,8 +66,8 @@ M.abs = function(path, wd) --> /absolute/path
   return ds.extend(M(wd), path)
 end
 
--- resolve any `..` or `.` path components, making the path
--- /absolute if necessary.
+--- resolve any `..` or `.` path components, making the path
+--- /absolute if necessary.
 M.resolve = function(path, wd) --> list
   if type(path) == 'table' then path = ds.copy(path)
   else path = M(path) end
@@ -107,15 +107,15 @@ M.itemeq = function(a, b) --> boolean: path items are equal
   return a:match'^/*(.-)/*$' == b:match'^/*(.-)/*$'
 end
 
--- ds.rmleft for path components
+--- ds.rmleft for path components
 M.rmleft = function(path, rm)
   return ds.rmleft(path, rm, M.itemeq)
 end
 
--- return a nice path (string) that is resolved and readable.
---
--- It's 'nice' because it has no '/../' or '/./' elements
--- and has CWD stripped.
+--- return a nice path (string) that is resolved and readable.
+---
+--- It's 'nice' because it has no '/../' or '/./' elements
+--- and has CWD stripped.
 M.nice = function(path, wd) --> string
   wd = wd or M.cwd()
   path, wd = M.resolve(path, wd), M(wd)
@@ -124,13 +124,13 @@ M.nice = function(path, wd) --> string
   return M.concat(path)
 end
 
--- Return only the parent dir and final item.
--- This is often used for documentation/etc
+--- Return only the parent dir and final item.
+--- This is often used for documentation/etc
 M.short = function(path, wd)
   return M.nice(path, wd):match'([^/]*/[^/]+)'
 end
 
--- first/middle/last -> ("first", "middle/last")
+--- [$first/middle/last -> ("first", "middle/last")]
 M.first = function(path)
   if path:sub(1,1) == '/' then return '/', path:sub(2) end
   local a, b = path:match('^(.-)/(.*)$')
@@ -138,7 +138,7 @@ M.first = function(path)
   return a, b
 end
 
--- first/middle/last -> ("first/middle", "last")
+--- [$first/middle/last -> ("first/middle", "last")]
 M.last = function(path)
   local a, b = path:match('^(.*)/(.+)$')
   if not a or a == '' or b == '' then return '', path end

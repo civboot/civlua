@@ -1,24 +1,28 @@
 local mty = require'metaty'
--- Doubly Linked List with DSL operators.
---
--- Examples: the below examples use
---   * h as the "head", hN is N nodes to it's right (h1=h.r)
---   * t as the "tail", hN is N nodes to it's left  (t1=t.l)
---   * u indicates "unused" and is necessary for lua's syntax
---
--- '+' is "add value" operator, it returns the added node
---   t = LL(3) + 4 -- (  3 -> t=4)
---   h = t:head()  -- (h=3 -> t=4)
---
--- '-' is "link nodes" operator, it puts the nodes on the right
--- and returns the first node
---   u = t - (LL(5) + 6) -- (h=3 -> t=4 -> 5 -> 6)
---   t = t:tail()        -- (h=3 -> 4   -> 5 -> t=6)
---   h1 = h.r - LL(3.1)  -- (h=3 -> h1=3.1 -> 4 -> 5 -> t=6)
---
--- ':extend' puts a list of values as nodes at onto tail
---   h = (LL(3) + 4 + 5):head() -- (h=3 -> 4 -> 5)
---   h:extend{6, 7, 8}          -- (h=3 -> 4 -> 5 -> 6 -> 7 -> 8)
+--- Doubly Linked List with DSL operators.
+---
+--- Examples: the below examples use [+
+---   * h as the "head", hN is N nodes to it's right (h1=h.r)
+---   * t as the "tail", hN is N nodes to it's left  (t1=t.l)
+---   * u indicates "unused" and is necessary for lua's syntax
+--- ]
+---
+--- '+' is "add value" operator, it returns the added node [{## lang=lua}
+---   t = LL(3) + 4 -- (  3 -> t=4)
+---   h = t:head()  -- (h=3 -> t=4)
+--- ]#
+---
+--- '-' is "link nodes" operator, it puts the nodes on the right
+--- and returns the first node [{## lang=lua}
+---   u = t - (LL(5) + 6) -- (h=3 -> t=4 -> 5 -> 6)
+---   t = t:tail()        -- (h=3 -> 4   -> 5 -> t=6)
+---   h1 = h.r - LL(3.1)  -- (h=3 -> h1=3.1 -> 4 -> 5 -> t=6)
+--- ]##
+---
+--- ':extend' puts a list of values as nodes at onto tail [{## lang=lua}
+---   h = (LL(3) + 4 + 5):head() -- (h=3 -> 4 -> 5)
+---   h:extend{6, 7, 8}          -- (h=3 -> 4 -> 5 -> 6 -> 7 -> 8)
+--- ]##
 local LL = mty'LL' {
   'l [&LL]: left node', 'r [&LL]: right node', 'v [any]: value',
 }
@@ -46,17 +50,17 @@ LL.tolist = function(ll) --> {a.v, b.v, c.v, ...}
   return t
 end
 
--- create l -> r link
+--- create l -> r link
 LL.link = function(l, r) l.r, r.l = r, l end
 
--- insert LL(v) to right of ll
--- (h -> 2); h:insert(1) ==> (h -> 1 -> 2)
+--- insert LL(v) to right of ll
+--- [$(h -> 2); h:insert(1) ==> (h -> 1 -> 2)]
 LL.insert = function(ll, v)
   ll.r = construct(getmetatable(ll), {v=v, l=ll, r=ll.r})
 end
 
--- remove node ll from linked list
--- if ll was the head, returns the new head (or nil)
+--- remove node ll from linked list
+--- if ll was the head, returns the new head (or nil)
 LL.rm = function(ll) --> head?
   local l, r = ll.l, ll.r
   if l then
@@ -82,22 +86,23 @@ LL.get = function(ll, i) --> node? (at index +/- i)
 end
 
 
--- Add DSL (ll + v). Puts node with v=v after tail, returns new tail.
+--- Add DSL (ll + v). Puts node with v=v after tail, returns new tail.
 LL.__add = function(ll, v) --> tail
   local n = getmetatable(ll)(v)
   ll:tail():link(n)
   return n
 end
 
--- Link DSL: l - r ==> l -> r
--- Links l:tail() -> r:head(), return r:tail()
---
--- Note: This is for convienience and expressiveness of small lists.
---       Use link() or insert() if performance matters.
---
--- Example:
---   l6     = LL(3) - (LL(4) + 5) - L(6) ==> (3 -> 4 -> 5 -> 6)
---   l3tail = l1 - l2 - l3
+--- Link DSL: l - r ==> l -> r
+--- Links [$l:tail() -> r:head(), return r:tail()]
+---
+--- Note: This is for convienience and expressiveness of small lists.
+---       Use link() or insert() if performance matters.
+---
+--- Example: [{## lang=lua}
+---   l6     = LL(3) - (LL(4) + 5) - L(6) ==> (3 -> 4 -> 5 -> 6)
+---   l3tail = l1 - l2 - l3
+--- ]##
 LL.__sub = function(l, r)
   local t = r:tail()
   l, r = l:tail(), r:head()

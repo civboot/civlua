@@ -1,6 +1,6 @@
 local G = G or _G
 
---- format module
+--- format module: format any type into a readable string
 local M = G.mod and G.mod'fmt' or setmetatable({}, {})
 
 local mty = require'metaty'
@@ -12,7 +12,7 @@ local mathtype = math.type
 
 local DEPTH_ERROR = '{!max depth reached!}'
 
--- keywords https://www.lua.org/manual/5.4/manual.html
+--- keywords https://www.lua.org/manual/5.4/manual.html
 M.KEYWORD = {}; for kw in string.gmatch([[
 and       break     do        else      elseif    end
 false     for       function  goto      if        in
@@ -129,7 +129,7 @@ Fmt.thread      = function(f, th) add(f, tostring(th))      end
 Fmt.userdata    = function(f, ud) add(f, tostring(ud))      end
 Fmt['function'] = function(f, fn) add(f, sfmt('fn%q[%s]', mty.fninfo(fn))) end
 
--- format items in table "list"
+--- format items in table "list"
 Fmt.items = function(f, t, hasKeys, listEnd)
   local len = #t; for i=1,len do
     f(t[i])
@@ -138,7 +138,7 @@ Fmt.items = function(f, t, hasKeys, listEnd)
   if listEnd then add(f, listEnd) end
 end
 
--- format key/vals in table "map"
+--- format key/vals in table "map"
 Fmt.keyvals = function(f, t, keys)
   local klen, kset, kend = #keys, f.keySet, f.keyEnd
   for i, k in ipairs(keys) do
@@ -150,9 +150,9 @@ Fmt.keyvals = function(f, t, keys)
   end
 end
 
--- Recursively format a table.
--- Yes this is complicated. No, there is no way to really improve
--- this while preserving the features.
+--- Recursively format a table.
+--- Yes this is complicated. No, there is no way to really improve
+--- this while preserving the features.
 Fmt.table = function(f, t)
   if f._level >= f.maxIndent then return add(f, DEPTH_ERROR) end
   local mt, keys = getmetatable(t), nil
@@ -233,7 +233,7 @@ M.fprint = function(f, ...)
 end
 local fprint = M.fprint
 
--- print(...) but using [$io.fmt]
+--- print(...) but using [$io.fmt]
 M.print  = function(...) return fprint(io.fmt, ...) end
 
 --- directly call fmt for better [$tostring]

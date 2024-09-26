@@ -85,10 +85,9 @@ T.test('doc fn', function()
   T.assertEq('Function', res.docTy)
   T.assertEq(
 "[{h3}Function [{style=api}doc_test.exampleFn] [/cmd/doc/test.lua:000]]\
+Signature: [$() end]\
 document a fn\
-another line\
-\
-[$M.exampleFn = function() end]",
+another line",
     doFmt(doc.fmtDoc, res))
 end)
 

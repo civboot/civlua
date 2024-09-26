@@ -47,7 +47,7 @@ end
 -------------------
 -- Library constants / etc
 
--- Helper for PKG.lua files loading compiled dynamic libraries
+--- Helper for PKG.lua files loading compiled dynamic libraries
 M.LIB_EXT = '.so'; if M.UNAME == 'Windows' then M.UNAME = '.dll' end
 
 -- discover() sets this as table[name, dir]
@@ -69,13 +69,12 @@ M.ENV = {
   error=error,   assert=assert,
 }; M.ENV.__index = M.ENV
 
--------------------
--- Compile + Run (load) paths
+--- Compile + Run (load) paths
 local loaderr = function(name, path, err)
   error(string.format('loading pkg %s at %s: %s', name, path, err))
 end
 
--- load(path) -> globals
+--- load(path) -> globals
 M.load = function(name, path); assert(name and path)
   local env = setmetatable({}, M.ENV)
   local pkg, err = loadfile(path, nil, env)
@@ -84,12 +83,11 @@ M.load = function(name, path); assert(name and path)
   return env
 end
 
--- load(path, name) -> calls exported (native) luaopen_name() to get
---   native module.
-M.loadlib = function(name, path)
-  local pkg, err = package.loadlib(path, 'luaopen_'..name:gsub('%.', '_'))
-  if not pkg then loaderr(name, path, err) end
-  return pkg()
+--- load a native library (i.e. so, dll) and return loaded module
+M.loadlib = function(name, path) --> mod
+  local mod, err = package.loadlib(path, 'luaopen_'..name:gsub('%.', '_'))
+  if not mod then loaderr(name, path, err) end
+  return mod()
 end
 
 -------------------
@@ -115,7 +113,7 @@ end
 -- Loading
 
 -- modules(PKG.srcs) -> map[name -> path]
-M.modules = function(pkgsrcs)
+M.modules = function(pkgsrcs) --> table[name -> path]
   local mods = {}
   for mname, mpath in pairs(pkgsrcs) do
     if     type(mname) == 'string' then -- already set
@@ -127,7 +125,7 @@ M.modules = function(pkgsrcs)
   return mods
 end
 
--- get pkg's PKG.lua values
+--- get pkg's PKG.lua values
 M.getpkg = function(pkgname) --> PKG, pkgdir
   if not M.PKGS then
     M.discover(assert(os.getenv'LUA_PKGS' or '', 'must export LUA_PKGS'))
@@ -138,8 +136,8 @@ M.getpkg = function(pkgname) --> PKG, pkgdir
   return pkg, pkgdir
 end
 
--- get the package. The API is identical to 'require' except
--- it uses LUA_PKGS to search.
+--- get the package. The API is identical to 'require' except
+--- it uses LUA_PKGS to search.
 M.get = function(name, fallback)
   fallback = (fallback == nil) and M.require or fallback
   local mod = package.loaded[name]; if mod then return mod end
@@ -166,18 +164,17 @@ M.get = function(name, fallback)
   error(sfmt('PKG %s found but not sub-module %q', pkgname, name))
 end
 
--- get any path with '.' in it
---
--- This is mostly used by help/etc functions
-M.getpath = function(path)
-  if type(path) == 'string' then -- split by '.'
-    local t = {}; for m in path:gmatch'[^.]+' do push(t, m) end
+--- get any path separated by '.' including both [$require'some'.thing] and
+--- [$require'some.thing']
+M.getpath = function(dotpath) --> obj
+  if type(dotpath) == 'string' then -- split by '.'
+    local t = {}; for m in dotpath:gmatch'[^.]+' do push(t, m) end
   end
   local obj
-  for i=1,#path do
-    local v = obj and ds.get(obj, ds.slice(path, i))
+  for i=1,#dotpath do
+    local v = obj and ds.get(obj, ds.slice(dotpath, i))
     if v then return v end
-    obj = pget(table.concat(path, '.', 1, i))
+    obj = pget(table.concat(dotpath, '.', 1, i))
   end
   return obj
 end

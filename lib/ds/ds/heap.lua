@@ -1,4 +1,4 @@
--- Binary Heap implementation
+--- Binary Heap implementation
 local M = mod and mod'ds.heap' or {}
 
 local mty = require'metaty'
@@ -6,7 +6,7 @@ local ds  = require'ds'
 local bt = ds.bt
 local push = table.insert
 
--- Get the index which compares true of all: n, left(n), right(n)
+--- Get the index which compares true of all: n, left(n), right(n)
 local function cmpi(h, li, hi, n, cmp)
   local lefti = bt.lefti(h, n)
   if lefti > hi then return n end -- node has no children
@@ -18,8 +18,8 @@ local function cmpi(h, li, hi, n, cmp)
   return i
 end
 
--- percolate n (node index) down the tree (left -> right)
--- n starts at a high index (start of heap) and we fix it.
+--- percolate n (node index) down the tree (left -> right)
+--- n starts at a high index (start of heap) and we fix it.
 local function percDown(h, li, hi, n, cmp)
   local i = cmpi(h, li, hi, n, cmp)
   while i ~= n do
@@ -29,8 +29,8 @@ local function percDown(h, li, hi, n, cmp)
   end
 end
 
--- percolate n (node index) up
--- n starts at a high index (end of heap) and we fix it.
+--- percolate n (node index) up
+--- n starts at a high index (end of heap) and we fix it.
 local function percUp(h, li, hi, n, cmp)
   local p = bt.parenti(h, n)
   while p >= li do
@@ -42,7 +42,7 @@ local function percUp(h, li, hi, n, cmp)
   end
 end
 
--- Initialize heap from unstructured table h
+--- Initialize heap from unstructured table h
 local function init(h, cmp)
   local li, hi = 1, #h
   if hi - li <= 0 then return end -- length 1 or 0
@@ -53,14 +53,14 @@ local function init(h, cmp)
   end
 end
 
--- Heap(t, cmp) binary heap using a table.
--- A binary heap is a binary tree where the value of the parent always
--- satisfies `cmp(parent, child) == true`
---   Min Heap: cmp = function(p, c) return p < c end (default)
---   Max Heap: cmp = function(p, c) return p > c end
--- 
--- add and push take only O(log n), making it very useful for
--- priority queues and similar problems.
+--- Heap(t, cmp) binary heap using a table.
+--- A binary heap is a binary tree where the value of the parent always
+--- satisfies `cmp(parent, child) == true`
+---   Min Heap: cmp = function(p, c) return p < c end (default)
+---   Max Heap: cmp = function(p, c) return p > c end
+---
+--- add and push take only O(log n), making it very useful for
+--- priority queues and similar problems.
 M.Heap = mty'Heap' {
   'cmp[function]: comparison function to use', cmp=ds.lt
 }
@@ -70,18 +70,16 @@ getmetatable(M.Heap).__call = function(T, t)
   return h
 end
 
--- h:add(v) add value to the heap.
-M.Heap.add =
-(function(h, v) push(h, v); percUp(h, 1, #h, #h, h.cmp) end)
+--- [$h:add(v)] add value to the heap.
+M.Heap.add = function(h, v) push(h, v); percUp(h, 1, #h, #h, h.cmp) end
 
--- h:pop() -> v: pop the top node.
-M.Heap.pop =
-(function(h)
+--- [$h:pop() -> v] pop the top node.
+M.Heap.pop = function(h) --> v
   if #h <= 1 then return table.remove(h) end
   -- move last child to root and fix
   local v = h[1]; h[1] = table.remove(h)
   percDown(h, 1, #h, 1, h.cmp)
   return v
-end)
+end
 
 return M

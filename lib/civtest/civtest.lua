@@ -103,7 +103,7 @@ M.test = function(name, fn)
   collectgarbage()
 end
 
--- Runs until yields non-truthy. See lib/lap/README.md
+--- Runs until yields non-truthy. See lib/lap/README.md
 M.asyncTest = function(name, fn)
   local lap = require'lap'
   local civix = require'civix'

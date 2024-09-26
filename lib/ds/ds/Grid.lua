@@ -7,9 +7,9 @@ local max = math.max
 local push, concat = table.insert, table.concat
 local codes, char = utf8.codes, utf8.char
 
--- ds.Grid: a text grid
--- Grid is a table (rows/lines) of tables (cols). Each column should contain a
--- single unicode character or nil.
+--- ds.Grid: a text grid
+--- Grid is a table (rows/lines) of tables (cols). Each column should contain a
+--- single unicode character or nil.
 local G = mty'ds.Grid' {
   'h [int]: height', 'w [int]: width',
 }
@@ -17,7 +17,7 @@ getmetatable(G).__call = function(T, t)
   return mty.construct(T, t):clear()
 end
 
--- clear the grid
+--- clear the grid
 G.clear = function(g) --> g
   for l=1,g.h do
     local line = g[l] or {}
@@ -33,8 +33,8 @@ local split = function(s) --> lines
   else --[[lines]]            return ipairs(s) end
 end
 
--- insert the str|lines into the grid at l.c
--- this handles newlines by inserting at the same column
+--- insert the str|lines into the grid at l.c
+--- this handles newlines by inserting at the same column
 G.insert = function(g, l, c, str)
   for _l, lstr in split(str) do
     local llen = 0
