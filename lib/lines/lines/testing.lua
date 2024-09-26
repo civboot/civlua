@@ -1,4 +1,4 @@
--- testing helpers for ds related data structures
+--- testing helpers for ds related data structures
 local M = mod and mod'lines.testing' or {}
 
 local T = require'civtest'
@@ -9,7 +9,7 @@ local ds, lines = require'ds', require'lines'
 local log = require'ds.log'
 M.DATA = {}
 
--- test round-trip offset
+--- test round-trip offset
 local function offsetRound(t, l, c, off, expect, expectOff)
   local l2, c2 = lines.offset(t, off, l, c)
   T.assertEq(expect, {l2, c2})
@@ -53,9 +53,9 @@ M.testOffset = function(t)
   offsetRound(t, 1, 10, 1, {2, 1}) -- note (1, 6) is EOL
 end
 
--- Test lines.remove on object. new must accept either a string or table of
--- lines to create a new object (does NOT need to be copied)
--- called for various data structures which implement lines
+--- Test lines.remove on object. new must accept either a string or table of
+--- lines to create a new object (does NOT need to be copied)
+--- called for various data structures which implement lines
 M.testLinesRemove = function(new, assertEq, assertEqRemove)
   local assertEqR = assertEqRemove or T.assertEq
   local assertEq = assertEq or T.assertEq

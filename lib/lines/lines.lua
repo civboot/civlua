@@ -1,14 +1,9 @@
--- lines module, when called splits a string into lines.
---
--- lines(text) -> table of lines
---
--- Also has functions for working with a table of lines.
---
---   lines.sub(myLines, l, c, l2, c2)
---
--- sub-modules include several data structures with more performant
--- mechanisms to insert/remove/etc based on real-world workloads
--- (i.e. editor, parser, etc)
+--- lines module, when called splits a string into lines.
+---   [$require'lines'(text) -> table of lines]
+---
+--- sub-modules include several data structures with more performant
+--- mechanisms to insert/remove/etc based on real-world workloads
+--- (i.e. editor, parser, etc)
 local M = mod and mod'lines' or {}
 
 local mty = require'metaty'
@@ -31,7 +26,7 @@ local new = function(_, text, index)
 end
 setmetatable(M, {__call=new})
 
--- concat strings and return lines table
+--- concat strings and return lines table
 M.args = function(...) --> lines
   local len = select('#', ...)
   if     len == 0 then return {}
@@ -40,21 +35,21 @@ M.args = function(...) --> lines
 end
 local args = M.args
 
--- join a table with newlines
+--- join a table with newlines
 M.join = function(t) return concat(t, '\n') end --> string
 local join = M.join
 
 local sinsert = function (s, i, v) return s:sub(1, i-1)..v..s:sub(i) end
 
--- insert string at l, c
---
--- Note: this is NOT performant (O(N)) for large tables.
--- See: lib/rebuf/gap.lua (or similar) for handling real-world workloads.
-M.inset = function(t, s, l, c)
+--- insert string at l, c
+---
+--- Note: this is NOT performant (O(N)) for large tables.
+--- See: lib/rebuf/gap.lua (or similar) for handling real-world workloads.
+M.inset = function(t, s, l, c) --> nil
   inset(t, l, M(sinsert(t[l] or '', c or 1, s)), 1)
 end
 
--- Address lines span via either (l,l2) or (l,c, l2,c2)
+--- Address lines span via either (l,l2) or (l,c, l2,c2)
 local function span(l, c, l2, c2)
   if      l2 and c2 then return l, c, l2, c2    end --(l,c, l2,c2)
   if not (l2 or c2) then return l, nil, c, nil  end --(l,   l2)
@@ -65,8 +60,8 @@ local function span(l, c, l2, c2)
 end
 M.span = span
 
--- sort the span
-M.sort = function(...)
+--- sort the span
+M.sort = function(...) --> l1, c1, l2, c2
   local l, c, l2, c2 = span(...)
   if l > l2 then l, c, l2, c2 = l2, c2, l, c
   elseif c and (l == l2) and (c > c2) then c, c2 = c2, c end
@@ -100,24 +95,24 @@ end
 M.sub  = function(...) return _lsub(string.sub, string.len, ...) end
 M.usub = function(...) return _lsub(ds.usub,     utf8.len,   ...) end
 
--- create a table of lineText -> {lineNums}
-M.map = function(lines)
+--- create a table of lineText -> {lineNums}
+M.map = function(lines) --> table
   local map = {}; for l, line in ipairs(lines) do
     push(ds.getOrSet(map, line, ds.emptyTable), l)
   end
   return map
 end
 
--- bound the line/col for the gap
-M.bound = function(t, l, c, len, line)
+--- bound the line/col for the gap
+M.bound = function(t, l, c, len, line) --> l, c
   len = len or #t
   l = bound(l, 1, len)
   if not c then return l end
   return l, bound(c, 1, #(line or t[l]) + 1)
 end
 
--- Get the l, c with the +/- offset applied
-M.offset=function(t, off, l, c)
+--- Get the [$l, c] with the +/- offset applied
+M.offset=function(t, off, l, c) --> l, c
   local len, m, llen, line = #t
   -- 0 based index for column
   l = bound(l, 1, len); c = bound(c - 1, 0, #t[l])
@@ -145,7 +140,8 @@ M.offset=function(t, off, l, c)
   return l, bound(c, 0, #t[l]) + 1
 end
 
-M.offsetOf=function(t, l, c, l2, c2)
+--- get the byte offset 
+M.offsetOf=function(t, l, c, l2, c2) --> int
   local off, len, llen = 0, #t
   l, c = M.bound(t, l, c, len);  l2, c2 = M.bound(t, l2, c2, len)
   c, c2 = c - 1, c2 - 1 -- column math is 0-indexed
@@ -167,8 +163,8 @@ M.offsetOf=function(t, l, c, l2, c2)
   return off
 end
 
--- find the pattern starting at l/c
--- Note: matches are only within a single line.
+--- find the pattern starting at l/c
+--- Note: matches are only within a single line.
 M.find = function(t, pat, l, c) --> (l, c)
   l, c = l or 1, c or 1
   while true do
@@ -191,7 +187,7 @@ local findBack = function(s, pat, end_)
   return fs, fe
 end
 
--- find the pattern (backwards) starting at l/c
+--- find the pattern (backwards) starting at l/c
 M.findBack = function(t, pat, l, c)
   while true do
     local s = t[l]
@@ -202,7 +198,7 @@ M.findBack = function(t, pat, l, c)
   end
 end
 
--- remove span (l, c) -> (l2, c2), return what was removed
+--- remove span (l, c) -> (l2, c2), return what was removed
 M.remove = function(t, ...) --> string|table
   local l, c, l2, c2 = span(...);
   local len = #t
@@ -253,7 +249,7 @@ end
 -------------------------
 -- Save / Load from file
 
--- load lines from file or path. On error return (nil, errstr)
+--- load lines from file or path. On error return (nil, errstr)
 M.load = function(f, close) --> (table?, errstr?)
   local err
   if type(f) == 'string' then close, f, err = true, io.open(f, 'r') end
@@ -264,8 +260,8 @@ M.load = function(f, close) --> (table?, errstr?)
   return t
 end
 
--- write lines to file in chunks (default = 16KiB)
--- if f is a string opens it as a file and closes when done.
+--- write lines to file in chunks (default = 16KiB)
+--- if f is a string opens it as a file and closes when done.
 M.dump = function(t, f, close, chunk)
   local dat, len, chunk = {}, 0, chunk or M.CHUNK
   if type(f) == 'string' then f = io.open(f, 'w'); close = true end
@@ -279,9 +275,9 @@ M.dump = function(t, f, close, chunk)
   if close then f:close() end
 end
 
--- Logic to make a table behave like a file:write(...) method.
---
--- This is NOT performant, especially for large lines.
+--- Logic to make a table behave like a [$file:write(...)] method.
+---
+--- This is NOT performant, especially for large lines.
 M.write = function(t, ...) --> true
   local w = args(...); if #w == 0 then return true end
   local len, first = #t, w[1]

@@ -1,6 +1,6 @@
 local mty = require'metaty'
--- EdFile: an editable file object, optimized for indexed and consequitive
--- reads and writes
+--- EdFile: an editable file object, optimized for indexed and consequitive
+--- reads and writes
 local EdFile = mty'EdFile' {
   'lf   [lines.File]: indexed file',
   'dats [list]: list of Slc | Gap',
@@ -48,7 +48,7 @@ EdFile.__len = function(ef)
   local l = ef.lens; return l[#l]
 end
 
--- get the index into dats where ef[i] is located
+--- get the index into dats where ef[i] is located
 EdFile._datindex = function(ef, i) --> di
   if i < 1 then return end
   local lens = ef.lens; local len = lens[#lens]
@@ -69,7 +69,7 @@ EdFile.__index = function(ef, i)
       or dat[i]
 end
 
--- Create a new EdFile (default idx=lines.U3File()).
+--- Create a new EdFile (default idx=lines.U3File()).
 EdFile.create = function(T, ...) --> EdFile
   local lf, err = File:create(...)
   if not lf then return nil, err end
@@ -135,11 +135,11 @@ end
 
 EdFile.iter = function(ef)   return EdIter(ef) end
 
--- Flush the .lf member (which can only be extended).
--- To write all data to disk use :dump()
+--- Flush the .lf member (which can only be extended).
+--- To write all data to disk use :dump()
 EdFile.flush = function(ef) return ef.lf:flush() end
 
--- Dump EdFile to file or path
+--- Dump EdFile to file or path
 EdFile.dumpf = function(ef, f)
   local ef, efx = ef.lf.f, ef.lf.idx
   for i, d in ipairs(ef.dats) do
@@ -154,7 +154,7 @@ EdFile.dumpf = function(ef, f)
   end
 end
 
--- appends to lf for extend when possible.
+--- appends to lf for extend when possible.
 EdFile.__extend = function(ef, values)
   if #values == 0 then return end
   local dlen = #ef.dats
@@ -174,8 +174,8 @@ end
 -- EdFile.__inset
 -- This is the major logic for mutating an EdFile
 
--- inset the dat, pushing to dats the values that have to be
--- reinserted into the EdFile.dats
+--- inset the dat, pushing to dats the values that have to be
+--- reinserted into the EdFile.dats
 local insetDat = function(dats, dat, i, values, rmlen)
   if getmt(dat) ~= Slc then
     inset(dat, i, values, rmlen)
@@ -196,7 +196,7 @@ local insetDat = function(dats, dat, i, values, rmlen)
   end
 end
 
--- insert into EdFile's dats.
+--- insert into EdFile's dats.
 EdFile.__inset = function(ef, i, values, rmlen)
   assert(not ef.readonly, 'attempt to modify readonly file')
   rmlen = rmlen or 0

@@ -1,8 +1,8 @@
 local mty = require'metaty'
 
--- (read|append)-only line based file (indexed and cached)
---
--- Note: use EdFile if you need to do non-append edits
+--- (read|append)-only line based file (indexed and cached)
+---
+--- Note: use EdFile if you need to do non-append edits
 local File = mty'File' {
   'f   [file]: open file', 'path [string]',
   'idx [U3File]: line index of f',
@@ -23,7 +23,7 @@ local split, construct = mty.split, mty.construct
 local index, newindex = mty.index, mty.newindex
 local WeakV = ds.WeakV
 
--- reindex starting from from line 'l=1' and file 'pos=0'
+--- reindex starting from from line 'l=1' and file 'pos=0'
 File._reindex = function(lf, idx, l, pos) --> endPos
   l, pos = l or 1, pos or 0; local last
   assert(pos > 0 or #idx == 0, 'idx must be empty (no truncating)')
@@ -84,7 +84,7 @@ File.flush = function(lf)
   lf.idx:flush(); return lf.f:flush()
 end
 
--- append to file
+--- append to file
 File.write = function(lf, ...)
   local f, idx, cache, pos = lf.f, lf.idx, lf.cache
   local t = largs(...)

@@ -35,32 +35,27 @@ M.formatCorErrors = function(corErrors)
   return table.concat(f)
 end
 
--- Switch lua to synchronous mode
-M.sync  =
-(function()
+--- Switch lua to synchronous mode
+M.sync  = function()
   if not LAP_ASYNC then return end
   for _, fn in ipairs(LAP_FNS_SYNC)  do fn() end
   assert(not LAP_ASYNC)
-end)
+end
 
--- Switch lua to asynchronous (yielding) mode
-M.async =
-(function()
+--- Switch lua to asynchronous (yielding) mode
+M.async = function()
   if LAP_ASYNC then return end
   for _, fn in ipairs(LAP_FNS_ASYNC) do fn() end
   assert(LAP_ASYNC)
-end)
+end
 
--- yield(fn)
---   sync: noop
---   async: coroutine.yield
-M._async.yield = yield
-M._sync.yield  = function() end
+--- yield(fn) [+
+--- * sync: noop
+--- * async: coroutine.yield
+--- ]
+M._async.yield, M._sync.yield = yield, function() end
 
--- schedule(fn) -> coroutine?
---   sync:  run the fn immediately and return nil
---   async: create and schedule returned coroutine
-M._async.schedule = function(fn, ...)
+local aySchedule = function(fn, ...)
   assert(select('#', ...) == 0, 'only function supported')
   local cor = create(fn)
   LAP_READY[cor] = 'scheduled'
@@ -68,24 +63,32 @@ M._async.schedule = function(fn, ...)
   log.trace('schedule %s [%q]', cor, fn)
   return cor
 end
-M._sync.schedule = function(fn, ...) fn(...) end
+local sySchedule = function(fn, ...) fn(...) end
+
+--- [$schedule(fn) -> coroutine?] [+
+--- * sync:  run the fn immediately and return nil
+--- * async: create and schedule returned coroutine
+--- ]
+M._async.schedule, M._sync.schedule = aySchedule, sySchedule
 
 ----------------------------------
 -- Ch: channel sender and receiver (Send/Recv)
 
--- Recv() -> recv: the receive side of channel.
---
--- Is considered closed when all senders are closed.
---
--- Notes:
--- * Use recv:sender() to create a sender. You can create
---   multiple senders.
--- * Use recv:recv() or simply recv() to receive a value.
--- * User sender:send(v) or simply sender(v) to send a value.
--- * recv:close() when done. Also closes all senders.
--- * #recv gets number of items buffered.
--- * recv:isDone() returns true when either recv is closed
---   OR all senders are closed and #recv == 0.
+--- [$Recv() -> recv] the receive side of channel.
+---
+--- Is considered closed when all senders are closed.
+---
+--- Notes: [+
+--- * Use [$recv:sender()] to create a sender. You can create
+---   multiple senders.
+--- * Use [$recv:recv()] or simply [$recv()] to receive a value
+---   (or block)
+--- * User [$sender:send(v)] or simply [$sender(v)] to send a value.
+--- * [$recv:close()] when done. Also closes all senders.
+--- * [$#recv] gets number of items buffered.
+--- * [$recv:isDone()] returns true when either recv is closed
+---   OR all senders are closed and [$#recv == 0]
+--- ]
 M.Recv = mty'Recv'{
   'deq    [Deq]',
   '_sends [WeakKV]',
@@ -94,7 +97,7 @@ M.Recv = mty'Recv'{
 getmetatable(M.Recv).__call = function(T)
   return mty.construct(T, {deq=ds.Deq(), _sends=ds.WeakKV{}})
 end
--- Close read side and all associated sends.
+--- Close read side and all associated sends.
 M.Recv.close =
 (function(r)
   local sends = r._sends; if not sends then return end
@@ -123,7 +126,7 @@ M.Recv.wait = function(r)
 end
 M.Recv.recv = function(r) r:wait() return r.deq() end
 M.Recv.__call = M.Recv.recv
--- drain the recv. This does NOT wait for new items.
+--- drain the recv. This does NOT wait for new items.
 M.Recv.drain = function(r) return r.deq:drain() end
 M.Recv.__fmt = function(r, fmt)
   push(fmt, ('Recv{%s len=%s hasSender=%s}'):format(
@@ -134,10 +137,9 @@ end
 local function recvReady(r)
   if r.cor then LAP_READY[r.cor] = 'ch.push' end
 end
--- Sender, created through ds.Recv.sender()
---
--- Is considered closed if the receiver is closed.  The receiver will
--- automatically close if it is garbage collected.
+--- Sender, created through [$recv:sender()]
+--- Is considered closed if the receiver is closed.  The receiver will
+--- automatically close if it is garbage collected.
 M.Send = mty'Send'{'_recv[Recv]'}
 getmetatable(M.Send).__call = function(T, recv)
   return mty.construct(T, { _recv=assert(recv, 'missing Recv') })
@@ -183,8 +185,7 @@ end
 ----------------------------------
 -- all / Any
 
--- all(fns): resume when all of the functions complete
-M._async.all = function(fns)
+local ayAll = function(fns)
   local rcor, count, len = coroutine.running(), 0, #fns
   for _, fn in ipairs(fns) do
     assert(type(fn) == 'function')
@@ -196,21 +197,23 @@ M._async.all = function(fns)
   end
   yield'forget' -- forget until resumed by last completed child
 end
-M._sync.all = function(fns) for _, f in ipairs(fns) do f() end end
+local syAll = function(fns) for _, f in ipairs(fns) do f() end end
+--- all(fns): resume when all of the functions complete
+M._async.all, M._sync.all = ayAll, syAll
 
 -- Any(fns): handle resuming and restarting multiple fns.
--- 
--- Call any:ignore() to stop the child threads from resuming
+--
+-- Call [$any:ignore()] to stop the child threads from resuming
 -- the current thread. This does NOT stop the child threads.
--- 
--- Example which handles multiple fns running simultaniously:
--- 
---   local any = lap.Any{fn1, fn2}:schedule()
---   while true do
---     local i = any:yield()
---     -- do something related to index i
---     any:restart(i) -- restart i to run again
---   end
+--
+-- Example which handles multiple fns running simultaniously: [{## lang=lua}
+-- local any = lap.Any{fn1, fn2}:schedule()
+-- while true do
+--   local i = any:yield()
+--   -- do something related to index i
+--   any:restart(i) -- restart i to run again
+-- end
+-- ]##
 M.Any = mty'Any'{
   'cor[thread]', 'fns[table]',
   'done[table]',
@@ -230,23 +233,21 @@ getmetatable(M.Any).__call = function(T, fns)
   return mty.construct(T, self)
 end
 M.Any.ignore = function(self) self.cor = nil end
--- schedule() -> self: ensure all fns are scheduled
-M.Any.schedule =
-(function(self)
+--- ensure all fns are scheduled
+M.Any.schedule = function(self) --> self
   for i in pairs(self.done) do self:restart(i) end
-end)
--- yield() -> fnIndex: yield until a fn index is done
-M.Any.yield =
-(function(self)
+end
+
+-- yield until a fn index is done
+M.Any.yield = function(self) --> fnIndex
   while not next(self.done) do yield'forget' end
   return next(self.done)
-end)
--- restart(i): restart fn at index
-M.Any.restart =
-(function(self, i)
+end
+-- restart fn at index
+M.Any.restart = function(self, i)
   LAP_READY[coroutine.create(self.fns[i])] = 'any-item'
   self.done[i] = nil
-end)
+end
 
 ----------------------------------
 -- Lap
@@ -272,24 +273,25 @@ local LAP_UPDATE = {
   end,
 }; M.LAP_UPDATE = LAP_UPDATE
 
--- A single lap of the executor loop
---
--- Example:
---   -- schedule your main fn, which may schedule other fns
---   lap.schedule(myMainFn)
---
---   -- create a Lap instance with the necessary configs
---   local Lap = lap.Lap{
---     sleepFn=civix.sleep, monoFn=civix.monoSecs, pollList=fd.PollList()
---   }
---
---   -- run repeatedly while there are coroutines to run
---   while next(LAP_READY) do
---     errors = Lap(); if errors then
---       -- handle errors
---     end
---     -- do other things in your application's executor loop
---   end
+--- A single lap of the executor loop
+---
+--- Example [{## lang=lua}
+---   -- schedule your main fn, which may schedule other fns
+---   lap.schedule(myMainFn)
+---
+---   -- create a Lap instance with the necessary configs
+---   local Lap = lap.Lap{
+---     sleepFn=civix.sleep, monoFn=civix.monoSecs, pollList=fd.PollList()
+---   }
+---
+---   -- run repeatedly while there are coroutines to run
+---   while next(LAP_READY) do
+---     errors = Lap(); if errors then
+---       -- handle errors
+---     end
+---     -- do other things in your application's executor loop
+---   end
+--- ]##
 M.Lap = mty'Lap' {
   'sleepFn [function]',
   'monoFn  [function]',

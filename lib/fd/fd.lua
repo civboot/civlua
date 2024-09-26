@@ -1,11 +1,11 @@
 local G = G or _G
--- filedescriptor: direct control of filedescriptors.
--- async operations support the LAP (see lib/lap) protocol.
---
--- Can override default `io` module for global async mode.
+--- filedescriptor: direct control of filedescriptors.
+--- async operations support the LAP (see lib/lap) protocol.
+---
+--- Can override default `io` module for global async mode.
 local M = mod and mod'fd' or {}
 
--- protocol globals (CIV and LAP protocols)
+--- protocol globals (CIV and LAP protocols)
 G.CWD = G.CWD or os.getenv'PWD' or os.getenv'CD' -- current working dir
 G.LAP_FNS_ASYNC = G.LAP_FNS_ASYNC or {}
 G.LAP_FNS_SYNC  = G.LAP_FNS_SYNC  or {}
@@ -124,8 +124,8 @@ end
 ----------------------------
 -- READ
 
--- FD's read may need to be called multiple times (O_NONBLOCK)
--- FDT's read CANNOT be called multiple times.
+--- FD's read may need to be called multiple times (O_NONBLOCK)
+--- FDT's read CANNOT be called multiple times.
 local function readLap(fd, c)
   if DONE_CODE[c]    then return end
   if YIELD_CODE[c]   then
@@ -142,7 +142,7 @@ S.FDT.__index._readTill = function(fd, till)
   while readLap(fd, fd:code()) do end
 end
 
--- Different read modes
+--- Different read modes
 local function iden(x) return x end
 local function noNL(s)
   return s and (s:sub(-1) == '\n') and s:sub(1, -2) or s
@@ -182,9 +182,9 @@ end
 
 ----------------------------
 -- FDT
--- Note that FDT is IDENTICAL to FD except it's possible
--- that code() will be a FD_RUNNING. This is already handled,
--- as that is included as a YIELD_CODE (FD can be non-blocking)
+--- Note that FDT is IDENTICAL to FD except it's possible
+--- that code() will be a FD_RUNNING. This is already handled,
+--- as that is included as a YIELD_CODE (FD can be non-blocking)
 S.FDT.__index.seek       = S.FD.__index.seek
 S.FDT.__index.read       = S.FD.__index.read
 S.FDT.__index.lines      = S.FD.__index.lines

@@ -1,9 +1,9 @@
 local mty = require'metaty'
--- A file that holds 3 byte (24 bit) integers. These are commonly
--- used for indexing lines.
---
--- This object supports get/set index operations including appending.
--- Every operation (except consecutive writes) requires a file seek.
+--- A file that holds 3 byte (24 bit) integers. These are commonly
+--- used for indexing lines.
+---
+--- This object supports get/set index operations including appending.
+--- Every operation (except consecutive writes) requires a file seek.
 local U3File = mty'lines.U3File' {
   'f     [file]', 'path  [string]',
   'len   [int]',  '_i [int]', -- len / current file index
@@ -16,7 +16,7 @@ local sfmt = string.format
 
 local index, newindex = mty.index, mty.newindex
 
--- seek to index. Invariant: i <= len+1
+--- seek to index. Invariant: [$i <= len+1]
 local function iseek(u3, i)
   if u3._i == i then return end
   local to = (i-1) * 3
@@ -25,8 +25,8 @@ local function iseek(u3, i)
   assert(pos % 3 == 0, 'pos incorrect')
 end
 
--- This creates a new index file at path (path=nil uses tmpfile()).
--- Note: Use load if you want to load an existing index.
+--- This creates a new index file at path (path=nil uses tmpfile()).
+--- Note: Use load if you want to load an existing index.
 U3File.create = function(T, path) --> U3File?, err
   local f, err; if path then f, err = io.open(path, 'w+')
   else                       f, err = io.tmpfile() end
@@ -34,7 +34,7 @@ U3File.create = function(T, path) --> U3File?, err
   return T{f=f, len=0, _i = 1, path=path}
 end
 
--- reload from path
+--- reload from path
 U3File.reload = function(u3, mode)
   local f, err = io.open(u3.path, mode or 'r+')
   if not f then return nil, err end
@@ -45,7 +45,7 @@ U3File.reload = function(u3, mode)
   return u3
 end
 
--- load an index file
+--- load an index file
 U3File.load = function(T, path, mode)
   return mty.construct(T, {path=path}):reload(mode)
 end
