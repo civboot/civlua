@@ -17,7 +17,7 @@ end
 -----------
 -- Encode
 
--- encode any number of backslashes
+--- encode any number of backslashes
 M.encodeBackslashes = function(str)
   local num = #str; if num == 1 then return '\\\\' end
   local e = rep('\\9', num // 9); num = num % 9
@@ -52,35 +52,35 @@ M.encodeRow = function(names, row, types, serdeMap)
   return concat(out, '\t')
 end
 
--- Encoder. Example:
--- local enc = tv.Encoder{}
--- f:write(enc:comment'some comment',    '\n')
--- f:write(enc:types{'int', 'string'},   '\n')
--- f:write(enc:names{'id',  'username'}, '\n')
--- for _, v in ipairs(myData) do
---   f:write(enc(v), '\n')
--- end
+--- Encoder [{## lang=lua}
+--- local enc = tv.Encoder{}
+--- f:write(enc:comment'some comment',    '\n')
+--- f:write(enc:types{'int', 'string'},   '\n')
+--- f:write(enc:names{'id',  'username'}, '\n')
+--- for _, v in ipairs(myData) do f:write(enc(v), '\n') end
+--- ]##
+---
 M.Encoder = mty'Encoder' {
   'serdeMap [SerdeMap]',
   '_types[table]', '_names[table]'
 }
 
--- encode a comment. Only valid in the header
+--- encode a comment. Only valid in the header
 M.Encoder.comment = function(enc, s)
   assert(not enc._names)
   return M.encodeComment(s)
 end
 
--- Set the types of the encoder and return the
--- string to write.
+--- Set the types of the encoder and return the
+--- string to write.
 M.Encoder.types = function(enc, types) --> string
   assert(not (enc._types or enc._names))
   local o = M.encodeTypes(types); enc._types = types
   return o
 end
 
--- Set the names of the encoder and return the
--- string to write.
+--- Set the names of the encoder and return the
+--- string to write.
 M.Encoder.names = function(enc, names) --> string
   assert(not enc._names)
   local o = M.encodeNames(names); enc._names = names
@@ -96,7 +96,7 @@ end
 local deLson = lson.decode
 
 do
--- Interface for serialization/deserialization of types.
+--- Interface for serialization/deserialization of types.
 M.Serde = mty'Serde'{
   'en  [function(v) -> string]: serializer', en=tostring,
   'de  [function(string) -> v]: deserializer',
@@ -118,9 +118,9 @@ M.json    = M.Serde { de = deLson, en=lson.json }
 M.lson    = M.Serde { de = deLson, en=lson.lson }
 end -- Serde
 
--- Overrideable map of type serializer/deserializer objects.
--- Keys should be the "type name", values must have the following
--- fields:
+--- Overrideable map of type serializer/deserializer objects.
+--- Keys should be the "type name", values must have the following
+--- fields:
 M.SerdeMap = mty'SerdeMap'{}
 getmetatable(M.SerdeMap).__index = nil
 M.SerdeMap.__newindex = nil
@@ -132,7 +132,7 @@ M.SerdeMap.epoch   = M.number
 M.SerdeMap.lson    = M.lson
 M.SerdeMap.json    = M.json
 
--- decode the matched pattern
+--- decode the matched pattern
 M.cellmatch = function(backs, esc)
   local nbacks = #backs
   if esc == '\\'     then return rep('\\', (nbacks + 1) // 2) end
@@ -142,7 +142,7 @@ M.cellmatch = function(backs, esc)
 end
 local cellmatch = M.cellmatch
 
--- decode a tv cell as a string
+--- decode a tv cell as a string
 M.decodeCell = function(cell, de)
   if cell == ''   then return nil end
   local d = (cell == '\\') and '' or cell:gsub('(\\+)(.)', cellmatch)
@@ -174,20 +174,20 @@ M.Decoder = mty'Decoder' {
   '_types [table]: column types (strings)',
   '_names [table]: column names (strings)',
 }
--- decode a row of types
+--- decode a row of types
 M.Decoder.types = function(dec, str)
   assert(not dec._types, 'types already loaded')
   dec._types = M.decodeHeader(':', str)
   return dec.types
 end
--- decode a row of names
+--- decode a row of names
 M.Decoder.names = function(dec, str)
   assert(not dec._names, 'names already loaded')
   dec._names = M.decodeHeader('|', str)
   return dec.names
 end
--- load from file
--- Example: dec:load(open'thing.tv')
+--- load from file
+--- Example: dec:load(open'thing.tv')
 M.Decoder.load = function(dec, file) --> Decoder
   while true do
     local line = assert(file:read'l', 'EOF reached before "|names"')
@@ -202,8 +202,8 @@ M.Decoder.__call = function(dec, line)
   return M.decodeRow(dec._names, line, dec._types, dec.serdeMap)
 end
 
--- store(file, t, names=orderedKeys(t[1]), types=nil)
--- simple store function
+--- [$store(file, t, names=orderedKeys(t[1]), types=nil)]
+--- simple store function
 M.store = function(file, t, names, types, serdeMap) --> encoder
   local enc = M.Encoder{serdeMap=serdeMap or M.SerdeMap}
   if types then file:write(enc:types(types), '\n') end
@@ -212,7 +212,7 @@ M.store = function(file, t, names, types, serdeMap) --> encoder
   return enc
 end
 
--- load all the data and return it as a table
+--- load all the data and return it as a table
 M.load = function(file, serdeMap) --> data, decoder
   local out, dec = {}, M.Decoder{serdeMap=serdeMap or M.SerdeMap}
   dec:load(file)

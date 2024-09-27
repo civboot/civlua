@@ -1,10 +1,10 @@
--- asciicolor: see README.md for details.
+-- asciicolor: encode text color and style with a single ascii character
 local M = mod and mod'asciicolor' or {}
 
 local mty = require'metaty'
 local sfmt = string.format
 
--- typosafe mapping of asciicode -> fullname
+--- typosafe mapping of asciicode -> fullname
 M.Color = mod and mod'Color' or {}
 for k, v in pairs({
   z = 'zero', [' '] = 'zero', [''] = 'zero', -- aka default.
@@ -24,7 +24,7 @@ if getmetatable(Color) then -- if mod did it's thing
   Color.__name = nil; getmetatable(Color).__name = 'Color'
 end
 
--- typosafe mapping of fullname -> asciichar
+--- typosafe mapping of fullname -> asciichar
 M.Ascii = mod and mod'Ascii' or {}
 for k, v in pairs(M.Color) do M.Ascii[v] = k end
 M.Ascii.zero = 'z' -- hardocde as there are 3 possibilities
@@ -36,8 +36,8 @@ M.bgColor = function(c) --> colorCode
   return M.BgColor[assert(M.AsciiColor[lower(c or 'z')], c)]
 end
 
--- makes ' ' and '' both convert to 'z'
--- as well as check that the ascii code is valid.
+--- makes [$' '] and [$''] both convert to [$'z']
+--- as well as check that the ascii code is valid.
 local CODES = {}; do
   for k in pairs(M.Color) do CODES[k] = k end
   local UC = {}; for k in pairs(M.Color) do

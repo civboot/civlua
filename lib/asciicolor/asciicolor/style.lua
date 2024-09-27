@@ -1,6 +1,6 @@
 local G = G or _G
 
--- style text from a user's config.
+--- style text from a user's config.
 local M = mod and mod'asciicolor.style' or {}
 
 local shim = require'shim'
@@ -67,10 +67,10 @@ M.loadStyle = function(mode, path)
   return style
 end
 
--- Create a styler
---
--- Note: pass f (file) to create the default AcWriter with the file.
--- Note: pass mode, stylepath to control loadStyle
+--- Create a styler
+---
+--- Note: pass f (file) to create the default AcWriter with the file.
+--- Note: pass mode, stylepath to control loadStyle
 M.Styler = mty'Styler' {
   'acwriter [AcWriter]',
   "style [table]: default=loadStyle()",
@@ -81,7 +81,7 @@ M.Styler.__tostring = function() return 'Styler{...}' end
 M.Styler.level = function(st, add) return st.acwriter.f:level(add) end
 M.Styler.flush = function(st) return st.acwriter:flush() end
 
--- Example: st:styled('path', 'path/to/foo.txt', '\n')
+--- Example: st:styled('path', 'path/to/foo.txt', '\n')
 M.Styler.styled = function(st, style, str, ...)
   local len, fb = #str, st.style[style] or ''
   return st.acwriter:acwrite(
@@ -89,7 +89,7 @@ M.Styler.styled = function(st, style, str, ...)
     str, ...)
 end
 
--- write as plain
+--- write as plain
 M.Styler.write = function(st, ...)
   return st.acwriter:acwrite(nil, nil, ...)
 end

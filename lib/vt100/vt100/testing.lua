@@ -1,4 +1,4 @@
--- helpers for testing/demoing vt100
+--- helpers for testing/demoing vt100
 local M = mod and mod'vt100.testing' or {}
 
 local T = require'civtest'
@@ -19,15 +19,15 @@ end
 M.Fake.draw  = ds.nosupport
 M.Fake.input = ds.nosupport
 
--- start rawmode using tmpfiles
+--- start rawmode using tmpfiles
 M.startTmp = function() --> out, err
   local err = io.tmpfile()
   vt.start(err)
   return err
 end
 
--- Run function in a LAP environment with terminal started
--- and std in/out set correctly.
+--- Run function in a LAP environment with terminal started
+--- and std in/out set correctly.
 function M.run(fn)
   local lap = require'lap'
   local cx = require'civix'

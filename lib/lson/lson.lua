@@ -16,27 +16,27 @@ local Json, Lson, De
 --------------------
 -- Main Public API
 
--- Encode lua value to JSON string
-M.json = function(v, pretty)
+--- Encode lua value to JSON string
+M.json = function(v, pretty) --> string
   local enc = pretty and Json:pretty{} or Json{}
   return concat(enc(v))
 end
 
--- Encode lua value to LSON string
-M.lson = function(v, pretty)
+--- Encode lua value to LSON string
+M.lson = function(v, pretty) --> string
   local enc = pretty and Lson:pretty{} or Lson{}
   return concat(enc(v))
 end
 
 -- Decode JSON/LSON string to lua value
-M.decode = function(s) return De(s)() end
+M.decode = function(s) return De(s)() end --> obj
 
 ------------------
 -- JSON Encoder
 
--- Json Encoder (via metaty.Fmt)
--- This works identically to metaty.Fmt except it overrides
--- how tables are formatted to use JSON instead of printing them.
+--- Json Encoder (via fmt.Fmt)
+--- This works identically to metaty.Fmt except it overrides
+--- how tables are formatted to use JSON instead of printing them.
 M.Json = mty.extend(fmt.Fmt, 'Json', {
   'null [any]: value to use for null', null=ds.none,
   'listStart [string]', listStart = '[',
@@ -51,8 +51,8 @@ M.Json.pretty = function(E, t)
   return fmt.Fmt.pretty(E, t)
 end
 
--- note: %q formats ALL newlines with a '\' in front of them
--- it also uses \9 instead of \t for some strange reason, fix that
+---- note: [$%q] formats ALL newlines with a [$'\'] in front of them
+---- it also uses [$\9] instead of [$\t] for some strange reason, fix that
 local CTRL_SUB = {
   ['\\\n'] = '\\n', ['\\9'] = '\\t',
   ['\n'] = true, -- "invalid replacement value" but unreachable
@@ -89,9 +89,9 @@ local ENC_BYTES = {
   ['\n'] = '\\n', ['|'] = [[\|]], ['\\'] = '\\',
   n='n',
 }
--- Implementation: basically we need convert newline -> \n
--- and | -> \|. The decoder treats \x (where x is not n or |)
--- as the literal \x, so we also replace \n -> \\n and \| -> \\\|
+--- Implementation: basically we need convert newline -> \n
+--- and | -> \|. The decoder treats \x (where x is not n or |)
+--- as the literal \x, so we also replace \n -> \\n and \| -> \\\|
 local function mbytes(backs, esc)
   return rep('\\', #backs * 2)..ENC_BYTES[esc]
 end
@@ -101,7 +101,7 @@ M.bytes = function(f, s)
   push(f, '|'); push(f, (s:gsub('(\\*)([\\\n|n])', mbytes))); push(f, '|')
 end
 
--- Similar to JSOn but no commas and strings are encoded as |bytes|
+--- Similar to JSON but no commas and strings are encoded as [$|bytes|]
 M.Lson = mty.extend(M.Json, 'Lson', {
   indexEnd = ' ', keyEnd=' ',
 })
@@ -196,7 +196,7 @@ M.deObject = function(de)
   return obj
 end
 
--- starting characters indicating what to parse
+--- starting characters indicating what to parse
 local DE_FNS = {
   n=M.deNull, t=M.deTrue, f=M.deFalse, ['-'] = M.deNumber,
   ['"']=M.deString, ['|']=M.deBytes,
@@ -205,8 +205,8 @@ local DE_FNS = {
   DE_FNS[string.char(c)] = M.deNumber
 end
 
--- De(string or lines) -> value-iter
--- for val in De'["my", "lson"]' do ... end
+--- [$De(string or lines) -> value-iter]
+--- [$for val in De'["my", "lson"]' do ... end]
 M.De = mty'De' {
   'dat [lines]: lines-like data to parse',
   'null [any]: value to use for null', null=ds.none,

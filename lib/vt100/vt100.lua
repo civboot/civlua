@@ -1,10 +1,10 @@
--- Civboot vt100 Terminal library that supports LAP protocol.
---
--- License CC0 / UNLICENSE
--- Originally written 2022 Phil Leblanc, modified 2023 Rett Berg (Civboot.org)
--- Authorized for relicense in: http://github.com/philanc/plterm/issues/4
-
--- Module for interacting with the vt100 via keys and AsciiColors.
+--- Civboot vt100 Terminal library that supports LAP protocol.
+--- Module for interacting with the vt100 via keys and AsciiColors.
+---
+--- License CC0 / UNLICENSE [##
+--- Originally written 2022 Phil Leblanc, modified 2023 Rett Berg (Civboot.org)
+--- Authorized for relicense in: http://github.com/philanc/plterm/issues/4
+--- ]
 local M = mod and mod'vt100' or {}
 
 local mty = require'metaty'
@@ -27,19 +27,20 @@ local acode = acolor.assertcode
 
 local ty = mty.ty
 
--- Direct terminal control functions
+--- Direct terminal control functions
 local ctrl = mod and mod'vt100.ctrl' or {}
 M.ctrl = ctrl
 
 local DEFAULT = {[''] = true, [' '] = true, z=true}
 local RESET, BOLD, UL, INV = 0, 1, 4, 7
 
--- VT100 Terminal Emulator
---   Write the text to display
---   Write the foreground/background colors to fg/bg
---   Then call :draw() to draw to terminal.
---
--- Requires vt100.start() have been called to initiate raw mode.
+--- VT100 Terminal Emulator [+
+--- * Write the text to display
+--- * Write the foreground/background colors to fg/bg
+--- * Then call :draw() to draw to terminal.
+--- ]
+---
+--- Requires [$vt100.start()] have been called to initiate raw mode.
 M.Term = mty'Term'{
   'l [int]: cursor line', 'c [int]: cursor column', l=1, c=1,
   'h [int]: height', 'w [int]: width', h=40, w=80,
@@ -114,8 +115,8 @@ M.ctrlChar, M.key = ctrlChar, nice
 
 --------------------------------
 -- Validation and Interaction
--- These help with validating keys are valid and converting
--- special keys (return, space, etc) to their literal form.
+--- These help with validating keys are valid and converting
+--- special keys (return, space, etc) to their literal form.
 M.LITERALS = {
   ['tab']       = '\t',
   ['return']    = '\n',
@@ -125,12 +126,11 @@ M.LITERALS = {
   ['caret']     = '^',
 }
 
--- Convert any key to it's literal form
--- [#
---   literal'a'       -> 'a'
---   literal'return'  -> '\n'
---   literal'invalid' -> nil
--- ]#
+--- Convert any key to it's literal form [#
+---   literal'a'       -> 'a'
+---   literal'return'  -> '\n'
+---   literal'invalid' -> nil
+--- ]#
 M.literal = function(key) --> literalstring?
   return (1 == ulen(key)) and key or M.LITERALS[key]
 end
@@ -146,7 +146,7 @@ for _, kc in pairs(M.INP_SEQ)     do VK[kc] = true end
 for _, kc in pairs(M.INP_SEQO)    do VK[kc] = true end
 M.VALID_KEY = VK
 
--- Check that a key is valid. Return errstring if not.
+--- Check that a key is valid. Return errstring if not.
 M.keyError = function(key) --> errstring?
   if #key == 0 then return 'empty key' end
   local v = VK[key]; if v then
@@ -187,7 +187,7 @@ for name, fmt in pairs{
 } do ctrl[name] = termFn(name, fmt) end
 local rawcolor, rawcolorFB = ctrl.color, ctrl.colorFB
 
--- causes terminal to send size as (escaped) cursor position
+--- causes terminal to send size as (escaped) cursor position
 ctrl.size = function(f)
   local C = ctrl
   C.save(f); C.down(f, 999); C.right(f, 999)
@@ -197,7 +197,7 @@ end
 ---------------------------------
 -- asciicolor constants and functions
 
--- Foreground Terminal Codes
+--- Foreground Terminal Codes
 M.FgColor = {
   zero    = 39,
 
@@ -211,9 +211,9 @@ M.FgColor = {
   navy    = 34,  sky = 94,
   magenta = 35,  fuschia = 95,
 }
--- Background Terminal Codes
+--- Background Terminal Codes
 M.BgColor = {
-	zero    = 49,
+  zero    = 49,
   -- (dark)       (light)
   black    = 40,  white = 107,
   darkgrey = 100, lightgrey = 47,
@@ -224,13 +224,13 @@ M.BgColor = {
   navy     = 44,  sky = 104,
   magenta  = 45,  fuschia = 105,
 }
--- Style Terminal Codes
+--- Style Terminal Codes
 M.Style = {
   reset = RESET, bold = BOLD, underline = UL,
   invert = INV, -- invert fg/bg
 }
 
--- asciicolor code -> vt100 code
+--- asciicolor code -> vt100 code
 M.Fg, M.Bg = mod and mod'Fg' or {}, mod and mod'Bg' or {}
 for code, name in pairs(acolor.Color) do
   M.Fg[code]        = M.FgColor[name]
@@ -240,7 +240,7 @@ for code, name in pairs(acolor.Color) do
 end
 local Fg, Bg = M.Fg, M.Bg
 
--- Set the color, taking into account the previous color
+--- Set the color, taking into account the previous color
 M.colorFB = function(f, fg, bg, fg0, bg0)
   local bold,     bold0,     ul,       ul0 =
         isup(fg), isup(fg0), isup(bg), isup(bg0)
@@ -253,13 +253,13 @@ M.colorFB = function(f, fg, bg, fg0, bg0)
   return rawcolorFB(f, assert(Fg[fg]), assert(Bg[bg]))
 end
 
--- write to the terminal-like file f using colors fgstr and bgstr
--- accounting for previous color codes fg, bg
---
--- Additional strings (...) are written using plain color.
---
--- Return: fg, bg, write(str, ...)
---   note: fg and bg are the updated color codes
+--- write to the terminal-like file f using colors fgstr and bgstr
+--- accounting for previous color codes fg, bg
+---
+--- Additional strings (...) are written using plain color.
+---
+--- Return: [$fg, bg, write(str, ...)]
+--- [" Note: fg and bg are the updated color codes]
 M.acwrite = function(f, colorFB, fg, bg, fgstr, bgstr, str, ...)
   str, fgstr, bgstr = str or '', fgstr or '', bgstr or ''
   local w1, w2, si, slen, chr, fc, bc = true, nil, 1, #str
@@ -291,8 +291,8 @@ local function getb()
   return b
 end
 
--- send a request for size.
--- Note: the input() coroutine will receive and call _ready()
+--- send a request for size.
+--- Note: the input() coroutine will receive and call _ready()
 M.Term._requestSize = function(tm, f)
   tm._waiting = coroutine.running(); ctrl.size(f or io.stdout)
 end
@@ -301,15 +301,15 @@ M.Term._ready = function(tm, msg)
   tm._waiting = nil
 end
 
--- request size and clear children
--- This can only be run with an active (LAP) input coroutine
+--- request size and clear children
+--- This can only be run with an active (LAP) input coroutine
 M.Term.resize = function(tm)
   tm:_requestSize()
   while tm._waiting do coroutine.yield'forget' end -- wait for size
   tm:_updateChildren(); tm:clear() -- note: clear updates row length
 end
 
--- draw the text and color(fg/bg) grids to the screen
+--- draw the text and color(fg/bg) grids to the screen
 M.Term.draw = function(tm, fd)
   fd = fd or io.stdout
   local golc, nextline   = ctrl.golc, ctrl.nextline
@@ -327,8 +327,8 @@ M.Term.draw = function(tm, fd)
   fd:flush()
 end
 
--- function to run in a (LAP) coroutine.
--- send() is called with each key recieved. Typically this is a lap.Send.
+--- function to run in a (LAP) coroutine.
+--- [$send()] is called with each key recieved. Typically this is a lap.Send.
 M.Term.input = function(tm, send) --> infinite loop (run in coroutine)
   local b, s, dat, len = 0, '', {}
   ::continue::
