@@ -41,7 +41,7 @@ M.STYLES = {
   b = 'bold', u='ul',
 }
 
-M.HEADER = {h1=40, h2=20, h3=2, h4=1}
+M.HEADER = {h1=40, h2=20, h3=5, h4=1}
 
 local function nodeKind(n)
   if type(n) == 'string' or mty.ty(n) == Token then

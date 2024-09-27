@@ -21,8 +21,9 @@ local pth = require'ds.path'
 local Iter = require'ds.Iter'
 local lines = require'lines'
 local style = require'asciicolor.style'
+local cxt = require'cxt'
 
-local escape = require'cxt'.escape
+local escape = cxt.escape
 local sfmt, srep = string.format, string.rep
 local push = table.insert
 
@@ -115,14 +116,14 @@ local setFields = function(d, t)
     local ty = d.fields[field]
     ty = type(ty) == 'string' and M.cleanFieldTy(ty) or nil
     d.fields[field] = M.DocItem {
-      name=field, ty=ty, default=rawget(d.obj, field),
-      doc = fdocs[field], docTy = 'Field',
+      name=field, ty=ty, default=rawget(d.obj, field), docTy = 'Field',
+      doc = fdocs[field] and cxt.checkParse(fdocs[field], field),
     }
   end
 end
 
 M._Construct.__call = function(c, obj, key, expand, lvl) --> Doc | DocItem
-  assert(obj)
+  assert(obj ~= nil)
   expand = expand or 0
   local docTy = assert(M.type(obj))
   if docTy == 'Package' then return c:pkg(obj, expand) end
@@ -135,8 +136,11 @@ M._Construct.__call = function(c, obj, key, expand, lvl) --> Doc | DocItem
   if c.done[obj] then return M.DocItem(d) end
   c.done[obj] = true
   local comments, code = M.findcode(path)
-  if comments then M.stripComments(comments) end
-  if comments and #comments == 0 then comments = nil end
+  if comments then
+    M.stripComments(comments)
+    if #comments == 0 then comments = nil
+    else cxt.checkParse(comments, pth.nice(path)) end
+  end
   if code     and #code == 0     then code = nil end
   if expand <= 0 or (not comments and isConcrete(obj))
     and (docTy == 'Table' or docTy == 'Value') then
@@ -400,7 +404,8 @@ end
 --- If no path is given shows all available packages.
 M.Args = mty'Args' {
   'help [bool]: get help',
-  'pkg [bool]: if true uses PKG.lua (and all sub-modules)',
+  'pkg  [deep|bool]: if true uses PKG.lua (and all sub-modules).'
+    ..' If "deep" also uses PKG.dirs',
   'full [bool]: if true displays the full API of all pkgs/mods',
   'local [bool]: if true only unpacks local pkgs/mods',
 }
@@ -409,21 +414,20 @@ M.main = function(args)
   args = M.Args(shim.parseStr(args))
   local to = io.fmt
   if args.help then return M.styleHelp(to, M.Args) end
-  local obj, expand = args[1], args.full and 10 or 1
+  local obj, expand = args[1], args.full and 20 or 1
   assert(obj, 'arg[1] must be the item to find')
-  local c, d = M._Construct{}
-  local name = (type(obj) == 'string') and obj or nil
+  local f, c = fmt.Fmt{}, M._Construct{}
   if args.pkg then
-    obj = pkglib.getpkg(obj) or error('could not find pkg: '..obj)
-    d = c:pkg(obj, expand)
+    obj = pkglib.isPkg(obj) and obj
+       or pkglib.getpkg(obj) or error('could not find pkg: '..obj)
+    M.fmt(f, c:pkg(obj, expand))
   else
     if type(obj) == 'string' then
       obj = M.find(obj) or error('could not find obj: '..obj)
     end
-    d = c(obj, name, expand)
+    local name = (type(obj) == 'string') and obj or nil
+    M.fmt(f, c(obj, name, expand))
   end
-  local f = fmt.Fmt{}
-  M.fmt(f, d)
   require'cxt.term'{table.concat(f), out=to}
   to:write'\n'
 end

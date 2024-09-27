@@ -965,7 +965,7 @@ end
 --- Main methods: [##
 ---   pushLeft()  pushRight()
 ---   popLeft()   popRight()
---- ]
+--- ]##
 --- Calling it is the same as popLeft (use as iterator)
 M.Deq = mty'Deq'{
   'right [number]',

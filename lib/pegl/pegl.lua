@@ -18,7 +18,7 @@ local function zero() return 0 end
 
 --- Tokens use a packed span to preserve space.
 --- Maximums: line start|len = 2^24|2^16. cols=255
-M.SPAN_PACK = '>I3I2BB'
+M.SPAN_PACK = '>I3I2I2I2'
 M.encodeSpan = function(l1, c1, l2, c2)
   return string.pack(M.SPAN_PACK, l1, c1, l2-l1, c2)
 end

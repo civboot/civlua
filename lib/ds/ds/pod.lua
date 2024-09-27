@@ -15,8 +15,7 @@
 ---   pod(M.MyType)
 ---   -- Or simply:
 ---   M.MyType.__toPod, M.MyType.__fromPod = pod.__toPod, pod.__fromPod
---- ]
----
+--- ]##
 --- Alternatively, you can implement these methods yourself. See the
 --- requirements in the function documentation.
 local M = mod and mod'ds.pod' or {}

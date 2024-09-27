@@ -5,7 +5,8 @@ local M = mod and mod'cxt' or {}
 local pkg = require'pkglib'
 local mty = require'metaty'
 local fmt = require'fmt'
-local ds  = require'ds'; local lines = require'lines'
+local ds  = require'ds'
+local lines = require'lines'
 local civtest = require'civtest'
 local add, sfmt = table.insert, string.format
 
@@ -367,6 +368,14 @@ M.parse = function(dat, dbg)
   extractNamed(root, named)
   resolveFetches(p, root, named)
   return root, p
+end
+
+M.checkParse = function(dat, context) --> dat
+  fmt.print('!! checkParse', dat)
+  local ok, err = pcall(M.parse, dat); if ok then return dat end
+  if type(dat) == 'table' then dat = table.concat(dat, '\n') end
+  error(sfmt('Failed to parse cxt %s:\n%s\n\nError: %s',
+        context, dat, err))
 end
 
 ---------------------------
