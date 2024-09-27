@@ -170,7 +170,7 @@ M._Construct.__call = function(c, obj, key, expand, lvl) --> Doc | DocItem
   end
 
   local function finish(attr, lvl)
-    local t = d[attr]; ds.pushSortedKeys(t)
+    local t = d[attr]; ds.pushSortedKeys(t, fmt.cmpDuck)
     if #t == 0 then d[attr] = nil; return end
     for _, k in ipairs(t) do
       t[k] = c(t[k], k, expand - 1, lvl)
@@ -200,7 +200,6 @@ M._Construct.pkg = function(c, pkg, expand) --> Doc
     homepage = pkg.homepage,
   }
   if pkg.doc then
-    print('!! pkg.doc', pkg.PKG_DIR, pkg.doc)
     d.comments = lines.load(pth.concat{pkg.dir, pkg.doc})
   end
   if pkg.main then
@@ -335,10 +334,10 @@ M.fmtAttr = function(f, name, attr)
   end
 end
 
-local HEADERS = {Package=1, Module=2, Record=3, Table=3, Command=2}
+local HEADERS = {Package=1, Module=2, Record=3, Table=3, Command=2, Value=4}
 M.docHeader = function(docTy, lvl)
   if docTy == 'Function' then return 3 + (lvl or 0) end
-  return assert(HEADERS[docTy])
+  return assert(HEADERS[docTy], docTy)
 end
 
 M.fmtMeta = function(f, m)
@@ -404,23 +403,35 @@ end
 --- If no path is given shows all available packages.
 M.Args = mty'Args' {
   'help [bool]: get help',
+  'to   [path]: the output. If ends in [$.html] then auto-converts to html',
   'pkg  [deep|bool]: if true uses PKG.lua (and all sub-modules).'
-    ..' If "deep" also uses PKG.dirs',
-  'full [bool]: if true displays the full API of all pkgs/mods',
+    ..' If "deep" also uses PKG.pkgs',
+  'expand [int|bool]: expand to depth (expand=true means expand=10)', expand=1,
   'local [bool]: if true only unpacks local pkgs/mods',
 }
 
+local function fmtPkg(f, construct, pkg, expand, deep)
+  pkg = pkglib.isPkg(pkg) and pkg
+     or pkglib.getpkg(pkg) or error('could not find pkg: '..pkg)
+  M.fmt(f, construct:pkg(pkg, expand))
+  if deep and pkg.pkgs then
+    for _, dir in ipairs(pkg.pkgs) do
+      local subp = pkglib.loadpkg(dir)
+      fmtPkg(f, construct, subp, expand, deep)
+    end
+  end
+  return pkg
+end
+
 M.main = function(args)
   args = M.Args(shim.parseStr(args))
+  if args.help then return M.styleHelp(io.fmt, M.Args) end
   local to = io.fmt
-  if args.help then return M.styleHelp(to, M.Args) end
-  local obj, expand = args[1], args.full and 20 or 1
+  if args.to then to = fmt.Fmt{to=io.tmpfile()} end
+  local obj, expand = args[1], args.expand == true and 10 or args.expand
   assert(obj, 'arg[1] must be the item to find')
   local f, c = fmt.Fmt{}, M._Construct{}
-  if args.pkg then
-    obj = pkglib.isPkg(obj) and obj
-       or pkglib.getpkg(obj) or error('could not find pkg: '..obj)
-    M.fmt(f, c:pkg(obj, expand))
+  if args.pkg then fmtPkg(f, c, obj, expand, args.pkg == 'deep')
   else
     if type(obj) == 'string' then
       obj = M.find(obj) or error('could not find obj: '..obj)
@@ -428,8 +439,18 @@ M.main = function(args)
     local name = (type(obj) == 'string') and obj or nil
     M.fmt(f, c(obj, name, expand))
   end
-  require'cxt.term'{table.concat(f), out=to}
-  to:write'\n'
+  if args.to then
+    to = to.to; to:seek'set'
+    if args.to:match'%.html$' then require'cxt.html'{to, args.to}
+    else
+      local f = io.open(ags.to, 'w')
+      for l in to:lines'L' do f:write(l) end
+      to:close(); f:flush(); f:close()
+    end
+  else
+    require'cxt.term'{table.concat(f), out=to}
+    to:write'\n'
+  end
 end
 getmetatable(M).__call = function(_, args) return M.main(args) end
 

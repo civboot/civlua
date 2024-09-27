@@ -83,6 +83,18 @@ M.load = function(name, path); assert(name and path)
   return env
 end
 
+--- load the PKG from dir, return it and it's path
+M.loadpkg = function(dir, name) --> (PKG, pkgpath)
+  local path = pjoin(dir, 'PKG.lua')
+  if not pexists(path) then return nil, 'pkg DNE' end
+  local pkg = M.load(name or 'PKG', path)
+  if pkg.name:find'%.' then
+    error("pkg name cannot contain '.': "..pkg.name)
+  end
+  pkg.PKG_DIR = path; pkg.dir = path
+  return pkg, path
+end
+
 --- load a native library (i.e. so, dll) and return loaded module
 M.loadlib = function(name, path) --> mod
   local mod, err = package.loadlib(path, 'luaopen_'..name:gsub('%.', '_'))
@@ -93,10 +105,7 @@ end
 -------------------
 -- Finding
 local function _discover(pkgdir)
-  local pkgpath = pjoin(pkgdir, 'PKG.lua')
-  if not pexists(pkgpath) then return end
-  local pkg = M.load('PKG', pkgpath)
-  if pkg.name:find'%.' then error("pkg name cannot contain '.': "..pkg.name) end
+  local pkg, pkgpath = M.loadpkg(pkgdir)
   M.PKGS[pkg.name] = pkgdir
   if not pkg.pkgs then return end
   for _, dir in ipairs(pkg.pkgs) do
@@ -125,14 +134,14 @@ M.modules = function(pkgsrcs) --> table[name -> path]
   return mods
 end
 
+
 --- get pkg's PKG.lua values
 M.getpkg = function(pkgname) --> PKG, pkgdir
   if not M.PKGS then
     M.discover(assert(os.getenv'LUA_PKGS' or '', 'must export LUA_PKGS'))
   end
   local pkgdir = M.PKGS[pkgname]; if not pkgdir then return end
-  local pkg = M.load(pkgname, pjoin(pkgdir, 'PKG.lua'))
-  pkg.PKG_DIR = pkgdir; pkg.dir = pkgdir
+  local pkg = M.loadpkg(pkgdir, pkgname)
   return pkg, pkgdir
 end
 
@@ -186,8 +195,9 @@ local CONCRETE_TYPE = {
   ['nil']=true, bool=true, number=true, string=true,
 }
 local srcloc = function(level)
-  local tb  = debug.traceback(nil, 2 + (level or 0))
-  return assert(tb:match'.*traceback:%s+([^\n]*:%d+)')
+  local info = debug.getinfo(2 + (level or 0), 'Sl')
+  local loc = info.source; if loc:sub(1,1) ~= '@' then return end
+  return loc:sub(2)..':'..info.currentline
 end
 
 -- mod(name) -> Mod{}: create a typosafe mod

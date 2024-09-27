@@ -371,7 +371,6 @@ M.parse = function(dat, dbg)
 end
 
 M.checkParse = function(dat, context) --> dat
-  fmt.print('!! checkParse', dat)
   local ok, err = pcall(M.parse, dat); if ok then return dat end
   if type(dat) == 'table' then dat = table.concat(dat, '\n') end
   error(sfmt('Failed to parse cxt %s:\n%s\n\nError: %s',

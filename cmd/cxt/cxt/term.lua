@@ -107,8 +107,7 @@ M.serialize = function(w, node)
   local header = M.HEADER[kind]
   local prevSty = w.style
   if header then
-    w.style = 'meta'
-    push(w, string.rep('#', header))
+    w.style = 'meta'; push(w, string.rep('#', header))
     if header > 4 then push(w, '\n# ') else push(w, ' ') end
   end
 

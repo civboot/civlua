@@ -94,8 +94,10 @@ M.fninfo = function(fn)
     name = info.name
   end
   local loc = PKG_LOC[fn]; if not loc then
-    info = info or debug.getinfo(fn)
-    loc = string.format('%s:%s', info.short_src, info.linedefined)
+    info = info or debug.getinfo(fn, 'Sl'); loc = info.source
+    if loc:sub(1,1) == '@' then
+      loc = loc:sub(2)..':'..info.linedefined
+    else loc = nil end
   end
   return name or 'function', loc
 end

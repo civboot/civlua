@@ -40,6 +40,15 @@ File._reindex = function(lf, idx, l, pos) --> endPos
   return pos
 end
 
+File.from = function(T, f, path, idx)
+  if not idx or type(idx) == 'string' then
+    local err; idx, err = U3File:create(idx)
+    if not idx then return nil, err end
+  else assert(#idx == 0, 'idx must be empty') end
+  assert(f:seek'end')
+  return construct(T, {f=f, path=path, idx=idx, cache=WeakV{}})
+end
+
 --- Create a new File at path (default idx=lines.U3File()).
 ---
 --- if path is a file then uses it.
@@ -49,12 +58,7 @@ File.create = function(T, path, idx) --> File
   elseif not path then           f, err = io.tmpfile()
   else                           f, path = path, nil end
   if not f then return nil, err end
-  if not idx or type(idx) == 'string' then
-    idx, err = U3File:create(idx)
-    if not idx then return nil, err end
-  else assert(#idx == 0, 'idx must be empty') end
-  assert(f:seek'end')
-  return construct(T, {f=f, path=path, idx=idx, cache=WeakV{}})
+  return T.from(T, f, path, idx)
 end
 
 File.reload = function(lf, idx, mode)
@@ -73,6 +77,9 @@ File.reload = function(lf, idx, mode)
 end
 
 File.load = function(T, path, idx, mode)
+  if type(path) ~= 'string' then
+    return T.from(T, path, nil, idx)
+  end
   return construct(T, {path=path}):reload(idx, mode)
 end
 
@@ -80,9 +87,7 @@ File.close = function(lf)
   if lf.idx then lf.idx:close()             end
   if lf.f   then lf.f:close(); lf.f = false end
 end
-File.flush = function(lf)
-  lf.idx:flush(); return lf.f:flush()
-end
+File.flush = function(lf) lf.idx:flush(); return lf.f:flush() end
 
 --- append to file
 File.write = function(lf, ...)

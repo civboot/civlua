@@ -1,5 +1,5 @@
 --- Serialize cxt nodes as html
-local M = mod and mod'cxt.html' or {}
+local M = mod and mod'cxt.html' or setmetatable({}, {})
 MAIN = MAIN or M
 
 local mty  = require'metaty'
@@ -205,6 +205,7 @@ M.assertHtml = function(cxtDat, expectedHtml, dbg)
 end
 
 M.main = function(args)
+  args = shim.parseStr(args)
   if #args < 2 then
     print'Usage: cxt path/to/file.cxt path/to/file.html'
     return 1
@@ -217,6 +218,6 @@ M.main = function(args)
   return 0
 end
 
+getmetatable(M).__call = function(_, args) return M.main(args) end
 if M == MAIN then os.exit(M.main(arg)) end
-
 return M

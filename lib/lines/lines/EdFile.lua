@@ -48,7 +48,7 @@ EdFile.__len = function(ef)
   local l = ef.lens; return l[#l]
 end
 
---- get the index into dats where ef[i] is located
+--- get the index into dats where [$ef[i]] is located
 EdFile._datindex = function(ef, i) --> di
   if i < 1 then return end
   local lens = ef.lens; local len = lens[#lens]

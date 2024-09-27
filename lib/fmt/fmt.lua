@@ -12,6 +12,15 @@ local mathtype = math.type
 
 local DEPTH_ERROR = '{!max depth reached!}'
 
+--- for comparing two (possibly) different types
+--- [$nil < bool < number < string < table]
+M.cmpDuck = function(a, b)
+  local aTy, bTy = type(a), type(b)
+  if aTy ~= bTy then return aTy < bTy end
+  return a < b
+end
+local cmpDuck = M.cmpDuck
+
 --- keywords https://www.lua.org/manual/5.4/manual.html
 M.KEYWORD = {}; for kw in string.gmatch([[
 and       break     do        else      elseif    end
@@ -33,7 +42,7 @@ M.sortKeys = function(t)
     if not (mathtype(k) == 'integer' and (1 <= k) and (k <= len)) then
       add(keys, k)
     end
-  end; sort(keys)
+  end; sort(keys, cmpDuck)
   return keys
 end
 

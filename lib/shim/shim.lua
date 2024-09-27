@@ -26,7 +26,7 @@ local function addKV(t, k, v)
 end
 
 --- parses the string by splitting via whitespace.
---- Asserts the string contains no special chars: '"[]
+--- Asserts the string contains no special chars: [$'"[]]
 --- This is for convinience, use a table if it's not enough.
 ---
 --- Note: if the input is already a table it just returns it.

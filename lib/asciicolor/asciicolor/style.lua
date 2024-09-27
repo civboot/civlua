@@ -1,7 +1,7 @@
 local G = G or _G
 
 --- style text from a user's config.
-local M = mod and mod'asciicolor.style' or {}
+local M = G.mod and G.mod'asciicolor.style' or {}
 
 local shim = require'shim'
 local mty = require'metaty'

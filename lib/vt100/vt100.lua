@@ -1,10 +1,10 @@
 --- Civboot vt100 Terminal library that supports LAP protocol.
 --- Module for interacting with the vt100 via keys and AsciiColors.
----
---- License CC0 / UNLICENSE [##
+--- [##
+--- License CC0 / UNLICENSE
 --- Originally written 2022 Phil Leblanc, modified 2023 Rett Berg (Civboot.org)
 --- Authorized for relicense in: http://github.com/philanc/plterm/issues/4
---- ]
+--- ]##
 local M = mod and mod'vt100' or {}
 
 local mty = require'metaty'

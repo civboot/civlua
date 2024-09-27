@@ -21,6 +21,8 @@ M.PlainStyler = mty'PlainStyler' {}
 -- DS psudo-metaevents
 -- these use new "metaevent" (similar to __len) that tables can override
 
+
+
 -- if t is a table returns t.__name or '?'
 M.name = function(t)
   if not type(t) == 'table' then return end
@@ -91,14 +93,15 @@ M.newTable  = function() return {}    end
 M.eq        = function(a, b) return a == b end
 
 M.srcloc = function(level) --> "/path/to/dir/file.lua:10"
-  local tb  = traceback(nil, 2 + (level or 0))
-  return assert(tb:match'.*traceback:%s+([^\n]+:%d+)')
+  local info = debug.getinfo(2 + (level or 0), 'Sl')
+  local loc = info.source; if loc:sub(1,1) ~= '@' then return end
+  return loc:sub(2)..':'..info.currentline
 end
 M.shortloc = function(level) --> "dir/file.lua:10"
-  local tb  = traceback(nil, 2 + (level or 0))
-  return assert(tb:match'.*traceback:%s+[^\n]-([^\n/]*/[^/\n]+:%d+)')
+  local info = debug.getinfo(2 + (level or 0), 'Sl')
+  local loc = info.source; if loc:sub(1,1) ~= '@' then return end
+  return loc:match'^@.-([^/]*/[^/]*)$'..':'..info.currentline
 end
-local shortloc = M.shortloc
 M.srcdir = function(level) --> "/path/to/dir/"
   return M.srcloc(1 + (level or 0)):match'^(.*/)[^/]+$'
 end
@@ -661,6 +664,7 @@ M.sentinel = function(name, mt)
   mt = M.update({
     __name=name, __tostring=function() return name end,
     __newindex=_si, __len=_si, __pairs=_si,
+    __pairs = function() return M.noop end,
   }, mt or {})
   mt.__index = mt
   setmetatable(mt, {__name='Ty<'..name..'>', __index=mty.indexError})
