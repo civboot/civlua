@@ -40,31 +40,28 @@ ds.update(M, {
 -------------------------------------
 -- Utility
 
--- quote the str if it's possible
+--- quote the str if it's possible
 M.quote = function(str)
   if string.find(str, "'") then return nil end
   return "'" .. str .. "'"
 end
 
--- "global" shell settings
+--- "global" shell settings
 M.SH_SET = { debug=false, host=false }
 
 -------------------------------------
 -- Time Functions
--- Sleep for the specified duration.
---   sleep(duration)
---
--- time can be a Duration or float (seconds).
--- A negative duration results in a noop.
-M.sleep = function(d)
+
+--- Sleep for the specified duration
+M.sleep = function(d) --> nil
   if type(d) == 'number' then d = ds.Duration:fromSeconds(d) end
   if d.s >= 0 then lib.nanosleep(d.s, d.ns) end
 end
 
--- Return the Epoch/Mono time
--- Time according to realtime clock
+--- Return the Epoch/Mono time
+--- Time according to realtime clock
 M.epoch   = function() return ds.Epoch(lib.epoch())   end
--- Duration according to monotomically incrementing clock.
+--- Duration according to monotomically incrementing clock.
 M.mono    = function() return ds.Duration(lib.mono()) end
 M.monoSec = function() return M.mono():asSeconds()    end
 
@@ -107,22 +104,23 @@ local function _walk(base, ftypeFns, maxDepth, depth)
   if ftypeFns.dirDone then ftypeFns.dirDone(base, 'dir') end
 end
 
--- walk the paths up to depth, calling [$ftypeFns[ftype]] for
--- each item encountered.
---
--- If depth is nil/false then the depth is infinite.
---
--- ftypeFns must be a table of ftypes (file, dir) and: [+
---  * default: called as fallback (if missing ftype key)
---  * error: called if determining the type caused an error,
---    typically due to the file not existing.
---    the call is: error(path, errstr)
---  * dirDone: called AFTER the directory has been walked
--- ]
---
--- The Fn signatures are: (path, ftype) -> stopWalk
--- If either return true then the walk is ended immediately
--- If dirFn returns 'skip' then the directory is skipped
+--- TODO: remove this
+--- walk the paths up to depth, calling [$ftypeFns[ftype]] for
+--- each item encountered.
+---
+--- If depth is nil/false then the depth is infinite.
+---
+--- ftypeFns must be a table of ftypes (file, dir) and: [+
+---  * default: called as fallback (if missing ftype key)
+---  * error: called if determining the type caused an error,
+---    typically due to the file not existing.
+---    the call is: error(path, errstr)
+---  * dirDone: called AFTER the directory has been walked
+--- ]
+---
+--- The Fn signatures are: (path, ftype) -> stopWalk
+--- If either return true then the walk is ended immediately
+--- If dirFn returns 'skip' then the directory is skipped
 M.walk = function(paths, ftypeFns, maxDepth)
   for _, path in ipairs(paths) do
     assert('' ~= path, 'empty path')
@@ -147,7 +145,7 @@ getmetatable(M.Walk).__call = function(T, t)
   t._dirs = {}
   return construct(T, t)
 end
---- get the depth of the current directory being walked
+---- get the depth of the current directory being walked
 M.Walk.depth = function(w) return #w._dirs end
 --- skip the current directory level
 M.Walk.skip = function(w) pop(w._dirs) end
@@ -198,9 +196,9 @@ M._WalkDir.__call = function(wd, walk) --> path, ftype
   return path, ftype
 end
 
--- A very simple ls (list paths) implementation
--- Returns (files, dirs) tables. Anything that is not a directory
--- is treated as a file.
+--- A very simple ls (list paths) implementation
+--- Returns (files, dirs) tables. Anything that is not a directory
+--- is treated as a file.
 M.ls = function(paths, maxDepth)
   local files, dirs = {}, {}
   M.walk(paths, {
@@ -229,24 +227,27 @@ M.mkDir = function(path, parents)
   else fmt.assertf(lib.mkdir(path), "mkdir failed: %s", path) end
 end
 
--- mkTree(tree) builds a tree of files and dirs at `dir`.
--- Dirs  are tables.
--- Files are string or fd -- which are read+closed.
--- 
--- tree = {
---   a = {
---     ['a1.txt'] = 'stuff in a1.txt',
---     ['a2.txt'] = 'stuff in a.txt',
---     a3 = {
---       ['a4.txt'] = io.open'some/file.txt',
---     }
---   }
--- }
--- 
--- Builds a tree like
--- a/a1.txt    # content: stuff in a1.txt
--- a/a2.txt    # content: stuff in a2.txt
--- a/a3/a4.txt # content: stuff in a3.txt
+--- mkTree(tree) builds a tree of files and dirs at `dir` [+
+--- * Dirs  are tables.
+--- * Files are string or fd -- which are read+closed.
+--- ]
+--- Example: [{## lang=lua}
+--- tree = {
+---   a = {
+---     ['a1.txt'] = 'stuff in a1.txt',
+---     ['a2.txt'] = 'stuff in a.txt',
+---     a3 = {
+---       ['a4.txt'] = io.open'some/file.txt',
+---     }
+---   }
+--- }
+--- ]##
+---
+--- Builds a tree like [#
+--- a/a1.txt    # content: stuff in a1.txt
+--- a/a2.txt    # content: stuff in a2.txt
+--- a/a3/a4.txt # content: stuff in a3.txt
+--- ]#
 M.mkTree = function(dir, tree, parents)
   M.mkDir(dir, parents)
   for name, v in pairs(tree) do
@@ -264,20 +265,22 @@ M.Lap = function() return lap.Lap {
   sleepFn=M.sleep, monoFn=M.monoSec, pollList=fd.PollList(),
 }end
 
--- Start args on the shell
--- Suggestion: use civix.sh instead.
---
--- Sh:start() kicks off a subprocess which start the shell using the fds you pass
--- in or creating them if you set them to true. Created file descriptors will be
--- stored in the associated name.
---
--- Why? This means that :close() will only close filedescriptors created by the
---      shell itself, and you won't accidentially close io.stdout/etc.
---
--- Examples (see civix.sh for more examples):
---   Lua                                              Bash
---   Sh({'ls', 'foo/bar'}, {stdout=io.stdout}):start()      -- ls foo/bar
---   v = Sh{'ls foo/bar', stdout=true}:start():read() -- v=$(ls foo/bar)
+--- Start args on the shell
+--- ["Suggestion: use civix.sh instead.]
+---
+--- [$Sh:start()] kicks off a subprocess which start the shell using the fds
+--- you pass in or creating them if you set them to true. Created file
+--- descriptors will be stored in the associated name.
+---
+--- ["Why? This means that [$:close()] will only close filedescriptors created
+---        by the shell itself, and you won't accidentially close
+---        io.stdout/etc.]
+---
+--- Examples (see civix.sh for more examples): [{table}
+--- # Lua                                                  | Bash
+--- + [$Sh({'ls', 'foo/bar'}, {stdout=io.stdout}):start()] | [$ls foo/bar]
+--- + [$v = Sh{'ls foo/bar', stdout=true}:start():read()]  | [$v=$(ls foo/bar)]
+--- ]
 M.Sh = mty'Sh' {
   "args [table]: arguments to pass to shell",
   "stdin  [file|bool]: shell's stdin to send  (default=empty)",
@@ -297,9 +300,9 @@ local function _fnomaybe(f, default)
   if type(f) == 'boolean' then return f end
   return f and fd.fileno(f) or default
 end
--- start the shell in the background.
--- sh{arg1, arg2, stdin=nostdin, stdout=true, stderr=io.stderr}
--- See Sh for how filedescriptors are set.
+--- start the shell in the background.
+--- Example: [$sh{arg1, arg2, stdin=nostdin, stdout=true, stderr=io.stderr}]
+--- ["Note: See Sh for how filedescriptors are set]
 M.Sh.start = function(sh)
   local r, w, l = fd.newFD(), fd.newFD(), fd.newFD()
   local ex, _r, _w, _l = lib.sh(
@@ -317,8 +320,8 @@ end
 
 M.Sh.isDone = function(sh) return sh._sh:isDone() end
 
--- wait for shell to complete, returns return code
-M.Sh.wait = function(sh)
+--- wait for shell to complete, returns return code
+M.Sh.wait = function(sh) --> int
   if LAP_ASYNC then
     while not sh:isDone() do yield('sleep', 0.005) end
   else sh._sh:wait() end

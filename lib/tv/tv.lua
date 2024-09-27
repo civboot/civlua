@@ -1,4 +1,4 @@
--- TV: tabulated values. See README.cxt for details.
+--- TV: tabulated values module
 local M = mod and mod'tv' or {}
 
 local mty = require'metaty'
@@ -52,7 +52,7 @@ M.encodeRow = function(names, row, types, serdeMap)
   return concat(out, '\t')
 end
 
---- Encoder [{## lang=lua}
+--- Example: [{## lang=lua}
 --- local enc = tv.Encoder{}
 --- f:write(enc:comment'some comment',    '\n')
 --- f:write(enc:types{'int', 'string'},   '\n')

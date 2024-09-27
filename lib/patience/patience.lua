@@ -1,5 +1,5 @@
--- Patience diff implemented in Lua. Special thanks to:
--- https://blog.jcoglan.com/2017/09/19/the-patience-diff-algorithm/
+--- Patience diff implemented in Lua. Special thanks to:
+--- https://blog.jcoglan.com/2017/09/19/the-patience-diff-algorithm/
 
 local mty = require'metaty'
 local ds  = require'ds'
@@ -40,7 +40,7 @@ M.uniqueMatches = function(aLines, bLines, b, b2, c, c2)
   return matches
 end
 
--- find the stack to the left of where we should place b=match[2]
+--- find the stack to the left of where we should place b=match[2]
 M.findLeftStack = function(stacks, c)
   local low, high, mid = 0, #stacks + 1
   while low + 1 < high do
@@ -51,7 +51,7 @@ M.findLeftStack = function(stacks, c)
   return low
 end
 
--- Get the longest increasing sequence (in reverse order)
+--- Get the longest increasing sequence (in reverse order)
 M.patienceLIS = function(matches)
   local stacks = {}
   for i, m in ipairs(matches) do
@@ -117,9 +117,7 @@ M.diffI = function(diff, linesB, linesC, b, b2, c, c2)
   addIs(diff, ' ', b2+1, c2+1, c2St) -- unchanged lines (bot)
 end
 
-----------------------------
--- Convert to vcds.Diff
-M.diff = function(linesB, linesC)
+M.diff = function(linesB, linesC) --> vcds.Diff
   local idx, Diff, ADD, REM = {}, vcds.Diff, vcds.ADD, vcds.REM
   M.diffI(idx, linesB, linesC, 1, #linesB, 1, #linesC)
   local diff = {}; for _, ki in ipairs(idx) do

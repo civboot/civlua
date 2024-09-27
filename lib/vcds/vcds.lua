@@ -1,4 +1,4 @@
--- vsds: version control data structures (and algorithms)
+--- vsds: version control data structures (and algorithms)
 local M = mod and mod'vcds' or {}
 
 local mty = require'metaty'
@@ -14,14 +14,13 @@ end
 M.ADD = '+'
 M.REM = '-'
 
--- normalize a line for comparing (anchoring).
--- This just squashes and trims the end.]]
 -- TODO: I want to use this when applying patches
+--- normalize a line for comparing (anchoring).
+--- This just squashes and trims the end.]]
 M.normalize = function(s) return ds.squash(ds.trimEnd(s)) end
 
----------------------
--- Single Line Diff
--- This type is good for displaying differences to a user.
+--- Single Line Diff
+--- This type is good for displaying differences to a user.
 M.Diff = mty'Diff' {
   "b (base)   orig file.  '+'=added",
   "c (change) new file.   '-'=removed",
@@ -57,11 +56,8 @@ M.Change.len = function(ch)
   return (type(ch.rem) == 'number') and ch.rem or #ch.rem
 end
 
--- apply(dat, changes, out?) -> out
--- 
--- Apply changes to base (TableLines)
--- `out` is used for the output, else a new table.
-M.apply = function(base, changes, out)
+--- Apply changes to base (TableLines), push to [$out]
+M.apply = function(base, changes, out--[[{}]]) --> out
   local l = 1; out = out or {}
   for _, p in ipairs(changes) do
     local pty = mty.ty(p)
@@ -128,10 +124,8 @@ local DiffsExtender = setmetatable({
   return setmetatable({diffs={}, base=base, bl=1, cl=1}, ty_)
 end})
 
--- toDiff(base, changes) -> diffs
--- 
--- Convert Changes to Diffs with full context
-M.toDiffs = function(base, changes)
+--- Convert Changes to Diffs with full context
+M.toDiffs = function(base, changes) --> diffs
   local de = DiffsExtender(base)
   for _, ch in ipairs(changes) do de(ch) end
   return de.diffs
@@ -156,11 +150,11 @@ M.createAnchorBot = function(base, l, aLen)
   return a
 end
 
--- Create picks (aka cherry picks) iterator from changes.
--- These can then be applied to a new base using vcds.patch(base, picks)
--- 
--- Each "pick" is a list of Diffs which are anchored by the lines
--- above and below (unless they are start/end of file).
+--- Create picks (aka cherry picks) iterator from changes.
+--- These can then be applied to a new base using vcds.patch(base, picks)
+---
+--- Each "pick" is a list of Diffs which are anchored by the lines
+--- above and below (unless they are start/end of file).
 M.Picks = setmetatable({
   __index = function(p, k) return getmetatable(p)[k] end,
   __call = function(p) -- iterator
@@ -219,14 +213,11 @@ local function checkAnchor(iter, base, bl)
   return true
 end
 
--- iterFn = ds.ireverse to find the top, ipairs to find bottom.
--- findAnchor(base, baseLineMap, anchors: {Diff}, above: boolean)
---   -> line, anchorTextLines
--- 
--- Find the actual anchor by searching for uniqueness in the anchors:
--- * above=true:  find above (search up)
--- * above=false: find below (search down)
-M.findAnchor = function(base, baseMap, anchors, above)
+--- Find the actual anchor by searching for uniqueness in the anchors [+
+--- * above=true:  find above (search up)
+--- * above=false: find below (search down)
+--- ]
+M.findAnchor = function(base, baseMap, anchors, above--[[false]]) --> (l, c)
   local iterFn = above and ds.ireverse or ipairs
   local alines = {}
   for ai, anchor in iterFn(anchors) do
@@ -252,16 +243,14 @@ M.Patch = mty'Patch' {
   'conflict [string]', 'bl [number]',
 }
 
--- return isSoF, anchors
-M.pickAnchorsTop = function(pick)
+M.pickAnchorsTop = function(pick) --> isStartOfFile, anchors
   local anchors = {}; for _, d in ipairs(pick) do
     if not d:isKeep() then break end; push(anchors, d)
   end
   return pick[1].c == 1, anchors
 end
 
--- return isEoF, anchors
-M.pickAnchorsBot = function(base, pick)
+M.pickAnchorsBot = function(base, pick) --> isEndOfFile, anchors
   local anchors = {}; for _, d in ds.ireverse(pick) do
     if not d:isKeep() then break end; push(anchors, d)
   end
@@ -282,9 +271,7 @@ local function patchApplyKeep(p, base, keep)
   return true
 end
 
--- attempt to apply the change.
---   -> bl, clean, err
-local function patchApplyChange(p, base, ch)
+local function patchApplyChange(p, base, ch) --> bl, clean, err
   local remAnc, addAnc, iadd, irem = true, true, 1, 1
   while (iadd <= #ch.add) or (irem <= #ch.rem) do
     local bline = base[p.bl]
@@ -299,26 +286,26 @@ local function patchApplyChange(p, base, ch)
   return true
 end
 
---[[
-Create a patch item from a pick
-
-At it's most basic it would just be:
-• find line position via top and/or bottom anchor. We want at least 2 lines
-• convert pick to change. Walk the text applying the change.
-
-There are some strategies to fix common anchor misses:
-• If an anchor is missing, the nearby change can be used instead. Use either
-  the removed or added lines. For instance, if we are supposed to remove lines
-  then try and find them. Conversely if the patch was already applied then the
-  supposed-to-be added lines will already be there!
-• When adding, existing identical text is okay.
-• When removing, missing text is okay as long as it's followed by an anchor of
-  some kind
-• Keep lines act as an anchor (for above) but are otherwise not required - they
-  are "free" to change or be removed. If they are missing then the algorithm will
-  try to continue the change with or without them (dynamic programming)
-* empty lines are entirely ignored and are not considered an anchor
-]]
+--- Create a patch item from a pick
+---
+--- At it's most basic it would just be: [+
+--- * find line position via top and/or bottom anchor. We want at least 2 lines
+--- * convert pick to change. Walk the text applying the change.
+--- ]
+---
+--- There are some strategies to fix common anchor misses: [+
+--- * If an anchor is missing, the nearby change can be used instead. Use either
+---   the removed or added lines. For instance, if we are supposed to remove lines
+---   then try and find them. Conversely if the patch was already applied then the
+---   supposed-to-be added lines will already be there!
+--- * When adding, existing identical text is okay.
+--- * When removing, missing text is okay as long as it's followed by an anchor of
+---   some kind
+--- * Keep lines act as an anchor (for above) but are otherwise not required - they
+---   are "free" to change or be removed. If they are missing then the algorithm will
+---   try to continue the change with or without them (dynamic programming)
+--- * empty lines are entirely ignored and are not considered an anchor
+--- ]
 M.createPatch = function(base, baseMap, pick)
   local isSof, topA = M.pickAnchorsTop(pick)
   local isEof, botA = M.pickAnchorsBot(base, pick)
@@ -352,6 +339,5 @@ M.createPatch = function(base, baseMap, pick)
   pch.bl = (isSof and 0) or top
   return pch
 end
-
 
 return M

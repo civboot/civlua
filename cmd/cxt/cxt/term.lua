@@ -1,7 +1,21 @@
--- cxt for the terminal, either plain text or vt100/etc
-local M = assert(mod'cxt.term')
-MAIN = MAIN or M
+G = G or _G
+--- cxt for the terminal, either plain text or vt100/etc
+local M = mod'cxt.term'
+MAIN = G.MAIN or M
+
 local mty  = require'metaty'
+local ds = require'ds'
+local shim = require'shim'
+local pegl = require'pegl'
+local cxt  = require'cxt'
+local style = require'asciicolor.style'
+local fd = require'fd'
+local log = require'ds.log'
+local lines = require'lines'
+local LFile = require'lines.File'
+
+local Token = assert(require'pegl'.Token)
+local push = table.insert
 
 --- Render cxt on a terminal.
 ---
@@ -11,20 +25,6 @@ M.Args = mty'Args' {
   'out  [path|file]: output file (default=stdout)',
 }
 
-local ds = require'ds'
-local shim = require'shim'
-local pegl = require'pegl'
-local cxt  = require'cxt'
-local style = require'asciicolor.style'
-local fd = require'fd'
-local log = require'ds.log'
-
-local lines = require'lines'
-local LFile = require'lines.File'
-local Token = assert(require'pegl'.Token)
-
-local push = table.insert
-
 local KIND_ORDER = ds.BiMap {
   'hidden', 
   'table', 'list', 'quote',
@@ -33,7 +33,6 @@ local KIND_ORDER = ds.BiMap {
   'br', 'code', 'block', 'name', 'path', 'clone',
   'b', 'u', 'class',
 }
-
 
 M.STYLES = {
   h1 = 'h1', h2 = 'h2', h3 = 'h3', h4 = 'h4',

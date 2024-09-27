@@ -1,7 +1,10 @@
--- Lua syntax in PEGL
---
--- I used http://parrot.github.io/parrot-docs0/0.4.7/html/languages/lua/doc/lua51.bnf.html
--- as a reference
+local G = G or _G
+
+--- Lua syntax in PEGL
+---
+--- http://parrot.github.io/parrot-docs0/0.4.7/html/languages/lua/doc/lua51.bnf.html
+--- was used as a reference.
+local M = G.mod and G.mod'pegl.lua' or {}
 
 local mty = require'metaty'
 local ds  = require'ds'
@@ -13,8 +16,6 @@ local Token, Empty, Eof, PIN, UNPIN
 local EMPTY, common
 local pegl = ds.auto'pegl'
 local num = common.num
-
-local M = {}
 
 local stmt = Or{name='stmt'}
 
@@ -36,6 +37,7 @@ local op2 = Key{name='op2', {
 
 -----------------
 -- Expression (exp)
+
 -- We do exp a little different from the BNF. We create an `exp1` which is a
 -- non-operated expression and then have `exp` implement a list of expression
 -- operations.

@@ -5,26 +5,26 @@ local min, max, sort2, bound, isWithin; ds.auto'ds'
 local M = {}
 local byte, char = string.byte, string.char
 
--- decrease distance (start -> end) by 1
-M.decDistance = function(s, e)
+--- decrease distance (start -> end) by 1
+M.decDistance = function(s, e) --> int
   if s == e then return e end
   return (s < e) and (e - 1) or (e + 1)
 end
 
--- return whether l.c is <= l2.c2
-M.lcLe = function(l, c, l2, c2)
+--- return whether l.c is <= l2.c2
+M.lcLe = function(l, c, l2, c2) --> bool
   if l == l2 then return c <= c2 end
   return l < l2
 end
 
--- return whether l.c is >= l2.c2
-M.lcGe = function(l, c, l2, c2)
+--- return whether l.c is >= l2.c2
+M.lcGe = function(l, c, l2, c2) --> bool
   if l == l2 then return c >= c2 end
   return l > l2
 end
 
--- return the top-left of two points
-M.topLeft = function(l, c, l2, c2)
+--- return the top-left of two points
+M.topLeft = function(l, c, l2, c2) --> (l, c)
   if not c then
     assert(not c2); return sort2(l, l2)
   end
@@ -34,7 +34,7 @@ M.topLeft = function(l, c, l2, c2)
 end
 
 -- return whether a cursor is within a range
-M.lcWithin = function(l, c, l1, c1, l2, c2)
+M.lcWithin = function(l, c, l1, c1, l2, c2) --> bool
   if l1 > l2 then l1, c1, l2, c2 = l2, c2, l1, c1
   elseif l1 == l2 then
     c1, c2 = sort2(c1, c2)
@@ -65,10 +65,11 @@ WordKind['{'] = '{}'; WordKind['}'] = '{}'
 WordKind['"'] = '"'   WordKind["'"] = "'"
 
 local function wordKind(ch) return WordKind[ch] or 'let' end
-M.wordKind = wordKind
+M.wordKind = wordKind --> string
 
--- Go forward to find the start of the next word
-M.forword = function(s, begin) begin = begin or 1
+--- Go forward to find the start of the next word
+M.forword = function(s, begin) --> int
+  begin = begin or 1
   local i, kStart = begin+1, wordKind(s:sub(begin,begin))
   for ch in string.gmatch(s:sub(begin+1), '.') do
     local k = wordKind(ch)
@@ -81,8 +82,8 @@ M.forword = function(s, begin) begin = begin or 1
   end
 end
 
--- Go backward to find the start of this (or previous) word
-M.backword = function(s, end_)
+--- Go backward to find the start of this (or previous) word
+M.backword = function(s, end_) --> int
   s = s:sub(1, end_-1):reverse()
   local i, kStart = 2, wordKind(s:sub(1,1))
   for ch in string.gmatch(s:sub(2), '.') do
@@ -95,10 +96,10 @@ M.backword = function(s, end_)
   end
 end
 
--- find backwards
--- this searches for the pattern and returns the LAST one found.
--- This is HORRIBLY non-performant, only use for small amounts of data
-M.findBack = function(s, pat, end_, plain)
+--- find backwards
+--- this searches for the pattern and returns the LAST one found.
+--- This is HORRIBLY non-performant, only use for small amounts of data
+M.findBack = function(s, pat, end_, plain) --> int
   local s, fs, fe = s:sub(1, end_), nil, 0
   assert(#s < 256)
   while true do

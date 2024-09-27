@@ -1,4 +1,7 @@
--- rd: recursive descent parser
+local G = G or _G
+
+--- pegl: peg-like lua parser
+local M = G.mod and G.mod'pegl' or {}
 
 local mty     = require'metaty'
 local fmt     = require'fmt'
@@ -11,17 +14,16 @@ local srep = string.rep
 local pushfmt = ds.pushfmt
 local ty = mty.ty
 
-local M = {}
 local function zero() return 0 end
 
--- Tokens use a packed span to preserve space.
--- Maximums: line start|len = 2^24|2^16. cols=255
-M.SPAN_FMT = '>I3I2BB'
+--- Tokens use a packed span to preserve space.
+--- Maximums: line start|len = 2^24|2^16. cols=255
+M.SPAN_PACK = '>I3I2BB'
 M.encodeSpan = function(l1, c1, l2, c2)
-  return string.pack(M.SPAN_FMT, l1, c1, l2-l1, c2)
+  return string.pack(M.SPAN_PACK, l1, c1, l2-l1, c2)
 end
 M.decodeSpan = function(s)
-  local l, c, l2, c2 = string.unpack(M.SPAN_FMT, s)
+  local l, c, l2, c2 = string.unpack(M.SPAN_PACK, s)
   return l, c, l + l2, c2
 end
 

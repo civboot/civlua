@@ -1,4 +1,4 @@
--- Serialize cxt nodes as html
+--- Serialize cxt nodes as html
 local M = mod and mod'cxt.html' or {}
 MAIN = MAIN or M
 
@@ -170,7 +170,7 @@ local function _serialize(w, line, node) --> line
   return line
 end
 
--- serialize the node to the writer.
+--- serialize the node to the writer.
 M.serialize = function(w, node)
   -- line is an implementation detail of html around when to line break.
   -- We want to keep the output html as concise as reasonable, which

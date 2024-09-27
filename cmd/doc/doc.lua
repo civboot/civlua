@@ -1,12 +1,11 @@
--- Get documentation for lua types and syntax. Examples:
---- [##
+-- Get documentation for lua types and syntax. Examples: [{## lang=lua}
 --- doc{string.find}
 --- doc'for'
 --- doc'myMod.myFunction'
 --- doc{'someMod', --pkg} -- full pkg documentation
 --- ]##
 ---
---- Note: depends on pkg for lookup.
+--- ["Note: depends on pkg for lookup]
 local M = mod and mod'doc' or setmetatable({}, {})
 MAIN = MAIN or M
 

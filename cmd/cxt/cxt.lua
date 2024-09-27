@@ -55,7 +55,7 @@ local function nodeText(p, node, errNode)
   return table.concat(txt)
 end
 
--- find the end of a [##raw block]##
+--- find the end of a [$[##raw block]##]
 local function bracketedStrRaw(p, node, raw, ws)
   node.code = node.code or (node.lang and true)
   local ws, w1 = p.line:find'^%s+' -- leading whitespace
@@ -84,8 +84,8 @@ local function bracketedStrRaw(p, node, raw, ws)
   end
 end
 
--- A string that ends in a closed bracket and handles balanced brackets.
--- Returns: Token, which does NOT include the closePat
+--- A string that ends in a closed bracket and handles balanced brackets.
+--- Returns: Token, which does NOT include the closePat
 local function bracketedStr(p, node, raw)
   if raw > 0 then return bracketedStrRaw(p, node, raw) end
   local l, c, nested = p.l, p.c, 1
@@ -223,14 +223,14 @@ local function parseTable(p, tbl)
   end
 end
 
--- skip whitespace, return whether it was skipped
+--- skip whitespace, return whether it was skipped
 local function skipWs(p)
   if not p.line then return end
   p.c = select(2, p.line:find('%S', p.c)) or #p.line + 1
 end
 
--- increment line, adding token and skipping next line's whitespace.
--- include newline in token unless this line is EOF
+--- increment line, adding token and skipping next line's whitespace.
+--- include newline in token unless this line is EOF
 local function incLine(p, node, l1, c1)
   local l2, c2 = p.l, #p.line
   if l1 ~= #p.dat then l2, c2 = l2 + 1, 0 end
@@ -239,7 +239,7 @@ local function incLine(p, node, l1, c1)
   return p.l, p.c
 end
 
--- parse normal content, adding to node
+--- parse normal content, adding to node
 M.content = function(p, node, isRoot, altEnd)
   local l, c = p.l, p.c
   ::loop::
@@ -396,11 +396,12 @@ end
 M.fmtAttr = fmtAttr
 M.htmlFmt  = ds.Set{'b', 'i', 'u'}
 
--- A Writer for cxt serializers (terminal, http, etc) to use.
--- 
--- The writer contains:
--- * The src lines and token decoder for getting pegl.Token values.
--- * The destination lines and current indent level.
+--- A Writer for cxt serializers (terminal, http, etc) to use.
+---
+--- The writer contains: [+
+--- * The src lines and token decoder for getting pegl.Token values.
+--- * The destination lines and current indent level.
+--- ]
 M.Writer = mty'Writer' {
   'src', 'to',
   'indent[int]',

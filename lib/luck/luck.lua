@@ -1,3 +1,8 @@
+local G = G or _G
+
+--- luck: lua configuration language
+local M = G.mod and G.mod'luck' or {}
+
 local mty = require'metaty'
 local fmt = require'fmt'
 local ds, lines  = require'ds', require'lines'
@@ -6,7 +11,6 @@ local pegl = require'pegl'
 local lua = require'pegl.lua'
 
 local sfmt, push = string.format, table.insert
-local M = {}
 
 M.LUCK = {
   meta = function() end,
@@ -91,7 +95,7 @@ M.loadMetas = function(paths)
   return lucks
 end
 
-M.loadall = function(paths, allenv)
+M.loadall = function(paths, allenv) --> built, lucks, sorted
   allenv = allenv or {}
   local lucks = M.loadMetas(paths)
   local depsMap = {}
@@ -121,9 +125,8 @@ M.loadall = function(paths, allenv)
   return built, lucks, sorted
 end
 
--- luck.load(path) -> data
--- Load a single path which has no dependencies.
-M.load = function(path, env)
+--- Load a single path which has no dependencies.
+M.load = function(path, env) --> table
   local dat = assert(LFile:load(path))
   local meta = M.loadMeta(dat, path)
   assert(not meta or not meta.deps, 'single must have no deps')
