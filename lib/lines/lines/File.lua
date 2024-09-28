@@ -12,9 +12,11 @@ local File = mty'File' {
 }
 
 local ds = require'ds'
+local pth = require'ds.path'
 local log = require'ds.log'
 local lines = require'lines'
 local U3File = require'lines.U3File'
+local ix = require'civix'
 
 local largs = lines.args
 local push, concat = table.insert, table.concat
@@ -22,6 +24,20 @@ local getmt = getmetatable
 local split, construct = mty.split, mty.construct
 local index, newindex = mty.index, mty.newindex
 local WeakV = ds.WeakV
+
+File.IDX_DIR = pth.concat{pth.home(), '.data/lines'}
+
+getmetatable(File).__call = function(T, t, mode)
+  local f, err, path, idx
+  if not t then
+    f, err = io.tmpfile();     if not f   then return nil, err end
+    idx, err = u3File();       if not idx then return nil, err end
+  elseif type(t) == 'string' then
+    f, err = io.open(t, mode); if not f then return nil, err end
+    path = t
+  end
+end
+
 
 --- reindex starting from from line 'l=1' and file 'pos=0'
 File._reindex = function(lf, idx, l, pos) --> endPos

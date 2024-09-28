@@ -19,6 +19,7 @@
 // ---------------------
 // -- Utilities
 typedef lua_State LS;
+typedef struct stat STAT;
 
 #define ASSERT(L, OK, ...) \
   if(!(OK)) { luaL_error(L, __VA_ARGS__); }
@@ -110,9 +111,7 @@ const char* DIR_META = "civix.Dir";
 static void DIR_gc(DIR** dir) {
   if(*dir) { closedir(*dir); *dir = NULL; }
 }
-static int l_dir_gc(LS *L) {
-  DIR_gc(toldir(L)); return 0;
-}
+static int l_dir_gc(LS *L) { DIR_gc(toldir(L)); return 0; }
 
 // Each time called return next: (name, ftype) or nil
 static int dir_iter(LS *L) {
@@ -147,17 +146,49 @@ static int l_dir(LS *L) {
   return 1;
 }
 
-// pathstat(path) -> st_mode
-// * st_mode: see consts.S_*
-static int l_stmode(LS *L) {
-  struct stat sbuf = {0};
-  const char* path = luaL_checkstring(L, 1);
-  if(stat(path, &sbuf)) {
-    lua_pushnil(L); lua_pushstring(L, SERR);
-    return 2;
-  }
-  lua_pushinteger(L, sbuf.st_mode);
+// ---------------------
+// -- Stat
+const char* STAT_META = "civix.Stat";
+#define tolstat(L) ((STAT**)luaL_checkudata(L, 1, STAT_META))
+static void STAT_gc(STAT** st) { if(*st) { free(*st); *st = NULL; } }
+static int l_stat_gc(LS* L)    { STAT_gc(tolstat(L)); return 0; }
+
+// path -> (stat?, err)
+static int l_stat(LS* L) {
+  STAT** st = (STAT**)lua_newuserdata(L, sizeof(STAT*)); // stack: dir
+  if (!st) { lua_pushnil(L); lua_pushstring(L, "OOM"); return 2; }
+  *st = NULL; luaL_setmetatable(L, STAT_META);
+  *st = malloc(sizeof(STAT));
+  if (!*st) { lua_pushnil(L); lua_pushstring(L, "OOM"); return 2; }
+  int rc = lua_isnumber(L, 1)
+      ? fstat(lua_tonumber(L, 1), *st)
+      : stat(luaL_checkstring(L, 1), *st);
+  if(rc) { lua_pushnil(L); lua_pushstring(L, SERR); return 2; }
   return 1;
+}
+
+static int l_stat_mode(LS *L) {
+  lua_pushinteger(L, (*tolstat(L))->st_mode); return 1;
+}
+
+// stat -> (sec, nsec)
+static int l_stat_modified(LS *L) {
+  STAT* st = *tolstat(L);
+  lua_pushinteger(L, st->st_mtim.tv_sec);
+  lua_pushinteger(L, st->st_mtim.tv_nsec);
+  return 2;
+}
+
+// set the modified time of the fileno.
+// (fileno, sec, nsec) --> error?
+static int l_setmodified(LS* L) {
+  int fno = luaL_checkinteger(L, 1);
+  struct timespec times[2];
+  times[0].tv_sec  = 0; times[0].tv_nsec = UTIME_OMIT; // omit access
+  times[1].tv_sec  = luaL_checkinteger(L, 2);
+  times[1].tv_nsec = luaL_checkinteger(L, 3);
+  if(futimens(fno, times)) { lua_pushstring(L, strerror(errno)); return 1; }
+  return 0;
 }
 
 // ---------------------
@@ -273,7 +304,8 @@ static const struct luaL_Reg civix_lib[] = {
   {"strerrno", l_strerrno},
   {"epoch", l_epoch}, {"mono", l_mono},
   {"nanosleep", l_nanosleep},
-  {"dir", l_dir}, {"stmode", l_stmode},
+  {"dir", l_dir},
+  {"stat", l_stat}, {"setmodified", l_setmodified},
   {"mkdir", l_mkdir}, {"rm",  l_rm}, {"rmdir", l_rmdir},
   {"rename", l_rename}, {"exists", l_exists},
   {"sh", l_sh},
@@ -286,6 +318,14 @@ int luaopen_civix_lib(LS *L) {
   luaL_newmetatable(L, DIR_META);
     L_setmethod(L, "__gc", l_dir_gc);
   lua_setfield(L, -2, "Dir");
+
+  luaL_newmetatable(L, STAT_META);
+    L_setmethod(L, "__gc", l_stat_gc);
+    lua_createtable(L, 0, 3); // __index table
+      L_setmethod(L, "mode",     l_stat_mode);
+      L_setmethod(L, "modified", l_stat_modified);
+    lua_setfield(L, -2, "__index");
+  lua_setfield(L, -2, "Stat");
 
   luaL_newmetatable(L, SH_META);
     L_setmethod(L, "__gc", l_sh_gc);

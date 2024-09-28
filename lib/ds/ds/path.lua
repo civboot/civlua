@@ -1,6 +1,8 @@
+local G = G or _G
+
 --- working with paths
 --- Call directly to convert a list|str to a list of path components.
-local M = mod and mod'ds.path' or setmetatable({}, {__name='ds.path'})
+local M = G.mod and mod'ds.path' or setmetatable({}, {__name='ds.path'})
 
 local mty = require'metaty'
 local ds = require'ds'
@@ -21,7 +23,7 @@ end
 M.cwd = function() return G.CWD or os.getenv'PWD' or os.getenv'CD' end
 
 --- get the user's home directory
-M.home = function() return HOME or os.getenv'HOME'
+M.home = function() return G.HOME or os.getenv'HOME'
                         or os.getenv'HOMEDIR'      end
 
 --- join a table of path components

@@ -37,6 +37,15 @@ ds.update(M, {
   mv = lib.rename,
 })
 
+--- get the stat of the path, which has methods [+
+--- * [$:mode() -> mode] see FMODE
+--- * [$:modified() -> sec, nsec] time modified
+--- ]
+M.stat = lib.stat--(path) -> Stat
+
+--- set the modified time of the fileno
+M.setmodified = lib.setmodified--(fileno, sec, nsec) --> error?
+
 -------------------------------------
 -- Utility
 
@@ -73,9 +82,9 @@ local function qp(p)
 end
 
 M.pathtype = function(path)
-  local sm, err = lib.stmode(path)
-  if not sm then return nil, err end
-  return assert(fd.FMODE[C.S_IFMT & sm])
+  local stat, err = lib.stat(path)
+  if not stat then return nil, err end
+  return assert(fd.FMODE[C.S_IFMT & stat:mode()])
 end
 M.isFile = function(path) return M.pathtype(path) == 'file' end
 M.isDir  = function(path) return M.pathtype(path) == 'dir'  end
