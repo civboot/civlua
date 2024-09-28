@@ -25,11 +25,10 @@ local Slc = ds.Slc
 local extend, inset, clear = ds.extend, ds.inset, ds.clear
 local move, EMPTY = table.move, {}
 
-EdFile.new = function(T, lf)
-  return mty.construct(T, {
-    lf=lf,
-    dats={Slc{si=1, ei=#lf}},
-    lens={},
+getmetatable(EdFile).__call = function(T, v, mode)
+  local lf, err = File(v, mode or 'w+'); if not lf then return nil, err end
+  return construct(T, {
+    lf=lf, dats={Slc{si=1, ei=#lf}}, lens={},
   })
 end
 
@@ -68,20 +67,6 @@ EdFile.__index = function(ef, i)
   return (getmt(dat) == Slc) and ef.lf[dat.si + i - 1]
       or dat[i]
 end
-
---- Create a new EdFile (default idx=lines.U3File()).
-EdFile.create = function(T, ...) --> EdFile
-  local lf, err = File:create(...)
-  if not lf then return nil, err end
-  return T:new(lf)
-end
-
-EdFile.load = function(T, ...) --> EdFile
-  local lf, err = File:load(...)
-  if not lf then return nil, err end
-  return T:new(lf)
-end
-
 
 EdFile.write = function(ef, ...)
   assert(not ef.readonly, 'attempt to modify readonly file')

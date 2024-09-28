@@ -57,21 +57,21 @@ test('reindex', function()
   local idx, f = {}, io.tmpfile()
   local txt = 'hi\nthere\nindex'
   f:write(txt); f:flush(); f:seek'set'
-  assertEq(#txt, reindex({f=f}, idx))
+  assertEq(#txt, reindex(f, idx))
     assertEq({0, 3, 9}, idx)
 
   idx = {} f:write'\n'; f:flush(); f:seek'set'
-  assertEq(#txt + 1, reindex({f=f}, idx))
+  assertEq(#txt + 1, reindex(f, idx))
     assertEq({0, 3, 9, 15}, idx)
 
   -- test indexing from a l,pos
   idx = {0, 3}; f:seek('set', 9)
-  assertEq(#txt + 1, reindex({f=f}, idx, 3, 9))
+  assertEq(#txt + 1, reindex(f, idx, 3, 9))
     assertEq({0, 3, 9, 15}, idx)
 end)
 
 test('File', function()
-  local f = assert(File:create()); f.cache = ds.Forget{}
+  local f = assert(File()); f.cache = ds.Forget{}
   assertEq('lines.File()', fmt(f))
   assertEq(0, #f); assertEq({}, ds.icopy(f))
 
@@ -93,11 +93,11 @@ test('File', function()
   assertEq('four: still in line four and this', f[4])
 
   assertEq('one\ntwo\nthree\n', ds.readPath(SMALL))
-  f = assert(File:load(SMALL)); f.cache = ds.Forget{}
+  f = assert(File(SMALL)); f.cache = ds.Forget{}
   assertEq({'one', 'two', 'three', ''}, ds.icopy(f))
   assertEq('two', f[2])
 
-  f = File:create(TXT, U3File:create(IDX))
+  f = File(TXT, 'w+')
   f:write'line 1\nline 2\nline 3'
   assertEq({0, 7, 14}, ds.icopy(f.idx))
   assertEq({'line 1', 'line 2', 'line 3'}, ds.icopy(f))
@@ -114,10 +114,10 @@ local function edEq(a, b)
 end
 
 test('EdFile.index', function()
-  local ef = EdFile{lens={}, dats={
+  local ef = mty.construct(EdFile, {lens={}, dats={
     ds.Slc{si=1, ei=2},
     ds.Slc{si=3, ei=6},
-  }}
+  }})
 
   -- test indexing logic itself
   assertEq(1, ef:_datindex(1))
@@ -148,7 +148,7 @@ end)
 
 test('EdFile.newindex', function()
   local S = function(si, ei) return ds.Slc{si=si, ei=ei} end
-  local ef = EdFile:create()
+  local ef = EdFile()
   assertEq(0, #ef)
   assertEq({S(1, 0)},    ef.dats)
 
@@ -171,7 +171,7 @@ test('EdFile.newindex', function()
 end)
 
 test('EdIter', function()
-  local ed = EdFile:load(SMALL, IDX)
+  local ed = EdFile(SMALL)
   local small = {'one', 'two', 'three', ''}
   assertEq(small, ds.icopy(ed))
 
@@ -182,7 +182,7 @@ test('EdIter', function()
 end)
 
 test('EdFile.write', function()
-  local ed = EdFile:create(TXT, IDX)
+  local ed = EdFile(TXT)
   ed:write'one\nthree\nfive'
   ed:flush()
   assertEq(3, #ed)
@@ -221,7 +221,7 @@ test('EdFile.write', function()
 end)
 
 test('EdFile.big', function()
-  local ed = EdFile:create(TXT, IDX)
+  local ed = EdFile(TXT)
   for i=1,100 do push(ed, 'line '..i) end
   assertEq(100, #ed)
 
@@ -241,7 +241,7 @@ test('EdFile.big', function()
 end)
 
 local function newEdFile(text, ...)
-  local ed = EdFile:create(...)
+  local ed = EdFile(...)
   if type(text) == 'string' then ed:write(text)
   else ds.extend(ed, text) end
   ed:flush()

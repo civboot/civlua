@@ -16,6 +16,7 @@ local pth = require'ds.path'
 local log = require'ds.log'
 local lines = require'lines'
 local U3File = require'lines.U3File'
+local fd = require'fd'
 local ix = require'civix'
 
 local largs = lines.args
@@ -27,76 +28,51 @@ local WeakV = ds.WeakV
 
 File.IDX_DIR = pth.concat{pth.home(), '.data/lines'}
 
-getmetatable(File).__call = function(T, t, mode)
-  local f, err, path, idx
-  if not t then
-    f, err = io.tmpfile();     if not f   then return nil, err end
-    idx, err = u3File();       if not idx then return nil, err end
-  elseif type(t) == 'string' then
-    f, err = io.open(t, mode); if not f then return nil, err end
-    path = t
-  end
-end
-
-
---- reindex starting from from line 'l=1' and file 'pos=0'
-File._reindex = function(lf, idx, l, pos) --> endPos
-  l, pos = l or 1, pos or 0; local last
-  assert(pos > 0 or #idx == 0, 'idx must be empty (no truncating)')
-  local f = lf.f; if f:seek'end' == 0 then return end
+File._reindex = function(f, idx, l, pos)
+  l, pos = l or 1, pos or 0
+  if f:seek'end' == 0 then return end
   assert(f:seek('set', pos))
-  idx[l] = pos
-  for line in f:lines'L' do
-    l, pos = l + 1, pos + #line
-    idx[l], last = pos, line
+  local lines = f:lines'L'
+  local prev = lines()
+  while true do
+    idx[l] = pos; l = l + 1
+    local line = lines(); if not line then break end
+    pos, prev = pos + #prev, line
   end
-  -- FIXME: don't delete last, just don't do it
-  -- delete last index depending on whether ended with newline
-  if not last or last:sub(-1) ~= '\n' then idx[l] = nil end
+  pos = pos + #prev
+  if prev:sub(-1) == '\n' then
+    idx[l] = pos
+  end
   return pos
 end
 
-File.from = function(T, f, path, idx)
-  if not idx or type(idx) == 'string' then
-    local err; idx, err = U3File:create(idx)
-    if not idx then return nil, err end
-  else assert(#idx == 0, 'idx must be empty') end
-  assert(f:seek'end')
+local modifiedEq = function(a, b)
+  local as, ans = a:modified()
+  local bs, bns = b:modified()
+  return as == bs and ans == bns
+end
+
+getmetatable(File).__call = function(T, v, mode)
+  local f, err, path, idx, fstat, xstat
+  if not v then
+    f, err = io.tmpfile();      if not f   then return nil, err end
+    idx, err = U3File:create(); if not idx then return nil, err end
+  elseif type(v) == 'string' then
+    print('!! opening', v, mode)
+    f, err = io.open(v, mode); if not f then return nil, err end
+    path = v
+    local idxpath = pth.concat{File.IDX_DIR, path}
+    fstat, xstat = ix.stat(fd.fileno(f)), ix.stat(idxpath)
+    if not (xstat and modifiedEq(fstat, xstat)) then
+      ix.mkDirs(pth.last(idxpath))
+      idx, err = U3File:create(idxpath)
+      if not idx then return nil, err end
+      File._reindex(f, idx)
+      ix.setmodified(fd.fileno(idx.f), fstat:modified())
+    else idx, err = U3File:load(idxpath) end
+  end
+  if err then return nil, err end
   return construct(T, {f=f, path=path, idx=idx, cache=WeakV{}})
-end
-
---- Create a new File at path (default idx=lines.U3File()).
----
---- if path is a file then uses it.
-File.create = function(T, path, idx) --> File
-  local f, err;
-  if type(path) == 'string' then f, err = io.open(path, 'w+')
-  elseif not path then           f, err = io.tmpfile()
-  else                           f, path = path, nil end
-  if not f then return nil, err end
-  return T.from(T, f, path, idx)
-end
-
-File.reload = function(lf, idx, mode)
-  if lf.f   then lf.f:close();   lf.f   = false end
-  if lf.idx then lf.idx:close(); lf.idx = false end
-  local f, err = io.open(lf.path, mode or 'r+')
-  if not f   then return nil, err end
-  lf.f = f
-  if not idx or type(idx) == 'string' then
-    idx, err = U3File:create(idx)
-    if not idx then return nil, err end
-    lf:_reindex(idx)
-  end
-  lf.idx, lf.cache = idx, WeakV{}
-  return lf
-end
-
-File.load = function(T, path, idx, mode)
-  if type(path) ~= 'string' then
-    return T.from(T, path, nil, idx)
-  end
-  return construct(T, {path=path}):reload(idx, mode)
 end
 
 File.close = function(lf)
@@ -177,11 +153,12 @@ File.__fmt = function(lf, fmt)
 end
 
 File.reader = function(lf) --> lines.File (readonly)
-  local idx = lf.idx
-  return getmt(lf):load(
-    assert(lf.path, 'path not set'),
-    getmt(idx):load(assert(idx.path, 'idx path not set'), 'r'),
-    'r')
+  local idx, err = assert(
+    getmt(lf.idx):load(assert(lf.idx.path, 'idx path not set'), 'r'))
+  local path = assert(lf.path, 'path not set')
+  return construct(getmt(lf), {
+    f=io.open(path, 'r'), path=path, cache=lf.cache, idx=idx,
+  })
 end
 
 return File
