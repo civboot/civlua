@@ -241,7 +241,6 @@ test('EdFile.big', function()
 end)
 
 local function newEdFile(text, ...)
-  print('!! newEdFile', ...)
   local ed = EdFile()
   if type(text) == 'string' then ed:write(text)
   else ds.extend(ed, text) end

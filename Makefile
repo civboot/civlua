@@ -27,6 +27,12 @@ civix: lib/civix/civix/lib.c
 ele: build
 	$(LUA) cmd/ele/ele.lua
 
+doc:
+	mkdir -p ./.out/
+	$(LUA) civ.lua doc civ --pkg=deep --expand --to=.out/API.cxt
+	$(LUA) civ.lua cxt.html .out/API.cxt API.html
+
 clean:
 	rm -f $$($(LUA) civ.lua ff -r --fpat='%.rockspec$$')
 	rm -f $$($(LUA) civ.lua ff -r --fpat='%.src%.rock$$')
+

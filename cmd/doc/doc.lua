@@ -426,11 +426,10 @@ end
 M.main = function(args)
   args = M.Args(shim.parseStr(args))
   if args.help then return M.styleHelp(io.fmt, M.Args) end
-  local to = io.fmt
-  if args.to then to = fmt.Fmt{to=io.tmpfile()} end
   local obj, expand = args[1], args.expand == true and 10 or args.expand
   assert(obj, 'arg[1] must be the item to find')
-  local f, c = fmt.Fmt{}, M._Construct{}
+  local to = args.to and shim.file(args.to) or nil
+  local f, c = fmt.Fmt{to=to}, M._Construct{}
   if args.pkg then fmtPkg(f, c, obj, expand, args.pkg == 'deep')
   else
     if type(obj) == 'string' then
@@ -439,17 +438,10 @@ M.main = function(args)
     local name = (type(obj) == 'string') and obj or nil
     M.fmt(f, c(obj, name, expand))
   end
-  if args.to then
-    to = to.to; to:seek'set'
-    if args.to:match'%.html$' then require'cxt.html'{to, args.to}
-    else
-      local f = io.open(ags.to, 'w')
-      for l in to:lines'L' do f:write(l) end
-      to:close(); f:flush(); f:close()
-    end
+  if to then to:write'\n'; to:flush(); to:close()
   else
-    require'cxt.term'{table.concat(f), out=to}
-    to:write'\n'
+    require'cxt.term'{table.concat(f), out=io.fmt}
+    io.fmt:write'\n'
   end
 end
 getmetatable(M).__call = function(_, args) return M.main(args) end

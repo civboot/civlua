@@ -1,5 +1,6 @@
 .out/
 bin/
+API.html
 **/*src.rock
 **/*.rockspec
 **/*.o

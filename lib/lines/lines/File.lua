@@ -50,7 +50,6 @@ local TRUNC = {w=true, ['w+']=true}
 local modifiedEq = function(a, b)
   local as, ans = a:modified()
   local bs, bns = b:modified()
-  print(('!! modified Eq %s.%s == %s.%s'):format(as, ans, bs, bns))
   return as == bs and ans == bns
 end
 local loadIdx = function(f, path, fmode)
@@ -67,19 +66,17 @@ local loadIdx = function(f, path, fmode)
   return idx
 end
 
-getmetatable(File).__call = function(T, v, mode)
-  mode = mode or 'r'
-  local f, err, path, idx, fstat, xstat
-  print('!! File()', v, mode)
-  if not v then
+getmetatable(File).__call = function(T, path, mode)
+  local f, err, idx, fstat, xstat
+  if not path then
     f, err   = io.tmpfile(); if not f   then return nil, err end
-    idx, err = U3File:create()
-  elseif type(v) == 'string' then
-    print('!! opening', v, mode)
-    f, err = io.open(v, mode); if not f then return nil, err end
-    path, idx, err = v, loadIdx(f, v, mode)
-  end
-  if err then return nil, err end
+    idx, err = U3File:create(); if not idx then return nil, err end
+  elseif type(path) == 'string' then
+    mode = mode or 'r'
+    f, err = io.open(path, mode); if not f then return nil, err end
+    idx, err = loadIdx(f, path, mode)
+    if not idx then return nil, err end
+  else error'invalid path' end
   return construct(T, {f=f, path=path, idx=idx, cache=WeakV{}})
 end
 
