@@ -83,7 +83,7 @@ end
 M.loadMetas = function(paths)
   local lucks = {}
   for _, path in ipairs(paths) do
-    local dat = assert(LFile:load(path))
+    local dat = assert(LFile(path))
     local l = M.loadMeta(dat, path) or {}
     l = M.Luck:fromMeta(l, dat, path)
     if lucks[l.name] then
@@ -127,7 +127,7 @@ end
 
 --- Load a single path which has no dependencies.
 M.load = function(path, env) --> table
-  local dat = assert(LFile:load(path))
+  local dat = assert(LFile(path))
   local meta = M.loadMeta(dat, path)
   assert(not meta or not meta.deps, 'single must have no deps')
   return assert(M.loadraw(dat, env))

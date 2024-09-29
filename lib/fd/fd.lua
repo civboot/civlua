@@ -34,6 +34,7 @@ local MFLAGS = {
   ['w+'] = S.O_RDWR   | S.O_CREAT | S.O_TRUNC,
   ['a+'] = S.O_RDWR   | S.O_CREAT | S.O_APPEND,
 }
+
 local AGAIN_CODE = {
   [S.EWOULDBLOCK] = true, [S.EAGAIN] = true,
 }

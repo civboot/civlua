@@ -46,30 +46,38 @@ File._reindex = function(f, idx, l, pos)
   return pos
 end
 
+local TRUNC = {w=true, ['w+']=true}
 local modifiedEq = function(a, b)
   local as, ans = a:modified()
   local bs, bns = b:modified()
+  print(('!! modified Eq %s.%s == %s.%s'):format(as, ans, bs, bns))
   return as == bs and ans == bns
+end
+local loadIdx = function(f, path, fmode)
+  local idxpath, stat = pth.concat{File.IDX_DIR, path}, nil
+  local fstat, xstat = assert(ix.stat(fd.fileno(f)))
+  if TRUNC[fmode] then goto createnew end
+  xstat = ix.stat(idxpath)
+  if xstat and modifiedEq(fstat, xstat) then return U3File:load(idxpath) end
+  ::createnew::
+  ix.mkDirs(pth.last(idxpath))
+  local idx, err = U3File:create(idxpath); if not idx then return nil, err end
+  File._reindex(f, idx)
+  ix.setmodified(fd.fileno(idx.f), fstat:modified())
+  return idx
 end
 
 getmetatable(File).__call = function(T, v, mode)
+  mode = mode or 'r'
   local f, err, path, idx, fstat, xstat
+  print('!! File()', v, mode)
   if not v then
-    f, err = io.tmpfile();      if not f   then return nil, err end
-    idx, err = U3File:create(); if not idx then return nil, err end
+    f, err   = io.tmpfile(); if not f   then return nil, err end
+    idx, err = U3File:create()
   elseif type(v) == 'string' then
     print('!! opening', v, mode)
     f, err = io.open(v, mode); if not f then return nil, err end
-    path = v
-    local idxpath = pth.concat{File.IDX_DIR, path}
-    fstat, xstat = ix.stat(fd.fileno(f)), ix.stat(idxpath)
-    if not (xstat and modifiedEq(fstat, xstat)) then
-      ix.mkDirs(pth.last(idxpath))
-      idx, err = U3File:create(idxpath)
-      if not idx then return nil, err end
-      File._reindex(f, idx)
-      ix.setmodified(fd.fileno(idx.f), fstat:modified())
-    else idx, err = U3File:load(idxpath) end
+    path, idx, err = v, loadIdx(f, v, mode)
   end
   if err then return nil, err end
   return construct(T, {f=f, path=path, idx=idx, cache=WeakV{}})

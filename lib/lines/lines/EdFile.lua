@@ -26,7 +26,7 @@ local extend, inset, clear = ds.extend, ds.inset, ds.clear
 local move, EMPTY = table.move, {}
 
 getmetatable(EdFile).__call = function(T, v, mode)
-  local lf, err = File(v, mode or 'w+'); if not lf then return nil, err end
+  local lf, err = File(v, mode or 'a+'); if not lf then return nil, err end
   return construct(T, {
     lf=lf, dats={Slc{si=1, ei=#lf}}, lens={},
   })

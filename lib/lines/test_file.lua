@@ -182,7 +182,7 @@ test('EdIter', function()
 end)
 
 test('EdFile.write', function()
-  local ed = EdFile(TXT)
+  local ed = EdFile(TXT, 'w+')
   ed:write'one\nthree\nfive'
   ed:flush()
   assertEq(3, #ed)
@@ -221,7 +221,7 @@ test('EdFile.write', function()
 end)
 
 test('EdFile.big', function()
-  local ed = EdFile(TXT)
+  local ed = EdFile(TXT, 'w+')
   for i=1,100 do push(ed, 'line '..i) end
   assertEq(100, #ed)
 
@@ -241,7 +241,8 @@ test('EdFile.big', function()
 end)
 
 local function newEdFile(text, ...)
-  local ed = EdFile(...)
+  print('!! newEdFile', ...)
+  local ed = EdFile()
   if type(text) == 'string' then ed:write(text)
   else ds.extend(ed, text) end
   ed:flush()
