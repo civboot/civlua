@@ -91,7 +91,7 @@ M.loadpkg = function(dir, name) --> (PKG, pkgpath)
   if pkg.name:find'%.' then
     error("pkg name cannot contain '.': "..pkg.name)
   end
-  pkg.PKG_DIR = path; pkg.dir = path
+  pkg.PKG_DIR = dir; pkg.dir = dir
   return pkg, path
 end
 

@@ -1,3 +1,5 @@
+local G = G or _G
+
 local ERROR = [[
 doc module requires global `mod` function/class, such as one of:
 
@@ -231,7 +233,6 @@ M['string.rep'] = string.rep-- rep(str, n, sep) -> string
 --- assertEq(string.pack('>i2i2', 0x1234, 0x5678) == '\x12\x34\x56\x78')]
 --- ]##
 M['string.pack'] = string.pack--(strtys, ...values) -> string
-
 
 --- See [@string.pack] for the fmt
 M['string.unpack'] = string.unpack--(strtys, str) -> ...
@@ -494,7 +495,9 @@ M['nil'] = M.keyword()
 
 -- store items in this module in PKG_* variables
 for k, obj in pairs(M) do
-  local name = PKG_NAMES[obj]; if name then
+  local name = PKG_NAMES[obj]
+  print('!! rename', k, name)
+  if name then
     local newname = name:sub(9) -- remove "doc.lua."
     PKG_NAMES[obj] = newname
     PKG_LOOKUP[name] = nil; PKG_LOOKUP[newname] = obj

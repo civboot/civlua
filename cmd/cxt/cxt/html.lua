@@ -2,6 +2,7 @@
 local M = mod and mod'cxt.html' or setmetatable({}, {})
 MAIN = MAIN or M
 
+local pkglib = require'pkglib'
 local mty  = require'metaty'
 local pegl = require'pegl'
 local cxt  = require'cxt'
@@ -25,17 +26,18 @@ ul { margin-top: 0.1em; margin-bottom: 0.5em; }
 li { margin-top: 0.1em; margin-bottom: 0.0em; }
 blockquote {
   border: 1px solid #999;  border-radius: 0.1em;
-  padding: 5px;            background-color: mintcream;
+  padding: 2px;            background-color: mintcream;
 }
 code {
   background-color: whitesmoke;
   border: 1px solid #999;  border-radius: 0.3em;
   font-family: Monaco, monospace;
+  font-size: 14px;
   padding: 0px;
   white-space: pre
 }
 .block {
-  margin-top: 0.5em;
+  margin-top: 0.1em;
   background-color: snow;  display: block;
   padding: 5px;
 }
@@ -44,8 +46,8 @@ table, th, td {
     text-align: left;
     border-collapse: collapse;
     border: 1px solid grey;
-    margin: 0.5em 0.5em;
-    padding: 12px 15px;
+    margin: 0.05em 0.05em;
+    padding: 3px 5px;
 }
 table { min-width: 400px;         }
 th    { background-color: LightCyan; }
@@ -60,7 +62,7 @@ local function nodeKind(n)
   if n.br                    then return 'br'    end
 end
 
-local preNameAttrs = {'h1', 'h2', 'h3'}
+local preNameAttrs = {'h1', 'h2', 'h3', 'h4', 'h5'}
 local fmtAttrs = {'quote', 'b', 'i', 'u'}
 local cxtRename = {quote='blockquote', name='id'}
 
@@ -83,7 +85,15 @@ local function startFmt(w, n, kind, line)
     push(line, sfmt('<a id="%s" href="#%s">%s</a>', n.name, n.name, NAME_SYM))
   end
   if n.href then
-    push(line, '<a '); addAttr(line, 'href', n.href); push(line, '>')
+    push(line, '<a ')
+    if n.id then addAttr(line, 'id', n.id) end
+    addAttr(line, 'href', n.href)
+    push(line, '>')
+  elseif n.id then
+    push(line, '<div '); addAttr(line, 'id', n.id); push(line, '>')
+  end
+  if n.path then
+    push(line, '<a '); addAttr(line, 'href', w.config.pathUrl(n.path)); push(line, '>')
   end
   for _, f in ipairs(fmtAttrs) do
     if n[f] then push(line, '<'..(cxtRename[f] or f)..'>') end
@@ -97,6 +107,7 @@ local function endFmt(n, line)
     if n[f] then push(line, '</'..(cxtRename[f] or f)..'>') end
   end
   if n.href then push(line, '</a>') end
+  if n.path then push(line, '</a>') end
 end
 local function startNode(n, kind, line)
   if kind then
@@ -190,10 +201,11 @@ M.serializeDoc = function(w, node, head)
   addLine(w, {'</body></html>'})
 end
 
-M.convert = function(dat, to, head)
+M.convert = function(dat, to, config)
   local node, p = cxt.parse(dat)
   local w = cxt.Writer:fromParser(p, to)
-  M.serializeDoc(w, node, head)
+  w.config = config or cxt.Config{}
+  M.serializeDoc(w, node, w.config.header)
   return w.to, p, w
 end
 
@@ -213,7 +225,10 @@ M.main = function(args)
   print('cxt.html', args[1], '-->', args[2])
   local inp = LFile(args[1])
   local to  = LFile(args[2], 'w+')
-  M.convert(inp, to)
+  if args.config then
+    args.config = cxt.Config(pkglib.load('CxtConfig', args.config).html)
+  end
+  M.convert(inp, to, args.config)
   inp:close(); to:flush(); to:close()
   return 0
 end

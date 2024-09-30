@@ -437,6 +437,11 @@ end
 M.fmtAttr = fmtAttr
 M.htmlFmt  = ds.Set{'b', 'i', 'u'}
 
+M.Config = mty'Config' {
+  'header [string]: typically used for html header',
+  'pathUrl [function(path) -> url]', pathUrl=ds.iden,
+}
+
 --- A Writer for cxt serializers (terminal, http, etc) to use.
 ---
 --- The writer contains: [+
@@ -447,6 +452,7 @@ M.Writer = mty'Writer' {
   'src', 'to',
   'indent[int]',
   'style [string]: see asciicolor.style',
+  'config [Config]', config=M.Config{}
 }
 M.Writer.fromParser = function(ty_, p, to)
   return ty_{src=p.dat, to=to or {}, indent=0}

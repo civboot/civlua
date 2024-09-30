@@ -205,7 +205,7 @@ M._Construct.pkg = function(c, pkg, expand) --> Doc
     homepage = pkg.homepage,
   }
   if pkg.doc then
-    d.comments = lines.load(pth.concat{pkg.dir, pkg.doc})
+    d.comments = assert(lines.load(pth.concat{pkg.dir, pkg.doc}))
   end
   if pkg.main then
     local m = fmt.assertf(
@@ -302,7 +302,7 @@ end
 M.fmtDocItem = function(f, di)
   local name = di.name and sfmt('[$%s]', escape(di.name or '(unnamed)'))
   local ty = di.ty and sfmt('\\[%s\\]', escape(di.ty)) or ''
-  local path = di.path and sfmt('[/%s]', escape(pth.nice(di.path)))
+  local path = di.path and sfmt('([{path=%s}src])', escape(pth.nice(di.path)))
   local default = di.default and ('= '..cxt.code(fmt(di.default)))
   if path and default then path = '\n'..path end
   path, default = path or '', default or ''
@@ -354,9 +354,10 @@ M.fmtMeta = function(f, m)
 end
 
 M.fmtDoc = function(f, d)
-  local path = d.path and sfmt(' [/%s]', escape(pth.nice(d.path))) or ''
+  local path = d.path and sfmt(' ([{path=%s}src])', escape(pth.nice(d.path))) or ''
   local name = d.pkgname or d.name
-  local hname = name and sfmt('[:%s]', name) or '(unnamed)'
+  local hname = name and sfmt('[{id=%s href=#%s}%s]', name, name, name)
+             or '(unnamed)'
   if type(d.obj) == 'function' then
     local s, r; if d.code and d.code[1] then -- s=sig, r=result
                     s, r = d.code[1]:match'(%b()).*%-%->%s*(.*)'

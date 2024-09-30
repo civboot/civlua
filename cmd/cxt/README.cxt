@@ -66,8 +66,8 @@ The following attributes and shortcuts are supported
   href    hyper reference, aka a url.
   <href>
 
-   /      a path, typically relative to project or website root.
-          Example: [/path/to/file.lua]
+   path   a path, typically relative to project or website root.
+    /     Example: [/path/to/file.lua]
 
   name    sets the name of the block.
    n      Used with: [@name]  href=#name  anyAttr=@name

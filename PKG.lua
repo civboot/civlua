@@ -32,3 +32,20 @@ pkgs = {
   'cmd/pkgrock',
   'cmd/ele',
 }
+
+local FILE = 'https://github.com/civboot/civlua/blob/main/'
+local FILE_LINE = FILE..'%s#L%s'
+local RENDERED = 'https://htmlpreview.github.io/'
+               ..'?https://github.com/civboot/civlua/main/'
+local EXT_PAT = '%.(%w+)$'
+local USE_RENDERED = {html='html', cxt='html'}
+
+html = {
+  pathUrl = function(p)
+    if USE_RENDERED[p:match(EXT_PAT)] then return p:gsub(EXT_PAT, USE_RENDERED) end
+    if p:match':(%d+)$' then
+      return FILE_LINE:format(p:match'^(.*):(%d+)$')
+    end
+    return FILE..p
+  end,
+}
