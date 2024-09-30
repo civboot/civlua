@@ -111,13 +111,14 @@ end
 local setFields = function(d, t)
   d.fields = rawget(d.obj, '__fields'); if not d.fields then return end
   d.fields = ds.copy(d.fields)
+  local npre = d.name..'.'
   local fdocs = rawget(d.obj, '__docs') or {}
   for i, field in ipairs(d.fields) do
     t[field] = nil
     local ty = d.fields[field]
     ty = type(ty) == 'string' and M.cleanFieldTy(ty) or nil
     d.fields[field] = M.DocItem {
-      name=field, ty=ty, default=rawget(d.obj, field),
+      name=npre..field, ty=ty, default=rawget(d.obj, field),
       docTy = 'Field',
       doc = fdocs[field] and cxt.checkParse(fdocs[field], field),
     }
@@ -161,13 +162,16 @@ M._Construct.__call = function(c, obj, key, expand, lvl) --> Doc | DocItem
   setFields(d, t)
 
   -- get other buckets
-  d.fns, d.tys, d.mods = {}, {}, {}
+  local kpre = d.name..'.'
+  d.fns, d.tys, d.mods, d.values = {}, {}, {}, {}
   for k, v in pairs(t) do
+    local key = kpre..k
     if type(v) == 'function' then
-      if PKG_NAMES[v] then d.fns[k] = v; t[k] = nil end
+      if PKG_NAMES[v] then d.fns[key] = v; t[k] = nil end
       -- else keep as "value"
-    elseif pkglib.isMod(v)  then d.mods[k]   = v; t[k] = nil
-    elseif mty.isRecord(v)  then d.tys[k]    = v; t[k] = nil
+    elseif pkglib.isMod(v)  then d.mods[key]   = v; t[k] = nil
+    elseif mty.isRecord(v)  then d.tys[key]    = v; t[k] = nil
+    else                         d.values[key] = v
     end
   end
 
@@ -178,7 +182,6 @@ M._Construct.__call = function(c, obj, key, expand, lvl) --> Doc | DocItem
       t[k] = c(t[k], k, expand - 1, lvl)
     end
   end
-  d.values = t
   if d.fields and #d.fields == 0 then d.fields = nil end
   finish'values'; finish'tys'; finish'mods'
   finish('fns', (d.docTy == 'Record' or d.docTy == 'Table') and 1 or nil)
@@ -195,7 +198,7 @@ end
 
 M._Construct.pkg = function(c, pkg, expand) --> Doc
   local d = M.Doc{
-    docTy = 'Package', name = pkg.name, path = pkg.dir,
+    docTy = 'Package', name = pkg.name..'.PKG', path = pkg.dir,
   }
   d.meta = {
     summary = pkg.summary, version = pkg.version,
@@ -353,17 +356,24 @@ end
 M.fmtDoc = function(f, d)
   local path = d.path and sfmt(' [/%s]', escape(pth.nice(d.path))) or ''
   local name = d.pkgname or d.name
-  pushfmt(f, '[{h%s}%s [{style=api}%s]%s]',
+  local hname = name and sfmt('[:%s]', name) or '(unnamed)'
+  if type(d.obj) == 'function' then
+    local s, r; if d.code and d.code[1] then -- s=sig, r=result
+                    s, r = d.code[1]:match'(%b()).*%-%->%s*(.*)'
+      if not s then s, r = d.code[1]:match'(%b{}).*%-%->%s*(.*)' end
+      if not s then
+        s, r = d.code[1]:match'function(%b()).*return%s*(.-)%s*end'
+      end
+      if s and (not r or #r == 0) then r = 'nil' end
+    end
+    hname = hname..cxt.code((s or '(...)')..(r and sfmt(' -> %s', r) or ''))
+  end
+  pushfmt(f, '[{h%s}%s %s%s]',
           M.docHeader(d.docTy, d.lvl),
           escape(assert(d.docTy)),
           (d.docTy == 'Command') and COMMAND_NAME
-          or d.pkgname or d.name or '(unnamed)',
-          path)
+          or hname, path)
   if d.meta then M.fmtMeta(f, d.meta) end
-  if type(d.obj) == 'function' and d.code and d.code[1] then
-    local sig = d.code[1]:match'function.-(%(.-%).*)'
-    if sig then push(f, '\nSignature: '); pushfmt(f, '[$%s]', sig) end
-  end
   if d.comments then
     for i, l in ipairs(d.comments) do
       push(f, '\n'); push(f, l)

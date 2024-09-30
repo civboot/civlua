@@ -212,8 +212,8 @@ M.bindall = function(b, map)
 end
 
 -- Modes
-M.insert  = mod and mod'ele.insert' or {}
-M.command = mod and mod'ele.command' or {}
+M.insert  = {}
+M.command = {}
 
 
 -- Navigation

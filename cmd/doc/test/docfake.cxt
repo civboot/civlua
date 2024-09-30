@@ -1,35 +1,32 @@
-[{h2}Module [{style=api}docfake] [/cmd/doc/test/docfake.lua:000]]
+[{h2}Module [:docfake] [/cmd/doc/test/docfake.lua:000]]
 fake lua module for testing doc.
 
 module documentation.
 
 [*Values: ] [{table}
-+ [$CONSTANT]      | \[number\] 
-+ [$NODOC]         | \[table\] [/cmd/doc/test/docfake.lua:000]
-+ [$__name]        | \[string\] 
++ [$docfake.CONSTANT] | \[number\] 
++ [$docfake.NODOC] | \[table\] [/cmd/doc/test/docfake.lua:000]
++ [$docfake.__name] | \[string\] 
 ]
-[{h3}Record [{style=api}docfake.A] [/cmd/doc/test/docfake.lua:000]]
+[{h3}Record [:docfake.A] [/cmd/doc/test/docfake.lua:000]]
 Documentation for A
 
 [*Fields: ] [{table}
-+ [$a1]            | \[string\] 
++ [$docfake.A.a1]  | \[string\] 
   a1 docs
   are the best docs
 ]
 [*Values: ] [{table}
-+ [$__docs]        | \[table\] 
-+ [$__fields]      | \[table\] 
-+ [$__name]        | \[string\] 
++ [$docfake.A.__docs] | \[table\] 
++ [$docfake.A.__fields] | \[table\] 
++ [$docfake.A.__name] | \[string\] 
 ]
 [*Records: ] [{table}
-+ [$__index]       | \[Ty<A>\] [/cmd/doc/test/docfake.lua:000]
++ [$docfake.A.__index] | \[Ty<A>\] [/cmd/doc/test/docfake.lua:000]
 ]
-[{h4}Function [{style=api}metaty.newindex] [/lib/metaty/metaty.lua:000]]
-Signature: [$(r, k, v)]
-[{h4}Function [{style=api}A.meth1] [/cmd/doc/test/docfake.lua:000]]
-Signature: [$() end --> thing]
+[{h4}Function [:metaty.newindex][$(...)] [/lib/metaty/metaty.lua:000]]
+[{h4}Function [:A.meth1][$() -> thing] [/cmd/doc/test/docfake.lua:000]]
 docs for meth1
-[{h3}Function [{style=api}docfake.fun1] [/cmd/doc/test/docfake.lua:000]]
-Signature: [$() end --> thing]
+[{h3}Function [:docfake.fun1][$() -> thing] [/cmd/doc/test/docfake.lua:000]]
 this is a function.
 it has documentation.

@@ -16,7 +16,7 @@ local testing = require'lines.testing'
 
 local test, assertEq, assertMatch, assertErrorPat; M.auto'civtest'
 
-local min, max, bound, isWithin, sort2, decAbs
+local bound, isWithin, sort2, decAbs
 local indexOf, copy, deepcopy
 local trim
 local extend, clear, replace, merge
@@ -123,8 +123,6 @@ end)
 test("number", function()
   assert(0, decAbs(1)); assert(0, decAbs(-1))
 
-  assert(1 == min(1, 3)); assert(-1 == min(1, -1))
-  assert(3 == max(1, 3)); assert(1  == max(1, -1))
   assert(1 == bound(0, 1, 5))
   assert(1 == bound(-1, 1, 5))
   assert(3 == bound(3, 1, 5))
@@ -156,10 +154,6 @@ four
   assertEq('  a b c', M.trimEnd'  a b c\n  ')
 
   assertEq(' a bc d e ', M.squash'  a   bc \td\te ')
-
-  assertEq([['hello']], M.q1str[[hello]])
-  assertEq([['\'hello\'']], M.q1str[['hello']])
-  assertEq([['"hello"']], M.q1str[["hello"]])
 
   local u8 = "high🫸 five 🫷!"
   -- test utf8.offset itself

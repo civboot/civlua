@@ -21,18 +21,16 @@ M.PlainStyler = mty'PlainStyler' {}
 -- DS psudo-metaevents
 -- these use new "metaevent" (similar to __len) that tables can override
 
-
-
--- if t is a table returns t.__name or '?'
-M.name = function(t)
+--- if t is a table returns t.__name or '?'
+M.name = function(t) --> string
   if not type(t) == 'table' then return end
   local mt = getmetatable(t)
 end
 
--- insert values into list at i.
--- Uses __inset "metamethod" if available.
--- rmlen, if provided, will cause t[i:i+rmlen] to be removed first
-M.inset = function(t, i, values, rmlen)
+--- insert values into list at i.
+--- Uses [$__inset] metamethod if available.
+--- rmlen, if provided, will cause [$t[i:i+rmlen]] to be removed first
+M.inset = function(t, i, values, rmlen) --> removed?
   local meth = getmethod(t, '__inset')
   if meth then return meth(t, i, values, rmlen) end
   -- impl notes, there are two modes:
@@ -57,7 +55,7 @@ end
 local CONCRETE_TYPES = {
   ['nil']=true, boolean=true, number=true, string=true
 }
--- return whether the value is concrete (nil, boolean, number, string)
+--- return whether the value is concrete (nil, boolean, number, string)
 M.isConcrete = function(v) return CONCRETE_TYPES[type(v)] end
 
 -- return true if the value is "plain old data".
@@ -106,7 +104,7 @@ M.srcdir = function(level) --> "/path/to/dir/"
   return M.srcloc(1 + (level or 0)):match'^(.*/)[^/]+$'
 end
 
-M.coroutineErrorMessage = function(cor, err)
+M.coroutineErrorMessage = function(cor, err) --> string
   return concat{
     'Coroutine error: ', debug.stacktraceback(cor, err), '\n',
     'Coroutine failed!',
@@ -115,30 +113,27 @@ end
 
 ---------------------
 -- Order checking functions
-M.isWithin = function(v, min, max)
+M.isWithin = function(v, min, max) --> bool
   local out = (min <= v) and (v <= max)
   return out
 end
-M.min = math.min -- TODO: remove these
-M.max = math.max
 M.lt  = function(a, b) return a < b end
 M.gt  = function(a, b) return a > b end
 M.lte = function(a, b) return a <= b end
-M.bound = function(v, min, max)
+local lte = M.lte
+M.bound = function(v, min, max) --> value within [min,max]
   return ((v>max) and max) or ((v<min) and min) or v
 end
-M.sort2 = function(a, b)
+M.sort2 = function(a, b) --> (small, large)
   if a <= b then return a, b end; return b, a
 end
 M.repr = function(v) return sfmt('%q', v) end
 
-local lte = M.lte
-
 ---------------------
 -- Number Functions
-M.isEven = function(a) return a % 2 == 0 end
-M.isOdd  = function(a) return a % 2 == 1 end
-M.decAbs = function(v)
+M.isEven = function(a) return a % 2 == 0 end --> bool
+M.isOdd  = function(a) return a % 2 == 1 end --> bool
+M.decAbs = function(v) --> number
   if v == 0 then return 0 end
   return ((v > 0) and v - 1) or v + 1
 end
@@ -146,20 +141,20 @@ end
 ---------------------
 -- String Functions
 
--- return the string if it is only uppercase letters
+--- return the string if it is only uppercase letters
 M.isupper = function(c) return c:match'^%u+$' end --> string?
 
--- return the string if it is only lowercase letters
+--- return the string if it is only lowercase letters
 M.islower = function(c) return c:match'^%l+$' end --> string?
 
-M.trim = function(subj, pat, index)
+M.trim = function(subj, pat, index) --> string
   pat = pat and ('^'..pat..'*(.-)'..pat..'*$') or '^%s*(.-)%s*$'
   return subj:match(pat, index)
 end
 
 --- find any of a list of patterns. Return the match [$start, end] as well as
 --- the [$index, pat] of the pattern matched.
-M.find = function(subj, pats, si, plain) --> ms, me, pi, pat
+M.find = function(subj, pats, si, plain) --> (ms, me, pi, pat)
   si = si or 1
   for pi, p in ipairs(pats) do
     local ms, me = sfind(subj, p, si, plain)
@@ -167,28 +162,23 @@ M.find = function(subj, pats, si, plain) --> ms, me, pi, pat
   end
 end
 
--- split strings
+--- split strings
 M.split = mty.split         --(s, sep) --> strIter
-M.splitList = function(...) --(s, sep) --> strList
+M.splitList = function(...) --(s, sep) --> list
   local t = {}; for _, v in mty.split(...) do push(t, v) end
   return t
 end
 
-M.q1str = function(s)
-  return "'"..sfmt("%q", s):sub(2, -2)
-    :gsub("'", "\\'"):gsub('\\"', '"').."'"
-end
-
--- trim the end of the string by removing pat (default='%s')
-M.trimEnd = function(subj, pat, index)
+--- trim the end of the string by removing pat (default='%s')
+M.trimEnd = function(subj, pat, index) --> string
   pat = pat and ('^(.-)'..pat..'*$') or '^(.-)%s*$'
   return subj:match(pat, index)
 end
 
--- Squash a string: convert all whitespace to repl (default=' ').
-M.squash = function(s, repl) return s:gsub('%s+', repl or ' ') end
+--- Squash a string: convert all whitespace to repl (default=' ').
+M.squash = function(s, repl) return s:gsub('%s+', repl or ' ') end --> string
 
--- utf8 sub. If len is pre-computed you can pass it in for better performance.
+--- utf8 sub. If len is pre-computed you can pass it in for better performance.
 M.usub = function(s, si, ei, len)
   ei = ei or -1
   if si < 0 then len = len or ulen(s); si = len + si + 1 end
@@ -202,18 +192,19 @@ M.usub = function(s, si, ei, len)
   return s:sub(so, eo and (eo - 1) or nil)
 end
 
--- A way to declare simpler mulitline strings which:
--- 1. ignores the first/last newline if empty
--- 2. removes leading whitespace equal to the first
---    line (or second line if first line has no indent)
---
--- Example:
---   local s = require'ds'.simplestr
---   local mystr = s[[
---     this is
---       a string.
---   ]]
---   assertEq('this is\n  a string.', mystr)
+--- A way to declare simpler mulitline strings which: [+
+--- * ignores the first/last newline if empty
+--- * removes leading whitespace equal to the first
+---   line (or second line if first line has no indent)
+--- ]
+--- Example: [{## lang=lua}
+--- local s = require'ds'.simplestr
+--- local mystr = s[[
+---   this is
+---     a string.
+--- ]]
+--- assertEq('this is\n  a string.', mystr)
+--- ]##
 M.simplestr = function(s)
   local i, out, iden, spcs = 1, {}, nil
   for _, line in M.split(s, '\n') do
@@ -235,58 +226,59 @@ end
 -- Table Functions
 M.isEmpty = function(t) return t == nil or next(t) == nil end
 
--- push the fmt:format(...) to the table
---
--- Example: [$pushfmt(t, 'a=%s b=%s', a, b)]
+--- push the [$fmt:format(...)] to the table
+---
+--- Example: [$pushfmt(t, 'a=%s b=%s', a, b)]
 M.pushfmt = function(t, fmt, ...) push(t, sfmt(fmt, ...)) end
 local pushfmt = M.pushfmt
 
--- the full length of all pairs
--- WARNING: very slow, requires iterating the whole table.
-M.pairlen = function(t)
+--- the full length of all pairs
+--- ["WARNING: very slow, requires iterating the whole table]
+M.pairlen = function(t) --> int
   local l = 0; for _ in pairs(t) do l = l + 1 end; return l
 end
 
--- sort table and return it.
--- Eventually this may use the __sort metamethod
+--- sort table and return it.
+--- Eventually this may use the [$__sort] metamethod
 M.sort = function(t, fn) sort(t, fn); return t end --> t
 
--- get index, handling negatives
-M.geti = function(t, i)
+--- get index, handling negatives
+M.geti = function(t, i) --> t[i]
   return (i >= 0) and t[i] or t[#t + i + 1]
 end
 M.last = function(t) return t[#t] end
 
--- get the first (and assert only) element of the list
-M.only = function(t)
+--- get the first (and assert only) element of the list
+M.only = function(t) --> t[1]
   local l = #t; fmt.assertf(l == 1, 'not only: len=%s', l)
   return t[1]
 end
 
--- get only the values of pairs(t) as a list
-M.values = function(t)
+--- get only the values of pairs(t) as a list
+M.values = function(t) --> list
   local vals = {}; for _, v in pairs(t) do push(vals, v) end
   return vals
 end
 
 -- get only the keys of pairs(t) as a list
-M.keys = function(t)
+M.keys = function(t) --> list
   local keys = {}; for k in pairs(t) do push(keys, k) end
   return keys
 end
 
-M.inext = ipairs{} -- next(t, key) but with indexes
+--- next(t, key) but with indexes
+M.inext = ipairs{} --(t, i) --> (i+1, v)
 local inext = M.inext
 
--- inext but reversed.
-M.iprev = function(t, i)
+--- inext but reversed.
+M.iprev = function(t, i) --> (t, i) --> (i-1, v)
   if i > 1 then return i - 1, t[i - 1] end
 end
 
--- ipairs reversed
-M.ireverse = function(t) return M.iprev, t, #t + 1 end
+--- ipairs reversed
+M.ireverse = function(t) return M.iprev, t, #t + 1 end --> iter
 
-M.rawislice = function(state, i)
+M.rawislice = function(state, i) --> (i+1, v)
   i = i + 1; if i > state[2] then return end
   return i, state[1][i]
 end
@@ -294,43 +286,30 @@ end
 -- islice(t, starti, endi=#t): iterate over slice.
 --   Unlike other i* functions, this ignores length
 --   except as the default value of endi
-M.islice = function(t, starti, endi)
+M.islice = function(t, starti, endi) --> iter[starti:endi]
   if endi then
     return M.rawislice, {t, endi}, (starti or 1) - 1
   end
   return inext, t, (starti or 1) - 1
 end
 
-M.slice = function(t, starti, endi) --> t[starti:endi]
+M.slice = function(t, starti, endi) --> list[starti:endi]
   local sl = {}
   for i=starti or 1,endi or #t do push(sl, t[i]) end
   return sl
 end
 
--- iend(t, starti, endi=-1): get islice from the end.
---   starti and endi must be negative.
---
--- Example:
---   iend({1, 2, 3, 4, 5}, -3, -2) -> 3, 4
-M.ilast = function(t, starti, endi)
+--- iend(t, starti, endi=-1): get islice from the end.
+---   starti and endi must be negative.
+---
+--- Example: [$iend({1, 2, 3, 4, 5}, -3, -2) -> 3, 4]
+M.ilast = function(t, starti, endi) --> iter[starti:endi]
   local len = #t; endi = endi and min(len, len + endi + 1) or len
   return M.rawislice, {t, endi}, min(len - 1, len + starti)
 end
 
--- convert (_, v) iterator into a table by pushing
-M.itable = function(it)
-  local o = {}; for _, v in unpack(it) do push(o, v) end;
-  return o
-end
-
--- convert (k, v) iterator into a table by setting
-M.kvtable = (function(it)
-  local o = {}; for k, v in unpack(it) do o[k] = v end;
-  return o
-end)
-
--- reverse a list-like table in-place
-M.reverse = function(t)
+--- reverse a list-like table in-place
+M.reverse = function(t) --> t (reversed)
   local l = #t; for i=1, l/2 do
     t[i], t[l-i+1] = t[l-i+1], t[i]
   end
@@ -344,7 +323,7 @@ M.extend = function(t, l) --> t: move vals to end of t
 end
 
 -- clear(t, startindex=1, len=#t) -> t: set t[si:si+len-1] = nil
-M.clear = function(t, si, len)
+M.clear = function(t, si, len) --> t
   -- TODO: (len or #t) - si + 1
   return move(EMPTY, 1, len or #t, si or 1, t)
 end
@@ -354,33 +333,35 @@ M.add = function(t, ...) --> t
   for i=1,select('#', ...) do t[tend + i] = select(i, ...) end
   return t
 end
--- replace(t, r): make t's index values the same as r's
-M.replace = function(t, r)
+-- make t's index values the same as r's
+M.replace = function(t, r) --> t
   return move(r, 1, max(#t, #r), 1, t)
 end
-M.update = function(t, add)
+--- return t with the key/vals of add inserted
+M.update = function(t, add) --> t
   for k, v in pairs(add) do t[k] = v end; return t
 end
-M.updateKeys = function(t, add, keys)
+--- like update but only for specified keys
+M.updateKeys = function(t, add, keys) --> t
   for _, k in ipairs(keys) do t[k] = add[k] end; return t
 end
-M.orderedKeys = function(t, cmpFn)
+M.orderedKeys = function(t, cmpFn) --> keys
   local keys = {}; for k in pairs(t) do push(keys, k) end
   sort(keys, cmpFn)
   return keys
 end
 --- adds all [$key=index] to the table so the keys can
 --- be iterated using [$for _, k in ipairs(t)]
-M.pushSortedKeys = function(t, cmpFn)
+M.pushSortedKeys = function(t, cmpFn) --> t
   local keys = M.orderedKeys(t, cmpFn)
   for i, k in ipairs(keys) do t[i] = k end
   return t
 end
 
--- recursively update t with add. This will call update on inner tables as
--- well.
--- Note: treats list indexes as normal keys (does not append)
-M.merge = function(t, add)
+--- recursively update t with add. This will call update on inner tables as
+--- well.
+--- ["Note: treats list indexes as normal keys (does not append)]
+M.merge = function(t, add) --> t
   for k, v in pairs(add) do
     local ex = t[k] -- existing
     if type(ex) == 'table' and type(v) == 'table' then
@@ -395,18 +376,18 @@ M.popk = function(t, key) --> t[k]: pop key
 end
 
 --- return len items from the end of [$t], removing them from [$t]
-M.drain = function(t, len--[[#t]]) --> drained
+M.drain = function(t, len--[[#t]]) --> table
   local out = {}; for i=1, min(#t, len) do push(out, pop(t)) end
   return M.reverse(out)
 end
 
-M.getOrSet = function(t, k, newFn)
+M.getOrSet = function(t, k, newFn) --> t[k] or newFn()
   local v = t[k]; if v ~= nil then return v end
   v = newFn(t, k); t[k] = v
   return v
 end
 
-M.setIfNil = function(t, k, v)
+M.setIfNil = function(t, k, v) --> nil
   if t[k] == nil then t[k] = v end
 end
 M.emptyTable = function() return {} end
@@ -448,7 +429,7 @@ M.get = function(t, path) --> value? at path
   return t
 end
 
--- same as ds.get but uses [$rawget].
+--- same as ds.get but uses [$rawget]
 M.rawget = function(t, path) --> value? at path
   for _, k in ipairs(path) do
     t = rawget(t, k); if t == nil then return nil end
@@ -459,22 +440,22 @@ end
 --- set the value at path using newFn (default=ds.newTable) to create
 --- missing intermediate tables.
 --- [{## lang=lua}
----   set(t, dotpath'a.b.c', 2) -> t.a?.b?.c = 2
+--- set(t, dotpath'a.b.c', 2) -- t.a?.b?.c = 2
 --- ]##
-M.set = function(d, path, value, newFn)
+M.set = function(d, path, value, newFn) --> nil
   newFn = newFn or M.emptyTable
   local len = #path; assert(len > 0, 'empty path')
   for i=1,len-1 do d = M.getOrSet(d, path[i], newFn) end
   d[path[len]] = value
 end
 
-M.indexOf = function(t, find)
+M.indexOf = function(t, find) --> int
   for i, v in ipairs(t) do
     if v == find then return i end
   end
 end
 
-M.indexOfPat = function(strs, pat)
+M.indexOfPat = function(strs, pat) --> int
   for i, s in ipairs(strs) do if s:find(pat) then return i end end
 end
 
@@ -495,7 +476,7 @@ end
 ---
 --- If tableFn [$stop==ds.SKIP] (i.e. 'skip') then that table is not recursed.
 --- Else if stop then the walk is halted immediately
-M.walk = function(t, fieldFn, tableFn, maxDepth, state)
+M.walk = function(t, fieldFn, tableFn, maxDepth, state) --> nil
   if maxDepth then
     maxDepth = maxDepth - 1; if maxDepth < 0 then return end
   end
@@ -528,7 +509,7 @@ M.copy = function(t, update) --> new t
   return setmetatable(out, getmetatable(t))
 end
 
-M.deepcopy = function(t)
+M.deepcopy = function(t) --> table
   local out = {}; for k, v in pairs(t) do
     if 'table' == type(v) then v = M.deepcopy(v) end
     out[k] = v
@@ -538,13 +519,13 @@ end
 
 ---------------------
 -- File Functions
-M.readPath = function(path)
+M.readPath = function(path) --> ok
   local f, err = assert(io.open(path))
   local out = f:read('a'); f:close()
   return out
 end
 
-M.writePath = function(path, text)
+M.writePath = function(path, text) --> ok
   local f = fmt.assertf(io.open(path, 'w'), 'invalid %s', path)
   local out = f:write(text); f:close()
   return out
@@ -559,7 +540,7 @@ end
 
 --- Read data from fdFrom and write to fdTo, then flush.
 --- [" memonic: fdTo = fdFrom]
-M.fdMv = function(fdTo, fdFrom)
+M.fdMv = function(fdTo, fdFrom) --> (fdTo, fdFrom)
   while true do
     local d = fdFrom:read(4096); if not d then break end
     fdTo:write(d)
@@ -571,8 +552,7 @@ end
 -- Source Code Functions
 
 --- convert lines-like table into chunk for eval
-M.lineschunk =
-(function(dat)
+M.lineschunk = function(dat) --> iter()
   local i = 1
   return function() -- alternates between next line and newline
     local o = '\n'; if i < 0 then i = 1 - i
@@ -580,9 +560,10 @@ M.lineschunk =
     if o == '' then assert(i < 0); o = '\n'; i = 1 - i end
     return o
   end
-end)
+end
 
-M.eval = function(chunk, env, name) -- Note: not typed
+--- evaluate lua code
+M.eval = function(chunk, env, name) --> (ok, ...)
   assert(type(env) == 'table')
   if not name then
     local i = debug.getinfo(3)
@@ -637,7 +618,7 @@ M.Slc = mty'Slc' {
   'ei [int]: end index',
 }
 local Slc = M.Slc
-M.Slc.__len = function(s) return s.ei - s.si + 1 end
+M.Slc.__len = function(s) return s.ei - s.si + 1 end --> #s
 
 --- return either a single (new) merged or two sorted Slcs.
 M.Slc.merge  = function(a, b) --> first, second?
@@ -646,7 +627,7 @@ M.Slc.merge  = function(a, b) --> first, second?
   return Slc{si=a.si, ei=max(a.ei, b.ei)}
 end
 
-M.Slc.__tostring = function(s)
+M.Slc.__tostring = function(s) --> string
   return sfmt('Slc[%s:%s]', s.si, s.ei)
 end
 
@@ -660,7 +641,7 @@ local _si=function() error('invalid operation on sentinel', 2) end
 --- Sentinels are "single values" commonly used for things like: none, empty, EOF, etc.
 --- They have most metatable methods disallowed and are immutable down. Methods can
 --- only be set by the provided metatable value.
-M.sentinel = function(name, mt)
+M.sentinel = function(name, mt) --> NewType
   mt = M.update({
     __name=name, __tostring=function() return name end,
     __newindex=_si, __len=_si, __pairs=_si,
@@ -678,8 +659,9 @@ end
 M.none = M.sentinel('none', {__metatable='none'})
 
 --- convert to boolean (none aware)
-M.bool =
-(function(v) return not rawequal(M.none, v) and v and true or false end)
+M.bool = function(v) --> bool
+  return not rawequal(M.none, v) and v and true or false
+end
 
 --- An immutable empty table
 M.empty = setmetatable({}, {
@@ -802,7 +784,7 @@ getmetatable(M.Set).__call = function(T, t)
   return mty.constructUnchecked(T, s)
 end
 
-M.Set.__fmt = function(self, f)
+M.Set.__fmt = function(self, f) --> nil
   push(f, 'Set'); push(f, f.tableStart);
   local keys = {}; for k in ipairs(self) do push(keys, k) end
   sort(keys)
@@ -815,7 +797,7 @@ M.Set.__fmt = function(self, f)
   push(f, f.tableEnd)
 end
 
-M.Set.__eq = function(self, t)
+M.Set.__eq = function(self, t) --> bool
   local len = 0
   for k in pairs(self) do
     if not t[k] then return false end
@@ -828,14 +810,14 @@ M.Set.__eq = function(self, t)
   return true
 end
 
-M.Set.union = function(self, s)
+M.Set.union = function(self, s) --> Set
   local both = M.Set{}
   for k in pairs(self) do if s[k] then both[k] = true end end
   return both
 end
 
 --- items in self but not in s
-M.Set.diff = function(self, s)
+M.Set.diff = function(self, s) --> Set
   local left = M.Set{}
   for k in pairs(self) do if not s[k] then left[k] = true end end
   return left
@@ -854,16 +836,13 @@ local function _bs(t, v, cmp, si, ei)
   else                  return _bs(t, v, cmp, si, mi - 1) end
 end
 
---- [$binarySearch(t, v, cmp=ds.lte, si=1, ei=#t) -> i]
----
 --- Search the sorted table, return i such that: [+
 --- * [$cmp(t[i], v)] returns true  for indexes <= i
 --- * [$cmp(t[i], v)] returns false for indexes >  i
 --- ]
----
 --- If you want a value perfectly equal then check equality
 --- on the resulting index.
-M.binarySearch = function(t, v, cmp, si, ei)
+M.binarySearch = function(t, v, cmp, si--[[1]], ei--[[#t]]) --> index
   return _bs(t, v, cmp or lte, si or 1, ei or #t)
 end
 
@@ -913,8 +892,7 @@ M.dag.sort = function(depsMap) --> sortedDeps
   return state.out
 end
 
---- dag.reverseMap(childrenMap) -> parentsMap (or vice-versa)
-M.dag.reverseMap = function(childrenMap)
+M.dag.reverseMap = function(childrenMap) --> parentsMap (or vice-versa)
   local pmap = {}
   for pname, children in pairs(childrenMap) do
     M.getOrSet(pmap, pname, M.emptyTable)
@@ -956,8 +934,8 @@ M.BiMap.__newindex = function(t, k, v)
 end
 getmetatable(M.BiMap).__index = nil
 M.BiMap.__fmt = nil
-M.BiMap.remove = function(t, k)
-  local v = t[k]; t[k] = nil; t[v] = nil
+M.BiMap.remove = function(t, k) --> v
+  local v = t[k]; t[k] = nil; t[v] = nil; return v
 end
 
 ---------------------
@@ -981,36 +959,36 @@ end
 M.Deq.pushRight = function(deq, val)
   local r = deq.right + 1; deq[r] = val; deq.right = r
 end
--- extend deq to right
-M.Deq.extendRight = function(deq, vals)
+--- extend deq to right
+M.Deq.extendRight = function(deq, vals) --> nil
   local r, vlen = deq.right, #vals
   move(vals, 1, vlen, r + 1, deq)
   deq.right = deq.right + vlen
 end
-M.Deq.pushLeft = function(deq, val)
+M.Deq.pushLeft = function(deq, val) --> nil
   local l = deq.left - 1;  deq[l] = val; deq.left = l
 end
--- extend deq to left (vals[1] is left-most)
-M.Deq.extendLeft = function(deq, vals)
+--- extend deq to left ([$vals[1]] is left-most)
+M.Deq.extendLeft = function(deq, vals) --> nil
   local vlen = #vals
   deq.left = deq.left - vlen
   move(vals, 1, vlen, deq.left, deq)
 end
-M.Deq.popLeft = function(deq)
+M.Deq.popLeft = function(deq) --> v
   local l = deq.left; if l > deq.right then return nil end
   local val = deq[l]; deq[l] = nil; deq.left = l + 1
   return val
 end
-M.Deq.popRight = function(deq)
+M.Deq.popRight = function(deq) --> v
   local r = deq.right; if deq.left > r then return nil end
   local val = deq[r]; deq[r] = nil; deq.right = r - 1
   return val
 end
-M.Deq.push = M.Deq.pushRight
-M.Deq.__len = function(d) return d.right - d.left + 1 end
-M.Deq.pop = M.Deq.popLeft
-M.Deq.__call = M.Deq.pop
-M.Deq.clear = function(deq) -- clear deq
+M.Deq.push = M.Deq.pushRight --(d, v) --> nil
+M.Deq.__len = function(d) return d.right - d.left + 1 end --> #d
+M.Deq.pop = M.Deq.popLeft --> (d) -> v
+M.Deq.__call = M.Deq.pop  --> () -> v
+M.Deq.clear = function(deq) --> nil: clear deq
   local l = deq.left; move(EMPTY, l, deq.right, l, deq)
   deq.left, deq.right = 1, 0
 end
@@ -1028,7 +1006,7 @@ M.IGNORE_TRACE = {
   ["[C]: in function 'error'"]=true,
   ["[C]: in ?"]=true,
 }
--- convert the string traceback into a list
+--- convert the string traceback into a list
 M.tracelist = function(tbstr, level) --> {traceback}
   tbstr = tbstr or traceback(2 + (level or 0))
   local ig, tb = M.IGNORE_TRACE, {}
@@ -1037,7 +1015,7 @@ M.tracelist = function(tbstr, level) --> {traceback}
   end
   return tb
 end
-M.traceback = function(level)
+M.traceback = function(level) --> string
   return concat(M.tracelist(nil, 1 + (level or 0)), '\n    ')
 end
 
@@ -1063,7 +1041,7 @@ M.Error.__tostring = function(e) return fmt(e) end
 
 --- create the error from the arguments.
 --- tb can be one of: [$coroutine|string|table]
-M.Error.from = function(msg, tb, cause)
+M.Error.from = function(msg, tb, cause) --> Error
   tb = (type(tb) == 'thread') and traceback(tb) or tb
   return M.Error{
     msg=msg:match'^%S+/%S+:%d+: (.*)' or msg, -- remove line number
@@ -1073,18 +1051,21 @@ M.Error.from = function(msg, tb, cause)
 end
 
 --- for use with xpcall. See: try
-M.Error.msgh = function(msg, level)
+M.Error.msgh = function(msg, level) --> Error
   return M.Error.from(msg, traceback('', (level or 1) + 1))
 end
 
---- try to run the fn. Similar to pcall. Return one of:
----   success(true, fnresults...)
----   failure(false, ds.Error)
-M.try = function(fn, ...) return xpcall(fn, M.Error.msgh, ...) end
+--- try to run the fn. Similar to pcall. Return one of: [+
+--- * successs: [$(true, ...)]
+--- * failure: [$(false, ds.Error{...})]
+--- ]
+M.try = function(fn, ...) --> (ok, ...)
+  return xpcall(fn, M.Error.msgh, ...)
+end
 
 --- Same as coroutine.resume except uses a ds.Error object for errors
 --- (has traceback)
-M.resume = function(th) --> ok, err, b, c
+M.resume = function(th) --> (ok, err, b, c)
   local ok, a, b, c = resume(th)
   if ok then return ok, a, b, c end
   return nil, M.Error.from(a, th)
@@ -1095,7 +1076,7 @@ end
 
 --- auto-set nil locals using require(mod)
 --- [$local x, y, z; ds.auto'mm' -- sets x=mm.x; y=mm.y; z=mm.z]
-M.auto = function(mod, i)
+M.auto = function(mod, i) --> (mod, i)
   mod, i = type(mod) == 'string' and require(mod) or mod, i or 1
   while true do
     local n, v = debug.getlocal(2, i)

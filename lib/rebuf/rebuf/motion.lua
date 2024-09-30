@@ -1,8 +1,9 @@
 local mty = require'metaty'
 local ds = require'ds'
-local min, max, sort2, bound, isWithin; ds.auto'ds'
+local sort2, bound, isWithin; ds.auto'ds'
+local min, max = math.min, math.max
 
-local M = {}
+local M = mod and mod'rebuf.motion' or {}
 local byte, char = string.byte, string.char
 
 --- decrease distance (start -> end) by 1

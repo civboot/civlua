@@ -407,7 +407,7 @@ M.checkParse = function(dat, context) --> dat
   end
   if type(dat) == 'table' then dat = table.concat(dat, '\n') end
   error(sfmt('Failed to parse cxt %s:\n%s\n\nError: %s',
-        context, dat, err))
+        context, dat, root))
 end
 
 ---------------------------
