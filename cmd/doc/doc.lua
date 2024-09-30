@@ -198,7 +198,7 @@ end
 
 M._Construct.pkg = function(c, pkg, expand) --> Doc
   local d = M.Doc{
-    docTy = 'Package', name = pkg.name..'.PKG', path = pkg.dir,
+    docTy = 'Package', name = 'Package '..pkg.name, path = pkg.dir,
   }
   d.meta = {
     summary = pkg.summary, version = pkg.version,
@@ -354,10 +354,9 @@ M.fmtMeta = function(f, m)
 end
 
 M.fmtDoc = function(f, d)
-  local path = d.path and sfmt(' ([{path=%s}src])', escape(pth.nice(d.path))) or ''
+  local path = d.path and sfmt(' ([{i path=%s}src])', escape(pth.nice(d.path))) or ''
   local name = d.pkgname or d.name
-  local hname = name and sfmt('[{id=%s href=#%s}%s]', name, name, name)
-             or '(unnamed)'
+  local hname = name and sfmt('[:%s]', name) or '(unnamed)'
   if type(d.obj) == 'function' then
     local s, r; if d.code and d.code[1] then -- s=sig, r=result
                     s, r = d.code[1]:match'(%b()).*%-%->%s*(.*)'
@@ -369,11 +368,11 @@ M.fmtDoc = function(f, d)
     end
     hname = hname..cxt.code((s or '(...)')..(r and sfmt(' -> %s', r) or ''))
   end
-  pushfmt(f, '[{h%s}%s %s%s]',
+  pushfmt(f, '[{h%s}%s%s%s]',
           M.docHeader(d.docTy, d.lvl),
-          escape(assert(d.docTy)),
-          (d.docTy == 'Command') and COMMAND_NAME
-          or hname, path)
+          d.docTy == 'Package' and '' or (assert(d.docTy)..' '),
+          (d.docTy == 'Command') and COMMAND_NAME or hname,
+          path)
   if d.meta then M.fmtMeta(f, d.meta) end
   if d.comments then
     for i, l in ipairs(d.comments) do
@@ -426,7 +425,6 @@ M.Args = mty'Args' {
 local function fmtPkg(f, construct, pkg, expand, deep)
   pkg = pkglib.isPkg(pkg) and pkg
      or pkglib.getpkg(pkg) or error('could not find pkg: '..pkg)
-  fmt.print('!! fmtPkg', pkg.name, pkg.dir, expand, deep)
   M.fmt(f, construct:pkg(pkg, expand))
   if deep and pkg.pkgs then
     for _, dir in ipairs(pkg.pkgs) do

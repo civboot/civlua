@@ -1,6 +1,43 @@
-# Civboot Lua Modules
+[!you can see a rendered version of this document in [/API.html]!]
 
-This is the repository for [Civboot]-owned Lua modules and software.
+This is the repository for [@Civboot]-owned Lua modules and software. As part
+of Civboot, this is a minimalist and self-documenting developer tech stack.
+It's goal is to provide core development tools such as extendible vim-like
+editor, git-like version control and scripting tools all written in pure
+self-documenting Lua.
+
+You are reading the developer documentation for civlua. Tutorial-style
+documentation is planned on being written at a future date for both absolute
+beginners and knowledge experts.
+
+This document is written in the [@cxt-language]. It is compiled by running [$make doc]
+which pulls code documentation and [$README.cxt] files from the packages specified
+in [/PKG.lua].
+
+[{:h2}Packages]
+
+The following packages are part of civlua and defined in this repository [+
+]
+
+[{:h2}Installation]
+
+This repository uses the [@pkg.PKG] method of dependency management but also
+supports Lua's traditional [$LUA_PATH] and the community standard
+[<https://luarocks.org>luarocks] package manager.
+
+To be able to [$require'some.module'] in your own scripts run the
+following: [{## lang=bash}
+git clone https://github.com/civboot/civlua.git
+cd civlua && make build
+]##
+
+Assuming that is successful, add the following to your [$~/.bashrc] or
+equivalent: [{## lang=bash}
+CIVLUA="$HOME/path/to/civlua"
+export LUA_PATH="$CIVLUA/lib/pkg/?.lua;other/lua/?.lua"
+export LUA_PKGS="./;$CIVLUA"
+]##
+
 
 ```bash
 cd civlua/
@@ -106,10 +143,9 @@ make test  # on linux you may need: LUA_VERSION=lua5.3
 **All contributors must agree to license their contributions into the public
 domain.**
 
-## LICENSE
+[{h3}LICENSE]
 This software is released into the public domain, see LICENSE (aka UNLICENSE).
 
 Attribution is very appreciated (but not required).
 
-[Civboot]: http://civboot.org
-[LuaRocks]: https://luarocks.org/
+[{! name=Civboot href=http://civboot.org}Civboot]

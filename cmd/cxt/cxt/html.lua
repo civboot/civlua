@@ -13,8 +13,6 @@ local ds    = require'ds'
 local lines = require'lines'
 local LFile = require'lines.File'
 
-local NAME_SYM = '☍'
-
 M.htmlHead = [[<style>
 h1 { margin-top: 0.5em; margin-bottom: 0.3em; }
 h2 { margin-top: 0.3em; margin-bottom: 0.2em; }
@@ -82,7 +80,9 @@ local function startFmt(w, n, kind, line)
     if n[f] then push(line, '<'..(cxtRename[f] or f)..'>') end
   end
   if n.name then
-    push(line, sfmt('<a id="%s" href="#%s">%s</a>', n.name, n.name, NAME_SYM))
+    local id = n.name:gsub('%s+', '-')
+    push(line, sfmt('<a id="%s" href="#%s">', id, id))
+    if #n == 0 then push(n, n.name) end
   end
   if n.href then
     push(line, '<a ')
@@ -108,6 +108,7 @@ local function endFmt(n, line)
   end
   if n.href then push(line, '</a>') end
   if n.path then push(line, '</a>') end
+  if n.name then push(line, '</a>') end
 end
 local function startNode(n, kind, line)
   if kind then
