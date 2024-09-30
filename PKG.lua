@@ -1,6 +1,7 @@
 name    = 'civ'
 version = '0.1-0'
 url     = 'git+http://github.com/civboot/civlua'
+doc     = 'README.cxt'
 srcs = { 'civ.lua' }
 pkgs = {
   -- Core
@@ -12,6 +13,7 @@ pkgs = {
   'lib/lines',
   'lib/lap',
   'lib/fd',
+  'lib/civix',
 
   -- libs
   'lib/asciicolor',
@@ -22,7 +24,6 @@ pkgs = {
   'lib/pegl',
   'lib/luck',
   'lib/rebuf',
-  'lib/civix',
   'lib/patience',
 
   -- cmd

@@ -1,14 +1,14 @@
-[{h2}Module [:docfake] [/cmd/doc/test/docfake.lua:000]]
+[{h2}Module [:docfake] ([{i path=cmd/doc/test/docfake.lua:000}src])]
 fake lua module for testing doc.
 
 module documentation.
 
 [*Values: ] [{table}
 + [$docfake.CONSTANT] | \[number\] 
-+ [$docfake.NODOC] | \[table\] [/cmd/doc/test/docfake.lua:000]
++ [$docfake.NODOC] | \[table\] ([{path=cmd/doc/test/docfake.lua:000}src])
 + [$docfake.__name] | \[string\] 
 ]
-[{h3}Record [:docfake.A] [/cmd/doc/test/docfake.lua:000]]
+[{h3}Record [:docfake.A] ([{i path=cmd/doc/test/docfake.lua:000}src])]
 Documentation for A
 
 [*Fields: ] [{table}
@@ -22,11 +22,11 @@ Documentation for A
 + [$docfake.A.__name] | \[string\] 
 ]
 [*Records: ] [{table}
-+ [$docfake.A.__index] | \[Ty<A>\] [/cmd/doc/test/docfake.lua:000]
++ [$docfake.A.__index] | \[Ty<A>\] ([{path=cmd/doc/test/docfake.lua:000}src])
 ]
-[{h4}Function [:metaty.newindex][$(...)] [/lib/metaty/metaty.lua:000]]
-[{h4}Function [:A.meth1][$() -> thing] [/cmd/doc/test/docfake.lua:000]]
+[{h4}Function [:metaty.newindex][$(...)] ([{i path=lib/metaty/metaty.lua:000}src])]
+[{h4}Function [:A.meth1][$() -> thing] ([{i path=cmd/doc/test/docfake.lua:000}src])]
 docs for meth1
-[{h3}Function [:docfake.fun1][$() -> thing] [/cmd/doc/test/docfake.lua:000]]
+[{h3}Function [:docfake.fun1][$() -> thing] ([{i path=cmd/doc/test/docfake.lua:000}src])]
 this is a function.
 it has documentation.

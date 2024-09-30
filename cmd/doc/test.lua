@@ -78,13 +78,13 @@ end)
 T.test('doc fn', function()
   local res = doc.construct(M.exampleFn, nil, 0)
   T.assertEq(
-    '[$doc_test.exampleFn] | \\[function\\] [/cmd/doc/test.lua:000]',
+    "[$doc_test.exampleFn] | \\[function\\] ([{path=cmd/doc/test.lua:000}src])",
     doFmt(doc.fmtDocItem, res))
 
   local res = doc.construct(M.exampleFn, nil, 1)
   T.assertEq('Function', res.docTy)
   T.assertEq(
-"[{h3}Function [:doc_test.exampleFn][$() -> nil] [/cmd/doc/test.lua:000]]\
+"[{h3}Function [:doc_test.exampleFn][$() -> nil] ([{i path=cmd/doc/test.lua:000}src])]\
 document a fn\
 another line",
     doFmt(doc.fmtDoc, res))
@@ -94,12 +94,12 @@ end)
 T.test('doc ty', function()
   local res = doc.construct(M.Example, nil, 0)
   T.assertEq(
-    "[$doc_test.Example] | \\[Ty<Example>\\] [/cmd/doc/test.lua:000]",
+    "[$doc_test.Example] | \\[Ty<Example>\\] ([{path=cmd/doc/test.lua:000}src])",
     doFmt(doc.fmtDocItem, res))
 
   local res = doc.construct(M.Example, nil, 1)
   T.assertEq(
-"[{h3}Record [:doc_test.Example] [/cmd/doc/test.lua:000]]\
+"[{h3}Record [:doc_test.Example] ([{i path=cmd/doc/test.lua:000}src])]\
 document a metaty\
 another line\
 \
@@ -112,11 +112,11 @@ another line\
 + [$doc_test.Example.__name] | \\[string\\] \
 ]\
 [*Records: ] [{table}\
-+ [$doc_test.Example.__index] | \\[Ty<Example>\\] [/cmd/doc/test.lua:000]\
++ [$doc_test.Example.__index] | \\[Ty<Example>\\] ([{path=cmd/doc/test.lua:000}src])\
 ]\
 [*Methods: ] [{table}\
-+ [$doc_test.Example.__newindex] | \\[function\\] [/lib/metaty/metaty.lua:000]\
-+ [$doc_test.Example.method] | \\[function\\] [/cmd/doc/test.lua:000]\
++ [$doc_test.Example.__newindex] | \\[function\\] ([{path=lib/metaty/metaty.lua:000}src])\
++ [$doc_test.Example.method] | \\[function\\] ([{path=cmd/doc/test.lua:000}src])\
 ]",
     doFmt(doc.fmtDoc, res))
 end)
@@ -134,7 +134,7 @@ T.test('doc module', function()
 
   local res = doFmt(doc.fmtDoc, doc.construct(fm, nil, 5))
   res = res..'\n'
-  -- ds.writePath(dir..'docfake.cxt', res) -- uncomment to update, then check diff!
+  ds.writePath(dir..'docfake.cxt', res) -- uncomment to update, then check diff!
   local cxt = ds.readPath(dir..'docfake.cxt')
   T.assertEq(cxt, res)
 end)
