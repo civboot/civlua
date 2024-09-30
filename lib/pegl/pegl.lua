@@ -9,7 +9,8 @@ local ds      = require'ds'
 local lines   = require'lines'
 local civtest = require'civtest'
 local extend  = ds.extend
-local push, sfmt = table.insert, string.format
+local push, pop = table.insert, table.remove
+local sfmt    = string.format
 local srep = string.rep
 local pushfmt = ds.pushfmt
 local ty = mty.ty
@@ -73,8 +74,8 @@ M.Parser = mty'Parser'{
   'l', 'c',
   'line', 'lines',
   'root [RootSpec]',
-  'stack [table]',
-  'stackLast',
+  'stack [list]', 'stackL [list]', 'stackC [list]',
+  'stackLast [{item, l, c}]',
   'commentLC [table]: table of {line={col=CommentToken}}',
   'dbgLevel [number]', dbgLevel = 0,
 }
@@ -417,7 +418,7 @@ M.Parser.new = function(T, dat, root)
   return mty.construct(T, {
     dat=dat, l=1, c=1, line=dat[1], lines=#dat,
     root=root or M.RootSpec{},
-    stack={},
+    stack={}, stackL={}, stackC={}, stackLast={},
     commentLC={},
   })
 end
@@ -497,13 +498,14 @@ M.Parser.trimTokenLast = function(p, list, trimNl)
 end
 
 local function fmtStack(p)
-  local stk = p.stack
-  local b = {}; for _, v in ipairs(stk) do
+  local b = {}; for i, v in ipairs(p.stack) do
     if v == true then -- skip
-    elseif type(v) == 'string' then push(b, v)
-    else push(b, fmt(v)) end
+    else
+      if type(v) ~= 'string' then v = fmt(v) end
+      push(b, sfmt('%s(%s.%s)', v, p.stackL[i], p.stackC[i]))
+    end
   end
-  pushfmt(b, '%s', p.stackLast)
+  pushfmt(b, '%s(%s.%s)', table.unpack(p.stackLast))
   return table.concat(b, ' -> ')
 end
 M.Parser.checkPin=function(p, pin, expect)
@@ -531,15 +533,18 @@ end
 
 M.Parser.dbgEnter=function(p, spec)
   push(p.stack, spec.kind or spec.name or true)
+  push(p.stackL, p.l); push(p.stackC, p.c)
   if not p.root.dbg then return end
   p:dbg('ENTER: %s', fmt(spec))
   p.dbgLevel = p.dbgLevel + 1
 end
+
 M.Parser.dbgLeave=function(p, n)
-  local sn = table.remove(p.stack); p.stackLast = sn
+  local sl = p.stackLast
+  sl[1], sl[2], sl[3] = pop(p.stack), pop(p.stackL), pop(p.stackC)
   if not p.root.dbg then return n end
   p.dbgLevel = p.dbgLevel - 1
-  p:dbg('LEAVE: %s', fmt(n or sn))
+  p:dbg('LEAVE: %s(%s.%s)', fmt(n or sl[1]), sl[2], sl[3])
   return n
 end
 M.Parser.dbgMatched=function(p, spec)

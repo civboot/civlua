@@ -1,4 +1,5 @@
--- Get documentation for lua types and syntax. Examples: [{## lang=lua}
+--- Get documentation for lua types and syntax.
+--- Examples: [{## lang=lua}
 --- doc{string.find}
 --- doc'for'
 --- doc'myMod.myFunction'
@@ -116,7 +117,8 @@ local setFields = function(d, t)
     local ty = d.fields[field]
     ty = type(ty) == 'string' and M.cleanFieldTy(ty) or nil
     d.fields[field] = M.DocItem {
-      name=field, ty=ty, default=rawget(d.obj, field), docTy = 'Field',
+      name=field, ty=ty, default=rawget(d.obj, field),
+      docTy = 'Field',
       doc = fdocs[field] and cxt.checkParse(fdocs[field], field),
     }
   end
@@ -298,7 +300,7 @@ M.fmtDocItem = function(f, di)
   local name = di.name and sfmt('[$%s]', escape(di.name or '(unnamed)'))
   local ty = di.ty and sfmt('\\[%s\\]', escape(di.ty)) or ''
   local path = di.path and sfmt('[/%s]', escape(pth.nice(di.path)))
-  local default = di.default and fmt.format('= [$%q]', di.default)
+  local default = di.default and ('= '..cxt.code(fmt(di.default)))
   if path and default then path = '\n'..path end
   path, default = path or '', default or ''
   if path:sub(1,1) == '\n' or (di.doc and di.doc ~= '') then
@@ -323,7 +325,7 @@ M.fmtAttr = function(f, name, attr)
       local v = attr[k]
       push(f, '\n+ ')
       if mty.ty(v) == M.DocItem then M.fmtDocItem(f, v)
-      else pushfmt(f, '[*%s] | [##', k); f(v); push(f, ']') end
+      else pushfmt(f, '[*%s] | %s', k, cxt.code(fmt(v))) end
     end
     push(f, '\n]')
   end
@@ -413,10 +415,12 @@ M.Args = mty'Args' {
 local function fmtPkg(f, construct, pkg, expand, deep)
   pkg = pkglib.isPkg(pkg) and pkg
      or pkglib.getpkg(pkg) or error('could not find pkg: '..pkg)
+  fmt.print('!! fmtPkg', pkg.name, pkg.dir, expand, deep)
   M.fmt(f, construct:pkg(pkg, expand))
   if deep and pkg.pkgs then
     for _, dir in ipairs(pkg.pkgs) do
       local subp = pkglib.loadpkg(dir)
+      f:write'\n\n'
       fmtPkg(f, construct, subp, expand, deep)
     end
   end

@@ -28,6 +28,22 @@ test('escape', function()
   assertEq('foo \\[bar\\] \\\\ baz', M.escape'foo [bar] \\ baz')
 end)
 
+test('code', function()
+  local hub = M._hasUnbalancedBrackets
+  assertEq(false, hub'abc')
+  assertEq(false, hub'[[a]b]')
+  assertEq(true, hub'['); assertEq(true, hub']')
+  assertEq(true, hub'[]]')
+
+  local hashes = M._codeHashes
+  assertEq(nil, hashes'foo bar')
+  assertEq(0,   hashes'foo]bar')
+  assertEq(1,   hashes'[###foo]#bar')
+
+  assertEq('[$some [code]]', M.code'some [code]')
+  assertEq('[#some [code]#', M.code'some [code')
+end)
+
 test('simple', function()
   M.assertParse('hi there', {'hi there'})
   M.assertParse('hi there [*bob]', {

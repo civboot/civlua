@@ -16,7 +16,7 @@ M.REM = '-'
 
 -- TODO: I want to use this when applying patches
 --- normalize a line for comparing (anchoring).
---- This just squashes and trims the end.]]
+--- This just squashes and trims the end.
 M.normalize = function(s) return ds.squash(ds.trimEnd(s)) end
 
 --- Single Line Diff

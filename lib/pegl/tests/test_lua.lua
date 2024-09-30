@@ -329,7 +329,8 @@ local ERR_EXPECT =
                                ^\
 Cause: parser expected: \"}\"\
 Got: 3} -- '2 3' is invalid\
-Parse stack: src -> block -> stmt -> fnlocal -> fnbody -> block -> stmt -> varset -> exp -> op2exp -> exp -> exp1 -> table"
+Parse stack: src(1.9) -> block(1.9) -> stmt(1.9) -> fnlocal(1.9) -> fnbody(1.25) -> block(2.11)"
+.." -> stmt(2.11) -> varset(2.11) -> exp(2.15) -> op2exp(2.17) -> exp(2.19) -> exp1(2.19) -> table(2.19)"
 
 T.test('error', function()
   T.assertErrorPat(

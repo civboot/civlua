@@ -8,7 +8,8 @@ local fmt = require'fmt'
 local ds  = require'ds'
 local lines = require'lines'
 local civtest = require'civtest'
-local add, sfmt = table.insert, string.format
+local add, sfmt, srep = table.insert, string.format, string.rep
+local max = math.max
 
 local Key
 local Pat, Or, Not, Many, Maybe
@@ -20,6 +21,33 @@ local RAW = '#'
 
 --- escape the string so it renders literally
 M.escape = function(str) return str:gsub('([\\%[%]])', '\\%1') end
+
+M._hasUnbalancedBrackets = function(str)
+  local c = 0; for m in str:gmatch'[%[%]]' do
+    if m == '[' then c = c + 1
+    elseif           c == 0 then return true
+    else             c = c - 1 end
+  end
+  return c ~= 0
+end
+M._codeHashes = function(str)
+  local n; for m in str:gmatch'%]#*' do n = max(n or 0, #m-1) end
+  return n
+end
+--- create a [$[##code block]##]
+M.codeblock = function(str, lang)
+  local hs = srep('#', (M._codeHashes(str) or 0) + 1)
+  return lang and sfmt('[{%s lang=%s}%s]%s', hs, lang, str, hs)
+               or (str:sub(1,1)=='#') and sfmt('[{%s}%s]%s', hs, str, hs)
+               or sfmt('[%s%s]%s', hs, str, hs)
+end
+
+--- create [$[$inline code]]
+M.code = function(str, lang)
+  return M._hasUnbalancedBrackets(str) and M.codeblock(str, lang)
+      or lang and sfmt('[{$ lang=%s}%s]', lang, str)
+      or sfmt('[$%s]', str)
+end
 
 ------------------------
 -- Parsing
@@ -61,7 +89,7 @@ local function bracketedStrRaw(p, node, raw, ws)
   node.code = node.code or (node.lang and true)
   local ws, w1 = p.line:find'^%s+' -- leading whitespace
   ws = ws and p.line:sub(ws, w1) or nil
-  local l, c, closePat = p.l, p.c, '%]'..string.rep(RAW, raw)
+  local l, c, closePat = p.l, p.c, '%]'..srep(RAW, raw)
   local closePatStart = '^'..closePat
   if p.c > #p.line then p:incLine() end
   while true do
@@ -371,7 +399,12 @@ M.parse = function(dat, dbg)
 end
 
 M.checkParse = function(dat, context) --> dat
-  local ok, err = pcall(M.parse, dat); if ok then return dat end
+  local ok, root, p = pcall(M.parse, dat); if ok then
+    if p.l <= #p.dat then error(sfmt(
+      '%s: parse stopped before end\n%s.%s: %s', context, p.l, p.c, p.line
+    ))end
+    return dat
+  end
   if type(dat) == 'table' then dat = table.concat(dat, '\n') end
   error(sfmt('Failed to parse cxt %s:\n%s\n\nError: %s',
         context, dat, err))
