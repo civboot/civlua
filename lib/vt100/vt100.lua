@@ -73,7 +73,8 @@ M.Term.__fmt = function(tm, fmt) return tm.text:__fmt(fmt) end
 -- Escape Sequences
 local ESC,  LETO, LETR, LBR = 27, byte'O', byte'R', byte'['
 local LET0, LET9, LETSC = byte'0', byte'9', byte';'
-local INP_SEQ = { -- valid input sequences following '<esc>['
+--- valid input sequences following [#<esc>[]#
+M.INP_SEQ = {
   ['A'] = 'up',    ['B'] = 'down',  ['C'] = 'right', ['D'] = 'left',
   ['2~'] = 'ins',  ['3~'] = 'del',  ['5~'] = 'pgup', ['6~'] = 'pgdn',
 
@@ -90,13 +91,14 @@ local INP_SEQ = { -- valid input sequences following '<esc>['
   -- xterm
   ['H'] = 'home', ['F'] = 'end',
 }
-local INP_SEQO = { -- valid input sequences following '<esc>O'
+--- valid input sequences following [#<esc>O]#
+M.INP_SEQO = {
   -- xterm
   ['OP'] = 'f1', ['OQ'] = 'f2', ['OR'] = 'f3', ['OS'] = 'f4',
   -- vt
   ['OH'] = 'home', ['OF'] = 'end',
 }
-M.INP_SEQ = INP_SEQ; M.INP_SEQO = INP_SEQO
+local INP_SEQ, INP_SEQO = M.INP_SEQ, M.INP_SEQO
 
 -------------
 -- Byte -> Character/Command
@@ -200,29 +202,28 @@ end
 --- Foreground Terminal Codes
 M.FgColor = {
   zero    = 39,
-
-  -- (dark)      (light)
-  black   = 30,  white = 97,
-  darkgrey = 90, lightgrey = 37,
-  red     = 31,  pink = 91,
-  green   = 32,  tea = 92,
-  yellow = 33,   honey = 93,
-  cyan    = 36,  aqua = 96,
-  navy    = 34,  sky = 94,
-  magenta = 35,  fuschia = 95,
+  -- (dark)       (light)
+  black    = 30,  white     = 97,
+  darkgrey = 90,  lightgrey = 37,
+  red      = 31,  pink      = 91,
+  green    = 32,  tea       = 92,
+  yellow   = 33,  honey     = 93,
+  cyan     = 36,  aqua      = 96,
+  navy     = 34,  sky       = 94,
+  magenta  = 35,  fuschia   = 95,
 }
 --- Background Terminal Codes
 M.BgColor = {
   zero    = 49,
   -- (dark)       (light)
-  black    = 40,  white = 107,
+  black    = 40,  white     = 107,
   darkgrey = 100, lightgrey = 47,
-  red      = 41,  pink = 101,
-  yellow   = 43,  honey = 103,
-  green    = 42,  tea = 102,
-  cyan     = 46,  aqua = 106,
-  navy     = 44,  sky = 104,
-  magenta  = 45,  fuschia = 105,
+  red      = 41,  pink      = 101,
+  yellow   = 43,  honey     = 103,
+  green    = 42,  tea       = 102,
+  cyan     = 46,  aqua      = 106,
+  navy     = 44,  sky       = 104,
+  magenta  = 45,  fuschia   = 105,
 }
 --- Style Terminal Codes
 M.Style = {
@@ -231,7 +232,7 @@ M.Style = {
 }
 
 --- asciicolor code -> vt100 code
-M.Fg, M.Bg = mod and mod'Fg' or {}, mod and mod'Bg' or {}
+M.Fg, M.Bg = ds.TypoSafe{}, ds.TypoSafe{}
 for code, name in pairs(acolor.Color) do
   M.Fg[code]        = M.FgColor[name]
   M.Fg[upper(code)] = M.FgColor[name]

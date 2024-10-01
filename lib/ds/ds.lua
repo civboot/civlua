@@ -494,6 +494,14 @@ M.walk = function(t, fieldFn, tableFn, maxDepth, state) --> nil
   end
 end
 
+--- A typo-safe table, typically used in libraries for storing constants.
+---
+--- Adding keys is always allowed but getting non-existant keys is an error.
+M.TypoSafe = mty'TypoSafe'{}
+getmetatable(M.TypoSafe).__index = mty.index
+M.TypoSafe.__newindex = nil
+
+
 ---------------------
 -- Untyped Functions
 

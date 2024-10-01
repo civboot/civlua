@@ -5,6 +5,7 @@ local mty = require'metaty'
 local fmt = require'fmt'
 local ds  = require'ds'
 local push, sfmt = table.insert, string.format
+local construct = mty.construct
 
 local function nw(n) -- numwidth
   if n == nil then return '        ' end
@@ -102,27 +103,34 @@ end
 M.DiffSoF = M.Diff('^', 0,  '') -- start of file
 M.DiffEoF = M.Diff('$', -1, '') -- end of file
 
-local DiffsExtender = setmetatable({
-  __call = function(de, ch, keepMax) -- extend change to diffs
-    local chTy, base, diffs = mty.ty(ch), de.base, de.diffs
-    if chTy == M.Keep then
-      for l = de.bl, de.bl + ch:len() - 1 do
-        push(diffs, M.Diff(l, de.cl, base[l]))
-        de.cl = de.cl + 1
-      end; de.bl = de.bl + ch:len()
-    else
-      fmt.assertf(chTy == M.Change, "changes must be Keep|Change: %s", chTy)
-      for _, a in ipairs(ch.add) do
-        push(diffs, M.Diff('+', de.cl, a)); de.cl = de.cl + 1
-      end
-      for l = de.bl, de.bl + ch:len() - 1 do
-        push(diffs, M.Diff(l, '-', base[l]))
-      end; de.bl = de.bl + ch:len()
+M.DiffsExtender = mty'DiffsExtender' {
+  'diffs [list]',
+  'base',
+  'bl [int]: base line',
+  'cl [int]: change line',
+}
+getmetatable(M.DiffsExtender).__call = function(T, base)
+  return construct(T, {diffs={}, base=base, bl=1, cl=1})
+end
+--- extend change to diffs
+M.DiffsExtender.__call = function(de, ch, keepMax)
+  local chTy, base, diffs = mty.ty(ch), de.base, de.diffs
+  if chTy == M.Keep then
+    for l = de.bl, de.bl + ch:len() - 1 do
+      push(diffs, M.Diff(l, de.cl, base[l]))
+      de.cl = de.cl + 1
+    end; de.bl = de.bl + ch:len()
+  else
+    fmt.assertf(chTy == M.Change, "changes must be Keep|Change: %s", chTy)
+    for _, a in ipairs(ch.add) do
+      push(diffs, M.Diff('+', de.cl, a)); de.cl = de.cl + 1
     end
-  end,
-}, { __call = function(ty_, base) -- create DiffsExtender
-  return setmetatable({diffs={}, base=base, bl=1, cl=1}, ty_)
-end})
+    for l = de.bl, de.bl + ch:len() - 1 do
+      push(diffs, M.Diff(l, '-', base[l]))
+    end; de.bl = de.bl + ch:len()
+  end
+end
+local DiffsExtender = M.DiffsExtender
 
 --- Convert Changes to Diffs with full context
 M.toDiffs = function(base, changes) --> diffs
@@ -155,52 +163,53 @@ end
 ---
 --- Each "pick" is a list of Diffs which are anchored by the lines
 --- above and below (unless they are start/end of file).
-M.Picks = setmetatable({
-  __index = function(p, k) return getmetatable(p)[k] end,
-  __call = function(p) -- iterator
-    local de, changes, aLen = p.de, p.changes, p.set.anchorLen
-    if p.ci > #changes then return end
-    assert(ds.isEmpty(de.diffs))
+M.Picks = mty'Picks' {
+  'changes [list]: list of changes',
+  'ci [int]: for iterating',
+  'de [DiffsExtender]',
+  'set [table]: settings (need refactor)',
+}
+getmetatable(M.Picks).__call = function(T, base, changes, set) --> Picks
+  set = set or {}
+  set.anchorLen = set.anchorLen or 3
+  return construct(T, {
+    changes = changes, ci=1,
+    de = DiffsExtender(base),
+    set=set,
+  })
+end
+M.Picks.__call = function(p) --> iterator
+  local de, changes, aLen = p.de, p.changes, p.set.anchorLen
+  if p.ci > #changes then return end
+  assert(ds.isEmpty(de.diffs))
 
-    local ci, endci = p:groupChanges(p.ci)
-    while p.ci < ci do de(changes[p.ci]); p.ci = p.ci + 1 end -- discard
-    de.diffs = M.createAnchorTop(de.base, de.bl - 1, aLen)
-    while p.ci <= endci do de(changes[p.ci]); p.ci = p.ci + 1 end -- changes
-    ds.extend(de.diffs, M.createAnchorBot(de.base, de.bl, aLen))
-    local diffs = de.diffs; de.diffs = {}
-    return diffs
-  end,
+  local ci, endci = p:groupChanges(p.ci)
+  while p.ci < ci do de(changes[p.ci]); p.ci = p.ci + 1 end -- discard
+  de.diffs = M.createAnchorTop(de.base, de.bl - 1, aLen)
+  while p.ci <= endci do de(changes[p.ci]); p.ci = p.ci + 1 end -- changes
+  ds.extend(de.diffs, M.createAnchorBot(de.base, de.bl, aLen))
+  local diffs = de.diffs; de.diffs = {}
+  return diffs
+end
 
-  -- Get which changes to include in a patch group.
-  -- A group is a series of patches with Keep:len() < anchorLen (default=3)
-  -- between them.
-  groupChanges = function(p, ci)
-    local len, aLen = #p.changes, p.set.anchorLen
-    while ci <= len and mty.ty(p.changes[ci]) == M.Keep do
-      ci = ci + 1
-    end
-    local starti = ci; for ci, ch in ds.islice(p.changes, ci) do
-      local chTy = mty.ty(ch)
-      if ci == len then
-        if chTy == M.Keep then ci = ci - 1 end
-        return starti, ci
-      end
-      if (chTy == M.Keep) and (ch:len() >= aLen) then
-        return starti, ci - 1 end
-    end; error'unreachable'
-  end,
-
-}, {
-  __call = function(ty_, base, changes, set)
-    set = set or {}
-    set.anchorLen = set.anchorLen or 3
-    return setmetatable({
-      changes = changes, ci=1,
-      de = DiffsExtender(base),
-      set=set,
-    }, ty_)
+--- Get which changes to include in a patch group.
+--- A group is a series of patches with Keep:len() < anchorLen (default=3)
+--- between them.
+M.Picks.groupChanges = function(p, ci)
+  local len, aLen = #p.changes, p.set.anchorLen
+  while ci <= len and mty.ty(p.changes[ci]) == M.Keep do
+    ci = ci + 1
   end
-})
+  local starti = ci; for ci, ch in ds.islice(p.changes, ci) do
+    local chTy = mty.ty(ch)
+    if ci == len then
+      if chTy == M.Keep then ci = ci - 1 end
+      return starti, ci
+    end
+    if (chTy == M.Keep) and (ch:len() >= aLen) then
+      return starti, ci - 1 end
+  end; error'unreachable'
+end
 
 local function checkAnchor(iter, base, bl)
   local bline; for _, aline in table.unpack(iter) do

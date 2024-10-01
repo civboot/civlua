@@ -15,9 +15,15 @@ local lines = require'lines'
 local LFile = require'lines.File'
 
 M.htmlHead = [[<style>
-h1 { margin-top: 0.5em; margin-bottom: 0.3em; }
-h2 { margin-top: 0.3em; margin-bottom: 0.2em; }
-h3 { margin-top: 0.2em; margin-bottom: 0.1em; }
+body {
+  font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+  font-size: 16px;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+h1 { margin-top: 0.5em; margin-bottom: 0.3em; border-bottom: 2px solid }
+h2 { margin-top: 0.3em; margin-bottom: 0.2em; border-bottom: 1px solid }
+h3 { margin-top: 0.2em; margin-bottom: 0.1em; border-bottom: 1px solid silver }
 h4 { margin-top: 0.1em; margin-bottom: 0.05em; }
 
 p  { margin-top: 0.3em; margin-bottom: 0.0em; }
@@ -31,7 +37,7 @@ code {
   background-color: whitesmoke;
   border: 1px solid #999;  border-radius: 0.3em;
   font-family: Monaco, monospace;
-  font-size: 14px;
+  font-size: 16px;
   padding: 0px;
   white-space: pre
 }

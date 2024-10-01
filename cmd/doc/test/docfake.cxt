@@ -3,11 +3,9 @@ fake lua module for testing doc.
 
 module documentation.
 
-[*Values: ] [{table}
-+ [$docfake.CONSTANT] | \[number\] 
-+ [$docfake.NODOC] | \[table\] ([{path=cmd/doc/test/docfake.lua:000}src])
-+ [$docfake.__name] | \[string\] 
-]
+[{h4}Value [:docfake.CONSTANT]]
+[{h3}Table [:docfake.NODOC] ([{i path=cmd/doc/test/docfake.lua:000}src])]
+[{h4}Value [:docfake.__name]]
 [{h3}Record [:docfake.A] ([{i path=cmd/doc/test/docfake.lua:000}src])]
 Documentation for A
 
@@ -16,11 +14,9 @@ Documentation for A
   a1 docs
   are the best docs
 ]
-[*Values: ] [{table}
-+ [$docfake.A.__docs] | \[table\] 
-+ [$docfake.A.__fields] | \[table\] 
-+ [$docfake.A.__name] | \[string\] 
-]
+[{h3}Table [:docfake.A.__docs]]
+[{h3}Table [:docfake.A.__fields]]
+[{h4}Value [:docfake.A.__name]]
 [*Records: ] [{table}
 + [$docfake.A.__index] | \[Ty<A>\] ([{path=cmd/doc/test/docfake.lua:000}src])
 ]

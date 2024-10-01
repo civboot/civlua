@@ -26,7 +26,7 @@ local cxt = require'cxt'
 
 local escape = cxt.escape
 local sfmt, srep = string.format, string.rep
-local push = table.insert
+local push, concat = table.insert, table.concat
 
 local sfmt, pushfmt = string.format, ds.pushfmt
 
@@ -145,13 +145,12 @@ M._Construct.__call = function(c, obj, key, expand, lvl) --> Doc | DocItem
     else cxt.checkParse(comments, pth.nice(path)) end
   end
   if code     and #code == 0     then code = nil end
-  if expand <= 0 or (not comments and isConcrete(obj))
-    and (docTy == 'Table' or docTy == 'Value') then
-    return M.DocItem(d)
-  end
+  if expand <= 0 then return M.DocItem(d) end
   d.lvl, d.comments, d.code = lvl, comments, code
   d = M.Doc(d)
-  if type(obj) ~= 'table' then return d end
+  if type(obj) ~= 'table' or docTy == 'Table' or docTy == 'Value' then
+    return d
+  end
   local mt = getmetatable(obj)
   if mt ~= nil and type(mt) ~= 'table' then return d end
 
@@ -382,6 +381,13 @@ M.fmtDoc = function(f, d)
   if d.main then
     M.fmtDoc(f, d.main)
   end
+  if d.docTy == 'Table' or d.docTy == 'Value' then
+    if d.code and #d.code > 1 then
+      push(f, cxt.codeblock('\n'..concat(d.code, '\n')..'\n', 'lua'))
+    end
+    return
+  end
+
   local any = d.fields or d.values or d.tys or d.fns
   if any or d.mods then push(f, '\n') end
   if d.fields then
