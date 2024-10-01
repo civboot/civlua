@@ -1,10 +1,5 @@
-# cxt: text format for civboot
+# cxt: a powerful ultra-simple markup language
 
-You can view the rendered documentation
-[here](https://htmlpreview.github.io/?https://github.com/civboot/civlua/main/cmd/cxt/README.html)
+Go to **[this link][rendered]** to view rendered documentation.
 
-This library is WIP. See [README.cxt](./README.cxt) for the current
-syntax and [README.html](./README.html) for it's output.
-
-This is the successor to the now deprecated syntax documented at
-https://github.com/civboot/cxt
+[rendered]: https://htmlpreview.github.io/?https://github.com/civboot/civlua/main/README.html#Package_cxt

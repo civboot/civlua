@@ -24,9 +24,9 @@ These can all be called directly in bash with [$./civ.lua <cmd> ...] [+
   with color on the terminal.
 
 * [{*href=#Package_cxt}cxt]: this document and all code documentation is written in
-  [*cxt], an ultra-simple markup language which is designed to be as easy as
-  possible to parse (for computers [,and] humans) while still using as few
-  characters as possible to express format for common cases. Commands: [+
+  [*cxt], a powerful ultra-simple markup language which is designed to be as
+  easy as possible to parse (for computers [,and] humans) while still using as
+  few characters as possible to express format for common cases. Commands: [+
   * [$cxt.html]: render a cxt document in html.
   * [$cxt.term]: render a cxt document on the terminal
   ]

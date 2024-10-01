@@ -1,0 +1,23 @@
+[*ds]: absurdly necessary data structures and algorithms
+
+ds is a small-ish lua library which fills many of the data structure and method
+gaps (needed "batteries") in Lua's standard library. It's only dependency is
+[/lib/metaty] which it uses for defining it's records and [/lib/fmt] which it
+uses to define the logging interface.
+
+[{h3}none: "set but none" vs nil's simply "unset"]
+In Lua `nil` always means "unset". Certain APIs (like JSON) might distinguish
+between unset vs null/empty/none. For such APIs `none` can be used to mean "set
+as none" instead of simply "unset" (which is what `nil` means).
+
+`none` overrides `__metatable='none'` so that `getmetatable(none)=='none'` and
+`metaty.ty(none) == 'none'`.
+
+WARNING: `assert(none)` will pass.  Use `ds.bool` to make `none` falsy.
+
+[{h3}path]
+`ds.path` has some functions for working with paths.
+
+It interacts (but does not set) the [*globals] [$CWD] and [$HOME] to get the
+"current working directory" and "home directory", respectively.
+

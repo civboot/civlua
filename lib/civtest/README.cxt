@@ -1,0 +1,4 @@
+Civtest: absurdly simple test library
+
+This is a no-frills test library. It simply builds on [/lib/metaty] and
+[/lib/ds] to provide the simplest possible needs for testing.

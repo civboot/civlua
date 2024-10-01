@@ -1,6 +1,7 @@
 name    = 'ele'
 version = '0.1-0'
 url     = 'git+http://github.com/civboot/civlua'
+doc     = 'README.cxt'
 srcs = {
   'ele.lua',
   'ele/types.lua',

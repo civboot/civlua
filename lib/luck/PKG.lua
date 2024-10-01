@@ -2,6 +2,7 @@ name    = 'luck'
 version = '0.1-0'
 url     = 'git+http://github.com/civboot/civlua'
 srcs = { 'luck.lua' }
+doc = 'README.cxt'
 deps = {
   "lua     ~> 5.3",
   "pkg     ~> 0.1",

@@ -1,0 +1,24 @@
+Get documentation on any Lua object. Includes documentation for several items
+in the lua stdlibrary.
+
+["Note: This requires the PKG protocol to be installed, see [/lib/pkg]]
+
+Making a library's types self-documenting is easy:
+
+[{## lang=lua}
+local G = G or _G
+-- My module docs
+local M = G.mod and mod'myModName' or {}
+
+--- my fn docs in [$cxt]
+M.myFn = function(a, b) --> string
+  -- do stuff
+end
+]##
+
+See [@Package_pkg] and [@Package_cxt] for more details.
+
+[*Other Resources] [+
+* Lua API reference: [<https://www.lua.org/manual>]
+* Tutorial style documentation: [<https://www.lua.org/pil/contents.html>]
+]

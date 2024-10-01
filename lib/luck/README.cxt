@@ -1,14 +1,8 @@
-[{h1}Luck: Lua Configuration Language]
+Luck: Lua Configuration Language It's syntax and execution is literally Lua,
+but with it's [$_ENV] (it's accessible global variables) stripped to only a
+few safe and deterministic modules and functions.
 
-Luck is a [@Lua] based configuration language.
-
-It's syntax and execution is literally Lua, but with it's [$_ENV] (it's
-accessible global variables) stripped to only a few safe and deterministic
-modules and functions.
-
-The values it exports are it's globals. For instance:
-
-[##
+The values it exports are it's globals. For instance: [{## lang=lua}
 name    = "Rett Berg"
 date    = "2023-12-20"
 version = {1, 2, 3},
@@ -18,8 +12,7 @@ project = {
 }
 ]##
 
-Is equivalent to the JSON
-[##
+Is equivalent to the JSON [{## lang=json}
 {
   "name": "Rett Berg",
   "date": "2023-12-20",
@@ -31,18 +24,18 @@ Is equivalent to the JSON
 }
 ]##
 
-Unlike JSON, Luck supports everything Lua supports, including:[+
+Unlike JSON, Luck supports everything Lua supports, including: [+
 * precomputing local values
 * referencing local and global values
 * defining and calling functions
 * [<#Dependencies>dependencies]
 ]
 
-[{:h2}API]
+[{h2}API]
 
 The available functions are (TODO: give linked table instead):
 
-[##
+[{## lang=lua}
 luck=luck,
 sfmt=string.format, push=table.insert,
 
@@ -57,7 +50,7 @@ max=math.max, min=math.min,
 maxinteger=math.maxinteger,
 ]##
 
-[{:h2}Dependencies]
+[{h2}Dependencies]
 
 The first symbol of a luck file CAN be a call to the [$meta] function
 which specifies the package name and any dependencies.
@@ -70,7 +63,7 @@ before loading the entire tree in the correct order.
 When executed, each luck file will receive a clone of its dependency's values
 assigned to the keys it specifies.
 
-[##
+[{## lang=lua}
 meta {
   'my.pkg.name',           -- package name
   dep1 = 'some.pkg.name',  -- a dependency

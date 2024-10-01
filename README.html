@@ -70,9 +70,9 @@ still in development.</li>
 <li><a href="#Package_doc"><b>doc</b></a>: get help on any package or lua object as cxt or rendered
 with color on the terminal.</li>
 <li><a href="#Package_cxt"><b>cxt</b></a>: this document and all code documentation is written in
-<b>cxt</b>, an ultra-simple markup language which is designed to be as easy as
-possible to parse (for computers <i>and</i> humans) while still using as few
-characters as possible to express format for common cases. Commands: <ul>
+<b>cxt</b>, a powerful ultra-simple markup language which is designed to be as
+easy as possible to parse (for computers <i>and</i> humans) while still using as
+few characters as possible to express format for common cases. Commands: <ul>
 <li><code>cxt.html</code>: render a cxt document in html.</li>
 <li><code>cxt.term</code>: render a cxt document on the terminal</li>
 </ul></li>
@@ -717,6 +717,29 @@ Runs until yields non-truthy. See lib/lap/README.md
 <td>https://github.com/civboot/civlua/blob/main/lib/ds/README.md</td>
 </tr>
 </table>
+<b>ds</b>: absurdly necessary data structures and algorithms
+<p>
+ds is a small-ish lua library which fills many of the data structure and method
+gaps (needed "batteries") in Lua's standard library. It's only dependency is
+<a href="https://github.com/civboot/civlua/blob/main/lib/metaty">lib/metaty</a> which it uses for defining it's records and <a href="https://github.com/civboot/civlua/blob/main/lib/fmt">lib/fmt</a> which it
+uses to define the logging interface.
+<p>
+<h3>none: "set but none" vs nil's simply "unset"</h3>
+In Lua `nil` always means "unset". Certain APIs (like JSON) might distinguish
+between unset vs null/empty/none. For such APIs `none` can be used to mean "set
+as none" instead of simply "unset" (which is what `nil` means).
+<p>
+`none` overrides `__metatable='none'` so that `getmetatable(none)=='none'` and
+`metaty.ty(none) == 'none'`.
+<p>
+WARNING: `assert(none)` will pass.  Use `ds.bool` to make `none` falsy.
+<p>
+<h3>path</h3>
+`ds.path` has some functions for working with paths.
+<p>
+It interacts (but does not set) the <b>globals</b> <code>CWD</code> and <code>HOME</code> to get the
+"current working directory" and "home directory", respectively.
+<p>
 <p>
 <h2>Module <a id="ds" href="#ds">ds</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L3"><i>src</i></a>)</h2>
 <p>
@@ -2549,6 +2572,10 @@ Switch lua to synchronous mode
 <td>https://github.com/civboot/civlua/blob/main/lib/fd/README.md</td>
 </tr>
 </table>
+fd: synchronous and asynchronous file descriptors
+<p>
+fd implements an API identical to lua's <code>file</code> object but with support for
+async operations following the <a href="https://github.com/civboot/civlua/blob/main/lib/lap">lib/lap</a> protocol.
 <p>
 <h2>Module <a id="fd" href="#fd">fd</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L6"><i>src</i></a>)</h2>
 filedescriptor: direct control of filedescriptors.
@@ -6086,6 +6113,75 @@ Convert Changes to Diffs with full context
 <td><code>0.1-0</code></td>
 </tr>
 </table>
+Luck: Lua Configuration Language It's syntax and execution is literally Lua,
+but with it's <code>_ENV</code> (it's accessible global variables) stripped to only a
+few safe and deterministic modules and functions.
+<p>
+The values it exports are it's globals. For instance: <code class="block">name    = "Rett Berg"
+date    = "2023-12-20"
+version = {1, 2, 3},
+project = {
+  name = "Civboot",
+  url = "civboot.org",
+}</code>
+<p>
+Is equivalent to the JSON <code class="block">{
+  "name": "Rett Berg",
+  "date": "2023-12-20",
+  "version": [1, 2, 3],
+  "project": {
+    "name": "Civboot",
+    "url": "civboot.org",
+  }
+}</code>
+<p>
+Unlike JSON, Luck supports everything Lua supports, including: <ul>
+<li>precomputing local values</li>
+<li>referencing local and global values</li>
+<li>defining and calling functions</li>
+<li><a href="#Dependencies">dependencies</a></li>
+</ul>
+<p>
+<h2>API</h2>
+<p>
+The available functions are (TODO: give linked table instead):
+<p>
+<code class="block">luck=luck,
+sfmt=string.format, push=table.insert,
+
+string=string, table=table,   utf8=utf8,
+type=type,     select=select,
+pairs=pairs,   ipairs=ipairs, next=next,
+error=error,   assert=assert,
+
+tonumber=tonumber,
+abs=math.abs, ceil=math.ceil, floor=math.floor,
+max=math.max, min=math.min,
+maxinteger=math.maxinteger,</code>
+<p>
+<h2>Dependencies</h2>
+<p>
+The first symbol of a luck file CAN be a call to the <code>meta</code> function
+which specifies the package name and any dependencies.
+<p>
+The build system (which can simply be a Lua script which calls
+<code>luck.loadall</code>) must give the paths to all needed luck files. It will
+then load only the leading <code>meta</code> call to build the dependency graph
+before loading the entire tree in the correct order.
+<p>
+When executed, each luck file will receive a clone of its dependency's values
+assigned to the keys it specifies.
+<p>
+<code class="block">meta {
+  'my.pkg.name',           -- package name
+  dep1 = 'some.pkg.name',  -- a dependency
+  dep2 = 'other.pkg.name', -- another dependnecy
+}
+
+-- export value
+value1 = dep1.someFunction(dep1.someValue, dep2.otherValue * 3)</code>
+<p>
+
 <p>
 <h2>Module <a id="luck" href="#luck">luck</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/luck/luck.lua#L4"><i>src</i></a>)</h2>
 luck: lua configuration language
@@ -6756,6 +6852,28 @@ output file (default=stdout)</td>
 <td><code>0.1-0</code></td>
 </tr>
 </table>
+Get documentation on any Lua object. Includes documentation for several items
+in the lua stdlibrary.
+<p>
+<blockquote>Note: This requires the PKG protocol to be installed, see <a href="https://github.com/civboot/civlua/blob/main/lib/pkg">lib/pkg</a></blockquote>
+<p>
+Making a library's types self-documenting is easy:
+<p>
+<code class="block">local G = G or _G
+-- My module docs
+local M = G.mod and mod'myModName' or {}
+
+--- my fn docs in [$cxt]
+M.myFn = function(a, b) --&gt; string
+  -- do stuff
+end</code>
+<p>
+See Package_pkg and Package cxt for more details.
+<p>
+<b>Other Resources</b> <ul>
+<li>Lua API reference: <a href="https://www.lua.org/manual">https://www.lua.org/manual</a></li>
+<li>Tutorial style documentation: <a href="https://www.lua.org/pil/contents.html">https://www.lua.org/pil/contents.html</a></li>
+</ul>
 <p>
 <h2>Module <a id="doc" href="#doc">doc</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/doc.lua#L10"><i>src</i></a>)</h2>
 Get documentation for lua types and syntax.
@@ -8041,6 +8159,26 @@ set to the luarocks api key</td>
 <td><code>0.1-0</code></td>
 </tr>
 </table>
+Ele: Extendable Lua Editor
+<p>
+Ele is an (**In Development**) extendable lua editor. This is the second
+rewrite, with the original code being in <a href="https://github.com/civboot/civlua/blob/main/experiment/ele">experiment/ele</a>.
+<p>
+Ele's primary goals are: <ul>
+<li>Implemented in a minimal amount of understandable code. It is the main editor
+for <a href="http://civboot.org">Civboot</a></li>
+<li>Enjoyable and extendable for developers to fit their workflow</li>
+<li>undo/redo, syntax highlighting, plugins, user-configurable bindings
+(supports vim/emacs style), etc.</li>
+<li>Implements a lua shell (zsh competitor)</li>
+<li>Can handle any size text file</li>
+</ul>
+<p>
+Non-goals of Ele are: <ul>
+<li>focusing on performance against the other goals</li>
+</ul>
+<p>
+See <a href="https://github.com/civboot/civlua/blob/main/ARCH.md">ARCH.md</a> for the current architecture.
 <p>
 <h2>Module <a id="ele" href="#ele">ele</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele.lua#L2"><i>src</i></a>)</h2>
 <p>
