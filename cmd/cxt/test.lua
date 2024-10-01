@@ -145,6 +145,8 @@ A list:[+
   * sub first
   * sub second
   ]
+
+* third item
 ]
 ]],
   {
@@ -153,8 +155,10 @@ A list:[+
       {
         "second item:", { list=true,
           {"sub first"}, {"sub second"},
-        }, ""
+        },
+        "",
       },
+      {"third item"},
     }, "\n"
   },
   true)

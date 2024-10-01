@@ -1,27 +1,123 @@
 [!you can see a rendered version of this document in [/API.html]!]
 
+civ.lua: a minimalist self-documenting tech stack for [@Civboot]
+
 This is the repository for [@Civboot]-owned Lua modules and software. As part
 of Civboot, this is a minimalist and self-documenting developer tech stack.
 It's goal is to provide core development tools such as extendible vim-like
 editor, git-like version control and scripting tools all written in pure
 self-documenting Lua.
 
-You are reading the developer documentation for civlua. Tutorial-style
-documentation is planned on being written at a future date for both absolute
-beginners and knowledge experts.
-
-This document is written in the [@cxt-language]. It is compiled by running [$make doc]
-which pulls code documentation and [$README.cxt] files from the packages specified
-in [/PKG.lua].
+["You are reading the developer documentation. Tutorial-style documentation is
+  planned in the future for both absolute beginners and knowledge experts,
+  but has not yet been started.]
 
 [{:h2}Packages]
+The following are packaged directly in this repository.
 
-The following are commands packaged with civlua. They can be called with
-[$./civ.lua <cmd> ...]
+[{h3}Commands]
+These can all be called directly in bash with [$./civ.lua <cmd> ...] [+
+* [{*href=#Package_ele}Ele]: Extendable Lua Editor and Lua-first shell --
+  still in development.
 
-[+
-* [@Package_ele]: Extendable Lua Editor -- still in development.
-* [@Package_doc]: get help on any package or lua object as cxt or rendered
+* [{*href=#Package_doc}doc]: get help on any package or lua object as cxt or rendered
   with color on the terminal.
+
+* [{*href=#Package_cxt}cxt]: this document and all code documentation is written in
+  [*cxt], an ultra-simple markup language which is designed to be as easy as
+  possible to parse (for computers [,and] humans) while still using as few
+  characters as possible to express format for common cases. Commands: [+
+  * [$cxt.html]: render a cxt document in html.
+  * [$cxt.term]: render a cxt document on the terminal
+  ]
+
+* [{*href=#Package_ff}ff]: find and fix utility, like a superchanged find+grep from unix
+  land.
 ]
+
+[{h3}Core Libraries]
+The following are the "core libraries" and represent the "batteries included"
+of Civlua. They maintain minimalism but enable ergonomic programming, powerful
+scripting, asynchronous file access and other goodies. [+
+* [{*href=#Package_pkg}pkg]: enables self-documenting code and cleaner dependency
+  management. Defines the PKG protocol to enable self-documenting modules
+  as well as fix Lua's biggest wart (implicit globals).
+
+* [{*href=#Package_shim}shim]: write scripts for Lua, execute from shell. Think
+  python's [$argparse] but cleaner and allows for Lua OR shell execution.
+
+* [{*href=#Package_metaty}metaty]: enable typosafe, self documenting records (aka
+  structs) which utilize Lua metatables.
+
+* [{*href=#Package_fmt}fmt]: format strings and lua nested types with an (optional)
+  style interface.
+
+* [{*href=#Package_ds}ds]: Data Structures and algnorithms. This module is
+  packed with tons of tiny functions, types and interfaces which enable ergonomic
+  scripting as well as creating applications such as editors and version
+  control systems in pure Lua.
+
+* [{*href=#Package_lines}lines]: treat files like tables of lines and apply
+  algorithms for that interface. The [$lines.File] and [$lines.EdFile] are
+  especially worth checking out.
+
+* [{*href=#Package_civix}civix]: unix system interface: ergonomic unix [$sh],
+  time and file modification are here.
+
+* [{*href=#Package_civtest}civtest]: no batteries would be complete without a testing
+  library.  civtest is minimal but gets the job done.
+
+* [{*href=#Pacakge_lap}lap]: Lua Asynchronous Protocol, for advanced users who want
+  concurrency in pure-lua.
+
+* [{*href=#Package_fd}fd]: file-descriptor library for async files and other file
+  operations.
+
+* [{*href=#Package_lson}lson]: implements de/serialization of arbitrary
+  concrete data (including tables) to/from JSON and an extension called LSON.
+]
+
+[{h3}Styling]
+The following define an interface to enable color output across any device,
+including: normal terminal, Ele (the civlua text editor) and html syntax
+highlighting: [+
+* [{*href=#Package_asciicolor}asciicolor]: specify color and styles using
+  ascii characters, i.e. [$"BW"] is bold+underlined black text on white
+  background.
+
+* [{*href=#Package_vt100}vt100]: defines common VT100 (aka standard unix)
+  terminal input and output.
+]
+
+[{h3}Data Management]
+Civlua aims to implement a simple version control (similar to git) while also
+enabling CivbootOS's configuration and data storage needs (aka network config,
+simple databases, maybe a spreadsheet program, etc): [+
+* [{*href=#Package_luck}luck]: lua-like configuration language with imports.
+  Think [<https://bazel.build/>bazel] but only for data -- though you could
+  make a build system on top!
+
+* [{*href=#Package_tv}tv]: tabbed-values. Similar in spirit to TSV
+  (tab-separated-values) but with an actual spec and the ability to define a
+  header with types.
+
+* [{*href=#Package_vcds}vcds]: version-control data structures. Diffs, cherry
+  picks, etc.
+]
+
+[{:h3}Luarocks]
+The [{*href=#Package_pkgrock}pkgrock] script enables converting [$PKG.lua]
+files to [<https://luarocks.org/>] specs, as well as running the magical git
+incantations necessary for luarocks to find the version.
+
+
+[{:h2}LICENSE]
+All software, tests, documentation, notes and anything else in this repository
+is released into the public domain ([/UNLICENSE]) unless otherwise noted in
+the given source file.
+
+If you find any of this software helpful or copy large parts of it, please give
+us a a shoutout in your own projects and let us know by opening an
+[<https://github.com/civboot/civlua/issues>issue]. Please note that this is not
+required but is highly appreciated, thanks!
 

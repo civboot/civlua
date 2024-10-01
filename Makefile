@@ -29,8 +29,8 @@ ele: build
 
 doc:
 	mkdir -p ./.out/
-	$(LUA) civ.lua doc civ --pkg=deep --expand --to=.out/API.cxt
-	$(LUA) civ.lua cxt.html .out/API.cxt API.html --config=PKG.lua
+	$(LUA) civ.lua doc civ --pkg=deep --expand --to=.out/README.cxt
+	$(LUA) civ.lua cxt.html .out/README.cxt README.html --config=PKG.lua
 
 clean:
 	rm -f $$($(LUA) civ.lua ff -r --fpat='%.rockspec$$')

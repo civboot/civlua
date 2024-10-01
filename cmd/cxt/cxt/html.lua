@@ -4,6 +4,7 @@ MAIN = MAIN or M
 
 local pkglib = require'pkglib'
 local mty  = require'metaty'
+local fmt  = require'fmt'
 local pegl = require'pegl'
 local cxt  = require'cxt'
 local shim = require'shim'
@@ -53,7 +54,8 @@ td    { background-color: azure; }
 </style>]]
 
 local function nodeKind(n)
-  if mty.ty(n) == pegl.Token then return 'token' end
+  if type(n) == 'string' or mty.ty(n) == pegl.Token then
+    return 'token' end
   if n.code                  then return 'code'  end
   if n.table                 then return 'table' end
   if n.list                  then return 'ul'    end
@@ -173,6 +175,8 @@ local function _serialize(w, line, node) --> line
     if s:sub(-1)   == '\n' then s = s:sub(1,-2) end
     s = s:gsub('[&<>]', CODE_REPL)
     push(line, s)
+  elseif #node == 0 then
+    if node.href then line = _serialize(w, line, node.href) end
   else
     for _, sub in ipairs(node) do
       line = _serialize(w, line, sub)

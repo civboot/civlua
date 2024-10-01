@@ -496,7 +496,6 @@ M['nil'] = M.keyword()
 -- store items in this module in PKG_* variables
 for k, obj in pairs(M) do
   local name = PKG_NAMES[obj]
-  print('!! rename', k, name)
   if name then
     local newname = name:sub(9) -- remove "doc.lua."
     PKG_NAMES[obj] = newname

@@ -14,21 +14,25 @@ pkgs = {
   'lib/lap',
   'lib/fd',
   'lib/civix',
+  'lib/lson',
+  'lib/pegl',
 
-  -- libs
+  -- pretty colors
   'lib/asciicolor',
   'lib/vt100',
-  'lib/lson',
+
+  -- data storage / vcs
+  'lib/patience',
   'lib/tv',
   'lib/vcds',
-  'lib/pegl',
   'lib/luck',
+
+  -- TODO: refactor into other libs
   'lib/rebuf',
-  'lib/patience',
 
   -- cmd
-  'cmd/cxt', -- lib + cmd
-  'cmd/doc', -- lib + cmd
+  'cmd/cxt',
+  'cmd/doc',
   'cmd/ff',
   'cmd/pkgrock',
   'cmd/ele',

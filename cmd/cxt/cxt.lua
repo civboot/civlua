@@ -9,6 +9,7 @@ local ds  = require'ds'
 local lines = require'lines'
 local civtest = require'civtest'
 local add, sfmt, srep = table.insert, string.format, string.rep
+local pop = table.remove
 local max = math.max
 
 local Key
@@ -197,6 +198,7 @@ local function parseList(p, list)
       local c1, c2 = p.line:find(ipat, p.c)
       p.c = c2 + 1
     end
+    if rawget(item[#item], 'br') then pop(item) end
     p:trimTokenLast(item, true)
     add(list, item)
     if not r then break end

@@ -49,7 +49,7 @@ M.firstToken = function(list) --> t, listWithToken
 end
 M.lastToken = function(list) --> t, listWithToken
   if TOKEN_TY[ty(list)] then return list, nil end
-  local t = list[#list]; while not TOKEN_TY[ty(t)] do
+  local t = list[#list]; while t and not TOKEN_TY[ty(t)] do
     list = t; t = list[#list]
   end
   return t, list
@@ -487,7 +487,7 @@ end
 -- recurse through the end of list and trim the end of last token
 M.Parser.trimTokenLast = function(p, list, trimNl)
   local t, list = M.lastToken(list); assert(list)
-  if type(t) == 'string' then return end
+  if not t or type(t) == 'string' then return end
   local l1, c1, l2, c2 = t:span()
   local line = p.dat[l2]
   while line:sub(c2,c2) == ' ' do c2 = c2 - 1 end
