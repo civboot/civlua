@@ -47,8 +47,5 @@ M.main = function(arg) --> int: return code
   require(cmd).main(shim.parse(arg))
 end
 
-if M == MAIN then
-  os.exit(M.main(arg))
-end
-
+if M == MAIN then os.exit(M.main(G.arg)) end
 return M

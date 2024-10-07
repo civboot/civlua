@@ -29,7 +29,7 @@ ele: build
 
 doc:
 	mkdir -p ./.out/
-	$(LUA) civ.lua doc civ --pkg=deep --expand --to=.out/README.cxt
+	$(LUA) civ.lua doc civ pkg --pkg=deep --expand --to=.out/README.cxt
 	$(LUA) civ.lua cxt.html .out/README.cxt README.html --config=PKG.lua
 
 clean:

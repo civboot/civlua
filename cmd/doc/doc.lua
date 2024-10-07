@@ -429,6 +429,8 @@ M.Args = mty'Args' {
 }
 
 local function fmtPkg(f, construct, pkg, expand, deep)
+  -- pkg/ is not itself a PKG... this is a hack
+  if pkg == 'pkg' then pkg = pkglib.loadpkg('lib/pkg', 'pkg') end
   pkg = pkglib.isPkg(pkg) and pkg
      or pkglib.getpkg(pkg) or error('could not find pkg: '..pkg)
   M.fmt(f, construct:pkg(pkg, expand))
@@ -449,18 +451,20 @@ M.main = function(args)
   assert(obj, 'arg[1] must be the item to find')
   local to = args.to and shim.file(args.to) or nil
   local f, c = fmt.Fmt{to=to}, M._Construct{}
-  if args.pkg then fmtPkg(f, c, obj, expand, args.pkg == 'deep')
-  else
-    if type(obj) == 'string' then
-      obj = M.find(obj) or error('could not find obj: '..obj)
+  for _, obj in ipairs(args) do
+    if args.pkg then fmtPkg(f, c, obj, expand, args.pkg == 'deep')
+    else
+      if type(obj) == 'string' then
+        obj = M.find(obj) or error('could not find obj: '..obj)
+      end
+      local name = (type(obj) == 'string') and obj or nil
+      M.fmt(f, c(obj, name, expand))
     end
-    local name = (type(obj) == 'string') and obj or nil
-    M.fmt(f, c(obj, name, expand))
+    f:write'\n'
   end
-  if to then to:write'\n'; to:flush(); to:close()
+  if to then to:flush(); to:close()
   else
     require'cxt.term'{table.concat(f), out=io.fmt}
-    io.fmt:write'\n'
   end
 end
 getmetatable(M).__call = function(_, args) return M.main(args) end
