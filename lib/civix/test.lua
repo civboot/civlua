@@ -25,6 +25,7 @@ T.lapTest('sh', function()
   assertErrorPat('Command failed with rc=', function()
     sh{'commandNotExist', 'blah'}
   end)
+  -- error'FIXME: the above actually FAILED but test doesn't fail...'
 
   local path = '.out/echo.test'
   local f = io.open(path, 'w+')

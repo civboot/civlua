@@ -98,18 +98,16 @@ test('attrs', function()
   pegl.assertParse{dat='i', spec=M.attr, expect={
       'i', pegl.EMPTY, kind='keyval',
     },
-    dbg=true
   }
   pegl.assertParse{dat='i}', spec=M.attrs,
     expect={kind='attrs',
       {'i', pegl.EMPTY, kind='keyval'},
       KW'}',
     },
-    dbg=true
   }
   M.assertParse('[,some] [{i}italic] blocks', {
     {'some', i=true}, ' ', {'italic', i=true}, ' blocks'
-  }, true)
+  })
   M.assertParse('go to [/the/right] path', {
     'go to ',
     {'the/right', path='the/right'},

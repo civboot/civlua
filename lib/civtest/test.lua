@@ -2,7 +2,7 @@
 local mty = require'metaty'
 local ds  = require'ds'
 local test, assertEq, assertErrorPat, diffFmt;
-ds.auto'civtest'
+local T = ds.auto'civtest'
 
 test('civtest', function()
   assertEq(1, 1)
@@ -30,4 +30,8 @@ test('global', function()
     test('  (globalErr)', function() GLOBAL = true end)
   end)
   assert(G.GLOBAL == nil)
+end)
+
+T.asyncTest('foo', function()
+  assert(true)
 end)

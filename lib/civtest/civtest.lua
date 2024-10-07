@@ -79,15 +79,15 @@ end
 
 M.assertErrorPat = function(errPat, fn, plain)
   local ok, err = pcall(fn)
-  if ok then fmt.errorf(
+  if ok then error(sfmt(
     'Did not recieve expected error.\n'
   ..'! Expected errPat %q\n! Got result[1]: %s',
     errPat, fmt(err)
-  )end
-  if not err:find(errPat, 1, plain) then fmt.errorf(
+  ))end
+  if not err:find(errPat, 1, plain) then error(sfmt(
     '! Did not recieve expected error.\n'
   ..'! Expected errPat %q\n!### Got error:\n%q', errPat, err
-  )end
+  ))end
 end
 
 M.assertMatch = function(expectPat, result)
@@ -109,8 +109,9 @@ M.asyncTest = function(name, fn)
   local civix = require'civix'
   local Lap = civix.Lap()
   print('# Test', name, "(async)")
-  Lap:run{fn}
+  local _, errors = Lap:run{fn}
   collectgarbage()
+  if errors then error(fmt(errors)) end
 end
 
 M.lapTest = function(name, fn)

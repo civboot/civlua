@@ -390,7 +390,7 @@ M.Lap.run = function(lap, fns, async, sync)
     log.info('coroutine errors: %s', errors)
     error(errors)
   else log.info('Lap:run done. ready=%q, pm=%q', LAP_READY, lap.pollMap) end
-  return lap
+  return lap, errors
 end
 
 ----------------------
