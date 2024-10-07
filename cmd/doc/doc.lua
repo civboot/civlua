@@ -201,7 +201,7 @@ M._Construct.pkg = function(c, pkg, expand) --> Doc
   }
   d.meta = {
     summary = pkg.summary, version = pkg.version,
-    homepage = pkg.homepage,
+    homepage = pkg.homepage and sfmt('[<%s>]', pkg.homepage),
   }
   if pkg.doc then
     d.comments = assert(lines.load(pth.concat{pkg.dir, pkg.doc}))

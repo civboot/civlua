@@ -1,6 +1,6 @@
 name     = 'civix'
 summary  = "Unix sys library"
-homepage = "https://github.com/civboot/civlua/blob/main/lib/civix/README.md"
+homepage = "https://lua.civboot.org#Package_civix"
 license  = "UNLICENSE"
 version  = '0.1-8'
 url      = 'git+http://github.com/civboot/civlua'

@@ -1,6 +1,6 @@
 name     = 'fd'
 summary  = "filedescriptor interfaces"
-homepage = "https://github.com/civboot/civlua/blob/main/lib/fd/README.md"
+homepage = "https://lua.civboot.org#Package_fd"
 license  = "UNLICENSE"
 version  = '0.1-7'
 url      = 'git+http://github.com/civboot/civlua'

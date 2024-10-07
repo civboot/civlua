@@ -1,0 +1,102 @@
+simple but effective Lua type system using metatables
+
+Metatype is a library and specification for creating performant, documented, and
+typo-safe Lua record-types which can be formatted.
+
+[" Turn on typo checking by setting the global [$METATY_CHECK=true] before
+   requiring any modules that require metaty.]
+
+[{## lang=lua}
+local G = G or _G
+--- module documentation
+local M = G.mod and mod'myMod' or {} -- (see pkg)
+
+local mty = require'metaty'
+
+-- Documentation for Pos (position)
+M.Pos = mty'Pos' {
+  'x[int]: x coordinate',
+  'y[int]: y coordinate', y = 0,
+}
+
+local p1 = Pos{x=4}
+local p1 = Pos{x=4, y=3, z=5} -- error if checking turned on
+]##
+
+The above expands to the following. Note that the "typosafe" elements
+are removed when [$not METATY_CHECK] [{## lang=lua}
+local M = {}
+local metaty = require'metaty'
+
+local Pos = setmetatable({
+  __name='Pos',
+  y = 0,
+  -- used with metaty.Fmt and help()
+  __fields={'x', 'y', x='[int]', y='[int]'},
+  __newindex = metaty.newindex, -- typosafe setting
+}, {
+  __call = function(T, t)
+    metaty.fieldsCheck(T.__fields, t) -- typosafe constructor
+    return setmetatable(t, T)
+  end,
+  __index = metaty.index, -- typosafe getting
+})
+Pos.__index = Pos
+
+-- `mod` gives documentation reflection
+PKG_LOCS[M.myFn]         = 'path/to/file.lua:123'
+PKG_NAMES[M.myFn]        = 'mymod.Pos'
+PKG_LOOKUP['myMod.Pos'] = M.Pos
+]##
+
+[{h3 name=metaty-API}API] [+
+* [$ty(v)] return the metaty of [$v]. For tables this is [$getmetatable(v)],
+  else it is [$type(v)].
+* [$metaty'name' {'field1[type] documentation', 'field2[type]'}]
+  creates a documented and typo-safe record type (see examples)
+]
+
+See also: [<#Package_fmt>]
+
+[{h3 name=metaty-why}Why?]
+
+Lua is a fast and fun language. However it often lacks the ability to express
+intent when it comes to the structure of data. Also, not only is it not
+type-safe but it is also TYPO-unsafe -- small mistakes in the name of a field
+can easily result in hard to diagnose bugs, even when they occur in one's
+unit-test suite.
+
+Checking for typos incurrs a small performance cost, so it is disabled by
+default. However, it is well-worth the cost in your unit tests.
+
+[{h3 name=metaty-spec}Spec]
+For a type to be considered a "metaty" the only requirement is that it has a
+metatable set and that metatable has a [$__name] field.
+
+The following fields can optionally be set on the metatable: [+
+* [$__fmt]: used with [<#Package_fmt>]
+* [$__fields]: should contain a table of [$fieldName -> fieldtype].
+  [$fieldType] can be an arbitrary string and is only for documentation, though
+  future libraries/applications (type checkers) may eventually wish to consume
+  it. [$metaty] (the library) uses the format [$"fieldName [user-specified-type]"] [+
+  * This is used by formatting libraries when printing the types (so the fields
+    are printed in deterministic order).
+  ]
+* default values (i.e. [$y] in the example) are assigned directly to the type.
+  Documentation formatters may use these to format help messages.
+]
+
+In addition, there is runtime type specification defined below.
+
+[{h3 name=metaty-typoe-check}Runtime typo checking (optional)]
+["Note: Runtime typo checking has a cost and so is [*optional]
+  (default=false)]
+
+To enable runtime checking set the global value [$METATY_CHECK = true] at the
+top of your application or test file (before executing ANY [$require] calls).
+
+You can override the typo-checking behavior of a single type with [{## lang=lua}
+getmetatable(MyType).__call  = myConstructor
+getmetatable(MyType).__index = myIndex
+MyType.__newindex            = myNewIndex
+]##
