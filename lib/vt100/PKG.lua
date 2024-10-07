@@ -4,6 +4,7 @@ url      = 'git+http://github.com/civboot/civlua'
 summary  = "Civboot VT100 Terminal Library"
 homepage = "https://lua.civboot.org#Package_vt100"
 license  = "UNLICENSE"
+doc      = 'README.cxt'
 deps = {
   "lua    ~> 5.3",
   "metaty ~> 0.1",

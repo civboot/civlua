@@ -4,6 +4,7 @@ url      = 'git+http://github.com/civboot/civlua'
 summary  = "JSON+ de/serializer in pure lua"
 homepage = "https://lua.civboot.org#Package_lson"
 license  = "UNLICENSE"
+doc      = 'README.cxt'
 deps = {
   "lua    ~> 5.3",
   "metaty ~> 0.1",
