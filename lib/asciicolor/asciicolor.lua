@@ -2,11 +2,14 @@
 local M = mod and mod'asciicolor' or {}
 
 local mty = require'metaty'
+local ds  = require'ds'
 local sfmt = string.format
 
 --- typosafe mapping of asciicode -> fullname
-M.Color = mod and mod'Color' or {}
-for k, v in pairs({
+---
+--- [" Note: These map to the available colors in a VT100 terminal emulator,
+---    See the vt100 module for that implementation]
+M.Color = ds.TypoSafe{
   z = 'zero', [' '] = 'zero', [''] = 'zero', -- aka default.
 
   --  (dark)           (light)
@@ -18,11 +21,7 @@ for k, v in pairs({
   c = 'cyan',          a = 'aqua',
   n = 'navy',          s = 'sky', -- blue
   m = 'magenta',       f = 'fuschia',
-}) do M.Color[k] = v end
-local Color = M.Color
-if getmetatable(Color) then -- if mod did it's thing
-  Color.__name = nil; getmetatable(Color).__name = 'Color'
-end
+}
 
 --- typosafe mapping of fullname -> asciichar
 M.Ascii = mod and mod'Ascii' or {}

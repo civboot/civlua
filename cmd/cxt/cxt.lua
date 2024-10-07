@@ -86,10 +86,11 @@ local function nodeText(p, node, errNode)
 end
 
 --- find the end of a [$[##raw block]##]
-local function bracketedStrRaw(p, node, raw, ws)
+local function bracketedStrRaw(p, node, raw, startCol)
   node.code = node.code or (node.lang and true)
   local ws, w1 = p.line:find'^%s+' -- leading whitespace
-  ws = ws and p.line:sub(ws, w1) or nil
+  ws = ws and (w1 + 1 == startCol) and p.line:sub(ws, w1) or nil
+
   local l, c, closePat = p.l, p.c, '%]'..srep(RAW, raw)
   local closePatStart = '^'..closePat
   if p.c > #p.line then p:incLine() end
@@ -116,8 +117,8 @@ end
 
 --- A string that ends in a closed bracket and handles balanced brackets.
 --- Returns: Token, which does NOT include the closePat
-local function bracketedStr(p, node, raw)
-  if raw > 0 then return bracketedStrRaw(p, node, raw) end
+local function bracketedStr(p, node, raw, startCol)
+  if raw > 0 then return bracketedStrRaw(p, node, raw, startCol) end
   local l, c, nested = p.l, p.c, 1
   while nested > 0 do
     if p:isEof()     then p:error"Got EOF, expected matching ']'" end
@@ -325,7 +326,7 @@ M.content = function(p, node, isRoot, altEnd)
     sub.href = p:tokenStr(assert(p:parse{PIN, Pat'[^>]*', '>'}[1]))
   else p:error(sfmt( "Unrecognized control character after '[': %q", ctrl)) end
   -- parse table depending on kind
-  if raw           then bracketedStr(p, sub, raw)
+  if raw           then bracketedStr(p, sub, raw, c2)
   elseif sub.table then parseTable(p, sub)
   elseif sub.list  then parseList(p, sub)
   else                  M.content(p, sub) end

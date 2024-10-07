@@ -498,6 +498,7 @@ end
 ---
 --- Adding keys is always allowed but getting non-existant keys is an error.
 M.TypoSafe = mty'TypoSafe'{}
+getmetatable(M.TypoSafe).__call = mty.constructUnchecked
 getmetatable(M.TypoSafe).__index = mty.index
 M.TypoSafe.__newindex = nil
 

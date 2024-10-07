@@ -1,0 +1,12 @@
+encode text color and style with a two ascii characters.
+
+asciicolor is a protocol which encodes text color in terminals and (in future)
+elsewhere using only a single ascii character: i.e. [$b] for black, [$w] for
+white and [$n] for navy blue, etc. Capitalizing the character encodes a style
+(bold for foreground, underlined for background).
+
+See [<#asciicolor.Color>] for all codes.
+
+The color codes are used by [<#asciicolor.style.Styler>] to style text
+using an [$AcWriter]. See [<#vt100.AcWriter>] for the reference spec.
+
