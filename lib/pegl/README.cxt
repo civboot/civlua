@@ -1,0 +1,113 @@
+PEG like recursive descent Parser for Lua.
+
+PEG stands for "Parsing Expression Grammar" and is one of the simplest parsing
+grammars since it maps very-closesly to recursive descent -- which is a
+hand-rolled parser that uses recursion. This library is a pure-LUA
+recursive-descent parser which exports types and functions to create a PEG-like
+DSL that is still just recursive descent under the hood.
+
+The benefits of this library are: [+
+* [,vs hand-rolled recursive descent] is more concise and readable, as well as
+  providing automatic error messages (i.e. symbol locations in your stack) and
+  debugging.
+* [,vs PEG] is nearly as concise while maintaining the ability to hand-roll any
+  logic needed.
+]
+
+[{h2 name=pegl-resources}Resources]
+If you are completely new to parsers and especially if you want to write your
+own language with an AST then I cannot recommend
+[<http://www.craftinginterpreters.com>] enough. It might be a better place to
+start than this library.
+
+[{h2 name=pegl-intro}Introduction]
+A parser is a way to convert text into structured node objects so that the text
+can be compiled or annotated by a program. For example you might want to convert
+some source code like:
+
+[{## lang=lua}
+x = 1 + 2
+]##
+
+Into something like:
+
+[{## lang=lua}
+{'x', '=', {'1', '+', '2', kind='op'}, kind='assign'}
+]##
+
+A recursive descent parser does so via hand-rolled functions which typically
+[,recurse] into eachother. Each function attempts to parse from the current
+parser position using its spec (which may be composed of calling other parsing
+functions) and returns either the successfully parsed node or [$nil] (or
+returns/throws an error if it finds a syntax error).
+
+PEGL is a Lua library for writing the common-cases of a recursive descent parser
+in a (pure Lua) syntax similar to PEG, while still being able to easily fallback
+to hand-rolled recursive descent when needed.
+
+Most traditional PEG parsers (as well as other parsers) struggle with
+complicated syntax such as Lua's [#[===[raw string syntax]===]]#, python's
+whitespace denoted syntax or C's lookahead requirements ([$(U2)*c**h] --
+recursive descent can solve a lot of these problems relatively easily and
+performantly.  However, recursive descent parsers can be very verbose and
+sometimes difficult to understand. Below is a comparison of the above example
+in both PEG, PEGL and a "traditional" (though not very good) recursive descent
+implementation.
+
+[{h3}Examples]
+
+[*PEG]: most concise but harder to fallback to hand-rolled recursive descent
+[##
+grammar = [[
+num    <- '%d'
+name   <- '%w'
+setVar <- num '=' name
+expr   <- setVar / ... other valid expressions
+]]
+p:parse(grammar)
+]##
+
+[*PEGL]: very concise and easy to fallback to hand-rolled recursive descent.
+Things like `kind` and `name` make debug printing easier. [{## lang=lua}
+num    = Pat{'%d+', kind='num'} -- kind=num sets the node name
+name   = Pat{'%w+', kind='name'}
+-- Note: UNPIN and PIN are used for when errors should be raised
+setVar = {UNPIN, name, '=', PIN, num, kind='setVar'}
+expr   = Or{setVar, ... other valid expressions, name='expr'}
+p:parse(expr)
+]
+
+[*Recursive Descent]: not very concise, harder to debug. [{## lang=lua}
+-- Note: p=parser, an object which tracks the current position
+-- in it's `state`
+
+function parseNum(p)
+  local num = p:consume('%d+') -- return result and advance position
+  if num then -- found
+    return {num, kind='num'} end
+  end
+end
+
+function parseSetVar(p)
+  local state = p.state()
+  local name = p:consume('%w+')
+  if not name then return end
+  local eq, num = p:consume('='), parseNum(p)
+  if not (eq and num) then
+    -- didn't match, reset state and return
+    p.setState(state)
+    return
+  end
+  return {{name, kind='name'}, eq, num, kind='setVar'}
+end
+
+function expression(p)
+  local expr = parseSetVar(p)
+  if expr then return expr end
+  -- ... other possible expressions
+end
+
+expression(p)
+]##
+
+See [<#pegl.Seq>] for the basic API of parsing specs.

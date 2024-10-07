@@ -73,6 +73,9 @@ scripting, asynchronous file access and other goodies. [+
 * [{*href=#Package_fd}fd]: file-descriptor library for async files and other file
   operations.
 
+* [{*href=#Package_pegl}pegl]: general-purpose PEG-like parser library, used
+  for [<#Package_cxt>cxt] and will help provide syntax-highlighting in ele.
+
 * [{*href=#Package_lson}lson]: implements de/serialization of arbitrary
   concrete data (including tables) to/from JSON and an extension called LSON.
 ]

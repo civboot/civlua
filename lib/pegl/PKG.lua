@@ -1,6 +1,8 @@
 name    = 'pegl'
 version = '0.1-2'
+summary  = "PEG-like recursive descent parsing in Lua"
 url     = 'git+http://github.com/civboot/civlua'
+doc = 'README.cxt'
 srcs = {
   'pegl.lua',
   'pegl/lua.lua',

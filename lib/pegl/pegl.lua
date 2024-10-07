@@ -61,18 +61,47 @@ M.nodeSpan = function(t)
   return l1, c1, select(3, lst:span())
 end
 
--- Configuration for the spec. TODO: rename this.
+--- The root spec defines custom behavior for your spec. It's attributes
+--- can be set to change how the parser skips empty (whitespace) and handles comments.
+--- TODO: rename this.
 M.RootSpec = mty'RootSpec' {
-  'skipEmpty [function]:   fn(p) default=skip whitespace',
+[==[skipEmpty [fn(p) -> nil]: default=skip whitespace [+
+    * must be a function that accepts the `Parser`
+      and advances it's `l` and `c` past any empty (white) space. It must also set
+      `p.line` appropriately when `l` is moved.
+    * The return value is ignored.
+    * The default is to skip all whitespace (spaces, newlines, tabs, etc). This
+      should work for _most_ languages but fails for languages like python.
+    * Recommendation: If your language has only a few whitespace-aware nodes (i.e.
+      strings) then hand-roll those as recursive-descent functions and leave
+      this function alone.
+  ]]==],
+
   'skipComment [function]: fn(p) -> Token for found comment',
-  'tokenizer [function]',
+
+[==[tokenizer [fn(p) -> nil] Requires: [+
+    * must return one token. The default is to return a single punctuation character
+      or a whole word ([$_%w])
+    * Objects like [$Key] can use the single punctuation characters in a Trie-like
+      performant data structure.
+    ]]==],
+
   'dbg [boolean]',
 }
 
+--- The parser tracks the current position of parsing in `dat` and has several
+--- convienience methods for hand-rolling your own recursive descent functions.
+---
+--- [" Note: the location is **line/col based** (not position based) because it
+---    is designed to work with an application that stores the strings as lines
+---    (a text editor) ]
 M.Parser = mty'Parser'{
-  'dat',
-  'l', 'c',
-  'line', 'lines',
+  'dat [lines]: reference to the underlying data.\n'
+..'Must look like a table of lines',
+  'l [int]: line, incremented when [$c] is exhausted',
+  'c [int]: column in [$line]',
+  'line [string]: the current line ([$dat[l]])',
+  'lines',
   'root [RootSpec]',
   'stack [list]', 'stackL [list]', 'stackC [list]',
   'stackLast [{item, l, c}]',
@@ -101,11 +130,14 @@ M.specToStr = function(s, fmt)
   return table.concat(fmt)
 end
 
+--- Create a parser spec record. These have the fields [$kind] and [$name]
+--- and must define the [$parse] method.
 M.specTy = function(name)
   return mty(name){'kind [string]', 'name [string]', __fmt=M.fmtSpec}
 end
 
--- Pat'pat%wern' or Pat{'pat', kind='foo'}
+--- [$Pat{'%w+', kind='word'}] will create a Token with the span matching the
+--- [$%w+] pattern and the kind of [$word] when matched.
 M.Pat = M.specTy'Pat'
 getmetatable(M.Pat).__call = function(T, t)
   if type(t) == 'string' then t = {t} end
@@ -132,7 +164,16 @@ local function constructKeys(keys)
   return keys
 end
 
--- Key{{'myKeword', ['+']={'+'=true}}, kind='kw'}
+--- The table given to [$Key] forms a Trie which is extremely performant. Key depends
+--- strongly on the [$tokenizer] passed to RootSpec.
+---
+--- Example: [$Key{{'myKeword', ['+']={'+'=true}}, kind='kw'}] will match tokens "myKeyword"
+--- and "+" followed by "+" (but not "+" not followed by "+").
+---
+--- To also match "+" use [$['+']={true, '+'=true}]
+---
+--- ["Note: The `Key` constructor converts all list items into
+---         [$value=true], so [${'a', 'b'}] is converted to [${a=true, b=true}]]
 M.Key = mty'Key' {
   'keys [table]', 'name [string]', 'kind [string]',
   __fmt = M.fmtSpec,
@@ -143,13 +184,61 @@ getmetatable(M.Key).__call = function(T, t)
   return mty.construct(T, t)
 end
 
+--- choose one spec
+---
+--- Example: [$Or{'keyword', OtherSpec, Empty}] will match one of the three
+--- specs given.  Note that [$Empty] will always match (and return
+--- [$pegl.EMPTY]).  Without [$Empty] this could return [$nil], causing a
+--- parent [$Or] to match a different spec.
+---
+--- ["Note: [$Maybe(spec)] literally expands to [$Or{spec, Empty}]]
+---
+--- Prefer [$Key] if selecting among multiple string or token paths as [$Or] is
+--- not performant ([$O(N)] vs Key's [$O(1)])
 M.Or = M.specTy'Or'
 M.Maybe = function(spec) return M.Or{spec, M.Empty} end
+--- match a Spec multiple times
+--- Example: [$Many{'keyword', OtherSpec, min=1, kind='myMany'}] will match the
+--- given sequence one or more times ([$min=0] times by default). The parse
+--- result is a list with [$kind='myMany'].
 M.Many = mty'Many' {
   'min [int]', min = 0,
   'kind [string]', 'name [string]',
   __fmt = M.fmtSpec,
 }
+
+--- A Sequence of parsers. Note that [$Parser] treats [$Seq{'a'}] and [${'a'}]
+--- identically (you can use plain tables instead).
+---
+--- Raw strings are treated as keywords (the are parsed literally and have
+--- [$key] set to themselves). Functions are called with the [$parser] as the
+--- only argument and must return the node/s they parsed or [$nil] for a
+--- non-error match.
+---
+--- A sequence is a list of either other parsers
+--- ([$Seq, {}, "keyword", fn(p), Not, Or, etc]} and/or plain strings which are
+--- treated as keywords and will have [$kind] be set to themselves when parsed.
+---
+--- If the first spec matches but a later one doesn't an [$error] will be thrown
+--- (instead of [$nil] returned) unless [$UNPIN] is used. See the PIN/UNPIN
+--- docs for details.
+---
+--- [{h4}PIN/UNPIN: Syntax Error Reporting]
+--- PEGL implements syntax error detection ONLY in Sequence specs (table specs i.e.
+--- `{...}`) by throwing an [$error] if a "pinned" spec is missing. [+
+---
+--- * By default, no error will be raised if the first spec is missing. After the
+---   first spec, [$pin=true] and any missing specs to throw an error with context.
+---
+--- * [$PIN] can be used to force [$pin=true] until [$UNPIN] is (optionally)
+---   specified.
+---
+--- * [$UNPIN] can be used to force [$pin=false] until [$PIN] is (optionally)
+---   specified.
+---
+--- * PIN / UNPIN only affect the [,current] sequence (they do not pin
+---   sub-sequences).
+--- ]
 M.Seq = M.specTy'Seq'
 M.Not = M.specTy'Not'
 M.Not.parse = function(self, p) return not M.parseSeq(p, self) end
@@ -364,9 +453,11 @@ local SPEC_TY = {
   table=function(p, tbl) return M.parseSeq(p, tbl) end,
 }
 
--- [$parse('hi + there', {Pat{'\w+'}, '+', Pat{'\w+'}})]
--- Returns tokens: [$'hi', {'+', kind='+'}, 'there']
-M.parse = function(dat, spec, root)
+--- Parse a spec, returning the nodes or throwing a syntax error.
+---
+--- [$root] is used to define settings of the parser such as how to skip
+--- comments and whether to use debug mode.
+M.parse = function(dat, spec, root) --> list[Node]
   local p = M.Parser:new(dat, root)
   return p:parse(spec), p
 end
@@ -392,7 +483,13 @@ M.Parser.assertNode = function(p, expect, node, root)
   return result
 end
 
-M.assertParse=function(t) -- {dat, spec, expect, dbg=false, root=RootSpec{}}
+--- Parse the [$dat] with the [$spec], asserting the resulting "string tokens"
+--- are identical to [$expect].
+---
+--- the input is a table of the form: [{# lang=lua}
+---   {dat, spec, expect, dbg=nil, root=default} --> nil
+--- ]#
+M.assertParse = function (t) --> nil
   assert(t.dat, 'dat'); assert(t.spec, 'spec')
   local root = (t.root and ds.copy(t.root)) or M.RootSpec{}
   root.dbg   = t.dbg or root.dbg
@@ -422,23 +519,29 @@ M.Parser.new = function(T, dat, root)
     commentLC={},
   })
 end
-M.Parser.parse = function(p, spec)
+
+--- the main entry point and used recursively.
+--- Parses the spec, returning the node, which is a table of nodes that are
+--- eventually tokens.
+M.Parser.parse = function(p, spec) --> node
   local T = ty(spec)
   local specFn = SPEC_TY[T]
   if specFn then return specFn(p, spec)
   else           return spec:parse(p) end
 end
+--- consume the pattern, advancing the column if found
+M.Parser.consume = function(p, pat, plain) --> Token
+  local t = p:peek(pat, plain)
+  if t then p.c = select(4, t:span()) + 1 end
+  return t
+end
+--- identical to `consume` except it does not advance the column
 M.Parser.peek = function(p, pat)
   if p:isEof() then return nil end
   local c, c2 = p.line:find(pat, p.c)
   if c == p.c then
     return M.Token:encode(p, p.l, c, p.l, c2)
   end
-end
-M.Parser.consume = function(p, pat, plain)
-  local t = p:peek(pat, plain)
-  if t then p.c = select(4, t:span()) + 1 end
-  return t
 end
 M.Parser.sub =function(p, t) -- t=token
   return lines.sub(p.dat, t:span())
@@ -447,12 +550,14 @@ M.Parser.incLine=function(p)
   p.l, p.c = p.l + 1, 1
   p.line = p.dat[p.l]
 end
-M.Parser.isEof=function(p) return not p.line end
+M.Parser.isEof=function(p) return not p.line end --> isAtEndOfFile
 M.Parser.skipEmpty=function(p)
   p.root.skipEmpty(p)
   return p:isEof()
 end
+--- get the current parser state [${l, c, line}]
 M.Parser.state   =function(p) return {l=p.l, c=p.c, line=p.line} end
+--- restore the current parser state [${l, c, line}]
 M.Parser.setState=function(p, st) p.l, p.c, p.line = st.l, st.c, st.line end
 -- convert to token strings for test assertion
 M.Parser.toStrTokens=function(p, n)

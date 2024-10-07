@@ -114,6 +114,8 @@ library.  civtest is minimal but gets the job done.</li>
 concurrency in pure-lua.</li>
 <li><a href="#Package_fd"><b>fd</b></a>: file-descriptor library for async files and other file
 operations.</li>
+<li><a href="#Package_pegl"><b>pegl</b></a>: general-purpose PEG-like parser library, used
+for <a href="#Package_cxt">cxt</a> and will help provide syntax-highlighting in ele.</li>
 <li><a href="#Package_lson"><b>lson</b></a>: implements de/serialization of arbitrary
 concrete data (including tables) to/from JSON and an extension called LSON.</li>
 </ul>
@@ -486,10 +488,10 @@ module for writing simple tests
 <h3>Function <a id="civtest.assertEq" href="#civtest.assertEq">civtest.assertEq</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civtest/civtest.lua#L78"><i>src</i></a>)</h3>
 <h3>Function <a id="civtest.assertErrorPat" href="#civtest.assertErrorPat">civtest.assertErrorPat</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civtest/civtest.lua#L91"><i>src</i></a>)</h3>
 <h3>Function <a id="civtest.assertMatch" href="#civtest.assertMatch">civtest.assertMatch</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civtest/civtest.lua#L98"><i>src</i></a>)</h3>
-<h3>Function <a id="civtest.asyncTest" href="#civtest.asyncTest">civtest.asyncTest</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civtest/civtest.lua#L114"><i>src</i></a>)</h3>
+<h3>Function <a id="civtest.asyncTest" href="#civtest.asyncTest">civtest.asyncTest</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civtest/civtest.lua#L115"><i>src</i></a>)</h3>
 Runs until yields non-truthy. See lib/lap/README.md
 <h3>Function <a id="civtest.diffFmt" href="#civtest.diffFmt">civtest.diffFmt</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civtest/civtest.lua#L60"><i>src</i></a>)</h3>
-<h3>Function <a id="civtest.lapTest" href="#civtest.lapTest">civtest.lapTest</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civtest/civtest.lua#L119"><i>src</i></a>)</h3>
+<h3>Function <a id="civtest.lapTest" href="#civtest.lapTest">civtest.lapTest</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civtest/civtest.lua#L120"><i>src</i></a>)</h3>
 <h3>Function <a id="civtest.test" href="#civtest.test">civtest.test</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civtest/civtest.lua#L104"><i>src</i></a>)</h3>
 <p>
 <h1><a id="Package_ds" href="#Package_ds">Package ds</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds"><i>src</i></a>)</h1><table>
@@ -2892,42 +2894,151 @@ Encode lua value to LSON string
 <p>
 <h1><a id="Package_pegl" href="#Package_pegl">Package pegl</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl"><i>src</i></a>)</h1><table>
 <tr>
+<td><b>summary</b></td>
+<td>PEG-like recursive descent parsing in Lua</td>
+</tr>
+<tr>
 <td><b>version</b></td>
 <td><code>0.1-2</code></td>
 </tr>
 </table>
+PEG like recursive descent Parser for Lua.
+<p>
+PEG stands for "Parsing Expression Grammar" and is one of the simplest parsing
+grammars since it maps very-closesly to recursive descent -- which is a
+hand-rolled parser that uses recursion. This library is a pure-LUA
+recursive-descent parser which exports types and functions to create a PEG-like
+DSL that is still just recursive descent under the hood.
+<p>
+The benefits of this library are: <ul>
+<li><i>vs hand-rolled recursive descent</i> is more concise and readable, as well as
+providing automatic error messages (i.e. symbol locations in your stack) and
+debugging.</li>
+<li><i>vs PEG</i> is nearly as concise while maintaining the ability to hand-roll any
+logic needed.</li>
+</ul>
+<p>
+<h2><a id="pegl-resources" href="#pegl-resources">Resources</h2></a>
+If you are completely new to parsers and especially if you want to write your
+own language with an AST then I cannot recommend
+<a href="http://www.craftinginterpreters.com">http://www.craftinginterpreters.com</a> enough. It might be a better place to
+start than this library.
+<p>
+<h2><a id="pegl-intro" href="#pegl-intro">Introduction</h2></a>
+A parser is a way to convert text into structured node objects so that the text
+can be compiled or annotated by a program. For example you might want to convert
+some source code like:
+<p>
+<code class="block">x = 1 + 2</code>
+<p>
+Into something like:
+<p>
+<code class="block">{'x', '=', {'1', '+', '2', kind='op'}, kind='assign'}</code>
+<p>
+A recursive descent parser does so via hand-rolled functions which typically
+<i>recurse</i> into eachother. Each function attempts to parse from the current
+parser position using its spec (which may be composed of calling other parsing
+functions) and returns either the successfully parsed node or <code>nil</code> (or
+returns/throws an error if it finds a syntax error).
+<p>
+PEGL is a Lua library for writing the common-cases of a recursive descent parser
+in a (pure Lua) syntax similar to PEG, while still being able to easily fallback
+to hand-rolled recursive descent when needed.
+<p>
+Most traditional PEG parsers (as well as other parsers) struggle with
+complicated syntax such as Lua's <code>===[raw string syntax]===]</code>, python's
+whitespace denoted syntax or C's lookahead requirements (<code>(U2)*c**h</code> --
+recursive descent can solve a lot of these problems relatively easily and
+performantly.  However, recursive descent parsers can be very verbose and
+sometimes difficult to understand. Below is a comparison of the above example
+in both PEG, PEGL and a "traditional" (though not very good) recursive descent
+implementation.
+<p>
+<h3>Examples</h3>
+<p>
+<b>PEG</b>: most concise but harder to fallback to hand-rolled recursive descent
+<code class="block">grammar = [[
+num    &lt;- '%d'
+name   &lt;- '%w'
+setVar &lt;- num '=' name
+expr   &lt;- setVar / ... other valid expressions
+]]
+p:parse(grammar)</code>
+<p>
+<b>PEGL</b>: very concise and easy to fallback to hand-rolled recursive descent.
+Things like `kind` and `name` make debug printing easier. <code class="block">num    = Pat{'%d+', kind='num'} -- kind=num sets the node name
+name   = Pat{'%w+', kind='name'}
+-- Note: UNPIN and PIN are used for when errors should be raised
+setVar = {UNPIN, name, '=', PIN, num, kind='setVar'}
+expr   = Or{setVar, ... other valid expressions, name='expr'}
+p:parse(expr)
+]
+
+[*Recursive Descent]: not very concise, harder to debug. [{## lang=lua}
+-- Note: p=parser, an object which tracks the current position
+-- in it's `state`
+
+function parseNum(p)
+  local num = p:consume('%d+') -- return result and advance position
+  if num then -- found
+    return {num, kind='num'} end
+  end
+end
+
+function parseSetVar(p)
+  local state = p.state()
+  local name = p:consume('%w+')
+  if not name then return end
+  local eq, num = p:consume('='), parseNum(p)
+  if not (eq and num) then
+    -- didn't match, reset state and return
+    p.setState(state)
+    return
+  end
+  return {{name, kind='name'}, eq, num, kind='setVar'}
+end
+
+function expression(p)
+  local expr = parseSetVar(p)
+  if expr then return expr end
+  -- ... other possible expressions
+end
+
+expression(p)</code>
+<p>
+See <a href="#pegl.Seq">#pegl.Seq</a> for the basic API of parsing specs.
 <p>
 <h2>Module <a id="pegl" href="#pegl">pegl</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L4"><i>src</i></a>)</h2>
 pegl: peg-like lua parser
 <p>
-<h3>Table <a id="pegl.EMPTY" href="#pegl.EMPTY">pegl.EMPTY</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L164"><i>src</i></a>)</h3>
-<h3>Table <a id="pegl.EOF" href="#pegl.EOF">pegl.EOF</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L168"><i>src</i></a>)</h3>
-<h3>Table <a id="pegl.Empty" href="#pegl.Empty">pegl.Empty</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L165"><i>src</i></a>)</h3>
-<h3>Table <a id="pegl.Eof" href="#pegl.Eof">pegl.Eof</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L174"><i>src</i></a>)</h3><code class="block">M.Eof = ds.sentinel('Eof', {
+<h3>Table <a id="pegl.EMPTY" href="#pegl.EMPTY">pegl.EMPTY</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L253"><i>src</i></a>)</h3>
+<h3>Table <a id="pegl.EOF" href="#pegl.EOF">pegl.EOF</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L257"><i>src</i></a>)</h3>
+<h3>Table <a id="pegl.Empty" href="#pegl.Empty">pegl.Empty</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L254"><i>src</i></a>)</h3>
+<h3>Table <a id="pegl.Eof" href="#pegl.Eof">pegl.Eof</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L263"><i>src</i></a>)</h3><code class="block">M.Eof = ds.sentinel('Eof', {
   __tostring=function() return 'Eof' end,
   parse=function(self, p)
     p:skipEmpty(); if p:isEof() then return M.EOF end
   end
 })</code>
-<h3>Table <a id="pegl.PIN" href="#pegl.PIN">pegl.PIN</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L159"><i>src</i></a>)</h3>
+<h3>Table <a id="pegl.PIN" href="#pegl.PIN">pegl.PIN</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L248"><i>src</i></a>)</h3>
 <h4>Value <a id="pegl.SPAN_PACK" href="#pegl.SPAN_PACK">pegl.SPAN_PACK</a></h4>
-<h3>Table <a id="pegl.UNPIN" href="#pegl.UNPIN">pegl.UNPIN</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L160"><i>src</i></a>)</h3>
+<h3>Table <a id="pegl.UNPIN" href="#pegl.UNPIN">pegl.UNPIN</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L249"><i>src</i></a>)</h3>
 <h4>Value <a id="pegl.__name" href="#pegl.__name">pegl.__name</a></h4>
-<h3>Table <a id="pegl.common" href="#pegl.common">pegl.common</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L575"><i>src</i></a>)</h3>
-<h3>Table <a id="pegl.fmtKinds" href="#pegl.fmtKinds">pegl.fmtKinds</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L605"><i>src</i></a>)</h3><code class="block">M.fmtKinds = {
+<h3>Table <a id="pegl.common" href="#pegl.common">pegl.common</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L680"><i>src</i></a>)</h3>
+<h3>Table <a id="pegl.fmtKinds" href="#pegl.fmtKinds">pegl.fmtKinds</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L710"><i>src</i></a>)</h3><code class="block">M.fmtKinds = {
   EOF   = function(f, t) push(f, 'EOF')   end,
   EMPTY = function(f, t) push(f, 'EMPTY') end,
   name  = function(f, t) pushfmt(f, 'N%q', t[1]) end,
   n10   = function(...) fmtKindNum('NUM', ...) end,
   n16   = function(...) fmtKindNum('HEX', ...) end,
 }</code>
-<h3>Table <a id="pegl.testing" href="#pegl.testing">pegl.testing</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L580"><i>src</i></a>)</h3>
-<h3>Record <a id="pegl.FmtPegl" href="#pegl.FmtPegl">pegl.FmtPegl</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L609"><i>src</i></a>)</h3>
+<h3>Table <a id="pegl.testing" href="#pegl.testing">pegl.testing</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L685"><i>src</i></a>)</h3>
+<h3>Record <a id="pegl.FmtPegl" href="#pegl.FmtPegl">pegl.FmtPegl</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L714"><i>src</i></a>)</h3>
 <p>
 <b>Fields: </b> <table>
 <tr>
 <td><code>pegl.FmtPegl.kinds</code></td>
-<td>[table] = <code>{EMPTY=fn"function"[/home/rett/projects/civlua/lib/pegl/pegl.lua:601], EOF=fn"function"[/home/rett/projects/civlua/lib/pegl/pegl.lua:600], n10=fn"function"[/home/rett/projects/civlua/lib/pegl/pegl.lua:603], n16=fn"function"[/home/rett/projects/civlua/lib/pegl/pegl.lua:604], name=fn"function"[/home/rett/projects/civlua/lib/pegl/pegl.lua:602]}</code>
+<td>[table] = <code>{EMPTY=fn"function"[/home/rett/projects/civlua/lib/pegl/pegl.lua:706], EOF=fn"function"[/home/rett/projects/civlua/lib/pegl/pegl.lua:705], n10=fn"function"[/home/rett/projects/civlua/lib/pegl/pegl.lua:708], n16=fn"function"[/home/rett/projects/civlua/lib/pegl/pegl.lua:709], name=fn"function"[/home/rett/projects/civlua/lib/pegl/pegl.lua:707]}</code>
 kind -> fmtFn</td>
 </tr>
 </table>
@@ -2937,7 +3048,7 @@ kind -> fmtFn</td>
 <b>Records: </b> <table>
 <tr>
 <td><code>pegl.FmtPegl.__index</code></td>
-<td>[Ty<FmtPegl>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L609">src</a>)</td>
+<td>[Ty<FmtPegl>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L714">src</a>)</td>
 </tr>
 </table>
 <b>Methods: </b> <table>
@@ -2946,8 +3057,18 @@ kind -> fmtFn</td>
 <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L179">src</a>)</td>
 </tr>
 </table>
-<h4>Function <a id="FmtPegl.__call" href="#FmtPegl.__call">FmtPegl.__call</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L614"><i>src</i></a>)</h4>
-<h3>Record <a id="pegl.Key" href="#pegl.Key">pegl.Key</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L139"><i>src</i></a>)</h3>
+<h4>Function <a id="FmtPegl.__call" href="#FmtPegl.__call">FmtPegl.__call</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L719"><i>src</i></a>)</h4>
+<h3>Record <a id="pegl.Key" href="#pegl.Key">pegl.Key</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L180"><i>src</i></a>)</h3>
+The table given to <code>Key</code> forms a Trie which is extremely performant. Key depends
+strongly on the <code>tokenizer</code> passed to RootSpec.
+<p>
+Example: <code>Key{{'myKeword', ['+']={'+'=true}}, kind='kw'}</code> will match tokens "myKeyword"
+and "+" followed by "+" (but not "+" not followed by "+").
+<p>
+To also match "+" use <code>['+']={true, '+'=true}</code>
+<p>
+<blockquote>Note: The `Key` constructor converts all list items into
+<code>value=true</code>, so <code>{'a', 'b'}</code> is converted to <code>{a=true, b=true}</code></blockquote>
 <p>
 <b>Fields: </b> <table>
 <tr>
@@ -2969,7 +3090,7 @@ kind -> fmtFn</td>
 <b>Records: </b> <table>
 <tr>
 <td><code>pegl.Key.__index</code></td>
-<td>[Ty<Key>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L139">src</a>)</td>
+<td>[Ty<Key>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L180">src</a>)</td>
 </tr>
 </table>
 <b>Methods: </b> <table>
@@ -2978,9 +3099,13 @@ kind -> fmtFn</td>
 <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L179">src</a>)</td>
 </tr>
 </table>
-<h4>Function <a id="pegl.fmtSpec" href="#pegl.fmtSpec">pegl.fmtSpec</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L97"><i>src</i></a>)</h4>
-<h4>Function <a id="Key.parse" href="#Key.parse">Key.parse</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L259"><i>src</i></a>)</h4>
-<h3>Record <a id="pegl.Many" href="#pegl.Many">pegl.Many</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L152"><i>src</i></a>)</h3>
+<h4>Function <a id="pegl.fmtSpec" href="#pegl.fmtSpec">pegl.fmtSpec</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L126"><i>src</i></a>)</h4>
+<h4>Function <a id="Key.parse" href="#Key.parse">Key.parse</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L348"><i>src</i></a>)</h4>
+<h3>Record <a id="pegl.Many" href="#pegl.Many">pegl.Many</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L208"><i>src</i></a>)</h3>
+match a Spec multiple times
+Example: <code>Many{'keyword', OtherSpec, min=1, kind='myMany'}</code> will match the
+given sequence one or more times (<code>min=0</code> times by default). The parse
+result is a list with <code>kind='myMany'</code>.
 <p>
 <b>Fields: </b> <table>
 <tr>
@@ -3002,21 +3127,21 @@ kind -> fmtFn</td>
 <b>Records: </b> <table>
 <tr>
 <td><code>pegl.Many.__index</code></td>
-<td>[Ty<Many>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L152">src</a>)</td>
+<td>[Ty<Many>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L208">src</a>)</td>
 </tr>
 </table>
 <b>Methods: </b> <table>
 <tr>
 <td><code>pegl.Many.__fmt</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L97">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L126">src</a>)</td>
 </tr>
 <tr>
 <td><code>pegl.Many.__newindex</code></td>
 <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L179">src</a>)</td>
 </tr>
 </table>
-<h4>Function <a id="Many.parse" href="#Many.parse">Many.parse</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L349"><i>src</i></a>)</h4>
-<h3>Record <a id="pegl.Not" href="#pegl.Not">pegl.Not</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L154"><i>src</i></a>)</h3>
+<h4>Function <a id="Many.parse" href="#Many.parse">Many.parse</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L438"><i>src</i></a>)</h4>
+<h3>Record <a id="pegl.Not" href="#pegl.Not">pegl.Not</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L243"><i>src</i></a>)</h3>
 <p>
 <b>Fields: </b> <table>
 <tr>
@@ -3034,21 +3159,32 @@ kind -> fmtFn</td>
 <b>Records: </b> <table>
 <tr>
 <td><code>pegl.Not.__index</code></td>
-<td>[Ty<Not>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L154">src</a>)</td>
+<td>[Ty<Not>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L243">src</a>)</td>
 </tr>
 </table>
 <b>Methods: </b> <table>
 <tr>
 <td><code>pegl.Not.__fmt</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L97">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L126">src</a>)</td>
 </tr>
 <tr>
 <td><code>pegl.Not.__newindex</code></td>
 <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L179">src</a>)</td>
 </tr>
 </table>
-<h4>Function <a id="Not.parse" href="#Not.parse">Not.parse</a><code>(self, p) -&gt; not M.parseSeq(p, self)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L155"><i>src</i></a>)</h4>
-<h3>Record <a id="pegl.Or" href="#pegl.Or">pegl.Or</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L146"><i>src</i></a>)</h3>
+<h4>Function <a id="Not.parse" href="#Not.parse">Not.parse</a><code>(self, p) -&gt; not M.parseSeq(p, self)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L244"><i>src</i></a>)</h4>
+<h3>Record <a id="pegl.Or" href="#pegl.Or">pegl.Or</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L198"><i>src</i></a>)</h3>
+choose one spec
+<p>
+Example: <code>Or{'keyword', OtherSpec, Empty}</code> will match one of the three
+specs given.  Note that <code>Empty</code> will always match (and return
+<code>pegl.EMPTY</code>).  Without <code>Empty</code> this could return <code>nil</code>, causing a
+parent <code>Or</code> to match a different spec.
+<p>
+<blockquote>Note: <code>Maybe(spec)</code> literally expands to <code>Or{spec, Empty}</code></blockquote>
+<p>
+Prefer <code>Key</code> if selecting among multiple string or token paths as <code>Or</code> is
+not performant (<code>O(N)</code> vs Key's <code>O(1)</code>)
 <p>
 <b>Fields: </b> <table>
 <tr>
@@ -3066,38 +3202,49 @@ kind -> fmtFn</td>
 <b>Records: </b> <table>
 <tr>
 <td><code>pegl.Or.__index</code></td>
-<td>[Ty<Or>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L146">src</a>)</td>
+<td>[Ty<Or>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L198">src</a>)</td>
 </tr>
 </table>
 <b>Methods: </b> <table>
 <tr>
 <td><code>pegl.Or.__fmt</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L97">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L126">src</a>)</td>
 </tr>
 <tr>
 <td><code>pegl.Or.__newindex</code></td>
 <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L179">src</a>)</td>
 </tr>
 </table>
-<h4>Function <a id="Or.parse" href="#Or.parse">Or.parse</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L328"><i>src</i></a>)</h4>
-<h3>Record <a id="pegl.Parser" href="#pegl.Parser">pegl.Parser</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L81"><i>src</i></a>)</h3>
+<h4>Function <a id="Or.parse" href="#Or.parse">Or.parse</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L417"><i>src</i></a>)</h4>
+<h3>Record <a id="pegl.Parser" href="#pegl.Parser">pegl.Parser</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L110"><i>src</i></a>)</h3>
+The parser tracks the current position of parsing in `dat` and has several
+convienience methods for hand-rolling your own recursive descent functions.
+<p>
+<blockquote> Note: the location is **line/col based** (not position based) because it
+is designed to work with an application that stores the strings as lines
+(a text editor) </blockquote>
 <p>
 <b>Fields: </b> <table>
 <tr>
 <td><code>pegl.Parser.dat</code></td>
-<td>  </td>
+<td>[lines] 
+reference to the underlying data.
+Must look like a table of lines</td>
 </tr>
 <tr>
 <td><code>pegl.Parser.l</code></td>
-<td>  </td>
+<td>[int] 
+line, incremented when <code>c</code> is exhausted</td>
 </tr>
 <tr>
 <td><code>pegl.Parser.c</code></td>
-<td>  </td>
+<td>[int] 
+column in <code>line</code></td>
 </tr>
 <tr>
 <td><code>pegl.Parser.line</code></td>
-<td>  </td>
+<td>[string] 
+the current line (<code>dat[l]</code>)</td>
 </tr>
 <tr>
 <td><code>pegl.Parser.lines</code></td>
@@ -3139,7 +3286,7 @@ table of {line={col=CommentToken}}</td>
 <b>Records: </b> <table>
 <tr>
 <td><code>pegl.Parser.__index</code></td>
-<td>[Ty<Parser>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L81">src</a>)</td>
+<td>[Ty<Parser>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L110">src</a>)</td>
 </tr>
 </table>
 <b>Methods: </b> <table>
@@ -3148,34 +3295,43 @@ table of {line={col=CommentToken}}</td>
 <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L179">src</a>)</td>
 </tr>
 </table>
-<h4>Function <a id="Parser.__tostring" href="#Parser.__tostring">Parser.__tostring</a><code>() -&gt; 'Parser()'</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L415"><i>src</i></a>)</h4>
-<h4>Function <a id="Parser.assertNode" href="#Parser.assertNode">Parser.assertNode</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L393"><i>src</i></a>)</h4>
-<h4>Function <a id="Parser.checkPin" href="#Parser.checkPin">Parser.checkPin</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L519"><i>src</i></a>)</h4>
-<h4>Function <a id="Parser.consume" href="#Parser.consume">Parser.consume</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L442"><i>src</i></a>)</h4>
-<h4>Function <a id="Parser.dbg" href="#Parser.dbg">Parser.dbg</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L564"><i>src</i></a>)</h4>
-<h4>Function <a id="Parser.dbgEnter" href="#Parser.dbgEnter">Parser.dbgEnter</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L540"><i>src</i></a>)</h4>
-<h4>Function <a id="Parser.dbgLeave" href="#Parser.dbgLeave">Parser.dbgLeave</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L549"><i>src</i></a>)</h4>
-<h4>Function <a id="Parser.dbgMatched" href="#Parser.dbgMatched">Parser.dbgMatched</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L552"><i>src</i></a>)</h4>
-<h4>Function <a id="Parser.dbgMissed" href="#Parser.dbgMissed">Parser.dbgMissed</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L555"><i>src</i></a>)</h4>
-<h4>Function <a id="Parser.dbgUnpack" href="#Parser.dbgUnpack">Parser.dbgUnpack</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L558"><i>src</i></a>)</h4>
-<h4>Function <a id="Parser.error" href="#Parser.error">Parser.error</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L525"><i>src</i></a>)</h4>
-<h4>Function <a id="Parser.incLine" href="#Parser.incLine">Parser.incLine</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L449"><i>src</i></a>)</h4>
-<h4>Function <a id="Parser.isEof" href="#Parser.isEof">Parser.isEof</a><code>(p) -&gt; not p.line</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L450"><i>src</i></a>)</h4>
-<h4>Function <a id="Parser.makeStrTokens" href="#Parser.makeStrTokens">Parser.makeStrTokens</a><code>(p, t) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L475"><i>src</i></a>)</h4>
+<h4>Function <a id="Parser.__tostring" href="#Parser.__tostring">Parser.__tostring</a><code>() -&gt; 'Parser()'</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L512"><i>src</i></a>)</h4>
+<h4>Function <a id="Parser.assertNode" href="#Parser.assertNode">Parser.assertNode</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L484"><i>src</i></a>)</h4>
+<h4>Function <a id="Parser.checkPin" href="#Parser.checkPin">Parser.checkPin</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L624"><i>src</i></a>)</h4>
+<h4>Function <a id="Parser.consume" href="#Parser.consume">Parser.consume</a><code>(p, pat, plain) -&gt; Token</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L537"><i>src</i></a>)</h4>
+consume the pattern, advancing the column if found
+<h4>Function <a id="Parser.dbg" href="#Parser.dbg">Parser.dbg</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L669"><i>src</i></a>)</h4>
+<h4>Function <a id="Parser.dbgEnter" href="#Parser.dbgEnter">Parser.dbgEnter</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L645"><i>src</i></a>)</h4>
+<h4>Function <a id="Parser.dbgLeave" href="#Parser.dbgLeave">Parser.dbgLeave</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L654"><i>src</i></a>)</h4>
+<h4>Function <a id="Parser.dbgMatched" href="#Parser.dbgMatched">Parser.dbgMatched</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L657"><i>src</i></a>)</h4>
+<h4>Function <a id="Parser.dbgMissed" href="#Parser.dbgMissed">Parser.dbgMissed</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L660"><i>src</i></a>)</h4>
+<h4>Function <a id="Parser.dbgUnpack" href="#Parser.dbgUnpack">Parser.dbgUnpack</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L663"><i>src</i></a>)</h4>
+<h4>Function <a id="Parser.error" href="#Parser.error">Parser.error</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L630"><i>src</i></a>)</h4>
+<h4>Function <a id="Parser.incLine" href="#Parser.incLine">Parser.incLine</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L552"><i>src</i></a>)</h4>
+<h4>Function <a id="Parser.isEof" href="#Parser.isEof">Parser.isEof</a><code>(p) -&gt; isAtEndOfFile</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L553"><i>src</i></a>)</h4>
+<h4>Function <a id="Parser.makeStrTokens" href="#Parser.makeStrTokens">Parser.makeStrTokens</a><code>(p, t) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L580"><i>src</i></a>)</h4>
 recursively mutate table converting all Tokens to strings
-<h4>Function <a id="Parser.new" href="#Parser.new">Parser.new</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L424"><i>src</i></a>)</h4>
-<h4>Function <a id="Parser.parse" href="#Parser.parse">Parser.parse</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L430"><i>src</i></a>)</h4>
-<h4>Function <a id="Parser.parseAssert" href="#Parser.parseAssert">Parser.parseAssert</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L532"><i>src</i></a>)</h4>
-<h4>Function <a id="Parser.peek" href="#Parser.peek">Parser.peek</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L437"><i>src</i></a>)</h4>
-<h4>Function <a id="Parser.setState" href="#Parser.setState">Parser.setState</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L456"><i>src</i></a>)</h4>
-<h4>Function <a id="Parser.skipEmpty" href="#Parser.skipEmpty">Parser.skipEmpty</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L454"><i>src</i></a>)</h4>
-<h4>Function <a id="Parser.state" href="#Parser.state">Parser.state</a><code>(p) -&gt; {l=p.l, c=p.c, line=p.line}</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L455"><i>src</i></a>)</h4>
-<h4>Function <a id="Parser.sub" href="#Parser.sub">Parser.sub</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L445"><i>src</i></a>)</h4>
-<h4>Function <a id="Parser.toStrTokens" href="#Parser.toStrTokens">Parser.toStrTokens</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L467"><i>src</i></a>)</h4>
-<h4>Function <a id="Parser.tokenStr" href="#Parser.tokenStr">Parser.tokenStr</a><code>(p, t) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L476"><i>src</i></a>)</h4>
-<h4>Function <a id="Parser.trimTokenLast" href="#Parser.trimTokenLast">Parser.trimTokenLast</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L498"><i>src</i></a>)</h4>
-<h4>Function <a id="Parser.trimTokenStart" href="#Parser.trimTokenStart">Parser.trimTokenStart</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L485"><i>src</i></a>)</h4>
-<h3>Record <a id="pegl.Pat" href="#pegl.Pat">pegl.Pat</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L109"><i>src</i></a>)</h3>
+<h4>Function <a id="Parser.new" href="#Parser.new">Parser.new</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L521"><i>src</i></a>)</h4>
+<h4>Function <a id="Parser.parse" href="#Parser.parse">Parser.parse</a><code>(p, spec) -&gt; node</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L531"><i>src</i></a>)</h4>
+the main entry point and used recursively.
+Parses the spec, returning the node, which is a table of nodes that are
+eventually tokens.
+<h4>Function <a id="Parser.parseAssert" href="#Parser.parseAssert">Parser.parseAssert</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L637"><i>src</i></a>)</h4>
+<h4>Function <a id="Parser.peek" href="#Parser.peek">Parser.peek</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L545"><i>src</i></a>)</h4>
+identical to `consume` except it does not advance the column
+<h4>Function <a id="Parser.setState" href="#Parser.setState">Parser.setState</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L561"><i>src</i></a>)</h4>
+restore the current parser state <code>{l, c, line}</code>
+<h4>Function <a id="Parser.skipEmpty" href="#Parser.skipEmpty">Parser.skipEmpty</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L557"><i>src</i></a>)</h4>
+<h4>Function <a id="Parser.state" href="#Parser.state">Parser.state</a><code>(p) -&gt; {l=p.l, c=p.c, line=p.line}</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L559"><i>src</i></a>)</h4>
+get the current parser state <code>{l, c, line}</code>
+<h4>Function <a id="Parser.sub" href="#Parser.sub">Parser.sub</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L548"><i>src</i></a>)</h4>
+<h4>Function <a id="Parser.toStrTokens" href="#Parser.toStrTokens">Parser.toStrTokens</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L572"><i>src</i></a>)</h4>
+<h4>Function <a id="Parser.tokenStr" href="#Parser.tokenStr">Parser.tokenStr</a><code>(p, t) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L581"><i>src</i></a>)</h4>
+<h4>Function <a id="Parser.trimTokenLast" href="#Parser.trimTokenLast">Parser.trimTokenLast</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L603"><i>src</i></a>)</h4>
+<h4>Function <a id="Parser.trimTokenStart" href="#Parser.trimTokenStart">Parser.trimTokenStart</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L590"><i>src</i></a>)</h4>
+<h3>Record <a id="pegl.Pat" href="#pegl.Pat">pegl.Pat</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L141"><i>src</i></a>)</h3>
+<code>Pat{'%w+', kind='word'}</code> will create a Token with the span matching the
+<code>%w+</code> pattern and the kind of <code>word</code> when matched.
 <p>
 <b>Fields: </b> <table>
 <tr>
@@ -3193,27 +3349,40 @@ recursively mutate table converting all Tokens to strings
 <b>Records: </b> <table>
 <tr>
 <td><code>pegl.Pat.__index</code></td>
-<td>[Ty<Pat>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L109">src</a>)</td>
+<td>[Ty<Pat>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L141">src</a>)</td>
 </tr>
 </table>
 <b>Methods: </b> <table>
 <tr>
 <td><code>pegl.Pat.__fmt</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L97">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L126">src</a>)</td>
 </tr>
 <tr>
 <td><code>pegl.Pat.__newindex</code></td>
 <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L179">src</a>)</td>
 </tr>
 </table>
-<h4>Function <a id="Pat.parse" href="#Pat.parse">Pat.parse</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L274"><i>src</i></a>)</h4>
-<h3>Record <a id="pegl.RootSpec" href="#pegl.RootSpec">pegl.RootSpec</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L70"><i>src</i></a>)</h3>
+<h4>Function <a id="Pat.parse" href="#Pat.parse">Pat.parse</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L363"><i>src</i></a>)</h4>
+<h3>Record <a id="pegl.RootSpec" href="#pegl.RootSpec">pegl.RootSpec</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L90"><i>src</i></a>)</h3>
+The root spec defines custom behavior for your spec. It's attributes
+can be set to change how the parser skips empty (whitespace) and handles comments.
+TODO: rename this.
 <p>
 <b>Fields: </b> <table>
 <tr>
 <td><code>pegl.RootSpec.skipEmpty</code></td>
-<td>[function] = <code>fn"pegl.skipEmpty"[/home/rett/projects/civlua/lib/pegl/pegl.lua:203]</code>
-fn(p) default=skip whitespace</td>
+<td>[fn(p) -> nil] = <code>fn"pegl.skipEmpty"[/home/rett/projects/civlua/lib/pegl/pegl.lua:292]</code>
+default=skip whitespace <ul>
+<li>must be a function that accepts the `Parser`
+and advances it's `l` and `c` past any empty (white) space. It must also set
+`p.line` appropriately when `l` is moved.</li>
+<li>The return value is ignored.</li>
+<li>The default is to skip all whitespace (spaces, newlines, tabs, etc). This
+should work for _most_ languages but fails for languages like python.</li>
+<li>Recommendation: If your language has only a few whitespace-aware nodes (i.e.
+strings) then hand-roll those as recursive-descent functions and leave
+this function alone.</li>
+</ul></td>
 </tr>
 <tr>
 <td><code>pegl.RootSpec.skipComment</code></td>
@@ -3222,7 +3391,13 @@ fn(p) -> Token for found comment</td>
 </tr>
 <tr>
 <td><code>pegl.RootSpec.tokenizer</code></td>
-<td>[function] = <code>fn"pegl.defaultTokenizer"[/home/rett/projects/civlua/lib/pegl/pegl.lua:216]</code></td>
+<td>[fn(p) -> nil] = <code>fn"pegl.defaultTokenizer"[/home/rett/projects/civlua/lib/pegl/pegl.lua:305]</code>
+Requires: <ul>
+<li>must return one token. The default is to return a single punctuation character
+or a whole word (<code>_%w</code>)</li>
+<li>Objects like <code>Key</code> can use the single punctuation characters in a Trie-like
+performant data structure.</li>
+</ul></td>
 </tr>
 <tr>
 <td><code>pegl.RootSpec.dbg</code></td>
@@ -3235,7 +3410,7 @@ fn(p) -> Token for found comment</td>
 <b>Records: </b> <table>
 <tr>
 <td><code>pegl.RootSpec.__index</code></td>
-<td>[Ty<RootSpec>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L70">src</a>)</td>
+<td>[Ty<RootSpec>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L90">src</a>)</td>
 </tr>
 </table>
 <b>Methods: </b> <table>
@@ -3244,8 +3419,36 @@ fn(p) -> Token for found comment</td>
 <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L179">src</a>)</td>
 </tr>
 </table>
-<h4>Function <a id="RootSpec.newFmt" href="#RootSpec.newFmt">RootSpec.newFmt</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L619"><i>src</i></a>)</h4>
-<h3>Record <a id="pegl.Seq" href="#pegl.Seq">pegl.Seq</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L153"><i>src</i></a>)</h3>
+<h4>Function <a id="RootSpec.newFmt" href="#RootSpec.newFmt">RootSpec.newFmt</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L724"><i>src</i></a>)</h4>
+<h3>Record <a id="pegl.Seq" href="#pegl.Seq">pegl.Seq</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L242"><i>src</i></a>)</h3>
+A Sequence of parsers. Note that <code>Parser</code> treats <code>Seq{'a'}</code> and <code>{'a'}</code>
+identically (you can use plain tables instead).
+<p>
+Raw strings are treated as keywords (the are parsed literally and have
+<code>key</code> set to themselves). Functions are called with the <code>parser</code> as the
+only argument and must return the node/s they parsed or <code>nil</code> for a
+non-error match.
+<p>
+A sequence is a list of either other parsers
+(<code>Seq, {}, "keyword", fn(p), Not, Or, etc</code>} and/or plain strings which are
+treated as keywords and will have <code>kind</code> be set to themselves when parsed.
+<p>
+If the first spec matches but a later one doesn't an <code>error</code> will be thrown
+(instead of <code>nil</code> returned) unless <code>UNPIN</code> is used. See the PIN/UNPIN
+docs for details.
+<p>
+<h4>PIN/UNPIN: Syntax Error Reporting</h4>
+PEGL implements syntax error detection ONLY in Sequence specs (table specs i.e.
+`{...}`) by throwing an <code>error</code> if a "pinned" spec is missing. <ul>
+<li>By default, no error will be raised if the first spec is missing. After the
+first spec, <code>pin=true</code> and any missing specs to throw an error with context.</li>
+<li><code>PIN</code> can be used to force <code>pin=true</code> until <code>UNPIN</code> is (optionally)
+specified.</li>
+<li><code>UNPIN</code> can be used to force <code>pin=false</code> until <code>PIN</code> is (optionally)
+specified.</li>
+<li>PIN / UNPIN only affect the <i>current</i> sequence (they do not pin
+sub-sequences).</li>
+</ul>
 <p>
 <b>Fields: </b> <table>
 <tr>
@@ -3263,20 +3466,20 @@ fn(p) -> Token for found comment</td>
 <b>Records: </b> <table>
 <tr>
 <td><code>pegl.Seq.__index</code></td>
-<td>[Ty<Seq>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L153">src</a>)</td>
+<td>[Ty<Seq>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L242">src</a>)</td>
 </tr>
 </table>
 <b>Methods: </b> <table>
 <tr>
 <td><code>pegl.Seq.__fmt</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L97">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L126">src</a>)</td>
 </tr>
 <tr>
 <td><code>pegl.Seq.__newindex</code></td>
 <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L179">src</a>)</td>
 </tr>
 </table>
-<h4>Function <a id="Seq.parse" href="#Seq.parse">Seq.parse</a><code>(seq, p) -&gt; M.parseSeq(p, seq)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L309"><i>src</i></a>)</h4>
+<h4>Function <a id="Seq.parse" href="#Seq.parse">Seq.parse</a><code>(seq, p) -&gt; M.parseSeq(p, seq)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L398"><i>src</i></a>)</h4>
 <h3>Record <a id="pegl.Token" href="#pegl.Token">pegl.Token</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L31"><i>src</i></a>)</h3>
 <p>
 <b>Fields: </b> <table>
@@ -3308,26 +3511,36 @@ optional, used for debugging</td>
 <b>Functions: </b> <table>
 <tr>
 <td><code>pegl.fmtSpec</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L97">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L126">src</a>)</td>
 </tr>
 </table>
-<h3>Function <a id="pegl.Maybe" href="#pegl.Maybe">pegl.Maybe</a><code>(spec) -&gt; M.Or{spec, M.Empty}</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L147"><i>src</i></a>)</h3>
-<h3>Function <a id="pegl.assertParse" href="#pegl.assertParse">pegl.assertParse</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L403"><i>src</i></a>)</h3>
-<h3>Function <a id="pegl.assertParseError" href="#pegl.assertParseError">pegl.assertParseError</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L410"><i>src</i></a>)</h3>
+<h3>Function <a id="pegl.Maybe" href="#pegl.Maybe">pegl.Maybe</a><code>(spec) -&gt; M.Or{spec, M.Empty}</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L199"><i>src</i></a>)</h3>
+<h3>Function <a id="pegl.assertParse" href="#pegl.assertParse">pegl.assertParse</a><code>(t) -&gt; nil</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L500"><i>src</i></a>)</h3>
+Parse the <code>dat</code> with the <code>spec</code>, asserting the resulting "string tokens"
+are identical to <code>expect</code>.
+<p>
+the input is a table of the form: <code class="block">  {dat, spec, expect, dbg=nil, root=default} --&gt; nil</code>
+<h3>Function <a id="pegl.assertParseError" href="#pegl.assertParseError">pegl.assertParseError</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L507"><i>src</i></a>)</h3>
 <h3>Function <a id="pegl.decodeSpan" href="#pegl.decodeSpan">pegl.decodeSpan</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L29"><i>src</i></a>)</h3>
-<h3>Function <a id="pegl.defaultTokenizer" href="#pegl.defaultTokenizer">pegl.defaultTokenizer</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L216"><i>src</i></a>)</h3>
+<h3>Function <a id="pegl.defaultTokenizer" href="#pegl.defaultTokenizer">pegl.defaultTokenizer</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L305"><i>src</i></a>)</h3>
 <h3>Function <a id="pegl.encodeSpan" href="#pegl.encodeSpan">pegl.encodeSpan</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L25"><i>src</i></a>)</h3>
 <h3>Function <a id="pegl.firstToken" href="#pegl.firstToken">pegl.firstToken</a><code>(list) -&gt; t, listWithToken</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L49"><i>src</i></a>)</h3>
-<h3>Function <a id="pegl.isKeyword" href="#pegl.isKeyword">pegl.isKeyword</a><code>(t) -&gt; #t == 1 and t.kind == t[1]</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L577"><i>src</i></a>)</h3>
+<h3>Function <a id="pegl.isKeyword" href="#pegl.isKeyword">pegl.isKeyword</a><code>(t) -&gt; #t == 1 and t.kind == t[1]</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L682"><i>src</i></a>)</h3>
 <h3>Function <a id="pegl.lastToken" href="#pegl.lastToken">pegl.lastToken</a><code>(list) -&gt; t, listWithToken</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L56"><i>src</i></a>)</h3>
 <h3>Function <a id="pegl.nodeSpan" href="#pegl.nodeSpan">pegl.nodeSpan</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L62"><i>src</i></a>)</h3>
-<h3>Function <a id="pegl.parse" href="#pegl.parse">pegl.parse</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L372"><i>src</i></a>)</h3>
-<h3>Function <a id="pegl.parseSeq" href="#pegl.parseSeq">pegl.parseSeq</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L307"><i>src</i></a>)</h3>
-<h3>Function <a id="pegl.skipEmpty" href="#pegl.skipEmpty">pegl.skipEmpty</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L203"><i>src</i></a>)</h3>
-<h3>Function <a id="pegl.skipEmptyMinimal" href="#pegl.skipEmptyMinimal">pegl.skipEmptyMinimal</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L211"><i>src</i></a>)</h3>
-<h3>Function <a id="pegl.skipWs1" href="#pegl.skipWs1">pegl.skipWs1</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L186"><i>src</i></a>)</h3>
-<h3>Function <a id="pegl.specToStr" href="#pegl.specToStr">pegl.specToStr</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L102"><i>src</i></a>)</h3>
-<h3>Function <a id="pegl.specTy" href="#pegl.specTy">pegl.specTy</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L106"><i>src</i></a>)</h3>
+<h3>Function <a id="pegl.parse" href="#pegl.parse">pegl.parse</a><code>(dat, spec, root) -&gt; list[Node]</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L463"><i>src</i></a>)</h3>
+Parse a spec, returning the nodes or throwing a syntax error.
+<p>
+<code>root</code> is used to define settings of the parser such as how to skip
+comments and whether to use debug mode.
+<h3>Function <a id="pegl.parseSeq" href="#pegl.parseSeq">pegl.parseSeq</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L396"><i>src</i></a>)</h3>
+<h3>Function <a id="pegl.skipEmpty" href="#pegl.skipEmpty">pegl.skipEmpty</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L292"><i>src</i></a>)</h3>
+<h3>Function <a id="pegl.skipEmptyMinimal" href="#pegl.skipEmptyMinimal">pegl.skipEmptyMinimal</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L300"><i>src</i></a>)</h3>
+<h3>Function <a id="pegl.skipWs1" href="#pegl.skipWs1">pegl.skipWs1</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L275"><i>src</i></a>)</h3>
+<h3>Function <a id="pegl.specToStr" href="#pegl.specToStr">pegl.specToStr</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L131"><i>src</i></a>)</h3>
+<h3>Function <a id="pegl.specTy" href="#pegl.specTy">pegl.specTy</a><code>(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L137"><i>src</i></a>)</h3>
+Create a parser spec record. These have the fields <code>kind</code> and <code>name</code>
+and must define the <code>parse</code> method.
 <h2>Module <a id="pegl.lua" href="#pegl.lua">pegl.lua</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl/lua.lua#L7"><i>src</i></a>)</h2>
 Lua syntax in PEGL
 <p>
