@@ -4,6 +4,7 @@ homepage = "https://lua.civboot.org#Package_civix"
 license  = "UNLICENSE"
 version  = '0.1-8'
 url      = 'git+http://github.com/civboot/civlua'
+doc      = 'README.cxt'
 srcs = {
   'civix.lua',
   ['civix.lib'] = 'civix/lib.c',
