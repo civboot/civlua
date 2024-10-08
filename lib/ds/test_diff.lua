@@ -57,7 +57,9 @@ test('example', function()
     c={3, 4, 2, 1, 5}}, matches)
 
   local lis = dt.patienceLIS(matches)
-  assertEq({{5, 5}, {2, 4}, {1, 3}}, lis)
+  assertEq(dt._BC{
+    b={5, 2, 1},
+    c={5, 4, 3}}, lis)
 
   local res = diff(linesA, linesB)
   assertEq(EXPECT, '\n'..Iter:of(res):mapV(tostring):concat'\n'..'\n')
@@ -69,6 +71,11 @@ test('example', function()
     Change{rem=2, add=nil},
     Keep{num=3},
   }, chngs)
+
+  local res = diff.diff2(linesA, linesB)
+  assertEq({nil, nil, nil, 2  , nil}, res.rem)
+  assertEq({2,   nil, nil, nil, nil}, res.add)
+  assertEq({nil, 1,   1,   nil, 3  }, res.unc)
 end)
 
 local EXPECT = '\n'..[[
@@ -87,7 +94,7 @@ T.test('complex', function()
   assertEq(dt._BC{b={2, 3}, c={2, 3}}, matches)
 
   local lis = dt.patienceLIS(matches)
-  assertEq({{3,3}, {2,2}}, lis)
+  assertEq(dt._BC{b={3, 2}, c={3, 2}}, lis)
 
   local res = diff(linesA, linesB)
   assertEq(EXPECT, '\n'..Iter:of(res):mapV(tostring):concat'\n'..'\n')

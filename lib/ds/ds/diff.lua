@@ -16,9 +16,25 @@ local ds  = require'ds'
 local vcds = require'vcds'
 local push = table.insert
 
+M.NOC = ' '
 M.ADD = '+'
 M.REM = '-'
-local ADD, REM = M.ADD, M.REM
+local NOC, ADD, REM = M.NOC, M.ADD, M.REM
+
+--- indexed results of diff, not typically used directly.
+local _IDiff = mty'IDiff' {
+}
+
+--- the result of a line-based diff algorithm that can be
+--- shown and iterated on
+M.Diff2 = mty'Diff' {
+  'b [lines]: base, aka original lines',
+  'c [lines]: change, aka new lines',
+  'di [int]: len of unc/rem/add',
+  'unc [ints]: unchanged range (in both)',
+  'rem [ints]: removed from b',
+  'add  [ints]: added from c',
+}
 
 --- Single Line Diff
 --- This type is good for displaying differences to a user.
@@ -100,38 +116,11 @@ local patienceLIS = function(matches)
     stacks[i+1] = mi
   end
   local mi = stacks[#stacks]; if not mi then return end
-  local lis = {}
-  while prev[mi] do push(lis, {mb[mi], mc[mi]}); mi = prev[mi] end
-  push(lis, {mb[mi], mc[mi]})
-  return lis
+  local b, c = {}, {}
+  while prev[mi] do push(b, mb[mi]); push(c, mc[mi]); mi = prev[mi] end
+  push(b, mb[mi]); push(c, mc[mi])
+  return _BC{b=b, c=c}
 end
-
--- --- Used in LIS.
--- --- Find the stack to the left of where we should place [$b=match[2]]
--- local findLeftStack = function(stacks, c)
---   local low, high, mid = 0, #stacks + 1
---   while low + 1 < high do
---     mid = (low + high) // 2
---     if stacks[mid][2] < c then low  = mid
---     else                       high = mid end
---   end
---   return low
--- end
--- 
--- --- Get the longest increasing sequence (in reverse order)
--- local patienceLIS = function(matches)
---   local stacks = {}
---   for i, m in ipairs(matches) do
---     i = findLeftStack(stacks, m[2])
---     if i > 0 then m.prev = stacks[i] end
---     stacks[i+1] = m
---   end
---   local m = stacks[#stacks]; if not m then return end
---   local lis = {}
---   while m.prev do push(lis, {m[1], m[2]}); m = m.prev end
---   push(lis, {m[1], m[2]})
---   return lis
--- end
 
 ----------------------------
 -- Compute the diff
@@ -156,6 +145,7 @@ local function addIs(out, sym, b1, c1, c2)
   for c=c1, c2 do push(out, DiffI(sym, b1, c)); b1 = b1 + 1 end
 end
 
+
 local diffI
 --- calculate diff indexes and push to t
 diffI = function(t, linesB, linesC, b, b2, c, c2) --> nil
@@ -165,23 +155,26 @@ diffI = function(t, linesB, linesC, b, b2, c, c2) --> nil
   b2, c2 = skipEqLinesBot(linesB, linesC, b, b2, c, c2)
   assert((c - cSt) == (b - bSt))
 
+  if c > cSt then u[di] = c - cSt; di = di + 1 end
   addIs(t, ' ', bSt, cSt, c-1) -- unchanged lines (top)
   local matches = uniqueMatches(linesB, linesC, b, b2, c, c2)
   local lis = patienceLIS(matches)
-  if not lis or #lis == 0 then
+  if not lis or #lis.b == 0 then
     for i=c,c2 do push(t, DiffI(ADD, nil, i)) end
     for i=b,b2 do push(t, DiffI(REM, i, nil)) end
     return
   end
 
-  for i=#lis,0,-1 do
-    local m = lis[i]; local bNext, cNext
-    if m then bNext, cNext = m[1]-1, m[2]-1
-    else      bNext, cNext = b2, c2 end
+  local bl, cl, bNext, cNext = lis.b, lis.c
+  for i=#bl,0,-1 do
+    local bm = bl[i]
+    if bm then bNext, cNext = bm-1, cl[i]-1
+    else       bNext, cNext = b2, c2 end
     diffI(t, linesB, linesC, b, bNext, c, cNext)
-    if not m then break end
-    push(t, DiffI(' ', m[1], m[2]))
-    b, c = m[1] + 1, m[2] + 1
+    if not bm then break end
+    local cm = cl[i]
+    push(t, DiffI(' ', bm, cm))
+    b, c = bm + 1, cm + 1
   end
   addIs(t, ' ', b2+1, c2+1, c2St) -- unchanged lines (bot)
 end
@@ -197,6 +190,49 @@ M.diff = function(linesB, linesC) --> Diff
   return diff
 end
 local diff = M.diff
+
+M.Diff2._calc = function(d, b, b2, c, c2)
+  local bSt, b2St = b, b2
+  local cSt, c2St = c, c2 -- for unchanged top bot lines
+  b,  c  = skipEqLinesTop(d.b, d.c, b, b2, c, c2)
+  b2, c2 = skipEqLinesBot(d.b, d.c, b, b2, c, c2)
+  assert((c - cSt) == (b - bSt))
+
+  local di
+  if c > cSt then di = d.di + 1; d.unc[di] = c - cSt; d.di = di end
+  local matches = uniqueMatches(d.b, d.c, b, b2, c, c2)
+  local lis = patienceLIS(matches)
+  if not lis or #lis.b == 0 then
+    local rm, ad = b2 - b + 1, c2 - c + 1
+    if rm == 0 and ad == 0 then -- skip
+    else
+      di = d.di + 1; d.di = di
+      if rm > 0 then d.rem[di] = rm end
+      if ad > 0 then d.add[di] = ad end
+    end
+    return
+  end
+
+  local bl, cl, bNext, cNext = lis.b, lis.c
+  for i=#bl,0,-1 do
+    local bm = bl[i]
+    if bm then bNext, cNext = bm-1, cl[i]-1
+    else       bNext, cNext = b2, c2 end
+    d:_calc(b, bNext, c, cNext)
+    if not bm then break end
+    local cm = cl[i]
+    di = d.di + 1; d.unc[di], d.di = 1, di
+    b, c = bm + 1, cm + 1
+  end
+  c2 = c2 + 1 -- c2:c2St are unchanged lines (bot)
+  if c2 <= c2St then di = d.di + 1; d.unc[di], d.di = c2St - c2 + 1, di end
+end
+
+M.diff2 = function(linesB, linesC)
+  local d = M.Diff2{b=linesB, c=linesC, di=0, unc={}, rem={}, add={}}
+  d:_calc(1, #linesB, 1, #linesC)
+  return d
+end
 
 M._forTest = {
   uniqueMatches = uniqueMatches,
