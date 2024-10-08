@@ -15,6 +15,7 @@ local mty = require'metaty'
 local ds  = require'ds'
 local vcds = require'vcds'
 local push = table.insert
+local clear = ds.clear
 
 M.NOC = ' '
 M.ADD = '+'
@@ -30,8 +31,8 @@ local _IDiff = mty'IDiff' {
 M.Diff2 = mty'Diff' {
   'b [lines]: base, aka original lines',
   'c [lines]: change, aka new lines',
-  'di [int]: len of unc/rem/add',
-  'unc [ints]: unchanged range (in both)',
+  'di [int]: len of noc/rem/add',
+  'noc [ints]: nochange range (in both)',
   'rem [ints]: removed from b',
   'add  [ints]: added from c',
 }
@@ -199,7 +200,7 @@ M.Diff2._calc = function(d, b, b2, c, c2)
   assert((c - cSt) == (b - bSt))
 
   local di
-  if c > cSt then di = d.di + 1; d.unc[di] = c - cSt; d.di = di end
+  if c > cSt then di = d.di + 1; d.noc[di] = c - cSt; d.di = di end
   local matches = uniqueMatches(d.b, d.c, b, b2, c, c2)
   local lis = patienceLIS(matches)
   if not lis or #lis.b == 0 then
@@ -221,16 +222,50 @@ M.Diff2._calc = function(d, b, b2, c, c2)
     d:_calc(b, bNext, c, cNext)
     if not bm then break end
     local cm = cl[i]
-    di = d.di + 1; d.unc[di], d.di = 1, di
+    di = d.di + 1; d.noc[di], d.di = 1, di
     b, c = bm + 1, cm + 1
   end
   c2 = c2 + 1 -- c2:c2St are unchanged lines (bot)
-  if c2 <= c2St then di = d.di + 1; d.unc[di], d.di = c2St - c2 + 1, di end
+  if c2 <= c2St then di = d.di + 1; d.noc[di], d.di = c2St - c2 + 1, di end
+end
+
+--- compress all like-fields together
+M.Diff2._compress = function(d)
+  local di, add, rem, noc, len = 1, d.add, d.rem, d.noc, d.di
+  for i=1,d.di do
+    if noc[di] or noc[di+1] then
+      if noc[di] and noc[di+1] then
+        assert(not add[di] and not add[di+1]
+           and not rem[di] and not rem[di+1])
+        noc[i] = noc[di] + noc[di+1]
+        add[i], rem[i] = nil, nil
+        di = di + 2
+        goto continue
+      end
+    elseif (add[di] and 1 or 0) + (add[di+1] and 1 or 0)
+         + (rem[di] and 1 or 0) + (rem[di+1] and 1 or 0)
+         >= 2 then
+      assert(not (noc[di] or noc[di+1]))
+      add[i] = (add[di] or 0) + (add[di+1] or 0)
+      rem[i] = (rem[di] or 0) + (rem[di+1] or 0)
+      noc[i] = nil
+      if add[i] == 0 then add[i] = nil end
+      if rem[i] == 0 then rem[i] = nil end
+      di = di + 2
+      goto continue
+    end
+    add[i], rem[i], noc[i] = add[di], rem[di], noc[di]
+    di = di + 1
+    ::continue::
+  end
+  d.di = di - 1
+  clear(d.add, di, len); clear(d.rem, di, len); clear(d.noc, di, len)
 end
 
 M.diff2 = function(linesB, linesC)
-  local d = M.Diff2{b=linesB, c=linesC, di=0, unc={}, rem={}, add={}}
+  local d = M.Diff2{b=linesB, c=linesC, di=0, noc={}, rem={}, add={}}
   d:_calc(1, #linesB, 1, #linesC)
+  d:_compress()
   return d
 end
 

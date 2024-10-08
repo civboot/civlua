@@ -61,6 +61,11 @@ test('example', function()
     b={5, 2, 1},
     c={5, 4, 3}}, lis)
 
+  local res = diff.diff2(linesA, linesB)
+  assertEq({nil, nil, 2  , nil}, res.rem)
+  assertEq({2,   nil, nil, nil}, res.add)
+  assertEq({nil, 2,   nil, 3  }, res.noc)
+
   local res = diff(linesA, linesB)
   assertEq(EXPECT, '\n'..Iter:of(res):mapV(tostring):concat'\n'..'\n')
 
@@ -72,10 +77,6 @@ test('example', function()
     Keep{num=3},
   }, chngs)
 
-  local res = diff.diff2(linesA, linesB)
-  assertEq({nil, nil, nil, 2  , nil}, res.rem)
-  assertEq({2,   nil, nil, nil, nil}, res.add)
-  assertEq({nil, 1,   1,   nil, 3  }, res.unc)
 end)
 
 local EXPECT = '\n'..[[
@@ -95,6 +96,11 @@ T.test('complex', function()
 
   local lis = dt.patienceLIS(matches)
   assertEq(dt._BC{b={3, 2}, c={3, 2}}, lis)
+
+  local res = diff.diff2(linesA, linesB)
+  assertEq({1,   nil, 1  }, res.rem)
+  assertEq({1,   nil, 1  }, res.add)
+  assertEq({nil, 2  , nil}, res.noc)
 
   local res = diff(linesA, linesB)
   assertEq(EXPECT, '\n'..Iter:of(res):mapV(tostring):concat'\n'..'\n')
