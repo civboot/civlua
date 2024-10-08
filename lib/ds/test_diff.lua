@@ -55,7 +55,10 @@ test('example', function()
   local linesB = ds.splitList'slits gil      david electric faust sonics sonics'
 
   local matches = uniqueMatches(linesA, linesB)
-  assertEq({{1, 3}, {2, 4}, {3, 2}, {4, 1}, {5, 5}}, matches)
+  assertEq(dt._Matches{
+    b={1, 2, 3, 4, 5},
+    c={3, 4, 2, 1, 5}}, matches)
+  -- assertEq({{1, 3}, {2, 4}, {3, 2}, {4, 1}, {5, 5}}, matches)
 
   local lis = dt.patienceLIS(matches)
   assertEq({{5, 5}, {2, 4}, {1, 3}}, lis)

@@ -53,43 +53,39 @@ end
 DiffI.__tostring = function(di) return string.format('DI(%s|%s)', di.b, di.c) end
 
 --- [$c] is a table of [$lineStr -> unique].
---- The first time [$lineStr] is found, unique is set to true.
---- The second time, unique is set to false (and remains
+--- The first time [$lineStr] is found, unique is set to the line number [$l].
+--- Further times, unique is set to false (and remains false)
 local function countLine(c, l, line)
-
+  local r = c[line]
+  if     r == nil   then c[line] = l; push(c, line)
+  elseif r ~= false then c[line] = false end
 end
 
-local function ensureCount(t, line)
-  local v = t[line]; if v then return v end
-  v = {0, 0, false, false} -- aCount, bCount, aLineI, bLineI
-  t[line] = v; push(t, v)
-  return v
-end
+--- two lists of matched line numbers
+local _Matches = mty'Matches'{'b [ints]', 'c [ints]'}
 
-local uniqueMatches = function(aLines, bLines, b, b2, c, c2)
-  local counts, matches, line, ct = {}, {}
-  for i=b,b2 do
-    line = aLines[i]; ct = ensureCount(counts, line)
-    ct[1] = ct[1] + 1; ct[3] = i
+local uniqueMatches = function(bLines, cLines, b, b2, c, c2)
+  local bcount, ccount = {}, {}
+  for i=b,b2 do countLine(bcount, i, bLines[i]) end
+  for i=c,c2 do countLine(ccount, i, cLines[i]) end
+  local m = _Matches{b={}, c={}}
+  for _, line in ipairs((#bcount <= #ccount) and bcount or ccount) do
+    local b, c = bcount[line], ccount[line]
+    if bcount[line] and ccount[line] then
+      push(m.b, b); push(m.c, c);
+    end
   end
-  for i=c,c2 do
-    line = bLines[i]; ct = ensureCount(counts, line)
-    ct[2] = ct[2] + 1; ct[4] = i
-  end
-  for _, ct in ipairs(counts) do
-    if ct[1] == 1 and ct[2] == 1 then push(matches, {ct[3], ct[4]}) end
-  end
-  return matches
+  return m
 end
 
 --- Used in LIS.
 --- Find the stack to the left of where we should place [$b=match[2]]
-local findLeftStack = function(stacks, c)
+local findLeftStack = function(mb, stacks, c)
   local low, high, mid = 0, #stacks + 1
   while low + 1 < high do
     mid = (low + high) // 2
-    if stacks[mid][2] < c then low  = mid
-    else                       high = mid end
+    if mb[stacks[mid]] < c then low  = mid
+    else                high = mid end
   end
   return low
 end
@@ -97,15 +93,16 @@ end
 --- Get the longest increasing sequence (in reverse order)
 local patienceLIS = function(matches)
   local stacks = {}
-  for i, m in ipairs(matches) do
-    i = findLeftStack(stacks, m[2])
-    if i > 0 then m.prev = stacks[i] end
-    stacks[i+1] = m
+  local mb, mc, prev, c, i = matches.b, matches.c, {}
+  for mi, b in ipairs(matches.b) do
+    c = mc[mi]; i = findLeftStack(mb, stacks, c)
+    if i > 0 then prev[mi] = stacks[i] end
+    stacks[i+1] = mi
   end
-  local m = stacks[#stacks]; if not m then return end
+  local mi = stacks[#stacks]; if not m then return end
   local lis = {}
-  while m.prev do push(lis, {m[1], m[2]}); m = m.prev end
-  push(lis, {m[1], m[2]})
+  while prev[mi] do push(lis, {mb[mi], mc[mi]}); mi = prev[mi] end
+  push(lis, {mb[mi], mc[mi]})
   return lis
 end
 
@@ -179,6 +176,7 @@ M._forTest = {
   uniqueMatches = uniqueMatches,
   findLeftStack = findLeftStack,   patienceLIS   = patienceLIS,
   skipEqLinesTop = skipEqLinesTop, skipEqLinesBot = skipEqLinesBot,
+  _Matches = _Matches,
 }
 
 getmetatable(M).__call = function(_, ...) return diff(...) end
