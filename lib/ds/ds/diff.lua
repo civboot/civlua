@@ -61,14 +61,14 @@ local function countLine(c, l, line)
   elseif r ~= false then c[line] = false end
 end
 
---- two lists of matched line numbers
-local _Matches = mty'Matches'{'b [ints]', 'c [ints]'}
+--- two sync'd lists of base and change (i.e. matches, LIS, etc)
+local _BC = mty'_BC'{'b [ints]', 'c [ints]'}
 
 local uniqueMatches = function(bLines, cLines, b, b2, c, c2)
   local bcount, ccount = {}, {}
   for i=b,b2 do countLine(bcount, i, bLines[i]) end
   for i=c,c2 do countLine(ccount, i, cLines[i]) end
-  local m = _Matches{b={}, c={}}
+  local m = _BC{b={}, c={}}
   for _, line in ipairs((#bcount <= #ccount) and bcount or ccount) do
     local b, c = bcount[line], ccount[line]
     if bcount[line] and ccount[line] then
@@ -78,14 +78,14 @@ local uniqueMatches = function(bLines, cLines, b, b2, c, c2)
   return m
 end
 
---- Used in LIS.
---- Find the stack to the left of where we should place [$b=match[2]]
-local findLeftStack = function(mb, stacks, c)
+--- Find the stack to the left of where we should place
+--- using binary search.
+local findLeftStack = function(stacks, mc, c)
   local low, high, mid = 0, #stacks + 1
   while low + 1 < high do
     mid = (low + high) // 2
-    if mb[stacks[mid]] < c then low  = mid
-    else                high = mid end
+    if mc[stacks[mid]] < c then low  = mid
+    else                        high = mid end
   end
   return low
 end
@@ -95,16 +95,43 @@ local patienceLIS = function(matches)
   local stacks = {}
   local mb, mc, prev, c, i = matches.b, matches.c, {}
   for mi, b in ipairs(matches.b) do
-    c = mc[mi]; i = findLeftStack(mb, stacks, c)
+    i = findLeftStack(stacks, mc, mc[mi])
     if i > 0 then prev[mi] = stacks[i] end
     stacks[i+1] = mi
   end
-  local mi = stacks[#stacks]; if not m then return end
+  local mi = stacks[#stacks]; if not mi then return end
   local lis = {}
   while prev[mi] do push(lis, {mb[mi], mc[mi]}); mi = prev[mi] end
   push(lis, {mb[mi], mc[mi]})
   return lis
 end
+
+-- --- Used in LIS.
+-- --- Find the stack to the left of where we should place [$b=match[2]]
+-- local findLeftStack = function(stacks, c)
+--   local low, high, mid = 0, #stacks + 1
+--   while low + 1 < high do
+--     mid = (low + high) // 2
+--     if stacks[mid][2] < c then low  = mid
+--     else                       high = mid end
+--   end
+--   return low
+-- end
+-- 
+-- --- Get the longest increasing sequence (in reverse order)
+-- local patienceLIS = function(matches)
+--   local stacks = {}
+--   for i, m in ipairs(matches) do
+--     i = findLeftStack(stacks, m[2])
+--     if i > 0 then m.prev = stacks[i] end
+--     stacks[i+1] = m
+--   end
+--   local m = stacks[#stacks]; if not m then return end
+--   local lis = {}
+--   while m.prev do push(lis, {m[1], m[2]}); m = m.prev end
+--   push(lis, {m[1], m[2]})
+--   return lis
+-- end
 
 ----------------------------
 -- Compute the diff
@@ -142,8 +169,8 @@ diffI = function(t, linesB, linesC, b, b2, c, c2) --> nil
   local matches = uniqueMatches(linesB, linesC, b, b2, c, c2)
   local lis = patienceLIS(matches)
   if not lis or #lis == 0 then
-    for i=c,c2 do push(t, DiffI('+', nil, i)) end
-    for i=b,b2 do push(t, DiffI('-', i, nil)) end
+    for i=c,c2 do push(t, DiffI(ADD, nil, i)) end
+    for i=b,b2 do push(t, DiffI(REM, i, nil)) end
     return
   end
 
@@ -163,7 +190,6 @@ M.diff = function(linesB, linesC) --> Diff
   local idx = {}
   diffI(idx, linesB, linesC, 1, #linesB, 1, #linesC)
   local diff = {}; for _, ki in ipairs(idx) do
-    print('!! diff', diff)
     if     not ki.b then push(diff, Diff(ADD,  ki.c, linesC[ki.c]))
     elseif not ki.c then push(diff, Diff(ki.b, REM,  linesB[ki.b]))
     else                 push(diff, Diff(ki.b, ki.c, linesC[ki.c])) end
@@ -176,7 +202,7 @@ M._forTest = {
   uniqueMatches = uniqueMatches,
   findLeftStack = findLeftStack,   patienceLIS   = patienceLIS,
   skipEqLinesTop = skipEqLinesTop, skipEqLinesBot = skipEqLinesBot,
-  _Matches = _Matches,
+  _BC = _BC,
 }
 
 getmetatable(M).__call = function(_, ...) return diff(...) end
