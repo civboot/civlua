@@ -56,7 +56,6 @@ table, th, td {
 }
 table { min-width: 400px;         }
 th    { background-color: LightCyan; }
-td    { background-color: azure; }
 </style>]]
 
 local function nodeKind(n)
