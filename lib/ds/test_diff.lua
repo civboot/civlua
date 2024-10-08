@@ -10,6 +10,16 @@ local dt = diff._forTest
 
 local function B(b) return {-1, b} end
 
+test('skip', function()
+  assertEq({3, 3}, {dt.skipEqLinesTop({1,1,1}, {1,1,2}, 1,3, 1,3)})
+  assertEq({2, 3}, {dt.skipEqLinesTop({1,1,1}, {1,1,2}, 1,3, 2,3)})
+  assertEq({1, 3}, {dt.skipEqLinesTop({1,1,1}, {1,1,2}, 1,3, 3,3)})
+  assertEq({4, 4}, {dt.skipEqLinesTop({1,1,1}, {1,1,1}, 1,3, 1,3)})
+
+  assertEq({3, 3}, {dt.skipEqLinesBot({1,1,1}, {1,1,2}, 1,3, 1,3)})
+  assertEq({1, 0}, {dt.skipEqLinesBot({1,1,1}, {1,1,2}, 1,3, 1,2)})
+end)
+
 test('findStack', function()
   local stacks = {
     B(3),  B(5),  B(12),
@@ -50,10 +60,10 @@ test('example', function()
   local lis = dt.patienceLIS(matches)
   assertEq({{5, 5}, {2, 4}, {1, 3}}, lis)
 
-  local diff = diff(linesA, linesB)
-  assertEq(EXPECT, '\n'..Iter:of(diff):mapV(tostring):concat'\n'..'\n')
+  local res = diff(linesA, linesB)
+  assertEq(EXPECT, '\n'..Iter:of(res):mapV(tostring):concat'\n'..'\n')
 
-  local chngs = toChanges(diff)
+  local chngs = toChanges(res)
   assertEq({
     Change{rem=0, add={'slits', 'gil'}},
     Keep{num=2},
@@ -80,10 +90,10 @@ T.test('complex', function()
   local lis = dt.patienceLIS(matches)
   assertEq({{3,3}, {2,2}}, lis)
 
-  local diff = diff(linesA, linesB)
-  assertEq(EXPECT, '\n'..Iter:of(diff):mapV(tostring):concat'\n'..'\n')
+  local res = diff(linesA, linesB)
+  assertEq(EXPECT, '\n'..Iter:of(res):mapV(tostring):concat'\n'..'\n')
 
-  local chngs = toChanges(diff)
+  local chngs = toChanges(res)
   assertEq({
     Change{rem=1, add={'X'}},
     Keep{num=2},
