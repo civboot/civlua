@@ -201,7 +201,7 @@ M._Construct.pkg = function(c, pkg, expand) --> Doc
   }
   d.meta = {
     summary = pkg.summary, version = pkg.version,
-    homepage = pkg.homepage and sfmt('[<%s>]', pkg.homepage),
+    repo = pkg.repo, homepage = pkg.homepage,
   }
   if pkg.doc then
     d.comments = assert(lines.load(pth.concat{pkg.dir, pkg.doc}))
@@ -348,7 +348,8 @@ M.fmtMeta = function(f, m)
   pushfmt(f, '[{table}')
   if m.summary then pushfmt(f, '\n+ [*summary] | %s', m.summary) end
   pushfmt(f, '\n+ [*version] | [$%s]', m.version or '(no version)')
-  if m.homepage then pushfmt(f, '\n+ [*homepage] | %s', m.homepage) end
+  if m.homepage then pushfmt(f, '\n+ [*homepage] | [<%s>]', m.homepage) end
+  if m.repo     then pushfmt(f, '\n+ [*repo] | [<%s>]', m.repo) end
   pushfmt(f, '\n]')
 end
 

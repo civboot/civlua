@@ -5,22 +5,26 @@ documentation.
 
 cxt is an ultra-simple markup language which is designed to be as easy as
 possible to parse (for computers [,and] humans) while still using as few
-characters as possible to express format for common cases.
+characters as possible to express format for common cases. The [$src/]
+dir of [<code.commonmark.org>CommonMark] contains more than 20,000 lines of
+code whereas cxt is implemented in less than 500.
 
 cxt is designed to: [+
- * Make document writing easy.
- * Make document parsing easy.
- * Make reading of raw (text) documents easy.
- * Make consuming structured data from documents easy.
+ * Make document writing easy: use relatively few characters to express
+   common formatting
+ * Make document parsing easy: unambiguous, unlike [$Ma**rk_do*wn]
+ * Readable as raw text
+ * structured data can be consumed: supports arbitrary attributes
 ]
+
 CXT contains only three special characters for deliniating formatting controls: [+
 * the two bracket characters [$[]]
-* a way to escape brackets and itself [$\]
+* a way to escape brackets and itself [$\\], [{# code}\[]# and [{# code}\]]#
 ]
 
 There are two ways to specify attributes for a block: [+
 * short: [$[*bold text]] where [$*] can be any of the shortcuts below
-* full: [$[{*, attr1 attr2=value}bold italic with attr 1 and 2]]
+* full: [$[{*_ attr1 attr2=value}bold underlined with attr 1 and 2]]
 ]
 
 The following attributes and shortcuts are supported

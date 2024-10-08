@@ -4,6 +4,7 @@ url      = 'git+http://github.com/civboot/civlua'
 summary  = "Lua Asynchronous Protocol and helper library"
 homepage = "https://lua.civboot.org#Package_lap"
 license  = "UNLICENSE"
+doc      = 'README.cxt'
 deps = {
   "lua    ~> 5.3",
   "metaty ~> 0.1",

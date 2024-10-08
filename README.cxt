@@ -1,22 +1,44 @@
 [!you can see a rendered version of this document in [/API.html]!]
-
-civ.lua: a minimalist self-documenting tech stack for [@Civboot]
-
-This is the repository for [@Civboot]-owned Lua modules and software. As part
-of Civboot, this is a minimalist and self-documenting developer tech stack.
-It's goal is to provide core development tools such as extendible vim-like
-editor, git-like version control and scripting tools all written in pure
-self-documenting Lua.
+civlua: a minimalist, self-documenting and public domain tech stack.
 
 ["You are reading the developer documentation. Tutorial-style documentation is
   planned in the future for both absolute beginners and knowledge experts,
   but has not yet been started.]
 
+[{:h2}Installation]
+Install Lua with [$apt-get install lua], [$brew lua] or however you normally
+install software, or follow directions at [<https://lua.org/start.html>].
+
+Follow [<#Package_pkg>] to be able to [$require] civlua packages and write your
+own packages.
+
+[{:h2 name=why}Why?]
+The main motivation for me to write this repository is so I have a simple tech
+stack that I can hack for my shell, editor, blog, documentation host, etc --
+and so I can use that simple tech stack to teach my kids programming and
+technology through small games and scripts. Eventually, this will be the core
+user software of [<https://civboot.org>].
+
+Software is complex. Some of the complexity is to serve goals like performance
+and scaleability; which can be good for goals like large-scale collaboration.
+However, the core tools of a developer such as their editor, shell, utilities
+and documentation should should be completely [,knowable] and [,hackable].
+How can our tech stack be knowable when all the core tools are so bloated?
+The [$Python/] directory in  [<https://github.com/python/cpython>CPython] is
+124k lines (and [$Lib] is 790k). [<code.commonmark.org>CommonMark], which just
+renders markdown files, is 20 thousand lines alone!
+
+The [<https://lua.org>Lua] language is only 20k lines of code and this library
+(~15k lines) will soonish implement an entire tech stack that a small team of
+developers or students could use to cooperate and hack. Technology is much more
+joyful when it is at this size and complexity.
+
 [{:h2}Packages]
-The following are packaged directly in this repository.
+The following are packaged directly in this repository as subdirectories.
 
 [{h3}Commands]
-These can all be called directly in bash with [$./civ.lua <cmd> ...] [+
+These can all be called directly in bash with [$./civ.lua <cmd> ...]. You can view
+their command documentation with [$./civ.lua help <cmd>]. [+
 * [{*href=#Package_ele}Ele]: Extendable Lua Editor and Lua-first shell --
   still in development.
 
@@ -67,7 +89,7 @@ scripting, asynchronous file access and other goodies. [+
 * [{*href=#Package_civtest}civtest]: no batteries would be complete without a testing
   library.  civtest is minimal but gets the job done.
 
-* [{*href=#Pacakge_lap}lap]: Lua Asynchronous Protocol, for advanced users who want
+* [{*href=#Package_lap}lap]: Lua Asynchronous Protocol, for advanced users who want
   concurrency in pure-lua.
 
 * [{*href=#Package_fd}fd]: file-descriptor library for async files and other file
@@ -113,6 +135,12 @@ The [{*href=#Package_pkgrock}pkgrock] script enables converting [$PKG.lua]
 files to [<https://luarocks.org/>] specs, as well as running the magical git
 incantations necessary for luarocks to find the version.
 
+[{:h2 name=references}Shoutouts and Inspiration] [+
+* [<https://duskos.org>] which inspired Civboot and which this software
+  eventually hopes to use as (one of) its target operating systems
+* [<https://lua.org>] for creating an awesome and minimal programming langauge
+* [<https://civboot.org>]
+]
 
 [{:h2}LICENSE]
 All software, tests, documentation, notes and anything else in this repository
