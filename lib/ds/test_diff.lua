@@ -1,12 +1,13 @@
 local mty = require'metaty'
 local ds = require'ds'
 local Iter = require'ds.Iter'
+local fmt = require'fmt'
 local test, assertEq; local T = ds.auto'civtest'
 local Keep, Change, toChanges; ds.auto'vcds'
 local add, concat = table.insert, table.concat
 local diff = require'ds.diff'
 
-local dt = diff._forTest
+local dt = diff._toTest
 
 local function B(b) return {-1, b} end
 
@@ -47,28 +48,39 @@ local EXPECT = '\n'..[[
    7    7|sonics
 ]]
 test('example', function()
-  --                          1     2        3     4        5     6      7
-  local linesA = ds.splitList'david electric gil   slits    faust sonics sonics'
-  local linesB = ds.splitList'slits gil      david electric faust sonics sonics'
+  --                          1     2   3        4     5      6     6      7
+  local linesA = ds.splitList'david a   electric gil slits    faust sonics sonics'
+  local linesB = ds.splitList'slits gil david    a   electric faust sonics sonics'
+
+  local res = diff(linesA, linesB)
+  fmt.print('!! Formatted'); fmt.print(res)
 
   local matches = uniqueMatches(linesA, linesB)
   assertEq(dt._BC{
-    b={1, 2, 3, 4, 5},
-    c={3, 4, 2, 1, 5}}, matches)
+    b={1, 2, 3, 4, 5, 6},
+    c={3, 4, 5, 2, 1, 6}}, matches)
 
   local lis = dt.patienceLIS(matches)
-  assertEq({{5, 5}, {2, 4}, {1, 3}}, lis)
+  assertEq(dt._BC{
+    b={6, 3, 2, 1},
+    c={6, 5, 4, 3}}, lis)
 
-  local res = diff(linesA, linesB)
-  assertEq(EXPECT, '\n'..Iter:of(res):mapV(tostring):concat'\n'..'\n')
+  assertEq({nil, 3,   nil, 3  }, res.noc)
+  assertEq({nil, nil, 2  , nil}, res.rem)
+  assertEq({2,   nil, nil, nil}, res.add)
 
-  local chngs = toChanges(res)
-  assertEq({
-    Change{rem=0, add={'slits', 'gil'}},
-    Keep{num=2},
-    Change{rem=2, add=nil},
-    Keep{num=3},
-  }, chngs)
+  assertEq(
+"+\t1\tslits\
++\t2\tgil\
+ 1\t3\tdavid\
+ 2\t4\ta\
+ 3\t5\telectric\
+-4\t\tgil\
+-5\t\tslits\
+ 6\t6\tfaust\
+ 7\t7\tsonics\
+ 8\t8\tsonics\
+", fmt(res))
 end)
 
 local EXPECT = '\n'..[[
@@ -87,15 +99,17 @@ T.test('complex', function()
   assertEq(dt._BC{b={2, 3}, c={2, 3}}, matches)
 
   local lis = dt.patienceLIS(matches)
-  assertEq({{3,3}, {2,2}}, lis)
+  assertEq(dt._BC{b={3, 2}, c={3, 2}}, lis)
 
   local res = diff(linesA, linesB)
-  assertEq(EXPECT, '\n'..Iter:of(res):mapV(tostring):concat'\n'..'\n')
+  assertEq({1,   nil, 1  }, res.rem)
+  assertEq({1,   nil, 1  }, res.add)
+  assertEq({nil, 2  , nil}, res.noc)
 
-  local chngs = toChanges(res)
-  assertEq({
-    Change{rem=1, add={'X'}},
-    Keep{num=2},
-    Change{rem=1, add={'X'}},
-  }, chngs)
+  -- local chngs = toChanges(res)
+  -- assertEq({
+  --   Change{rem=1, add={'X'}},
+  --   Keep{num=2},
+  --   Change{rem=1, add={'X'}},
+  -- }, chngs)
 end)

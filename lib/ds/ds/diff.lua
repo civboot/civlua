@@ -13,44 +13,28 @@ local M = G.mod and mod'ds.diff' or setmetatable({}, {})
 
 local mty = require'metaty'
 local ds  = require'ds'
-local vcds = require'vcds'
 local push = table.insert
+local clear = ds.clear
+local construct = mty.construct
+local str, sfmt = tostring, string.format
 
-M.ADD = '+'
-M.REM = '-'
-local ADD, REM = M.ADD, M.REM
 
---- Single Line Diff
---- This type is good for displaying differences to a user.
+--- Line-based diff.
+--- The default algorithm uses patience diff.
+---
+--- Example: [$io.fmt(Diff(linesA, linesB))]
 M.Diff = mty'Diff' {
-  "b (base)   orig file.  '+'=added",
-  "c (change) new file.   '-'=removed",
-  "text[string]",
+  'b [lines]: base, aka original lines',
+  'c [lines]: change, aka new lines',
+  'di [int]: len of noc/rem/add',
+  'noc [ints]: nochange range (in both)',
+  'rem [ints]: removed from b',
+  'add  [ints]: added from c',
 }
 local Diff = M.Diff
 
-getmetatable(M.Diff).__call = function(T, b, c, text)
-  return mty.construct(T, {b=b, c=c, text=text})
-end
-M.Diff.__tostring = function(d)
-  return string.format("%4s %4s|%s", d.b, d.c, d.text)
-end
-M.Diff.isKeep = function(d)
-  return (d.b ~= ADD) and (d.c ~= REM)
-end
-
---- indexed diff
-M.DiffI = mty'DiffI' {
-  'sym[string]: one of: [$" ", "+", "-"]',
-  'b  [number]: base (original) line num',
-  'c  [number]: change (new) line num',
-}
-local DiffI = M.DiffI
-
-getmetatable(DiffI).__call = function(T, sym, b, c)
-  return mty.construct(T, {sym=sym, b=b, c=c})
-end
-DiffI.__tostring = function(di) return string.format('DI(%s|%s)', di.b, di.c) end
+--- two sync'd lists of base and change (i.e. matches, LIS, etc)
+local _BC = mty'_BC'{'b [ints]', 'c [ints]'}
 
 --- [$c] is a table of [$lineStr -> unique].
 --- The first time [$lineStr] is found, unique is set to the line number [$l].
@@ -61,10 +45,11 @@ local function countLine(c, l, line)
   elseif r ~= false then c[line] = false end
 end
 
---- two sync'd lists of base and change (i.e. matches, LIS, etc)
-local _BC = mty'_BC'{'b [ints]', 'c [ints]'}
-
-local uniqueMatches = function(bLines, cLines, b, b2, c, c2)
+--- return BC where [$b] is the line numbers which are unique in b
+--- and [$c] is the line numbers that are unique in c
+---
+--- They are ordered by when the appear in b
+local uniqueMatches = function(bLines, cLines, b, b2, c, c2) --> BC
   local bcount, ccount = {}, {}
   for i=b,b2 do countLine(bcount, i, bLines[i]) end
   for i=c,c2 do countLine(ccount, i, cLines[i]) end
@@ -91,7 +76,7 @@ local findLeftStack = function(stacks, mc, c)
 end
 
 --- Get the longest increasing sequence (in reverse order)
-local patienceLIS = function(matches)
+local patienceLIS = function(matches) --> BC
   local stacks = {}
   local mb, mc, prev, c, i = matches.b, matches.c, {}
   for mi, b in ipairs(matches.b) do
@@ -100,38 +85,11 @@ local patienceLIS = function(matches)
     stacks[i+1] = mi
   end
   local mi = stacks[#stacks]; if not mi then return end
-  local lis = {}
-  while prev[mi] do push(lis, {mb[mi], mc[mi]}); mi = prev[mi] end
-  push(lis, {mb[mi], mc[mi]})
-  return lis
+  local b, c = {}, {}
+  while prev[mi] do push(b, mb[mi]); push(c, mc[mi]); mi = prev[mi] end
+  push(b, mb[mi]); push(c, mc[mi])
+  return _BC{b=b, c=c}
 end
-
--- --- Used in LIS.
--- --- Find the stack to the left of where we should place [$b=match[2]]
--- local findLeftStack = function(stacks, c)
---   local low, high, mid = 0, #stacks + 1
---   while low + 1 < high do
---     mid = (low + high) // 2
---     if stacks[mid][2] < c then low  = mid
---     else                       high = mid end
---   end
---   return low
--- end
--- 
--- --- Get the longest increasing sequence (in reverse order)
--- local patienceLIS = function(matches)
---   local stacks = {}
---   for i, m in ipairs(matches) do
---     i = findLeftStack(stacks, m[2])
---     if i > 0 then m.prev = stacks[i] end
---     stacks[i+1] = m
---   end
---   local m = stacks[#stacks]; if not m then return end
---   local lis = {}
---   while m.prev do push(lis, {m[1], m[2]}); m = m.prev end
---   push(lis, {m[1], m[2]})
---   return lis
--- end
 
 ----------------------------
 -- Compute the diff
@@ -152,58 +110,146 @@ local skipEqLinesBot = function(linesB, linesC, b, b2, c, c2) --> bi, ci
   return b2, c2
 end
 
-local function addIs(out, sym, b1, c1, c2)
-  for c=c1, c2 do push(out, DiffI(sym, b1, c)); b1 = b1 + 1 end
-end
-
-local diffI
---- calculate diff indexes and push to t
-diffI = function(t, linesB, linesC, b, b2, c, c2) --> nil
+Diff._calc = function(d, b, b2, c, c2)
   local bSt, b2St = b, b2
   local cSt, c2St = c, c2 -- for unchanged top bot lines
-  b,  c  = skipEqLinesTop(linesB, linesC, b, b2, c, c2)
-  b2, c2 = skipEqLinesBot(linesB, linesC, b, b2, c, c2)
+  b,  c  = skipEqLinesTop(d.b, d.c, b, b2, c, c2)
+  b2, c2 = skipEqLinesBot(d.b, d.c, b, b2, c, c2)
   assert((c - cSt) == (b - bSt))
 
-  addIs(t, ' ', bSt, cSt, c-1) -- unchanged lines (top)
-  local matches = uniqueMatches(linesB, linesC, b, b2, c, c2)
+  local di
+  if c > cSt then di = d.di + 1; d.noc[di] = c - cSt; d.di = di end
+  local matches = uniqueMatches(d.b, d.c, b, b2, c, c2)
   local lis = patienceLIS(matches)
-  if not lis or #lis == 0 then
-    for i=c,c2 do push(t, DiffI(ADD, nil, i)) end
-    for i=b,b2 do push(t, DiffI(REM, i, nil)) end
+  if not lis or #lis.b == 0 then
+    local rm, ad = b2 - b + 1, c2 - c + 1
+    if rm == 0 and ad == 0 then -- skip
+    else
+      di = d.di + 1; d.di = di
+      if rm > 0 then d.rem[di] = rm end
+      if ad > 0 then d.add[di] = ad end
+    end
     return
   end
 
-  for i=#lis,0,-1 do
-    local m = lis[i]; local bNext, cNext
-    if m then bNext, cNext = m[1]-1, m[2]-1
-    else      bNext, cNext = b2, c2 end
-    diffI(t, linesB, linesC, b, bNext, c, cNext)
-    if not m then break end
-    push(t, DiffI(' ', m[1], m[2]))
-    b, c = m[1] + 1, m[2] + 1
+  local bl, cl, bNext, cNext = lis.b, lis.c
+  for i=#bl,0,-1 do
+    local bm = bl[i]
+    if bm then bNext, cNext = bm-1, cl[i]-1
+    else       bNext, cNext = b2, c2 end
+    d:_calc(b, bNext, c, cNext)
+    if not bm then break end
+    local cm = cl[i]
+    di = d.di + 1; d.noc[di], d.di = 1, di
+    b, c = bm + 1, cm + 1
   end
-  addIs(t, ' ', b2+1, c2+1, c2St) -- unchanged lines (bot)
+  c2 = c2 + 1 -- c2:c2St are unchanged lines (bot)
+  if c2 <= c2St then di = d.di + 1; d.noc[di], d.di = c2St - c2 + 1, di end
 end
 
-M.diff = function(linesB, linesC) --> Diff
-  local idx = {}
-  diffI(idx, linesB, linesC, 1, #linesB, 1, #linesC)
-  local diff = {}; for _, ki in ipairs(idx) do
-    if     not ki.b then push(diff, Diff(ADD,  ki.c, linesC[ki.c]))
-    elseif not ki.c then push(diff, Diff(ki.b, REM,  linesB[ki.b]))
-    else                 push(diff, Diff(ki.b, ki.c, linesC[ki.c])) end
-  end
-  return diff
+--- accumulate list[i] = list[i]+list[j], treating 0 as nil
+local acc = function(list, i, j)
+  local v = (list[i] or 0) + (list[j] or 0)
+  if v ~= 0 then list[i] = v end
 end
-local diff = M.diff
 
-M._forTest = {
+--- compress all like-fields together
+Diff._compress = function(d)
+  local add, rem, noc, len = d.add, d.rem, d.noc, d.di
+  -- scan the items, accumulating into i from j
+  local i, j = 1, 1
+  local clearj = function() add[j], rem[j], noc[j] = nil, nil, nil end
+  while j <= len do
+    if j <= i then j = i + 1 end
+    if not (noc[i] or add[i] or rem[i]) then -- empty i
+      acc(noc, i, j); acc(add, i, j); acc(rem, i, j)
+      clearj(); j = j + 1
+    elseif noc[i] then -- accumulate nochanges
+      if noc[j] then acc(noc, i, j); noc[j] = nil; j = j + 1
+      else i = i + 1 end
+    else -- accumulate add/rem
+      if add[j] or rem[j] then
+         acc(add, i, j); acc(rem, i, j)
+         clearj(); j = j + 1
+      else i = i + 1 end
+    end
+  end
+  d.di = i
+  i = i + 1; clear(add, i, len); clear(rem, i, len); clear(noc, i, len)
+end
+
+getmetatable(Diff).__call = function(T, linesB, linesC) --> Diff
+  local d = mty.construct(T, {
+    b=linesB, c=linesC, di=0, noc={}, rem={}, add={}
+  })
+  d:_calc(1, #linesB, 1, #linesC)
+  d:_compress()
+  return d
+end
+
+local function styleNoc(f, chan, bl, cl)
+  f:styled('line', sfmt('% 6i % 6i ', bl, cl))
+  f:styled('meta', chan[cl] or '<eof>', '\n')
+end
+
+Diff.__fmt = function(d, f)
+  local base, chan, noc, add, rem = d.b, d.c, d.noc, d.add, d.rem
+  local bl, cl, n, a, r = 1, 1 -- bl=base-line cl=changed-line
+  if f.style then for i=1,d.di do
+    n = noc[i]
+    if n then -- unchanged lines
+      if n > 0 then styleNoc(f, chan, bl, cl) end
+      bl, cl = bl + n, cl + n
+      if n > 1 then styleNoc(f, chan, bl-1, cl-1) end
+    else
+      a, r = add[i], rem[i]
+      if r then -- removed lines
+        for l=0,r-1 do
+          f:styled('reml', sfmt('% 6i        ', bl+l))
+          f:styled('rem', base[bl+l], '\n')
+        end
+        bl = bl + r
+      end
+      if a then -- added lines
+        for l=0,(a or 0)-1 do
+          f:styled('addl', sfmt('% 13i ', cl+l))
+          f:styled('add', chan[cl+l], '\n')
+        end
+        cl = cl + a
+      end
+    end
+  end else for i=1,d.di do
+    n = noc[i]
+    if n then -- unchanged lines
+      for l=0,n-1 do
+        f:write(' ', str(bl+l), '\t', str(cl+l), '\t',
+                chan[cl+l], '\n')
+      end
+      bl, cl = bl + n, cl + n
+    else
+      a, r = add[i], rem[i]
+      if r then -- removed lines
+        for l=0,r-1 do
+          f:write('-', str(bl+l), '\t\t', base[bl+l], '\n')
+        end
+        bl = bl + r
+      end
+      if a then -- added lines
+        for l=0,(a or 0)-1 do
+          f:write('+\t', str(cl+l), '\t', chan[cl+l], '\n')
+        end
+        cl = cl + a
+      end
+    end
+  end end
+end
+
+M._toTest = {
   uniqueMatches = uniqueMatches,
-  findLeftStack = findLeftStack,   patienceLIS   = patienceLIS,
+  findLeftStack = findLeftStack,   patienceLIS    = patienceLIS,
   skipEqLinesTop = skipEqLinesTop, skipEqLinesBot = skipEqLinesBot,
   _BC = _BC,
 }
 
-getmetatable(M).__call = function(_, ...) return diff(...) end
+getmetatable(M).__call = function(_, ...) return Diff(...) end
 return M
