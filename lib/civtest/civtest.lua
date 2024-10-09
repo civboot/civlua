@@ -6,78 +6,46 @@ local M = G.mod and G.mod'civtest' or {}
 local mty = require'metaty'
 local fmt = require'fmt'
 local ds = require'ds'
+local pth = require'ds.path'
 local lines = require'lines'
 
 local push, sfmt = table.insert, string.format
+local function exit(rc) io.stderr:flush(); os.exit(rc) end
 
------------
--- Asserting
-
--- simple diff algorithm... this can probably be improved
-local matches = function(s, m)
-  local out = {}; for v in string.gmatch(s, m) do
-    push(out, v) end
-  return out
-end
-local explode = function(s) return matches(s, '.') end
-local diffCol = function(sL, sR)
-  local i, sL, sR = 1, explode(sL), explode(sR)
-  while i <= #sL and i <= #sR do
-    if sL[i] ~= sR[i] then return i end
-    i = i + 1
+M.Test = (mty'Test'{})
+M.Test.eq = function(a, b)
+  if mty.eq(a, b) then return end
+  local f = io.fmt
+  f:styled('error', '\n!! EXPECTED:', '\n'); f(a)
+  f:styled('error', '\n!! RESULT:', '\n');   f(b)
+  if mty.ty(a) ~= mty.ty(b) then
+    f:styled('error', '!! UNMATCHED TYPES',
+             mty.name(a), ' != ', mty.name(b), '\n')
+  elseif type(a) == 'string' then
+    f:styled('error', '\n!! DIFF:', '\n')
+    f(require'ds.diff'(a, b)); f:write'\n'
   end
-  if #sL < #sR then return #sL + 1 end
-  if #sR < #sL then return #sR + 1 end
-  return nil
+  f:styled('error', '\n!! Failed Test.eq:', ' ')
+  f:styled('path', pth.nice(ds.srcloc(1)), '\n')
+  exit(1)
 end
-local diff = function(linesL, linesR)
-  local i = 1
-  while i <= #linesL and i <= #linesR do
-    local lL, lR = linesL[i], linesR[i]
-    if lL ~= lR then
-      return i, assert(diffCol(lL, lR))
-    end
-    i = i + 1
-  end
-  if #linesL < #linesR then return #linesL + 1, 1 end
-  if #linesR < #linesL then return #linesR + 1, 1 end
-  return nil
+getmetatable(M.Test).__newindex = function(s, name, fn)
+  local msg = sfmt('## Test %s: %s', name, pth.nice(ds.srcloc(1)))
+  io.fmt:styled('h2', msg, '\n')
+  fn(s)
 end
 
-M.diffFmt = function(f, sE, sR)
-  local linesE = lines(sE)
-  local linesR = lines(sR)
-  local l, c = diff(linesE, linesR)
-  fmt.assertf(l and c, '%s, %s\n', l, c)
-  push(f, sfmt("! Difference line=%q (", l))
-  push(f, sfmt('lines[%q|%q]', #linesE, #linesR))
-  push(f, sfmt(' strlen[%q|%q])\n', #sE, #sR))
-  push(f, '! EXPECT: '); push(f, linesE[l] or '<empty>'); push(f, '\n')
-  push(f, '! RESULT: '); push(f, linesR[l] or '<empty>'); push(f, '\n')
-  push(f, string.rep(' ', c - 1 + 10))
-  push(f, sfmt('^ (column %q)\n', c))
-  push(f, '! END DIFF\n')
-end
 
-M.assertEq = function(expect, result, pretty)
+-----------------------
+-- DEPRECATED
+
+--- simplest assertEq
+M.assertEq = function(expect, result)
   if mty.eq(expect, result) then return end
-  local f = (pretty or pretty == nil) and fmt.Fmt:pretty{}
-          or fmt.Fmt{}
-  f.string = function(f, s)
-    f:write((sfmt('%q', s):gsub('\\0?0?9', '\\t')))
-  end
-  push(f, "! Values not equal:")
-  push(f, "\n! EXPECT:\n"); f(expect)
-  push(f, "\n! RESULT:\n"); f(result)
-  push(f, '\n')
-  if type(expect) == 'string' and type(result) == 'string' then
-    M.diffFmt(f, expect, result)
-  elseif mty.ty(expect) ~= mty.ty(result) then
-    local tyn = function(v) return mty.tyName(mty.ty(v)) end
-    push(f, sfmt('! TYPES:  %s != %s',
-                 tyn(expect), tyn(result)))
-  end
-  error(table.concat(f))
+  io.stderr:write('\n!! EXPECTED:\n', fmt(expect), '\n')
+  io.stderr:write('\n!! RESULT:\n',   fmt(result), '\n')
+  io.stderr:write('!! Failed assertEq: '..pth.nice(ds.srcloc(1)), '\n')
+  exit(1)
 end
 
 M.assertErrorPat = function(errPat, fn, plain)

@@ -106,10 +106,12 @@ local skipEqLinesBot = function(linesB, linesC, b, b2, c, c2) --> bi, ci
 end
 
 Diff._calc = function(d, b, b2, c, c2)
-  local bSt, b2St = b, b2
-  local cSt, c2St = c, c2 -- for unchanged top bot lines
+  local bSt, b2St, cSt, c2St = b, b2, c, c2
+  local bNext, cNext
   b,  c  = skipEqLinesTop(d.b, d.c, b, b2, c, c2)
   b2, c2 = skipEqLinesBot(d.b, d.c, b, b2, c, c2)
+  print('!! _calc b', b, b2, bSt, b2St)
+  print('!! _calc c', c, c2, cSt, c2St)
   assert((c - cSt) == (b - bSt))
 
   local di
@@ -123,10 +125,9 @@ Diff._calc = function(d, b, b2, c, c2)
       if rm > 0 then d.rem[di] = rm end
       if ad > 0 then d.add[di] = ad end
     end
-    return
+    goto bottom
   end
 
-  local bNext, cNext
   for i=#bl,0,-1 do
     local bm = bl[i]
     if bm then bNext, cNext = bm-1, cl[i]-1
@@ -137,7 +138,9 @@ Diff._calc = function(d, b, b2, c, c2)
     di = d.di + 1; d.noc[di], d.di = 1, di
     b, c = bm + 1, cm + 1
   end
+  ::bottom::
   c2 = c2 + 1 -- c2:c2St are unchanged lines (bot)
+  print('!! c2St?', c2 <= c2St)
   if c2 <= c2St then di = d.di + 1; d.noc[di], d.di = c2St - c2 + 1, di end
 end
 
@@ -173,10 +176,14 @@ Diff._compress = function(d)
 end
 
 getmetatable(Diff).__call = function(T, linesB, linesC) --> Diff
+  if type(linesB) == 'string' then linesB = ds.splitList(linesB, '\n') end
+  if type(linesC) == 'string' then linesC = ds.splitList(linesC, '\n') end
+
   local d = mty.construct(T, {
     b=linesB, c=linesC, di=0, noc={}, rem={}, add={}
   })
   d:_calc(1, #linesB, 1, #linesC)
+  ds.R.fmt.print('!! calc', d.noc, d.rem, d.add)
   d:_compress()
   return d
 end

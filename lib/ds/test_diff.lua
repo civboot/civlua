@@ -2,6 +2,7 @@ local mty = require'metaty'
 local ds = require'ds'
 local Iter = require'ds.Iter'
 local fmt = require'fmt'
+local lines = require'lines'
 local test, assertEq; local T = ds.auto'civtest'
 local Keep, Change, toChanges; ds.auto'vcds'
 local add, concat = table.insert, table.concat
@@ -113,3 +114,14 @@ T.test('complex', function()
   --   Change{rem=1, add={'X'}},
   -- }, chngs)
 end)
+
+local function assertDiff(expect, a, b)
+  local res = diff(lines(a), lines(b))
+  assertEq(expect, fmt(res))
+end
+
+T.test('easy_peasy', function()
+  -- assertDiff('+\t1\tpeasy\n 1\t2\teasy', "easy", "peasy\neasy")
+
+end)
+

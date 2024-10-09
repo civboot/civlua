@@ -15,6 +15,7 @@ local M, lines = require'ds', require'lines'
 local testing = require'lines.testing'
 
 local test, assertEq, assertMatch, assertErrorPat; M.auto'civtest'
+local T = require'civtest'.Test
 
 local bound, isWithin, sort2, decAbs
 local indexOf, copy, deepcopy
@@ -34,7 +35,7 @@ local LL = require'ds.LL'
 ---------------------
 -- ds.lua
 
-test('loc', function()
+T.loc = function()
   assertEq('lib/ds/test.lua:4', loc1)
   assertEq('ds/test.lua:4', loc2)
 
@@ -45,28 +46,28 @@ test('loc', function()
      assertEq(   'lib/ds/',          M.srcdir(1))
      assertMatch('.*/lib/civtest/$', M.srcdir(2))
   end; fn()
-end)
+end
 
-test('simplestr', function()
+T.simplestr = function()
   assertEq('a', [[
 a]])
-  assertEq('this is\n  a simple str.', s[[
+  T.eq('this is\n  a simple str.', s[[
     this is
       a simple str.
   ]])
 
-  assertEq('easy',    s[[easy]])
-  assertEq('easy  ',  s[[  easy  ]])
-  assertEq('easy\nhi\nthere',  s[[easy
+  T.eq('easy',    s[[easy]])
+  T.eq('easy  ',  s[[  easy  ]])
+  T.eq('easy\nhi\nthere',  s[[easy
     hi
     there
   ]])
-  assertEq('easy',  s[[
+  T.eq('easy',  s[[
   easy
   ]])
-end)
+end
 
-test('bool and none', function()
+T.bool_and_none = function()
   local none = assert(M.none)
   assertEq(false, M.bool())
   assertEq(false, M.bool(false))
@@ -87,7 +88,7 @@ test('bool and none', function()
   local err = 'invalid operation on sentinel'
   assertErrorPat(err, function() none.foo = 3 end)
   assertErrorPat(err, function() return #none end)
-end)
+end
 
 test('imm', function()
   assertEq({}, M.empty)
