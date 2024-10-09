@@ -1,9 +1,97 @@
 civboot will use two diff algorithms: [+
 * patience diff for user-readable diffs, implemented in pure-lua
 * (optional) bentley_mcilroy for both single-file and change-file compression,
-  implemented in C
+  implemented in C [+
+  ]
 ]
 
-Based on what I've seen those are both easy to implement and very effective for
-their intended purpose.
+or maybe xdelta, http://www.xmailserver.org/xdfs.pdf
+psuedo code:
+
+The computeDelta function implements the basic greedy algorithm, making a calls
+to initMatch to build a string matching data structure for the source version,
+findMatch to find the longest match at a particular offset in the
+target version, and outputInst when it generates an instruction.
+
+A key feature of the algorithm is the manner in which it deals with hash
+collisions. The Xdelta initMatch function builds a hash table mapping
+fingerprint values to their offsets for blocks of size s in the source version.
+There is only one entry per bucket in the fingerprint table, and a hash
+collision always clobbers the existing entry. After populating the fingerprint
+table, it processes the target version in pages, fixed-size blocks with size
+determined by the underlying I/O subsystem. The findMatch function searches for
+a matching fingerprint in the hash table and then uses direct string comparison
+to check whether a match exists, also extending the match as far as possible.
+
+Many details are omitted in the pseudo-code. For example, the direct string
+comparison actually extends the match as far as possible in both directions,
+with the exception that it will not back-up past a page boundary (to support
+stream-processing). Fingerprints are inserted into the fingerprint table in the
+reverse order that they appear in the source version, giving preference to
+earlier (potentially longer) matches.
+
+The decision to use a linear-space algorithm is justified as follows. First,
+the constant is quite small since the algorithm uses no pointers and only one
+32-bit word of storage per entry in the fingerprint table. The fingerprint
+table is constructed with a number of buckets [$b] equal to a prime number such
+that N // s < b <= 2 * (N // s). At four bytes per bucket, the space used for
+string matching in Xdelta is bounded by N // 2 bytes.
+
+The computeDelta function implements the basic greedy copy/insert algorithm,
+accepting a source and target version as inputs. The [$initMatch] and [$findMatch]
+functions perform string matching using a hash table of fingerprint values for
+source blocks of length [$s], the fingerprint width, which is 16 bytes.
+
+[###
+function computeDelta(src; tgt) {
+  i =0
+  sindex = initMatch(src) // Initialize string matching.
+  while(i < size(tgt)) {  // Loop over target offsets.
+    o, l = findMatch(src, sindex, tgt, i) // Find longest match.
+    if(l<s) {
+      outputInst(finsert tgt[i] g)        // Insert instruction.
+    } else {
+      outputInst(fcopy o l g)             // Copy instruction.
+    }
+    i = i + 1
+  }
+}
+
+function initMatch(src) {
+  i = 0
+  sindex = empty               // Initialize output array (hash table).
+  while(i + s <= size(src)) {  // Loop over source blocks.
+    f = adler32(src; i; i + s) // Compute fingerprint.
+    sindex[hash(f)] = i        // Enter in table.
+    i = i + s                  //
+  }
+  return(sindex)
+}
+
+function findMatch(src, sindex, tgt, otgt) {
+  f = adler32(tgt, otgt, otgt + s) // Compute fingerprint.
+  if(sindex[hash(f )] == nil) {
+    return (-1, -1) // No match found.
+  }
+  osrc = sindex[hash(f)]
+  l = matchLength(tgt, otgt, src, osrc) // Compute match length.
+  return(osrc, l)
+}
+
+// https://en.wikipedia.org/wiki/Adler-32
+const uint32_t MOD_ADLER = 65521;
+
+// where data is the location of the data in physical memory and
+//    len is the length of the data in bytes
+uint32_t adler32(unsigned char *data, size_t len) {
+  uint32_t a = 1, b = 0;
+  size_t index;
+  // Process each byte of the data in order
+  for (index = 0; index < len; ++index) {
+    a = (a + data[index]) % MOD_ADLER;
+    b = (b + a) % MOD_ADLER;
+  }
+  return (b << 16) | a;
+}
+[###
 
