@@ -37,18 +37,6 @@ local function uniqueMatches(aLines, bLines, a, a2, b, b2)
   return dt.uniqueMatches(aLines, bLines, a, a2, b, b2)
 end
 
-
-local EXPECT = '\n'..[[
-   +    1|slits
-   +    2|gil
-   1    3|david
-   2    4|electric
-   3    -|gil
-   4    -|slits
-   5    5|faust
-   6    6|sonics
-   7    7|sonics
-]]
 T.example = function()
   --                          1     2   3        4     5      6     6      7
   local linesA = ds.splitList'david a   electric gil slits    faust sonics sonics'
@@ -71,27 +59,17 @@ T.example = function()
   T.eq({2,   nil, nil, nil}, res.add)
 
   T.eq(
-"+\t1\tslits\
-+\t2\tgil\
- 1\t3\tdavid\
- 2\t4\ta\
- 3\t5\telectric\
--4\t\tgil\
--5\t\tslits\
- 6\t6\tfaust\
- 7\t7\tsonics\
- 8\t8\tsonics\
+"          1 slits\
+          2 gil\
+    1     3 david\
+    3     5 electric\
+    4       gil\
+    5       slits\
+    6     6 faust\
+    8     8 sonics\
 ", fmt(res))
 end
 
-local EXPECT = '\n'..[[
-   +    1|X
-   1    -|b
-   2    2|c
-   3    3|d
-   +    4|X
-   4    -|e
-]]
 T.complex = function()
   local linesA = ds.splitList'b c d e'
   local linesB = ds.splitList'X c d X'
@@ -106,13 +84,6 @@ T.complex = function()
   T.eq({1,   nil, 1  }, res.rem)
   T.eq({1,   nil, 1  }, res.add)
   T.eq({nil, 2  , nil}, res.noc)
-
-  -- local chngs = toChanges(res)
-  -- T.eq({
-  --   Change{rem=1, add={'X'}},
-  --   Keep{num=2},
-  --   Change{rem=1, add={'X'}},
-  -- }, chngs)
 end
 
 local function assertDiff(expect, a, b)
@@ -121,6 +92,9 @@ local function assertDiff(expect, a, b)
 end
 
 T.smallDiffs = function()
-  assertDiff('+\t1\tpeasy\n 1\t2\teasy\n', "easy", "peasy\neasy")
+  assertDiff(
+"          1 peasy\
+    1     2 easy\
+", "easy", "peasy\neasy")
 end
 

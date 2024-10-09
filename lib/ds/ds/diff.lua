@@ -185,14 +185,14 @@ getmetatable(Diff).__call = function(T, linesB, linesC) --> Diff
 end
 
 local function styleNoc(f, chan, bl, cl)
-  f:styled('line', sfmt('% 6i % 6i ', bl, cl))
+  f:styled('line', sfmt('% 5i % 5i ', bl, cl))
   f:styled('meta', chan[cl] or '<eof>', '\n')
 end
 
 Diff.__fmt = function(d, f)
   local base, chan, noc, add, rem = d.b, d.c, d.noc, d.add, d.rem
   local bl, cl, n, a, r = 1, 1 -- bl=base-line cl=changed-line
-  if f.style then for i=1,d.di do
+  for i=1,d.di do
     n = noc[i]
     if n then -- unchanged lines
       if n > 0 then styleNoc(f, chan, bl, cl) end
@@ -202,43 +202,20 @@ Diff.__fmt = function(d, f)
       a, r = add[i], rem[i]
       if r then -- removed lines
         for l=0,r-1 do
-          f:styled('reml', sfmt('% 6i        ', bl+l))
+          f:styled('reml', sfmt('% 5i       ', bl+l))
           f:styled('rem', base[bl+l], '\n')
         end
         bl = bl + r
       end
       if a then -- added lines
         for l=0,(a or 0)-1 do
-          f:styled('addl', sfmt('% 13i ', cl+l))
+          f:styled('addl', sfmt('% 11i ', cl+l))
           f:styled('add', chan[cl+l], '\n')
         end
         cl = cl + a
       end
     end
-  end else for i=1,d.di do
-    n = noc[i]
-    if n then -- unchanged lines
-      for l=0,n-1 do
-        f:write(' ', str(bl+l), '\t', str(cl+l), '\t',
-                chan[cl+l], '\n')
-      end
-      bl, cl = bl + n, cl + n
-    else
-      a, r = add[i], rem[i]
-      if r then -- removed lines
-        for l=0,r-1 do
-          f:write('-', str(bl+l), '\t\t', base[bl+l], '\n')
-        end
-        bl = bl + r
-      end
-      if a then -- added lines
-        for l=0,(a or 0)-1 do
-          f:write('+\t', str(cl+l), '\t', chan[cl+l], '\n')
-        end
-        cl = cl + a
-      end
-    end
-  end end
+  end
 end
 
 M._toTest = {
