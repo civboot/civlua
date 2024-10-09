@@ -1,14 +1,5 @@
 local G = G or _G
 
---- Patience diff implemented in Lua. Special thanks to:
---- https://blog.jcoglan.com/2017/09/19/the-patience-diff-algorithm/
----
---- The basic algorithm on before/after line lists: [+
---- * skip unchanged lines on both top and bottom
---- * find unique lines in both sets and "align" them with
----   using "longest increasing sequence"
---- * repeat for each "window"
---- ]
 local M = G.mod and mod'ds.diff' or setmetatable({}, {})
 
 local mty = require'metaty'
@@ -20,7 +11,15 @@ local str, sfmt = tostring, string.format
 
 
 --- Line-based diff.
---- The default algorithm uses patience diff.
+--- The default algorithm uses patience diff. Special thanks to:
+--- [<https://blog.jcoglan.com/2017/09/19/the-patience-diff-algorithm>]
+---
+--- The basic algorithm on before/after line lists: [+
+--- * skip unchanged lines on both top and bottom
+--- * find unique lines in both sets and "align" them with
+---   using "longest increasing sequence"
+--- * repeat for each aligned section
+--- ]
 ---
 --- Example: [$io.fmt(Diff(linesA, linesB))]
 M.Diff = mty'Diff' {
@@ -34,14 +33,18 @@ M.Diff = mty'Diff' {
 local Diff = M.Diff
 
 --- two sync'd lists of base and change (i.e. matches, LIS, etc)
+--- (used internally)
 local _BC = mty'_BC'{'b [ints]', 'c [ints]'}
 
---- [$c] is a table of [$lineStr -> unique].
---- The first time [$lineStr] is found, unique is set to the line number [$l].
---- Further times, unique is set to false (and remains false)
-local function countLine(c, l, line)
+--- [$c] is a table of [$lineStr -> lineNum].
+--- The first time [$lineStr] is found the line number [$l] is stored.
+--- If found again, the stored line is set to false (and remains false)
+---
+--- The [$line] string is also pushed to [$c] so that it can be iterated
+--- in-order
+local function countLine(c, l, line, pushl)
   local r = c[line]
-  if     r == nil   then c[line] = l; push(c, line)
+  if     r == nil   then c[line] = l; if pushl then push(c, line) end
   elseif r ~= false then c[line] = false end
 end
 
@@ -51,16 +54,14 @@ end
 --- They are ordered by when the appear in b
 local uniqueMatches = function(bLines, cLines, b, b2, c, c2) --> BC
   local bcount, ccount = {}, {}
-  for i=b,b2 do countLine(bcount, i, bLines[i]) end
+  for i=b,b2 do countLine(bcount, i, bLines[i], true) end
   for i=c,c2 do countLine(ccount, i, cLines[i]) end
-  local m = _BC{b={}, c={}}
-  for _, line in ipairs((#bcount <= #ccount) and bcount or ccount) do
+  local bl, cl = {}, {}
+  for _, line in ipairs(bcount) do
     local b, c = bcount[line], ccount[line]
-    if bcount[line] and ccount[line] then
-      push(m.b, b); push(m.c, c);
-    end
+    if b and c then push(bl, b); push(cl, c); end
   end
-  return m
+  return _BC{b=bl, c=cl}
 end
 
 --- Find the stack to the left of where we should place
