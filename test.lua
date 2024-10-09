@@ -13,6 +13,7 @@ local dir = '' -- leave here incase support is needed for filedir
 
 print'[[core]]'
   dofile(dir..'lib/metaty/test.lua')
+  require'civ'.setupFmt()
   dofile(dir..'lib/fmt/test.lua')
   dofile(dir..'lib/civtest/test.lua')
 
@@ -24,7 +25,6 @@ print'[[core]]'
   end
 
   dofile(dir..'lib/shim/test.lua')
-  require'civ'.setupFmt()
   dofile(dir..'lib/ds/test.lua')
   dofile(dir..'lib/ds/test_diff.lua')
   dofile(dir..'lib/lines/test.lua')

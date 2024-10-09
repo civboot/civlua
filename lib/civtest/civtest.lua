@@ -19,19 +19,55 @@ M.Test.eq = function(a, b)
   f:styled('error', '\n!! EXPECTED:', '\n'); f(a)
   f:styled('error', '\n!! RESULT:', '\n');   f(b)
   if mty.ty(a) ~= mty.ty(b) then
-    f:styled('error', '!! UNMATCHED TYPES',
+    f:styled('error', '!! TYPES NOT EQUAL', ': ',
              mty.name(a), ' != ', mty.name(b), '\n')
-  elseif type(a) == 'string' then
-    f:styled('error', '\n!! DIFF:', '\n')
-    f(require'ds.diff'(a, b)); f:write'\n'
+  else
+    if type(a) ~= 'string' then a, b = fmt.pretty(a), fmt.pretty(b) end
+    if a == b then f:styled('notice', '\n(Formatted strings are equal)')
+    else
+      f:styled('error', '\n!! DIFF:', '\n')
+      f(require'ds.diff'(a, b));
+    end
   end
   f:styled('error', '\n!! Failed Test.eq:', ' ')
   f:styled('path', pth.nice(ds.srcloc(1)), '\n')
   exit(1)
 end
+
+--- assert [$subj:find(pat)]
+M.Test.matches = function(pat, subj) --> !?error
+  if subj:find(pat) then return end
+  f:styled('error', '\n!! RESULT:', '\n');   f(b)
+  f:styled('error', '\n!! Did not match:', sfmt('%q\n', pat))
+  f:styled('error', '!! Failed Test.matches:', ' ')
+  f:styled('path', pth.nice(ds.srcloc(1)), '\n')
+  exit(1)
+end
+--- assert [$subj:find(pat, 1, true)] (plain find)
+M.Test.contains = function(plain, subj) --> !?error
+  if subj:find(plain, 1, true) then return end
+  io.fmt:styled('error', '\n!! RESULT:', '\n');   f(b)
+  io.fmt:styled('error', '\n!! Did not contain:', sfmt('%q\n', plain))
+  io.fmt:styled('error', '!! Failed Test.contains:', ' ')
+  io.fmt:styled('path', pth.nice(ds.srcloc(1)), '\n')
+  exit(1)
+end
+--- assert [$fn()] fails and the [$contains] is in the message.
+M.Test.throws = function(contains, fn) --> ds.Error
+  local ok, err = ds.try(fn)
+  if not ok and err.msg:find(contains, 1, true) then return err end
+  local f = io.fmt
+  f:styled('error', '\n!! Unexpected Result:', '\n');
+  if ok then f:styled('notice', '<no error>') else f(err) end
+  f:styled('error', '\n!! Expected error to contain:',
+           sfmt(' %q\n', contains))
+  f:styled('error', '!! Failed Test.throws:', ' ')
+  f:styled('path', pth.nice(ds.srcloc(1)), '\n')
+  exit(1)
+end
 getmetatable(M.Test).__newindex = function(s, name, fn)
-  local msg = sfmt('## Test %s: %s', name, pth.nice(ds.srcloc(1)))
-  io.fmt:styled('h2', msg, '\n')
+  io.fmt:styled('h2', sfmt('## Test %-32s', name), ' ')
+  io.fmt:styled('path', pth.nice(ds.srcloc(1)), '\n')
   fn(s)
 end
 

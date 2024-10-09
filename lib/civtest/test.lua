@@ -1,25 +1,25 @@
 
 local mty = require'metaty'
 local ds  = require'ds'
-local test, assertEq, assertErrorPat;
-local T = ds.auto'civtest'
+local CT = require'civtest'
+local T = CT.Test
 
-test('civtest', function()
-  assertEq(1, 1)
-  assertEq('hi', 'hi')
-  assertEq({1, 2, a=5}, {1, 2, a=5})
-  assertErrorPat('hi there', function() error('hi there bob') end)
-end)
+T.civtest = function()
+  T.eq(1, 1)
+  T.eq('hi', 'hi')
+  T.eq({1, 2, a=5}, {1, 2, a=5})
+  T.throws('hi there', function() error('hi there bob') end)
+end
 
-test('global', function()
+T.global = function()
   G.testGlobal = true; assert(testGlobal)
   testGlobal = nil;    assert(nil == G.testGlobal)
-  assertErrorPat('global GLOBAL is nil/unset', function()
-    test('  (globalErr)', function() GLOBAL = true end)
+  T.throws('global someGlobal is nil/unset', function()
+    someGlobal = true
   end)
-  assert(G.GLOBAL == nil)
-end)
+  assert(G.someGlobal == nil)
+end
 
-T.asyncTest('foo', function()
+CT.asyncTest('foo', function()
   assert(true)
 end)

@@ -1,0 +1,9 @@
+civboot will use two diff algorithms: [+
+* patience diff for user-readable diffs, implemented in pure-lua
+* (optional) bentley_mcilroy for both single-file and change-file compression,
+  implemented in C
+]
+
+Based on what I've seen those are both easy to implement and very effective for
+their intended purpose.
+

@@ -108,7 +108,7 @@ Fmt.styled = function(f, style, text, ...)
     to:styled(style, line); doIndent = true
   end
   doIndent = false
-  for _, line in split(strcon(...)) do
+  for _, line in split(strcon(...), '\n') do
     if doIndent then f:_write(f._nl) end
     to:write(line); doIndent = true
   end
@@ -242,8 +242,11 @@ M.fprint = function(f, ...)
 end
 local fprint = M.fprint
 
---- print(...) but using [$io.fmt]
+--- [$print(...)] but using [$io.fmt]
 M.print  = function(...) return fprint(io.fmt, ...) end
+
+--- pretty format the value
+M.pretty = function(v) return concat(Fmt:pretty{}(v)) end --> string
 
 --- directly call fmt for better [$tostring]
 getmetatable(M).__call = function(_, v) return concat(Fmt{}(v)) end

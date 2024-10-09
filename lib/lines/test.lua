@@ -3,195 +3,195 @@ local fmt = require'fmt'
 local lines = require'lines'
 local ds = require'ds'
 local testing = require'lines.testing'
-local test, assertEq, assertMatch, assertErrorPat; ds.auto'civtest'
 local Gap = require'lines.Gap'
+local T = require'civtest'.Test
 
-test('new', function()
-  assertEq({'one', 'two 2', ''}, lines'one\ntwo 2\n')
-  assertEq({'one', 'two 2', ''}, lines.args'one\ntwo 2\n')
-  assertEq({'one', 'two 2', ''}, lines.args('one\n', 'two 2\n'))
-end)
+T.new = function()
+  T.eq({'one', 'two 2', ''}, lines'one\ntwo 2\n')
+  T.eq({'one', 'two 2', ''}, lines.args'one\ntwo 2\n')
+  T.eq({'one', 'two 2', ''}, lines.args('one\n', 'two 2\n'))
+end
 
-test('sort', function()
+T.sort = function()
   local sort = lines.sort
-  assertEq({1, 1, 2, 2}, {sort(1, 1, 2, 2)})
-  assertEq({1, 1, 2, 2}, {sort(2, 2, 1, 1)})
-  assertEq({1, 5, 2, 1}, {sort(1, 5, 2, 1)})
-  assertEq({1, 5, 2, 1}, {sort(2, 1, 1, 5)})
-end)
+  T.eq({1, 1, 2, 2}, {sort(1, 1, 2, 2)})
+  T.eq({1, 1, 2, 2}, {sort(2, 2, 1, 1)})
+  T.eq({1, 5, 2, 1}, {sort(1, 5, 2, 1)})
+  T.eq({1, 5, 2, 1}, {sort(2, 1, 1, 5)})
+end
 
-test('sub', function()
+T.sub = function()
   local lsub = lines.sub
   local l = lines'ab\nc\n\nd'
-  assertEq({'ab'},      lsub(l, 1, 1))
-  assertEq({'ab', 'c'}, lsub(l, 1, 2))
-  assertEq({'c', ''},   lsub(l, 2, 3))
-  assertEq('ab\n',      lsub(l, 1, 1, 1, 3))
-  assertEq('ab\n',      lsub(l, 1, 1, 2, 0))
-  assertEq('b\nc',      lsub(l, 1, 2, 2, 1))
+  T.eq({'ab'},      lsub(l, 1, 1))
+  T.eq({'ab', 'c'}, lsub(l, 1, 2))
+  T.eq({'c', ''},   lsub(l, 2, 3))
+  T.eq('ab\n',      lsub(l, 1, 1, 1, 3))
+  T.eq('ab\n',      lsub(l, 1, 1, 2, 0))
+  T.eq('b\nc',      lsub(l, 1, 2, 2, 1))
 
   l = lines"4     It's nice to have some real data"
-  assertEq('It',     lsub(l, 1, 7, 1, 8))
-  assertEq("'",      lsub(l, 1, 9, 1, 9))
-  assertEq("s",      lsub(l, 1, 10, 1, 10))
-  assertEq(" nice",  lsub(l, 1, 11, 1, 15))
-end)
+  T.eq('It',     lsub(l, 1, 7, 1, 8))
+  T.eq("'",      lsub(l, 1, 9, 1, 9))
+  T.eq("s",      lsub(l, 1, 10, 1, 10))
+  T.eq(" nice",  lsub(l, 1, 11, 1, 15))
+end
 
-test('find', function()
+T.find = function()
   local t = lines'12345\n6789\n98765\n'
-  assertEq({1, 3}, {lines.find(t, '34', 1, 1)})
-  assertEq({2, 1}, {lines.find(t, '67', 1, 3)})
-  assertEq({2, 1}, {lines.find(t, '6', 1, 3)})
-  assertEq({3, 4}, {lines.find(t, '6', 2, 2)})
+  T.eq({1, 3}, {lines.find(t, '34', 1, 1)})
+  T.eq({2, 1}, {lines.find(t, '67', 1, 3)})
+  T.eq({2, 1}, {lines.find(t, '6', 1, 3)})
+  T.eq({3, 4}, {lines.find(t, '6', 2, 2)})
 
-  assertEq({3, 4}, {lines.findBack(t, '6', 3)})
-  assertEq({3, 4}, {lines.findBack(t, '6', 3, 4)})
-  assertEq({2, 1}, {lines.findBack(t, '6', 3, 3)})
-end)
+  T.eq({3, 4}, {lines.findBack(t, '6', 3)})
+  T.eq({3, 4}, {lines.findBack(t, '6', 3, 4)})
+  T.eq({2, 1}, {lines.findBack(t, '6', 3, 3)})
+end
 
-test('offset', function()
+T.offset = function()
   testing.testOffset(lines(testing.DATA.offset))
-end)
+end
 
-test('inset', function()
+T.inset = function()
   local t = {''}
-  assertEq(1, #t)
+  T.eq(1, #t)
   lines.inset(t, 'foo bar', 1, 0)
-  assertEq('foo bar', lines.join(t))
+  T.eq('foo bar', lines.join(t))
   lines.inset(t, 'baz ', 1, 5)
-  assertEq('foo baz bar', lines.join(t))
+  T.eq('foo baz bar', lines.join(t))
 
   lines.inset(t, '\nand', 1, 4)
-  assertEq('foo\nand baz bar', lines.join(t))
+  T.eq('foo\nand baz bar', lines.join(t))
   lines.inset(t, 'buz ', 2, 5)
-  assertEq('foo\nand buz baz bar', lines.join(t))
+  T.eq('foo\nand buz baz bar', lines.join(t))
 
   t = {''}
   lines.inset(t, 'foo\nbar', 1, 1)
-  assertEq('foo\nbar', lines.join(t))
-end)
+  T.eq('foo\nbar', lines.join(t))
+end
 
-test('remove', function()
+T.remove = function()
   testing.testLinesRemove(function(t)
     return type(t) == 'string' and lines(t) or t
   end)
-end)
+end
 
-test('box', function()
+T.box = function()
   local l = lines(
     '1 3 5 7 9\n'
   ..' 2 4 6\n'
   ..'a c d e f g h')
-  assertEq({'1 3', ' 2 '        }, lines.box(l, 1,1, 2,3))
-  assertEq({' 3 ', '2 4'        }, lines.box(l, 1,2, 2,4))
-  assertEq({'7 9', '',   'e f g'}, lines.box(l, 1,7, 3,11))
-end)
+  T.eq({'1 3', ' 2 '        }, lines.box(l, 1,1, 2,3))
+  T.eq({' 3 ', '2 4'        }, lines.box(l, 1,2, 2,4))
+  T.eq({'7 9', '',   'e f g'}, lines.box(l, 1,7, 3,11))
+end
 
 ------------------------
 -- Gap Tests
 
-test('Gap.set', function()
+T['Gap.set'] = function()
   local g = Gap'ab\nc\n\nd'
-  assertEq('ab\nc\n\nd', fmt(g))
-  assertEq({'ab', 'c', '', 'd'}, g.bot)
+  T.eq('ab\nc\n\nd', fmt(g))
+  T.eq({'ab', 'c', '', 'd'}, g.bot)
   g:setGap(3)
-  assertEq({'ab', 'c', ''}, g.bot)
-  assertEq({'d'},           g.top)
-  assertEq('ab\nc\n\nd', fmt(g))
-end)
+  T.eq({'ab', 'c', ''}, g.bot)
+  T.eq({'d'},           g.top)
+  T.eq('ab\nc\n\nd', fmt(g))
+end
 
-test('Gap.inset', function()
-  assertEq(1, #Gap'')
-  local g = Gap(); assertEq(0, #g)
+T['Gap.inset'] = function()
+  T.eq(1, #Gap'')
+  local g = Gap(); T.eq(0, #g)
   lines.inset(g, 'foo bar', 1, 0)
-  assertEq('foo bar', fmt(g))
+  T.eq('foo bar', fmt(g))
   g:setGap(1)
-  assertEq(1, #g); assertEq(1, #g.bot)
+  T.eq(1, #g); T.eq(1, #g.bot)
 
   lines.inset(g, 'baz ', 1, 5)
-  assertEq('foo baz bar', fmt(g))
+  T.eq('foo baz bar', fmt(g))
 
   lines.inset(g, '\nand', 1, 4)
-  assertEq('foo\nand baz bar', fmt(g))
+  T.eq('foo\nand baz bar', fmt(g))
   lines.inset(g, 'buz ', 2, 5)
-  assertEq('foo\nand buz baz bar', fmt(g))
+  T.eq('foo\nand buz baz bar', fmt(g))
 
   g = Gap()
   lines.inset(g, 'foo\nbar', 1, 1)
-  assertEq('foo\nbar', fmt(g))
-end)
+  T.eq('foo\nbar', fmt(g))
+end
 
-test('Gap.remove', function()
+T['Gap.remove'] = function()
   testing.testLinesRemove(Gap)
-end)
+end
 
 local function subTests(g)
-  assertEq({'ab'},      lines.sub(g, 1, 1))
-  assertEq({'ab', 'c'}, lines.sub(g, 1, 2))
-  assertEq({'c', ''},   lines.sub(g, 2, 3))
-  assertEq('ab\n',      lines.sub(g, 1, 1, 1, 3))
-  assertEq('b\nc',      lines.sub(g, 1, 2, 2, 1))
+  T.eq({'ab'},      lines.sub(g, 1, 1))
+  T.eq({'ab', 'c'}, lines.sub(g, 1, 2))
+  T.eq({'c', ''},   lines.sub(g, 2, 3))
+  T.eq('ab\n',      lines.sub(g, 1, 1, 1, 3))
+  T.eq('b\nc',      lines.sub(g, 1, 2, 2, 1))
 end
-test('Gap.sub', function()
+T['Gap.sub'] = function()
   local g = Gap'ab\nc\n\nd'
   g:setGap(4); subTests(g)
   g:setGap(1); subTests(g)
   g:setGap(2); subTests(g)
 
   g = Gap"4     It's nice to have some real data"
-  assertEq('It',     lines.sub(g, 1, 7, 1, 8))
-  assertEq("'",      lines.sub(g, 1, 9, 1, 9))
-  assertEq("s",      lines.sub(g, 1, 10, 1, 10))
-  assertEq(" nice",  lines.sub(g, 1, 11, 1, 15))
-end)
+  T.eq('It',     lines.sub(g, 1, 7, 1, 8))
+  T.eq("'",      lines.sub(g, 1, 9, 1, 9))
+  T.eq("s",      lines.sub(g, 1, 10, 1, 10))
+  T.eq(" nice",  lines.sub(g, 1, 11, 1, 15))
+end
 
-test('Gap.offset', function()
+T['Gap.offset'] = function()
   local testOffset = testing.testOffset
   local g = Gap(testing.DATA.offset)
   testOffset(g)
   g:setGap(1); testOffset(g)
   g:setGap(2); testOffset(g)
   g:setGap(4); testOffset(g)
-end)
+end
 
-test('Gap.find', function()
+T['Gap.find'] = function()
   local g = Gap'12345\n6789\n98765\n'
-  assertEq({1, 3}, {lines.find(g, '34', 1, 1)})
-  assertEq({2, 1}, {lines.find(g, '67', 1, 3)})
-  assertEq({2, 1}, {lines.find(g, '6', 1, 3)})
-  assertEq({3, 4}, {lines.find(g, '6', 2, 2)})
-end)
+  T.eq({1, 3}, {lines.find(g, '34', 1, 1)})
+  T.eq({2, 1}, {lines.find(g, '67', 1, 3)})
+  T.eq({2, 1}, {lines.find(g, '6', 1, 3)})
+  T.eq({3, 4}, {lines.find(g, '6', 2, 2)})
+end
 
-test('Gap.ipairs', function()
+T['Gap.ipairs'] = function()
   local g = Gap'12345\n6789\n98765\n'
   local t = {}; for i, v in ipairs(g) do
-    assertEq(g[i], g[i]) t[i] = v
+    T.eq(g[i], g[i]) t[i] = v
   end
-  assertEq({'12345', '6789', '98765', ''}, t)
-end)
+  T.eq({'12345', '6789', '98765', ''}, t)
+end
 
-test('Gap.extend', function()
+T['Gap.extend'] = function()
   local g = Gap'123'
   ds.extend(g, {'456', '7'})
-  assertEq('123\n456\n7', fmt(g))
-end)
+  T.eq('123\n456\n7', fmt(g))
+end
 
-test('Gap.write', function()
+T['Gap.write'] = function()
   local g = Gap''
-  g:write'hi'; assertEq('hi', fmt(g))
-  g:write' there\n'; assertEq('hi there\n', fmt(g))
-  g:write'  next\nline'; assertEq('hi there\n  next\nline', fmt(g))
-end)
+  g:write'hi'; T.eq('hi', fmt(g))
+  g:write' there\n'; T.eq('hi there\n', fmt(g))
+  g:write'  next\nline'; T.eq('hi there\n  next\nline', fmt(g))
+end
 
-test('Writer', function()
+T.Writer = function()
   local W = require'lines.Writer'; local w = W{}
   w:write'hi there'
-  assertEq(W{'hi there'}, w)
+  T.eq(W{'hi there'}, w)
   w:write' bob'
-  assertEq(W{'hi there bob'}, w)
+  T.eq(W{'hi there bob'}, w)
   w:write'\nand jane'
-  assertEq(W{'hi there bob', 'and jane'}, w)
+  T.eq(W{'hi there bob', 'and jane'}, w)
   w:write' and sue\nand zebe\n'
-  assertEq(W{'hi there bob', 'and jane and sue',
+  T.eq(W{'hi there bob', 'and jane and sue',
              'and zebe', ''}, w)
-end)
+end
