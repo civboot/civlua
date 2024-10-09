@@ -110,8 +110,6 @@ Diff._calc = function(d, b, b2, c, c2)
   local bNext, cNext
   b,  c  = skipEqLinesTop(d.b, d.c, b, b2, c, c2)
   b2, c2 = skipEqLinesBot(d.b, d.c, b, b2, c, c2)
-  print('!! _calc b', b, b2, bSt, b2St)
-  print('!! _calc c', c, c2, cSt, c2St)
   assert((c - cSt) == (b - bSt))
 
   local di
@@ -140,7 +138,6 @@ Diff._calc = function(d, b, b2, c, c2)
   end
   ::bottom::
   c2 = c2 + 1 -- c2:c2St are unchanged lines (bot)
-  print('!! c2St?', c2 <= c2St)
   if c2 <= c2St then di = d.di + 1; d.noc[di], d.di = c2St - c2 + 1, di end
 end
 
@@ -183,7 +180,6 @@ getmetatable(Diff).__call = function(T, linesB, linesC) --> Diff
     b=linesB, c=linesC, di=0, noc={}, rem={}, add={}
   })
   d:_calc(1, #linesB, 1, #linesC)
-  ds.R.fmt.print('!! calc', d.noc, d.rem, d.add)
   d:_compress()
   return d
 end
