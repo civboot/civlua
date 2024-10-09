@@ -184,38 +184,52 @@ getmetatable(Diff).__call = function(T, linesB, linesC) --> Diff
   return d
 end
 
-local function styleNoc(f, chan, bl, cl)
-  f:styled('line', sfmt('% 5i % 5i ', bl, cl))
-  f:styled('meta', chan[cl] or '<eof>', '\n')
-end
-
-Diff.__fmt = function(d, f)
-  local base, chan, noc, add, rem = d.b, d.c, d.noc, d.add, d.rem
+--- iterate through nochange and change
+--- blocks, calling the functions for each [+
+--- * [$nocFn(baseStart, numUnchanged, changeStart, numUnchanged)
+--- * [$chgFn(baseStart, numRemoved,   changeStart, numAdded)]
+--- ]
+--- Note that the num removed/added will be nil if none were added/removed.
+Diff.map = function(d, nocFn, chgFn)
+  local noc, add, rem = d.noc, d.add, d.rem
   local bl, cl, n, a, r = 1, 1 -- bl=base-line cl=changed-line
   for i=1,d.di do
     n = noc[i]
     if n then -- unchanged lines
-      if n > 0 then styleNoc(f, chan, bl, cl) end
+      nocFn(bl, n, cl, n)
       bl, cl = bl + n, cl + n
-      if n > 1 then styleNoc(f, chan, bl-1, cl-1) end
     else
       a, r = add[i], rem[i]
-      if r then -- removed lines
-        for l=0,r-1 do
-          f:styled('reml', sfmt('% 5i       ', bl+l))
-          f:styled('rem', base[bl+l], '\n')
-        end
-        bl = bl + r
-      end
-      if a then -- added lines
-        for l=0,(a or 0)-1 do
-          f:styled('addl', sfmt('% 11i ', cl+l))
-          f:styled('add', chan[cl+l], '\n')
-        end
-        cl = cl + a
+      if a or r then
+        chgFn(bl, r, cl, a)
+        if r then bl = bl + r end
+        if a then cl = cl + a end
       end
     end
   end
+end
+
+local function styleNoc(f, base, bl, cl)
+  f:styled('line', sfmt('% 5i % 5i ', bl, cl))
+  f:styled('meta', base[bl] or '<eof>', '\n')
+end
+Diff.__fmt = function(d, f)
+  local base, chan = d.b, d.c
+  d:map(
+    function(bl, n, cl) -- nochange
+      if n > 0 then styleNoc(f, base, bl, cl)         end
+      if n > 1 then styleNoc(f, base, bl+n-1, cl+n-1) end
+    end,
+    function(bl, r, cl, a) -- change
+      for l=0,(r or 0)-1 do
+        f:styled('reml', sfmt('% 5i       ', bl+l))
+        f:styled('rem', base[bl+l], '\n')
+      end
+      for l=0,(a or 0)-1 do
+        f:styled('addl', sfmt('% 11i ', cl+l))
+        f:styled('add', chan[cl+l], '\n')
+      end
+    end)
 end
 
 M._toTest = {

@@ -9,7 +9,9 @@ local add, concat = table.insert, table.concat
 local diff = require'ds.diff'
 
 local dt = diff._toTest
+local sfmt = string.format
 local unpack = table.unpack
+local push = table.insert
 
 local function B(b) return {-1, b} end
 
@@ -86,15 +88,50 @@ T.complex = function()
   T.eq({nil, 2  , nil}, res.noc)
 end
 
-local function assertDiff(expect, a, b)
-  local res = diff(lines(a), lines(b))
-  T.eq(expect, fmt(res))
+--- Create base and build line tables from the diff.
+--- This is only really useful for asserting that the
+--- diff was correct
+local function rebuild(d) --> base, change
+  local b, c, base, chan = d.b, d.c, {}, {}
+  d:map(
+    function(bl, n, cl) -- nochange
+      for l=0,(n or 0)-1 do
+        local bline, cline = b[bl+l], c[cl+l]
+        assert(bline == cline)
+        push(base, bline); push(chan, cline)
+      end
+    end,
+    function(bl, r, cl, a) -- change
+      for l=0,(r or 0)-1 do push(base, b[bl+l]) end
+      for l=0,(a or 0)-1 do push(chan, c[cl+l]) end
+    end)
+  return b, c
 end
 
+local function checkDiff(d)
+  local b, c = rebuild(d)
+  T.eq(d.b, b)
+  T.eq(d.c, c)
+end
+
+local function assertDiff(expect, a, b)
+  local d = diff(lines(a), lines(b))
+  checkDiff(d)
+  if expect then T.eq(expect, fmt(d)) end
+  return d
+end
+
+local L = function(b, c) return sfmt('%5s %5s ', b or '', c or '') end
 T.smallDiffs = function()
-  assertDiff(
-"          1 peasy\
-    1     2 easy\
-", "easy", "peasy\neasy")
+  assertDiff(L('',1)..'peasy\n'
+           ..L(1, 2)..'easy\n',
+    'easy',
+    'peasy\neasy')
+  assertDiff(L(1, 1)..'abc\n'
+           ..L(2, 2)..'123\n'
+           ..L('',3)..'456\n'
+           ..L('',4)..'\n',
+    'abc\n123',
+    'abc\n123\n456\n')
 end
 
