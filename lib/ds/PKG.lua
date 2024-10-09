@@ -4,7 +4,7 @@ url      = 'git+http://github.com/civboot/civlua'
 summary  = "Tiny data structures and algorithms"
 homepage = "https://lua.civboot.org#Package_ds"
 license  = "UNLICENSE"
-doc = 'README.cxt'
+doc      = 'README.cxt'
 deps = {
   "lua    ~> 5.3",
   "metaty ~> 0.1",

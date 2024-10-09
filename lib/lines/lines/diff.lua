@@ -1,6 +1,10 @@
 local G = G or _G
 
+--- Diffing module and command
+--- Example command: [$lines.diff{'file/path1.txt', 'file/path2.txt'}]
+--- Note: the arguments can be a string (path) or list of lines.
 local M = G.mod and mod'lines.diff' or setmetatable({}, {})
+G.MAIN = G.MAIN or M
 
 local mty = require'metaty'
 local ds  = require'ds'
@@ -8,7 +12,6 @@ local push = table.insert
 local clear = ds.clear
 local construct = mty.construct
 local str, sfmt = tostring, string.format
-
 
 --- Line-based diff.
 --- The default algorithm uses patience diff. Special thanks to:
@@ -222,12 +225,12 @@ Diff.__fmt = function(d, f)
     end,
     function(bl, r, cl, a) -- change
       for l=0,(r or 0)-1 do
-        f:styled('reml', sfmt('% 5i       ', bl+l))
-        f:styled('rem', base[bl+l], '\n')
+        f:styled('basel', sfmt('% 5i       ', bl+l))
+        f:styled('base', base[bl+l], '\n')
       end
       for l=0,(a or 0)-1 do
-        f:styled('addl', sfmt('% 11i ', cl+l))
-        f:styled('add', chan[cl+l], '\n')
+        f:styled('changel', sfmt('% 11i ', cl+l))
+        f:styled('change', chan[cl+l], '\n')
       end
     end)
 end
@@ -238,5 +241,23 @@ M._toTest = {
   skipEqLinesTop = skipEqLinesTop, skipEqLinesBot = skipEqLinesBot,
 }
 
-getmetatable(M).__call = function(_, ...) return Diff(...) end
+M.main = function(args)
+  local b, c = table.unpack(require'shim'.parseStr(args))
+  assert(b and c, 'must provide args {base, change}')
+  local paths
+  if type(b) == 'string' then
+    io.fmt:styled('base', b)
+    b = assert(require'lines'.load(b))
+    paths = true
+  end
+  if type(c) == 'string' then
+    if paths then io.fmt:styled('meta', ' :: ') end
+    io.fmt:styled('change', c, '\n')
+    c = assert(require'lines'.load(c))
+  elseif paths then io.fmt:write'\n' end
+  io.fmt(M.Diff(b, c))
+end
+
+getmetatable(M).__call = function(_, args) return M.main(args) end
+if M == MAIN then os.exit(M.main(require'shim'.parse(G.arg))) end
 return M

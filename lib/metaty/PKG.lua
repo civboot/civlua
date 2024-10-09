@@ -5,7 +5,9 @@ summary  = "Simple but effective Lua type system using metatables"
 homepage = "https://lua.civboot.org#Package_metaty"
 license  = "UNLICENSE"
 doc      = 'README.cxt'
-srcs = { 'metaty.lua' }
 deps = {
   "lua ~> 5.3",
+}
+srcs = {
+  'metaty.lua'
 }

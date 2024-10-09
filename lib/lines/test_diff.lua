@@ -44,7 +44,7 @@ T.example = function()
   local linesA = ds.splitList'david a   electric gil slits    faust sonics sonics'
   local linesB = ds.splitList'slits gil david    a   electric faust sonics sonics'
 
-  local res = diff(linesA, linesB)
+  local res = diff.Diff(linesA, linesB)
   fmt.print('!! Formatted'); fmt.print(res)
 
   local matches = {uniqueMatches(linesA, linesB)}
@@ -82,7 +82,7 @@ T.complex = function()
   local lis = {dt.patienceLIS(unpack(matches))}
   T.eq({{3, 2}, {3, 2}}, lis)
 
-  local res = diff(linesA, linesB)
+  local res = diff.Diff(linesA, linesB)
   T.eq({1,   nil, 1  }, res.rem)
   T.eq({1,   nil, 1  }, res.add)
   T.eq({nil, 2  , nil}, res.noc)
@@ -115,7 +115,7 @@ local function checkDiff(d)
 end
 
 local function assertDiff(expect, a, b)
-  local d = diff(lines(a), lines(b))
+  local d = diff.Diff(lines(a), lines(b))
   checkDiff(d)
   if expect then T.eq(expect, fmt(d)) end
   return d
