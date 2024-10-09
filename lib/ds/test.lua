@@ -90,7 +90,7 @@ T.bool_and_none = function()
   assertErrorPat(err, function() return #none end)
 end
 
-test('imm', function()
+T.imm = function()
   assertEq({}, M.empty)
   assertEq(nil, next(M.empty))
   assertEq(0,  #M.empty)
@@ -119,9 +119,9 @@ test('imm', function()
   assert(not mty.eq({1, 2}, j))
 
   assertEq({kind='Empty'}, M.Imm{kind='Empty'})
-end)
+end
 
-test("number", function()
+T.number = function()
   assert(0, decAbs(1)); assert(0, decAbs(-1))
 
   assert(1 == bound(0, 1, 5))
@@ -137,9 +137,9 @@ test("number", function()
 
   local a, b = sort2(1, 2); assert(a == 1); assert(b == 2)
   local a, b = sort2(2, 1); assert(a == 1); assert(b == 2)
-end)
+end
 
-test("str", function()
+T.str = function()
   assertEq('hi there', trim('  hi there\n '))
   assertEq('hi there', trim('hi there'))
   local multi = [[  one
@@ -171,9 +171,9 @@ four
   assertEq("🫷!",  M.usub(u8, -2))
   assertEq("e 🫷", M.usub(u8, -4, -2))
   assertEq('',     M.usub(u8, 100))
-end)
+end
 
-test('isPod', function()
+T.isPod = function()
   assertEq(true,  M.isPod(true))
   assertEq(true,  M.isPod(false))
   assertEq(true,  M.isPod(3))
@@ -186,9 +186,9 @@ test('isPod', function()
   assertEq(true, M.isPod{1, 2, a=3})
   assertEq(true, M.isPod{1, 2, a={4, 5, b=6}})
   assertEq(false, M.isPod{1, 2, a={4, 5, b=M.noop}})
-end)
+end
 
-test('table', function()
+T.table = function()
   local t1, t2 = {1, 2}, {3, 4}
   assert(1 == indexOf(t2, 3)); assert(2 == indexOf(t2, 4))
 
@@ -260,9 +260,9 @@ test('table', function()
 
   assertEq({'a', 'b', 'c'}, M.orderedKeys{a=1, b=2, c=3})
   assertEq({'a', 'b', 'c', a=1, b=2, c=3}, M.pushSortedKeys{a=1, b=2, c=3})
-end)
+end
 
-test('Slc', function()
+T.Slc = function()
   local Slc = M.Slc
   local a = Slc{si=2, ei=10}
   assertEq(9, #a); assertEq('Slc[2:10]', fmt(a))
@@ -271,9 +271,9 @@ test('Slc', function()
   local expect = {Slc{si=2, ei=10}, Slc{si=12, ei=13}}
   assertEq(expect, {a:merge(Slc{si=12, ei=13})})
   assertEq(expect, {Slc{si=12, ei=13}:merge(a)})
-end)
+end
 
-test('list', function()
+T.list = function()
   local t = {4, 5, 6}
   assertEq(4, M.geti(t, 1))
   assertEq(6, M.geti(t, -1))
@@ -305,9 +305,9 @@ test('list', function()
   assertEq({1, 2, 3}, M.inset({1, 3}, 2, {2}))
   assertEq({1, 2, 3}, M.inset({1, 4, 3}, 2, {2}, 1))
   assertEq({"ab", "d"}, M.inset({"ab", "c", "", "d"}, 2, {}, 2))
-end)
+end
 
-test("eval", function()
+T.eval = function()
   local env = {}
   local ok, err = eval('1+', env)
   assert(not ok); assert(err)
@@ -317,17 +317,17 @@ test("eval", function()
   local ok, three = eval('seven = 7', env)
   assert(ok); assertEq({seven=7}, env)
   assert(not G.seven) -- did not modify globals
-end)
+end
 
-test('Set', function()
+T.Set = function()
   local s = Set{'a', 'b', 'c'}
   assertEq(Set{'a', 'c', 'b'}, s)
   assertEq(Set{'a', 'b'}, s:union(Set{'a', 'b', 'z'}))
   assertEq(Set{'a'}, s:diff(Set{'b', 'c', 'z'}))
-end)
+end
 
-test('LL', function(); local _
-  local h = LL(2)
+T.LL = function()
+  local h, _ = LL(2)
   assertEq({2}, h:tolist())
 
   -- '+' and '-'
@@ -357,9 +357,9 @@ test('LL', function(); local _
     assertEq(4, h:tail().l.v)
 
   assertEq('LL{1 -> 3 -> 5}', fmt((LL:from{1, 3, 5})))
-end)
+end
 
-test('binary-search', function()
+T['binary-search'] = function()
   local bs = M.binarySearch
   local t = {1, 5, 8, 10, 12, 33}
   assertEq(0,   bs(t, -1))
@@ -367,9 +367,9 @@ test('binary-search', function()
   assertEq(2,   bs(t, 5))  assertEq(2,   bs(t, 7))
   assertEq(5,   bs(t, 12)) assertEq(5,   bs(t, 32))
   assertEq(6,   bs(t, 33)) assertEq(6,   bs(t, 1024))
-end)
+end
 
-test('time', function()
+T.time = function()
   local N = Duration.NANO
   local d = Duration(3, 500)
   assertEq(Duration(2, 500),     Duration(3, 500) - Duration(1))
@@ -387,14 +387,14 @@ test('time', function()
   local e =    Epoch(1000001, 12342)
   assertEq(e - Epoch(1000000, 12342), Duration(1))
   assertEq('Epoch(1.5s)', tostring(Epoch(1.5)))
-end)
+end
 
 
 local function assertPath(fn, expect, p)
   assertEq(expect, fn(p))       -- pass in string
   assertEq(expect, fn(path(p))) -- pass in table
 end
-test('path', function()
+T.path = function()
   assertEq({'a', 'b', 'c'},  path('a/b/c'))
   assertEq({'/', 'b', 'c'},  path('/b/c'))
   assertEq({'a', 'b', 'c/'}, path('a/b/c/'))
@@ -467,7 +467,7 @@ test('path', function()
 
   assertEq({'y', 'z/z', 'a/', 'a/b/'},
     M.sort({'a/', 'a/b/', 'z/z', 'y'}, path.cmpDirsLast))
-end)
+end
 
 local heap = require'ds.heap'
 
@@ -481,7 +481,7 @@ local function assertPops(expect, h)
   end
   assertEq(expect, t)
 end
-test('heap', function()
+T.heap = function()
   local h = heap.Heap{1, 5, 9, 10, 3, 2}
   assertPops({1, 2, 3, 5, 9, 10}, h)
   assertEq(0, #h)
@@ -494,9 +494,9 @@ test('heap', function()
 
   h = heap.Heap{{3}, {2}, {1}, cmp=function(a, b) return a[1] < b[1] end}
   assertPops({{1}, {2}, {3}}, h)
-end)
+end
 
-test('dag', function()
+T.dag = function()
   local childrenMap = {
     a = {'b', 'c'},
     b = {'c', 'd'},
@@ -514,9 +514,9 @@ test('dag', function()
   assertEq(childrenMap, result)
 
   assertEq({'d', 'c', 'b', 'a'}, M.dag.sort(childrenMap))
-end)
+end
 
-test('bimap', function()
+T.bimap = function()
   local bm = M.BiMap{'one', 'two'}
   assertEq(bm[1], 'one');   assertEq(bm.one, 1)
   assertEq(bm[2], 'two');   assertEq(bm.two, 2)
@@ -531,9 +531,9 @@ test('bimap', function()
   assertEq(bm.b, 'B'); assertEq(bm.B, 'b')
   assertEq('BiMap{A="a", B="b", a="A", b="B"}'
          , fmt(bm))
-end)
+end
 
-test('deq', function()
+T.deq = function()
   local d = M.Deq()
   d:pushRight(4); assertEq(1, #d)
   d:pushRight(5); assertEq(2, #d)
@@ -549,7 +549,7 @@ test('deq', function()
     setmetatable(d, nil))
   assertEq({4, 5, 1, 2, 6, 7}, setmetatable(d, M.Deq):drain())
   assertEq({left=1, right=0}, setmetatable(d, nil))
-end)
+end
 
 local TB = [[
 stack traceback:
@@ -557,7 +557,7 @@ stack traceback:
         lib/ds/ds.lua:1064: in function 'ds.tracelist'
         lib/ds/ds.lua:1084: in function <lib/ds/ds.lua:1081>
 ]]
-test('error', function()
+T.error = function()
   assertEq({
     "[C]: in function 'string.gsub'",
     "lib/ds/ds.lua:1064: in function 'ds.tracelist'",
@@ -580,11 +580,11 @@ test('error', function()
   local ok, msg = coroutine.resume(cor)
   assert(not ok)
   assertEq(expect, M.Error.from(msg, cor))
-end)
+end
 
 ---------------------
 -- ds/pod.lua
-test('ds.pod', function()
+T['ds.pod'] = function()
   local pod = require'ds.pod'
   local test = mod'test'
   test.A = mty'A'{'a', 'b', b=3}
@@ -602,11 +602,11 @@ test('ds.pod', function()
     {b={a='inner', ['??']='test.A'}, ['??']='test.A'},
     pod.toPod(a))
   assertEq(a, pod.fromPod(pod.toPod(a)))
-end)
+end
 
 ---------------------
 -- ds/Iter.lua
-test('ds.Iter', function()
+T['ds.Iter'] = function()
   local It = require'ds.Iter'
   local t = {4, 5, 'six', 7}
 
@@ -673,7 +673,7 @@ test('ds.Iter', function()
   assertEq(false, It:of{true, false, true}:all())
   assertEq(true,  It:of{false, false, true, false}:any())
   assertEq(false, It:of{false, false, false, false}:any())
-end)
+end
 
 ---------------------
 -- ds/utf8.lua
@@ -689,7 +689,7 @@ end
 --   print('{'+', '.join('0x%X' % c for c in '🙃'.encode('utf-8'))+'}')
 -- Edge case characters are from:
 --   https://design215.com/toolbox/ascii-utf8.php
-test('u8edges', function()
+T.u8edges = function()
   testU8('\0', {0})
   testU8(' ', {0x20})
   testU8('a', {string.byte('a')})
@@ -710,11 +710,11 @@ test('u8edges', function()
   testU8('𒀀',  {0xF0, 0x92, 0x80, 0x80})
   testU8('🙃', {0xF0, 0x9F, 0x99, 0x83})
   testU8('🧿', {0xF0, 0x9F, 0xA7, 0xBF})
-end)
+end
 
 -----------------
 -- Log
-test('log', function()
+T.log = function()
   local L = require'ds.log'
   local fn, lvl = assert(LOGFN), assert(LOGLEVEL)
   local logs = {}
@@ -753,11 +753,11 @@ test('log', function()
             L.info, 't', {1, 2, key=42})
   io.fmt = iofmt
   LOGLEVEL = lvl
-end)
+end
 
 -----------------
 -- Grid
-test('Grid', function()
+T.Grid = function()
   local Grid = require'ds.Grid'
   local g = Grid{h=3, w=20}
     assertEq('\n\n', fmt(g))
@@ -789,4 +789,4 @@ test('Grid', function()
       '     ab\n'
     ..'  hi cd\n'
     ..'     ef', fmt(g))
-end)
+end
