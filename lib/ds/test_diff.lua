@@ -3,7 +3,7 @@ local ds = require'ds'
 local Iter = require'ds.Iter'
 local fmt = require'fmt'
 local lines = require'lines'
-local test, assertEq; local T = ds.auto'civtest'
+local T = require'civtest'.Test
 local Keep, Change, toChanges; ds.auto'vcds'
 local add, concat = table.insert, table.concat
 local diff = require'ds.diff'
@@ -13,24 +13,24 @@ local unpack = table.unpack
 
 local function B(b) return {-1, b} end
 
-test('skip', function()
-  assertEq({3, 3}, {dt.skipEqLinesTop({1,1,1}, {1,1,2}, 1,3, 1,3)})
-  assertEq({2, 3}, {dt.skipEqLinesTop({1,1,1}, {1,1,2}, 1,3, 2,3)})
-  assertEq({1, 3}, {dt.skipEqLinesTop({1,1,1}, {1,1,2}, 1,3, 3,3)})
-  assertEq({4, 4}, {dt.skipEqLinesTop({1,1,1}, {1,1,1}, 1,3, 1,3)})
+T.skip = function()
+  T.eq({3, 3}, {dt.skipEqLinesTop({1,1,1}, {1,1,2}, 1,3, 1,3)})
+  T.eq({2, 3}, {dt.skipEqLinesTop({1,1,1}, {1,1,2}, 1,3, 2,3)})
+  T.eq({1, 3}, {dt.skipEqLinesTop({1,1,1}, {1,1,2}, 1,3, 3,3)})
+  T.eq({4, 4}, {dt.skipEqLinesTop({1,1,1}, {1,1,1}, 1,3, 1,3)})
 
-  assertEq({3, 3}, {dt.skipEqLinesBot({1,1,1}, {1,1,2}, 1,3, 1,3)})
-  assertEq({1, 0}, {dt.skipEqLinesBot({1,1,1}, {1,1,2}, 1,3, 1,2)})
-end)
+  T.eq({3, 3}, {dt.skipEqLinesBot({1,1,1}, {1,1,2}, 1,3, 1,3)})
+  T.eq({1, 0}, {dt.skipEqLinesBot({1,1,1}, {1,1,2}, 1,3, 1,2)})
+end
 
-test('findStack', function()
+T.findStack = function()
   local mb     = {3, 5, 12, 20, 30, 50, 60, 70, 90}
   local stacks = {1, 2, 3,  4,  5,  6,  7,  8,  9}
-  assertEq(0, dt.findLeftStack(stacks, mb, 2))
-  assertEq(1, dt.findLeftStack(stacks, mb, 4))
-  assertEq(3, dt.findLeftStack(stacks, mb, 15))
-  assertEq(7, dt.findLeftStack(stacks, mb, 69))
-end)
+  T.eq(0, dt.findLeftStack(stacks, mb, 2))
+  T.eq(1, dt.findLeftStack(stacks, mb, 4))
+  T.eq(3, dt.findLeftStack(stacks, mb, 15))
+  T.eq(7, dt.findLeftStack(stacks, mb, 69))
+end
 
 local function uniqueMatches(aLines, bLines, a, a2, b, b2)
   if not a then a, a2, b, b2 = 1, #aLines, 1, #bLines end
@@ -49,7 +49,7 @@ local EXPECT = '\n'..[[
    6    6|sonics
    7    7|sonics
 ]]
-test('example', function()
+T.example = function()
   --                          1     2   3        4     5      6     6      7
   local linesA = ds.splitList'david a   electric gil slits    faust sonics sonics'
   local linesB = ds.splitList'slits gil david    a   electric faust sonics sonics'
@@ -58,19 +58,19 @@ test('example', function()
   fmt.print('!! Formatted'); fmt.print(res)
 
   local matches = {uniqueMatches(linesA, linesB)}
-  assertEq({
+  T.eq({
     {1, 2, 3, 4, 5, 6},
     {3, 4, 5, 2, 1, 6}}, matches)
 
-  assertEq({{6, 3, 2, 1},
+  T.eq({{6, 3, 2, 1},
             {6, 5, 4, 3}},
            {dt.patienceLIS(unpack(matches))})
 
-  assertEq({nil, 3,   nil, 3  }, res.noc)
-  assertEq({nil, nil, 2  , nil}, res.rem)
-  assertEq({2,   nil, nil, nil}, res.add)
+  T.eq({nil, 3,   nil, 3  }, res.noc)
+  T.eq({nil, nil, 2  , nil}, res.rem)
+  T.eq({2,   nil, nil, nil}, res.add)
 
-  assertEq(
+  T.eq(
 "+\t1\tslits\
 +\t2\tgil\
  1\t3\tdavid\
@@ -82,7 +82,7 @@ test('example', function()
  7\t7\tsonics\
  8\t8\tsonics\
 ", fmt(res))
-end)
+end
 
 local EXPECT = '\n'..[[
    +    1|X
@@ -92,36 +92,35 @@ local EXPECT = '\n'..[[
    +    4|X
    4    -|e
 ]]
-T.test('complex', function()
+T.complex = function()
   local linesA = ds.splitList'b c d e'
   local linesB = ds.splitList'X c d X'
 
   local matches = {uniqueMatches(linesA, linesB)}
-  assertEq({{2, 3}, {2, 3}}, matches)
+  T.eq({{2, 3}, {2, 3}}, matches)
 
   local lis = {dt.patienceLIS(unpack(matches))}
-  assertEq({{3, 2}, {3, 2}}, lis)
+  T.eq({{3, 2}, {3, 2}}, lis)
 
   local res = diff(linesA, linesB)
-  assertEq({1,   nil, 1  }, res.rem)
-  assertEq({1,   nil, 1  }, res.add)
-  assertEq({nil, 2  , nil}, res.noc)
+  T.eq({1,   nil, 1  }, res.rem)
+  T.eq({1,   nil, 1  }, res.add)
+  T.eq({nil, 2  , nil}, res.noc)
 
   -- local chngs = toChanges(res)
-  -- assertEq({
+  -- T.eq({
   --   Change{rem=1, add={'X'}},
   --   Keep{num=2},
   --   Change{rem=1, add={'X'}},
   -- }, chngs)
-end)
+end
 
 local function assertDiff(expect, a, b)
   local res = diff(lines(a), lines(b))
-  assertEq(expect, fmt(res))
+  T.eq(expect, fmt(res))
 end
 
-T.test('easy_peasy', function()
-  -- assertDiff('+\t1\tpeasy\n 1\t2\teasy', "easy", "peasy\neasy")
-
-end)
+T.smallDiffs = function()
+  assertDiff('+\t1\tpeasy\n 1\t2\teasy\n', "easy", "peasy\neasy")
+end
 
