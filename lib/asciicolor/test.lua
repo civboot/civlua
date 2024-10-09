@@ -1,6 +1,7 @@
 METATY_CHECK = true
 
-local T = require'civtest'
+local CT = require'civtest'
+local T = require'civtest'.Test
 local mty = require'metaty'
 local fmt = require'fmt'
 local ds = require'ds'
@@ -8,10 +9,10 @@ local Writer = require'lines.Writer'
 local M = require'asciicolor'
 local S = require'asciicolor.style'
 
-local aeq = T.assertEq
+local aeq = T.eq
 
 -- make sure the codes don't change accidentally
-T.test('nochange', function()
+T.nochange = function()
   local LETTERS = 'z b w d l r p y h g t c a n s m f'
   local NUM_LET = 17
   local VALID = {}; for c in LETTERS:gmatch'%S+' do VALID[c] = true end
@@ -30,14 +31,14 @@ T.test('nochange', function()
   end
   aeq(NUM_LET     + 2, ds.pairlen(M.Color))
   aeq(NUM_LET * 2 + 2, ds.pairlen(M.CODES))
-end)
+end
 
-T.test('code', function()
+T.code = function()
   local c = M.assertcode
   aeq('a',  c'a')
   aeq('Z',  c'Z')
   aeq('z',  c'z')
   aeq('z',  c' ')
   aeq('z',  c'')
-  T.assertErrorPat('invalid ascii color: "O"', function() c'O' end)
-end)
+  CT.assertErrorPat('invalid ascii color: "O"', function() c'O' end)
+end
