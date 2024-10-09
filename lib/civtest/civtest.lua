@@ -26,7 +26,7 @@ M.Test.eq = function(a, b)
     if a == b then f:styled('notice', '\n(Formatted strings are equal)')
     else
       f:styled('error', '\n!! DIFF:', '\n')
-      f(require'ds.diff'(a, b));
+      f(require'lines.diff'(a, b));
     end
   end
   f:styled('error', '\n!! Failed Test.eq:', ' ')

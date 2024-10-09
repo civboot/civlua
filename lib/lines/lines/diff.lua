@@ -1,6 +1,6 @@
 local G = G or _G
 
-local M = G.mod and mod'ds.diff' or setmetatable({}, {})
+local M = G.mod and mod'lines.diff' or setmetatable({}, {})
 
 local mty = require'metaty'
 local ds  = require'ds'

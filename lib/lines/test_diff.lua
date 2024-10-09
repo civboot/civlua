@@ -6,7 +6,7 @@ local lines = require'lines'
 local T = require'civtest'.Test
 local Keep, Change, toChanges; ds.auto'vcds'
 local add, concat = table.insert, table.concat
-local diff = require'ds.diff'
+local diff = require'lines.diff'
 
 local dt = diff._toTest
 local sfmt = string.format

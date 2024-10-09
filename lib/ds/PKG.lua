@@ -12,7 +12,6 @@ deps = {
 }
 srcs = {
   'ds.lua',
-  'ds/diff.lua',
   'ds/Iter.lua',
   'ds/pod.lua',
   'ds/LL.lua',
