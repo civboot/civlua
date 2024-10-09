@@ -26,6 +26,8 @@ M.dark = {
   meta  = 'd',  -- Meta=metadata such as description of ops, etc
   notify = 'C', -- make very visible
   error = 'Wr',
+  add = 'G', addl = 'Wg', -- add / linenum
+  rem = 'R', reml = 'Wr', -- remove / linenum
 
   -- Document Styles
   code = 'hb',

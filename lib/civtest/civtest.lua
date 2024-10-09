@@ -63,9 +63,12 @@ M.assertEq = function(expect, result, pretty)
   if mty.eq(expect, result) then return end
   local f = (pretty or pretty == nil) and fmt.Fmt:pretty{}
           or fmt.Fmt{}
+  f.string = function(f, s)
+    f:write((sfmt('%q', s):gsub('\\0?0?9', '\\t')))
+  end
   push(f, "! Values not equal:")
-  push(f, "\n! EXPECT: "); f(expect)
-  push(f, "\n! RESULT: "); f(result)
+  push(f, "\n! EXPECT:\n"); f(expect)
+  push(f, "\n! RESULT:\n"); f(result)
   push(f, '\n')
   if type(expect) == 'string' and type(result) == 'string' then
     M.diffFmt(f, expect, result)

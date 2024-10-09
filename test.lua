@@ -25,6 +25,7 @@ print'[[core]]'
 
   dofile(dir..'lib/shim/test.lua')
   dofile(dir..'lib/ds/test.lua')
+  require'civ'.setupFmt()
   dofile(dir..'lib/ds/test_diff.lua')
   dofile(dir..'lib/lines/test.lua')
   assert(io_open == io.open)
