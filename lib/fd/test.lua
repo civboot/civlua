@@ -1,9 +1,9 @@
 local iotype = io.type
 
-local T   = require'civtest'
+local T   = require'civtest'.Test
 local M   = require'fd'
 local S   = M.sys
-local aeq = T.assertEq
+local aeq = T.eq
 M.ioSync()
 
 local p = '.out/fd.text'
