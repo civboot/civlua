@@ -8,6 +8,7 @@ local add, concat = table.insert, table.concat
 local diff = require'ds.diff'
 
 local dt = diff._toTest
+local unpack = table.unpack
 
 local function B(b) return {-1, b} end
 
@@ -55,15 +56,14 @@ test('example', function()
   local res = diff(linesA, linesB)
   fmt.print('!! Formatted'); fmt.print(res)
 
-  local matches = uniqueMatches(linesA, linesB)
-  assertEq(dt._BC{
-    b={1, 2, 3, 4, 5, 6},
-    c={3, 4, 5, 2, 1, 6}}, matches)
+  local matches = {uniqueMatches(linesA, linesB)}
+  assertEq({
+    {1, 2, 3, 4, 5, 6},
+    {3, 4, 5, 2, 1, 6}}, matches)
 
-  local lis = dt.patienceLIS(matches)
-  assertEq(dt._BC{
-    b={6, 3, 2, 1},
-    c={6, 5, 4, 3}}, lis)
+  assertEq({{6, 3, 2, 1},
+            {6, 5, 4, 3}},
+           {dt.patienceLIS(unpack(matches))})
 
   assertEq({nil, 3,   nil, 3  }, res.noc)
   assertEq({nil, nil, 2  , nil}, res.rem)
@@ -95,11 +95,11 @@ T.test('complex', function()
   local linesA = ds.splitList'b c d e'
   local linesB = ds.splitList'X c d X'
 
-  local matches = uniqueMatches(linesA, linesB)
-  assertEq(dt._BC{b={2, 3}, c={2, 3}}, matches)
+  local matches = {uniqueMatches(linesA, linesB)}
+  assertEq({{2, 3}, {2, 3}}, matches)
 
-  local lis = dt.patienceLIS(matches)
-  assertEq(dt._BC{b={3, 2}, c={3, 2}}, lis)
+  local lis = {dt.patienceLIS(unpack(matches))}
+  assertEq({{3, 2}, {3, 2}}, lis)
 
   local res = diff(linesA, linesB)
   assertEq({1,   nil, 1  }, res.rem)

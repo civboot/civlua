@@ -32,10 +32,6 @@ M.Diff = mty'Diff' {
 }
 local Diff = M.Diff
 
---- two sync'd lists of base and change (i.e. matches, LIS, etc)
---- (used internally)
-local _BC = mty'_BC'{'b [ints]', 'c [ints]'}
-
 --- [$c] is a table of [$lineStr -> lineNum].
 --- The first time [$lineStr] is found the line number [$l] is stored.
 --- If found again, the stored line is set to false (and remains false)
@@ -48,11 +44,9 @@ local function countLine(c, l, line, pushl)
   elseif r ~= false then c[line] = false end
 end
 
---- return BC where [$b] is the line numbers which are unique in b
---- and [$c] is the line numbers that are unique in c
----
---- They are ordered by when the appear in b
-local uniqueMatches = function(bLines, cLines, b, b2, c, c2) --> BC
+--- return lists of line numbers which are unique in both [$b] and [$c],
+--- ordered by when the appear in b.
+local uniqueMatches = function(bLines, cLines, b, b2, c, c2) --> bList, cList
   local bcount, ccount = {}, {}
   for i=b,b2 do countLine(bcount, i, bLines[i], true) end
   for i=c,c2 do countLine(ccount, i, cLines[i]) end
@@ -77,7 +71,7 @@ local findLeftStack = function(stacks, mc, c)
 end
 
 --- Get the longest increasing sequence (in reverse order)
-local patienceLIS = function(mb, mc) --> BC
+local patienceLIS = function(mb, mc) --> bList, cList
   local stacks = {}
   local prev, c, i = {}
   for mi, b in ipairs(mb) do
@@ -89,7 +83,7 @@ local patienceLIS = function(mb, mc) --> BC
   local b, c = {}, {}
   while prev[mi] do push(b, mb[mi]); push(c, mc[mi]); mi = prev[mi] end
   push(b, mb[mi]); push(c, mc[mi])
-  return _BC{b=b, c=c}
+  return b, c
 end
 
 ----------------------------
@@ -120,8 +114,8 @@ Diff._calc = function(d, b, b2, c, c2)
 
   local di
   if c > cSt then di = d.di + 1; d.noc[di] = c - cSt; d.di = di end
-  local lis = patienceLIS(uniqueMatches(d.b, d.c, b, b2, c, c2))
-  if not lis or #lis.b == 0 then
+  local bl, cl = patienceLIS(uniqueMatches(d.b, d.c, b, b2, c, c2))
+  if not bl or #bl == 0 then
     local rm, ad = b2 - b + 1, c2 - c + 1
     if rm == 0 and ad == 0 then -- skip
     else
@@ -132,7 +126,7 @@ Diff._calc = function(d, b, b2, c, c2)
     return
   end
 
-  local bl, cl, bNext, cNext = lis.b, lis.c
+  local bNext, cNext
   for i=#bl,0,-1 do
     local bm = bl[i]
     if bm then bNext, cNext = bm-1, cl[i]-1
@@ -248,7 +242,6 @@ M._toTest = {
   uniqueMatches = uniqueMatches,
   findLeftStack = findLeftStack,   patienceLIS    = patienceLIS,
   skipEqLinesTop = skipEqLinesTop, skipEqLinesBot = skipEqLinesBot,
-  _BC = _BC,
 }
 
 getmetatable(M).__call = function(_, ...) return Diff(...) end
