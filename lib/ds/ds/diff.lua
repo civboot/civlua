@@ -61,7 +61,7 @@ local uniqueMatches = function(bLines, cLines, b, b2, c, c2) --> BC
     local b, c = bcount[line], ccount[line]
     if b and c then push(bl, b); push(cl, c); end
   end
-  return _BC{b=bl, c=cl}
+  return bl, cl
 end
 
 --- Find the stack to the left of where we should place
@@ -77,10 +77,10 @@ local findLeftStack = function(stacks, mc, c)
 end
 
 --- Get the longest increasing sequence (in reverse order)
-local patienceLIS = function(matches) --> BC
+local patienceLIS = function(mb, mc) --> BC
   local stacks = {}
-  local mb, mc, prev, c, i = matches.b, matches.c, {}
-  for mi, b in ipairs(matches.b) do
+  local prev, c, i = {}
+  for mi, b in ipairs(mb) do
     i = findLeftStack(stacks, mc, mc[mi])
     if i > 0 then prev[mi] = stacks[i] end
     stacks[i+1] = mi
@@ -120,8 +120,7 @@ Diff._calc = function(d, b, b2, c, c2)
 
   local di
   if c > cSt then di = d.di + 1; d.noc[di] = c - cSt; d.di = di end
-  local matches = uniqueMatches(d.b, d.c, b, b2, c, c2)
-  local lis = patienceLIS(matches)
+  local lis = patienceLIS(uniqueMatches(d.b, d.c, b, b2, c, c2))
   if not lis or #lis.b == 0 then
     local rm, ad = b2 - b + 1, c2 - c + 1
     if rm == 0 and ad == 0 then -- skip
