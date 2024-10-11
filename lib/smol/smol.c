@@ -28,7 +28,7 @@ typedef lua_State LS;
 
 // decode value using initial value v from
 // initial v(alue), b(uffer), s(hift), i(ndex), len
-static inline int decv(char* b, size_t len, size_t* i, int v, int s) {
+static inline int decv(uint8_t* b, size_t len, size_t* i, int v, int s) {
   while(0x80 & b[*i]) {
     v = ((0x7F & b[*i]) << s) | v;
     s += 7; *i += 1; if(*i > len) return -1;
@@ -38,7 +38,7 @@ static inline int decv(char* b, size_t len, size_t* i, int v, int s) {
   printf("!! dec v=0x%x i=%i\n", v, *i);
   return v;
 }
-static inline int encv(int v, char* b, size_t len, size_t* i) {
+static inline int encv(int v, uint8_t* b, size_t len, size_t* i) {
   printf("!! enc v=0x%x\n", v);
   while(v > 0x7F) {
     b[*i] = 0x80 | v; v = v >> 7; *i += 1;
@@ -52,7 +52,7 @@ static inline int encv(int v, char* b, size_t len, size_t* i) {
 static void test_encode_v() {
   printf("test_decv\n");
   size_t i = 0;
-  char b[12] = "\x85\x0F\x33";
+  uint8_t b[12] = "\x85\x0F\x33";
   int v = decv(b,3,&i, 0, 0);
   assert(i == 2);
   assert(v == ((0x0F << 7) | (0x5)));
@@ -73,7 +73,7 @@ static void test_encode_v() {
 //* Encode / Decode Commands
 
 // decode the command and length. Return -1 on error.
-static inline int decCmd(char* buf, size_t blen, size_t* i, int* len) {
+static inline int decCmd(uint8_t* buf, size_t blen, size_t* i, int* len) {
   if(*i >= blen) return -1;
   int b = buf[*i]; *i += 1;
   *len = 0x1F & b; int cmd = 0xC0 & b;
@@ -83,7 +83,7 @@ static inline int decCmd(char* buf, size_t blen, size_t* i, int* len) {
   return cmd;
 }
 
-static inline int encCmd(char* buf, size_t blen, size_t* i, int cmd, int clen) {
+static inline int encCmd(uint8_t* buf, size_t blen, size_t* i, int cmd, int clen) {
   if(*i >= blen) return -1;
   printf("!! encCmd 0x%x len=0x%x i=%i\n", cmd, clen, *i);
   if (clen > 0x1F) {
@@ -95,7 +95,7 @@ static inline int encCmd(char* buf, size_t blen, size_t* i, int cmd, int clen) {
   return 0;
 }
 
-static inline int encRUN(char* buf, size_t len, size_t* i, int r, unsigned char b) {
+static inline int encRUN(uint8_t* buf, size_t len, size_t* i, int r, uint8_t b) {
   if(encCmd(buf,len,i, RUN,r)) return -1;
   if(*i >= len)                return -1;
   buf[*i] = b; *i += 1;
@@ -103,7 +103,7 @@ static inline int encRUN(char* buf, size_t len, size_t* i, int r, unsigned char 
   return 0;
 }
 
-static inline int encADD(char* buf, size_t blen, size_t* i, int a, char* str) {
+static inline int encADD(uint8_t* buf, size_t blen, size_t* i, int a, uint8_t* str) {
   printf("!! encADD i=%i a=0x%x\n", *i, a);
   if(encCmd(buf,blen,i, ADD,a)) return -1;
   if(*i + a >= blen)            return -1;
@@ -113,7 +113,7 @@ static inline int encADD(char* buf, size_t blen, size_t* i, int a, char* str) {
   return 0;
 }
 
-static inline int encCPY(char* buf, size_t blen, size_t* i, int cpy, int raddr) {
+static inline int encCPY(uint8_t* buf, size_t blen, size_t* i, int cpy, int raddr) {
   printf("!! encCPY i=%i cpy=0x%x raddr=0x%x\n", *i, cpy, raddr);
   if(encCmd(buf,blen,i, CPY,cpy)) return -1;
   return encv(raddr, buf,blen,i);
@@ -123,7 +123,7 @@ static inline int encCPY(char* buf, size_t blen, size_t* i, int cpy, int raddr) 
 static void test_encode_cmds() {
   printf("test_encode_cmds\n");
   size_t i = 0; int len = 0;
-  char b[32] = "\x43z";
+  uint8_t b[32] = "\x43z";
   assert(RUN == decCmd(b,32,&i, &len)); assert(3 == len); assert(1 == i);
 
 #define T_ROUND(CMD, LEN, EI, DI, ...) \
@@ -155,17 +155,17 @@ int main() {
 // apply an rdelta
 // (rdelta, base?) -> change
 static int l_rdecode(LS* L) {
-  size_t elen; char* enc  = (char*)luaL_checklstring(L, 1, &elen);
-  size_t blen; char* base = (char*)luaL_optlstring(L, 2, "", &blen);
+  size_t elen; uint8_t* enc  = (uint8_t*)luaL_checklstring(L, 1, &elen);
+  size_t blen; uint8_t* base = (uint8_t*)luaL_optlstring(L, 2, "", &blen);
   size_t ei = 0; // enc index
-  ASSERT(elen > 1, "invalid encoded length");
+  ASSERT(elen >= 1, "#rdelta == 0");
   // decode the length of the final output
   int clen = decv(enc,elen,&ei, 0, 0); ASSERT(clen >= 0, "clen");
   if(clen == 0) { lua_pushstring(L, ""); return 1; }
   clen = blen + clen;
-  char* ch = malloc(clen); ASSERT(ch, "OOM");
+  uint8_t* ch = malloc(clen); ASSERT(ch, "OOM");
   memcpy(ch, base, blen); size_t ci = blen;
-  char* error = "OOB error";
+  uint8_t* error = "OOB error";
   while(ei < elen) {
     // x == command
     int xlen; int x = decCmd(enc,elen,&ei, &xlen);
@@ -179,9 +179,10 @@ static int l_rdecode(LS* L) {
         memset(&ch[ci], enc[ei], xlen);  ei += 1;
         break;
       case CPY:
-        int raddr = decv(enc,elen,&ei, 0,0); if(raddr < 0); goto error;
+        int raddr = decv(enc,elen,&ei, 0,0); if(raddr < 0) goto error;
         raddr = ci - 1 - raddr;
-        if((raddr < 0)) { error = "negative CPY"; goto error; }
+        if(raddr < 0)         { error = "negative CPY"; goto error; }
+        if(raddr + xlen > ci) { error = "forward CPY";  goto error; }
         memcpy(&ch[ci], &ch[raddr], xlen);
         break;
       case -1: goto error;
