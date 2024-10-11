@@ -18,7 +18,7 @@ local FMT = '%.2x '
 M.Args = mty'Args' {
   'width [int]: column width in bytes',  width=16,
   'fmt [string]: format string for hex', fmt=FMT,
-  'stdout [bool]: use stdout instead of stderr',
+  'to [file]: (lua only) file to output to (default=stdout)',
 }
 
 M.format = function(f, str, fmt)
@@ -67,9 +67,8 @@ local columns = M.columns
 M.main = function(args)
   args = M.Args(shim.parseStr(args))
   local raw = shim.popRaw(args)
-  local f, fmt, width = io.fmt, args.fmt, args.width
-  if args.stdout then f = require'civ'.Fmt{to=io.stdout} end
-
+  local fmt, width = args.fmt, args.width
+  local f = require'civ'.Fmt{to=args.to or io.stdout}
   local read = require'ds'.readPath
   for _, path in ipairs(args) do
     columns(f, (path=='-') and io.stdin:read'a' or read(path), width, fmt)
