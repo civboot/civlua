@@ -1,12 +1,9 @@
 # Copy/pastable Makefile for Lua C sources.
-#
-# Note: `luarocks make` puts the shared library files next to the C file,
-#       which is the convention followed here.
 
 # Modify these for a new library
-NAME  = civix
-FILES = $(NAME)/lib.c
-OUT   = $(NAME)/lib
+NAME  = smol
+FILES = $(NAME).c
+OUT   = $(NAME)
 LUA_VERSION = lua
 
 UNAME := $(shell uname)
@@ -15,20 +12,25 @@ Linux:  $(OUT).so
 Darwin: $(OUT).so
 # Windows: $(OUT).dll
 
+WNO = -Wno-incompatible-function-pointer-types
+
 $(OUT).so: $(FILES)
 	make Build$(UNAME)
 
+test: $(FILES)
+	$(CC) $(FILES) -DTEST -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -o smol_test
+	./smol_test
+
 BuildLinux: $(FILES)
-	# vcmd:       $(_VCMD)
-	# vcmd2:      $(_VCMD2)
-	# lua version $(LUA_VERSION)
 	$(CC) $(FILES) -fPIC -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -shared -o $(OUT).so
 
 BuildDarwin:
-	$(CC) $(FILES) $(shell pkg-config lua --cflags) -c -O2 -fPIC   -o $(OUT).o
+	$(CC) $(FILES) $(shell pkg-config lua --cflags) -c -O2 -fPIC $(WNO)
 	$(CC) $(OUT).o -bundle -undefined dynamic_lookup -all_load     -o $(OUT).so
 
 # BuildWindows: TODO
 
 clean:
 	rm -f $(OUT).o $(OUT).so $(OUT).dll
+
+

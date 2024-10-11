@@ -1,0 +1,4 @@
+smol: compression algorithms and data structures
+
+The smol library supports native (C) implementations of ultra-tiny compression
+and delta algorithms, and the data structures to interface them with Lua.
