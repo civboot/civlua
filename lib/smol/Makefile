@@ -31,6 +31,6 @@ BuildDarwin:
 # BuildWindows: TODO
 
 clean:
-	rm -f $(OUT).o $(OUT).so $(OUT).dll
+	rm -f $(OUT).o $(OUT).so $(OUT).dll smol_test
 
 

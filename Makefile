@@ -16,13 +16,17 @@ demo: build
 	$(PRETEST) $(LUA) lib/vt100/demo.lua
 	# $(PRETEST) $(LUA) cmd/ele/demo_term.lua
 
-build: fd civix
+build: fd civix smol
 
 fd: lib/fd/fd.c
 	cd lib/fd && make build LUA_VERSION=$(LUA_VERSION)
 
 civix: lib/civix/civix/lib.c
 	cd lib/civix && make build LUA_VERSION=$(LUA_VERSION)
+
+smol: lib/smol/smol.c
+	cd lib/smol && make test  LUA_VERSION=$(LUA_VERSION)
+	cd lib/smol && make build LUA_VERSION=$(LUA_VERSION)
 
 ele: build
 	$(LUA) cmd/ele/ele.lua

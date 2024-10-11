@@ -24,6 +24,7 @@ pkgs = {
   'lib/vt100',
 
   -- data storage / vcs
+  'lib/smol',
   'lib/patience',
   'lib/tv',
   'lib/vcds',
