@@ -10,26 +10,23 @@ local fmt = require'fmt'
 local fd  = require'fd'
 local ac  = require'asciicolor'
 local acs = require'asciicolor.style'
-local AcWriter = require'vt100.AcWriter'
 local shim = require'shim'
 
-local SETUP = false
-M.setupFmt = function()
-  if SETUP then return end
-  SETUP = true
-  local to, style = io.stderr, false
-  if fd.isatty(io.stderr) then
-    style = shim.getEnvBool'COLOR'
-    if style or (style == nil) then
-      local styler = acs.Styler {
-        acwriter = AcWriter {f=io.stderr},
-        style = acs.loadStyle(),
-      }
-      to, style = styler, true
-    end
+--- create a Fmt with sensible defaults for scripts
+--- Typically [$t.to] is unset (default=stderr) or set to stdout.
+M.Fmt = function(t)
+  t.to = t.to or io.stderr
+  if t.style == nil then t.style = shim.getEnvBool'COLOR' end
+  if t.style or (t.style==nil) and fd.isatty(t.to) then
+    t.style, t.to = true, acs.Styler {
+      acwriter = require'vt100.AcWriter'{f=t.to},
+      style = acs.loadStyle(),
+    }
   end
-  io.fmt = fmt.Fmt{to=to, style=style}
+  return fmt.Fmt(t)
 end
+
+M.setupFmt = function(to) io.fmt = M.Fmt{to=to} end
 
 M.main = function(arg) --> int: return code
   M.setupFmt()

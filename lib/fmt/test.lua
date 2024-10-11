@@ -63,6 +63,12 @@ T.binary = function()
     return table.concat(f)
   end
 
-  T.eq('h  e  l  l  o  ', fmt(bin.format, 'hello'))
-  T.eq('h  00 l  fa o  ', fmt(bin.format, 'h\0l\xFAo'))
+  T.eq("68 65 6c 6c 6f ", fmt(bin.format, 'hello'))
+  T.eq("68 00 6c fa 6f ", fmt(bin.format, 'h\0l\xFAo'))
+  T.eq(
+"68 69 20 74  | hi t\
+68 65 72 65  | here\
+20 62 6f 62  |  bob\
+21           | !"
+  , fmt(bin.columns, 'hi there bob!', 4))
 end

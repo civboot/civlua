@@ -18,13 +18,8 @@ local FMT = '%.2x '
 M.Args = mty'Args' {
   'width [int]: column width in bytes',  width=16,
   'fmt [string]: format string for hex', fmt=FMT,
+  'stdout [bool]: use stdout instead of stderr',
 }
-
-local read = function(path)
-  local f = assert(io.open(path))
-  local s = assert(f:read'a'); f:close()
-  return s
-end
 
 M.format = function(f, str, fmt)
   fmt = fmt or FMT
@@ -38,20 +33,33 @@ M.format = function(f, str, fmt)
 end
 local format = M.format
 
-M.columns = function(f, str, fmt, width)
+M.ascii = function(f, str)
+  for c=1,#str do
+    local b = byte(str,c,c)
+    if 32 <= b and b <= 127 then f:write(str:sub(c,c))
+    else f:styled('empty', ' ') end
+  end
+end
+local ascii = M.ascii
+
+M.columns = function(f, str, width, fmt)
   fmt, width = fmt or FMT, width or 16
-  local i, len = 1, #str
-  while i <= len do
-    local s = str:sub(i, i+width)
-    if i ~= 1 then f:write'\n' end
-    format(f, s, fmt)
-    f:styled('meta', ' | ');
-    for c=i,min(i+width-1, len) do
-      local b = byte(str,c,c)
-      if 32 <= b and b <= 127 then f:write(str:sub(c,c))
-      else f:styled('empty', ' ') end
-    end
+  local i, len, s = 1, #str
+  if len == 0 then return end
+  -- first line
+  s = str:sub(i, i+width-1)
+  format(f, s, fmt); f:styled('meta', ' | '); ascii(f, s)
+  i = i + width
+  while i <= len-width do -- middle lines
+    s = str:sub(i, i+width-1); f:write'\n'
+    format(f, s, fmt); f:styled('meta', ' | '); ascii(f, s)
     i = i + width
+  end
+  if i <= len then -- last line (with padding)
+    if len > width then f:write'\n' end
+    s = str:sub(i)
+    format(f, s, fmt); f:write(srep(' ', #sfmt(fmt, 1) * (width - #s)))
+    f:styled('meta', ' | '); ascii(f, s)
   end
 end
 local columns = M.columns
@@ -60,12 +68,13 @@ M.main = function(args)
   args = M.Args(shim.parseStr(args))
   local raw = shim.popRaw(args)
   local f, fmt, width = io.fmt, args.fmt, args.width
+  if args.stdout then f = require'civ'.Fmt{to=io.stdout} end
+
+  local read = require'ds'.readPath
   for _, path in ipairs(args) do
-    columns(f, (path=='-') and io.stdin:read() or read(path), fmt, width)
+    columns(f, (path=='-') and io.stdin:read'a' or read(path), width, fmt)
   end
-  if raw then
-    for _, r in ipairs(raw) do columns(f, r, fmt, width) end
-  end
+  if raw then for _, r in ipairs(raw) do columns(f, r, fmt, width) end end
   f:write'\n'
 end
 local main = M.main
