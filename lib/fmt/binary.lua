@@ -17,7 +17,7 @@ local min = math.min
 local FMT = '%.2x '
 
 --- Command: [${'path.bin', width=16, '--', 'literal binary'}]
---- Use [$-] to also format stdin
+--- Use [$-] to format stdin
 M.Args = mty'Args' {
   'width [int]: column width in bytes',  width=16,
   'fmt [string]: format string for hex', fmt=FMT,
