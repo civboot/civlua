@@ -172,7 +172,7 @@ static int l_rdecode(LS* L) {
     switch (x) {
       case ADD:
         if((ei + xlen > elen) || (ci + xlen > clen)) goto error;
-        memcpy(&enc[ei], &ch[ci], xlen); ei += xlen;
+        memcpy(&ch[ci], &enc[ei], xlen); ei += xlen;
         break;
       case RUN:
         if((ei >= elen) || (ci + xlen > clen)) goto error;
