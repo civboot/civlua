@@ -57,18 +57,18 @@ end
 
 T.binary = function()
   local bin = require'fmt.binary'
-  local fmt = function(fn, ...)
-    local f = M.Fmt{}
-    fn(f, ...)
-    return table.concat(f)
+  local format = function(...)
+    local f = M.Fmt{}; bin.format(f, ...); return table.concat(f)
   end
 
-  T.eq("68 65 6c 6c 6f ", fmt(bin.format, 'hello'))
-  T.eq("68 00 6c fa 6f ", fmt(bin.format, 'h\0l\xFAo'))
+  T.eq("68 65 6c 6c 6f ", format('hello'))
+  T.eq("68 00 6c fa 6f ", format('h\0l\xFAo'))
   T.eq(
-"68 69 20 74  | hi t\
-68 65 72 65  | here\
-20 62 6f 62  |  bob\
-21           | !"
-  , fmt(bin.columns, 'hi there bob!', 4))
+"     0 68 69 20 74  | hi t\
+     4 68 65 72 65  | here\
+     8 20 62 6f 62  |  bob\
+    12 21           | !"
+  , bin('hi there bob!', 4))
+  T.eq(
+"     0 68 69        | hi", bin('hi', 4))
 end
