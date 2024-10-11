@@ -28,7 +28,7 @@ typedef lua_State LS;
 
 // decode value using initial value v from
 // initial v(alue), b(uffer), s(hift), i(ndex), len
-static inline int decv(int v, char* b, size_t len, int s, size_t* i) {
+static inline int decv(char* b, size_t len, size_t* i, int v, int s) {
   while(0x80 & b[*i]) {
     v = ((0x7F & b[*i]) << s) | v;
     s += 7; *i += 1; if(*i > len) return -1;
@@ -53,13 +53,13 @@ static void test_encode_v() {
   printf("test_decv\n");
   size_t i = 0;
   char b[12] = "\x85\x0F\x33";
-  int v = decv(0, b,3, 0, &i);
+  int v = decv(b,3,&i, 0, 0);
   assert(i == 2);
   assert(v == ((0x0F << 7) | (0x5)));
 
  #define T_ROUND(V, IEXPECT) \
   i = 0; assert(0   == encv(V, b,12,    &i)); assert(i==IEXPECT); \
-  i = 0; assert((V) == decv(0, b,12, 0, &i)); assert(i==IEXPECT);
+  i = 0; assert((V) == decv(b,12,&i, 0, 0)); assert(i==IEXPECT);
   T_ROUND(0x00,  1);
   T_ROUND(0x01,  1); T_ROUND(0x37,  1); T_ROUND(0x07F,  1);
   T_ROUND(0x080, 2); T_ROUND(0x100, 2); T_ROUND(0x3FFF, 2);
@@ -77,7 +77,7 @@ static inline int decCmd(char* buf, size_t blen, size_t* i, int* len) {
   if(*i >= blen) return -1;
   int b = buf[*i]; *i += 1;
   *len = 0x1F & b; int cmd = 0xC0 & b;
-  if(0x20 & b) *len = decv(*len, buf,blen, 5, i);
+  if(0x20 & b) *len = decv(buf,blen,i, *len, 5);
   printf("!! decCmd 0x%X b=0x%x len=0x%x i=%i\n", cmd, b, *len, *i);
   if(*len < 0) return -1;
   return cmd;
@@ -134,37 +134,77 @@ static void test_encode_cmds() {
   T_ROUND(RUN, 3,    2, 1, 'z'); assert(b[i] == 'z');
   T_ROUND(RUN, 0x50, 3, 2, 'y'); assert(b[i] == 'y');
   T_ROUND(ADD, 4,    5, 1, "test"); assert(0 == memcmp(b+i, "test", 4));
-  T_ROUND(CPY, 7,    2, 1, 5); assert(5 == decv(0, b,32, 0, &i));
-  T_ROUND(CPY, 7,    4, 1, 0x4000); assert(0x4000 == decv(0, b,32, 0, &i));
+  T_ROUND(CPY, 7,    2, 1, 5); assert(5 == decv(b,32,&i, 0, 0));
+  T_ROUND(CPY, 7,    4, 1, 0x4000); assert(0x4000 == decv(b,32,&i, 0, 0));
 #undef T_ROUND
 }
 #endif
 
-
-static const struct luaL_Reg smol_lib[] = {
-  // {"strerrno", l_strerrno},
-  {NULL, NULL}, // sentinel
-};
-
-// (base, encoded) -> change
-static int l_decode(LS* L) {
-  size_t blen; const char* base = luaL_checklstring(L, 1, &blen);
-  size_t elen; const char* enc  = luaL_checklstring(L, 2, &elen);
-
-  return 1;
-}
-
 #ifdef TEST
 int main() {
-  printf("Running tests\n");
+  printf("# TEST smol.c\n");
   test_encode_v();
   test_encode_cmds();
   return 0;
 }
 #endif
 
-int luaopen_smol_lib(LS *L) {
-  luaL_newlib(L, smol_lib);
+//************************
+//* Encode / Decode RDelta
+
+// apply an rdelta
+// (rdelta, base?) -> change
+static int l_rdecode(LS* L) {
+  size_t elen; char* enc  = (char*)luaL_checklstring(L, 1, &elen);
+  size_t blen; char* base = (char*)luaL_optlstring(L, 2, "", &blen);
+  size_t ei = 0; // enc index
+  ASSERT(elen > 1, "invalid encoded length");
+  // decode the length of the final output
+  int clen = decv(enc,elen,&ei, 0, 0); ASSERT(clen >= 0, "clen");
+  if(clen == 0) { lua_pushstring(L, ""); return 1; }
+  clen = blen + clen;
+  char* ch = malloc(clen); ASSERT(ch, "OOM");
+  memcpy(ch, base, blen); size_t ci = blen;
+  char* error = "OOB error";
+  while(ei < elen) {
+    // x == command
+    int xlen; int x = decCmd(enc,elen,&ei, &xlen);
+    switch (x) {
+      case ADD:
+        if((ei + xlen > elen) || (ci + xlen > clen)) goto error;
+        memcpy(&enc[ei], &ch[ci], xlen); ei += xlen;
+        break;
+      case RUN:
+        if((ei >= elen) || (ci + xlen > clen)) goto error;
+        memset(&ch[ci], enc[ei], xlen);  ei += 1;
+        break;
+      case CPY:
+        int raddr = decv(enc,elen,&ei, 0,0); if(raddr < 0); goto error;
+        raddr = ci - 1 - raddr;
+        if((raddr < 0)) { error = "negative CPY"; goto error; }
+        memcpy(&ch[ci], &ch[raddr], xlen);
+        break;
+      case -1: goto error;
+      default: error = "unreachable"; goto error;
+    }
+    ci += xlen;
+  }
+  if(ci != clen) { error = "incorrect change length"; goto error; }
+  lua_pushlstring(L, &ch[blen], clen - blen);
+  free(ch);
+  return 1;
+error:
+  free(ch);
+  luaL_error(L, error); return 0;
+}
+
+static const struct luaL_Reg smol_sys[] = {
+  {"rdecode", l_rdecode},
+  {NULL, NULL}, // sentinel
+};
+
+int luaopen_smol_sys(LS *L) {
+  luaL_newlib(L, smol_sys);
 
   return 1;
 }
