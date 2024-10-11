@@ -17,6 +17,10 @@ WNO = -Wno-incompatible-function-pointer-types
 $(OUT).so: $(FILES)
 	make Build$(UNAME)
 
+test: $(FILES)
+	$(CC) $(FILES) -DTEST -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -o smol_test
+	./smol_test
+
 BuildLinux: $(FILES)
 	$(CC) $(FILES) -fPIC -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -shared -o $(OUT).so
 

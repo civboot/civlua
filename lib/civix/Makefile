@@ -14,7 +14,7 @@ build:  $(UNAME)
 Linux:  $(OUT).so
 Darwin: $(OUT).so
 # Windows: $(OUT).dll
-	
+
 $(OUT).so: $(FILES)
 	make Build$(UNAME)
 
