@@ -54,3 +54,15 @@ T.record = function()
     b1=5, b2=7, a=A{a1='hi', a2=4},
   }))
 end
+
+T.binary = function()
+  local bin = require'fmt.binary'
+  local fmt = function(fn, ...)
+    local f = M.Fmt{}
+    fn(f, ...)
+    return table.concat(f)
+  end
+
+  T.eq('h  e  l  l  o  ', fmt(bin.format, 'hello'))
+  T.eq('h  00 l  fa o  ', fmt(bin.format, 'h\0l\xFAo'))
+end

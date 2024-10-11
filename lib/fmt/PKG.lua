@@ -10,5 +10,6 @@ deps = {
 }
 srcs = {
   'fmt.lua',
+  ['fmt.binary'] = 'binary.lua',
 }
 

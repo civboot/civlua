@@ -28,6 +28,7 @@ M.dark = {
   error = 'Wr',
   base   = 'F', basel   = 'Wf', -- base(line),   aka removed text
   change = 'G', changel = 'Wg', -- change(line), aka added text
+  empty  = 'zd',
 
   -- Document Styles
   code = 'hb',
