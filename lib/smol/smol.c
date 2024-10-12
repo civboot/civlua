@@ -154,7 +154,7 @@ int main() {
 
 // apply an rdelta
 // (rdelta, base?) -> change
-static int l_rdecode(LS* L) {
+static int l_rpatch(LS* L) {
   size_t elen; uint8_t* enc  = (uint8_t*)luaL_checklstring(L, 1, &elen);
   size_t blen; uint8_t* base = (uint8_t*)luaL_optlstring(L, 2, "", &blen);
   size_t ei = 0; // enc index
@@ -199,8 +199,81 @@ error:
   luaL_error(L, error); return 0;
 }
 
+// https://en.wikipedia.org/wiki/Adler-32
+#define MOD_ADLER 65521
+
+// Single loop of addler where D is the data
+// and a and b are the accumulating values
+#define ADDLER32_1x(I, A, B, D) \
+  A = ((A) + (D)[I])     % MOD_ADLER; \
+  B = ((B) + (A))        % MOD_ADLER
+
+// three loops of addler
+#define ADDLER32_3x(FP, I, A, B, D) \
+  ADDLER32_1x(I,   A, B, D); \
+  ADDLER32_1x(I+1, A, B, D); \
+  ADDLER32_1x(I+2, A, B, D); \
+  FP = ((B) << 16) | (A)
+
+// get an rdelta
+// (change, base?) -> delta
+static int l_rdelta(LS* L) {
+  char* err = NULL;
+  size_t clen; uint8_t* change = (uint8_t*)luaL_checklstring(L, 1, &clen);
+  if(clen == 0) { lua_pushlstring(L, "\0", 1); return 1; }
+  size_t blen; uint8_t* base = (uint8_t*)luaL_optlstring(L, 2, "", &blen);
+  printf("!! clen=%i change=%s\n", clen, change);
+  printf("!!   blen=%i base=%s\n", blen, base);
+
+  size_t dlen = clen + blen;
+  uint8_t* dec = malloc(dlen); ASSERT(dec, "OOM");
+  memcpy(dec, base, blen); memcpy(&dec[blen], change, clen);
+
+  // we fail if the encoded length == change length
+  #define elen clen
+  uint8_t* enc = malloc(elen); ASSERT(enc, "OOM");
+
+  // encode final change len
+  size_t ei = 0;
+  if(encv(clen, enc,elen,&ei)) goto error; // -> nil
+
+  // dc=start of change window we are looking at compressing
+  size_t dc = blen; // TODO: compute initial windows
+
+  // ai=add index in dec. ADD is the "fallback", we build up the bytes we want
+  // to add and do it in one go immediately before other ops.
+  size_t ai = dc;
+  #define ENC_ADD() if(ai < dc) { \
+    if(encADD(enc,elen,&ei, dc-ai, &dec[ai])) \
+      goto error; /* -> nil */ \
+  }
+
+  uint8_t rc; size_t rl; // run character and length
+  #define ENC_RUN() do { \
+    encRUN(enc,elen,&ei, rl, rc); dc += rl; ai = dc; \
+  } while(0)
+
+  while(dc < dlen) {
+    // compute run length
+    rc = dec[rl]; rl = dc + 1; while(rc == dec[rl]) { rl++; }
+    rl = rl - dc;
+    if (rl > 3) { ENC_ADD(); ENC_RUN(); }
+  }
+  ENC_ADD();
+
+  lua_pushlstring(L, enc, elen);
+  free(dec); free(enc);
+  return 1;
+  free(dec); free(enc);
+  return 0;
+error:
+  free(dec); free(enc);
+  ASSERT(!err, err);
+  return 0;
+}
+
 static const struct luaL_Reg smol_sys[] = {
-  {"rdecode", l_rdecode},
+  {"rpatch", l_rpatch}, {"rdelta", l_rdelta},
   {NULL, NULL}, // sentinel
 };
 
