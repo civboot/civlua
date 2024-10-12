@@ -19,22 +19,6 @@ typedef lua_State LS;
 #define RUN  0x40
 #define CPY  0x80
 
-// fingerprint struct
-typedef struct _FP {
-  size_t    len;
-  uint32_t* t;
-} FP;
-
-#define FP_NEW(NAME, LEN) \
-  FP NAME = (FP) { \
-    .len = LEN, .t = malloc((LEN) * sizeof(uint32_t)) \
-  }; \
-  ASSERT((NAME).t, "OOM") \
-  memset((NAME).t, LEN, 0xFF);
-#define FP_FREE(NAME) free((NAME).t)
-
-// https://en.wikipedia.org/wiki/Adler-32
-#define MOD_ADLER 65521
 
 //************************
 //* Encode / Decode value
@@ -63,7 +47,7 @@ static inline int encv(int v, uint8_t* b, size_t len, size_t* i) {
 
 #ifdef TEST
 static void test_encode_v() {
-  printf("test_decv\n");
+  printf("# test_decv (c)\n");
   size_t i = 0;
   uint8_t b[12] = "\x85\x0F\x33";
   int v = decv(b,3,&i, 0, 0);
@@ -81,6 +65,7 @@ static void test_encode_v() {
 #undef T_ROUND
 }
 #endif
+
 
 //************************
 //* Encode / Decode Commands
@@ -134,7 +119,7 @@ static inline int encCPY(uint8_t* buf, size_t blen, size_t* i, int cpy, int radd
 
 #ifdef TEST
 static void test_encode_cmds() {
-  printf("test_encode_cmds\n");
+  printf("# test_encode_cmds (c)\n");
   size_t i = 0; int len = 0;
   uint8_t b[32] = "\x43z";
   assert(RUN == decCmd(b,32,&i, &len)); assert(3 == len); assert(1 == i);
@@ -153,17 +138,111 @@ static void test_encode_cmds() {
 }
 #endif
 
+//************************
+//* Addler32 Fingerprint Table
+
+// addler32 struct
+// https://en.wikipedia.org/wiki/Adler-32
+#define MOD_ADLER 65521
+typedef struct _A32 {
+  uint8_t  *p, *end;
+  uint32_t  a,  b;
+} A32;
+// start the A32 algorithm. This enables calculating multiple length
+// fingerprints in one pass.
+static inline void A32_start(A32* a, uint8_t* p, uint8_t* end) {
+  a->p = p; a->end = end; a->a = 1; a->b = 0;
+  printf("!! A32 start done\n");
+}
+
+// perform the loops and return the fingerprint. Updates p, a and b
+static inline int A32_fp(A32* a, int loops) {
+  for(; loops > 0; loops--) {
+    printf("!! A32_fp loop a=%x b=%x p=%p end=%p\n", a->a, a->b, a->p, a->end);
+    if(a->p >= a->end) break;
+    a->a = (a->a + *a->p) % MOD_ADLER;
+    a->b = (a->a +  a->b) % MOD_ADLER;
+    a->p += 1;
+  }
+  return (a->b << 16) | a->a;
+}
+
+// fingerprint struct
+typedef struct _FP {
+  uint32_t* t;
+  size_t    len;
+} FP;
+
+#define FP_NEW(NAME, LEN) \
+  FP NAME = (FP) { \
+    .len = LEN, .t = malloc((LEN) * sizeof(uint32_t)) \
+  }; ASSERT((NAME).t, "OOM");
+
+static inline void FP_init(FP* f) {
+  for (size_t i=0; i < f->len; i++) f->t[i] = UINT32_MAX;
+}
+
+#define FP_FREE(NAME) free((NAME).t)
+// calculate the fingerprint and set to i.
+// Return the value that was previously there.
+static inline uint32_t FP_set(FP* f, A32* a, uint32_t i) {
+  printf("!! FP_set i=%i\n", i);
+  uint32_t fp = A32_fp(a, 3);
+  printf("!!   FP_set fp=%u (0x%x)\n", fp);
+  uint32_t o = f->t[fp % f->len];
+  printf("!!   FP_set o=%u (0x%x)\n", o, o);
+               f->t[fp % f->len] = i;
+  return o;
+}
+
+#ifdef TEST
+void test_fp() {
+  printf("# test_fp (c)\n");
+  uint8_t* d = "0123456701234567";
+
+  A32 a;
+
+  #define T_LEN 7
+  uint32_t t[T_LEN];
+  FP f = {.t = t, .len = T_LEN};
+  FP_init(&f);
+  assert(UINT32_MAX == f.t[0]);
+  assert(UINT32_MAX == f.t[T_LEN-1]);
+
+  // insert and get the result (r) of one loop at I
+  uint32_t r;
+  #define testI(I, EXPECT) \
+    printf("- fp.testI %u 0x%x\n", I, EXPECT); \
+    A32_start(&a, d+(I), d+16); \
+    r = FP_set(&f, &a, I); \
+    printf("!! got r=%u (0x%x)\n", r, r); \
+    assert(EXPECT == r);
+
+  testI(0, UINT32_MAX); // index not found
+  testI(0, 0);          // index found
+
+  testI(1, UINT32_MAX);
+  testI(1, 1); // 1 was inserted
+  testI(0, 0); // 0 still there
+
+  testI(8, 0); testI(8, 8); // strs at  d[0] and d[8] are same
+  testI(9, 1); testI(9, 9); // same for d[1] and d[9]
+  #undef testI
+}
+#endif
+
 #ifdef TEST
 int main() {
   printf("# TEST smol.c\n");
   test_encode_v();
   test_encode_cmds();
+  test_fp();
   return 0;
 }
 #endif
 
 //************************
-//* Encode / Decode RDelta
+//* Patch (decode) RDelta
 
 // apply an rdelta
 // (rdelta, base?) -> change
@@ -214,6 +293,10 @@ error:
   luaL_error(L, error); return 0;
 }
 
+//************************
+//* Create (encode) rdelta
+
+
 
 // create an rdelta
 // (change, base?) -> delta
@@ -229,7 +312,7 @@ static int l_rdelta(LS* L) {
   uint8_t* dec = malloc(dlen); ASSERT(dec, "OOM");
 
   // we fail if the encoded length == change length
-  #define elen clen
+  size_t elen = dlen * 2;
   uint8_t* enc = malloc(elen); ASSERT(enc, "OOM");
 
   // run character and length
@@ -237,7 +320,12 @@ static int l_rdelta(LS* L) {
 
   // fingerprint windows
   memcpy(dec, base, blen); memcpy(&dec[blen], change, clen);
-  FP_NEW(w3, 65497);
+#define W3_LEN 65497
+  FP w3 = (FP) {
+    .len = W3_LEN, .t = malloc((W3_LEN) * sizeof(uint32_t)),
+  };
+  ASSERT(w3.t, "OOM");
+  memset(w3.t, 0xFF, w3.len);
   size_t wi = 0; // window index: what has been included in window
   int w3i;       // found index (maybe)
   uint32_t fp, a, b; // addler32 variables
@@ -289,13 +377,15 @@ static int l_rdelta(LS* L) {
     for(; wi < dc; wi++) { // compute fingerprints we've missed
       ADDLER_INIT();
       ADDLER32_3x(wi);
-      w3.t[w3.len % fp] = wi;
+      printf("!!   wi=0x%x fp=0x%x", wi, fp);
+      w3.t[fp % w3.len] = wi;
     }
 
     // get w3i/w6i and clobber index (for future lookup)
     ADDLER_INIT();
     ADDLER32_3x(dc);
-    w3i = w3.t[w3.len % fp]; w3.t[w3.len % fp] = dc;
+    w3i = w3.t[fp % w3.len]; w3.t[fp % w3.len] = dc;
+    printf("!!   fp=0x%x (%i) got w3i=0x%x (and set 0x%x)", fp, w3i, dc);
     wi = dc + 1;
 
     ws = -1; we = -1;
