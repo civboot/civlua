@@ -23,7 +23,7 @@ typedef lua_State LS;
 //************************
 //* Encode / Decode value
 
-static inline int decvp(uint8_t** b, uint8_t* be, int v, int s) {
+static inline int decv(uint8_t** b, uint8_t* be, int v, int s) {
   while((*b < be) && (0x80 & **b)) {
     v = ((0x7F & **b) << s) | v;
     s += 7; *b += 1;
@@ -33,7 +33,7 @@ static inline int decvp(uint8_t** b, uint8_t* be, int v, int s) {
   return v;
 }
 
-static inline int encvp(uint8_t** b, uint8_t* be, int v) {
+static inline int encv(uint8_t** b, uint8_t* be, int v) {
   printf("!! enc v=0x%x\n", v);
   while((*b < be) && (v > 0x7F)) {
     **b = 0x80 | v; v = v >> 7; *b += 1;
@@ -49,14 +49,14 @@ static void test_encode_v() {
   size_t i = 0;
   uint8_t b[12] = "\x85\x0F\x33";
   uint8_t *bp = b, *be = b + 12;
-  int v = decvp(&bp,be, 0,0);
-  printf("!! decvp v=0x%x bp-b=%i\n", v, bp-b);
+  int v = decv(&bp,be, 0,0);
+  printf("!! decv v=0x%x bp-b=%i\n", v, bp-b);
   assert((bp - b) == 2);
   assert(v == ((0x0F << 7) | (0x5)));
 
  #define T_ROUND(V, IEXPECT) \
-  bp = b; assert(0   == encvp(&bp, be, V));  assert(IEXPECT == bp-b); \
-  bp = b; assert((V) == decvp(&bp,be, 0,0)); assert(bp-b==IEXPECT);
+  bp = b; assert(0   == encv(&bp, be, V));  assert(IEXPECT == bp-b); \
+  bp = b; assert((V) == decv(&bp,be, 0,0)); assert(bp-b==IEXPECT);
   T_ROUND(0x00,  1);
   T_ROUND(0x01,  1); T_ROUND(0x37,  1); T_ROUND(0x07F,  1);
   T_ROUND(0x080, 2); T_ROUND(0x100, 2); T_ROUND(0x3FFF, 2);
@@ -70,47 +70,47 @@ static void test_encode_v() {
 //************************
 //* Encode / Decode Commands
 
-static inline int deccmdp(uint8_t** b, uint8_t* be, int* len) {
+static inline int deccmd(uint8_t** b, uint8_t* be, int* len) {
   if(*b >= be) return -1;
   uint8_t ch = **b; *b += 1;
   *len = 0x1F & ch; int cmd = 0xC0 & ch;
-  if(0x20 & ch) *len = decvp(b,be, *len,5);
+  if(0x20 & ch) *len = decv(b,be, *len,5);
   printf("!! decCmd 0x%X ch=0x%x len=0x%x\n", cmd, ch, *len);
   if(*len < 0) return -1;
   return cmd;
 }
-static inline int enccmdp(uint8_t** b, uint8_t* be, int cmd, int clen) {
+static inline int enccmd(uint8_t** b, uint8_t* be, int cmd, int clen) {
   if(*b >= be) return -1;
   printf("!! encCmd 0x%x len=0x%x\n", cmd, clen);
   if (clen > 0x1F) {
     **b = cmd | 0x20 | (0x1F & clen); *b += 1;
-    return encvp(b,be, clen >> 5);
+    return encv(b,be, clen >> 5);
   }
   **b = cmd | clen; *b += 1;
   return 0;
 }
 
 
-static inline int pencRUN(uint8_t** b,uint8_t* be, int r, uint8_t ch) {
-  if(enccmdp(b,be, RUN,r)) return -1;
+static inline int encRUN(uint8_t** b,uint8_t* be, int r, uint8_t ch) {
+  if(enccmd(b,be, RUN,r)) return -1;
   if(*b >= be)           return -1;
   **b = ch; *b += 1;
   printf("!! encRUN r=0x%x\n", r);
   return 0;
 }
 
-static inline int pencADD(uint8_t** b,uint8_t* be, int a, uint8_t* str) {
+static inline int encADD(uint8_t** b,uint8_t* be, int a, uint8_t* str) {
   printf("!! encADD a=0x%x\n", a);
-  if(enccmdp(b,be, ADD,a)) return -1;
+  if(enccmd(b,be, ADD,a)) return -1;
   if(*b + a >= be)         return -1;
   memcpy(*b, str, a); *b += a;
   return 0;
 }
 
-static inline int pencCPY(uint8_t** b,uint8_t* be, int cpy, int raddr) {
+static inline int encCPY(uint8_t** b,uint8_t* be, int cpy, int raddr) {
   printf("!! encCPY cpy=0x%x raddr=0x%x\n", cpy, raddr);
-  if(enccmdp(b,be, CPY,cpy)) return -1;
-  return encvp(b,be, raddr);
+  if(enccmd(b,be, CPY,cpy)) return -1;
+  return encv(b,be, raddr);
 }
 
 #ifdef TEST
@@ -120,20 +120,20 @@ static void test_encode_cmds() {
   uint8_t b[32] = "\x43z";
   uint8_t *bp=b, *be=b+32;
 
-  assert(RUN == deccmdp(&bp,be, &len));
+  assert(RUN == deccmd(&bp,be, &len));
   assert(3 == len); assert(1 == bp-b);
 
 #define T_ROUND(CMD, LEN, EI, DI, ...) \
-  bp=b; assert(0 == penc##CMD(&bp,be, LEN, __VA_ARGS__)); \
+  bp=b; assert(0 == enc##CMD(&bp,be, LEN, __VA_ARGS__)); \
     printf("!! i=%i\n", bp-b); assert((bp-b)==(EI)); \
-  bp=b; len=0; assert(CMD == deccmdp(&bp,be, &len)); assert((DI)==(bp-b)); \
+  bp=b; len=0; assert(CMD == deccmd(&bp,be, &len)); assert((DI)==(bp-b)); \
     assert(LEN == len);
 
   T_ROUND(RUN, 3,    2, 1, 'z'); assert(*bp == 'z');
   T_ROUND(RUN, 0x50, 3, 2, 'y'); assert(*bp == 'y');
   T_ROUND(ADD, 4,    5, 1, "test"); assert(0 == memcmp(bp, "test", 4));
-  T_ROUND(CPY, 7,    2, 1, 5); assert(5 == decvp(&bp,be, 0,0));
-  T_ROUND(CPY, 7,    4, 1, 0x4000); assert(0x4000 == decvp(&bp,be, 0,0));
+  T_ROUND(CPY, 7,    2, 1, 5); assert(5 == decv(&bp,be, 0,0));
+  T_ROUND(CPY, 7,    4, 1, 0x4000); assert(0x4000 == decv(&bp,be, 0,0));
 #undef T_ROUND
 }
 #endif
@@ -256,7 +256,7 @@ static int l_rpatch(LS* L) {
   uint8_t *ep = enc, *ee = enc+elen;
 
   // decode the length of the final output
-  int clen = decvp(&ep,ee, 0, 0); ASSERT(clen >= 0, "clen");
+  int clen = decv(&ep,ee, 0, 0); ASSERT(clen >= 0, "clen");
   if(clen == 0) { lua_pushstring(L, ""); return 1; }
 
   uint8_t* dec = malloc(blen + clen); ASSERT(dec, "OOM");
@@ -266,7 +266,7 @@ static int l_rpatch(LS* L) {
   uint8_t* error = "OOB error";
   while(ep < ee) {
     // x == command
-    int xlen; int x = deccmdp(&ep,ee, &xlen);
+    int xlen; int x = deccmd(&ep,ee, &xlen);
     switch (x) {
       case ADD:
         if((ep + xlen > ee) || (dp + xlen > de)) goto error;
@@ -277,7 +277,7 @@ static int l_rpatch(LS* L) {
         memset(dp, *ep, xlen); ep += 1;
         break;
       case CPY:
-        int raddr = decvp(&ep,ee, 0,0); if(raddr < 0) goto error;
+        int raddr = decv(&ep,ee, 0,0); if(raddr < 0) goto error;
         size_t di = dp - dec;
         raddr = di - raddr - xlen;
         if(raddr < 0)         { error = "negative CPY"; goto error; }
@@ -332,14 +332,14 @@ static int l_rdelta(LS* L) {
   uint8_t *ep=enc, *ee=enc+elen, *dp=dec, *de=dec+dlen;
 
   // encode final change len
-  if(encvp(&ep,ee, clen)) goto error; // -> nil
+  if(encv(&ep,ee, clen)) goto error; // -> nil
 
   // ap=add pointer in dec.
   // ADD is the "fallback", we build up the bytes we want
   // to add and do it in one go immediately before other ops.
   uint8_t* ap = dec+blen;
   #define ENC_ADD() if(ap < dp) { \
-    if(pencADD(&ep,ee, dp-ap, ap)) goto error; /* -> nil */ \
+    if(encADD(&ep,ee, dp-ap, ap)) goto error; /* -> nil */ \
   }
 
   while(dp < de) {
@@ -351,7 +351,7 @@ static int l_rdelta(LS* L) {
 
     #define ENC_RUN() do { \
       ENC_ADD();        \
-      pencRUN(&ep,ee, RUN_LEN(),rc); \
+      encRUN(&ep,ee, RUN_LEN(),rc); \
       dp += RUN_LEN(); ap = dp; \
     } while(0)
 
