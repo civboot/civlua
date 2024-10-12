@@ -23,25 +23,23 @@ typedef lua_State LS;
 //************************
 //* Encode / Decode value
 
-// decode value using initial value v from
-// initial v(alue), b(uffer), s(hift), i(ndex), len
-static inline int decv(uint8_t* b, size_t len, size_t* i, int v, int s) {
-  while(0x80 & b[*i]) {
-    v = ((0x7F & b[*i]) << s) | v;
-    s += 7; *i += 1; if(*i > len) return -1;
+static inline int decv(uint8_t** b, uint8_t* be, int v, int s) {
+  while((*b < be) && (0x80 & **b)) {
+    v = ((0x7F & **b) << s) | v;
+    s += 7; *b += 1;
   }
-  v = (b[*i] << s) | v;
-  *i += 1;
-  printf("!! dec v=0x%x i=%i\n", v, *i);
+  if(*b >= be) return -1;
+  v = (**b << s) | v; *b += 1;
   return v;
 }
-static inline int encv(int v, uint8_t* b, size_t len, size_t* i) {
+
+static inline int encv(uint8_t** b, uint8_t* be, int v) {
   printf("!! enc v=0x%x\n", v);
-  while(v > 0x7F) {
-    b[*i] = 0x80 | v; v = v >> 7; *i += 1;
+  while((*b < be) && (v > 0x7F)) {
+    **b = 0x80 | v; v = v >> 7; *b += 1;
   }
-  b[*i] = v; *i += 1;
-  printf("!!   i=%i\n", *i);
+  if(*b >= be) return -1;
+  **b = v; *b += 1;
   return 0;
 }
 
@@ -50,13 +48,15 @@ static void test_encode_v() {
   printf("# test_decv (c)\n");
   size_t i = 0;
   uint8_t b[12] = "\x85\x0F\x33";
-  int v = decv(b,3,&i, 0, 0);
-  assert(i == 2);
+  uint8_t *bp = b, *be = b + 12;
+  int v = decv(&bp,be, 0,0);
+  printf("!! decv v=0x%x bp-b=%i\n", v, bp-b);
+  assert((bp - b) == 2);
   assert(v == ((0x0F << 7) | (0x5)));
 
  #define T_ROUND(V, IEXPECT) \
-  i = 0; assert(0   == encv(V, b,12,    &i)); assert(i==IEXPECT); \
-  i = 0; assert((V) == decv(b,12,&i, 0, 0)); assert(i==IEXPECT);
+  bp = b; assert(0   == encv(&bp, be, V));  assert(IEXPECT == bp-b); \
+  bp = b; assert((V) == decv(&bp,be, 0,0)); assert(bp-b==IEXPECT);
   T_ROUND(0x00,  1);
   T_ROUND(0x01,  1); T_ROUND(0x37,  1); T_ROUND(0x07F,  1);
   T_ROUND(0x080, 2); T_ROUND(0x100, 2); T_ROUND(0x3FFF, 2);
@@ -70,70 +70,70 @@ static void test_encode_v() {
 //************************
 //* Encode / Decode Commands
 
-// decode the command and length. Return -1 on error.
-static inline int decCmd(uint8_t* buf, size_t blen, size_t* i, int* len) {
-  if(*i >= blen) return -1;
-  int b = buf[*i]; *i += 1;
-  *len = 0x1F & b; int cmd = 0xC0 & b;
-  if(0x20 & b) *len = decv(buf,blen,i, *len, 5);
-  printf("!! decCmd 0x%X b=0x%x len=0x%x i=%i\n", cmd, b, *len, *i);
+static inline int deccmd(uint8_t** b, uint8_t* be, int* len) {
+  if(*b >= be) return -1;
+  uint8_t ch = **b; *b += 1;
+  *len = 0x1F & ch; int cmd = 0xC0 & ch;
+  if(0x20 & ch) *len = decv(b,be, *len,5);
+  printf("!! decCmd 0x%X ch=0x%x len=0x%x\n", cmd, ch, *len);
   if(*len < 0) return -1;
   return cmd;
 }
-
-static inline int encCmd(uint8_t* buf, size_t blen, size_t* i, int cmd, int clen) {
-  if(*i >= blen) return -1;
-  printf("!! encCmd 0x%x len=0x%x i=%i\n", cmd, clen, *i);
+static inline int enccmd(uint8_t** b, uint8_t* be, int cmd, int clen) {
+  if(*b >= be) return -1;
+  printf("!! encCmd 0x%x len=0x%x\n", cmd, clen);
   if (clen > 0x1F) {
-    buf[*i] = cmd | 0x20 | (0x1F & clen); *i += 1;
-    return encv(clen >> 5, buf,blen, i);
-  } else {
-    buf[*i] = cmd | clen; *i += 1;
+    **b = cmd | 0x20 | (0x1F & clen); *b += 1;
+    return encv(b,be, clen >> 5);
   }
+  **b = cmd | clen; *b += 1;
   return 0;
 }
 
-static inline int encRUN(uint8_t* buf, size_t len, size_t* i, int r, uint8_t b) {
-  if(encCmd(buf,len,i, RUN,r)) return -1;
-  if(*i >= len)                return -1;
-  buf[*i] = b; *i += 1;
-  printf("!! encRUN r=0x%x i=%i\n", r, *i);
+
+static inline int encRUN(uint8_t** b,uint8_t* be, int r, uint8_t ch) {
+  if(enccmd(b,be, RUN,r)) return -1;
+  if(*b >= be)           return -1;
+  **b = ch; *b += 1;
+  printf("!! encRUN r=0x%x\n", r);
   return 0;
 }
 
-static inline int encADD(uint8_t* buf, size_t blen, size_t* i, int a, uint8_t* str) {
-  printf("!! encADD i=%i a=0x%x\n", *i, a);
-  if(encCmd(buf,blen,i, ADD,a)) return -1;
-  if(*i + a >= blen)            return -1;
-  memcpy(&buf[*i], str, a);
-  *i += a;
-  printf("!!   add done i=%i\n", *i);
+static inline int encADD(uint8_t** b,uint8_t* be, int a, uint8_t* str) {
+  printf("!! encADD a=0x%x\n", a);
+  if(enccmd(b,be, ADD,a)) return -1;
+  if(*b + a >= be)         return -1;
+  memcpy(*b, str, a); *b += a;
   return 0;
 }
 
-static inline int encCPY(uint8_t* buf, size_t blen, size_t* i, int cpy, int raddr) {
-  printf("!! encCPY i=%i cpy=0x%x raddr=0x%x\n", *i, cpy, raddr);
-  if(encCmd(buf,blen,i, CPY,cpy)) return -1;
-  return encv(raddr, buf,blen,i);
+static inline int encCPY(uint8_t** b,uint8_t* be, int cpy, int raddr) {
+  printf("!! encCPY cpy=0x%x raddr=0x%x\n", cpy, raddr);
+  if(enccmd(b,be, CPY,cpy)) return -1;
+  return encv(b,be, raddr);
 }
 
 #ifdef TEST
 static void test_encode_cmds() {
   printf("# test_encode_cmds (c)\n");
-  size_t i = 0; int len = 0;
+  int len;
   uint8_t b[32] = "\x43z";
-  assert(RUN == decCmd(b,32,&i, &len)); assert(3 == len); assert(1 == i);
+  uint8_t *bp=b, *be=b+32;
+
+  assert(RUN == deccmd(&bp,be, &len));
+  assert(3 == len); assert(1 == bp-b);
 
 #define T_ROUND(CMD, LEN, EI, DI, ...) \
-  i=0; assert(0 == enc##CMD(b,32,&i, LEN, __VA_ARGS__)); assert((EI)==i); \
-  i=0; len=0; assert(CMD == decCmd(b,32,&i, &len)); assert((DI)==i); \
+  bp=b; assert(0 == enc##CMD(&bp,be, LEN, __VA_ARGS__)); \
+    printf("!! i=%i\n", bp-b); assert((bp-b)==(EI)); \
+  bp=b; len=0; assert(CMD == deccmd(&bp,be, &len)); assert((DI)==(bp-b)); \
     assert(LEN == len);
 
-  T_ROUND(RUN, 3,    2, 1, 'z'); assert(b[i] == 'z');
-  T_ROUND(RUN, 0x50, 3, 2, 'y'); assert(b[i] == 'y');
-  T_ROUND(ADD, 4,    5, 1, "test"); assert(0 == memcmp(b+i, "test", 4));
-  T_ROUND(CPY, 7,    2, 1, 5); assert(5 == decv(b,32,&i, 0, 0));
-  T_ROUND(CPY, 7,    4, 1, 0x4000); assert(0x4000 == decv(b,32,&i, 0, 0));
+  T_ROUND(RUN, 3,    2, 1, 'z'); assert(*bp == 'z');
+  T_ROUND(RUN, 0x50, 3, 2, 'y'); assert(*bp == 'y');
+  T_ROUND(ADD, 4,    5, 1, "test"); assert(0 == memcmp(bp, "test", 4));
+  T_ROUND(CPY, 7,    2, 1, 5); assert(5 == decv(&bp,be, 0,0));
+  T_ROUND(CPY, 7,    4, 1, 0x4000); assert(0x4000 == decv(&bp,be, 0,0));
 #undef T_ROUND
 }
 #endif
@@ -251,45 +251,52 @@ static int l_rpatch(LS* L) {
   size_t blen; uint8_t* base = (uint8_t*)luaL_optlstring(L, 2, "", &blen);
   printf("!! rpatch elen=%i\n", elen);
   printf("!!        blen=%i base=%s\n", blen, base);
-  size_t ei = 0; // enc index
+
   ASSERT(elen >= 1, "#rdelta == 0");
+  uint8_t *ep = enc, *ee = enc+elen;
+
   // decode the length of the final output
-  int clen = decv(enc,elen,&ei, 0, 0); ASSERT(clen >= 0, "clen");
+  int clen = decv(&ep,ee, 0, 0); ASSERT(clen >= 0, "clen");
   if(clen == 0) { lua_pushstring(L, ""); return 1; }
-  clen = blen + clen;
-  uint8_t* ch = malloc(clen); ASSERT(ch, "OOM");
-  memcpy(ch, base, blen); size_t ci = blen;
+
+  uint8_t* dec = malloc(blen + clen); ASSERT(dec, "OOM");
+  memcpy(dec, base, blen);
+  uint8_t *dp = dec + blen, *de=dec + blen + clen;
+
   uint8_t* error = "OOB error";
-  while(ei < elen) {
+  while(ep < ee) {
     // x == command
-    int xlen; int x = decCmd(enc,elen,&ei, &xlen);
+    int xlen; int x = deccmd(&ep,ee, &xlen);
     switch (x) {
       case ADD:
-        if((ei + xlen > elen) || (ci + xlen > clen)) goto error;
-        memcpy(&ch[ci], &enc[ei], xlen); ei += xlen;
+        if((ep + xlen > ee) || (dp + xlen > de)) goto error;
+        memcpy(dp, ep, xlen); ep += xlen;
         break;
       case RUN:
-        if((ei >= elen) || (ci + xlen > clen)) goto error;
-        memset(&ch[ci], enc[ei], xlen);  ei += 1;
+        if((ep + 1 > ee) || (dp + xlen > de)) goto error;
+        memset(dp, *ep, xlen); ep += 1;
         break;
       case CPY:
-        int raddr = decv(enc,elen,&ei, 0,0); if(raddr < 0) goto error;
-        raddr = ci - raddr - xlen;
+        int raddr = decv(&ep,ee, 0,0); if(raddr < 0) goto error;
+        size_t di = dp - dec;
+        raddr = di - raddr - xlen;
         if(raddr < 0)         { error = "negative CPY"; goto error; }
-        if(raddr + xlen > ci) { error = "forward CPY";  goto error; }
-        memcpy(&ch[ci], &ch[raddr], xlen);
+        if(raddr + xlen > di) { error = "forward CPY";  goto error; }
+        memcpy(dp, &dec[raddr], xlen);
         break;
       case -1: goto error;
       default: error = "unreachable"; goto error;
     }
-    ci += xlen;
+    dp += xlen;
   }
-  if(ci != clen) { error = "incorrect change length"; goto error; }
-  lua_pushlstring(L, &ch[blen], clen - blen);
-  free(ch);
+  if((dp - dec - blen) != clen) {
+    error = "incorrect change length"; goto error;
+  }
+  lua_pushlstring(L, dec+blen, clen);
+  free(dec);
   return 1;
 error:
-  free(ch);
+  free(dec);
   luaL_error(L, error); return 0;
 }
 
@@ -308,150 +315,54 @@ static int l_rdelta(LS* L) {
   printf("!! rdelta clen=%i change=%s\n", clen, change);
   printf("!!        blen=%i base=%s\n", blen, base);
 
-  size_t dlen = clen + blen;
+  size_t dlen = blen + clen;
   uint8_t* dec = malloc(dlen); ASSERT(dec, "OOM");
 
   // we fail if the encoded length == change length
   size_t elen = dlen * 2;
   uint8_t* enc = malloc(elen); ASSERT(enc, "OOM");
 
-  // run character and length
-  uint8_t rc; size_t rl;
+  // run character and pointer
+  uint8_t rc; uint8_t* rp;
 
-  // fingerprint windows
   memcpy(dec, base, blen); memcpy(&dec[blen], change, clen);
-#define W3_LEN 65497
-  FP w3 = (FP) {
-    .len = W3_LEN, .t = malloc((W3_LEN) * sizeof(uint32_t)),
-  };
-  ASSERT(w3.t, "OOM");
-  memset(w3.t, 0xFF, w3.len);
-  size_t wi = 0; // window index: what has been included in window
-  int w3i;       // found index (maybe)
-  uint32_t fp, a, b; // addler32 variables
 
-  // https://en.wikipedia.org/wiki/Adler-32
-  #define MOD_ADLER 65521
-  #define ADDLER_INIT() a=1; b=0
-  #define ADDLER32_1x(I) /* single loop of addler32 */ \
-    a = (a + dec[I]) % MOD_ADLER; \
-    b = (a + b)      % MOD_ADLER;
-  #define ADDLER32_3x(I) /* 3x loop and set fp */ \
-    ADDLER32_1x(I); ADDLER32_1x(I+1); ADDLER32_1x(I+2); \
-    fp = (b << 16) | a
-
-  int ws, we, i;    // window start/end indexes (definitely)
-  // WIN_RANGE: macro to find the window range [ws:we)
-  // algorithm: walk we from start until non-match,
-  //       then walk ws from start-1 till no match.
-  #define WIN_RANGE(W, SZ) { \
-    we = W; i = 0;       \
-    /* find end */       \
-    while(dec[we+i] == dec[dc+i]) i++; \
-    if(i >= SZ) {        \
-      we += i - 1; /*found start+end*/ \
-      ws = W; i = -1;    \
-      /* try to find earlier start */   \
-      while(dec[we+i] == dec[dc+i]) i--; \
-      ws += i + 1;       \
-    } else we = -1;      \
-  }
+  // set up pointers. The ep and dp pointers are moved by
+  // the sub-algorithms as we encode.
+  uint8_t *ep=enc, *ee=enc+elen, *dp=dec, *de=dec+dlen;
 
   // encode final change len
-  size_t ei = 0;
-  if(encv(clen, enc,elen,&ei)) goto error; // -> nil
+  if(encv(&ep,ee, clen)) goto error; // -> nil
 
-  // dc=start of change window we are looking at compressing
-  size_t dc = blen; // TODO: compute initial windows
-
-  // ai=add index in dec. ADD is the "fallback", we build up the bytes we want
+  // ap=add pointer in dec.
+  // ADD is the "fallback", we build up the bytes we want
   // to add and do it in one go immediately before other ops.
-  size_t ai = dc;
-  #define ENC_ADD() if(ai < dc) { \
-    if(encADD(enc,elen,&ei, dc-ai, &dec[ai])) \
-      goto error; /* -> nil */ \
+  uint8_t* ap = dec+blen;
+  #define ENC_ADD() if(ap < dp) { \
+    if(encADD(&ep,ee, dp-ap, ap)) goto error; /* -> nil */ \
   }
 
-  while(dc < dlen) {
-    printf("!! dc=%i\n", dc);
-    for(; wi < dc; wi++) { // compute fingerprints we've missed
-      ADDLER_INIT();
-      ADDLER32_3x(wi);
-      printf("!!   wi=0x%x fp=0x%x", wi, fp);
-      w3.t[fp % w3.len] = wi;
-    }
-
-    // get w3i/w6i and clobber index (for future lookup)
-    ADDLER_INIT();
-    ADDLER32_3x(dc);
-    w3i = w3.t[fp % w3.len]; w3.t[fp % w3.len] = dc;
-    printf("!!   fp=0x%x (%i) got w3i=0x%x (and set 0x%x)", fp, w3i, dc);
-    wi = dc + 1;
-
-    ws = -1; we = -1;
-    if(w3i < dc - 3) {
-      we = w3i; i = 0;
-      /* find end */
-      while((dc+i < dlen) && (we+i < dc) && (dec[we+i] == dec[dc+i]))
-        { i++; }
-      if(i >= 3) {
-        we += i - 1; /*found start+end*/
-        ws = w3i; i = -1;    \
-        /* try to find earlier start */
-        while((we+i > 0) && (dc+i > 0) && (dec[we+i] == dec[dc+i]))
-          { i--; }
-        ws += i + 1;
-      } else we = -1;
-    }
+  while(dp < de) {
+    printf("!! dec index=%i (dp=0x%p)\n", dp - dec, dp);
 
     // compute run length
-    rc = dec[dc]; rl = dc + 1; while(rc == dec[rl]) { rl++; }
-    rl = rl - dc;
+    rc = *dp; rp=dp+1; while((rp<de) && (rc == *rp)) { rp += 1; }
+    #define RUN_LEN() (rp - dp)
+
     #define ENC_RUN() do { \
       ENC_ADD();        \
-      encRUN(enc,elen,&ei, rl, rc); \
-      dc += rl; ai = dc;            \
+      encRUN(&ep,ee, RUN_LEN(),rc); \
+      dp += RUN_LEN(); ap = dp; \
     } while(0)
 
-    printf("!!  0x%x rl=%i ws=%i we=%i\n", rc, rl, ws, we);
-    if(we < 0) {
-      if (rl > 3) ENC_RUN();
-      else dc += 1;
-    } else {
-      ws = we - ws;       // copy length
-      we = dc - we - 1; // relative-address of copy
-      #define ENC_CPY() do { \
-        ENC_ADD(); encCPY(enc,elen,&ei, ws, we); \
-        dc += ws; ai = dc; \
-      } while(0)
-
-      // a == addr-length cost (+1 code byte) of copy
-      // Note: we don't count the cost of LEN since if we need any length
-      //       bytes the compression ratio is already phenominal.
-           if(we < 127)     a = 2;
-      else if(we < 16384)   a = 3;
-      else if(we < 2097152) a = 4;
-      else                  a = 5;
-
-      // compression ratio
-      #define CR1   16
-      #define CR_80 13  /* 13/16 = 0.81 ~= 80% */
-      #define CR(COST, LEN) (COST * 16) / (LEN)
-
-      b = CR(a, ws); // copy compression ratio
-      if((b < CR_80) && (b < CR(2, rl))) ENC_CPY();
-      if(false);
-      else if (rl > 3)                   ENC_RUN();
-    }
+    if (RUN_LEN() > 3) ENC_RUN();
   }
   ENC_ADD();
-  lua_pushlstring(L, enc, ei);
+  lua_pushlstring(L, enc, ep-enc);
   free(dec); free(enc);
-  FP_FREE(w3);
   return 1;
 error:
   free(dec); free(enc);
-  FP_FREE(w3);
   ASSERT(!err, err);
   return 0;
 }
