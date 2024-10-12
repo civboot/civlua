@@ -17,7 +17,7 @@ T.rdelta_small = function()
   T.eq('zzz',    rp'\x03\x43z') -- len=3 RUN(3, 'z')
 
   print('!! ZZZ rtest')
-  rtest('',     'zzz',  rp'\x03\x43z') -- len=3 RUN(3, 'z')
+  rtest('',     'zzz',  '\x03\x43z') -- len=3 RUN(3, 'z')
 
 
   T.eq('abc',    rp'\x03\x03abc')         -- len=3 ADD(3, 'abc')
