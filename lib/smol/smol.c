@@ -90,7 +90,6 @@ static inline int enccmd(uint8_t** b, uint8_t* be, int cmd, int clen) {
   return 0;
 }
 
-
 static inline int encRUN(uint8_t** b,uint8_t* be, int r, uint8_t ch) {
   if(enccmd(b,be, RUN,r)) return -1;
   if(*b >= be)           return -1;
@@ -99,17 +98,17 @@ static inline int encRUN(uint8_t** b,uint8_t* be, int r, uint8_t ch) {
   return 0;
 }
 
-static inline int encADD(uint8_t** b,uint8_t* be, int a, uint8_t* str) {
-  printf("!! encADD a=0x%x\n", a);
-  if(enccmd(b,be, ADD,a)) return -1;
-  if(*b + a >= be)         return -1;
-  memcpy(*b, str, a); *b += a;
+static inline int encADD(uint8_t** b,uint8_t* be, int addlen, uint8_t* str) {
+  printf("!! encADD addlen=0x%x\n", addlen);
+  if(enccmd(b,be, ADD,addlen)) return -1;
+  if(*b + addlen >= be)        return -1;
+  memcpy(*b, str, addlen); *b += addlen;
   return 0;
 }
 
-static inline int encCPY(uint8_t** b,uint8_t* be, int cpy, int raddr) {
-  printf("!! encCPY cpy=0x%x raddr=0x%x\n", cpy, raddr);
-  if(enccmd(b,be, CPY,cpy)) return -1;
+static inline int encCPY(uint8_t** b,uint8_t* be, int cpylen, int raddr) {
+  printf("!! encCPY cpylen=0x%x raddr=0x%x\n", cpylen, raddr);
+  if(enccmd(b,be, CPY,cpylen)) return -1;
   return encv(b,be, raddr);
 }
 
@@ -148,6 +147,7 @@ typedef struct _A32 {
   uint8_t  *p, *end;
   uint32_t  a,  b;
 } A32;
+
 // start the A32 algorithm. This enables calculating multiple length
 // fingerprints in one pass.
 static inline void A32_start(A32* a, uint8_t* p, uint8_t* end) {
@@ -231,12 +231,87 @@ void test_fp() {
 }
 #endif
 
+// window type
+typedef struct _Win {
+  uint8_t *sp, *ep; // start/end pointer to change
+  uint8_t *s, *e;   // start/end of buffer
+} Win;
+static inline int Win_len(Win* w) { return w->ep - w->sp; }
+
+// print window relative to s
+static inline int Win_print(uint8_t* name, uint8_t* r, Win* w) {
+  printf("%s{%i %i:%i %i}\n", name, w->s-r, w->sp-r,w->ep-r, w->e-r);
+}
+
+// Expand both windows as long as they are equal
+// Requires: ws == we for both at the start
+static inline void Win_expand(Win* a, Win* b) {
+  printf("!! Win_expand: "); Win_print("a", a->sp, a);
+  printf("!!             "); Win_print("b", a->sp, b);
+  while((a->ep < a->e) && (b->ep < b->e) && (*a->ep == *b->ep)) {
+    printf("!! aei=%i bei=%i\n", a->ep-a->s, b->ep-b->s);
+    a->ep += 1; b->ep += 1;
+  }
+  if(a->ep == b->ep) return;
+  a->sp -= 1; b->sp -= 1;
+  while((a->sp >= a->s) && (b->sp >= b->s) && (*a->sp == *b->sp)) {
+    printf("!! asi=%i bsi=%i\n", a->sp-a->s, b->sp-b->s);
+    a->sp -= 1; b->sp -= 1;
+  }
+  a->sp += 1; b->sp += 1;
+}
+
+
+
+#ifdef TEST
+void test_window() {
+  printf("# test_window (c)\n");
+  uint8_t* s = "01234567  01234567";
+  Win a, b;
+
+  // expand two windows from pre-set point
+  #define TEXPAND(a_s, a_sp, a_e,   \
+                  b_s, b_sp, b_e,   \
+                  expect_a_sp, expect_a_ep, \
+                  expect_b_sp, expect_b_ep) \
+        a = (Win) { .s=s+a_s, .sp=s+a_sp, .ep=s+a_sp, .e=s+a_e }; \
+        b = (Win) { .s=s+b_s, .sp=s+b_sp, .ep=s+b_sp, .e=s+b_e }; \
+        Win_expand(&a, &b); \
+        assert(a_s == a.s-s); assert(a_e == a.e-s); /*sanity*/ \
+        assert(b_s == b.s-s); assert(b_e == b.e-s); /*sanity*/ \
+        printf("!!  Win"); Win_print("a", s, &a); \
+        printf("!!  Win"); Win_print("b", s, &b); \
+        assert(expect_a_sp == a.sp-s); assert(expect_a_ep == a.ep-s); \
+        assert(expect_b_sp == b.sp-s); assert(expect_b_ep == b.ep-s);
+
+  // a=first 0-7, b=second 0-7
+  TEXPAND(/*a.s=*/0, /*a.sp=*/0,  /*a.e=*/10,
+          /*b.s=*/0, /*b.sp=*/10, /*b.e=*/20,
+          /*expect_a_sp=*/0,  /*expect_a_ep=*/8,
+          /*expect_b_sp=*/10, /*expect_b_ep=*/18);
+
+  // a=first3-7, b=second3-7 (same result)
+  TEXPAND(/*a.s=*/0, /*a.sp=*/3,  /*a.e=*/10,
+          /*b.s=*/0, /*b.sp=*/13, /*b.e=*/20,
+          /*expect_a_sp=*/0,  /*expect_a_ep=*/8,
+          /*expect_b_sp=*/10, /*expect_b_ep=*/18);
+
+  // same but boundary check (only goes to 6)
+  TEXPAND(/*a.s=*/0, /*a.sp=*/3,  /*a.e=*/6, // change: 10 -> 6
+          /*b.s=*/0, /*b.sp=*/13, /*b.e=*/20,
+          /*expect_a_sp=*/0,  /*expect_a_ep=*/6,
+          /*expect_b_sp=*/10, /*expect_b_ep=*/16);
+  #undef TEXPAND
+}
+#endif
+
 #ifdef TEST
 int main() {
   printf("# TEST smol.c\n");
   test_encode_v();
   test_encode_cmds();
   test_fp();
+  test_window();
   return 0;
 }
 #endif
@@ -247,7 +322,7 @@ int main() {
 // apply an rdelta
 // (rdelta, base?) -> change
 static int l_rpatch(LS* L) {
-  size_t elen; uint8_t* enc  = (uint8_t*)luaL_checklstring(L, 1, &elen);
+  size_t elen; uint8_t* enc  = (uint8_t*)luaL_checklstring(L, 1,   &elen);
   size_t blen; uint8_t* base = (uint8_t*)luaL_optlstring(L, 2, "", &blen);
   printf("!! rpatch elen=%i\n", elen);
   printf("!!        blen=%i base=%s\n", blen, base);
@@ -303,8 +378,6 @@ error:
 //************************
 //* Create (encode) rdelta
 
-
-
 // create an rdelta
 // (change, base?) -> delta
 static int l_rdelta(LS* L) {
@@ -342,6 +415,28 @@ static int l_rdelta(LS* L) {
     if(encADD(&ep,ee, dp-ap, ap)) goto error; /* -> nil */ \
   }
 
+  Win wl, wr; // left and right windows
+  #define WFIND(FI) /*window find at fingerprint index*/    \
+    wl = (Win) {.s=dec, .sp=dec+(FI), .ep=dec+(FI), .e=dp}; \
+    wr = (Win) {.s=dp,  .sp=dp,       .ep=dp,       .e=de}; \
+    Win_expand(&wl, &wr);
+
+  // found like-windows. Encode wl (window left) as a copy
+  #define ENC_CPY(EP) do { \
+    ENC_ADD(); \
+    encCPY(&ep,ee, Win_len(&wl), dp-(EP)); \
+    dp += Win_len(&wl); ap = dp; \
+  } while(0)
+
+  uint8_t* cpy_end = NULL; // end copy start
+  // CPY starting bytes and setup for copying ending bytes
+  WFIND(0);   if(Win_len(&wl) >= 8) ENC_CPY(wl.ep);
+  WFIND(blen);
+  // if(Win_len(&wl) >= 6) {
+  //   assert(wl.ep == de);
+  //   cpy_end = wl.sp; de = wl.sp;
+  // }
+
   while(dp < de) {
     printf("!! dec index=%i (dp=0x%p)\n", dp - dec, dp);
 
@@ -356,8 +451,11 @@ static int l_rdelta(LS* L) {
     } while(0)
 
     if (RUN_LEN() > 3) ENC_RUN();
+    else dp += 1;
   }
-  ENC_ADD();
+  if(cpy_end) ENC_CPY(cpy_end);
+  else        ENC_ADD();
+
   lua_pushlstring(L, enc, ep-enc);
   free(dec); free(enc);
   return 1;
