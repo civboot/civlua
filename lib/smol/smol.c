@@ -90,7 +90,6 @@ static inline int enccmd(uint8_t** b, uint8_t* be, int cmd, int clen) {
   return 0;
 }
 
-
 static inline int encRUN(uint8_t** b,uint8_t* be, int r, uint8_t ch) {
   if(enccmd(b,be, RUN,r)) return -1;
   if(*b >= be)           return -1;
@@ -148,6 +147,7 @@ typedef struct _A32 {
   uint8_t  *p, *end;
   uint32_t  a,  b;
 } A32;
+
 // start the A32 algorithm. This enables calculating multiple length
 // fingerprints in one pass.
 static inline void A32_start(A32* a, uint8_t* p, uint8_t* end) {
@@ -231,12 +231,34 @@ void test_fp() {
 }
 #endif
 
+// find the right side of the window (where **p != *s)
+static inline void window_end(uint8_t** p,uint8_t* pe, uint8_t *s, uint8_t *se) {
+  while((*p < pe) && (s<se) && **p == *s) *p += 1;
+}
+
+// find the start of the window
+// invariant: **(p+1) must equal *s at the start
+static inline void window_start(uint8_t** p, uint8_t* ps, uint8_t *s, uint8_t *ss) {
+  while((*p >= ps) && (s >= ss) && **p == *s) { *p -= 1; }
+  *p += 1;
+}
+
+
+#ifdef TEST
+void test_window() {
+  printf("# test_window (c)\n");
+
+  assert(false);
+}
+#endif
+
 #ifdef TEST
 int main() {
   printf("# TEST smol.c\n");
   test_encode_v();
   test_encode_cmds();
   test_fp();
+  test_window();
   return 0;
 }
 #endif
@@ -302,8 +324,6 @@ error:
 
 //************************
 //* Create (encode) rdelta
-
-
 
 // create an rdelta
 // (change, base?) -> delta
