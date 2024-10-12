@@ -229,7 +229,7 @@ static int l_rdelta(LS* L) {
   uint8_t* dec = malloc(dlen); ASSERT(dec, "OOM");
 
   // we fail if the encoded length == change length
-  #define elen clen
+  size_t elen = dlen * 2;
   uint8_t* enc = malloc(elen); ASSERT(enc, "OOM");
 
   // run character and length
