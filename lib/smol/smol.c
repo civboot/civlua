@@ -157,6 +157,8 @@ int main() {
 static int l_rpatch(LS* L) {
   size_t elen; uint8_t* enc  = (uint8_t*)luaL_checklstring(L, 1, &elen);
   size_t blen; uint8_t* base = (uint8_t*)luaL_optlstring(L, 2, "", &blen);
+  printf("!! rpatch elen=%i\n", elen);
+  printf("!!        blen=%i base=%s\n", blen, base);
   size_t ei = 0; // enc index
   ASSERT(elen >= 1, "#rdelta == 0");
   // decode the length of the final output
@@ -222,8 +224,8 @@ static int l_rdelta(LS* L) {
   size_t clen; uint8_t* change = (uint8_t*)luaL_checklstring(L, 1, &clen);
   if(clen == 0) { lua_pushlstring(L, "\0", 1); return 1; }
   size_t blen; uint8_t* base = (uint8_t*)luaL_optlstring(L, 2, "", &blen);
-  printf("!! clen=%i change=%s\n", clen, change);
-  printf("!!   blen=%i base=%s\n", blen, base);
+  printf("!! rdelta clen=%i change=%s\n", clen, change);
+  printf("!!        blen=%i base=%s\n", blen, base);
 
   size_t dlen = clen + blen;
   uint8_t* dec = malloc(dlen); ASSERT(dec, "OOM");
