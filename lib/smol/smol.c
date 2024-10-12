@@ -19,6 +19,19 @@ typedef lua_State LS;
 #define RUN  0x40
 #define CPY  0x80
 
+// fingerprint struct
+typedef struct _FP {
+  size_t    len;
+  uint32_t* t;
+} FP;
+
+#define FP_NEW(NAME, LEN) \
+  FP NAME = (FP) { \
+    .len = LEN, .t = malloc((LEN) * sizeof(uint32_t)) \
+  }; \
+  ASSERT((NAME).t, "OOM") \
+  memset((NAME).t, LEN, 0xFF);
+#define FP_FREE(NAME) free((NAME).t)
 
 // https://en.wikipedia.org/wiki/Adler-32
 #define MOD_ADLER 65521
@@ -201,23 +214,8 @@ error:
   luaL_error(L, error); return 0;
 }
 
-// https://en.wikipedia.org/wiki/Adler-32
-#define MOD_ADLER 65521
 
-// Single loop of addler where D is the data
-// and a and b are the accumulating values
-#define ADDLER32_1x(I, A, B, D) \
-  A = ((A) + (D)[I])     % MOD_ADLER; \
-  B = ((B) + (A))        % MOD_ADLER
-
-// three loops of addler
-#define ADDLER32_3x(FP, I, A, B, D) \
-  ADDLER32_1x(I,   A, B, D); \
-  ADDLER32_1x(I+1, A, B, D); \
-  ADDLER32_1x(I+2, A, B, D); \
-  FP = ((B) << 16) | (A)
-
-// get an rdelta
+// create an rdelta
 // (change, base?) -> delta
 static int l_rdelta(LS* L) {
   char* err = NULL;
@@ -229,11 +227,47 @@ static int l_rdelta(LS* L) {
 
   size_t dlen = clen + blen;
   uint8_t* dec = malloc(dlen); ASSERT(dec, "OOM");
-  memcpy(dec, base, blen); memcpy(&dec[blen], change, clen);
 
   // we fail if the encoded length == change length
   #define elen clen
   uint8_t* enc = malloc(elen); ASSERT(enc, "OOM");
+
+  // run character and length
+  uint8_t rc; size_t rl;
+
+  // fingerprint windows
+  memcpy(dec, base, blen); memcpy(&dec[blen], change, clen);
+  FP_NEW(w3, 65497);
+  size_t wi = 0; // window index: what has been included in window
+  int w3i;       // found index (maybe)
+  uint32_t fp, a, b; // addler32 variables
+
+  // https://en.wikipedia.org/wiki/Adler-32
+  #define MOD_ADLER 65521
+  #define ADDLER_INIT() a=1; b=0
+  #define ADDLER32_1x(I) /* single loop of addler32 */ \
+    a = (a + dec[I]) % MOD_ADLER; \
+    b = (a + b)      % MOD_ADLER;
+  #define ADDLER32_3x(I) /* 3x loop and set fp */ \
+    ADDLER32_1x(I); ADDLER32_1x(I+1); ADDLER32_1x(I+2); \
+    fp = (b << 16) | a
+
+  int ws, we, i;    // window start/end indexes (definitely)
+  // WIN_RANGE: macro to find the window range [ws:we)
+  // algorithm: walk we from start until non-match,
+  //       then walk ws from start-1 till no match.
+  #define WIN_RANGE(W, SZ) { \
+    we = W; i = 0;       \
+    /* find end */       \
+    while(dec[we+i] == dec[dc+i]) i++; \
+    if(i >= SZ) {        \
+      we += i - 1; /*found start+end*/ \
+      ws = W; i = -1;    \
+      /* try to find earlier start */   \
+      while(dec[we+i] == dec[dc+i]) i--; \
+      ws += i + 1;       \
+    } else we = -1;      \
+  }
 
   // encode final change len
   size_t ei = 0;
@@ -250,26 +284,69 @@ static int l_rdelta(LS* L) {
       goto error; /* -> nil */ \
   }
 
-  uint8_t rc; size_t rl; // run character and length
-  #define ENC_RUN() do { \
-    encRUN(enc,elen,&ei, rl, rc); dc += rl; ai = dc; \
-  } while(0)
-
   while(dc < dlen) {
+    printf("!! dc=%i\n", dc);
+    for(; wi < dc; wi++) { // compute fingerprints we've missed
+      ADDLER_INIT();
+      ADDLER32_3x(wi); w3.t[w3.len % fp] = wi;
+    }
+
+    // get w3i/w6i and clobber index (for future lookup)
+    ADDLER_INIT();
+    ADDLER32_3x(dc);
+    w3i = w3.t[w3.len % fp]; w3.t[w3.len % fp] = dc;
+    wi = dc + 1;
+
+    ws = -1; we = -1;
+    if(w3i < UINT32_MAX) WIN_RANGE(w3i, 3);
+
     // compute run length
-    rc = dec[rl]; rl = dc + 1; while(rc == dec[rl]) { rl++; }
+    rc = dec[dc]; rl = dc + 1; while(rc == dec[rl]) { rl++; }
     rl = rl - dc;
-    if (rl > 3) { ENC_ADD(); ENC_RUN(); }
+    #define ENC_RUN() do { \
+      ENC_ADD();        \
+      encRUN(enc,elen,&ei, rl, rc); \
+      dc += rl; ai = dc;            \
+    } while(0)
+
+    printf("!!  0x%x rl=%i ws=%i we=%i\n", rc, rl, ws, we);
+    if(we < 0) {
+      if (rl > 3) ENC_RUN();
+      else dc += 1;
+    } else {
+      ws = we - ws;       // copy length
+      we = dc - we - 1; // relative-address of copy
+      #define ENC_CPY() do { \
+        ENC_ADD(); encCPY(enc,elen,&ei, ws, we); \
+        dc += ws; ai = dc; \
+      } while(0)
+
+      // a == addr-length cost (+1 code byte) of copy
+      // Note: we don't count the cost of LEN since if we need any length
+      //       bytes the compression ratio is already phenominal.
+           if(we < 127)     a = 2;
+      else if(we < 16384)   a = 3;
+      else if(we < 2097152) a = 4;
+      else                  a = 5;
+
+      // compression ratio
+      #define CR1   16
+      #define CR_80 13  /* 13/16 = 0.81 ~= 80% */
+      #define CR(COST, LEN) (COST * 16) / (LEN)
+
+      b = CR(a, ws); // copy compression ratio
+      if((b < CR_80) && (b < CR(2, rl))) ENC_CPY();
+      else if (rl > 3)                   ENC_RUN();
+    }
   }
   ENC_ADD();
-
-  lua_pushlstring(L, enc, elen);
+  lua_pushlstring(L, enc, ei);
   free(dec); free(enc);
+  FP_FREE(w3);
   return 1;
-  free(dec); free(enc);
-  return 0;
 error:
   free(dec); free(enc);
+  FP_FREE(w3);
   ASSERT(!err, err);
   return 0;
 }

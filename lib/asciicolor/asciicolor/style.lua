@@ -24,6 +24,7 @@ M.dark = {
   match = 'Bf', -- search match
   line  = 'ld', -- line number / etc
   meta  = 'd',  -- Meta=metadata such as description of ops, etc
+  -- TODO: rename notice
   notify = 'C', -- make very visible
   error = 'Wr',
   base   = 'F', basel   = 'Wf', -- base(line),   aka removed text

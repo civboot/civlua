@@ -22,7 +22,11 @@ M.Test.eq = function(a, b)
     f:styled('error', '!! TYPES NOT EQUAL', ': ',
              mty.name(a), ' != ', mty.name(b), '\n')
   else
-    if type(a) ~= 'string' then a, b = fmt.pretty(a), fmt.pretty(b) end
+    if type(a) == 'string' then
+      if #a ~= #b then f:styled('notify', sfmt(
+        '\nLengths: %s ~= %s', #a, #b
+      ))end
+    else a, b = fmt.pretty(a), fmt.pretty(b) end
     if a == b then f:styled('notice', '\n(Formatted strings are equal)')
     else
       f:styled('error', '\n!! DIFF:', '\n')
