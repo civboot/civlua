@@ -195,7 +195,7 @@ static int l_rpatch(LS* L) {
         break;
       case CPY:
         int raddr = decv(enc,elen,&ei, 0,0); if(raddr < 0) goto error;
-        raddr = ci - 1 - raddr;
+        raddr = ci - raddr - xlen;
         if(raddr < 0)         { error = "negative CPY"; goto error; }
         if(raddr + xlen > ci) { error = "forward CPY";  goto error; }
         memcpy(&ch[ci], &ch[raddr], xlen);
@@ -288,7 +288,8 @@ static int l_rdelta(LS* L) {
     printf("!! dc=%i\n", dc);
     for(; wi < dc; wi++) { // compute fingerprints we've missed
       ADDLER_INIT();
-      ADDLER32_3x(wi); w3.t[w3.len % fp] = wi;
+      ADDLER32_3x(wi);
+      w3.t[w3.len % fp] = wi;
     }
 
     // get w3i/w6i and clobber index (for future lookup)
@@ -298,7 +299,20 @@ static int l_rdelta(LS* L) {
     wi = dc + 1;
 
     ws = -1; we = -1;
-    if(w3i < UINT32_MAX) WIN_RANGE(w3i, 3);
+    if(w3i < dc - 3) {
+      we = w3i; i = 0;
+      /* find end */
+      while((dc+i < dlen) && (we+i < dc) && (dec[we+i] == dec[dc+i]))
+        { i++; }
+      if(i >= 3) {
+        we += i - 1; /*found start+end*/
+        ws = w3i; i = -1;    \
+        /* try to find earlier start */
+        while((we+i > 0) && (dc+i > 0) && (dec[we+i] == dec[dc+i]))
+          { i--; }
+        ws += i + 1;
+      } else we = -1;
+    }
 
     // compute run length
     rc = dec[dc]; rl = dc + 1; while(rc == dec[rl]) { rl++; }
@@ -336,6 +350,7 @@ static int l_rdelta(LS* L) {
 
       b = CR(a, ws); // copy compression ratio
       if((b < CR_80) && (b < CR(2, rl))) ENC_CPY();
+      if(false);
       else if (rl > 3)                   ENC_RUN();
     }
   }
