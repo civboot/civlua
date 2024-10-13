@@ -5,6 +5,7 @@ local M = G.mod and G.mod'civtest' or {}
 
 local mty = require'metaty'
 local fmt = require'fmt'
+local fbin = require'fmt.binary'
 local ds = require'ds'
 local pth = require'ds.path'
 local lines = require'lines'
@@ -12,11 +13,22 @@ local lines = require'lines'
 local push, sfmt = table.insert, string.format
 local function exit(rc) io.stderr:flush(); os.exit(rc) end
 
+local function errordiff(e, r)
+  local f = io.fmt
+  if e == r then return f:styled(
+    'notice', '\n(Formatted strings are equal)'
+  )end
+  io.fmt:styled('error', '\n!! DIFF:', '\n')
+  io.fmt(require'lines.diff'.Diff(e, r));
+end
+local function fail(name)
+  error(sfmt('Failed %s', name), 3)
+end
+
 M.Test = (mty'Test'{})
 M.Test.eq = function(a, b)
   if mty.eq(a, b) then return end
   local f = io.fmt
-  f:styled('error', '\n!! EXPECTED:', '\n'); f(a)
   f:styled('error', '\n!! RESULT:', '\n');   f(b)
   if mty.ty(a) ~= mty.ty(b) then
     f:styled('error', '!! TYPES NOT EQUAL', ': ',
@@ -27,15 +39,20 @@ M.Test.eq = function(a, b)
         '\nLengths: %s ~= %s', #a, #b
       ))end
     else a, b = fmt.pretty(a), fmt.pretty(b) end
-    if a == b then f:styled('notice', '\n(Formatted strings are equal)')
-    else
-      f:styled('error', '\n!! DIFF:', '\n')
-      f(require'lines.diff'.Diff(a, b));
-    end
+    errordiff(a, b)
   end
-  f:styled('error', '\n!! Failed Test.eq:', ' ')
-  f:styled('path', pth.nice(ds.srcloc(1)), '\n')
-  exit(1)
+  fail("Test.eq")
+end
+-- binary equal
+M.Test.binEq = function(e, r)
+  assert(type(e) == 'string', 'expect must be string')
+  assert(type(r) == 'string', 'result must be string')
+  if e == r then return end
+  if #e ~= #r then io.fmt:styled(
+    'notify', sfmt('binary lengths: %s ~= %s\b', #e, #r)
+  )end
+  errordiff(fbin(e), fbin(r))
+  fail("Test.binEq")
 end
 
 --- assert [$subj:find(pat)]

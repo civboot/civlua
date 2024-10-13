@@ -47,7 +47,7 @@ end
 local ascii = M.ascii
 
 local formatCols = function(f, str, fmt, offset)
-  f:styled('line', sfmt('% 6i ', offset));
+  f:styled('line', sfmt('% 6i: ', offset));
   format(f, str, fmt)
 end
 

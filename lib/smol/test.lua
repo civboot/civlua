@@ -3,14 +3,14 @@ local T = require'civtest'.Test
 local smol = require'smol'
 local fbin = require'fmt.binary'
 
+local sfmt = string.format
+
 local function rtest(base, change, edelta)
   print(('!! ### rtest (%q)  (%q)  ->  %q'):format(base, change, edelta))
   local rdelta = smol.rdelta(change,  base)
   T.eq(change, smol.rpatch(rdelta, base))
 
-  if edelta and edelta ~= rdelta then
-    T.eq(fbin(edelta), fbin(rdelta))
-  end
+  if edelta then T.binEq(edelta, rdelta) end
 end
 
 T.rdelta_small = function()
@@ -23,6 +23,6 @@ T.rdelta_small = function()
   rtest('',     '', '\0')
   rtest('base', '', '\0')
   rtest('',     'zzzzz',  '\x05\x45z') -- len=3 RUN(3, 'z')
-  rtest('01234567ab', '01234567yz',  nil) -- '\x0A\x88\x01\x02yz')
+  rtest('01234567ab', '01234567yz',  '\x0A\x88\x01\x02yz')
   -- rtest('',     'abcdabcdabcd', '\x0C\x04abcd\x84\x00\x84\x00')
 end
