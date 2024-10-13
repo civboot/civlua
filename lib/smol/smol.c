@@ -398,11 +398,11 @@ static int l_rdelta(LS* L) {
   // run character and pointer
   uint8_t rc; uint8_t* rp;
 
-  memcpy(dec, base, blen); memcpy(&dec[blen], change, clen);
+  memcpy(dec, base, blen); memcpy(dec+blen, change, clen);
 
   // set up pointers. The ep and dp pointers are moved by
   // the sub-algorithms as we encode.
-  uint8_t *ep=enc, *ee=enc+elen, *dp=dec, *de=dec+dlen;
+  uint8_t *ep=enc, *ee=enc+elen, *dp=dec+blen, *de=dec+dlen;
 
   // encode final change len
   if(encv(&ep,ee, clen)) goto error; // -> nil
@@ -416,9 +416,9 @@ static int l_rdelta(LS* L) {
   }
 
   Win wl, wr; // left and right windows
-  #define WFIND(FI) /*window find at fingerprint index*/    \
-    wl = (Win) {.s=dec, .sp=dec+(FI), .ep=dec+(FI), .e=dp}; \
-    wr = (Win) {.s=dp,  .sp=dp,       .ep=dp,       .e=de}; \
+  #define WFIND(LI, RP) /*window find at fingerprint index*/    \
+    wl = (Win) {.s=dec, .sp=dec+(LI), .ep=dec+(LI), .e=dp}; \
+    wr = (Win) {.s=dp,  .sp=RP,       .ep=RP,       .e=de}; \
     Win_expand(&wl, &wr);
 
   // found like-windows. Encode wl (window left) as a copy
@@ -429,13 +429,13 @@ static int l_rdelta(LS* L) {
   } while(0)
 
   uint8_t* cpy_end = NULL; // end copy start
+
   // CPY starting bytes and setup for copying ending bytes
-  WFIND(0);   if(Win_len(&wl) >= 8) ENC_CPY(wl.ep);
-  WFIND(blen);
-  // if(Win_len(&wl) >= 6) {
-  //   assert(wl.ep == de);
-  //   cpy_end = wl.sp; de = wl.sp;
-  // }
+  WFIND(0, dp); if(Win_len(&wl) >= 8) ENC_CPY(wl.ep);
+  WFIND(blen, de); if(Win_len(&wl) >= 6) {
+    assert(wr.ep == de); assert(wl.ep == dp);
+    cpy_end = wl.ep; de = wr.sp;
+  }
 
   while(dp < de) {
     printf("!! dec index=%i (dp=0x%p)\n", dp - dec, dp);
