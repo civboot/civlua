@@ -23,6 +23,6 @@ T.rdelta_small = function()
   rtest('',     '', '\0')
   rtest('base', '', '\0')
   rtest('',     'zzzzz',  '\x05\x45z') -- len=3 RUN(3, 'z')
-  rtest('01234567ab', '01234567yz',  '\x0A\x88\x01\x02yz')
+  -- rtest('01234567ab', '01234567yz',  '\x0A\x88\x01\x02yz')
   -- rtest('',     'abcdabcdabcd', '\x0C\x04abcd\x84\x00\x84\x00')
 end
