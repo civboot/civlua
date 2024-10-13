@@ -451,6 +451,7 @@ static int l_rdelta(LS* L) {
     } while(0)
 
     if (RUN_LEN() > 3) ENC_RUN();
+    else dp += 1;
   }
   if(cpy_end) ENC_CPY(cpy_end);
   else        ENC_ADD();
