@@ -430,7 +430,7 @@ static int l_rdelta(LS* L) {
 
   uint8_t* cpy_end = NULL; // end copy start
   // CPY starting bytes and setup for copying ending bytes
-  WFIND(0);   if(Win_len(&wl) >= 6) ENC_CPY(wl.ep);
+  WFIND(0);   if(Win_len(&wl) >= 8) ENC_CPY(wl.ep);
   WFIND(blen);
   // if(Win_len(&wl) >= 6) {
   //   assert(wl.ep == de);
