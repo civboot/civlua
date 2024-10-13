@@ -150,6 +150,7 @@ typedef struct _A32 {
 
 // start the A32 algorithm. This enables calculating multiple length
 // fingerprints in one pass.
+// TODO: don't set end here
 static inline void A32_start(A32* a, uint8_t* p, uint8_t* end) {
   a->p = p; a->end = end; a->a = 1; a->b = 0;
   printf("!! A32 start done\n");
@@ -173,18 +174,23 @@ typedef struct _FP {
   size_t    len;
 } FP;
 
-#define FP_NEW(NAME, LEN) \
-  FP NAME = (FP) { \
-    .len = LEN, .t = malloc((LEN) * sizeof(uint32_t)) \
-  }; ASSERT((NAME).t, "OOM");
+#define FP_ALLOC(FP, LEN) do { \
+    (FP).len = LEN; (FP).t = malloc((LEN) * sizeof(uint32_t)); \
+    ASSERT((FP).t, "OOM: FP"); \
+    FP_init(&FP);              \
+  } while(0) \
+
 
 static inline void FP_init(FP* f) {
   for (size_t i=0; i < f->len; i++) f->t[i] = UINT32_MAX;
 }
+static inline void FP_free(FP* f) {
+  if(f->t) { free(f->t); f->t = NULL; }
+}
 
 #define FP_FREE(NAME) free((NAME).t)
 // calculate the fingerprint and set to i.
-// Return the value that was previously there.
+// Return the value (index) that was previously there.
 static inline uint32_t FP_set(FP* f, A32* a, uint32_t i) {
   printf("!! FP_set i=%i\n", i);
   uint32_t fp = A32_fp(a, 3);
@@ -381,6 +387,8 @@ error:
 // create an rdelta
 // (change, base?) -> delta
 static int l_rdelta(LS* L) {
+  FP fp4 = {0};
+
   char* err = NULL;
   size_t clen; uint8_t* change = (uint8_t*)luaL_checklstring(L, 1, &clen);
   if(clen == 0) { lua_pushlstring(L, "\0", 1); return 1; }
@@ -431,14 +439,20 @@ static int l_rdelta(LS* L) {
   uint8_t* cpy_end = NULL; // end copy start
 
   // CPY starting bytes and setup for copying ending bytes
-  WFIND(0, dp); if(Win_len(&wl) >= 8) ENC_CPY(wl.ep);
-  WFIND(blen, de); if(Win_len(&wl) >= 6) {
-    assert(wr.ep == de); assert(wl.ep == dp);
-    cpy_end = wl.ep; de = wr.sp;
-  }
+  WFIND(0, dp);    if(Win_len(&wl) >= 8) { ENC_CPY(wl.ep); }
+  WFIND(blen, de); if(Win_len(&wl) >= 8) { cpy_end = wl.ep; de = wr.sp; }
+
+  // fingerprint pointer and tables
+  uint8_t* fpp = dp; uint32_t fpi;
+  A32 a32 = {.end=de};
+  FP_ALLOC(fp4, 99999); // TODO: use different prime
 
   while(dp < de) {
     printf("!! dec index=%i (dp=0x%p)\n", dp - dec, dp);
+    for(;fpp < dp; fpp += 1) { // add finterprints we missed
+      A32_start(&a32, fpp, de);
+      FP_set(&fp4, &a32, 4);
+    }
 
     // compute run length
     rc = *dp; rp=dp+1; while((rp<de) && (rc == *rp)) { rp += 1; }
@@ -450,17 +464,25 @@ static int l_rdelta(LS* L) {
       dp += RUN_LEN(); ap = dp; \
     } while(0)
 
-    if (RUN_LEN() > 3) ENC_RUN();
+    // find windows
+    A32_start(&a32, fpp, de);
+    fpi = FP_set(&fp4, &a32, 4);
+    if(fpi < UINT32_MAX) WFIND(fpi, dp);
+
+    if (RUN_LEN() > 4) ENC_RUN();
     else dp += 1;
   }
+
   if(cpy_end) ENC_CPY(cpy_end);
   else        ENC_ADD();
 
   lua_pushlstring(L, enc, ep-enc);
   free(dec); free(enc);
+  FP_free(&fp4);
   return 1;
 error:
   free(dec); free(enc);
+  FP_free(&fp4);
   ASSERT(!err, err);
   return 0;
 }
