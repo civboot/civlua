@@ -8,6 +8,8 @@ local sfmt = string.format
 local function rtest(base, change, edelta)
   print(('!! ### rtest (%q)  (%q)  ->  %q'):format(base, change, edelta))
   local rdelta = smol.rdelta(change,  base)
+  io.fmt:write('!! rdelta\n')
+  fbin.columns(io.fmt, rdelta); io.fmt:write'\n'
   T.eq(change, smol.rpatch(rdelta, base))
 
   if edelta then T.binEq(edelta, rdelta) end
@@ -28,5 +30,7 @@ T.rdelta_small = function()
   -- copy end
   rtest('ab01234567', 'yz01234567',  '\x0A\x02yz\x88\x02')
 
-  -- rtest('',     'abcdabcdabcd', '\x0C\x04abcd\x84\x00\x84\x00')
+  io.fmt:styled('error', '!!! this test\n')
+  rtest('01234567', 'a01234567z', '\x0A\x01a\x88\x01\x01z')
+  rtest('', '0123456701234567', '\x10\x0801234567\x88\x00')
 end

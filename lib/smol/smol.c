@@ -19,6 +19,16 @@ typedef lua_State LS;
 #define RUN  0x40
 #define CPY  0x80
 
+// gain from using RUN(0)/CPY(raddr)
+// the cost of any command is the single byte to encode and the
+// byte to encode the next run, as well as raddr for copy.
+// We do NOT count the copy length since if it matters (aka it's >32)
+// then we are going to compress anyway.
+static inline int gain(int len, int raddr) {
+  if(raddr <= 0x80     /*2^7 */) return len - 3;
+  if(raddr <= 0x4000   /*2^14*/) return len - 4;
+  if(raddr <= 0x200000 /*2^21*/) return len - 5;
+}
 
 //************************
 //* Encode / Decode value
@@ -150,6 +160,7 @@ typedef struct _A32 {
 
 // start the A32 algorithm. This enables calculating multiple length
 // fingerprints in one pass.
+// TODO: don't set end here
 static inline void A32_start(A32* a, uint8_t* p, uint8_t* end) {
   a->p = p; a->end = end; a->a = 1; a->b = 0;
   printf("!! A32 start done\n");
@@ -173,24 +184,29 @@ typedef struct _FP {
   size_t    len;
 } FP;
 
-#define FP_NEW(NAME, LEN) \
-  FP NAME = (FP) { \
-    .len = LEN, .t = malloc((LEN) * sizeof(uint32_t)) \
-  }; ASSERT((NAME).t, "OOM");
+#define FP_ALLOC(FP, LEN) do { \
+    (FP).len = LEN; (FP).t = malloc((LEN) * sizeof(uint32_t)); \
+    ASSERT((FP).t, "OOM: FP"); \
+    FP_init(&FP);              \
+  } while(0) \
+
 
 static inline void FP_init(FP* f) {
   for (size_t i=0; i < f->len; i++) f->t[i] = UINT32_MAX;
 }
+static inline void FP_free(FP* f) {
+  if(f->t) { free(f->t); f->t = NULL; }
+}
 
 #define FP_FREE(NAME) free((NAME).t)
 // calculate the fingerprint and set to i.
-// Return the value that was previously there.
+// Return the value (index) that was previously there.
 static inline uint32_t FP_set(FP* f, A32* a, uint32_t i) {
   printf("!! FP_set i=%i\n", i);
   uint32_t fp = A32_fp(a, 3);
-  printf("!!   FP_set fp=%u (0x%x)\n", fp);
+  printf("!!   FP_set fpi=%u fp=%u (0x%x)\n", fp % f->len, fp);
   uint32_t o = f->t[fp % f->len];
-  printf("!!   FP_set o=%u (0x%x)\n", o, o);
+  printf("!!   FP_set oi=%u o=%u (0x%x)\n", o % f->len, o, o);
                f->t[fp % f->len] = i;
   return o;
 }
@@ -246,19 +262,21 @@ static inline int Win_print(uint8_t* name, uint8_t* r, Win* w) {
 // Expand both windows as long as they are equal
 // Requires: ws == we for both at the start
 static inline void Win_expand(Win* a, Win* b) {
-  printf("!! Win_expand: "); Win_print("a", a->sp, a);
-  printf("!!             "); Win_print("b", a->sp, b);
+  printf("!! Win_expand: "); Win_print("a", a->s, a);
+  printf("!!             "); Win_print("b", a->s, b);
+  printf("!!              %i =? %i\n", *a->ep, *b->ep);
   while((a->ep < a->e) && (b->ep < b->e) && (*a->ep == *b->ep)) {
-    printf("!! aei=%i bei=%i\n", a->ep-a->s, b->ep-b->s);
+    printf("!!   aei=%i bei=%i\n", a->ep-a->s, b->ep-b->s);
     a->ep += 1; b->ep += 1;
   }
   if(a->ep == b->ep) return;
   a->sp -= 1; b->sp -= 1;
   while((a->sp >= a->s) && (b->sp >= b->s) && (*a->sp == *b->sp)) {
-    printf("!! asi=%i bsi=%i\n", a->sp-a->s, b->sp-b->s);
+    printf("!!   asi=%i bsi=%i\n", a->sp-a->s, b->sp-b->s);
     a->sp -= 1; b->sp -= 1;
   }
   a->sp += 1; b->sp += 1;
+  Win_print("!!   result left", a->s, a);
 }
 
 
@@ -381,6 +399,8 @@ error:
 // create an rdelta
 // (change, base?) -> delta
 static int l_rdelta(LS* L) {
+  FP fp4 = {0};
+
   char* err = NULL;
   size_t clen; uint8_t* change = (uint8_t*)luaL_checklstring(L, 1, &clen);
   if(clen == 0) { lua_pushlstring(L, "\0", 1); return 1; }
@@ -422,45 +442,65 @@ static int l_rdelta(LS* L) {
     Win_expand(&wl, &wr);
 
   // found like-windows. Encode wl (window left) as a copy
-  #define ENC_CPY(EP) do { \
+  #define WLEN(W)   Win_len(W)
+  #define ENC_CPY() do { \
     ENC_ADD(); \
-    encCPY(&ep,ee, Win_len(&wl), dp-(EP)); \
+    encCPY(&ep,ee, Win_len(&wl), dp-wl.ep); \
     dp += Win_len(&wl); ap = dp; \
   } while(0)
 
-  uint8_t* cpy_end = NULL; // end copy start
-
   // CPY starting bytes and setup for copying ending bytes
-  WFIND(0, dp); if(Win_len(&wl) >= 8) ENC_CPY(wl.ep);
-  WFIND(blen, de); if(Win_len(&wl) >= 6) {
-    assert(wr.ep == de); assert(wl.ep == dp);
-    cpy_end = wl.ep; de = wr.sp;
-  }
+  WFIND(0, dp);    if(gain(Win_len(&wl), blen) >= 2) { ENC_CPY(); }
+  WFIND(blen, de); if(gain(Win_len(&wl), clen) >= 2) { de = wr.sp; }
+
+  // fingerprint pointer and tables
+  uint8_t* fpp = dec; uint32_t fpi;
+  A32 a32 = {.end=de};
+  FP_ALLOC(fp4, 99999); // TODO: use different prime
 
   while(dp < de) {
-    printf("!! dec index=%i (dp=0x%p)\n", dp - dec, dp);
+    printf("!!#### dec index=%i (dp=0x%p)\n", dp - dec, dp);
+    for(;fpp < dp; fpp += 1) { // add finterprints we missed
+      A32_start(&a32, fpp, de);
+      FP_set(&fp4, &a32, fpp - dec);
+    }
+    printf("!!## Done adding dpp<de\n");
 
     // compute run length
-    rc = *dp; rp=dp+1; while((rp<de) && (rc == *rp)) { rp += 1; }
+    rc = *dp; rp=dp+1; while((rp < de) && (rc == *rp)) { rp += 1; }
     #define RUN_LEN() (rp - dp)
-
     #define ENC_RUN() do { \
       ENC_ADD();        \
       encRUN(&ep,ee, RUN_LEN(),rc); \
       dp += RUN_LEN(); ap = dp; \
     } while(0)
 
-    if (RUN_LEN() > 3) ENC_RUN();
+    // find window/s
+    A32_start(&a32, fpp, de);
+    wl.sp = dp; wl.ep = dp;
+    fpi = FP_set(&fp4, &a32, fpp - dec); fpp += 1;
+    if(fpi < UINT32_MAX) WFIND(fpi, dp);
+    printf("!! DECISION: '%c' rlen=%i fp4=%i\n", rc, RUN_LEN(), Win_len(&wl));
+    Win_print("!! fp4 win: ", dec, &wl);
+    int wg = gain(Win_len(&wl), dp-wl.ep); // window gain
+    if (wg > 1) {
+      if     (gain(RUN_LEN(), 0) >= wg) ENC_RUN();
+      else                              ENC_CPY();
+    } else if(gain(RUN_LEN(), 0) > 1)   ENC_RUN();
     else dp += 1;
   }
-  if(cpy_end) ENC_CPY(cpy_end);
-  else        ENC_ADD();
+
+  ENC_ADD();
+  if(de < dec + dlen) // enc final matching block
+    encCPY(&ep,ee, /*len*/(dec+dlen)-de, dp-(dec+blen));
 
   lua_pushlstring(L, enc, ep-enc);
   free(dec); free(enc);
+  FP_free(&fp4);
   return 1;
 error:
   free(dec); free(enc);
+  FP_free(&fp4);
   ASSERT(!err, err);
   return 0;
 }
