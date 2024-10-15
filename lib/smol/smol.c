@@ -19,6 +19,16 @@ typedef lua_State LS;
 #define RUN  0x40
 #define CPY  0x80
 
+// gain from using RUN(0)/CPY(raddr)
+// the cost of any command is the single byte to encode and the
+// byte to encode the next run, as well as raddr for copy.
+// We do NOT count the copy length since if it matters (aka it's >32)
+// then we are going to compress anyway.
+static inline int gain(int len, int raddr) {
+  if(raddr <= 0x80     /*2^7 */) return len - 3;
+  if(raddr <= 0x4000   /*2^14*/) return len - 4;
+  if(raddr <= 0x200000 /*2^21*/) return len - 5;
+}
 
 //************************
 //* Encode / Decode value
@@ -430,17 +440,19 @@ static int l_rdelta(LS* L) {
     Win_expand(&wl, &wr);
 
   // found like-windows. Encode wl (window left) as a copy
+  #define WLEN(W)   Win_len(W)
+  #define RADDR(EP) (dp-(EP))
   #define ENC_CPY(EP) do { \
     ENC_ADD(); \
-    encCPY(&ep,ee, Win_len(&wl), dp-(EP)); \
+    encCPY(&ep,ee, Win_len(&wl), RADDR(wl.ep)); \
     dp += Win_len(&wl); ap = dp; \
   } while(0)
 
   uint8_t* cpy_end = NULL; // end copy start
 
   // CPY starting bytes and setup for copying ending bytes
-  WFIND(0, dp);    if(Win_len(&wl) >= 8) { ENC_CPY(wl.ep); }
-  WFIND(blen, de); if(Win_len(&wl) >= 8) { cpy_end = wl.ep; de = wr.sp; }
+  WFIND(0, dp);    if(gain(Win_len(&wl), blen) >= 2) { ENC_CPY(wl.ep); }
+  WFIND(blen, de); if(gain(Win_len(&wl), clen) >= 2) { cpy_end = wl.ep; de = wr.sp; }
 
   // fingerprint pointer and tables
   uint8_t* fpp = dp; uint32_t fpi;
@@ -457,19 +469,22 @@ static int l_rdelta(LS* L) {
     // compute run length
     rc = *dp; rp=dp+1; while((rp<de) && (rc == *rp)) { rp += 1; }
     #define RUN_LEN() (rp - dp)
-
     #define ENC_RUN() do { \
       ENC_ADD();        \
       encRUN(&ep,ee, RUN_LEN(),rc); \
       dp += RUN_LEN(); ap = dp; \
     } while(0)
 
-    // find windows
+    // find window/s
     A32_start(&a32, fpp, de);
     fpi = FP_set(&fp4, &a32, 4);
     if(fpi < UINT32_MAX) WFIND(fpi, dp);
-
-    if (RUN_LEN() > 4) ENC_RUN();
+    int wgain = gain(Win_len(&wl), RADDR(wl.ep));
+    // if (wgain > 1) {
+    //   if(gain(RUN_LEN(), 0) >= wgain) ENC_RUN();
+    //   else                            ENC_CPY();
+    // } else 
+    if(gain(RUN_LEN(), 0) > 1) ENC_RUN();
     else dp += 1;
   }
 
