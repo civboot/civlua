@@ -80,6 +80,12 @@ static void test_encode_v() {
 //************************
 //* Encode / Decode Commands
 
+// the encoded commands + text
+typedef struct _X {
+  uint8_t *xp, *xe; // commands  pointer+end
+  uint8_t *tp, *te; // text blob pointer+end
+} X;
+
 static inline int deccmd(uint8_t** b, uint8_t* be, int* len) {
   if(*b >= be) return -1;
   uint8_t ch = **b; *b += 1;
@@ -100,26 +106,26 @@ static inline int enccmd(uint8_t** b, uint8_t* be, int cmd, int clen) {
   return 0;
 }
 
-static inline int encRUN(uint8_t** b,uint8_t* be, int r, uint8_t ch) {
-  if(enccmd(b,be, RUN,r)) return -1;
-  if(*b >= be)           return -1;
-  **b = ch; *b += 1;
+static inline int encRUN(X* x, int r, uint8_t ch) {
+  if(enccmd(&x->xp,x->xe, RUN,r)) return -1;
+  if(x->tp >= x->te)              return -1;
+  *x->tp = ch; x->tp += 1;
   printf("!! encRUN r=0x%x\n", r);
   return 0;
 }
 
-static inline int encADD(uint8_t** b,uint8_t* be, int addlen, uint8_t* str) {
+static inline int encADD(X* x, int addlen, uint8_t* str) {
   printf("!! encADD addlen=0x%x\n", addlen);
-  if(enccmd(b,be, ADD,addlen)) return -1;
-  if(*b + addlen >= be)        return -1;
-  memcpy(*b, str, addlen); *b += addlen;
+  if(enccmd(&x->xp,x->xe, ADD,addlen)) return -1;
+  if(x->tp + addlen >= x->te)          return -1;
+  memcpy(x->tp, str, addlen); x->tp += addlen;
   return 0;
 }
 
-static inline int encCPY(uint8_t** b,uint8_t* be, int cpylen, int raddr) {
+static inline int encCPY(X* x, int cpylen, int raddr) {
   printf("!! encCPY cpylen=0x%x raddr=0x%x\n", cpylen, raddr);
-  if(enccmd(b,be, CPY,cpylen)) return -1;
-  return encv(b,be, raddr);
+  if(enccmd(&x->xp,x->xe, CPY,cpylen)) return -1;
+  return encv(&x->xp,x->xe, raddr);
 }
 
 #ifdef TEST
@@ -132,17 +138,21 @@ static void test_encode_cmds() {
   assert(RUN == deccmd(&bp,be, &len));
   assert(3 == len); assert(1 == bp-b);
 
+  uint8_t t[32];
+  X x = { .xp=b, .xe=b+32, .tp=t, .te=t+32, };
+
 #define T_ROUND(CMD, LEN, EI, DI, ...) \
-  bp=b; assert(0 == enc##CMD(&bp,be, LEN, __VA_ARGS__)); \
-    printf("!! i=%i\n", bp-b); assert((bp-b)==(EI)); \
-  bp=b; len=0; assert(CMD == deccmd(&bp,be, &len)); assert((DI)==(bp-b)); \
+  x.xp=b; x.tp=t; assert(0 == enc##CMD(&x, LEN, __VA_ARGS__)); \
+    printf("!! i=%i\n", x.xp-b); assert((x.xp-b)==(EI)); \
+  x.xp=b; x.tp=t; len=0; assert(CMD == deccmd(&x.xp,x.xe, &len)); \
+    assert((DI)==(x.xp-b)); \
     assert(LEN == len);
 
-  T_ROUND(RUN, 3,    2, 1, 'z'); assert(*bp == 'z');
-  T_ROUND(RUN, 0x50, 3, 2, 'y'); assert(*bp == 'y');
-  T_ROUND(ADD, 4,    5, 1, "test"); assert(0 == memcmp(bp, "test", 4));
-  T_ROUND(CPY, 7,    2, 1, 5); assert(5 == decv(&bp,be, 0,0));
-  T_ROUND(CPY, 7,    4, 1, 0x4000); assert(0x4000 == decv(&bp,be, 0,0));
+  T_ROUND(RUN, 3,    1, 1, 'z'); assert(*t == 'z');
+  T_ROUND(RUN, 0x50, 2, 2, 'y'); assert(*t == 'y');
+  T_ROUND(ADD, 4,    1, 1, "test"); assert(0 == memcmp(t, "test", 4));
+  T_ROUND(CPY, 7,    2, 1, 5); assert(5 == decv(&x.xp,x.xe, 0,0));
+  T_ROUND(CPY, 7,    4, 1, 0x4000); assert(0x4000 == decv(&x.xp,x.xe, 0,0));
 #undef T_ROUND
 }
 #endif
@@ -421,7 +431,7 @@ error:
 //* Create (encode) rdelta
 
 // create an rdelta
-// (change, base?) -> rxmds, rtext
+// (change, base?) -> (cmds, text)
 static int l_rdelta(LS* L) {
   FP fp4 = {0};
 
@@ -435,28 +445,28 @@ static int l_rdelta(LS* L) {
   size_t dlen = blen + clen;
   uint8_t* dec = malloc(dlen); ASSERT(dec, "OOM");
 
-  // we fail if the encoded length == change length
-  size_t elen = dlen * 2;
-  uint8_t* enc = malloc(elen); ASSERT(enc, "OOM");
+  uint8_t* xmds = malloc(dlen); ASSERT(xmds, "OOM");
+  uint8_t* text = malloc(dlen); ASSERT(text, "OOM");
+
+  // set up pointers which are moved by the sub-algorithms as we encode.
+  uint8_t *dp=dec+blen, *de=dec+dlen; // decode pointer
+  X x = { // encoded cmds+text pointers
+    .xp=xmds, .xe = xmds+dlen,
+    .tp=text, .te = text+dlen,
+  };
 
   // run character and pointer
   uint8_t rc; uint8_t* rp;
 
+  // move the base+change into dec
   memcpy(dec, base, blen); memcpy(dec+blen, change, clen);
-
-  // set up pointers. The ep and dp pointers are moved by
-  // the sub-algorithms as we encode.
-  uint8_t *ep=enc, *ee=enc+elen, *dp=dec+blen, *de=dec+dlen;
-
-  // encode final change len
-  if(encv(&ep,ee, clen)) goto error; // -> nil
 
   // ap=add pointer in dec.
   // ADD is the "fallback", we build up the bytes we want
   // to add and do it in one go immediately before other ops.
   uint8_t* ap = dec+blen;
   #define ENC_ADD() if(ap < dp) { \
-    if(encADD(&ep,ee, dp-ap, ap)) goto error; /* -> nil */ \
+    if(encADD(&x, dp-ap, ap)) goto error; /* -> nil */ \
   }
 
   Win wl, wr; // left and right windows
@@ -469,7 +479,7 @@ static int l_rdelta(LS* L) {
   #define WLEN(W)   Win_len(W)
   #define ENC_CPY() do { \
     ENC_ADD(); \
-    encCPY(&ep,ee, Win_len(&wl), dp-wl.ep); \
+    encCPY(&x, Win_len(&wl), dp-wl.ep); \
     dp += Win_len(&wl); ap = dp; \
   } while(0)
 
@@ -495,7 +505,7 @@ static int l_rdelta(LS* L) {
     #define RUN_LEN() (rp - dp)
     #define ENC_RUN() do { \
       ENC_ADD();        \
-      encRUN(&ep,ee, RUN_LEN(),rc); \
+      encRUN(&x, RUN_LEN(),rc); \
       dp += RUN_LEN(); ap = dp; \
     } while(0)
 
@@ -516,14 +526,15 @@ static int l_rdelta(LS* L) {
 
   ENC_ADD();
   if(de < dec + dlen) // enc final matching block
-    encCPY(&ep,ee, /*len*/(dec+dlen)-de, dp-(dec+blen));
+    encCPY(&x, /*len*/(dec+dlen)-de, /*raddr*/dp-(dec+blen));
 
-  lua_pushlstring(L, enc, ep-enc);
-  free(dec); free(enc);
+  lua_pushlstring(L, xmds, x.xp-xmds);
+  lua_pushlstring(L, text, x.tp-text);
+  free(dec); free(xmds); free(text);
   FP_free(&fp4);
   return 1;
 error:
-  free(dec); free(enc);
+  free(dec); free(xmds); free(text);
   FP_free(&fp4);
   ASSERT(!err, err);
   return 0;

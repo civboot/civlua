@@ -8,13 +8,16 @@ local sfmt = string.format
 local function rtest(base, change, expCmd, expText)
   print(('!! ### rtest (%q)  (%q)  ->  %q %q'):format(
     base, change, expCmd, expText))
-  local rdelta = smol.rdelta(change,  base)
-  io.fmt:write('!! rdelta\n')
-  fbin.columns(io.fmt, rdelta); io.fmt:write'\n'
-  -- T.eq(change, smol.rpatch(rdelta, base))
-  T.eq(change, smol.rpatch(expCmd, expText, base))
-
-  -- if expCmd then T.binEq(expCmd, rdelta) end
+  local cmds, text = smol.rdelta(change,  base)
+  io.fmt:write('!! cmds\n')
+  fbin.columns(io.fmt, cmds); io.fmt:write'\n'
+  io.fmt:write('!! text\n')
+  fbin.columns(io.fmt, text); io.fmt:write'\n'
+  T.eq(change, smol.rpatch(cmds, text, base))
+  if expCmd then
+    T.binEq(expCmd, cmds)
+    T.eq(expText, text)
+  end
 end
 
 T.rdelta_small = function()
@@ -24,8 +27,8 @@ T.rdelta_small = function()
   T.eq('abcabc', rp('\x03\x83\x00', 'abc')) -- ADD+CPY
   T.eq('abc',    rp('\x83\x00', '', 'abc')) --CPY(base)
 
-  rtest('',     '', '\0')
-  rtest('base', '', '\0')
+  rtest('',     '', '\0', '')
+  rtest('base', '', '\0', '')
   rtest('',     'zzzzz',  '\x05\x45z') -- len=3 RUN(3, 'z')
   -- copy start
   rtest('01234567ab', '01234567yz',  '\x0A\x88\x02\x02yz')
