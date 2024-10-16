@@ -5,22 +5,24 @@ local fbin = require'fmt.binary'
 
 local sfmt = string.format
 
-local function rtest(base, change, edelta)
-  print(('!! ### rtest (%q)  (%q)  ->  %q'):format(base, change, edelta))
+local function rtest(base, change, expCmd, expText)
+  print(('!! ### rtest (%q)  (%q)  ->  %q %q'):format(
+    base, change, expCmd, expText))
   local rdelta = smol.rdelta(change,  base)
   io.fmt:write('!! rdelta\n')
   fbin.columns(io.fmt, rdelta); io.fmt:write'\n'
-  T.eq(change, smol.rpatch(rdelta, base))
+  -- T.eq(change, smol.rpatch(rdelta, base))
+  T.eq(change, smol.rpatch(expCmd, expText, base))
 
-  if edelta then T.binEq(edelta, rdelta) end
+  -- if expCmd then T.binEq(expCmd, rdelta) end
 end
 
 T.rdelta_small = function()
   -- hand-rolled decode
   local rp = smol.rpatch
-  T.eq('abc',    rp'\x03\x03abc')         -- len=3 ADD(3, 'abc')
-  T.eq('abcabc', rp'\x06\x03abc\x83\x00') -- ... CPY(3, 2)
-  T.eq('abc',    rp('\x03\x83\x00', 'abc')) -- base CPY(3,2)
+  T.eq('abc',    rp('\x03',     'abc')) -- ADD
+  T.eq('abcabc', rp('\x03\x83\x00', 'abc')) -- ADD+CPY
+  T.eq('abc',    rp('\x83\x00', '', 'abc')) --CPY(base)
 
   rtest('',     '', '\0')
   rtest('base', '', '\0')

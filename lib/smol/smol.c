@@ -85,7 +85,7 @@ static inline int deccmd(uint8_t** b, uint8_t* be, int* len) {
   uint8_t ch = **b; *b += 1;
   *len = 0x1F & ch; int cmd = 0xC0 & ch;
   if(0x20 & ch) *len = decv(b,be, *len,5);
-  printf("!! decCmd 0x%X ch=0x%x len=0x%x\n", cmd, ch, *len);
+  printf("!! decmd 0x%X ch=0x%x len=0x%x\n", cmd, ch, *len);
   if(*len < 0) return -1;
   return cmd;
 }
@@ -337,19 +337,43 @@ int main() {
 //************************
 //* Patch (decode) RDelta
 
-// apply an rdelta
-// (rdelta, base?) -> change
+// get the patch's resultant change length
+static int rpatch_clen(uint8_t* xp, uint8_t* xe) {
+  size_t len = 0;
+  while(xp < xe) {
+    int cmdlen; int cmd = deccmd(&xp,xe, &cmdlen);
+    printf("!! + rpatch_clen %X len=%i\n", cmd, cmdlen);
+    switch(cmd) {
+      case RUN: xp += 1;
+      case ADD: len += cmdlen; break;
+      case CPY:
+        len += cmdlen;
+        if(decv(&xp,xe, 0,0) < 0) return -1;
+        break;
+      default: return -1;
+    }
+  }
+  return len;
+}
+
+// apply an rdelta which consists of a command block and (raw) text block
+// and optional base to get the change.
+// (delta_cmds, delta_text, base?) -> change
 static int l_rpatch(LS* L) {
-  size_t elen; uint8_t* enc  = (uint8_t*)luaL_checklstring(L, 1,   &elen);
-  size_t blen; uint8_t* base = (uint8_t*)luaL_optlstring(L, 2, "", &blen);
-  printf("!! rpatch elen=%i\n", elen);
+  size_t xlen; uint8_t* xmds = (uint8_t*)luaL_checklstring(L, 1,   &xlen);
+  size_t tlen; uint8_t* text = (uint8_t*)luaL_checklstring(L, 2,   &tlen);
+  size_t blen; uint8_t* base = (uint8_t*)luaL_optlstring(L, 3, "", &blen);
+  printf("!! rpatch xlen=%i tlen=%i\n", xlen, tlen);
   printf("!!        blen=%i base=%s\n", blen, base);
 
-  ASSERT(elen >= 1, "#rdelta == 0");
-  uint8_t *ep = enc, *ee = enc+elen;
+  ASSERT(xlen >= 1, "#rdelta xmds == 0");
+  uint8_t *xp = xmds, *xe = xmds+xlen;
+  uint8_t *tp = text, *te = text+tlen;
 
   // decode the length of the final output
-  int clen = decv(&ep,ee, 0, 0); ASSERT(clen >= 0, "clen");
+  int clen = rpatch_clen(xp,xe); ASSERT(clen >= 0, "clen");
+  printf("!!       clen=%i\n", clen);
+
   if(clen == 0) { lua_pushstring(L, ""); return 1; }
 
   uint8_t* dec = malloc(blen + clen); ASSERT(dec, "OOM");
@@ -357,30 +381,30 @@ static int l_rpatch(LS* L) {
   uint8_t *dp = dec + blen, *de=dec + blen + clen;
 
   uint8_t* error = "OOB error";
-  while(ep < ee) {
+  while(xp < xe) {
     // x == command
-    int xlen; int x = deccmd(&ep,ee, &xlen);
-    switch (x) {
+    int cmdlen; int cmd = deccmd(&xp,xe, &cmdlen);
+    switch (cmd) {
       case ADD:
-        if((ep + xlen > ee) || (dp + xlen > de)) goto error;
-        memcpy(dp, ep, xlen); ep += xlen;
+        if((tp + cmdlen > te) || (dp + cmdlen > de)) goto error;
+        memcpy(dp, tp, cmdlen); tp += cmdlen;
         break;
       case RUN:
-        if((ep + 1 > ee) || (dp + xlen > de)) goto error;
-        memset(dp, *ep, xlen); ep += 1;
+        if((tp + 1 > te) || (dp + cmdlen > de)) goto error;
+        memset(dp, *tp, cmdlen); tp += 1;
         break;
       case CPY:
-        int raddr = decv(&ep,ee, 0,0); if(raddr < 0) goto error;
+        int raddr = decv(&xp,xe, 0,0); if(raddr < 0) goto error;
         size_t di = dp - dec;
-        raddr = di - raddr - xlen;
-        if(raddr < 0)         { error = "negative CPY"; goto error; }
-        if(raddr + xlen > di) { error = "forward CPY";  goto error; }
-        memcpy(dp, &dec[raddr], xlen);
+        raddr = di - raddr - cmdlen;
+        if(raddr < 0)           { error = "negative CPY"; goto error; }
+        if(raddr + cmdlen > di) { error = "forward CPY";  goto error; }
+        memcpy(dp, &dec[raddr], cmdlen);
         break;
       case -1: goto error;
       default: error = "unreachable"; goto error;
     }
-    dp += xlen;
+    dp += cmdlen;
   }
   if((dp - dec - blen) != clen) {
     error = "incorrect change length"; goto error;
@@ -397,7 +421,7 @@ error:
 //* Create (encode) rdelta
 
 // create an rdelta
-// (change, base?) -> delta
+// (change, base?) -> rxmds, rtext
 static int l_rdelta(LS* L) {
   FP fp4 = {0};
 
