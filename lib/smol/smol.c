@@ -80,11 +80,32 @@ static void test_encode_v() {
 //************************
 //* Encode / Decode Commands
 
-// the encoded commands + text
+// struct which holds data buffers and state of encoding/decoding
 typedef struct _X {
-  uint8_t *xp, *xe; // commands  pointer+end
-  uint8_t *tp, *te; // text blob pointer+end
+  uint8_t *xmd,  *xp, *xe; size_t xmdsz;  // xmds buf, pointer, end (commands)
+  uint8_t *text, *tp, *te; size_t textsz; // text buf, pointer, end (raw text)
+  uint8_t *dec; size_t decsz;             // decoding buffer
+  uint8_t *enc; size_t encsz;             // encoding buffer + size
+  uint8_t *scr; size_t scrsz;             // scratch buffer
 } X;
+
+#define META_X "smol.X"
+#define L_asX(L, I) ((X*)luaL_checkudata(L, I, META_X))
+
+#define FREE_PTR(X, F) \
+  if((X).F##sz) { free((X).F); (X).F = NULL; (X).F##sz = 0; }
+static void X_free(X* x) {
+  FREE_PTR(*x, xmd); FREE_PTR(*x, text);
+  FREE_PTR(*x, dec); FREE_PTR(*x, enc);
+  FREE_PTR(*x, scr);
+}
+#define ALLOC_FIELD(X, F, SZ) do { \
+    if((X).F##sz < (SZ)) {        \
+      FREE_PTR(X, F);           \
+      (X).F = malloc(SZ);       \
+      ASSERT((X).F, "OOM:"#F);  \
+    } \
+  } while(0)
 
 static inline int deccmd(uint8_t** b, uint8_t* be, int* len) {
   if(*b >= be) return -1;
@@ -368,11 +389,12 @@ static int rpatch_clen(uint8_t* xp, uint8_t* xe) {
 
 // apply an rdelta which consists of a command block and (raw) text block
 // and optional base to get the change.
-// (delta_cmds, delta_text, base?) -> change
+// (delta_cmds, delta_text, X, base?) -> change
 static int l_rpatch(LS* L) {
   size_t xlen; uint8_t* xmds = (uint8_t*)luaL_checklstring(L, 1,   &xlen);
   size_t tlen; uint8_t* text = (uint8_t*)luaL_checklstring(L, 2,   &tlen);
-  size_t blen; uint8_t* base = (uint8_t*)luaL_optlstring(L, 3, "", &blen);
+  X* x = L_asX(L, 3);
+  size_t blen; uint8_t* base = (uint8_t*)luaL_optlstring(L, 4, "", &blen);
   printf("!! rpatch xlen=%i tlen=%i\n", xlen, tlen);
   printf("!!        blen=%i base=%s\n", blen, base);
 
@@ -386,7 +408,7 @@ static int l_rpatch(LS* L) {
 
   if(clen == 0) { lua_pushstring(L, ""); return 1; }
 
-  uint8_t* dec = malloc(blen + clen); ASSERT(dec, "OOM");
+  ALLOC_FIELD(*x, dec, blen + clen); uint8_t* dec = x->dec;
   memcpy(dec, base, blen);
   uint8_t *dp = dec + blen, *de=dec + blen + clen;
 
@@ -420,10 +442,8 @@ static int l_rpatch(LS* L) {
     error = "incorrect change length"; goto error;
   }
   lua_pushlstring(L, dec+blen, clen);
-  free(dec);
   return 1;
 error:
-  free(dec);
   luaL_error(L, error); return 0;
 }
 
@@ -431,7 +451,7 @@ error:
 //* Create (encode) rdelta
 
 // create an rdelta
-// (change, base?) -> (cmds, text)
+// (change, x, base?) -> (cmds, text)
 static int l_rdelta(LS* L) {
   FP fp4 = {0};
 
@@ -545,13 +565,30 @@ error:
   return 0;
 }
 
+static int l_X_free(LS* L) { X_free(L_asX(L, 1)); return 0; }
+static int l_createX(LS* L) {
+  X* x = (X*)lua_newuserdata(L, sizeof(X));
+  *x = (X){0};
+  luaL_setmetatable(L, META_X);
+  return 1;
+}
+
 static const struct luaL_Reg smol_sys[] = {
+  {"createX", l_createX},
   {"rpatch", l_rpatch}, {"rdelta", l_rdelta},
   {NULL, NULL}, // sentinel
 };
 
+
+#define L_setmethod(L, KEY, FN) \
+  lua_pushcfunction(L, FN); lua_setfield(L, -2, KEY);
+
 int luaopen_smol_sys(LS *L) {
   luaL_newlib(L, smol_sys);
+
+  luaL_newmetatable(L, META_X);
+    L_setmethod(L, "__gc",   l_X_free);
+  lua_setfield(L, -2, "X");
 
   return 1;
 }
