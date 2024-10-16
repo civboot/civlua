@@ -437,7 +437,11 @@ static int l_rdelta(LS* L) {
 
   char* err = NULL;
   size_t clen; uint8_t* change = (uint8_t*)luaL_checklstring(L, 1, &clen);
-  if(clen == 0) { lua_pushlstring(L, "\0", 1); return 1; }
+  if(clen == 0) {
+    lua_pushlstring(L, "\0", 1);
+    lua_pushstring(L, "");
+    return 2;
+  }
   size_t blen; uint8_t* base = (uint8_t*)luaL_optlstring(L, 2, "", &blen);
   printf("!! rdelta clen=%i change=%s\n", clen, change);
   printf("!!        blen=%i base=%s\n", blen, base);
@@ -528,11 +532,12 @@ static int l_rdelta(LS* L) {
   if(de < dec + dlen) // enc final matching block
     encCPY(&x, /*len*/(dec+dlen)-de, /*raddr*/dp-(dec+blen));
 
+  printf("!! pushing xmds and text\n");
   lua_pushlstring(L, xmds, x.xp-xmds);
   lua_pushlstring(L, text, x.tp-text);
   free(dec); free(xmds); free(text);
   FP_free(&fp4);
-  return 1;
+  return 2;
 error:
   free(dec); free(xmds); free(text);
   FP_free(&fp4);
