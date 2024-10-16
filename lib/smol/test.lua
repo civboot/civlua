@@ -8,6 +8,8 @@ local sfmt = string.format
 local function rtest(base, change, edelta)
   print(('!! ### rtest (%q)  (%q)  ->  %q'):format(base, change, edelta))
   local rdelta = smol.rdelta(change,  base)
+  io.fmt:write('!! rdelta\n')
+  fbin.columns(io.fmt, rdelta); io.fmt:write'\n'
   T.eq(change, smol.rpatch(rdelta, base))
 
   if edelta then T.binEq(edelta, rdelta) end

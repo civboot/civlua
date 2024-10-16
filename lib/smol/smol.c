@@ -441,10 +441,9 @@ static int l_rdelta(LS* L) {
 
   // found like-windows. Encode wl (window left) as a copy
   #define WLEN(W)   Win_len(W)
-  #define RADDR(EP) (dp-(EP))
   #define ENC_CPY(EP) do { \
     ENC_ADD(); \
-    encCPY(&ep,ee, Win_len(&wl), RADDR(wl.ep)); \
+    encCPY(&ep,ee, Win_len(&wl), dp-wl.ep); \
     dp += Win_len(&wl); ap = dp; \
   } while(0)
 
@@ -460,14 +459,14 @@ static int l_rdelta(LS* L) {
   FP_ALLOC(fp4, 99999); // TODO: use different prime
 
   while(dp < de) {
-    printf("!! dec index=%i (dp=0x%p)\n", dp - dec, dp);
+    printf("!!#### dec index=%i (dp=0x%p)\n", dp - dec, dp);
     for(;fpp < dp; fpp += 1) { // add finterprints we missed
       A32_start(&a32, fpp, de);
       FP_set(&fp4, &a32, 4);
     }
 
     // compute run length
-    rc = *dp; rp=dp+1; while((rp<de) && (rc == *rp)) { rp += 1; }
+    rc = *dp; rp=dp+1; while((rp < de) && (rc == *rp)) { rp += 1; }
     #define RUN_LEN() (rp - dp)
     #define ENC_RUN() do { \
       ENC_ADD();        \
@@ -477,13 +476,16 @@ static int l_rdelta(LS* L) {
 
     // find window/s
     A32_start(&a32, fpp, de);
+    wl.sp = dp; wl.ep = dp;
     fpi = FP_set(&fp4, &a32, 4);
     if(fpi < UINT32_MAX) WFIND(fpi, dp);
-    int wgain = gain(Win_len(&wl), RADDR(wl.ep));
-    // if (wgain > 1) {
-    //   if(gain(RUN_LEN(), 0) >= wgain) ENC_RUN();
-    //   else                            ENC_CPY();
-    // } else 
+    printf("!! DECISION: '%c' rlen=%i fp4=%i\n", rc, RUN_LEN(), Win_len(&wl));
+    Win_print("!! fp4 win: ", dec, &wl);
+    int wgain = gain(Win_len(&wl), dp-wl.ep);
+    if (wgain > 1) {
+      if(gain(RUN_LEN(), 0) >= wgain) ENC_RUN();
+      else                            ENC_CPY();
+    } else // ... FIXME join these two
     if(gain(RUN_LEN(), 0) > 1) ENC_RUN();
     else dp += 1;
   }
