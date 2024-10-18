@@ -3,7 +3,6 @@ local G = G or _G
 
 -- civ module: packaged dev environment
 local M = G.mod'civ'; G.MAIN = G.MAIN or M
-require'pkglib'()
 G.METATY_CHECK = true
 
 local fmt = require'fmt'

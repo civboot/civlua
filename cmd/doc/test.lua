@@ -78,7 +78,7 @@ end)
 T.test('doc fn', function()
   local res = doc.construct(M.exampleFn, nil, 0)
   T.assertEq(
-    "[$doc_test.exampleFn] | \\[function\\] ([{path=cmd/doc/test.lua:000}src])",
+    "[$doc_test.exampleFn] | \\[[$() -> nil]\\] ([{path=cmd/doc/test.lua:000}src])",
     doFmt(doc.fmtDocItem, res))
 
   local res = doc.construct(M.exampleFn, nil, 1)

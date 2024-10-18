@@ -54,6 +54,20 @@ local _construct = function(T, d)
   return mty.construct(T, d)
 end
 
+--- extract the function signature from the code
+local fnsig = function(code) --> string
+  if not code or not code[1] then return end
+  local         s, r = code[1]:match'(%b()).*%-%->%s*(.*)'
+  if not s then s, r = code[1]:match'(%b{}).*%-%->%s*(.*)' end
+  if not s then
+    s, r = code[1]:match'function(%b()).*return%s*(.-)%s*end'
+  end
+  if not s then return end
+  if s and (not r or #r == 0) then r = 'nil' end
+  return (s or '(...)')..(r and sfmt(' -> %s', r) or '')
+end
+
+
 --- Documentation on a single type
 --- These pull together the various sources of documentation
 --- from the PKG and META_TY specs into a single object.
@@ -65,6 +79,7 @@ M.Doc = mty'Doc' {
   'main [Doc]: main Args, mostly used for PKG',
   'meta [table]: metadata, mostly used for PKG',
   'comments [lines]: comments above item',
+  'fnsig  [string]: function signature',
   'code   [lines]: code which defines the item',
   'call   [function]',
   'fields [table{name=DocItem}]: (for metatys)',
@@ -81,7 +96,8 @@ M.DocItem = mty'DocItem' {
   'obj [any]',
   'name', 'pkgname [string]', 'ty [string]', 'docTy [string]',
   'path [string]',
-  'default [any]', 'doc [string]'
+  'fnsig  [string]: function signature',
+  'default [any]', 'doc [string]',
 }
 getmetatable(M.DocItem).__call = _construct
 M.DocItem.__tostring = function(di) return sfmt('DocItem%q', di.name) end
@@ -139,6 +155,7 @@ M._Construct.__call = function(c, obj, key, expand, lvl) --> Doc | DocItem
   if c.done[obj] then return M.DocItem(d) end
   c.done[obj] = true
   local comments, code = M.findcode(path)
+  d.fnsig = fnsig(code)
   if comments then
     M.stripComments(comments)
     if #comments == 0 then comments = nil
@@ -300,7 +317,8 @@ end
 
 M.fmtDocItem = function(f, di)
   local name = di.name and sfmt('[$%s]', escape(di.name or '(unnamed)'))
-  local ty = di.ty and sfmt('\\[%s\\]', escape(di.ty)) or ''
+  local ty = di.fnsig and sfmt('\\[%s\\]', cxt.code(di.fnsig))
+          or di.ty and sfmt('\\[%s\\]', escape(di.ty)) or ''
   local path = di.path and sfmt('([{path=%s}src])', escape(pth.nice(di.path)))
   local default = di.default and ('= '..cxt.code(fmt(di.default)))
   if path and default then path = '\n'..path end
@@ -357,17 +375,7 @@ M.fmtDoc = function(f, d)
   local path = d.path and sfmt(' ([{i path=%s}src])', escape(pth.nice(d.path))) or ''
   local name = d.pkgname or d.name
   local hname = name and sfmt('[:%s]', name) or '(unnamed)'
-  if type(d.obj) == 'function' then
-    local s, r; if d.code and d.code[1] then -- s=sig, r=result
-                    s, r = d.code[1]:match'(%b()).*%-%->%s*(.*)'
-      if not s then s, r = d.code[1]:match'(%b{}).*%-%->%s*(.*)' end
-      if not s then
-        s, r = d.code[1]:match'function(%b()).*return%s*(.-)%s*end'
-      end
-      if s and (not r or #r == 0) then r = 'nil' end
-    end
-    hname = hname..cxt.code((s or '(...)')..(r and sfmt(' -> %s', r) or ''))
-  end
+  if d.fnsig then hname = hname..cxt.code(d.fnsig) end
   pushfmt(f, '[{h%s}%s%s%s]',
           M.docHeader(d.docTy, d.lvl),
           d.docTy == 'Package' and '' or (assert(d.docTy)..' '),

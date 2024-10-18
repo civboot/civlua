@@ -106,6 +106,7 @@ end
 -- Finding
 local function _discover(pkgdir)
   local pkg, pkgpath = M.loadpkg(pkgdir)
+  if not pkg then return end
   M.PKGS[pkg.name] = pkgdir
   if not pkg.pkgs then return end
   for _, dir in ipairs(pkg.pkgs) do

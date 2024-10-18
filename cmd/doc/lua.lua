@@ -27,6 +27,22 @@ local undocumented = function(name)
   return t
 end
 
+do
+  local function makemod(name)
+    local m = G[name]
+    setmetatable(m, getmetatable(m) or {__name='Mod<'..name..'>'})
+  end
+
+  makemod'coroutine'
+  makemod'debug'
+  makemod'io'
+  makemod'math'
+  makemod'os'
+  makemod'package'
+  makemod'string'
+  makemod'table'
+  makemod'utf8'
+end
 
 --------------------
 -- Global Functions
@@ -408,6 +424,33 @@ M['os.execute'] = os.execute--(string) --> (ok, "exit", rc)
 
 --- not documented: see [$os] module
 for k, v in pairs(undocumented'os') do M[k] = v end
+
+-------------------------------
+-- math
+--- The builtin lua math module.
+M.math = math
+
+M['math.type'] = math.type--(v) --> ("float" | "integer" | nil)
+M['math.max']  = math.max --(x, ...) --> max according to [$<]
+M['math.min']  = math.max --(x, ...) --> min according to [$<]
+M['math.cos']  = math.cos  --(x) --> cos(x) in radians
+M['math.sin']  = math.sin  --(x) --> sin(x) in radians
+M['math.tan']  = math.tan  --(x) --> tan(x) in radians
+M['math.acos'] = math.acos --(x) --> arccos(x) in radians
+M['math.asin'] = math.asin --(x) --> arcsin(x) in radians
+M['math.atan'] = math.atan --(n, d) --> arctan(n / d) in radians
+M['math.exp'] = math.exp --(x) --> e^x (where e is the natural log base)
+--- the maximum value for a Lua integer
+M['math.maxinteger'] = math.maxinteger
+--- the maximum value of any other numeric valuej
+M['math.huge'] = math.huge
+
+--- currently not documented
+for k, v in pairs(undocumented'math') do M[k] = v end
+
+--- [$type] which will return
+---
+---
 
 ---------------------
 -- Keywords

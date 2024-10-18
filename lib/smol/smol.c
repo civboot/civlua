@@ -80,30 +80,42 @@ static void test_encode_v() {
 //************************
 //* Encode / Decode Commands
 
-// struct which holds data buffers and state of encoding/decoding
+// fingerprint struct
+typedef struct _FP {
+  uint32_t* t;
+  size_t    len;
+  size_t    tsz; // size in bytes
+} FP;
+
+
+// struct which holds data buffers and state of encoding/decoding.
+// The buffers can be reused for relevant calls.
 typedef struct _X {
   uint8_t *xmd,  *xp, *xe; size_t xmdsz;  // xmds buf, pointer, end (commands)
   uint8_t *text, *tp, *te; size_t textsz; // text buf, pointer, end (raw text)
   uint8_t *dec; size_t decsz;             // decoding buffer
-  uint8_t *enc; size_t encsz;             // encoding buffer + size
+  uint8_t *enc; size_t encsz;             // encoding buffer
   uint8_t *scr; size_t scrsz;             // scratch buffer
+  FP fp4;
 } X;
 
 #define META_X "smol.X"
 #define L_asX(L, I) ((X*)luaL_checkudata(L, I, META_X))
 
-#define FREE_PTR(X, F) \
+#define FREE_FIELD(X, F) \
   if((X).F##sz) { free((X).F); (X).F = NULL; (X).F##sz = 0; }
 static void X_free(X* x) {
-  FREE_PTR(*x, xmd); FREE_PTR(*x, text);
-  FREE_PTR(*x, dec); FREE_PTR(*x, enc);
-  FREE_PTR(*x, scr);
+  FREE_FIELD(*x, xmd); FREE_FIELD(*x, text);
+  FREE_FIELD(*x, dec); FREE_FIELD(*x, enc);
+  FREE_FIELD(*x, scr);
+  FREE_FIELD(*x, fp4.t);
 }
 #define ALLOC_FIELD(X, F, SZ) do { \
     if((X).F##sz < (SZ)) {        \
-      FREE_PTR(X, F);           \
+      FREE_FIELD(X, F);           \
       (X).F = malloc(SZ);       \
       ASSERT((X).F, "OOM:"#F);  \
+      (X).F##sz = SZ;           \
     } \
   } while(0)
 
@@ -209,16 +221,10 @@ static inline int A32_fp(A32* a, int loops) {
   return (a->b << 16) | a->a;
 }
 
-// fingerprint struct
-typedef struct _FP {
-  uint32_t* t;
-  size_t    len;
-} FP;
-
-#define FP_ALLOC(FP, LEN) do { \
-    (FP).len = LEN; (FP).t = malloc((LEN) * sizeof(uint32_t)); \
-    ASSERT((FP).t, "OOM: FP"); \
-    FP_init(&FP);              \
+#define FP_ALLOC(X, F, LEN) do { \
+    ALLOC_FIELD(X, F.t, (LEN) * sizeof(uint32_t)); \
+    (X).F.len = LEN; \
+    FP_init(&(X).F); \
   } while(0) \
 
 
@@ -453,31 +459,28 @@ error:
 // create an rdelta
 // (change, x, base?) -> (cmds, text)
 static int l_rdelta(LS* L) {
-  FP fp4 = {0};
-
   char* err = NULL;
   size_t clen; uint8_t* change = (uint8_t*)luaL_checklstring(L, 1, &clen);
+  X* x = L_asX(L, 2);
   if(clen == 0) {
     lua_pushlstring(L, "\0", 1);
     lua_pushstring(L, "");
     return 2;
   }
-  size_t blen; uint8_t* base = (uint8_t*)luaL_optlstring(L, 2, "", &blen);
+  size_t blen; uint8_t* base = (uint8_t*)luaL_optlstring(L, 3, "", &blen);
   printf("!! rdelta clen=%i change=%s\n", clen, change);
   printf("!!        blen=%i base=%s\n", blen, base);
 
   size_t dlen = blen + clen;
-  uint8_t* dec = malloc(dlen); ASSERT(dec, "OOM");
 
-  uint8_t* xmds = malloc(dlen); ASSERT(xmds, "OOM");
-  uint8_t* text = malloc(dlen); ASSERT(text, "OOM");
+  ALLOC_FIELD(*x, dec,  dlen); uint8_t* dec  = x->dec;
+  ALLOC_FIELD(*x, xmd,  dlen); uint8_t* xmd = x->xmd;
+  ALLOC_FIELD(*x, text, dlen); uint8_t* text = x->text;
+  x->xp = xmd;  x->xe = xmd+dlen;
+  x->tp = text; x->te = text+dlen;
 
   // set up pointers which are moved by the sub-algorithms as we encode.
   uint8_t *dp=dec+blen, *de=dec+dlen; // decode pointer
-  X x = { // encoded cmds+text pointers
-    .xp=xmds, .xe = xmds+dlen,
-    .tp=text, .te = text+dlen,
-  };
 
   // run character and pointer
   uint8_t rc; uint8_t* rp;
@@ -490,7 +493,7 @@ static int l_rdelta(LS* L) {
   // to add and do it in one go immediately before other ops.
   uint8_t* ap = dec+blen;
   #define ENC_ADD() if(ap < dp) { \
-    if(encADD(&x, dp-ap, ap)) goto error; /* -> nil */ \
+    if(encADD(x, dp-ap, ap)) goto error; /* -> nil */ \
   }
 
   Win wl, wr; // left and right windows
@@ -503,7 +506,7 @@ static int l_rdelta(LS* L) {
   #define WLEN(W)   Win_len(W)
   #define ENC_CPY() do { \
     ENC_ADD(); \
-    encCPY(&x, Win_len(&wl), dp-wl.ep); \
+    encCPY(x, Win_len(&wl), dp-wl.ep); \
     dp += Win_len(&wl); ap = dp; \
   } while(0)
 
@@ -514,13 +517,13 @@ static int l_rdelta(LS* L) {
   // fingerprint pointer and tables
   uint8_t* fpp = dec; uint32_t fpi;
   A32 a32 = {.end=de};
-  FP_ALLOC(fp4, 99999); // TODO: use different prime
+  FP_ALLOC(*x, fp4, 99999); FP* fp4 = &x->fp4;
 
   while(dp < de) {
     printf("!!#### dec index=%i (dp=0x%p)\n", dp - dec, dp);
     for(;fpp < dp; fpp += 1) { // add finterprints we missed
       A32_start(&a32, fpp, de);
-      FP_set(&fp4, &a32, fpp - dec);
+      FP_set(fp4, &a32, fpp - dec);
     }
     printf("!!## Done adding dpp<de\n");
 
@@ -529,14 +532,14 @@ static int l_rdelta(LS* L) {
     #define RUN_LEN() (rp - dp)
     #define ENC_RUN() do { \
       ENC_ADD();        \
-      encRUN(&x, RUN_LEN(),rc); \
+      encRUN(x, RUN_LEN(),rc); \
       dp += RUN_LEN(); ap = dp; \
     } while(0)
 
     // find window/s
     A32_start(&a32, fpp, de);
     wl.sp = dp; wl.ep = dp;
-    fpi = FP_set(&fp4, &a32, fpp - dec); fpp += 1;
+    fpi = FP_set(fp4, &a32, fpp - dec); fpp += 1;
     if(fpi < UINT32_MAX) WFIND(fpi, dp);
     printf("!! DECISION: '%c' rlen=%i fp4=%i\n", rc, RUN_LEN(), Win_len(&wl));
     Win_print("!! fp4 win: ", dec, &wl);
@@ -550,17 +553,13 @@ static int l_rdelta(LS* L) {
 
   ENC_ADD();
   if(de < dec + dlen) // enc final matching block
-    encCPY(&x, /*len*/(dec+dlen)-de, /*raddr*/dp-(dec+blen));
+    encCPY(x, /*len*/(dec+dlen) - de, /*raddr*/dp - (dec+blen));
 
-  printf("!! pushing xmds and text\n");
-  lua_pushlstring(L, xmds, x.xp-xmds);
-  lua_pushlstring(L, text, x.tp-text);
-  free(dec); free(xmds); free(text);
-  FP_free(&fp4);
+  printf("!! pushing xmd and text\n");
+  lua_pushlstring(L, xmd,  x->xp - xmd);
+  lua_pushlstring(L, text, x->tp - text);
   return 2;
 error:
-  free(dec); free(xmds); free(text);
-  FP_free(&fp4);
   ASSERT(!err, err);
   return 0;
 }

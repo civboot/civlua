@@ -20,7 +20,7 @@ Documentation for A
 [*Records: ] [{table}
 + [$docfake.A.__index] | \[Ty<A>\] ([{path=cmd/doc/test/docfake.lua:000}src])
 ]
-[{h4}Function [:metaty.newindex][$(...)] ([{i path=lib/metaty/metaty.lua:000}src])]
+[{h4}Function [:metaty.newindex] ([{i path=lib/metaty/metaty.lua:000}src])]
 [{h4}Function [:A.meth1][$() -> thing] ([{i path=cmd/doc/test/docfake.lua:000}src])]
 docs for meth1
 [{h3}Function [:docfake.fun1][$() -> thing] ([{i path=cmd/doc/test/docfake.lua:000}src])]
