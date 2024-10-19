@@ -32,30 +32,11 @@ local f = string.format
 w'// the previous prime for 2^8 to 2^32\n'
 w'// generated from po2prime.lua\n'
 w'uint32_t po2primes[] = {\n'
-for r=1,3 do
-  local c = (r-1)*8 + 1
+for r=1,6 do
+  local c = (r-1)*4 + 1
   w'  '
-  for c=c,c+7 do w(f('% 10s, ', f('0x%x', po2[c]))) end
+  for c=c,c+3 do w(f('%-11s ', f('0x%x,', po2[c]))) end
   w'\n'
 end
-w'}\n'
-w[[
-// given a power of 2 return the prime just before it
-// the min/max values are the primes of 2^8 and 2^32 respectively.
-static uint32_t prev_po2_prime(uint32_t po2) {
-  if(po2 <= 8)  return po2primes[0];
-  if(po2 >= 32) return po2primes[32-8];
-  return po2primes[po2-8];
-}
-
-// find the power-of-2 that is >= val and return the prime just before
-// that.
-static int prevpo2(uint32_t val) {
-  if(val < 0x100) return po2primes[0];
-  for(int po2=8; po2 < 31; po2++) {
-    if((1<<po2) >= val) return po2primes[po2 - 8];
-  }
-  return po2primes[32-8];Q
-}
-]]
+w'};\n'
 

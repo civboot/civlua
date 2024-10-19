@@ -3,6 +3,9 @@ local T = require'civtest'.Test
 local smol = require'smol'
 local S = require'smol.sys'
 local fbin = require'fmt.binary'
+local ds = require'ds'
+local Iter = require'ds.Iter'
+local civix = require'civix'
 
 local sfmt = string.format
 
@@ -21,6 +24,7 @@ local function rtest(base, change, expCmd, expText)
     T.binEq(expCmd, cmds)
     T.eq(expText, text)
   end
+  return cmds, text
 end
 
 T.rdelta_small = function()
@@ -43,4 +47,26 @@ T.rdelta_small = function()
   rtest('01234567', 'a01234567z', '\x01\x88\x01\x01', 'az')
   -- copy nobase w/fingerprint      ad8 cpy8@0
   rtest('', '0123456701234567',   '\x08\x88\x00', '01234567')
+end
+
+T.walk_compress = function()
+  local x = S.createX()
+  for path, ftype in civix.Walk{'./'} do
+    if ftype ~= 'file' or path:find'/%.'
+      or path:find'experiment'
+      -- FIXME: remove once others work
+      or path:find'%.html' then
+      goto continue end
+
+    print('!! path', path, ftype)
+    local ftext = ds.readPath(path)
+    local xmds, txt = S.rdelta(ftext, x)
+    T.eq(#ftext, S.xmdslen(xmds))
+    print(sfmt('!!   %i / %i (%.0f%%)',
+      #xmds + #txt, #ftext,
+      (#xmds + #txt) * 100 / #ftext))
+    T.eq(ftext, S.rpatch(xmds, txt, x))
+    ::continue::
+  end
+  error'ok'
 end

@@ -15,6 +15,9 @@ typedef lua_State LS;
 
 #define ASSERT(OK, ...) if(!(OK)) { luaL_error(L, __VA_ARGS__); }
 
+#define DBG(...) printf("!D! " __VA_ARGS__)
+#define DBG(...)
+
 #define ADD  0x00
 #define RUN  0x40
 #define CPY  0x80
@@ -30,6 +33,65 @@ static inline int gain(int len, int raddr) {
   if(raddr <= 0x200000 /*2^21*/) return len - 5;
 }
 
+#define MIN_PO2 8
+#define MAX_PO2 27
+
+#define MIN(A,B) ((A) < (B)) ? (A) : (B)
+#define MAX(A,B) ((A) > (B)) ? (A) : (B)
+
+// get the po2 that is greater than or equal to v
+// (minimum 8, maximum 27)
+static int po2(uint32_t v) {
+  int po2 = 0;
+  if(v >= (1<<16)) {
+    po2 = 16;
+    if(v > (1<<31)) return 31;
+    if(v >= (1<<24)) po2 = 24;
+  }
+  else if(v >= (1<<8)) po2 = 8;
+  while(v > (1 << po2)) { po2 += 1; }
+  return po2;
+}
+
+// the previous prime for 2^8 to 2^27
+// generated from po2prime.lua
+uint32_t po2primes[] = {
+  0xfb,       0x1fd,      0x3fd,      0x7f7,     // 8-11
+  0xffd,      0x1fff,     0x3ffd,     0x7fed,    // 12-15
+  0xfff1,     0x1ffff,    0x3fffb,    0x7ffff,   // 16-19
+  0xffffd,    0x1ffff7,   0x3ffffd,   0x7ffff1,  // 20-23
+  0xfffffd,   0x1ffffd9l, 0x3fffffb,  0x7ffffd9, // 24-27
+};
+
+// get a prime number just before the power of 2
+static int po2prime(int po2) {
+  po2 = MAX(MIN_PO2, MIN(po2, MAX_PO2));
+  return po2primes[po2-MIN_PO2];
+}
+
+#ifdef TEST
+static void test_po2() {
+  printf("# test_po2 (c)\n");
+  assert(1 == po2(2));
+  assert(2 == po2(3)); assert(2 == po2(4));
+  assert(3 == po2(5));
+  assert(9  == po2(1<<9));
+  assert(18 == po2(1<<18));
+  assert(19 == po2(1<<19));
+  assert(26 == po2(1<<26));
+  assert(31 == po2(1<<31)); assert(31 == po2((1<<31) + 9999)); // max
+
+  assert(0xfb      == po2prime(po2(2)));
+  assert(0xfb      == po2prime(po2(0xff)));
+  assert(0xffffd   == po2prime(po2(0xfffff)));
+  assert(0x7ffffd9 == po2prime(po2(1<<30)));
+  assert(0x7ffffd9 == po2prime(po2(1<<27)));
+  assert(0x3fffffb == po2prime(po2(1<<26)));
+}
+#endif
+
+
+
 //************************
 //* Encode / Decode value
 
@@ -44,7 +106,6 @@ static inline int decv(uint8_t** b, uint8_t* be, int v, int s) {
 }
 
 static inline int encv(uint8_t** b, uint8_t* be, int v) {
-  printf("!! enc v=0x%x\n", v);
   while((*b < be) && (v > 0x7F)) {
     **b = 0x80 | v; v = v >> 7; *b += 1;
   }
@@ -60,7 +121,6 @@ static void test_encode_v() {
   uint8_t b[12] = "\x85\x0F\x33";
   uint8_t *bp = b, *be = b + 12;
   int v = decv(&bp,be, 0,0);
-  printf("!! decv v=0x%x bp-b=%i\n", v, bp-b);
   assert((bp - b) == 2);
   assert(v == ((0x0F << 7) | (0x5)));
 
@@ -91,12 +151,12 @@ typedef struct _FP {
 // struct which holds data buffers and state of encoding/decoding.
 // The buffers can be reused for relevant calls.
 typedef struct _X {
-  uint8_t *xmd,  *xp, *xe; size_t xmdsz;  // xmds buf, pointer, end (commands)
-  uint8_t *text, *tp, *te; size_t textsz; // text buf, pointer, end (raw text)
-  uint8_t *dec; size_t decsz;             // decoding buffer
-  uint8_t *enc; size_t encsz;             // encoding buffer
-  uint8_t *scr; size_t scrsz;             // scratch buffer
-  FP fp4;
+  uint8_t *xmd, *xp, *xe; size_t xmdsz;  // xmds buf, pointer, end (commands)
+  uint8_t *txt, *tp, *te; size_t txtsz;  // txt buf, pointer, end (raw text)
+  uint8_t *dec; size_t decsz;            // decoding buffer
+  uint8_t *enc; size_t encsz;            // encoding buffer
+  uint8_t *scr; size_t scrsz;            // scratch buffer
+  FP fp4, fp8;
 } X;
 
 #define META_X "smol.X"
@@ -105,7 +165,7 @@ typedef struct _X {
 #define FREE_FIELD(X, F) \
   if((X).F##sz) { free((X).F); (X).F = NULL; (X).F##sz = 0; }
 static void X_free(X* x) {
-  FREE_FIELD(*x, xmd); FREE_FIELD(*x, text);
+  FREE_FIELD(*x, xmd); FREE_FIELD(*x, txt);
   FREE_FIELD(*x, dec); FREE_FIELD(*x, enc);
   FREE_FIELD(*x, scr);
   FREE_FIELD(*x, fp4.t);
@@ -124,13 +184,11 @@ static inline int deccmd(uint8_t** b, uint8_t* be, int* len) {
   uint8_t ch = **b; *b += 1;
   *len = 0x1F & ch; int cmd = 0xC0 & ch;
   if(0x20 & ch) *len = decv(b,be, *len,5);
-  printf("!! decmd 0x%X ch=0x%x len=0x%x\n", cmd, ch, *len);
   if(*len < 0) return -1;
   return cmd;
 }
 static inline int enccmd(uint8_t** b, uint8_t* be, int cmd, int clen) {
   if(*b >= be) return -1;
-  printf("!! encCmd 0x%x len=0x%x\n", cmd, clen);
   if (clen > 0x1F) {
     **b = cmd | 0x20 | (0x1F & clen); *b += 1;
     return encv(b,be, clen >> 5);
@@ -143,12 +201,10 @@ static inline int encRUN(X* x, int r, uint8_t ch) {
   if(enccmd(&x->xp,x->xe, RUN,r)) return -1;
   if(x->tp >= x->te)              return -1;
   *x->tp = ch; x->tp += 1;
-  printf("!! encRUN r=0x%x\n", r);
   return 0;
 }
 
 static inline int encADD(X* x, int addlen, uint8_t* str) {
-  printf("!! encADD addlen=0x%x\n", addlen);
   if(enccmd(&x->xp,x->xe, ADD,addlen)) return -1;
   if(x->tp + addlen >= x->te)          return -1;
   memcpy(x->tp, str, addlen); x->tp += addlen;
@@ -156,7 +212,6 @@ static inline int encADD(X* x, int addlen, uint8_t* str) {
 }
 
 static inline int encCPY(X* x, int cpylen, int raddr) {
-  printf("!! encCPY cpylen=0x%x raddr=0x%x\n", cpylen, raddr);
   if(enccmd(&x->xp,x->xe, CPY,cpylen)) return -1;
   return encv(&x->xp,x->xe, raddr);
 }
@@ -176,7 +231,7 @@ static void test_encode_cmds() {
 
 #define T_ROUND(CMD, LEN, EI, DI, ...) \
   x.xp=b; x.tp=t; assert(0 == enc##CMD(&x, LEN, __VA_ARGS__)); \
-    printf("!! i=%i\n", x.xp-b); assert((x.xp-b)==(EI)); \
+    printf("i=%i\n", x.xp-b); assert((x.xp-b)==(EI)); \
   x.xp=b; x.tp=t; len=0; assert(CMD == deccmd(&x.xp,x.xe, &len)); \
     assert((DI)==(x.xp-b)); \
     assert(LEN == len);
@@ -206,13 +261,11 @@ typedef struct _A32 {
 // TODO: don't set end here
 static inline void A32_start(A32* a, uint8_t* p, uint8_t* end) {
   a->p = p; a->end = end; a->a = 1; a->b = 0;
-  printf("!! A32 start done\n");
 }
 
 // perform the loops and return the fingerprint. Updates p, a and b
 static inline int A32_fp(A32* a, int loops) {
   for(; loops > 0; loops--) {
-    printf("!! A32_fp loop a=%x b=%x p=%p end=%p\n", a->a, a->b, a->p, a->end);
     if(a->p >= a->end) break;
     a->a = (a->a + *a->p) % MOD_ADLER;
     a->b = (a->a +  a->b) % MOD_ADLER;
@@ -239,11 +292,8 @@ static inline void FP_free(FP* f) {
 // calculate the fingerprint and set to i.
 // Return the value (index) that was previously there.
 static inline uint32_t FP_set(FP* f, A32* a, uint32_t i) {
-  printf("!! FP_set i=%i\n", i);
   uint32_t fp = A32_fp(a, 3);
-  printf("!!   FP_set fpi=%u fp=%u (0x%x)\n", fp % f->len, fp);
   uint32_t o = f->t[fp % f->len];
-  printf("!!   FP_set oi=%u o=%u (0x%x)\n", o % f->len, o, o);
                f->t[fp % f->len] = i;
   return o;
 }
@@ -268,7 +318,7 @@ void test_fp() {
     printf("- fp.testI %u 0x%x\n", I, EXPECT); \
     A32_start(&a, d+(I), d+16); \
     r = FP_set(&f, &a, I); \
-    printf("!! got r=%u (0x%x)\n", r, r); \
+    printf("got r=%u (0x%x)\n", r, r); \
     assert(EXPECT == r);
 
   testI(0, UINT32_MAX); // index not found
@@ -299,21 +349,15 @@ static inline int Win_print(uint8_t* name, uint8_t* r, Win* w) {
 // Expand both windows as long as they are equal
 // Requires: ws == we for both at the start
 static inline void Win_expand(Win* a, Win* b) {
-  printf("!! Win_expand: "); Win_print("a", a->s, a);
-  printf("!!             "); Win_print("b", a->s, b);
-  printf("!!              %i =? %i\n", *a->ep, *b->ep);
   while((a->ep < a->e) && (b->ep < b->e) && (*a->ep == *b->ep)) {
-    printf("!!   aei=%i bei=%i\n", a->ep-a->s, b->ep-b->s);
     a->ep += 1; b->ep += 1;
   }
   if(a->ep == b->ep) return;
   a->sp -= 1; b->sp -= 1;
   while((a->sp >= a->s) && (b->sp >= b->s) && (*a->sp == *b->sp)) {
-    printf("!!   asi=%i bsi=%i\n", a->sp-a->s, b->sp-b->s);
     a->sp -= 1; b->sp -= 1;
   }
   a->sp += 1; b->sp += 1;
-  Win_print("!!   result left", a->s, a);
 }
 
 
@@ -334,8 +378,8 @@ void test_window() {
         Win_expand(&a, &b); \
         assert(a_s == a.s-s); assert(a_e == a.e-s); /*sanity*/ \
         assert(b_s == b.s-s); assert(b_e == b.e-s); /*sanity*/ \
-        printf("!!  Win"); Win_print("a", s, &a); \
-        printf("!!  Win"); Win_print("b", s, &b); \
+        DBG(" Win"); Win_print("a", s, &a); \
+        DBG(" Win"); Win_print("b", s, &b); \
         assert(expect_a_sp == a.sp-s); assert(expect_a_ep == a.ep-s); \
         assert(expect_b_sp == b.sp-s); assert(expect_b_ep == b.ep-s);
 
@@ -363,6 +407,7 @@ void test_window() {
 #ifdef TEST
 int main() {
   printf("# TEST smol.c\n");
+  test_po2();
   test_encode_v();
   test_encode_cmds();
   test_fp();
@@ -375,16 +420,14 @@ int main() {
 //* Patch (decode) RDelta
 
 // get the patch's resultant change length
-static int rpatch_clen(uint8_t* xp, uint8_t* xe) {
-  size_t len = 0;
-  while(xp < xe) {
+static int xmdslen(uint8_t* xp, uint8_t* xe) {
+  int len = 0; while(xp < xe) {
     int cmdlen; int cmd = deccmd(&xp,xe, &cmdlen);
-    printf("!! + rpatch_clen %X len=%i\n", cmd, cmdlen);
+    len += cmdlen;
     switch(cmd) {
-      case RUN: xp += 1;
-      case ADD: len += cmdlen; break;
+      case RUN:
+      case ADD: break;
       case CPY:
-        len += cmdlen;
         if(decv(&xp,xe, 0,0) < 0) return -1;
         break;
       default: return -1;
@@ -393,24 +436,23 @@ static int rpatch_clen(uint8_t* xp, uint8_t* xe) {
   return len;
 }
 
-// apply an rdelta which consists of a command block and (raw) text block
+// apply an rdelta which consists of a command block and (raw) txt block
 // and optional base to get the change.
-// (delta_cmds, delta_text, X, base?) -> change
+// (delta_cmds, delta_txt, X, base?) -> change
 static int l_rpatch(LS* L) {
+  printf("############ rpatch\n");
   size_t xlen; uint8_t* xmds = (uint8_t*)luaL_checklstring(L, 1,   &xlen);
-  size_t tlen; uint8_t* text = (uint8_t*)luaL_checklstring(L, 2,   &tlen);
+  size_t tlen; uint8_t* txt = (uint8_t*)luaL_checklstring(L, 2,   &tlen);
   X* x = L_asX(L, 3);
   size_t blen; uint8_t* base = (uint8_t*)luaL_optlstring(L, 4, "", &blen);
-  printf("!! rpatch xlen=%i tlen=%i\n", xlen, tlen);
-  printf("!!        blen=%i base=%s\n", blen, base);
 
   ASSERT(xlen >= 1, "#rdelta xmds == 0");
   uint8_t *xp = xmds, *xe = xmds+xlen;
-  uint8_t *tp = text, *te = text+tlen;
+  uint8_t *tp = txt, *te = txt+tlen;
 
   // decode the length of the final output
-  int clen = rpatch_clen(xp,xe); ASSERT(clen >= 0, "clen");
-  printf("!!       clen=%i\n", clen);
+  int clen = xmdslen(xp,xe); ASSERT(clen >= 0, "clen");
+  DBG("dlen=%i xlen=%i tlen=%i\n", blen+clen, xlen, tlen);
 
   if(clen == 0) { lua_pushstring(L, ""); return 1; }
 
@@ -424,14 +466,17 @@ static int l_rpatch(LS* L) {
     int cmdlen; int cmd = deccmd(&xp,xe, &cmdlen);
     switch (cmd) {
       case ADD:
+        DBG("ADD len=%i ti=%i  di=%i\n", cmdlen, tp-txt, dp-dec);
         if((tp + cmdlen > te) || (dp + cmdlen > de)) goto error;
         memcpy(dp, tp, cmdlen); tp += cmdlen;
         break;
       case RUN:
+        DBG("RUN len=%i ti=%i  di=%i\n", cmdlen, tp-txt, dp-dec);
         if((tp + 1 > te) || (dp + cmdlen > de)) goto error;
         memset(dp, *tp, cmdlen); tp += 1;
         break;
       case CPY:
+        DBG("CPY len=%i ti=%i  di=%i\n", cmdlen, tp-txt, dp-dec);
         int raddr = decv(&xp,xe, 0,0); if(raddr < 0) goto error;
         size_t di = dp - dec;
         raddr = di - raddr - cmdlen;
@@ -457,8 +502,9 @@ error:
 //* Create (encode) rdelta
 
 // create an rdelta
-// (change, x, base?) -> (cmds, text)
+// (change, x, base?) -> (cmds, txt)
 static int l_rdelta(LS* L) {
+  printf("############ rdelta\n");
   char* err = NULL;
   size_t clen; uint8_t* change = (uint8_t*)luaL_checklstring(L, 1, &clen);
   X* x = L_asX(L, 2);
@@ -468,16 +514,13 @@ static int l_rdelta(LS* L) {
     return 2;
   }
   size_t blen; uint8_t* base = (uint8_t*)luaL_optlstring(L, 3, "", &blen);
-  printf("!! rdelta clen=%i change=%s\n", clen, change);
-  printf("!!        blen=%i base=%s\n", blen, base);
-
   size_t dlen = blen + clen;
 
   ALLOC_FIELD(*x, dec,  dlen); uint8_t* dec  = x->dec;
-  ALLOC_FIELD(*x, xmd,  dlen); uint8_t* xmd = x->xmd;
-  ALLOC_FIELD(*x, text, dlen); uint8_t* text = x->text;
+  ALLOC_FIELD(*x, xmd,  dlen); uint8_t* xmd  = x->xmd;
+  ALLOC_FIELD(*x, txt, dlen); uint8_t* txt = x->txt;
   x->xp = xmd;  x->xe = xmd+dlen;
-  x->tp = text; x->te = text+dlen;
+  x->tp = txt; x->te = txt+dlen;
 
   // set up pointers which are moved by the sub-algorithms as we encode.
   uint8_t *dp=dec+blen, *de=dec+dlen; // decode pointer
@@ -492,46 +535,47 @@ static int l_rdelta(LS* L) {
   // ADD is the "fallback", we build up the bytes we want
   // to add and do it in one go immediately before other ops.
   uint8_t* ap = dec+blen;
-  #define ENC_ADD() if(ap < dp) { \
-    if(encADD(x, dp-ap, ap)) goto error; /* -> nil */ \
+  #define ENC_ADD(TO) if(ap < (TO)) { \
+    if(encADD(x, (TO)-ap, ap)) goto error; /* -> nil */ \
   }
 
   Win wl, wr; // left and right windows
   #define WFIND(LI, RP) /*window find at fingerprint index*/    \
     wl = (Win) {.s=dec, .sp=dec+(LI), .ep=dec+(LI), .e=dp}; \
-    wr = (Win) {.s=dp,  .sp=RP,       .ep=RP,       .e=de}; \
+    wr = (Win) {.s=ap,  .sp=RP,       .ep=RP,       .e=de}; \
     Win_expand(&wl, &wr);
 
   // found like-windows. Encode wl (window left) as a copy
   #define WLEN(W)   Win_len(W)
   #define ENC_CPY() do { \
-    ENC_ADD(); \
-    encCPY(x, Win_len(&wl), dp-wl.ep); \
-    dp += Win_len(&wl); ap = dp; \
+    ENC_ADD(wr.sp); \
+    encCPY(x, Win_len(&wl), wr.sp-wl.ep); \
+    dp = wr.ep; ap = dp; \
   } while(0)
 
   // CPY starting bytes and setup for copying ending bytes
-  WFIND(0, dp);    if(gain(Win_len(&wl), blen) >= 2) { ENC_CPY(); }
+  WFIND(0,    dp); if(gain(Win_len(&wl), blen) >= 2) { ENC_CPY(); }
   WFIND(blen, de); if(gain(Win_len(&wl), clen) >= 2) { de = wr.sp; }
 
   // fingerprint pointer and tables
   uint8_t* fpp = dec; uint32_t fpi;
   A32 a32 = {.end=de};
-  FP_ALLOC(*x, fp4, 99999); FP* fp4 = &x->fp4;
+
+  // 4 byte match is valuable up to 2^14 bytes away
+  FP_ALLOC(*x, fp4, po2prime(po2(MIN(0xff, MAX(dlen, 1<<14)))));
+  FP* fp4 = &x->fp4;
 
   while(dp < de) {
-    printf("!!#### dec index=%i (dp=0x%p)\n", dp - dec, dp);
-    for(;fpp < dp; fpp += 1) { // add finterprints we missed
+    for(; fpp < dp; fpp += 1) { // add finterprints we missed
       A32_start(&a32, fpp, de);
       FP_set(fp4, &a32, fpp - dec);
     }
-    printf("!!## Done adding dpp<de\n");
 
     // compute run length
     rc = *dp; rp=dp+1; while((rp < de) && (rc == *rp)) { rp += 1; }
     #define RUN_LEN() (rp - dp)
     #define ENC_RUN() do { \
-      ENC_ADD();        \
+      ENC_ADD(dp);        \
       encRUN(x, RUN_LEN(),rc); \
       dp += RUN_LEN(); ap = dp; \
     } while(0)
@@ -541,8 +585,6 @@ static int l_rdelta(LS* L) {
     wl.sp = dp; wl.ep = dp;
     fpi = FP_set(fp4, &a32, fpp - dec); fpp += 1;
     if(fpi < UINT32_MAX) WFIND(fpi, dp);
-    printf("!! DECISION: '%c' rlen=%i fp4=%i\n", rc, RUN_LEN(), Win_len(&wl));
-    Win_print("!! fp4 win: ", dec, &wl);
     int wg = gain(Win_len(&wl), dp-wl.ep); // window gain
     if (wg > 1) {
       if     (gain(RUN_LEN(), 0) >= wg) ENC_RUN();
@@ -551,13 +593,12 @@ static int l_rdelta(LS* L) {
     else dp += 1;
   }
 
-  ENC_ADD();
+  ENC_ADD(dp);
   if(de < dec + dlen) // enc final matching block
     encCPY(x, /*len*/(dec+dlen) - de, /*raddr*/dp - (dec+blen));
 
-  printf("!! pushing xmd and text\n");
   lua_pushlstring(L, xmd,  x->xp - xmd);
-  lua_pushlstring(L, text, x->tp - text);
+  lua_pushlstring(L, txt, x->tp - txt);
   return 2;
 error:
   ASSERT(!err, err);
@@ -572,9 +613,17 @@ static int l_createX(LS* L) {
   return 1;
 }
 
+// (xmds) -> (changelen)
+static int l_xmdslen(LS *L) {
+  size_t xlen; uint8_t* xmds = (uint8_t*)luaL_checklstring(L, 1, &xlen);
+  lua_pushinteger(L, xmdslen(xmds, xmds+xlen));
+  return 1;
+}
+
 static const struct luaL_Reg smol_sys[] = {
   {"createX", l_createX},
   {"rpatch", l_rpatch}, {"rdelta", l_rdelta},
+  {"xmdslen", l_xmdslen},
   {NULL, NULL}, // sentinel
 };
 
