@@ -4,6 +4,7 @@ local smol = require'smol'
 local S = require'smol.sys'
 local fbin = require'fmt.binary'
 local ds = require'ds'
+local pth = require'ds.path'
 local Iter = require'ds.Iter'
 local civix = require'civix'
 
@@ -49,24 +50,37 @@ T.rdelta_small = function()
   rtest('', '0123456701234567',   '\x08\x88\x00', '01234567')
 end
 
+local function testpath(x, path)
+  local ftext = ds.readPath(path)
+  local xmds, txt, csize = S.rdelta(ftext, x)
+  if not xmds then csize = #ftext -- no compression
+  else
+    csize = #xmds + #txt
+    T.eq(#ftext, S.xmdslen(xmds))
+    T.eq(ftext, S.rpatch(xmds, txt, x))
+  end
+  print(sfmt('compress % 8i / %-8i (%3i%%) : %s',
+    csize, #ftext, math.floor(csize * 100 / #ftext), pth.nice(path)))
+  return csize, #ftext
+end
+
+T.compress_files = function()
+  local x = S.createX()
+  testpath(x, 'cmd/cxt/test.lua')
+end
+
 T.walk_compress = function()
   local x = S.createX()
+  local num, csize, osize = 0, 0, 0
   for path, ftype in civix.Walk{'./'} do
     if ftype ~= 'file' or path:find'/%.'
-      or path:find'experiment'
-      -- FIXME: remove once others work
-      or path:find'%.html' then
+      or path:find'experiment' then
       goto continue end
-
-    print('!! path', path, ftype)
-    local ftext = ds.readPath(path)
-    local xmds, txt = S.rdelta(ftext, x)
-    T.eq(#ftext, S.xmdslen(xmds))
-    print(sfmt('!!   %i / %i (%.0f%%)',
-      #xmds + #txt, #ftext,
-      (#xmds + #txt) * 100 / #ftext))
-    T.eq(ftext, S.rpatch(xmds, txt, x))
+      local c, o = testpath(x, path)
+      num = num + 1; csize = csize + c; osize = osize + o
     ::continue::
   end
-  error'ok'
+  print(sfmt('!! average compression of %i individual files', num))
+  print(sfmt('  == %i/%i (%.0f%%)',
+        csize, osize, (csize * 100) / osize))
 end

@@ -198,6 +198,7 @@ static inline int enccmd(uint8_t** b, uint8_t* be, int cmd, int clen) {
 }
 
 static inline int encRUN(X* x, int r, uint8_t ch) {
+  DBG("encRUN len=%i '%c'\n", r, ch);
   if(enccmd(&x->xp,x->xe, RUN,r)) return -1;
   if(x->tp >= x->te)              return -1;
   *x->tp = ch; x->tp += 1;
@@ -205,6 +206,7 @@ static inline int encRUN(X* x, int r, uint8_t ch) {
 }
 
 static inline int encADD(X* x, int addlen, uint8_t* str) {
+  DBG("encADD len=%i: %.*s\n", addlen, addlen, str);
   if(enccmd(&x->xp,x->xe, ADD,addlen)) return -1;
   if(x->tp + addlen >= x->te)          return -1;
   memcpy(x->tp, str, addlen); x->tp += addlen;
@@ -212,6 +214,8 @@ static inline int encADD(X* x, int addlen, uint8_t* str) {
 }
 
 static inline int encCPY(X* x, int cpylen, int raddr) {
+  assert(raddr >= 0);
+  DBG("encCPY len=%i raddr=%i\n", cpylen, raddr);
   if(enccmd(&x->xp,x->xe, CPY,cpylen)) return -1;
   return encv(&x->xp,x->xe, raddr);
 }
@@ -348,16 +352,21 @@ static inline int Win_print(uint8_t* name, uint8_t* r, Win* w) {
 
 // Expand both windows as long as they are equal
 // Requires: ws == we for both at the start
-static inline void Win_expand(Win* a, Win* b) {
-  while((a->ep < a->e) && (b->ep < b->e) && (*a->ep == *b->ep)) {
-    a->ep += 1; b->ep += 1;
+static inline void Win_expand(Win* wl, Win* wr) {
+  Win l = *wl, r = *wr;
+  while((l.ep < l.e) && (r.ep < r.e) && (*l.ep == *r.ep)) {
+    l.ep += 1; r.ep += 1;
   }
-  if(a->ep == b->ep) return;
-  a->sp -= 1; b->sp -= 1;
-  while((a->sp >= a->s) && (b->sp >= b->s) && (*a->sp == *b->sp)) {
-    a->sp -= 1; b->sp -= 1;
+  if(l.ep == r.ep) goto end;
+  r.s = MAX(l.ep, r.s); // we may have gone past the start
+  l.sp -= 1; r.sp -= 1;
+  while((l.sp >= l.s) && (r.sp >= r.s) && (*l.sp == *r.sp)) {
+    l.sp -= 1; r.sp -= 1;
   }
-  a->sp += 1; b->sp += 1;
+  l.sp += 1; r.sp += 1;
+end:
+  wl->sp = l.sp; wl->ep = l.ep;
+  wr->sp = r.sp; wr->ep = r.ep;
 }
 
 
@@ -400,6 +409,7 @@ void test_window() {
           /*b.s=*/0, /*b.sp=*/13, /*b.e=*/20,
           /*expect_a_sp=*/0,  /*expect_a_ep=*/6,
           /*expect_b_sp=*/10, /*expect_b_ep=*/16);
+
   #undef TEXPAND
 }
 #endif
@@ -440,7 +450,7 @@ static int xmdslen(uint8_t* xp, uint8_t* xe) {
 // and optional base to get the change.
 // (delta_cmds, delta_txt, X, base?) -> change
 static int l_rpatch(LS* L) {
-  printf("############ rpatch\n");
+  DBG("############ rpatch\n");
   size_t xlen; uint8_t* xmds = (uint8_t*)luaL_checklstring(L, 1,   &xlen);
   size_t tlen; uint8_t* txt = (uint8_t*)luaL_checklstring(L, 2,   &tlen);
   X* x = L_asX(L, 3);
@@ -504,7 +514,7 @@ error:
 // create an rdelta
 // (change, x, base?) -> (cmds, txt)
 static int l_rdelta(LS* L) {
-  printf("############ rdelta\n");
+  DBG("############ rdelta\n");
   char* err = NULL;
   size_t clen; uint8_t* change = (uint8_t*)luaL_checklstring(L, 1, &clen);
   X* x = L_asX(L, 2);
@@ -526,7 +536,7 @@ static int l_rdelta(LS* L) {
   uint8_t *dp=dec+blen, *de=dec+dlen; // decode pointer
 
   // run character and pointer
-  uint8_t rc; uint8_t* rp;
+  uint8_t rc; uint8_t* rp; size_t rl;
 
   // move the base+change into dec
   memcpy(dec, base, blen); memcpy(dec+blen, change, clen);
@@ -540,16 +550,18 @@ static int l_rdelta(LS* L) {
   }
 
   Win wl, wr; // left and right windows
-  #define WFIND(LI, RP) /*window find at fingerprint index*/    \
+  #define WFIND(LI, RP) do { /*window find at fingerprint index*/    \
     wl = (Win) {.s=dec, .sp=dec+(LI), .ep=dec+(LI), .e=dp}; \
     wr = (Win) {.s=ap,  .sp=RP,       .ep=RP,       .e=de}; \
-    Win_expand(&wl, &wr);
+    Win_expand(&wl, &wr); \
+  } while(0)
 
   // found like-windows. Encode wl (window left) as a copy
   #define WLEN(W)   Win_len(W)
   #define ENC_CPY() do { \
-    ENC_ADD(wr.sp); \
-    encCPY(x, Win_len(&wl), wr.sp-wl.ep); \
+    ENC_ADD(/*TO*/wr.sp); \
+    if(encCPY(x, Win_len(&wl), wr.sp - wl.ep)) goto error; \
+    DBG("  CPY: %.*s\n", Win_len(&wl), wl.sp); \
     dp = wr.ep; ap = dp; \
   } while(0)
 
@@ -573,23 +585,25 @@ static int l_rdelta(LS* L) {
 
     // compute run length
     rc = *dp; rp=dp+1; while((rp < de) && (rc == *rp)) { rp += 1; }
-    #define RUN_LEN() (rp - dp)
-    #define ENC_RUN() do { \
+    rl = rp - dp; // run length
+    #define ENC_RUN(LEN) do { \
       ENC_ADD(dp);        \
-      encRUN(x, RUN_LEN(),rc); \
-      dp += RUN_LEN(); ap = dp; \
+      if(encRUN(x, LEN,rc)) goto error; \
+      dp += LEN; ap = dp; \
     } while(0)
 
     // find window/s
     A32_start(&a32, fpp, de);
     wl.sp = dp; wl.ep = dp;
-    fpi = FP_set(fp4, &a32, fpp - dec); fpp += 1;
+    fpi = FP_set(fp4, &a32, fpp - dec);
+    fpp += 1;
+    wl.sp = NULL; wl.ep = NULL;
     if(fpi < UINT32_MAX) WFIND(fpi, dp);
-    int wg = gain(Win_len(&wl), dp-wl.ep); // window gain
+    int wg = gain(Win_len(&wl), /*raddr*/wr.sp - wl.ep); // window gain
     if (wg > 1) {
-      if     (gain(RUN_LEN(), 0) >= wg) ENC_RUN();
-      else                              ENC_CPY();
-    } else if(gain(RUN_LEN(), 0) > 1)   ENC_RUN();
+      if     (gain(rl, 0) >= wg) ENC_RUN(rl);
+      else                       ENC_CPY();
+    } else if(gain(rl, 0) > 1)   ENC_RUN(rl);
     else dp += 1;
   }
 
@@ -597,7 +611,7 @@ static int l_rdelta(LS* L) {
   if(de < dec + dlen) // enc final matching block
     encCPY(x, /*len*/(dec+dlen) - de, /*raddr*/dp - (dec+blen));
 
-  lua_pushlstring(L, xmd,  x->xp - xmd);
+  lua_pushlstring(L, xmd, x->xp - xmd);
   lua_pushlstring(L, txt, x->tp - txt);
   return 2;
 error:
