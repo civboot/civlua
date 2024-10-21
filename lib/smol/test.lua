@@ -13,7 +13,7 @@ local sfmt = string.format
 local function rtest(base, change, expCmd, expText)
   print(('!! ### rtest (%q)  (%q)  ->  %q %q'):format(
     base, change, expCmd, expText))
-  local x = S.createX()
+  local x = S.createX{fp4po2=14}
   local cmds, text = smol.rdelta(change, x, base)
   print('!! cmds, text:', cmds, text)
   io.fmt:write('!! cmds\n')
@@ -31,7 +31,7 @@ end
 T.rdelta_small = function()
   -- hand-rolled decode
   local rp = smol.rpatch
-  local x = S.createX()
+  local x = S.createX{fp4po2=14}
   T.eq('abc',    rp('\x03',     'abc', x)) -- ADD
   T.eq('abcabc', rp('\x03\x83\x00', 'abc', x)) -- ADD+CPY
   T.eq('abc',    rp('\x83\x00', '',        x, 'abc')) --CPY(base)
@@ -65,12 +65,12 @@ local function testpath(x, path)
 end
 
 T.compress_files = function()
-  local x = S.createX()
+  local x = S.createX{fp4po2=14}
   testpath(x, 'cmd/cxt/test.lua')
 end
 
 T.walk_compress = function()
-  local x = S.createX()
+  local x = S.createX{fp4po2=14}
   local num, csize, osize = 0, 0, 0
   for path, ftype in civix.Walk{'./'} do
     if ftype ~= 'file' or path:find'/%.'

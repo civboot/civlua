@@ -151,6 +151,8 @@ typedef struct _FP {
 // struct which holds data buffers and state of encoding/decoding.
 // The buffers can be reused for relevant calls.
 typedef struct _X {
+  int fp4po2;
+
   uint8_t *xmd, *xp, *xe; size_t xmdsz;  // xmds buf, pointer, end (commands)
   uint8_t *txt, *tp, *te; size_t txtsz;  // txt buf, pointer, end (raw text)
   uint8_t *dec; size_t decsz;            // decoding buffer
@@ -574,7 +576,7 @@ static int l_rdelta(LS* L) {
   A32 a32 = {.end=de};
 
   // 4 byte match is valuable up to 2^14 bytes away
-  FP_ALLOC(*x, fp4, po2prime(po2(MIN(0xff, MAX(dlen, 1<<14)))));
+  FP_ALLOC(*x, fp4, po2prime(po2(MIN(0xff, MAX(dlen, x->fp4po2)))));
   FP* fp4 = &x->fp4;
 
   while(dp < de) {
@@ -621,9 +623,11 @@ error:
 
 static int l_X_free(LS* L) { X_free(L_asX(L, 1)); return 0; }
 static int l_createX(LS* L) {
-  X* x = (X*)lua_newuserdata(L, sizeof(X));
-  *x = (X){0};
+  X x = {0};
+  lua_getfield(L, 1, "fp4po2"); x.fp4po2 = luaL_checkinteger(L, -1);
+  X* r = (X*)lua_newuserdata(L, sizeof(X));
   luaL_setmetatable(L, META_X);
+  *r = x;
   return 1;
 }
 
