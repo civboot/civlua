@@ -90,10 +90,8 @@ static void test_po2() {
 }
 #endif
 
-
-
 //************************
-//* Encode / Decode value
+//* 1.a RDelta Encode / Decode value
 
 static inline int decv(uint8_t** b, uint8_t* be, int v, int s) {
   while((*b < be) && (0x80 & **b)) {
@@ -138,7 +136,7 @@ static void test_encode_v() {
 
 
 //************************
-//* Encode / Decode Commands
+//* 1.b Encode / Decode Commands
 
 // fingerprint struct
 typedef struct _FP {
@@ -252,7 +250,7 @@ static void test_encode_cmds() {
 #endif
 
 //************************
-//* Addler32 Fingerprint Table
+//* 1.c: Addler32 Fingerprint Table
 
 // addler32 struct
 // https://en.wikipedia.org/wiki/Adler-32
@@ -416,20 +414,8 @@ void test_window() {
 }
 #endif
 
-#ifdef TEST
-int main() {
-  printf("# TEST smol.c\n");
-  test_po2();
-  test_encode_v();
-  test_encode_cmds();
-  test_fp();
-  test_window();
-  return 0;
-}
-#endif
-
 //************************
-//* Patch (decode) RDelta
+//* 1.d: Patch (decode) RDelta
 
 // get the patch's resultant change length
 static int xmdslen(uint8_t* xp, uint8_t* xe) {
@@ -511,7 +497,7 @@ error:
 }
 
 //************************
-//* Create (encode) rdelta
+//* 1.e: Create (encode) rdelta
 
 // create an rdelta
 // (change, x, base?) -> (cmds, txt)
@@ -637,6 +623,126 @@ static int l_xmdslen(LS *L) {
   lua_pushinteger(L, xmdslen(xmds, xmds+xlen));
   return 1;
 }
+
+//************************
+//* 2.a Huffman Utils
+
+// Bit IO, optimized for reading by using least-significant-bit first
+typedef struct _BIO {
+  uint8_t *bp, *be; // buffer pointer, buffer end
+  int c, bits; // current byte, current bits in c
+} BIO;
+
+// read the specific number of bits LSB first
+static int BIOread(BIO* io, int bits) {
+  int out = 0, readBits;
+  while(bits) {
+    if(io->bits) {
+      readBits = MIN(bits, io->bits);
+      out = (out << readBits) | (((1 << readBits) - 1) & io->c);
+      io->bits -= readBits;
+      bits -= readBits;
+      io->c = io->c >> readBits;
+    } else {
+      if(io->bp >= io->be) return -1;
+      io->c = *io->bp; io->bits = 8; io->bp += 1;
+    }
+  }
+  printf("!! BIORead %i (0x%x) c=0x%x bits=%i\n",
+         out, out, io->c, io->bits);
+  return out;
+}
+
+// push available character.
+// Invariant: MUST check io->bits first.
+static inline int BIOpush(BIO* io) {
+  if(io->bp >= io->be) return -1;
+  *io->bp = io->c; io->bp += 1;
+  io->bits = 0; io->c = 0;
+  return 0;
+}
+
+// write the specific number of bits LSB first
+static int BIOwrite(BIO* io, int v, int bits) {
+  assert(bits <= 8);
+  int vbits = 0, writeBits, tmp;
+  while(bits) {
+    if(io->bits >= 8) {
+      printf("!! io->bits == 8\n");
+      assert(io->bits == 8);
+      if(BIOpush(io)) return -1;
+    } else {
+      writeBits = MIN(bits, 8 - io->bits);
+      printf("!! io->bits=%i, writeBits=%i\n", io->bits, writeBits);
+      tmp = (1 << writeBits) - 1; // mask
+      tmp = (tmp << vbits) & v;   // piece of value that we put in c
+      // shift left or right depending on where it needs to go in c
+      if(vbits >= io->bits) tmp = tmp >> (vbits - io->bits);
+      else                  tmp = tmp << (io->bits - vbits);
+      io->c = io->c | tmp;
+      io->bits += writeBits;
+      bits -= writeBits;
+    }
+    writeBits = MIN(io->bits, bits);
+  }
+  printf("!! BIOwrite 0x%x end c=0x%x bits=%i\n",
+         v, io->c, io->bits);
+  return 0;
+}
+
+#ifdef TEST
+void test_BIO() {
+  printf("# test_BIO (c)\n");
+  uint8_t dat[] = {0xF5, 0x81};
+  BIO io = {.bp = dat, .be=dat+2};
+  // 5 == 0101
+  assert(1 == BIOread(&io, 2));
+  assert(1 == BIOread(&io, 2));
+  assert(0xF == io.c); assert(4 == io.bits);
+  // F = 0b1111 (3=0b11)
+  assert(1 == BIOread(&io, 1)); assert(3 == BIOread(&io, 2));
+  // last of F and first of 81 (1)
+  assert(3    == BIOread(&io, 2));
+  assert(0x40 == BIOread(&io, 7));
+  assert(-1   == BIOread(&io, 1));
+
+  // write
+  io = (BIO) {.bp = dat, .be=dat+2};
+  memset(dat, 0, 2); assert(0 == dat[0]); assert(0 == dat[1]);
+  BIOwrite(&io, 1,    1); assert(1 == io.c);    assert(1 == io.bits);
+  BIOwrite(&io, 1,    1); assert(3 == io.c);    assert(2 == io.bits);
+  BIOwrite(&io, 0x20, 6); assert(0x83 == io.c); assert(8 == io.bits);
+    assert(dat == io.bp);
+  BIOwrite(&io, 1,    1); assert(1 == io.c);    assert(1 == io.bits);
+    assert(dat+1 == io.bp);
+    assert(0x83 == dat[0]);
+  BIOpush(&io);
+    assert(0x83 == dat[0]); assert(1 == dat[1]);
+
+  // read what we just wrote
+  io = (BIO) {.bp = dat, .be=dat+2};
+  assert(3 == BIOread(&io, 4)); assert(8 == BIOread(&io, 4));
+  assert(1 == BIOread(&io, 8));
+}
+#endif
+
+
+
+//************************
+//* 3.a Lua Bindings (and run test)
+
+#ifdef TEST
+int main() {
+  printf("# TEST smol.c\n");
+  test_po2();
+  test_encode_v();
+  test_encode_cmds();
+  test_fp();
+  test_window();
+  test_BIO();
+  return 0;
+}
+#endif
 
 static const struct luaL_Reg smol_sys[] = {
   {"createX", l_createX},
