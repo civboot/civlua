@@ -726,6 +726,146 @@ void test_BIO() {
 }
 #endif
 
+typedef struct _HN { // Huff Node
+  struct _HN *l, *r; // parent/left/right indexes (root p=NULL)
+  int32_t count; // prevelance of this value
+  int v; // value
+  // the 1's and 0's and how many there are
+  uint64_t bits;
+  uint8_t nbits;
+} HN;
+
+#define HTREE_SZ (0x100 * 3)
+typedef struct _HT { // Huff Tree
+  HN* root;
+  HN n[HTREE_SZ]; uint32_t len;
+} HT;
+
+#define SWAP(T, A, B) do { \
+    T _swap_tmp = *(A); *(A) = *(B); *(B) = *(A); \
+  } while(0)
+
+#define PARENT(N) (N / 2)
+#define LEFT(N)   ((N * 2) + 1)
+#define RIGHT(N)  ((N * 2) + 2)
+
+typedef struct _H32 { // Heap[uint32]
+  uint32_t* a; // array
+  uint32_t len;
+} H32;
+
+// heap is a len=ht.len array of indexes into ht.n (nodes)
+// percolate the node at ht.n[heap[i]] up.
+static void HT_percolateup(HT* ht, uint32_t* heap, uint32_t i) {
+  HN* nodes = ht->n;
+  while(i > 0) {
+    uint32_t hp = PARENT(i);
+    uint32_t ci = heap[i], pi = heap[hp]; // child/parent node idx
+    // if max is parent, we are done
+    if(nodes[ci].v >= nodes[pi].v) break;
+    heap[i] = pi; heap[hp] = ci; // swap
+    i = hp;
+  }
+}
+
+// percolate the first node "down" (from root)
+static void HT_percolatedown(HT* ht, uint32_t* harr, uint32_t hi) {
+  uint64_t i = 0; // i is index into harr
+  HN* nodes = ht->n;
+  while(LEFT(i) <= hi) {
+    int v = nodes[harr[i]].v;
+    uint32_t ln = harr[LEFT(i)]; // left node index
+    if((RIGHT(i) <= hi) && (nodes[harr[RIGHT(i)]].v < v)) {
+      uint32_t rn = harr[RIGHT(i)];
+      if(nodes[ln].v < nodes[rn].v) { // if left is smallest
+        SWAP(uint32_t, &harr[i], &harr[ln]); i = LEFT(i);
+      } else {
+        SWAP(uint32_t, &harr[i], &harr[rn]); i = RIGHT(i);
+      }
+    } else if(nodes[ln].v < v) {
+      SWAP(uint32_t, &harr[i], &harr[ln]); i = LEFT(i);
+    } else break; // done
+  }
+}
+
+static inline uint32_t Heap_pop(HT* ht, H32* h) {
+  uint32_t *arr = h->a, hi=h->len - 1;
+  assert(hi >= 0);
+  h->len = hi;
+  uint32_t o = arr[0];
+  if(hi > 1) { // swap and fix minheap
+    arr[0] = arr[hi]; HT_percolatedown(ht, arr, hi-1);
+  }
+  return o;
+}
+
+static inline void Heap_push(HT* ht, H32* h, uint32_t v) {
+  uint32_t *arr = h->a; uint32_t len = h->len;
+  arr[len] = v; HT_percolateup(ht, arr, len);
+  h->len = len + 1;
+}
+
+static inline void HT_dfs(HN* hn, uint64_t bits, uint8_t nbits) {
+  assert(nbits < 64);
+  if(hn->v < 0) {
+   assert(!hn->l && !hn->r);
+   hn->bits = bits; hn->nbits = nbits;
+   return;
+  }
+  assert(hn->l || hn->r);
+  if(hn->l) HT_dfs(hn->l,  bits << 1,      nbits + 1);
+  if(hn->r) HT_dfs(hn->r, (bits << 1) + 1, nbits + 1);
+}
+
+// create huffman tree
+static inline HT htree(uint8_t* bp,uint8_t* be) {
+  HT ht;              memset(ht.n, 0, HTREE_SZ * sizeof(HN));
+  ht.len = 256;
+  uint32_t hlen = 256;
+  uint32_t harr[hlen]; for(int i=0; i < hlen; i++) harr[i] = i;
+  for(; bp < be; bp++) ht.n[*bp].count += 1; // count freq of each byte
+  // heapify by expanding the size of the BT 1 node at a time, fixing it
+  for(int i=0; i < hlen; i++) HT_percolateup(&ht, harr, i);
+  H32 h = {.a = harr, .len = 256};
+
+  // remove zero count nodes
+  while((h.len > 0) && (0 == ht.n[harr[0]].count)) Heap_pop(&ht, &h);
+  if(!h.len) return ht; // empty huffman tree
+
+  // build the huffman tree
+  while(h.len > 1) {
+    size_t ni = ht.len; assert(ni < HTREE_SZ);
+    HN *l = &ht.n[Heap_pop(&ht, &h)], *r = &ht.n[Heap_pop(&ht, &h)];
+    HN n = { .l = l, .r = r, .count = l->count + r->count, .v = -1 };
+    ht.n[ni] = n; ht.len = ni + 1;
+    Heap_push(&ht, &h, ni);
+  }
+  ht.root = &ht.n[Heap_pop(&ht, &h)];
+  HT_dfs(ht.root, 0, 0);
+  return ht;
+}
+
+// encode a huffman tree into bytestream.
+// leaf: write 1 + code (8 bits), else write 0
+static inline void writeTree(BIO* b, HN* hn) {
+  if(hn->v >= 0) {
+    BIOwrite(b, 1, /*bits*/1); BIOwrite(b, hn->v, /*bits*/ 8);
+  } else BIOwrite(b, 0, /*bits*/ 1);
+}
+
+static inline HN* readTree(BIO* b, HT* ht, uint64_t bits, uint8_t nbits) {
+  assert(ht->len < HTREE_SZ);
+  assert(b->bp < b->be);
+  HN* np = &ht->n[ht->len]; ht->len += 1;
+  if(BIOread(b, 1)) *np = (HN) {
+    .v = BIOread(b, 8), .bits = bits, .nbits = nbits
+  }; else *np = (HN) {
+    .l = readTree(b, ht,  bits << 1,      nbits + 1),
+    .r = readTree(b, ht, (bits << 1) + 1, nbits + 1),
+    .v = -1,
+  };
+  return np;
+}
 
 
 //************************
