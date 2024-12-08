@@ -757,88 +757,84 @@ void HN_printdfs(HN* n, int depth) {
 #define RIGHT(N)  ((N * 2) + 2)
 
 #define HLEN 256
-typedef struct _IHeap { // minheap of indexes into HT.n
-  uint32_t a[HLEN];  // array of indexes into HT.n
+typedef struct _Heap { // minheap of node.count
+  HN* a[HLEN];  // array of nodes
   uint32_t len; // lenth of array
-} IHeap;
+} Heap;
 
-void IHeap_print(HT* ht, IHeap* h) {
+void Heap_print(HT* ht, Heap* h) {
   for(int i=0; i < h->len; i++) {
-    int ix = h->a[i]; int v = ht->n[ix].v;
-    printf("!!   heap[%i] ix=%i v=%i '%c' (count=%i)\n",
-                       i,    ix,   v,  v,  ht->n[ix].count);
+    HN* n = h->a[i];
+    printf("!!   heap[%i] v=%i '%c' (count=%i)\n",
+                       i, n->v, n->v,      n->count);
   }
 }
 
 // percolate the node at ht.n[h.arr[i]] up (towards root)
-static void HT_percolateup(HT* ht, IHeap* h, uint32_t i) {
-  HN* nodes = ht->n;
-  uint32_t* indexes = h->a;
+static void HT_percolateup(HT* ht, Heap* h, uint32_t i) {
+  HN** heap = h->a;
   while(i > 0) {
     uint32_t p = PARENT(i);
-    uint32_t ci = indexes[i], pi = indexes[p]; // child/parent node idx
+    HN *cn = heap[i], *pn = heap[p]; // child/parent node idx
     // if min is parent, we are done
-    if(nodes[pi].count <= nodes[ci].count) break;
-    indexes[i] = pi; indexes[p] = ci; // swap
+    if(pn->count <= cn->count) break;
+    heap[i] = pn; heap[p] = cn; // swap
     i = p;
   }
 }
 
 // percolate the first node "down" (from root)
-static void HT_percolatedown(HT* ht, IHeap* h, int32_t hi) {
+static void HT_percolatedown(HT* ht, Heap* h, int32_t hi) {
   printf("!!   percolatedown hi=%i\n", hi);
-  HN* nodes = ht->n; uint32_t* nidxs = h->a;
+  HN** heap = h->a;
   int64_t i = 0; // i is index into nidxs
   while(LEFT(i) <= hi) {
     printf("!!   percolatedown loop i=%i <= %i\n", i, hi);
     uint64_t li = LEFT(i), ri = RIGHT(i); // left/right indexes into nidxs
-    uint32_t ni = nidxs[i], lni = nidxs[li], rni; // indexes into nodes
-    uint32_t nc = nodes[ni].count; // node count
-    if((ri <= hi) && (nodes[nidxs[ri]].count < nc)) {
+    HN *n = heap[i], *ln = heap[li], *rn;
+    if((ri <= hi) && (heap[ri]->count < n->count)) {
       // right exists and is smaller than node count -- check all
-      rni = nidxs[ri];
-      if(nodes[lni].count < nodes[rni].count) { // left is smallest
-        nidxs[i] = lni; nidxs[li] = ni; i = li; // swap i <-> left, go left
+      rn = heap[ri];
+      if(ln->count < rn->count) { // left is smallest
+        heap[i] = ln; heap[li] = n; i = li; // swap i <-> left, go left
       } else { // right is smallest
-        nidxs[i] = rni; nidxs[ri] = ni; i = ri; // swap i <-> right, go right
+        heap[i] = rn; heap[ri] = n; i = ri; // swap i <-> right, go right
       }
-    } else if(nodes[lni].count < nc) { // right is not smaller, check left
-      nidxs[i] = lni; nidxs[li] = ni; i = li;
+    } else if(ln->count < n->count) { // right is not smaller, check left
+      heap[i] = ln; heap[li] = n; i = li;
     } else break; // node is smallest, done
   }
 }
 
 // pop index of minimum value from heap h
-static inline uint32_t HT_heappop(HT* ht, IHeap* h) {
+static inline HN* HT_heappop(HT* ht, Heap* h) {
   assert(h->len >= 1);
-  uint32_t ni = h->a[0];
+  HN* n = h->a[0];
   h->a[0] = h->a[h->len - 1];
   HT_percolatedown(ht, h, h->len - 2);
   h->len -= 1;
-  printf("!!   heappop returns %i\n", ni);
-  return ni;
+  return n;
 }
 
-static inline void HT_heappush(HT* ht, IHeap* h, uint32_t hti) {
-  uint32_t* nidxs = h->a;
-  nidxs[h->len] = hti;
+static inline void HT_heappush(HT* ht, Heap* h, HN* n) {
+  h->a[h->len] = n;
   HT_percolateup(ht, h, h->len);
   h->len += 1;
 }
 
-static inline void hheap(HT* ht, IHeap* h, uint8_t* bp,uint8_t* be) {
-  uint32_t* nidxs = h->a;
+static inline void hheap(HT* ht, Heap* h, uint8_t* bp,uint8_t* be) {
+  HN** heap = h->a;
   ht->used = HLEN;
   memset(ht->n, 0, HTREE_SZ * sizeof(HN));
    for(int i=0; i < HLEN; i++) {
-    nidxs[i] = i; ht->n[i].v = i;
+    heap[i] = &ht->n[i]; ht->n[i].v = i;
   }
   for(; bp < be; bp++) ht->n[*bp].count += 1; // count freq of each byte
 
   // initialize heap with zero-count nodes removed
   h->len = 0;
   for(int i=0; i < HLEN; i++) {
-    if(ht->n[i].count > 0) { nidxs[h->len] = i; h->len += 1; }
+    if(ht->n[i].count > 0) { heap[h->len] = &ht->n[i]; h->len += 1; }
   }
 
   // heapify by expanding the size of the BT 1 node at a time, fixing it
@@ -846,53 +842,53 @@ static inline void hheap(HT* ht, IHeap* h, uint8_t* bp,uint8_t* be) {
 }
 
 #ifdef TEST
-static void test_IHeap() {
-  HT ht; IHeap h;
+static void test_Heap() {
+  HT ht; Heap h;
   uint8_t* dat = "AAAA   zzzz;;";
   hheap(&ht, &h, dat, dat+strlen(dat));
   assert(ht.n['A'].count == 4); assert(ht.n['A'].v == 'A');
   assert(ht.n[' '].count == 3);
   assert(h.len == 4);
-  assert(h.a[0] == ';'); // smallest
-  assert(HT_heappop(&ht, &h) == ';');
-  assert(h.a[0] == ' '); assert(h.len == 3);
+  assert(h.a[0] == &ht.n[';']); // smallest
+  assert(HT_heappop(&ht, &h) == &ht.n[';']);
+  assert(h.a[0] == &ht.n[' ']); assert(h.len == 3);
   printf("!! after pop\n");
-  IHeap_print(&ht, &h);
-  HT_heappush(&ht, &h, ';');
-  assert(h.a[0] == ';'); assert(h.len == 4);
-  printf("!! IHeap done\n");
-  IHeap_print(&ht, &h);
+  Heap_print(&ht, &h);
+  HT_heappush(&ht, &h, &ht.n[';']);
+  assert(h.a[0] == &ht.n[';']); assert(h.len == 4);
+  printf("!! Heap done\n");
+  Heap_print(&ht, &h);
 }
 #endif
 
 // create huffman tree
 static inline HT htree(uint8_t* bp,uint8_t* be) {
-  HT ht; IHeap h;
+  HT ht; Heap h;
   hheap(&ht, &h, bp,be);
   if(!h.len) return ht; // empty huffman tree
-  printf("!! htree init heap:\n"); IHeap_print(&ht, &h);
+  printf("!! htree init heap:\n"); Heap_print(&ht, &h);
 
   // build the huffman tree
   while(h.len > 1) {
     printf("!! building tree heaplen=%i\n", h.len);
-    IHeap_print(&ht, &h);
+    Heap_print(&ht, &h);
     printf("!!   ?? left\n");
-    HN *l = &ht.n[HT_heappop(&ht, &h)];
+    HN *l = HT_heappop(&ht, &h);
     printf("!!   ?? right\n");
-    HN *r = &ht.n[HT_heappop(&ht, &h)];
+    HN *r = HT_heappop(&ht, &h);
     printf("!!   got l='%c' (c=%i) r='%c' (c=%i) heaplen=%i\n",
                  l->v, l->count, r->v, r->count,     h.len);
-    IHeap_print(&ht, &h);
+    Heap_print(&ht, &h);
     ht.n[ht.used] = (HN) {
       .l = l, .r = r, .count = l->count + r->count, .v = -1
     };
     printf("!!   added node count=%i\n", ht.n[ht.used].count);
     // heap push
-    HT_heappush(&ht, &h, ht.used);
+    HT_heappush(&ht, &h, &ht.n[ht.used]);
     ht.used += 1;
-    IHeap_print(&ht, &h);
+    Heap_print(&ht, &h);
   }
-  ht.root = &ht.n[HT_heappop(&ht, &h)];
+  ht.root = HT_heappop(&ht, &h);
   return ht;
   #undef HLEN
 }
@@ -906,19 +902,27 @@ static inline void writeTree(BIO* b, HN* hn) {
 }
 
 // decode a huffman tree from b into ht
-// static inline HN* readTree(BIO* b, HT* ht, uint64_t bits, uint8_t nbits) {
-//   assert(ht->len < HTREE_SZ);
-//   assert(b->bp < b->be);
-//   HN* np = &ht->n[ht->len]; ht->len += 1;
-//   if(BIOread(b, 1)) *np = (HN) {
-//     .v = BIOread(b, 8), .bits = bits, .nbits = nbits
-//   }; else *np = (HN) {
-//     .l = readTree(b, ht,  bits << 1,      nbits + 1),
-//     .r = readTree(b, ht, (bits << 1) + 1, nbits + 1),
-//     .v = -1,
-//   };
-//   return np;
-// }
+static HN* readTree(BIO* b, HT* ht, uint64_t bits, uint8_t nbits) {
+  assert(ht->used < HTREE_SZ);
+  assert(b->bp < b->be);
+  HN* n = &ht->n[ht->used]; ht->used += 1;
+  if(BIOread(b, 1)) *n = (HN) {
+    .v = BIOread(b, 8), .bits = bits, .nbits = nbits
+  }; else *n = (HN) {
+    .l = readTree(b, ht,  bits << 1,      nbits + 1),
+    .r = readTree(b, ht, (bits << 1) + 1, nbits + 1),
+    .v = -1,
+  };
+  return n;
+}
+
+static bool HN_equal(HN* n, HN* o) {
+  if((n == NULL) || (o == NULL)) return n == o;
+  return (n->v == o->v)
+      && (n->count == o->count)
+      && HN_equal(n->l, o->l)
+      && HN_equal(n->r, o->r);
+}
 
 #ifdef TEST
 static void test_HT() {
@@ -927,7 +931,14 @@ static void test_HT() {
   HT ht = htree(dat, dat + strlen(dat));
   eprintf("!! tree\n");
   HN_printdfs(ht.root, 0);
-  assert(false);
+  assert(ht.root->count == strlen(dat)); assert(ht.root->v == -1);
+  // Note: this is a possible correct representation
+  HN* l = ht.root->l; assert(l->count == 5); assert(l->v == -1);
+    assert(l->l->v == ';'); assert(l->l->count == 2);
+    assert(l->r->v == ' '); assert(l->r->count == 3);
+  HN* r = ht.root->r; assert(r->count == 8); assert(r->v == -1);
+    assert(r->l->v == 'A'); assert(r->l->count == 4);
+    assert(r->r->v == 'z'); assert(r->r->count == 4);
 }
 #endif
 
@@ -944,7 +955,7 @@ int main() {
   test_fp();
   test_window();
   test_BIO();
-  test_IHeap();
+  test_Heap();
   test_HT();
   return 0;
 }
