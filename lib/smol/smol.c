@@ -15,8 +15,10 @@ typedef lua_State LS;
 
 #define ASSERT(OK, ...) if(!(OK)) { luaL_error(L, __VA_ARGS__); }
 
-#define DBG(...) printf("!D! " __VA_ARGS__)
+// #define DBG(...) printf("!D! " __VA_ARGS__)
 #define DBG(...)
+
+#define eprintf(...) fprintf(stderr, __VA_ARGS__)
 
 #define ADD  0x00
 #define RUN  0x40
@@ -418,7 +420,7 @@ void test_window() {
 //* 1.d: Patch (decode) RDelta
 
 // get the patch's resultant change length
-static int xmdslen(uint8_t* xp, uint8_t* xe) {
+static int rcmdlen(uint8_t* xp, uint8_t* xe) {
   int len = 0; while(xp < xe) {
     int cmdlen; int cmd = deccmd(&xp,xe, &cmdlen);
     len += cmdlen;
@@ -449,7 +451,7 @@ static int l_rpatch(LS* L) {
   uint8_t *tp = txt, *te = txt+tlen;
 
   // decode the length of the final output
-  int clen = xmdslen(xp,xe); ASSERT(clen >= 0, "clen");
+  int clen = rcmdlen(xp,xe); ASSERT(clen >= 0, "clen");
   DBG("dlen=%i xlen=%i tlen=%i\n", blen+clen, xlen, tlen);
 
   if(clen == 0) { lua_pushstring(L, ""); return 1; }
@@ -618,9 +620,9 @@ static int l_createX(LS* L) {
 }
 
 // (xmds) -> (changelen)
-static int l_xmdslen(LS *L) {
+static int l_rcmdlen(LS *L) {
   size_t xlen; uint8_t* xmds = (uint8_t*)luaL_checklstring(L, 1, &xlen);
-  lua_pushinteger(L, xmdslen(xmds, xmds+xlen));
+  lua_pushinteger(L, rcmdlen(xmds, xmds+xlen));
   return 1;
 }
 
@@ -738,111 +740,185 @@ typedef struct _HN { // Huff Node
 #define HTREE_SZ (0x100 * 3)
 typedef struct _HT { // Huff Tree
   HN* root;
-  HN n[HTREE_SZ]; uint32_t len;
+  HN n[HTREE_SZ]; uint32_t used;
 } HT;
 
+void spaces(int n) { while(n) { printf(" "); n -= 1; } }
+void HN_printdfs(HN* n, int depth) {
+  if(!n) { printf("<null root>\n"); return; }
+  printf("v=%i '%c' (count=%i)\n", n->v, n->v, n->count);
+  if(n->l) { spaces(depth); printf("< "); HN_printdfs(n->l, depth+1); }
+  if(n->r) { spaces(depth); printf("> "); HN_printdfs(n->r, depth+1); }
+}
+
 #define SWAP(T, A, B) do { \
-    T _swap_tmp = *(A); *(A) = *(B); *(B) = *(A); \
+    printf("!!  SWAP: ('%c', '%c') -> ", A, B); \
+    T _swap_tmp = A; A = B; B = _swap_tmp; \
+    printf("('%c', '%c')\n", A, B); \
   } while(0)
 
 #define PARENT(N) (N / 2)
 #define LEFT(N)   ((N * 2) + 1)
 #define RIGHT(N)  ((N * 2) + 2)
 
-typedef struct _H32 { // Heap[uint32]
-  uint32_t* a; // array
-  uint32_t len;
-} H32;
+typedef struct _IHeap { // minheap of indexes into HT.n
+  uint32_t* a;  // array of indexes into HT.n
+  uint32_t len; // lenth of array
+} IHeap;
 
-// heap is a len=ht.len array of indexes into ht.n (nodes)
-// percolate the node at ht.n[heap[i]] up.
-static void HT_percolateup(HT* ht, uint32_t* heap, uint32_t i) {
+void IHeap_print(HT* ht, IHeap* h) {
+  for(int i=0; i < h->len; i++) {
+    int ix = h->a[i]; int v = ht->n[ix].v;
+    printf("!!   heap[%i] v=%x '%c' (count=%i)\n",
+                       i,    v,  v,  ht->n[ix].count);
+  }
+}
+
+// percolate the node at ht.n[h.arr[i]] up (towards root)
+static void HT_percolateup(HT* ht, IHeap* h, uint32_t i) {
   HN* nodes = ht->n;
+  uint32_t* indexes = h->a;
   while(i > 0) {
-    uint32_t hp = PARENT(i);
-    uint32_t ci = heap[i], pi = heap[hp]; // child/parent node idx
-    // if max is parent, we are done
-    if(nodes[ci].v >= nodes[pi].v) break;
-    heap[i] = pi; heap[hp] = ci; // swap
-    i = hp;
+    uint32_t p = PARENT(i);
+    uint32_t ci = indexes[i], pi = indexes[p]; // child/parent node idx
+    // if min is parent, we are done
+    printf("!!   percolateup %i: l=%i r=%i\n",
+                             i, nodes[pi].count, nodes[ci].count);
+    if(nodes[pi].count <= nodes[ci].count) break;
+    printf("!!   + swapping\n");
+    indexes[i] = pi; indexes[p] = ci; // swap
+    i = p;
   }
 }
 
 // percolate the first node "down" (from root)
-static void HT_percolatedown(HT* ht, uint32_t* harr, uint32_t hi) {
-  uint64_t i = 0; // i is index into harr
-  HN* nodes = ht->n;
+static void HT_percolatedown(HT* ht, IHeap* h, uint32_t hi) {
+  printf("!! percolatedown hi=%i nodes=%p\n", hi, ht->n);
+  uint64_t i = 0;    uint32_t tmp;
+  HN* nodes = ht->n; uint32_t* nidxs = h->a;
   while(LEFT(i) <= hi) {
-    int v = nodes[harr[i]].v;
-    uint32_t ln = harr[LEFT(i)]; // left node index
-    if((RIGHT(i) <= hi) && (nodes[harr[RIGHT(i)]].v < v)) {
-      uint32_t rn = harr[RIGHT(i)];
-      if(nodes[ln].v < nodes[rn].v) { // if left is smallest
-        SWAP(uint32_t, &harr[i], &harr[ln]); i = LEFT(i);
-      } else {
-        SWAP(uint32_t, &harr[i], &harr[rn]); i = RIGHT(i);
+    uint64_t li = LEFT(i), ri = RIGHT(i); // left/right indexes
+    uint32_t ni = nidxs[i]; // node index (into ht.nodes)
+    uint32_t nc = nodes[ni].count; // node count
+    printf("!! loop i=%i (li=%i ri=%i) ni='%c' nc=%i\n",
+                       i,    li,   ri,     ni,    nc);
+    uint32_t lni = nidxs[li], rni; // left/right node indexes
+    if((ri <= hi) && (nodes[nidxs[ri]].count < nc)) {
+      // right exists and is smaller than node count -- check all
+      printf("!!   right\n");
+      rni = nidxs[ri];
+      if(nodes[lni].count < nodes[rni].count) { // left is smallest
+        nidxs[i] = lni; nidxs[li] = ni; i = li; // swap i <-> left, go left
+      } else { // right is smallest
+        nidxs[i] = rni; nidxs[ri] = ni; i = ri; // swap i <->right, go right
       }
-    } else if(nodes[ln].v < v) {
-      SWAP(uint32_t, &harr[i], &harr[ln]); i = LEFT(i);
-    } else break; // done
+    } else if(nodes[lni].count < nc) { // right is not smaller, check left
+      printf("!!   left\n");
+      nidxs[i] = lni; nidxs[li] = ni; i = li;
+    } else break; // node is smallest, done
   }
+  printf("!! percolatedown DONE\n");
 }
 
-static inline uint32_t Heap_pop(HT* ht, H32* h) {
-  uint32_t *arr = h->a, hi=h->len - 1;
-  assert(hi >= 0);
-  h->len = hi;
-  uint32_t o = arr[0];
-  if(hi > 1) { // swap and fix minheap
-    arr[0] = arr[hi]; HT_percolatedown(ht, arr, hi-1);
-  }
-  return o;
+// pop index of minimum value from heap h
+static inline uint32_t HT_heappop(HT* ht, IHeap* h) {
+  assert(h->len >= 1);
+  uint32_t ni = h->a[0];
+  h->a[0] = h->a[h->len - 1];
+  HT_percolatedown(ht, h, h->len - 2);
+  h->len -= 1;
+  return ni;
 }
 
-static inline void Heap_push(HT* ht, H32* h, uint32_t v) {
-  uint32_t *arr = h->a; uint32_t len = h->len;
-  arr[len] = v; HT_percolateup(ht, arr, len);
-  h->len = len + 1;
+static inline void HT_heappush(HT* ht, IHeap* h, uint32_t hti) {
+  uint32_t* nidxs = h->a;
+  nidxs[h->len] = hti;
+  HT_percolateup(ht, h, h->len);
+  h->len += 1;
 }
 
-static inline void HT_dfs(HN* hn, uint64_t bits, uint8_t nbits) {
-  assert(nbits < 64);
-  if(hn->v < 0) {
-   assert(!hn->l && !hn->r);
-   hn->bits = bits; hn->nbits = nbits;
-   return;
+#define HLEN 256
+static inline void hheap(HT* ht, IHeap* h, uint8_t* bp,uint8_t* be) {
+  uint32_t* nidxs = h->a;
+  ht->used = HLEN;
+  memset(ht->n, 0, HTREE_SZ * sizeof(HN));
+  printf("!! started htree\n");
+   for(int i=0; i < HLEN; i++) {
+    nidxs[i] = i; ht->n[i].v = i;
   }
-  assert(hn->l || hn->r);
-  if(hn->l) HT_dfs(hn->l,  bits << 1,      nbits + 1);
-  if(hn->r) HT_dfs(hn->r, (bits << 1) + 1, nbits + 1);
+  printf("!!   nidxs HLEN=%i [0]=%i [HLEN-1]=%i\n", HLEN, nidxs[0], nidxs[HLEN-1]);
+  for(; bp < be; bp++) ht->n[*bp].count += 1; // count freq of each byte
+
+  // initialize heap with zero-count nodes removed
+  h->len = 0;
+  for(int i=0; i < HLEN; i++) {
+    if(ht->n[i].count > 0) { nidxs[h->len] = i; h->len += 1; }
+  }
+  printf("!! after init:\n");
+  IHeap_print(ht, h);
+
+  // heapify by expanding the size of the BT 1 node at a time, fixing it
+  printf("!! doing heapify:\n");
+  for(int i=1; i < h->len; i++) HT_percolateup(ht, h, i);
+
+  printf("!! after heapify:\n");
+  IHeap_print(ht, h);
 }
+
+#ifdef TEST
+static void test_IHeap() {
+  HT ht;
+  uint32_t nidxs[HLEN]; IHeap h = {.a = nidxs};
+  uint8_t* dat = "AAAA   zzzz;;";
+  hheap(&ht, &h, dat, dat+strlen(dat));
+  assert(ht.n['A'].count == 4); assert(ht.n['A'].v == 'A');
+  assert(ht.n[' '].count == 3);
+  assert(h.len == 4);
+  assert(h.a[0] == ';'); // smallest
+  assert(HT_heappop(&ht, &h) == ';');
+  assert(h.a[0] == ' '); assert(h.len == 3);
+  printf("!! after pop\n");
+  IHeap_print(&ht, &h);
+  HT_heappush(&ht, &h, ';');
+  assert(h.a[0] == ';'); assert(h.len == 4);
+  printf("!! IHeap done\n");
+  IHeap_print(&ht, &h);
+  assert(false);
+}
+#endif
 
 // create huffman tree
 static inline HT htree(uint8_t* bp,uint8_t* be) {
-  HT ht;              memset(ht.n, 0, HTREE_SZ * sizeof(HN));
-  ht.len = 256;
-  uint32_t hlen = 256;
-  uint32_t harr[hlen]; for(int i=0; i < hlen; i++) harr[i] = i;
-  for(; bp < be; bp++) ht.n[*bp].count += 1; // count freq of each byte
-  // heapify by expanding the size of the BT 1 node at a time, fixing it
-  for(int i=0; i < hlen; i++) HT_percolateup(&ht, harr, i);
-  H32 h = {.a = harr, .len = 256};
+  HT ht;
+  uint32_t nidxs[HLEN]; IHeap h = {.a = nidxs};
+  hheap(&ht, &h, bp,be);
 
-  // remove zero count nodes
-  while((h.len > 0) && (0 == ht.n[harr[0]].count)) Heap_pop(&ht, &h);
   if(!h.len) return ht; // empty huffman tree
 
   // build the huffman tree
   while(h.len > 1) {
-    size_t ni = ht.len; assert(ni < HTREE_SZ);
-    HN *l = &ht.n[Heap_pop(&ht, &h)], *r = &ht.n[Heap_pop(&ht, &h)];
-    HN n = { .l = l, .r = r, .count = l->count + r->count, .v = -1 };
-    ht.n[ni] = n; ht.len = ni + 1;
-    Heap_push(&ht, &h, ni);
+    size_t len = h.len;
+    printf("!! building tree heaplen=%i\n", len);
+    HN *l = &ht.n[HT_heappop(&ht, &h)];
+    HN *r = &ht.n[HT_heappop(&ht, &h)];
+    printf("!!   got l='%c' (c=%i) r='%c' (c=%i) heaplen=%i\n",
+                 l->v, l->count, r->v, r->count,     h.len);
+    IHeap_print(&ht, &h);
+    ht.n[ht.used] = (HN) {
+      .l = l, .r = r, .count = l->count + r->count, .v = -1
+    };
+    printf("!!   added node count=%i\n", ht.n[ht.used].count);
+    // heap push
+    h.a[h.len] = ht.used; HT_percolateup(&ht, &h, h.len);
+    ht.used += 1;
+    h.len += 1;
+    IHeap_print(&ht, &h);
   }
-  ht.root = &ht.n[Heap_pop(&ht, &h)];
-  HT_dfs(ht.root, 0, 0);
+  ht.root = &ht.n[HT_heappop(&ht, &h)];
+  HN_printdfs(ht.root, 0);
+  assert(false);
   return ht;
+  #undef HLEN
 }
 
 // encode a huffman tree into bytestream.
@@ -853,19 +929,30 @@ static inline void writeTree(BIO* b, HN* hn) {
   } else BIOwrite(b, 0, /*bits*/ 1);
 }
 
-static inline HN* readTree(BIO* b, HT* ht, uint64_t bits, uint8_t nbits) {
-  assert(ht->len < HTREE_SZ);
-  assert(b->bp < b->be);
-  HN* np = &ht->n[ht->len]; ht->len += 1;
-  if(BIOread(b, 1)) *np = (HN) {
-    .v = BIOread(b, 8), .bits = bits, .nbits = nbits
-  }; else *np = (HN) {
-    .l = readTree(b, ht,  bits << 1,      nbits + 1),
-    .r = readTree(b, ht, (bits << 1) + 1, nbits + 1),
-    .v = -1,
-  };
-  return np;
+// decode a huffman tree from b into ht
+// static inline HN* readTree(BIO* b, HT* ht, uint64_t bits, uint8_t nbits) {
+//   assert(ht->len < HTREE_SZ);
+//   assert(b->bp < b->be);
+//   HN* np = &ht->n[ht->len]; ht->len += 1;
+//   if(BIOread(b, 1)) *np = (HN) {
+//     .v = BIOread(b, 8), .bits = bits, .nbits = nbits
+//   }; else *np = (HN) {
+//     .l = readTree(b, ht,  bits << 1,      nbits + 1),
+//     .r = readTree(b, ht, (bits << 1) + 1, nbits + 1),
+//     .v = -1,
+//   };
+//   return np;
+// }
+
+#ifdef TEST
+static void test_HT() {
+  printf("# test_HT (c)\n");
+  uint8_t* dat = "AAAA   zzzz;;";
+  HT ht = htree(dat, dat + strlen(dat));
+  eprintf("!! tree\n");
+  assert(false);
 }
+#endif
 
 
 //************************
@@ -880,6 +967,8 @@ int main() {
   test_fp();
   test_window();
   test_BIO();
+  test_IHeap();
+  test_HT();
   return 0;
 }
 #endif
@@ -887,7 +976,7 @@ int main() {
 static const struct luaL_Reg smol_sys[] = {
   {"createX", l_createX},
   {"rpatch", l_rpatch}, {"rdelta", l_rdelta},
-  {"xmdslen", l_xmdslen},
+  {"rcmdlen", l_rcmdlen},
   {NULL, NULL}, // sentinel
 };
 

@@ -56,7 +56,7 @@ local function testpath(x, path)
   if not xmds then csize = #ftext -- no compression
   else
     csize = #xmds + #txt
-    T.eq(#ftext, S.xmdslen(xmds))
+    T.eq(#ftext, S.rcmdlen(xmds))
     T.eq(ftext, S.rpatch(xmds, txt, x))
   end
   print(sfmt('compress % 8i / %-8i (%3i%%) : %s',
