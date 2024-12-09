@@ -147,6 +147,23 @@ typedef struct _FP {
   size_t    tsz; // size in bytes
 } FP;
 
+// Huffman Tree Node
+typedef struct _HN {
+  struct _HN *l, *r; // parent/left/right indexes (root p=NULL)
+  int32_t count; // prevelance of this value
+  int v; // value
+  // the 1's and 0's and how many there are
+  uint64_t bits;
+  uint8_t nbits;
+} HN;
+
+#define HTREE_SZ (0x100 * 3)
+typedef struct _HT { // Huffman Tree
+  HN* root;
+  uint32_t used;
+  HN n[HTREE_SZ];
+  bool invalid;
+} HT;
 
 // struct which holds data buffers and state of encoding/decoding.
 // The buffers can be reused for relevant calls.
@@ -159,6 +176,7 @@ typedef struct _X {
   uint8_t *enc; size_t encsz;            // encoding buffer
   uint8_t *scr; size_t scrsz;            // scratch buffer
   FP fp4, fp8;
+  HT ht;
 } X;
 
 #define META_X "smol.X"
@@ -639,7 +657,7 @@ typedef struct _BIO {
 static int BIOread1(BIO* io) {
   if(io->used == 8) {
     if(io->bp == io->be) return -1;
-    io->bp += 1; io->used = 8;
+    io->bp += 1; io->used = 0;
   }
   io->used += 1;
   return 1 & (*io->bp >> (8 - io->used));
@@ -652,31 +670,27 @@ static int BIOread8(BIO* io) {
   io->bp = bp + 1;
   int used = io->used;
   if(used == 8) return *(bp+1);
-  return 0xFF & ((*bp << (8-used)) | (*(bp+1) >> used));
+  return 0xFF & ((*bp << used) | (*(bp+1) >> (8 - used)));
 }
 
-// write 1 bit (most significant bit first)
-static int BIOwrite1(BIO* io, uint8_t b) {
+static int BIOwrite(BIO* io, uint8_t bits, uint8_t c) {
   int used = io->used; uint8_t *bp = io->bp;
   if(used == 8) {
     if(bp == io->be) return -1;
-    used = 1;
-    io->bp = bp + 1;
-    *(bp+1) = b << 7;
-  } else {
-    used += 1;
-    *bp |= b << (8 - used);
+    bp += 1; used = 0; io->bp = bp;
+  }
+  int rem = 8 - used; // remaining bits in *bp
+  if(rem >= bits) { // bits stay in *bp
+    *bp |= c << (rem - bits);
+    used += bits;
+  } else { // bits are split across *bp and *(bp+1)
+    if(bp == io->be) return -1;
+    *bp |= c >> used;
+    used = bits - rem;
+    *(bp+1) = c << (8 - used);
+    io->bp = bp+1;
   }
   io->used = used;
-}
-
-static int BIOwrite8(BIO* io, uint8_t c) {
-  int used = io->used; uint8_t *bp = io->bp;
-  if(bp == io->be) return -1;
-  io->bp = bp + 1;
-  if(used == 8) { *(bp+1) = c; return 0; }
-  *bp     |= c >> (8 - used);
-  *(bp+1)  = c << used;
   return 0;
 }
 
@@ -694,36 +708,35 @@ void test_BIO() {
 
   // write the same as above
   io.used = 0; io.bp = dat; memset(dat, 0, 256);
-  BIOwrite1(&io, 0); BIOwrite1(&io, 1); assert(0x40 == *dat);
-  BIOwrite1(&io, 0); BIOwrite1(&io, 1); assert(0x50 == *dat);
-  BIOwrite8(&io, 0x75); assert(0x57 == *dat); assert(0x50 == dat[1]);
-  BIOwrite1(&io, 0); BIOwrite1(&io, 0);
-  BIOwrite1(&io, 1); BIOwrite1(&io, 1); assert(0x53 == dat[1]);
+  BIOwrite(&io,1, 0); BIOwrite(&io,1, 1); assert(0x40 == *dat);
+  BIOwrite(&io,1, 0); BIOwrite(&io,1, 1); assert(0x50 == *dat);
+  BIOwrite(&io,8, 0x75); assert(0x57 == *dat); assert(0x50 == dat[1]);
+  BIOwrite(&io,1, 0); BIOwrite(&io,1, 0);
+  BIOwrite(&io,1, 1); BIOwrite(&io,1, 1); assert(0x53 == dat[1]);
   assert(8 == io.used);
 
   // test a few more edge cases
-  BIOwrite1(&io, 1); assert(0x53 == dat[1]); assert(0x80 == dat[2]);
+  BIOwrite(&io,1, 1); assert(0x53 == dat[1]); assert(0x80 == dat[2]);
   assert(1 == io.used);
-  io.used = 8; BIOwrite8(&io, 0xFE);
+  io.used = 8; BIOwrite(&io,8, 0xFE);
   assert(0x80 == dat[2]); assert(0xFE == dat[3]);
+
+  // now test the HT_tree use-case below
+  io.used = 0; io.bp = dat; memset(dat, 0, 256);
+  BIOwrite(&io,1, 0); BIOwrite(&io,1, 0); BIOwrite(&io,1, 1);
+  assert(0x20 == dat[0]); assert(3 == io.used);
+
+  BIOwrite(&io,8, 0x3B); // ';' (0011 1011) -> 0010.0111  011-.---
+  assert(0x27 == dat[0]); assert(0x60 == dat[1]);
+  BIOwrite(&io,1, 1); assert(0x70 == dat[1]);
+
+  io.used = 0; io.bp = dat;
+  assert(0 == BIOread1(&io)); assert(0 == BIOread1(&io));
+  assert(1 == BIOread1(&io)); assert(3 == io.used);
+  assert(0x3B == BIOread8(&io));
+  assert(1 == BIOread1(&io));
 }
 #endif
-
-typedef struct _HN { // Huff Node
-  struct _HN *l, *r; // parent/left/right indexes (root p=NULL)
-  int32_t count; // prevelance of this value
-  int v; // value
-  // the 1's and 0's and how many there are
-  uint64_t bits;
-  uint8_t nbits;
-} HN;
-
-#define HTREE_SZ (0x100 * 3)
-typedef struct _HT { // Huff Tree
-  HN* root;
-  uint32_t used;
-  HN n[HTREE_SZ];
-} HT;
 
 void spaces(int n) { while(n) { printf(" "); n -= 1; } }
 void HN_printdfs(HN* n, int depth) {
@@ -744,11 +757,7 @@ typedef struct _Heap { // minheap of node.count
 } Heap;
 
 void Heap_print(HT* ht, Heap* h) {
-  for(int i=0; i < h->len; i++) {
-    HN* n = h->a[i];
-    printf("!!   heap[%i] v=%i '%c' (count=%i)\n",
-                       i, n->v, n->v,      n->count);
-  }
+  for(int i=0; i < h->len; i++) { HN* n = h->a[i]; }
 }
 
 // percolate the node at ht.n[h.arr[i]] up (towards root)
@@ -837,103 +846,120 @@ static void test_Heap() {
 #endif
 
 // create huffman tree
-static inline HT htree(uint8_t* bp,uint8_t* be) {
-  HT ht; Heap h;
-  hheap(&ht, &h, bp,be);
-  if(!h.len) return ht; // empty huffman tree
+static inline void htree(HT* ht, uint8_t* bp,uint8_t* be) {
+  Heap h; *ht = (HT){0};
+  hheap(ht, &h, bp,be);
+  if(!h.len) return; // empty huffman tree
 
   // build the huffman tree
   while(h.len > 1) {
-    HN *l = HT_heappop(&ht, &h);
-    HN *r = HT_heappop(&ht, &h);
-    ht.n[ht.used] = (HN) {
+    HN *l = HT_heappop(ht, &h);
+    HN *r = HT_heappop(ht, &h);
+    ht->n[ht->used] = (HN) {
       .l = l, .r = r, .count = l->count + r->count, .v = -1
     };
     // heap push
-    HT_heappush(&ht, &h, &ht.n[ht.used]);
-    ht.used += 1;
+    HT_heappush(ht, &h, &ht->n[ht->used]);
+    ht->used += 1;
   }
-  ht.root = HT_heappop(&ht, &h);
-  return ht;
-  #undef HLEN
+  ht->root = HT_heappop(ht, &h);
 }
 
 // encode a huffman tree into bytestream.
-// leaf: write 1 + code (8 bits), else write 0
+// leaf: write 1 + code (8 bits), else write 0 and the branches
 static inline int writeTree(BIO* b, HN* hn) {
   if(hn->v >= 0) {
-    printf("!!   writing value %i '%c'\n", hn->v, hn->v);
-    BIOwrite1(b, 1);
-    return BIOwrite8(b, hn->v);
+    BIOwrite(b,1, 1);
+    return BIOwrite(b,8, hn->v);
   }
-  if(BIOwrite1(b, 0) < 0) return -1;
   assert(hn->l); assert(hn->r);
+  BIOwrite(b,1, 0);
   writeTree(b, hn->l);
-  writeTree(b, hn->r);
+  return writeTree(b, hn->r);
 }
 
 // decode a huffman tree from b into ht
 static HN* readTree(BIO* b, HT* ht, uint64_t bits, uint8_t nbits) {
   assert(ht->used < HTREE_SZ);
-  assert(b->bp < b->be);
   HN* n = &ht->n[ht->used]; ht->used += 1;
-  if(BIOread1(b)) *n = (HN) {
-    .v = BIOread8(b), .bits = bits, .nbits = nbits
-  }; else *n = (HN) {
-    .l = readTree(b, ht,  bits << 1,      nbits + 1),
-    .r = readTree(b, ht, (bits << 1) + 1, nbits + 1),
-    .v = -1,
-  };
+  int bit = BIOread1(b);
+  if(bit < 0) { ht->invalid = true; return NULL; }
+  if(bit) {
+    *n = (HN) {
+      .v = BIOread8(b), .bits = bits, .nbits = nbits
+    };
+  } else {
+    *n = (HN) {
+      .l = readTree(b, ht,  bits << 1,      nbits + 1),
+      .r = readTree(b, ht, (bits << 1) + 1, nbits + 1),
+      .v = -1,
+    };
+  }
   return n;
 }
 
+#ifdef TEST
 static bool HN_equal(HN* n, HN* o) {
   if((n == NULL) || (o == NULL)) return n == o;
   return (n->v == o->v)
-      && (n->count == o->count)
       && HN_equal(n->l, o->l)
       && HN_equal(n->r, o->r);
 }
 
-#ifdef TEST
-void expectTree(HN* root) {
+#define ASSERT_COUNT(N, C) if(count) assert((N)->count == C);
+void expectTree(HN* root, bool count) {
   // Note: this is a possible correct representation
-  HN* l = root->l; assert(l->count == 5); assert(l->v == -1);
-    assert(l->l->v == ';'); assert(l->l->count == 2);
-    assert(l->r->v == ' '); assert(l->r->count == 3);
-  HN* r = root->r; assert(r->count == 8); assert(r->v == -1);
-    assert(r->l->v == 'A'); assert(r->l->count == 4);
-    assert(r->r->v == 'z'); assert(r->r->count == 4);
+  HN* l = root->l; ASSERT_COUNT(l, 5); assert(l->v == -1);
+    assert(l->l->v == ';'); ASSERT_COUNT(l->l, 2);
+    assert(l->r->v == ' '); ASSERT_COUNT(l->r, 3);
+  HN* r = root->r; ASSERT_COUNT(r, 8); assert(r->v == -1);
+    assert(r->l->v == 'A'); ASSERT_COUNT(r->l, 4);
+    assert(r->r->v == 'z'); ASSERT_COUNT(r->r, 4);
 }
 
 static void test_HT() {
   printf("# test_HT (c)\n");
   uint8_t* dat = "AAAA   zzzz;;";
-  HT ht = htree(dat, dat + strlen(dat));
+  HT ht; htree(&ht, dat, dat + strlen(dat));
   assert(ht.root->count == strlen(dat)); assert(ht.root->v == -1);
-  expectTree(ht.root);
+  expectTree(ht.root, true);
 
-  uint8_t buf[256];
+  uint8_t buf[256]; memset(buf, 0, 256);
   BIO io = { .bp = buf, .be = buf+256 };
-  assert(!writeTree(&io, ht.root));
-  printf("!! tree bytes: %i.%i\n", io.bp - buf, io.used);
-  // expect 7 bits (all nodes) + 4*8 bits (all values)
-  // assert(io.bp - buf == 4);
-  // assert(io.bits     == 7);
-  // assert(!BIOpush(&io));  // push that byte
 
-  // io.bp = buf; // reset
-  // HT ht2 = {0};
-  // ht2.root = readTree(&io, &ht2, 0, 0); assert(ht2.root);
-  // printf("!! expect\n");
-  // HN_printdfs(ht.root, 0);
-  // printf("!! result\n");
-  // HN_printdfs(ht2.root, 0);
-  // expectTree(ht2.root);
-  assert(false);
+  assert(!writeTree(&io, ht.root));
+  assert(io.bp - buf == 4); assert(io.used == 7);
+
+  io.bp = buf; io.used = 0; // reset
+  HT ht2 = {0};
+  ht2.root = readTree(&io, &ht2, 0, 0); assert(ht2.root);
+  expectTree(ht2.root, false);
+  assert(HN_equal(ht.root, ht2.root));
 }
 #endif
 
+// Work with huff tree. opt: 0=calculate, 1=read, 2=write+return
+// (txt, X, opt) -> okay or binarytree
+static int l_htree(LS* L) {
+  size_t tlen; uint8_t* txt = (uint8_t*)luaL_checklstring(L, 2,   &tlen);
+  X* x = L_asX(L, 2);
+  switch(luaL_checkinteger(L, 3)) {
+    case 0:
+      htree(&x->ht, txt, txt + tlen);
+      lua_pushboolean(L, !x->ht.invalid);
+      break;
+    case 1:
+      x->ht = (HT){0};
+      BIO io = {.bp=txt, .be=txt+tlen};
+      lua_pushboolean(L, readTree(&io, &x->ht, 0, 0) == 0);
+      break;
+    case 2:
+      // FIXME
+      break;
+    default: luaL_error(L, "unknown opt");
+  }
+  return 1;
+}
 
 //************************
 //* 3.a Lua Bindings (and run test)
@@ -957,6 +983,8 @@ static const struct luaL_Reg smol_sys[] = {
   {"createX", l_createX},
   {"rpatch", l_rpatch}, {"rdelta", l_rdelta},
   {"rcmdlen", l_rcmdlen},
+  {"htree", l_htree},
+
   {NULL, NULL}, // sentinel
 };
 
