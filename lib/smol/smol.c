@@ -673,6 +673,7 @@ static int BIOread8(BIO* io) {
   return 0xFF & ((*bp << used) | (*(bp+1) >> (8 - used)));
 }
 
+// write n bits (most-significant bit first)
 static int BIOwrite(BIO* io, uint8_t bits, uint8_t c) {
   int used = io->used; uint8_t *bp = io->bp;
   if(used == 8) {
