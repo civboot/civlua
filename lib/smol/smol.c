@@ -632,99 +632,80 @@ static int l_rcmdlen(LS *L) {
 // Bit IO, optimized for reading by using least-significant-bit first
 typedef struct _BIO {
   uint8_t *bp, *be; // buffer pointer, buffer end
-  int c, bits; // current byte, current bits in c
+  int used; // used bits in *bp
 } BIO;
 
-// read the specific number of bits LSB first
-static int BIOread(BIO* io, int bits) {
-  int out = 0, readBits;
-  while(bits) {
-    if(io->bits) {
-      readBits = MIN(bits, io->bits);
-      out = (out << readBits) | (((1 << readBits) - 1) & io->c);
-      io->bits -= readBits;
-      bits -= readBits;
-      io->c = io->c >> readBits;
-    } else {
-      if(io->bp >= io->be) return -1;
-      io->c = *io->bp; io->bits = 8; io->bp += 1;
-    }
+// read 1 bit (most-significant bit first)
+static int BIOread1(BIO* io) {
+  if(io->used == 8) {
+    if(io->bp == io->be) return -1;
+    io->bp += 1; io->used = 8;
   }
-  printf("!! BIORead %i (0x%x) c=0x%x bits=%i\n",
-         out, out, io->c, io->bits);
-  return out;
+  io->used += 1;
+  return 1 & (*io->bp >> (8 - io->used));
 }
 
-// push available character.
-// Invariant: MUST check io->bits first.
-static inline int BIOpush(BIO* io) {
-  if(io->bp >= io->be) return -1;
-  *io->bp = io->c; io->bp += 1;
-  io->bits = 0; io->c = 0;
-  return 0;
+// read 8 bits (most-significant bit first)
+static int BIOread8(BIO* io) {
+  uint8_t* bp = io->bp;
+  if(bp == io->be) return -1;
+  io->bp = bp + 1;
+  int used = io->used;
+  if(used == 8) return *(bp+1);
+  return 0xFF & ((*bp << (8-used)) | (*(bp+1) >> used));
 }
 
-// write the specific number of bits LSB first
-static int BIOwrite(BIO* io, int v, int bits) {
-  assert(bits <= 8);
-  int vbits = 0, writeBits, tmp;
-  while(bits) {
-    if(io->bits >= 8) {
-      printf("!! io->bits == 8\n");
-      assert(io->bits == 8);
-      if(BIOpush(io)) return -1;
-    } else {
-      writeBits = MIN(bits, 8 - io->bits);
-      printf("!! io->bits=%i, writeBits=%i\n", io->bits, writeBits);
-      tmp = (1 << writeBits) - 1; // mask
-      tmp = (tmp << vbits) & v;   // piece of value that we put in c
-      // shift left or right depending on where it needs to go in c
-      if(vbits >= io->bits) tmp = tmp >> (vbits - io->bits);
-      else                  tmp = tmp << (io->bits - vbits);
-      io->c = io->c | tmp;
-      io->bits += writeBits;
-      bits -= writeBits;
-    }
-    writeBits = MIN(io->bits, bits);
+// write 1 bit (most significant bit first)
+static int BIOwrite1(BIO* io, uint8_t b) {
+  int used = io->used; uint8_t *bp = io->bp;
+  if(used == 8) {
+    if(bp == io->be) return -1;
+    used = 1;
+    io->bp = bp + 1;
+    *(bp+1) = b << 7;
+  } else {
+    used += 1;
+    *bp |= b << (8 - used);
   }
-  printf("!! BIOwrite 0x%x end c=0x%x bits=%i\n",
-         v, io->c, io->bits);
+  io->used = used;
+}
+
+static int BIOwrite8(BIO* io, uint8_t c) {
+  int used = io->used; uint8_t *bp = io->bp;
+  if(bp == io->be) return -1;
+  io->bp = bp + 1;
+  if(used == 8) { *(bp+1) = c; return 0; }
+  *bp     |= c >> (8 - used);
+  *(bp+1)  = c << used;
   return 0;
 }
 
 #ifdef TEST
 void test_BIO() {
   printf("# test_BIO (c)\n");
-  uint8_t dat[] = {0xF5, 0x81};
-  BIO io = {.bp = dat, .be=dat+2};
-  // 5 == 0101
-  assert(1 == BIOread(&io, 2));
-  assert(1 == BIOread(&io, 2));
-  assert(0xF == io.c); assert(4 == io.bits);
-  // F = 0b1111 (3=0b11)
-  assert(1 == BIOread(&io, 1)); assert(3 == BIOread(&io, 2));
-  // last of F and first of 81 (1)
-  assert(3    == BIOread(&io, 2));
-  assert(0x40 == BIOread(&io, 7));
-  assert(-1   == BIOread(&io, 1));
+  uint8_t dat[256] = {0x57, 0x53, 0}; // 0101 0111  0101 0011
+  BIO io = {.bp = dat, .be=dat+255};
+  assert(0 == BIOread1(&io)); assert(1 == BIOread1(&io));
+  assert(0 == BIOread1(&io)); assert(1 == BIOread1(&io));
+  assert(4 == io.used); assert(dat == io.bp);
+  assert(0x75 == BIOread8(&io));
+  assert(0x30 == BIOread8(&io));
+  assert(4 == io.used);
 
-  // write
-  io = (BIO) {.bp = dat, .be=dat+2};
-  memset(dat, 0, 2); assert(0 == dat[0]); assert(0 == dat[1]);
-  BIOwrite(&io, 1,    1); assert(1 == io.c);    assert(1 == io.bits);
-  BIOwrite(&io, 1,    1); assert(3 == io.c);    assert(2 == io.bits);
-  BIOwrite(&io, 0x20, 6); assert(0x83 == io.c); assert(8 == io.bits);
-    assert(dat == io.bp);
-  BIOwrite(&io, 1,    1); assert(1 == io.c);    assert(1 == io.bits);
-    assert(dat+1 == io.bp);
-    assert(0x83 == dat[0]);
-  BIOpush(&io);
-    assert(0x83 == dat[0]); assert(1 == dat[1]);
+  // write the same as above
+  io.used = 0; io.bp = dat; memset(dat, 0, 256);
+  BIOwrite1(&io, 0); BIOwrite1(&io, 1); assert(0x40 == *dat);
+  BIOwrite1(&io, 0); BIOwrite1(&io, 1); assert(0x50 == *dat);
+  BIOwrite8(&io, 0x75); assert(0x57 == *dat); assert(0x50 == dat[1]);
+  BIOwrite1(&io, 0); BIOwrite1(&io, 0);
+  BIOwrite1(&io, 1); BIOwrite1(&io, 1); assert(0x53 == dat[1]);
+  assert(8 == io.used);
 
-  // read what we just wrote
-  io = (BIO) {.bp = dat, .be=dat+2};
-  assert(3 == BIOread(&io, 4)); assert(8 == BIOread(&io, 4));
-  assert(1 == BIOread(&io, 8));
+  // test a few more edge cases
+  BIOwrite1(&io, 1); assert(0x53 == dat[1]); assert(0x80 == dat[2]);
+  assert(1 == io.used);
+  io.used = 8; BIOwrite8(&io, 0xFE);
+  assert(0x80 == dat[2]); assert(0xFE == dat[3]);
 }
 #endif
 
@@ -778,18 +759,16 @@ static void HT_percolateup(HT* ht, Heap* h, uint32_t i) {
     HN *cn = heap[i], *pn = heap[p]; // child/parent node idx
     // if min is parent, we are done
     if(pn->count <= cn->count) break;
-    heap[i] = pn; heap[p] = cn; // swap
+    heap[p] = cn; heap[i] = pn; // swap
     i = p;
   }
 }
 
 // percolate the first node "down" (from root)
 static void HT_percolatedown(HT* ht, Heap* h, int32_t hi) {
-  printf("!!   percolatedown hi=%i\n", hi);
   HN** heap = h->a;
   int64_t i = 0; // i is index into nidxs
   while(LEFT(i) <= hi) {
-    printf("!!   percolatedown loop i=%i <= %i\n", i, hi);
     uint64_t li = LEFT(i), ri = RIGHT(i); // left/right indexes into nidxs
     HN *n = heap[i], *ln = heap[li], *rn;
     if((ri <= hi) && (heap[ri]->count < n->count)) {
@@ -852,12 +831,8 @@ static void test_Heap() {
   assert(h.a[0] == &ht.n[';']); // smallest
   assert(HT_heappop(&ht, &h) == &ht.n[';']);
   assert(h.a[0] == &ht.n[' ']); assert(h.len == 3);
-  printf("!! after pop\n");
-  Heap_print(&ht, &h);
   HT_heappush(&ht, &h, &ht.n[';']);
   assert(h.a[0] == &ht.n[';']); assert(h.len == 4);
-  printf("!! Heap done\n");
-  Heap_print(&ht, &h);
 }
 #endif
 
@@ -866,27 +841,17 @@ static inline HT htree(uint8_t* bp,uint8_t* be) {
   HT ht; Heap h;
   hheap(&ht, &h, bp,be);
   if(!h.len) return ht; // empty huffman tree
-  printf("!! htree init heap:\n"); Heap_print(&ht, &h);
 
   // build the huffman tree
   while(h.len > 1) {
-    printf("!! building tree heaplen=%i\n", h.len);
-    Heap_print(&ht, &h);
-    printf("!!   ?? left\n");
     HN *l = HT_heappop(&ht, &h);
-    printf("!!   ?? right\n");
     HN *r = HT_heappop(&ht, &h);
-    printf("!!   got l='%c' (c=%i) r='%c' (c=%i) heaplen=%i\n",
-                 l->v, l->count, r->v, r->count,     h.len);
-    Heap_print(&ht, &h);
     ht.n[ht.used] = (HN) {
       .l = l, .r = r, .count = l->count + r->count, .v = -1
     };
-    printf("!!   added node count=%i\n", ht.n[ht.used].count);
     // heap push
     HT_heappush(&ht, &h, &ht.n[ht.used]);
     ht.used += 1;
-    Heap_print(&ht, &h);
   }
   ht.root = HT_heappop(&ht, &h);
   return ht;
@@ -895,10 +860,16 @@ static inline HT htree(uint8_t* bp,uint8_t* be) {
 
 // encode a huffman tree into bytestream.
 // leaf: write 1 + code (8 bits), else write 0
-static inline void writeTree(BIO* b, HN* hn) {
+static inline int writeTree(BIO* b, HN* hn) {
   if(hn->v >= 0) {
-    BIOwrite(b, 1, /*bits*/1); BIOwrite(b, hn->v, /*bits*/ 8);
-  } else BIOwrite(b, 0, /*bits*/ 1);
+    printf("!!   writing value %i '%c'\n", hn->v, hn->v);
+    BIOwrite1(b, 1);
+    return BIOwrite8(b, hn->v);
+  }
+  if(BIOwrite1(b, 0) < 0) return -1;
+  assert(hn->l); assert(hn->r);
+  writeTree(b, hn->l);
+  writeTree(b, hn->r);
 }
 
 // decode a huffman tree from b into ht
@@ -906,8 +877,8 @@ static HN* readTree(BIO* b, HT* ht, uint64_t bits, uint8_t nbits) {
   assert(ht->used < HTREE_SZ);
   assert(b->bp < b->be);
   HN* n = &ht->n[ht->used]; ht->used += 1;
-  if(BIOread(b, 1)) *n = (HN) {
-    .v = BIOread(b, 8), .bits = bits, .nbits = nbits
+  if(BIOread1(b)) *n = (HN) {
+    .v = BIOread8(b), .bits = bits, .nbits = nbits
   }; else *n = (HN) {
     .l = readTree(b, ht,  bits << 1,      nbits + 1),
     .r = readTree(b, ht, (bits << 1) + 1, nbits + 1),
@@ -925,20 +896,41 @@ static bool HN_equal(HN* n, HN* o) {
 }
 
 #ifdef TEST
+void expectTree(HN* root) {
+  // Note: this is a possible correct representation
+  HN* l = root->l; assert(l->count == 5); assert(l->v == -1);
+    assert(l->l->v == ';'); assert(l->l->count == 2);
+    assert(l->r->v == ' '); assert(l->r->count == 3);
+  HN* r = root->r; assert(r->count == 8); assert(r->v == -1);
+    assert(r->l->v == 'A'); assert(r->l->count == 4);
+    assert(r->r->v == 'z'); assert(r->r->count == 4);
+}
+
 static void test_HT() {
   printf("# test_HT (c)\n");
   uint8_t* dat = "AAAA   zzzz;;";
   HT ht = htree(dat, dat + strlen(dat));
-  eprintf("!! tree\n");
-  HN_printdfs(ht.root, 0);
   assert(ht.root->count == strlen(dat)); assert(ht.root->v == -1);
-  // Note: this is a possible correct representation
-  HN* l = ht.root->l; assert(l->count == 5); assert(l->v == -1);
-    assert(l->l->v == ';'); assert(l->l->count == 2);
-    assert(l->r->v == ' '); assert(l->r->count == 3);
-  HN* r = ht.root->r; assert(r->count == 8); assert(r->v == -1);
-    assert(r->l->v == 'A'); assert(r->l->count == 4);
-    assert(r->r->v == 'z'); assert(r->r->count == 4);
+  expectTree(ht.root);
+
+  uint8_t buf[256];
+  BIO io = { .bp = buf, .be = buf+256 };
+  assert(!writeTree(&io, ht.root));
+  printf("!! tree bytes: %i.%i\n", io.bp - buf, io.used);
+  // expect 7 bits (all nodes) + 4*8 bits (all values)
+  // assert(io.bp - buf == 4);
+  // assert(io.bits     == 7);
+  // assert(!BIOpush(&io));  // push that byte
+
+  // io.bp = buf; // reset
+  // HT ht2 = {0};
+  // ht2.root = readTree(&io, &ht2, 0, 0); assert(ht2.root);
+  // printf("!! expect\n");
+  // HN_printdfs(ht.root, 0);
+  // printf("!! result\n");
+  // HN_printdfs(ht2.root, 0);
+  // expectTree(ht2.root);
+  assert(false);
 }
 #endif
 
