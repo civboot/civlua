@@ -50,6 +50,15 @@ T.rdelta_small = function()
   rtest('', '0123456701234567',   '\x08\x88\x00', '01234567')
 end
 
+T.huffman_small = function()
+  local x = S.createX{fp4po2=14}
+  local txt = "AAAA   zzzz;;"
+  assert(S.htree(x, 0, txt), nil)
+  local enc = assert(S.hencode(txt, x))
+  print(sfmt("Enc len=%i: %q\n", #enc, enc))
+  assert(false, 'okay')
+end
+
 local function testpath(x, path)
   local ftext = ds.readPath(path)
   local xmds, txt, csize = S.rdelta(ftext, x)

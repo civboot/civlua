@@ -95,6 +95,7 @@ static void test_po2() {
 //************************
 //* 1.a RDelta Encode / Decode value
 
+// v: current value, s: current shift
 static inline int decv(uint8_t** b, uint8_t* be, int v, int s) {
   while((*b < be) && (0x80 & **b)) {
     v = ((0x7F & **b) << s) | v;
@@ -147,14 +148,18 @@ typedef struct _FP {
   size_t    tsz; // size in bytes
 } FP;
 
+// huffman bits: 1's and 0's and how many there are
+typedef struct _HB {
+  uint64_t bits;
+  uint8_t nbits;
+} HB;
+
 // Huffman Tree Node
 typedef struct _HN {
   struct _HN *l, *r; // parent/left/right indexes (root p=NULL)
   int32_t count; // prevelance of this value
   int v; // value
-  // the 1's and 0's and how many there are
-  uint64_t bits;
-  uint8_t nbits;
+  HB hb;
 } HN;
 
 #define HTREE_SZ (0x100 * 3)
@@ -173,23 +178,25 @@ typedef struct _X {
   uint8_t *xmd, *xp, *xe; size_t xmdsz;  // xmds buf, pointer, end (commands)
   uint8_t *txt, *tp, *te; size_t txtsz;  // txt buf, pointer, end (raw text)
   uint8_t *dec; size_t decsz;            // decoding buffer
-  uint8_t *enc; size_t encsz;            // encoding buffer
-  uint8_t *scr; size_t scrsz;            // scratch buffer
   FP fp4, fp8;
   HT ht;
+  HB hbs[256];
 } X;
 
 #define META_X "smol.X"
 #define L_asX(L, I) ((X*)luaL_checkudata(L, I, META_X))
 
+// free field if it's been allocated
 #define FREE_FIELD(X, F) \
   if((X).F##sz) { free((X).F); (X).F = NULL; (X).F##sz = 0; }
+
 static void X_free(X* x) {
   FREE_FIELD(*x, xmd); FREE_FIELD(*x, txt);
-  FREE_FIELD(*x, dec); FREE_FIELD(*x, enc);
-  FREE_FIELD(*x, scr);
+  FREE_FIELD(*x, dec);
   FREE_FIELD(*x, fp4.t);
 }
+
+// allocate field if it's not large enugh
 #define ALLOC_FIELD(X, F, SZ) do { \
     if((X).F##sz < (SZ)) {        \
       FREE_FIELD(X, F);           \
@@ -468,7 +475,7 @@ static int l_rpatch(LS* L) {
   uint8_t *xp = xmds, *xe = xmds+xlen;
   uint8_t *tp = txt, *te = txt+tlen;
 
-  // decode the length of the final output
+  // decode the length of the final output (called "change")
   int clen = rcmdlen(xp,xe); ASSERT(clen >= 0, "clen");
   DBG("dlen=%i xlen=%i tlen=%i\n", blen+clen, xlen, tlen);
 
@@ -846,6 +853,15 @@ static void test_Heap() {
 }
 #endif
 
+static inline void HT_calcbits(HN* hn, uint64_t bits, uint8_t nbits) {
+  if(hn->v >= 0) {
+    hn->hb = (HB) {.bits = bits, .nbits = nbits};
+  } else {
+    HT_calcbits(hn->l,  bits << 1,      nbits + 1);
+    HT_calcbits(hn->r, (bits << 1) + 1, nbits + 1);
+  }
+}
+
 // create huffman tree
 static inline void htree(HT* ht, uint8_t* bp,uint8_t* be) {
   Heap h; *ht = (HT){0};
@@ -880,23 +896,29 @@ static inline int writeTree(BIO* b, HN* hn) {
 }
 
 // decode a huffman tree from b into ht
-static HN* readTree(BIO* b, HT* ht, uint64_t bits, uint8_t nbits) {
+static HN* readTree(BIO* b, HT* ht) {
   assert(ht->used < HTREE_SZ);
   HN* n = &ht->n[ht->used]; ht->used += 1;
   int bit = BIOread1(b);
   if(bit < 0) { ht->invalid = true; return NULL; }
   if(bit) {
-    *n = (HN) {
-      .v = BIOread8(b), .bits = bits, .nbits = nbits
-    };
+    *n = (HN) { .v = BIOread8(b) };
   } else {
     *n = (HN) {
-      .l = readTree(b, ht,  bits << 1,      nbits + 1),
-      .r = readTree(b, ht, (bits << 1) + 1, nbits + 1),
-      .v = -1,
+      .v = -1, .l = readTree(b, ht), .r = readTree(b, ht),
     };
   }
   return n;
+}
+
+// initalize the HB[256] array
+static void HB_init(HB* hbs, HN* n) {
+  if(n->v >= 0) {
+    assert(n->v < 256); hbs[n->v] = n->hb;
+  } else {
+    assert(n->l); assert(n->r);
+    HB_init(hbs, n->l); HB_init(hbs, n->r);
+  }
 }
 
 #ifdef TEST
@@ -933,33 +955,106 @@ static void test_HT() {
 
   io.bp = buf; io.used = 0; // reset
   HT ht2 = {0};
-  ht2.root = readTree(&io, &ht2, 0, 0); assert(ht2.root);
+  ht2.root = readTree(&io, &ht2); assert(ht2.root);
   expectTree(ht2.root, false);
   assert(HN_equal(ht.root, ht2.root));
+
+  HT_calcbits(ht.root, 0,0);
+  printf("!! ht 'A' bits=%i\n", ht.n['A'].hb.bits);
+  HB hbs[256];
+  memset(hbs, 0, 256 * sizeof(HB));
+  HB_init(hbs, ht.root);
+  assert(0 == hbs[0].bits); assert(0 == hbs[255].bits);
+  printf("!! %i\n", hbs['A'].nbits);
+
+  assert(2 == hbs[';'].nbits); assert(0 == hbs[';'].bits);
+  assert(2 == hbs[' '].nbits); assert(1 == hbs[' '].bits);
+  assert(2 == hbs['A'].nbits); assert(2 == hbs['A'].bits);
+  assert(2 == hbs['A'].nbits); assert(3 == hbs['z'].bits);
 }
 #endif
 
-// Work with huff tree. opt: 0=calculate, 1=read, 2=write+return
-// (txt, X, opt) -> okay or binarytree
+// Work with X.ht (huff tree) opt: 0=calculate, 1=read, 2=write+return
+// (X, opt, txt?) -> okay, bintree?
 static int l_htree(LS* L) {
-  size_t tlen; uint8_t* txt = (uint8_t*)luaL_checklstring(L, 2,   &tlen);
-  X* x = L_asX(L, 2);
-  switch(luaL_checkinteger(L, 3)) {
-    case 0:
+  X* x = L_asX(L, 1); size_t tlen; uint8_t* txt; BIO io;
+  uint8_t buf[HTREE_SZ];
+  switch(luaL_checkinteger(L, 2)) {
+    case 0: // calculate
+      txt = (char*)luaL_checklstring(L, 3, &tlen);
       htree(&x->ht, txt, txt + tlen);
       lua_pushboolean(L, !x->ht.invalid);
       break;
-    case 1:
+    case 1: // read
+      txt = (char*)luaL_checklstring(L, 3, &tlen);
       x->ht = (HT){0};
-      BIO io = {.bp=txt, .be=txt+tlen};
-      lua_pushboolean(L, readTree(&io, &x->ht, 0, 0) == 0);
+      io = (BIO) {.bp=txt, .be=txt+tlen};
+      lua_pushboolean(L, 0 == readTree(&io, &x->ht));
       break;
-    case 2:
-      // FIXME
-      break;
+    case 2: // write
+      memset(buf, 0, HTREE_SZ);
+      io = (BIO) {.bp = buf, .be = buf+HTREE_SZ};
+      lua_pushboolean(L, 0 == writeTree(&io, x->ht.root));
+      lua_pushlstring(L, buf, io.bp - buf);
+      return 2;
     default: luaL_error(L, "unknown opt");
   }
+  memset(x->hbs, 0, 256 * sizeof(HB));
+  HB_init(x->hbs, x->ht.root);
+  HT_calcbits(x->ht.root, 0, 0);
   return 1;
+}
+
+// Encode txt using huffman encoding.
+// (txt, X) -> encoded?, error
+static int l_hencode(LS* L) {
+  size_t tlen; uint8_t* txt = (uint8_t*)luaL_checklstring(L, 1, &tlen);
+  X* x = L_asX(L, 2);
+  ALLOC_FIELD(*x, dec, tlen + 6); uint8_t* dec = x->dec;
+  BIO io = { .bp = x->dec, .be = x->dec + tlen };
+  encv(&io.bp, io.be, tlen); // encode the final length
+
+  uint8_t *tp = txt, *te = txt+tlen;
+  HB* hbs = x->hbs;
+  while(tp < te) {
+    HB hb = hbs[*tp];
+    if(!hb.bits) {
+      printf("!! error: %i '%c'\n", *tp, *tp);
+      lua_pushnil(L);
+      lua_pushfstring(L, "unknown huffman code: %I", *tp);
+      return 2;
+    }
+    BIOwrite(&io, hb.nbits, hb.bits);
+    tp += 1;
+  }
+  lua_pushlstring(L, dec, io.bp - dec);
+  return 1;
+}
+
+static int HN_read1(HN* n, BIO* io) {
+  while(n->v < 0) {
+    if(BIOread1(io)) n = n->r;
+    else             n = n->l;
+  }
+  return n->v;
+}
+
+// Encode txt using huffman encoding.
+// (enc, X) -> txt, error?
+static int l_hdecode(LS* L) {
+  size_t elen; uint8_t* enc = (uint8_t*)luaL_checklstring(L, 1, &elen);
+  X* x = L_asX(L, 2); HN* root = x->ht.root;
+  BIO io = { .bp = enc, .be = enc + elen};
+  size_t dlen = decv(&io.bp, io.be, 0,0);
+  ALLOC_FIELD(*x, dec, dlen); uint8_t *dp = x->dec, *de = x->dec + dlen;
+  uint8_t* error = NULL;
+  while(dp < de) {
+    if(io.bp >= io.be) { error = "encoded length too short"; break; }
+    *dp = HN_read1(root, &io); dp += 1;
+  }
+  lua_pushlstring(L, x->dec, dlen);
+  if(error) lua_pushstring(L, error); else lua_pushnil(L);
+  return 2;
 }
 
 //************************
@@ -985,6 +1080,7 @@ static const struct luaL_Reg smol_sys[] = {
   {"rpatch", l_rpatch}, {"rdelta", l_rdelta},
   {"rcmdlen", l_rcmdlen},
   {"htree", l_htree},
+  {"hencode", l_hencode}, {"hdecode", l_hdecode},
 
   {NULL, NULL}, // sentinel
 };
