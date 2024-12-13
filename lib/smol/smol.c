@@ -855,6 +855,8 @@ static void test_Heap() {
 
 static inline void HT_calcbits(HN* hn, uint64_t bits, uint8_t nbits) {
   if(hn->v >= 0) {
+    printf("!!   calcbits %i '%c' bits=%x nbits=%i\n",
+                         hn->v, hn->v, bits, nbits);
     hn->hb = (HB) {.bits = bits, .nbits = nbits};
   } else {
     HT_calcbits(hn->l,  bits << 1,      nbits + 1);
@@ -950,20 +952,22 @@ static void test_HT() {
   uint8_t buf[256]; memset(buf, 0, 256);
   BIO io = { .bp = buf, .be = buf+256 };
 
+  // write tree
   assert(!writeTree(&io, ht.root));
   assert(io.bp - buf == 4); assert(io.used == 7);
 
+  // read tree
   io.bp = buf; io.used = 0; // reset
   HT ht2 = {0};
   ht2.root = readTree(&io, &ht2); assert(ht2.root);
   expectTree(ht2.root, false);
   assert(HN_equal(ht.root, ht2.root));
 
+  // finish initialization
   HT_calcbits(ht.root, 0,0);
   printf("!! ht 'A' bits=%i\n", ht.n['A'].hb.bits);
   HB hbs[256];
-  memset(hbs, 0, 256 * sizeof(HB));
-  HB_init(hbs, ht.root);
+  memset(hbs, 0, 256 * sizeof(HB)); HB_init(hbs, ht.root);
   assert(0 == hbs[0].bits); assert(0 == hbs[255].bits);
   printf("!! %i\n", hbs['A'].nbits);
 
@@ -982,6 +986,7 @@ static int l_htree(LS* L) {
   switch(luaL_checkinteger(L, 2)) {
     case 0: // calculate
       txt = (char*)luaL_checklstring(L, 3, &tlen);
+      printf("!! calc htree len=%i '%s'\n", tlen, txt);
       htree(&x->ht, txt, txt + tlen);
       lua_pushboolean(L, !x->ht.invalid);
       break;
@@ -999,9 +1004,8 @@ static int l_htree(LS* L) {
       return 2;
     default: luaL_error(L, "unknown opt");
   }
-  memset(x->hbs, 0, 256 * sizeof(HB));
-  HB_init(x->hbs, x->ht.root);
   HT_calcbits(x->ht.root, 0, 0);
+  memset(x->hbs, 0, 256 * sizeof(HB)); HB_init(x->hbs, x->ht.root);
   return 1;
 }
 
@@ -1013,12 +1017,19 @@ static int l_hencode(LS* L) {
   ALLOC_FIELD(*x, dec, tlen + 6); uint8_t* dec = x->dec;
   BIO io = { .bp = x->dec, .be = x->dec + tlen };
   encv(&io.bp, io.be, tlen); // encode the final length
+  printf("!! l_hencode: %.*s\n", tlen, txt);
+  HN_printdfs(x->ht.root, 0);
+  // printf("!! x.hbs\n");
+  // for(int i=0; i<256; i++) {
+  //   HB* hb = &x->hbs[i];
+  //   printf("!!  %i: (%i of) 0x%x\n", i, hb->nbits, hb->bits);
+  // }
 
   uint8_t *tp = txt, *te = txt+tlen;
   HB* hbs = x->hbs;
   while(tp < te) {
     HB hb = hbs[*tp];
-    if(!hb.bits) {
+    if(!hb.nbits) {
       printf("!! error: %i '%c'\n", *tp, *tp);
       lua_pushnil(L);
       lua_pushfstring(L, "unknown huffman code: %I", *tp);
@@ -1033,9 +1044,15 @@ static int l_hencode(LS* L) {
 
 static int HN_read1(HN* n, BIO* io) {
   while(n->v < 0) {
-    if(BIOread1(io)) n = n->r;
-    else             n = n->l;
+    if(BIOread1(io)) {
+      printf("!!   read1 right\n");
+      n = n->r;
+    } else {
+      printf("!!   read1 left\n");
+      n = n->l;
+    }
   }
+  printf("!!   read1 -> %i '%c'\n", n->v, n->v);
   return n->v;
 }
 

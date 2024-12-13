@@ -53,9 +53,21 @@ end
 T.huffman_small = function()
   local x = S.createX{fp4po2=14}
   local txt = "AAAA   zzzz;;"
+  print('!! txt len: ', #txt)
+  -- Note:
+  -- ';' = 00   ' ' = 01
+  -- 'A' = 10   'z' = 11
   assert(S.htree(x, 0, txt), nil)
   local enc = assert(S.hencode(txt, x))
+  T.binEq(
+  -- AAAA   zzz
+    '\xAA\x57\xFC\x00',
+    enc)
+
   print(sfmt("Enc len=%i: %q\n", #enc, enc))
+  local dec, err = assert(S.hdecode(enc, x));
+  print(sfmt("Dec len=%i: %q", #dec, dec))
+  print(sfmt("Dec err: %q", err));
   assert(false, 'okay')
 end
 
