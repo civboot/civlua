@@ -15,8 +15,8 @@ typedef lua_State LS;
 
 #define ASSERT(OK, ...) if(!(OK)) { luaL_error(L, __VA_ARGS__); }
 
-// #define DBG(...) printf("!D! " __VA_ARGS__)
-#define DBG(...)
+#define DBG(...) printf("!D! " __VA_ARGS__)
+// #define DBG(...)
 
 #define eprintf(...) fprintf(stderr, __VA_ARGS__)
 
@@ -327,8 +327,9 @@ static int l_rpatch(LS* L) {
   uint8_t *tp = txt, *te = txt+tlen;
 
   // decode the length of the final output (called "change")
-  int clen = rcmdlen(xp,xe); ASSERT(clen >= 0, "clen");
-  DBG("dlen=%i xlen=%i tlen=%i\n", blen+clen, xlen, tlen);
+  int clen = rcmdlen(xp,xe);
+  DBG("clen=%i dlen=%i xlen=%i tlen=%i\n", clen, blen+clen, xlen, tlen);
+  ASSERT(clen >= 0, "invalid clen");
 
   if(clen == 0) { lua_pushstring(L, ""); return 1; }
 
@@ -655,10 +656,14 @@ static inline void hheap(HT* ht, Heap* h, uint8_t* bp,uint8_t* be) {
 
 
 static inline void HT_calcbits(HN* hn, uint64_t bits, uint8_t nbits) {
+  printf("!! ... in calcbits\n");
   if(hn->v >= 0) {
+    printf("!!"); spaces(2 + nbits); printf("bits=%x nbits=%i\n", bits, nbits);
     hn->hb = (HB) {.bits = bits, .nbits = nbits};
   } else {
+    printf("!!"); spaces(2 + nbits); printf("<\n");
     HT_calcbits(hn->l,  bits << 1,      nbits + 1);
+    printf("!!"); spaces(2 + nbits); printf(">\n");
     HT_calcbits(hn->r, (bits << 1) + 1, nbits + 1);
   }
 }
@@ -709,10 +714,13 @@ static HN* readTree(BIO* b, HT* ht) {
   if(bit < 0) { ht->invalid = true; return NULL; }
   if(bit) {
     *n = (HN) { .v = BIOread8(b) };
+    printf("!!   readTree v=x%x '%c'\n", n->v, n->v);
   } else {
-    *n = (HN) {
-      .v = -1, .l = readTree(b, ht), .r = readTree(b, ht),
-    };
+    printf("!!   < readTree\n");
+    HN* l = readTree(b, ht);
+    printf("!!   > readTree\n");
+    HN* r = readTree(b, ht);
+    *n = (HN) { .v = -1, .l = l, .r = r };
   }
   return n;
 }
@@ -728,7 +736,7 @@ static void HB_init(HB* hbs, HN* n) {
 }
 
 // Work with X.ht (huff tree) opt: 0=calculate, 1=read, 2=write+return
-// (X, opt, txt?) -> okay, treestr/treelen?
+// (X, opt, txt?) -> ok, treestr/treelen?
 static int l_htree(LS* L) {
   X* x = L_asX(L, 1); size_t tlen; uint8_t* txt; BIO io;
   uint8_t buf[HTREE_SZ];
@@ -742,10 +750,13 @@ static int l_htree(LS* L) {
     case 1: // read --> (ok, treelen)
       ASSERT(tlen, "empty string (htree read)");
       txt = (char*)luaL_checklstring(L, 3, &tlen);
-      x->ht = (HT){0};
+      HT* ht = &x->ht; *ht = (HT){0};
       io = (BIO) {.bp=txt, .be=txt+tlen};
-      lua_pushboolean(L, 0 == readTree(&io, &x->ht));
+      printf("!! htree.read len=%i\n", tlen);
+      ht->root = readTree(&io, &x->ht);
+      lua_pushboolean(L, NULL != ht->root);
       lua_pushinteger(L, io.bp - txt + (io.used ? 1 : 0));
+      if(!ht->root) return 2;
       break;
     case 2: // write --> (ok, treestr)
       memset(buf, 0, HTREE_SZ);
@@ -755,8 +766,10 @@ static int l_htree(LS* L) {
       return 2;
     default: luaL_error(L, "unknown opt");
   }
+  printf("!! calcbits\n");
   HT_calcbits(x->ht.root, 0, 0);
   memset(x->hbs, 0, 256 * sizeof(HB));
+  printf("!! HB_init\n");
   HB_init(x->hbs, x->ht.root);
   return 2;
 }
@@ -805,6 +818,7 @@ static int l_hdecode(LS* L) {
   X* x = L_asX(L, 2); HN* root = x->ht.root;
   BIO io = { .bp = enc, .be = enc + elen};
   size_t dlen = decv(&io.bp, io.be, 0,0);
+  printf("!! l_hdecode elen=%i dlen=%i\n", elen, dlen);
   ALLOC_FIELD(*x, dec, dlen); uint8_t *dp = x->dec, *de = x->dec + dlen;
   uint8_t* error = NULL;
   while(dp < de) {

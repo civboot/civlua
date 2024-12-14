@@ -133,14 +133,18 @@ end
 
 local function smol_testpath(sm, path) --> encsz, pathsz
   local ftext = ds.readPath(path)
-  local enc = smol.compress(ftext)
-  local dec = S.hdecode(enc, sm.x)
+  local enc = sm:compress(ftext)
+  local dec = sm:decompress(enc)
+  print_stats('smol', path, #ftext, #enc)
+  T.binEq(ftext, dec)
+  return #enc, #ftext
 end
 
 T.compress_files = function()
   local sm = smol.Smol{}
   rdelta_testpath(sm, 'cmd/cxt/test.lua')
   huff_testpath(sm,   'cmd/cxt/test.lua')
+  smol_testpath(sm,   'cmd/cxt/test.lua')
 end
 
 T.walk_compress = function()
