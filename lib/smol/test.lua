@@ -89,52 +89,70 @@ T.huffman = function()
   htest('abaabbcccddaa', 4)
 end
 
+local test_encv = function(v, len)
+  local e = S.encv(v);       T.eq(len, #e)
+  local d, elen = S.decv(e); T.eq(len, elen)
+  T.eq(v, d)
+end
+
+T.encv = function()
+  test_encv(0, 1); test_encv(1, 1); test_encv(0x37, 1); test_encv(0x7F, 1)
+  test_encv(0x080, 2); test_encv(0x100, 2); test_encv(0x3FFF, 2);
+  test_encv(0x4000, 3);
+  test_encv(0x7FFFFFFF, 5);
+end
+
 local function print_stats(name, path, tsize, csize)
   print(sfmt('  %-10s: compress % 8i / %-8i (%3i%%) : %s',
     name, csize, tsize, math.floor(csize * 100 / tsize), pth.nice(path)))
 end
-local function rdelta_testpath(x, path)
+local function rdelta_testpath(sm, path)
   local ftext = ds.readPath(path)
-  local xmds, txt = S.rdelta(ftext, x); local csize
+  local xmds, txt = S.rdelta(ftext, sm.x); local csize
   if not xmds then csize = #ftext -- no compression
   else
     csize = #xmds + #txt
     T.eq(#ftext, S.rcmdlen(xmds))
-    T.eq(ftext, S.rpatch(xmds, txt, x))
+    T.eq(ftext, S.rpatch(xmds, txt, sm.x))
   end
   print_stats('rdelta', path, #ftext, csize)
   return csize, #ftext
 end
 
-local function huff_testpath(x, path) --> encsz, pathsz
+local function huff_testpath(sm, path) --> encsz, pathsz
   local ftext = ds.readPath(path)
   if ftext == '' then print('skipping: '..path); return end
-  local x = S.createX{fp4po2=14}
-  assert(S.htree(x, 0, ftext))
-  local enc = S.hencode(ftext, x)
-  local dec = S.hdecode(enc, x)
-  local ok, btree = S.htree(x, 2); assert(ok, btree)
+  assert(S.htree(sm.x, 0, ftext))
+  local enc = S.hencode(ftext, sm.x)
+  local dec = S.hdecode(enc, sm.x)
+  local ok, btree = S.htree(sm.x, 2); assert(ok, btree)
   print_stats('huff', path, #ftext, #btree + #enc)
   T.binEq(ftext, dec)
   return #btree + #enc, #ftext
 end
 
+local function smol_testpath(sm, path) --> encsz, pathsz
+  local ftext = ds.readPath(path)
+  local enc = smol.compress(ftext)
+  local dec = S.hdecode(enc, sm.x)
+end
+
 T.compress_files = function()
-  local x = S.createX{fp4po2=14}
-  rdelta_testpath(x, 'cmd/cxt/test.lua')
-  huff_testpath(x,   'cmd/cxt/test.lua')
+  local sm = smol.Smol{}
+  rdelta_testpath(sm, 'cmd/cxt/test.lua')
+  huff_testpath(sm,   'cmd/cxt/test.lua')
 end
 
 T.walk_compress = function()
-  local x = S.createX{fp4po2=14}
+  local sm = smol.Smol{}
   local num, osize, rsize, hsize = 0, 0, 0, 0
   for path, ftype in civix.Walk{'./'} do
     if ftype ~= 'file' or path:find'/%.'
       or path:find'experiment' then
       goto continue end
       print("compressing "..pth.nice(path))
-      local r, o = rdelta_testpath(x, path); rsize = rsize + r
-      local h    = huff_testpath(x, path);   hsize = hsize + h
+      local r, o = rdelta_testpath(sm, path); rsize = rsize + r
+      local h    = huff_testpath(sm, path);   hsize = hsize + h
       num = num + 1; osize = osize + o
     ::continue::
   end

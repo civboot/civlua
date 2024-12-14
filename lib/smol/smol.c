@@ -75,7 +75,7 @@ static int po2prime(int po2) {
 //************************
 //* 1.a RDelta Encode / Decode value
 
-// v: current value, s: current shift
+// decode value from bytes. v: current value, s: current shift
 static inline int decv(uint8_t** b, uint8_t* be, int v, int s) {
   while((*b < be) && (0x80 & **b)) {
     v = ((0x7F & **b) << s) | v;
@@ -86,6 +86,7 @@ static inline int decv(uint8_t** b, uint8_t* be, int v, int s) {
   return v;
 }
 
+// encode value to bytes. v: current value, s: current shift
 static inline int encv(uint8_t** b, uint8_t* be, int v) {
   while((*b < be) && (v > 0x7F)) {
     **b = 0x80 | v; v = v >> 7; *b += 1;
@@ -377,7 +378,7 @@ error:
 //* 1.e: Create (encode) rdelta
 
 // create an rdelta
-// (change, x, base?) -> (cmds, txt)
+// (change, x, base?) -> (cmds, raw)
 static int l_rdelta(LS* L) {
   DBG("############ rdelta\n");
   char* err = NULL;
@@ -393,9 +394,9 @@ static int l_rdelta(LS* L) {
 
   ALLOC_FIELD(*x, dec,  dlen); uint8_t* dec  = x->dec;
   ALLOC_FIELD(*x, xmd,  dlen); uint8_t* xmd  = x->xmd;
-  ALLOC_FIELD(*x, txt, dlen); uint8_t* txt = x->txt;
+  ALLOC_FIELD(*x, txt, dlen); uint8_t* raw = x->txt;
   x->xp = xmd;  x->xe = xmd+dlen;
-  x->tp = txt; x->te = txt+dlen;
+  x->tp = raw; x->te = raw+dlen;
 
   // set up pointers which are moved by the sub-algorithms as we encode.
   uint8_t *dp=dec+blen, *de=dec+dlen; // decode pointer
@@ -477,7 +478,7 @@ static int l_rdelta(LS* L) {
     encCPY(x, /*len*/(dec+dlen) - de, /*raddr*/dp - (dec+blen));
 
   lua_pushlstring(L, xmd, x->xp - xmd);
-  lua_pushlstring(L, txt, x->tp - txt);
+  lua_pushlstring(L, raw, x->tp - raw);
   return 2;
 error:
   ASSERT(!err, err);
@@ -727,25 +728,26 @@ static void HB_init(HB* hbs, HN* n) {
 }
 
 // Work with X.ht (huff tree) opt: 0=calculate, 1=read, 2=write+return
-// (X, opt, txt?) -> okay, bintree?
+// (X, opt, txt?) -> okay, treestr/treelen?
 static int l_htree(LS* L) {
   X* x = L_asX(L, 1); size_t tlen; uint8_t* txt; BIO io;
   uint8_t buf[HTREE_SZ];
   switch(luaL_checkinteger(L, 2)) {
-    case 0: // calculate
+    case 0: // calculate --> okay
       txt = (char*)luaL_checklstring(L, 3, &tlen);
       ASSERT(tlen, "empty string (htree calc)");
       htree(&x->ht, txt, txt + tlen);
       lua_pushboolean(L, !x->ht.invalid);
       break;
-    case 1: // read
+    case 1: // read --> (ok, treelen)
       ASSERT(tlen, "empty string (htree read)");
       txt = (char*)luaL_checklstring(L, 3, &tlen);
       x->ht = (HT){0};
       io = (BIO) {.bp=txt, .be=txt+tlen};
       lua_pushboolean(L, 0 == readTree(&io, &x->ht));
+      lua_pushinteger(L, io.bp - txt + (io.used ? 1 : 0));
       break;
-    case 2: // write
+    case 2: // write --> (ok, treestr)
       memset(buf, 0, HTREE_SZ);
       io = (BIO) {.bp = buf, .be = buf+HTREE_SZ};
       lua_pushboolean(L, 0 == writeTree(&io, x->ht.root));
@@ -756,7 +758,7 @@ static int l_htree(LS* L) {
   HT_calcbits(x->ht.root, 0, 0);
   memset(x->hbs, 0, 256 * sizeof(HB));
   HB_init(x->hbs, x->ht.root);
-  return 1;
+  return 2;
 }
 
 // Encode txt using huffman encoding.
@@ -817,6 +819,21 @@ static int l_hdecode(LS* L) {
 //************************
 //* 3.a Lua Bindings (and run test)
 
+// int -> str: encode integer using encv
+static int l_encv(LS* L) {
+  uint8_t buf[8]; uint8_t* b = buf; encv(&b, buf+8, luaL_checkinteger(L, 1));
+  lua_pushlstring(L, buf, b-buf);
+  return 1;
+}
+
+// str -> int, elen: decode integer using decv
+// returns: the integer and the number of bytes used to encode it.
+static int l_decv(LS* L) {
+  size_t tlen; uint8_t* txt = (uint8_t*)luaL_checklstring(L, 1, &tlen);
+  uint8_t* tp = txt; lua_pushinteger(L, decv(&tp, txt+tlen, 0, 0));
+  lua_pushinteger(L, tp - txt);
+  return 2;
+}
 
 static const struct luaL_Reg smol_sys[] = {
   {"createX", l_createX},
@@ -824,7 +841,7 @@ static const struct luaL_Reg smol_sys[] = {
   {"rcmdlen", l_rcmdlen},
   {"htree", l_htree},
   {"hencode", l_hencode}, {"hdecode", l_hdecode},
-
+  {"encv", l_encv}, {"decv", l_decv},
   {NULL, NULL}, // sentinel
 };
 
