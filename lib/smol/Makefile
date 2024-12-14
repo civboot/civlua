@@ -18,7 +18,7 @@ $(OUT).so: $(FILES)
 	make Build$(UNAME)
 
 test: $(FILES)
-	$(CC) $(FILES) -DTEST -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -o smol_test
+	$(CC) smol_test.c -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -o smol_test
 	./smol_test
 
 BuildLinux: $(FILES)

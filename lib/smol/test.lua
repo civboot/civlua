@@ -14,13 +14,13 @@ local function rtest(base, change, expCmd, expText)
   print(('!! ### rtest (%q)  (%q)  ->  %q %q'):format(
     base, change, expCmd, expText))
   local x = S.createX{fp4po2=14}
-  local cmds, text = smol.rdelta(change, x, base)
+  local cmds, text = S.rdelta(change, x, base)
   print('!! cmds, text:', cmds, text)
   io.fmt:write('!! cmds\n')
   fbin.columns(io.fmt, cmds); io.fmt:write'\n'
   io.fmt:write('!! text\n')
   fbin.columns(io.fmt, text); io.fmt:write'\n'
-  T.eq(change, smol.rpatch(cmds, text, x, base))
+  T.eq(change, S.rpatch(cmds, text, x, base))
   if expCmd then
     T.binEq(expCmd, cmds)
     T.eq(expText, text)
@@ -30,7 +30,7 @@ end
 
 T.rdelta_small = function()
   -- hand-rolled decode
-  local rp = smol.rpatch
+  local rp = S.rpatch
   local x = S.createX{fp4po2=14}
   T.eq('abc',    rp('\x03',     'abc', x)) -- ADD
   T.eq('abcabc', rp('\x03\x83\x00', 'abc', x)) -- ADD+CPY
@@ -60,48 +60,86 @@ T.huffman_small = function()
   assert(S.htree(x, 0, txt), nil)
   local enc = assert(S.hencode(txt, x))
   T.binEq(
-  -- AAAA   zzz
-    '\xAA\x57\xFC\x00',
+  -- len AAAA   zzz
+    '\x0D\xAA\x57\xFC\x00',
     enc)
 
   print(sfmt("Enc len=%i: %q\n", #enc, enc))
   local dec, err = assert(S.hdecode(enc, x));
   print(sfmt("Dec len=%i: %q", #dec, dec))
   print(sfmt("Dec err: %q", err));
-  assert(false, 'okay')
+  assert(not err)
+  T.binEq(txt, dec);
 end
 
-local function testpath(x, path)
+-- Note: esz (encoding sz) substracts the length byte
+local function htest(txt, esz)
+  print(('!! ### htest %q'):format(txt))
+  local x = S.createX{fp4po2=14}
+  assert(S.htree(x, 0, txt))
+  local h = assert(S.hencode(txt, x))
+  print(sfmt("!! ##### htest %q (%i) -> %q (%i)", txt, #txt, h, #h))
+  local res = assert(S.hdecode(h, x))
+  T.binEq(txt, res)
+  if esz then T.eq(esz, #h - 1) end
+end
+
+T.huffman = function()
+  htest('abcdefg', 3) htest('00000', 1) htest('01010101', 1)
+  htest('abaabbcccddaa', 4)
+end
+
+local function print_stats(name, path, tsize, csize)
+  print(sfmt('  %-10s: compress % 8i / %-8i (%3i%%) : %s',
+    name, csize, tsize, math.floor(csize * 100 / tsize), pth.nice(path)))
+end
+local function rdelta_testpath(x, path)
   local ftext = ds.readPath(path)
-  local xmds, txt, csize = S.rdelta(ftext, x)
+  local xmds, txt = S.rdelta(ftext, x); local csize
   if not xmds then csize = #ftext -- no compression
   else
     csize = #xmds + #txt
     T.eq(#ftext, S.rcmdlen(xmds))
     T.eq(ftext, S.rpatch(xmds, txt, x))
   end
-  print(sfmt('compress % 8i / %-8i (%3i%%) : %s',
-    csize, #ftext, math.floor(csize * 100 / #ftext), pth.nice(path)))
+  print_stats('rdelta', path, #ftext, csize)
   return csize, #ftext
+end
+
+local function huff_testpath(x, path) --> encsz, pathsz
+  local ftext = ds.readPath(path)
+  if ftext == '' then print('skipping: '..path); return end
+  local x = S.createX{fp4po2=14}
+  assert(S.htree(x, 0, ftext))
+  local enc = S.hencode(ftext, x)
+  local dec = S.hdecode(enc, x)
+  local ok, btree = S.htree(x, 2); assert(ok, btree)
+  print_stats('huff', path, #ftext, #btree + #enc)
+  T.binEq(ftext, dec)
+  return #btree + #enc, #ftext
 end
 
 T.compress_files = function()
   local x = S.createX{fp4po2=14}
-  testpath(x, 'cmd/cxt/test.lua')
+  rdelta_testpath(x, 'cmd/cxt/test.lua')
+  huff_testpath(x,   'cmd/cxt/test.lua')
 end
 
 T.walk_compress = function()
   local x = S.createX{fp4po2=14}
-  local num, csize, osize = 0, 0, 0
+  local num, osize, rsize, hsize = 0, 0, 0, 0
   for path, ftype in civix.Walk{'./'} do
     if ftype ~= 'file' or path:find'/%.'
       or path:find'experiment' then
       goto continue end
-      local c, o = testpath(x, path)
-      num = num + 1; csize = csize + c; osize = osize + o
+      print("compressing "..pth.nice(path))
+      local r, o = rdelta_testpath(x, path); rsize = rsize + r
+      local h    = huff_testpath(x, path);   hsize = hsize + h
+      num = num + 1; osize = osize + o
     ::continue::
   end
   print(sfmt('!! average compression of %i individual files', num))
-  print(sfmt('  == %i/%i (%.0f%%)',
-        csize, osize, (csize * 100) / osize))
+  print(sfmt('  rdelta == %i/%i (%.0f%%)', rsize, osize, (rsize * 100) / osize))
+  print(sfmt('  huff   == %i/%i (%.0f%%)', hsize, osize, (hsize * 100) / osize))
+  error'ok'
 end

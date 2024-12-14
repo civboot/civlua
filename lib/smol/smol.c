@@ -71,26 +71,6 @@ static int po2prime(int po2) {
   return po2primes[po2-MIN_PO2];
 }
 
-#ifdef TEST
-static void test_po2() {
-  printf("# test_po2 (c)\n");
-  assert(1 == po2(2));
-  assert(2 == po2(3)); assert(2 == po2(4));
-  assert(3 == po2(5));
-  assert(9  == po2(1<<9));
-  assert(18 == po2(1<<18));
-  assert(19 == po2(1<<19));
-  assert(26 == po2(1<<26));
-  assert(31 == po2(1<<31)); assert(31 == po2((1<<31) + 9999)); // max
-
-  assert(0xfb      == po2prime(po2(2)));
-  assert(0xfb      == po2prime(po2(0xff)));
-  assert(0xffffd   == po2prime(po2(0xfffff)));
-  assert(0x7ffffd9 == po2prime(po2(1<<30)));
-  assert(0x7ffffd9 == po2prime(po2(1<<27)));
-  assert(0x3fffffb == po2prime(po2(1<<26)));
-}
-#endif
 
 //************************
 //* 1.a RDelta Encode / Decode value
@@ -115,27 +95,6 @@ static inline int encv(uint8_t** b, uint8_t* be, int v) {
   return 0;
 }
 
-#ifdef TEST
-static void test_encode_v() {
-  printf("# test_decv (c)\n");
-  size_t i = 0;
-  uint8_t b[12] = "\x85\x0F\x33";
-  uint8_t *bp = b, *be = b + 12;
-  int v = decv(&bp,be, 0,0);
-  assert((bp - b) == 2);
-  assert(v == ((0x0F << 7) | (0x5)));
-
- #define T_ROUND(V, IEXPECT) \
-  bp = b; assert(0   == encv(&bp, be, V));  assert(IEXPECT == bp-b); \
-  bp = b; assert((V) == decv(&bp,be, 0,0)); assert(bp-b==IEXPECT);
-  T_ROUND(0x00,  1);
-  T_ROUND(0x01,  1); T_ROUND(0x37,  1); T_ROUND(0x07F,  1);
-  T_ROUND(0x080, 2); T_ROUND(0x100, 2); T_ROUND(0x3FFF, 2);
-  T_ROUND(0x4000, 3);
-  T_ROUND(0x7FFFFFFF, 5);
-#undef T_ROUND
-}
-#endif
 
 
 //************************
@@ -150,8 +109,8 @@ typedef struct _FP {
 
 // huffman bits: 1's and 0's and how many there are
 typedef struct _HB {
-  uint64_t bits;
   uint8_t nbits;
+  uint64_t bits;
 } HB;
 
 // Huffman Tree Node
@@ -198,12 +157,12 @@ static void X_free(X* x) {
 
 // allocate field if it's not large enugh
 #define ALLOC_FIELD(X, F, SZ) do { \
-    if((X).F##sz < (SZ)) {        \
-      FREE_FIELD(X, F);           \
-      (X).F = malloc(SZ);       \
-      ASSERT((X).F, "OOM:"#F);  \
-      (X).F##sz = SZ;           \
-    } \
+    if((X).F##sz < (SZ)) {         \
+      FREE_FIELD(X, F);            \
+      (X).F = malloc(SZ);          \
+      ASSERT((X).F, "OOM:"#F);     \
+      (X).F##sz = SZ;              \
+    }                              \
   } while(0)
 
 static inline int deccmd(uint8_t** b, uint8_t* be, int* len) {
@@ -246,35 +205,6 @@ static inline int encCPY(X* x, int cpylen, int raddr) {
   if(enccmd(&x->xp,x->xe, CPY,cpylen)) return -1;
   return encv(&x->xp,x->xe, raddr);
 }
-
-#ifdef TEST
-static void test_encode_cmds() {
-  printf("# test_encode_cmds (c)\n");
-  int len;
-  uint8_t b[32] = "\x43z";
-  uint8_t *bp=b, *be=b+32;
-
-  assert(RUN == deccmd(&bp,be, &len));
-  assert(3 == len); assert(1 == bp-b);
-
-  uint8_t t[32];
-  X x = { .xp=b, .xe=b+32, .tp=t, .te=t+32, };
-
-#define T_ROUND(CMD, LEN, EI, DI, ...) \
-  x.xp=b; x.tp=t; assert(0 == enc##CMD(&x, LEN, __VA_ARGS__)); \
-    printf("i=%i\n", x.xp-b); assert((x.xp-b)==(EI)); \
-  x.xp=b; x.tp=t; len=0; assert(CMD == deccmd(&x.xp,x.xe, &len)); \
-    assert((DI)==(x.xp-b)); \
-    assert(LEN == len);
-
-  T_ROUND(RUN, 3,    1, 1, 'z'); assert(*t == 'z');
-  T_ROUND(RUN, 0x50, 2, 2, 'y'); assert(*t == 'y');
-  T_ROUND(ADD, 4,    1, 1, "test"); assert(0 == memcmp(t, "test", 4));
-  T_ROUND(CPY, 7,    2, 1, 5); assert(5 == decv(&x.xp,x.xe, 0,0));
-  T_ROUND(CPY, 7,    4, 1, 0x4000); assert(0x4000 == decv(&x.xp,x.xe, 0,0));
-#undef T_ROUND
-}
-#endif
 
 //************************
 //* 1.c: Addler32 Fingerprint Table
@@ -329,41 +259,6 @@ static inline uint32_t FP_set(FP* f, A32* a, uint32_t i) {
   return o;
 }
 
-#ifdef TEST
-void test_fp() {
-  printf("# test_fp (c)\n");
-  uint8_t* d = "0123456701234567";
-
-  A32 a;
-
-  #define T_LEN 7
-  uint32_t t[T_LEN];
-  FP f = {.t = t, .len = T_LEN};
-  FP_init(&f);
-  assert(UINT32_MAX == f.t[0]);
-  assert(UINT32_MAX == f.t[T_LEN-1]);
-
-  // insert and get the result (r) of one loop at I
-  uint32_t r;
-  #define testI(I, EXPECT) \
-    printf("- fp.testI %u 0x%x\n", I, EXPECT); \
-    A32_start(&a, d+(I), d+16); \
-    r = FP_set(&f, &a, I); \
-    printf("got r=%u (0x%x)\n", r, r); \
-    assert(EXPECT == r);
-
-  testI(0, UINT32_MAX); // index not found
-  testI(0, 0);          // index found
-
-  testI(1, UINT32_MAX);
-  testI(1, 1); // 1 was inserted
-  testI(0, 0); // 0 still there
-
-  testI(8, 0); testI(8, 8); // strs at  d[0] and d[8] are same
-  testI(9, 1); testI(9, 9); // same for d[1] and d[9]
-  #undef testI
-}
-#endif
 
 // window type
 typedef struct _Win {
@@ -395,51 +290,6 @@ end:
   wl->sp = l.sp; wl->ep = l.ep;
   wr->sp = r.sp; wr->ep = r.ep;
 }
-
-
-
-#ifdef TEST
-void test_window() {
-  printf("# test_window (c)\n");
-  uint8_t* s = "01234567  01234567";
-  Win a, b;
-
-  // expand two windows from pre-set point
-  #define TEXPAND(a_s, a_sp, a_e,   \
-                  b_s, b_sp, b_e,   \
-                  expect_a_sp, expect_a_ep, \
-                  expect_b_sp, expect_b_ep) \
-        a = (Win) { .s=s+a_s, .sp=s+a_sp, .ep=s+a_sp, .e=s+a_e }; \
-        b = (Win) { .s=s+b_s, .sp=s+b_sp, .ep=s+b_sp, .e=s+b_e }; \
-        Win_expand(&a, &b); \
-        assert(a_s == a.s-s); assert(a_e == a.e-s); /*sanity*/ \
-        assert(b_s == b.s-s); assert(b_e == b.e-s); /*sanity*/ \
-        DBG(" Win"); Win_print("a", s, &a); \
-        DBG(" Win"); Win_print("b", s, &b); \
-        assert(expect_a_sp == a.sp-s); assert(expect_a_ep == a.ep-s); \
-        assert(expect_b_sp == b.sp-s); assert(expect_b_ep == b.ep-s);
-
-  // a=first 0-7, b=second 0-7
-  TEXPAND(/*a.s=*/0, /*a.sp=*/0,  /*a.e=*/10,
-          /*b.s=*/0, /*b.sp=*/10, /*b.e=*/20,
-          /*expect_a_sp=*/0,  /*expect_a_ep=*/8,
-          /*expect_b_sp=*/10, /*expect_b_ep=*/18);
-
-  // a=first3-7, b=second3-7 (same result)
-  TEXPAND(/*a.s=*/0, /*a.sp=*/3,  /*a.e=*/10,
-          /*b.s=*/0, /*b.sp=*/13, /*b.e=*/20,
-          /*expect_a_sp=*/0,  /*expect_a_ep=*/8,
-          /*expect_b_sp=*/10, /*expect_b_ep=*/18);
-
-  // same but boundary check (only goes to 6)
-  TEXPAND(/*a.s=*/0, /*a.sp=*/3,  /*a.e=*/6, // change: 10 -> 6
-          /*b.s=*/0, /*b.sp=*/13, /*b.e=*/20,
-          /*expect_a_sp=*/0,  /*expect_a_ep=*/6,
-          /*expect_b_sp=*/10, /*expect_b_ep=*/16);
-
-  #undef TEXPAND
-}
-#endif
 
 //************************
 //* 1.d: Patch (decode) RDelta
@@ -681,75 +531,40 @@ static int BIOread8(BIO* io) {
 }
 
 // write n bits (most-significant bit first)
-static int BIOwrite(BIO* io, uint8_t bits, uint8_t c) {
-  int used = io->used; uint8_t *bp = io->bp;
-  if(used == 8) {
-    if(bp == io->be) return -1;
-    bp += 1; used = 0; io->bp = bp;
+static int BIOwrite(BIO* io, uint8_t nbits, uint64_t c) {
+  int used = io->used; uint8_t *bp = io->bp, *be = io->be;
+  while(nbits >= 8) {
+    if(bp >= be) return -1;
+    nbits -= 8; uint8_t ch = c >> nbits;
+             *bp |= ch >> used;
+    bp += 1; *bp  = ch << (8 - used);
   }
-  int rem = 8 - used; // remaining bits in *bp
-  if(rem >= bits) { // bits stay in *bp
-    *bp |= c << (rem - bits);
-    used += bits;
-  } else { // bits are split across *bp and *(bp+1)
-    if(bp == io->be) return -1;
-    *bp |= c >> used;
-    used = bits - rem;
-    *(bp+1) = c << (8 - used);
-    io->bp = bp+1;
+  if(used + nbits > 8) {
+    if(bp >= be) return -1;
+    uint8_t rem = 8 - used; // remaining bits in this byte
+    c &= (1 << nbits) - 1;
+    if(rem > nbits) {
+      *bp |= c << (rem - nbits);
+    } else {
+      *bp |= c >> (nbits - rem);
+    }
+    nbits -= rem; bp += 1; used = 0;
   }
+  if(nbits) {
+    c &= (1 << nbits) - 1;
+    *bp |= c << (8 - used - nbits);
+    used += nbits;
+  }
+  io->bp = bp;
   io->used = used;
   return 0;
 }
-
-#ifdef TEST
-void test_BIO() {
-  printf("# test_BIO (c)\n");
-  uint8_t dat[256] = {0x57, 0x53, 0}; // 0101 0111  0101 0011
-  BIO io = {.bp = dat, .be=dat+255};
-  assert(0 == BIOread1(&io)); assert(1 == BIOread1(&io));
-  assert(0 == BIOread1(&io)); assert(1 == BIOread1(&io));
-  assert(4 == io.used); assert(dat == io.bp);
-  assert(0x75 == BIOread8(&io));
-  assert(0x30 == BIOread8(&io));
-  assert(4 == io.used);
-
-  // write the same as above
-  io.used = 0; io.bp = dat; memset(dat, 0, 256);
-  BIOwrite(&io,1, 0); BIOwrite(&io,1, 1); assert(0x40 == *dat);
-  BIOwrite(&io,1, 0); BIOwrite(&io,1, 1); assert(0x50 == *dat);
-  BIOwrite(&io,8, 0x75); assert(0x57 == *dat); assert(0x50 == dat[1]);
-  BIOwrite(&io,1, 0); BIOwrite(&io,1, 0);
-  BIOwrite(&io,1, 1); BIOwrite(&io,1, 1); assert(0x53 == dat[1]);
-  assert(8 == io.used);
-
-  // test a few more edge cases
-  BIOwrite(&io,1, 1); assert(0x53 == dat[1]); assert(0x80 == dat[2]);
-  assert(1 == io.used);
-  io.used = 8; BIOwrite(&io,8, 0xFE);
-  assert(0x80 == dat[2]); assert(0xFE == dat[3]);
-
-  // now test the HT_tree use-case below
-  io.used = 0; io.bp = dat; memset(dat, 0, 256);
-  BIOwrite(&io,1, 0); BIOwrite(&io,1, 0); BIOwrite(&io,1, 1);
-  assert(0x20 == dat[0]); assert(3 == io.used);
-
-  BIOwrite(&io,8, 0x3B); // ';' (0011 1011) -> 0010.0111  011-.---
-  assert(0x27 == dat[0]); assert(0x60 == dat[1]);
-  BIOwrite(&io,1, 1); assert(0x70 == dat[1]);
-
-  io.used = 0; io.bp = dat;
-  assert(0 == BIOread1(&io)); assert(0 == BIOread1(&io));
-  assert(1 == BIOread1(&io)); assert(3 == io.used);
-  assert(0x3B == BIOread8(&io));
-  assert(1 == BIOread1(&io));
-}
-#endif
+#undef WRITE8
 
 void spaces(int n) { while(n) { printf(" "); n -= 1; } }
 void HN_printdfs(HN* n, int depth) {
   if(!n) { printf("<null root>\n"); return; }
-  printf("v=%i '%c' (count=%i)\n", n->v, n->v, n->count);
+  printf("v='%c' %i (count=%i)\n", n->v, n->v, n->count);
   if(n->l) { spaces(depth); printf("< "); HN_printdfs(n->l, depth+1); }
   if(n->r) { spaces(depth); printf("> "); HN_printdfs(n->r, depth+1); }
 }
@@ -837,26 +652,9 @@ static inline void hheap(HT* ht, Heap* h, uint8_t* bp,uint8_t* be) {
   for(int i=1; i < h->len; i++) HT_percolateup(ht, h, i);
 }
 
-#ifdef TEST
-static void test_Heap() {
-  HT ht; Heap h;
-  uint8_t* dat = "AAAA   zzzz;;";
-  hheap(&ht, &h, dat, dat+strlen(dat));
-  assert(ht.n['A'].count == 4); assert(ht.n['A'].v == 'A');
-  assert(ht.n[' '].count == 3);
-  assert(h.len == 4);
-  assert(h.a[0] == &ht.n[';']); // smallest
-  assert(HT_heappop(&ht, &h) == &ht.n[';']);
-  assert(h.a[0] == &ht.n[' ']); assert(h.len == 3);
-  HT_heappush(&ht, &h, &ht.n[';']);
-  assert(h.a[0] == &ht.n[';']); assert(h.len == 4);
-}
-#endif
 
 static inline void HT_calcbits(HN* hn, uint64_t bits, uint8_t nbits) {
   if(hn->v >= 0) {
-    printf("!!   calcbits %i '%c' bits=%x nbits=%i\n",
-                         hn->v, hn->v, bits, nbits);
     hn->hb = (HB) {.bits = bits, .nbits = nbits};
   } else {
     HT_calcbits(hn->l,  bits << 1,      nbits + 1);
@@ -865,6 +663,9 @@ static inline void HT_calcbits(HN* hn, uint64_t bits, uint8_t nbits) {
 }
 
 // create huffman tree
+#define HNODE(L, R) \
+  (HN) { .l = L, .r = R, .count = (L)->count + (R)->count, .v = -1 }
+
 static inline void htree(HT* ht, uint8_t* bp,uint8_t* be) {
   Heap h; *ht = (HT){0};
   hheap(ht, &h, bp,be);
@@ -874,14 +675,16 @@ static inline void htree(HT* ht, uint8_t* bp,uint8_t* be) {
   while(h.len > 1) {
     HN *l = HT_heappop(ht, &h);
     HN *r = HT_heappop(ht, &h);
-    ht->n[ht->used] = (HN) {
-      .l = l, .r = r, .count = l->count + r->count, .v = -1
-    };
-    // heap push
+    ht->n[ht->used] = HNODE(l, r);
     HT_heappush(ht, &h, &ht->n[ht->used]);
     ht->used += 1;
   }
   ht->root = HT_heappop(ht, &h);
+  if(ht->root->v >= 0) {
+    // fix root-only (aka single-value) tree
+    ht->n[ht->used] = HNODE(ht->root, ht->root);
+    ht->root = &ht->n[ht->used]; ht->used += 1;
+  }
 }
 
 // encode a huffman tree into bytestream.
@@ -923,61 +726,6 @@ static void HB_init(HB* hbs, HN* n) {
   }
 }
 
-#ifdef TEST
-static bool HN_equal(HN* n, HN* o) {
-  if((n == NULL) || (o == NULL)) return n == o;
-  return (n->v == o->v)
-      && HN_equal(n->l, o->l)
-      && HN_equal(n->r, o->r);
-}
-
-#define ASSERT_COUNT(N, C) if(count) assert((N)->count == C);
-void expectTree(HN* root, bool count) {
-  // Note: this is a possible correct representation
-  HN* l = root->l; ASSERT_COUNT(l, 5); assert(l->v == -1);
-    assert(l->l->v == ';'); ASSERT_COUNT(l->l, 2);
-    assert(l->r->v == ' '); ASSERT_COUNT(l->r, 3);
-  HN* r = root->r; ASSERT_COUNT(r, 8); assert(r->v == -1);
-    assert(r->l->v == 'A'); ASSERT_COUNT(r->l, 4);
-    assert(r->r->v == 'z'); ASSERT_COUNT(r->r, 4);
-}
-
-static void test_HT() {
-  printf("# test_HT (c)\n");
-  uint8_t* dat = "AAAA   zzzz;;";
-  HT ht; htree(&ht, dat, dat + strlen(dat));
-  assert(ht.root->count == strlen(dat)); assert(ht.root->v == -1);
-  expectTree(ht.root, true);
-
-  uint8_t buf[256]; memset(buf, 0, 256);
-  BIO io = { .bp = buf, .be = buf+256 };
-
-  // write tree
-  assert(!writeTree(&io, ht.root));
-  assert(io.bp - buf == 4); assert(io.used == 7);
-
-  // read tree
-  io.bp = buf; io.used = 0; // reset
-  HT ht2 = {0};
-  ht2.root = readTree(&io, &ht2); assert(ht2.root);
-  expectTree(ht2.root, false);
-  assert(HN_equal(ht.root, ht2.root));
-
-  // finish initialization
-  HT_calcbits(ht.root, 0,0);
-  printf("!! ht 'A' bits=%i\n", ht.n['A'].hb.bits);
-  HB hbs[256];
-  memset(hbs, 0, 256 * sizeof(HB)); HB_init(hbs, ht.root);
-  assert(0 == hbs[0].bits); assert(0 == hbs[255].bits);
-  printf("!! %i\n", hbs['A'].nbits);
-
-  assert(2 == hbs[';'].nbits); assert(0 == hbs[';'].bits);
-  assert(2 == hbs[' '].nbits); assert(1 == hbs[' '].bits);
-  assert(2 == hbs['A'].nbits); assert(2 == hbs['A'].bits);
-  assert(2 == hbs['A'].nbits); assert(3 == hbs['z'].bits);
-}
-#endif
-
 // Work with X.ht (huff tree) opt: 0=calculate, 1=read, 2=write+return
 // (X, opt, txt?) -> okay, bintree?
 static int l_htree(LS* L) {
@@ -986,11 +734,12 @@ static int l_htree(LS* L) {
   switch(luaL_checkinteger(L, 2)) {
     case 0: // calculate
       txt = (char*)luaL_checklstring(L, 3, &tlen);
-      printf("!! calc htree len=%i '%s'\n", tlen, txt);
+      ASSERT(tlen, "empty string (htree calc)");
       htree(&x->ht, txt, txt + tlen);
       lua_pushboolean(L, !x->ht.invalid);
       break;
     case 1: // read
+      ASSERT(tlen, "empty string (htree read)");
       txt = (char*)luaL_checklstring(L, 3, &tlen);
       x->ht = (HT){0};
       io = (BIO) {.bp=txt, .be=txt+tlen};
@@ -1005,7 +754,8 @@ static int l_htree(LS* L) {
     default: luaL_error(L, "unknown opt");
   }
   HT_calcbits(x->ht.root, 0, 0);
-  memset(x->hbs, 0, 256 * sizeof(HB)); HB_init(x->hbs, x->ht.root);
+  memset(x->hbs, 0, 256 * sizeof(HB));
+  HB_init(x->hbs, x->ht.root);
   return 1;
 }
 
@@ -1014,23 +764,15 @@ static int l_htree(LS* L) {
 static int l_hencode(LS* L) {
   size_t tlen; uint8_t* txt = (uint8_t*)luaL_checklstring(L, 1, &tlen);
   X* x = L_asX(L, 2);
-  ALLOC_FIELD(*x, dec, tlen + 6); uint8_t* dec = x->dec;
+  ALLOC_FIELD(*x, dec, tlen + 6); memset(x->dec, 0, tlen + 6);
   BIO io = { .bp = x->dec, .be = x->dec + tlen };
   encv(&io.bp, io.be, tlen); // encode the final length
-  printf("!! l_hencode: %.*s\n", tlen, txt);
-  HN_printdfs(x->ht.root, 0);
-  // printf("!! x.hbs\n");
-  // for(int i=0; i<256; i++) {
-  //   HB* hb = &x->hbs[i];
-  //   printf("!!  %i: (%i of) 0x%x\n", i, hb->nbits, hb->bits);
-  // }
 
   uint8_t *tp = txt, *te = txt+tlen;
   HB* hbs = x->hbs;
   while(tp < te) {
     HB hb = hbs[*tp];
     if(!hb.nbits) {
-      printf("!! error: %i '%c'\n", *tp, *tp);
       lua_pushnil(L);
       lua_pushfstring(L, "unknown huffman code: %I", *tp);
       return 2;
@@ -1038,21 +780,19 @@ static int l_hencode(LS* L) {
     BIOwrite(&io, hb.nbits, hb.bits);
     tp += 1;
   }
-  lua_pushlstring(L, dec, io.bp - dec);
+  if(io.used) io.bp += 1;
+  lua_pushlstring(L, x->dec, io.bp - x->dec);
   return 1;
 }
 
 static int HN_read1(HN* n, BIO* io) {
   while(n->v < 0) {
     if(BIOread1(io)) {
-      printf("!!   read1 right\n");
       n = n->r;
     } else {
-      printf("!!   read1 left\n");
       n = n->l;
     }
   }
-  printf("!!   read1 -> %i '%c'\n", n->v, n->v);
   return n->v;
 }
 
@@ -1077,20 +817,6 @@ static int l_hdecode(LS* L) {
 //************************
 //* 3.a Lua Bindings (and run test)
 
-#ifdef TEST
-int main() {
-  printf("# TEST smol.c\n");
-  test_po2();
-  test_encode_v();
-  test_encode_cmds();
-  test_fp();
-  test_window();
-  test_BIO();
-  test_Heap();
-  test_HT();
-  return 0;
-}
-#endif
 
 static const struct luaL_Reg smol_sys[] = {
   {"createX", l_createX},
