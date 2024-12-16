@@ -263,13 +263,13 @@ static void test_HT() {
   BIO io = { .bp = buf, .be = buf+256 };
 
   // write tree
-  assert(!writeTree(&io, ht.root));
+  assert(!encodeTree(&io, ht.root));
   assert(io.bp - buf == 4); assert(io.used == 7);
 
   // read tree
   io.bp = buf; io.used = 0; // reset
   HT ht2 = {0};
-  ht2.root = readTree(&io, &ht2); assert(ht2.root);
+  ht2.root = decodeTree(&io, &ht2); assert(ht2.root);
   expectTree(ht2.root, false);
   assert(HN_equal(ht.root, ht2.root));
 

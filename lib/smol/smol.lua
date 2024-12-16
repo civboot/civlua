@@ -7,12 +7,14 @@ local mty = require'metaty'
 local construct = mty.construct
 local char, byte = string.char, string.byte
 
-local HTREE_CALC, HTREE_READ, HTREE_GET = 0, 1, 2
 local rdelta, rpatch          = S.rdelta, S.rpatch
-local htree, hencode, hdecode = S.htree, S.hencode, S.hdecode
+local calcHT                  = S.calcHT
+local encodeHT, decodeHT      = S.encodeHT, S.decodeHT
+local hencode, hdecode        = S.hencode, S.hdecode
 local encv, decv              = S.encv, S.decv
 
 local sfmt = string.format
+local assertBinEq = require'civtest'.Test.binEq
 
 local RDELTA, HUFF_CMDS, HUFF_RAW = 0x80, 0x40, 0x20
 
@@ -33,16 +35,17 @@ end
 
 -- encode text usin ghuffman encoding. Tree is included at the front
 M.Smol.hencode = function(sm, text) --> htree..enc
-  assert(htree(sm.x, HTREE_CALC, text))
-  local ok, ht = htree(sm.x, HTREE_GET); assert(ok, ht)
-  local enc, err = hencode(text, sm.x);    assert(not err, err)
+  assert(calcHT(sm.x, text))
+  local ht  = assert(encodeHT(sm.x))
+  local enc = assert(hencode(text, sm.x))
+  assertBinEq(text, sm:hdecode(enc))
   return ht..enc
 end
 
 -- decode huffman tree+encoded bytes.
 M.Smol.hdecode = function(sm, henc) --> text
   print("!! Smol.hdecode.tree #henc=", #henc)
-  local ok, treelen = htree(sm.x, HTREE_READ, henc); assert(ok, treelen)
+  local treelen = assert(decodeHT(sm.x, henc))
   print("!! Smol.hdecode treelen=", treelen)
   return assert(hdecode(henc:sub(treelen), sm.x))
 end

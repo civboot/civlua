@@ -57,7 +57,7 @@ T.huffman_small = function()
   -- Note:
   -- ';' = 00   ' ' = 01
   -- 'A' = 10   'z' = 11
-  assert(S.htree(x, 0, txt), nil)
+  assert((S.calcHT(x, txt)))
   local enc = assert(S.hencode(txt, x))
   T.binEq(
   -- len AAAA   zzz
@@ -76,7 +76,7 @@ end
 local function htest(txt, esz)
   print(('!! ### htest %q'):format(txt))
   local x = S.createX{fp4po2=14}
-  assert(S.htree(x, 0, txt))
+  assert(S.calcHT(x, txt))
   local h = assert(S.hencode(txt, x))
   print(sfmt("!! ##### htest %q (%i) -> %q (%i)", txt, #txt, h, #h))
   local res = assert(S.hdecode(h, x))
@@ -122,10 +122,10 @@ end
 local function huff_testpath(sm, path) --> encsz, pathsz
   local ftext = ds.readPath(path)
   if ftext == '' then print('skipping: '..path); return end
-  assert(S.htree(sm.x, 0, ftext))
+  assert(S.calcHT(sm.x, ftext))
   local enc = S.hencode(ftext, sm.x)
   local dec = S.hdecode(enc, sm.x)
-  local ok, btree = S.htree(sm.x, 2); assert(ok, btree)
+  local btree = assert(S.encodeHT(sm.x))
   print_stats('huff', path, #ftext, #btree + #enc)
   T.binEq(ftext, dec)
   return #btree + #enc, #ftext
