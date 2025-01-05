@@ -144,6 +144,7 @@ T.compress_files = function()
   local sm = smol.Smol{}
   rdelta_testpath(sm, 'cmd/cxt/test.lua')
   huff_testpath(sm,   'cmd/cxt/test.lua')
+  print("!! ##################### smol_testpath cxt/test.lua")
   smol_testpath(sm,   'cmd/cxt/test.lua')
 end
 

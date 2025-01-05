@@ -14,7 +14,9 @@ local hencode, hdecode        = S.hencode, S.hdecode
 local encv, decv              = S.encv, S.decv
 
 local sfmt = string.format
+local assertEq = require'civtest'.Test.eq
 local assertBinEq = require'civtest'.Test.binEq
+local fbin = require'fmt.binary'
 
 local RDELTA, HUFF_CMDS, HUFF_RAW = 0x80, 0x40, 0x20
 
@@ -37,8 +39,19 @@ end
 M.Smol.hencode = function(sm, text) --> htree..enc
   assert(calcHT(sm.x, text))
   local ht  = assert(encodeHT(sm.x))
+
+  -- FIXME: remove these checks for decode equality
+  assertEq(#ht, assert(decodeHT(sm.x, ht..string.rep('Z', 1024))))
+  local htStr = S.fmtHT(sm.x)
+  assertEq(htStr:gsub('#%d+', '#0'), S.fmtHT(sm.x))
+
   local enc = assert(hencode(text, sm.x))
-  assertBinEq(text, sm:hdecode(enc))
+  local elen, lensz = S.decv(enc)
+  assertEq(#text, elen)
+  print(fbin(enc)); print""
+  print("!! check decoding, elen:", elen, "(encoded in", lensz, "bytes)")
+  assertBinEq(text, hdecode(enc, sm.x))
+
   return ht..enc
 end
 
@@ -47,15 +60,22 @@ M.Smol.hdecode = function(sm, henc) --> text
   print("!! Smol.hdecode.tree #henc=", #henc)
   local treelen = assert(decodeHT(sm.x, henc))
   print("!! Smol.hdecode treelen=", treelen)
-  return assert(hdecode(henc:sub(treelen), sm.x))
+  return assert(hdecode(henc:sub(treelen+1), sm.x))
 end
 
 M.Smol.compress = function(sm, text, base)
   print("!! Smol.compress "..#text)
   if text == '' then return '' end
   local cmds, raw = rdelta(text, sm.x, base)
+
   local hcmds = assert(sm:hencode(cmds))
   local hraw  = assert(sm:hencode(raw))
+
+  -- FIXME: remove checks
+  assertEq(text, rpatch(cmds, raw, sm.x, base))
+  assertEq(cmds, sm:hdecode(hcmds))
+  assertEq(raw, sm:hdecode(hraw))
+
   return char(RDELTA | HUFF_CMDS | HUFF_RAW)..encv(#hcmds)..hcmds..hraw
 end
 
@@ -73,9 +93,9 @@ M.Smol.decompress = function(sm, enc, base)
 
   local cmds = sm:hdecode(hcmds)
   local raw  = sm:hdecode(hraw)
-  print(sfmt("!! decompress cmds: %q\n", cmds))
-  print(sfmt("!! decompress raw : %q\n", raw))
-  return rpatch(cmds, raw, sm.x)
+  -- print(sfmt("!! decompress cmds:\n%s\n", fbin(cmds)))
+  -- print(sfmt("!! decompress raw :\n%s\n", fbin(raw)))
+  return rpatch(cmds, raw, sm.x, base)
 end
 
 return M

@@ -743,13 +743,14 @@ static HN* decodeTree(BIO* b, HT* ht) {
   HN* n = &ht->n[ht->used]; ht->used += 1;
   int bit = BIOread1(b);
   if(bit < 0) { ht->invalid = true; return NULL; }
+  printf("!!   decodeTree bp=%p used=%i ", b->bp, b->used);
   if(bit) {
     *n = (HN) { .v = BIOread8(b) };
-    printf("!!   decodeTree v=x%x '%c'\n", n->v, n->v);
+    printf("v=0x%X '%c' bp=%p used=%i\n", n->v, n->v, b->bp, b->used);
   } else {
-    printf("!!   < decodeTree\n");
+    printf("<<<\n");
     HN* l = decodeTree(b, ht);
-    printf("!!   > decodeTree\n");
+    printf("!!   decodeTree bp=%p used=%i >>>\n", b->bp, b->used);
     HN* r = decodeTree(b, ht);
     *n = (HN) { .v = -1, .l = l, .r = r };
   }
@@ -805,6 +806,9 @@ static int l_decodeHT(LS* L) { // (x, txt) -> treelen?, error?
   ht->root = decodeTree(&io, &x->ht);
   if(!ht->root) { lua_pushnil(L); lua_pushstring(L, "unknown error"); return 2; }
   HT_finish(x);
+  printf("!! l_decodeHT: bp - txt=%i io.used=%i\n", io.bp - txt, io.used);
+  printf("!!   [bp]=x%X'%c' '%c' '%c' '%c'\n",
+        io.bp[-1], io.bp[-1], io.bp[0], io.bp[1], io.bp[2]);
   lua_pushinteger(L, io.bp - txt + (io.used ? 1 : 0));
   return 1;
 }
@@ -817,11 +821,9 @@ static int l_encodeHT(LS* L) { // (x) -> (enctree?, error?)
   BIO io = (BIO) {.bp = buf, .be = buf+HTREE_SZ};
   int res = encodeTree(&io, x->ht.root);
   if(res) {
-    lua_pushnil(L);
-    lua_pushstring(L, "unknown error");
-    return 2;
+    lua_pushnil(L); lua_pushstring(L, "unknown error"); return 2;
   }
-  lua_pushlstring(L, buf, io.bp - buf);
+  lua_pushlstring(L, buf, io.bp - buf + (io.used ? 1 : 0));
   return 1;
 }
 
