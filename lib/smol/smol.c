@@ -15,8 +15,8 @@ typedef lua_State LS;
 
 #define ASSERT(OK, ...) if(!(OK)) { luaL_error(L, __VA_ARGS__); }
 
-#define DBG(...) printf("!D! " __VA_ARGS__)
-// #define DBG(...)
+// #define DBG(...) printf("!D! " __VA_ARGS__)
+#define DBG(...)
 
 #define eprintf(...) fprintf(stderr, __VA_ARGS__)
 
@@ -318,17 +318,18 @@ static int rcmdlen(uint8_t* xp, uint8_t* xe) {
 static int l_rpatch(LS* L) {
   DBG("############ rpatch\n");
   size_t xlen; uint8_t* xmds = (uint8_t*)luaL_checklstring(L, 1,   &xlen);
-  size_t tlen; uint8_t* txt = (uint8_t*)luaL_checklstring(L, 2,   &tlen);
+  size_t rlen; uint8_t* raw = (uint8_t*)luaL_checklstring(L, 2,   &rlen);
   X* x = L_asX(L, 3);
   size_t blen; uint8_t* base = (uint8_t*)luaL_optlstring(L, 4, "", &blen);
 
   ASSERT(xlen >= 1, "#rdelta xmds == 0");
   uint8_t *xp = xmds, *xe = xmds+xlen;
-  uint8_t *tp = txt, *te = txt+tlen;
+  uint8_t *tp = raw, *te = raw+rlen;
 
   // decode the length of the final output (called "change")
   int clen = rcmdlen(xp,xe);
-  DBG("clen=%i dlen=%i xlen=%i tlen=%i\n", clen, blen+clen, xlen, tlen);
+  DBG("clen=%i dlen=%i xlen=%i rlen=%i\n",
+       clen, blen+clen,   xlen,  rlen);
   ASSERT(clen >= 0, "invalid clen");
 
   if(clen == 0) { lua_pushstring(L, ""); return 1; }
@@ -343,17 +344,17 @@ static int l_rpatch(LS* L) {
     int cmdlen; int cmd = deccmd(&xp,xe, &cmdlen);
     switch (cmd) {
       case ADD:
-        DBG("ADD len=%i ti=%i  di=%i\n", cmdlen, tp-txt, dp-dec);
+        DBG("ADD len=%i ti=%i  di=%i\n", cmdlen, tp-raw, dp-dec);
         if((tp + cmdlen > te) || (dp + cmdlen > de)) goto error;
         memcpy(dp, tp, cmdlen); tp += cmdlen;
         break;
       case RUN:
-        DBG("RUN len=%i ti=%i  di=%i\n", cmdlen, tp-txt, dp-dec);
+        DBG("RUN len=%i ti=%i  di=%i\n", cmdlen, tp-raw, dp-dec);
         if((tp + 1 > te) || (dp + cmdlen > de)) goto error;
         memset(dp, *tp, cmdlen); tp += 1;
         break;
       case CPY:
-        DBG("CPY len=%i ti=%i  di=%i\n", cmdlen, tp-txt, dp-dec);
+        DBG("CPY len=%i ti=%i  di=%i\n", cmdlen, tp-raw, dp-dec);
         int raddr = decv(&xp,xe, 0,0); if(raddr < 0) goto error;
         size_t di = dp - dec;
         raddr = di - raddr - cmdlen;
@@ -379,7 +380,7 @@ error:
 //* 1.e: Create (encode) rdelta
 
 // create an rdelta
-// (change, x, base?) -> (cmds, raw)
+// (change, x, base?) -> (nil, errstring) or (cmds, raw)
 static int l_rdelta(LS* L) {
   DBG("############ rdelta\n");
   char* err = NULL;
@@ -393,8 +394,8 @@ static int l_rdelta(LS* L) {
   size_t blen; uint8_t* base = (uint8_t*)luaL_optlstring(L, 3, "", &blen);
   size_t dlen = blen + clen;
 
-  ALLOC_FIELD(*x, dec,  dlen); uint8_t* dec  = x->dec;
-  ALLOC_FIELD(*x, xmd,  dlen); uint8_t* xmd  = x->xmd;
+  ALLOC_FIELD(*x, dec, dlen); uint8_t* dec  = x->dec;
+  ALLOC_FIELD(*x, xmd, dlen); uint8_t* xmd  = x->xmd;
   ALLOC_FIELD(*x, txt, dlen); uint8_t* raw = x->txt;
   x->xp = xmd;  x->xe = xmd+dlen;
   x->tp = raw; x->te = raw+dlen;
@@ -482,8 +483,9 @@ static int l_rdelta(LS* L) {
   lua_pushlstring(L, raw, x->tp - raw);
   return 2;
 error:
-  ASSERT(!err, err);
-  return 0;
+  lua_pushnil(L);
+  lua_pushstring(L, err ? err : "output would be larger than input");
+  return 2;
 }
 
 static int l_X_free(LS* L) { X_free(L_asX(L, 1)); return 0; }
@@ -568,7 +570,6 @@ static int BIOwrite(BIO* io, uint8_t nbits, uint64_t c) {
     /*printf("FMT:"); printf(__VA_ARGS__);*/ \
     size_t FMT_avail = (E)-*(S); \
     int FMT_wrote = snprintf(*(S), FMT_avail, __VA_ARGS__); \
-    /*printf("!! FMT avail=%i wrote=%i\n", FMT_avail, FMT_wrote);*/ \
     if((FMT_wrote < 0) || (FMT_avail < FMT_wrote)) return -1; \
     *(S) += FMT_wrote; \
   } while(0)
@@ -595,7 +596,6 @@ int HN_fmt(uint8_t** s,uint8_t* e, HN* n) {
 int HN_printdfs(HN* n) {
   uint8_t buf[8192]; uint8_t* s = buf;
   if(HN_fmt(&s, s+8192, n)) {
-    printf("!! HN_fmt error!!\n");
     return -1;
   }
   printf("HTREE (%i):\n%.*s", s-buf, s-buf, buf);
@@ -686,12 +686,9 @@ static inline void hheap(HT* ht, Heap* h, uint8_t* bp,uint8_t* be) {
 
 
 static inline void HT_calcbits(HN* hn, uint64_t bits, uint8_t nbits) {
-  // printf("!! ... in calcbits\n");
   hn->hb = (HB) {.bits = bits, .nbits = nbits};
   if(hn->v < 0) {
-    // printf("!!"); spaces(2 + nbits); printf("<\n");
     HT_calcbits(hn->l,  bits << 1,      nbits + 1);
-    // printf("!!"); spaces(2 + nbits); printf(">\n");
     HT_calcbits(hn->r, (bits << 1) + 1, nbits + 1);
   }
 }
@@ -725,15 +722,12 @@ static inline void htree(HT* ht, uint8_t* bp,uint8_t* be) {
 // leaf: write 1 + code (8 bits), else write 0 and the branches
 static inline int encodeTree(BIO* b, HN* hn) {
   if(hn->v >= 0) {
-    printf("!!   encodeTree v=%x '%c'\n", hn->v, hn->v);
     BIOwrite(b,1, 1);
     return BIOwrite(b,8, hn->v);
   }
   assert(hn->l); assert(hn->r);
   BIOwrite(b,1, 0);
-  printf("!! < encodeTree\n");
   encodeTree(b, hn->l);
-  printf("!! > encodeTree\n");
   return encodeTree(b, hn->r);
 }
 
@@ -743,14 +737,10 @@ static HN* decodeTree(BIO* b, HT* ht) {
   HN* n = &ht->n[ht->used]; ht->used += 1;
   int bit = BIOread1(b);
   if(bit < 0) { ht->invalid = true; return NULL; }
-  printf("!!   decodeTree bp=%p used=%i ", b->bp, b->used);
   if(bit) {
     *n = (HN) { .v = BIOread8(b) };
-    printf("v=0x%X '%c' bp=%p used=%i\n", n->v, n->v, b->bp, b->used);
   } else {
-    printf("<<<\n");
     HN* l = decodeTree(b, ht);
-    printf("!!   decodeTree bp=%p used=%i >>>\n", b->bp, b->used);
     HN* r = decodeTree(b, ht);
     *n = (HN) { .v = -1, .l = l, .r = r };
   }
@@ -776,17 +766,12 @@ static int l_fmtHT(LS* L) { // (x) -> (string)
 }
 
 static void HT_finish(X* x) {
-  printf("!! calcbits\n");
   HT_calcbits(x->ht.root, 0, 0);
   memset(x->hbs, 0, 256 * sizeof(HB));
-  printf("!! HB_init\n");
   HB_init(x->hbs, x->ht.root);
-  printf("!! l_htree AFTER:\n");
-  HN_printdfs(x->ht.root);
 }
 
 static int l_calcHT(LS* L) { // (x, txt) -> ok
-  printf("!! l_calcHT\n");
   X* x = L_asX(L, 1);
   size_t tlen; uint8_t* txt = (uint8_t*)luaL_checklstring(L, 2, &tlen);
   ASSERT(tlen, "empty string (htree calc)");
@@ -797,7 +782,6 @@ static int l_calcHT(LS* L) { // (x, txt) -> ok
 }
 
 static int l_decodeHT(LS* L) { // (x, txt) -> treelen?, error?
-  printf("!! l_decodeHT\n");
   X* x = L_asX(L, 1);
   size_t tlen; uint8_t* txt = (uint8_t*)luaL_checklstring(L, 2, &tlen);
   ASSERT(tlen, "empty string (htree read)");
@@ -806,15 +790,11 @@ static int l_decodeHT(LS* L) { // (x, txt) -> treelen?, error?
   ht->root = decodeTree(&io, &x->ht);
   if(!ht->root) { lua_pushnil(L); lua_pushstring(L, "unknown error"); return 2; }
   HT_finish(x);
-  printf("!! l_decodeHT: bp - txt=%i io.used=%i\n", io.bp - txt, io.used);
-  printf("!!   [bp]=x%X'%c' '%c' '%c' '%c'\n",
-        io.bp[-1], io.bp[-1], io.bp[0], io.bp[1], io.bp[2]);
   lua_pushinteger(L, io.bp - txt + (io.used ? 1 : 0));
   return 1;
 }
 
 static int l_encodeHT(LS* L) { // (x) -> (enctree?, error?)
-  printf("!! l_encodeHT\n");
   X* x = L_asX(L, 1);
   HT* ht = &x->ht; ASSERT(ht->root, "no tree");
   uint8_t buf[HTREE_SZ]; memset(buf, 0, HTREE_SZ);
@@ -830,7 +810,6 @@ static int l_encodeHT(LS* L) { // (x) -> (enctree?, error?)
 // Encode txt using huffman encoding.
 // (txt, X) -> encoded?, error
 static int l_hencode(LS* L) {
-  printf("!! l_hencode\n");
   size_t tlen; uint8_t* txt = (uint8_t*)luaL_checklstring(L, 1, &tlen);
   X* x = L_asX(L, 2);
   ALLOC_FIELD(*x, dec, tlen + 6); memset(x->dec, 0, tlen + 6);
@@ -868,12 +847,10 @@ static int HN_read1(HN* n, BIO* io) {
 // Encode txt using huffman encoding.
 // (enc, X) -> txt, error?
 static int l_hdecode(LS* L) {
-  printf("!! l_hdecode\n");
   size_t elen; uint8_t* enc = (uint8_t*)luaL_checklstring(L, 1, &elen);
   X* x = L_asX(L, 2); HN* root = x->ht.root;
   BIO io = { .bp = enc, .be = enc + elen};
   size_t dlen = decv(&io.bp, io.be, 0,0);
-  printf("!! l_hdecode elen=%i dlen=%i\n", elen, dlen);
   ALLOC_FIELD(*x, dec, dlen); uint8_t *dp = x->dec, *de = x->dec + dlen;
   uint8_t* error = NULL;
   while(dp < de) {
@@ -882,7 +859,6 @@ static int l_hdecode(LS* L) {
   }
   lua_pushlstring(L, x->dec, dlen);
   if(error) lua_pushstring(L, error); else lua_pushnil(L);
-  printf("!! l_hdecode out root=%p\n", x->ht.root);
   return 2;
 }
 
@@ -899,7 +875,6 @@ static int l_encv(LS* L) {
 // str -> int, elen: decode integer using decv
 // returns: the integer and the number of bytes used to encode it.
 static int l_decv(LS* L) {
-  printf("!! l_decv\n");
   size_t tlen; uint8_t* txt = (uint8_t*)luaL_checklstring(L, 1, &tlen);
   uint8_t* tp = txt; lua_pushinteger(L, decv(&tp, txt+tlen, 0, 0));
   lua_pushinteger(L, tp - txt);

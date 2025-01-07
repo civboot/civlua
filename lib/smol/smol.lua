@@ -48,8 +48,6 @@ M.Smol.hencode = function(sm, text) --> htree..enc
   local enc = assert(hencode(text, sm.x))
   local elen, lensz = S.decv(enc)
   assertEq(#text, elen)
-  print(fbin(enc)); print""
-  print("!! check decoding, elen:", elen, "(encoded in", lensz, "bytes)")
   assertBinEq(text, hdecode(enc, sm.x))
 
   return ht..enc
@@ -57,17 +55,11 @@ end
 
 -- decode huffman tree+encoded bytes.
 M.Smol.hdecode = function(sm, henc) --> text
-  print("!! Smol.hdecode.tree #henc=", #henc)
   local treelen = assert(decodeHT(sm.x, henc))
-  print("!! Smol.hdecode treelen=", treelen)
   return assert(hdecode(henc:sub(treelen+1), sm.x))
 end
 
-M.Smol.compress = function(sm, text, base)
-  print("!! Smol.compress "..#text)
-  if text == '' then return '' end
-  local cmds, raw = rdelta(text, sm.x, base)
-
+M.Smol.compressRDelta = function(sm, cmds, raw, text, base)
   local hcmds = assert(sm:hencode(cmds))
   local hraw  = assert(sm:hencode(raw))
 
@@ -79,23 +71,40 @@ M.Smol.compress = function(sm, text, base)
   return char(RDELTA | HUFF_CMDS | HUFF_RAW)..encv(#hcmds)..hcmds..hraw
 end
 
-M.Smol.decompress = function(sm, enc, base)
-  print("!! Smol.decompress "..#enc)
-  if enc == '' then return '' end
-  assert((RDELTA | HUFF_CMDS | HUFF_RAW) == byte(enc:sub(1,1)))
-  local cmdlen, elen = decv(enc:sub(2,10))
-  print("!! elen", elen)
-  local si = 1 + elen
-  local hcmds = enc:sub(si, si + cmdlen - 1)
-  local hraw  = enc:sub(si + cmdlen)
-  print(sfmt("!! decompress hcmds (%i): %q\n", #hcmds, hcmds))
-  print(sfmt("!! decompress hraw  (%i): %q\n", #hcmds, hraw))
+M.Smol.compress = function(sm, text, base)
+  if text == '' then return '' end
+  local cmds, raw = rdelta(text, sm.x, base)
+  if cmds and #cmds + #raw < #text then
+    return sm:compressRDelta(cmds, raw, text, base)
+  end
+  local enc = assert(sm:hencode(text))
+  return (#enc < #text) and (char(HUFF_RAW)..enc) or ('\x00'..text)
+end
 
-  local cmds = sm:hdecode(hcmds)
-  local raw  = sm:hdecode(hraw)
-  -- print(sfmt("!! decompress cmds:\n%s\n", fbin(cmds)))
-  -- print(sfmt("!! decompress raw :\n%s\n", fbin(raw)))
-  return rpatch(cmds, raw, sm.x, base)
+M.Smol.decompress = function(sm, enc, base)
+  if enc == '' then return '' end
+  local kind = byte(enc:sub(1,1))
+
+  if RDELTA & kind ~= 0 then
+    if (RDELTA | HUFF_CMDS | HUFF_RAW) ~= kind then
+      error(sfmt('not yet implemented: 0x%X', kind))
+    end
+    local cmdlen, enclen = decv(enc:sub(2,10))
+
+    local si = 2 + enclen
+    local hcmds = enc:sub(si, si + cmdlen - 1)
+    local hraw  = enc:sub(si + cmdlen)
+
+    local cmds = sm:hdecode(hcmds)
+    local raw  = sm:hdecode(hraw)
+    return rpatch(cmds, raw, sm.x, base)
+  elseif HUFF_RAW & kind ~= 0 then
+    assert(kind == HUFF_RAW)
+    return sm:hdecode(enc:sub(2))
+  else
+    assert(kind == 0);
+    return enc:sub(2)
+  end
 end
 
 return M

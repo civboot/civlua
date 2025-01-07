@@ -134,8 +134,9 @@ end
 local function smol_testpath(sm, path) --> encsz, pathsz
   local ftext = ds.readPath(path)
   local enc = sm:compress(ftext)
-  local dec = sm:decompress(enc)
   print_stats('smol', path, #ftext, #enc)
+  assert(#enc <= #ftext * 2, 'enc too large')
+  local dec = sm:decompress(enc)
   T.binEq(ftext, dec)
   return #enc, #ftext
 end
@@ -146,11 +147,12 @@ T.compress_files = function()
   huff_testpath(sm,   'cmd/cxt/test.lua')
   print("!! ##################### smol_testpath cxt/test.lua")
   smol_testpath(sm,   'cmd/cxt/test.lua')
+  smol_testpath(sm,   'cmd/ele/tests/small.lua')
 end
 
 T.walk_compress = function()
   local sm = smol.Smol{}
-  local num, osize, rsize, hsize = 0, 0, 0, 0
+  local num, osize, rsize, hsize, ssize = 0, 0, 0, 0, 0
   for path, ftype in civix.Walk{'./'} do
     if ftype ~= 'file' or path:find'/%.'
       or path:find'experiment' then
@@ -158,11 +160,13 @@ T.walk_compress = function()
       print("compressing "..pth.nice(path))
       local r, o = rdelta_testpath(sm, path); rsize = rsize + r
       local h    = huff_testpath(sm, path);   hsize = hsize + h
+      local s    = smol_testpath(sm, path);   ssize = ssize + s
       num = num + 1; osize = osize + o
     ::continue::
   end
   print(sfmt('!! average compression of %i individual files', num))
   print(sfmt('  rdelta == %i/%i (%.0f%%)', rsize, osize, (rsize * 100) / osize))
   print(sfmt('  huff   == %i/%i (%.0f%%)', hsize, osize, (hsize * 100) / osize))
+  print(sfmt('  smol   == %i/%i (%.0f%%)', ssize, osize, (ssize * 100) / osize))
   error'ok'
 end
