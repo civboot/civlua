@@ -1,9 +1,11 @@
 local G = G or _G
 --- small compression algorithms
-local M = G.mod and mod'smol' or {}
+local M = G.mod and mod'smol' or setmetatable({}, {})
 local S = require'smol.sys'
 
-local mty = require'metaty'
+local shim = require'shim'
+local mty  = require'metaty'
+local ds   = require'ds'
 local construct = mty.construct
 local char, byte = string.char, string.byte
 
@@ -107,4 +109,45 @@ M.Smol.decompress = function(sm, enc, base)
   end
 end
 
+--- de/compress library and utility.
+---
+--- Example: [+
+---   * [$smol file.txt    file.txt.sm --compress]
+---   * [$smol file.txt.sm file.txt]
+--- ]
+M.Main = mty'Main' {
+  'compress [bool]: compresses first argument, otherwise decompress it',
+  'verbose [bool]: prints stats',
+  "dry [bool]: if true then don't write data",
+}
+
+M.main = function(args)
+  args = M.Main(shim.parseStr(args))
+  if #args < 1 then
+    print'Usage: smol file.txt file.txt.sm'
+    return 1
+  end
+  local sm, inp, toPath, out = M.Smol{}, ds.readPath(args[1])
+
+  if args.compress then
+    toPath = args[2] or (args[1]..'.sm')
+    out = sm:compress(inp)
+  else
+    toPath = args[2]
+      or (args[1]:sub(-3) == '.sm') and args[1]:sub(1,-4)
+      or error'must provide output file'
+    out = sm:decompress(inp)
+  end
+  if args.verbose then
+    io.fmt:write(sfmt('%scompression ratio: %i / %i = %i%%\n',
+      args.compress and '' or 'de',
+      #out, #inp, 100 * #out // #inp))
+  end
+  if args.dry then
+    io.fmt:write('smol would write to: '..toPath..'\n')
+  else ds.writePath(toPath, out) end
+  return out
+end
+
+getmetatable(M).__call = function(_, args) return M.main(args) end
 return M

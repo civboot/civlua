@@ -145,7 +145,6 @@ T.compress_files = function()
   local sm = smol.Smol{}
   rdelta_testpath(sm, 'cmd/cxt/test.lua')
   huff_testpath(sm,   'cmd/cxt/test.lua')
-  print("!! ##################### smol_testpath cxt/test.lua")
   smol_testpath(sm,   'cmd/cxt/test.lua')
   smol_testpath(sm,   'cmd/ele/tests/small.lua')
 end
@@ -168,5 +167,4 @@ T.walk_compress = function()
   print(sfmt('  rdelta == %i/%i (%.0f%%)', rsize, osize, (rsize * 100) / osize))
   print(sfmt('  huff   == %i/%i (%.0f%%)', hsize, osize, (hsize * 100) / osize))
   print(sfmt('  smol   == %i/%i (%.0f%%)', ssize, osize, (ssize * 100) / osize))
-  error'ok'
 end
