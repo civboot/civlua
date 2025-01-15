@@ -76,14 +76,14 @@ static int po2prime(int po2) {
 //* 1.a RDelta Encode / Decode value
 
 // decode value from bytes. v: current value, s: current shift
-static inline int decv(uint8_t** b, uint8_t* be, int v, int s) {
+static inline int decv(uint8_t** b, uint8_t* be, uint64_t* v, int s) {
   while((*b < be) && (0x80 & **b)) {
-    v = ((0x7F & **b) << s) | v;
+    *v |= ((0x7F & **b) << s);
     s += 7; *b += 1;
   }
   if(*b >= be) return -1;
-  v = (**b << s) | v; *b += 1;
-  return v;
+  *v |= (**b << s); *b += 1;
+  return 0;
 }
 
 // encode value to bytes. v: current value, s: current shift
@@ -166,12 +166,13 @@ static void X_free(X* x) {
     }                              \
   } while(0)
 
-static inline int deccmd(uint8_t** b, uint8_t* be, int* len) {
+static inline int deccmd(uint8_t** b, uint8_t* be, uint64_t* len) {
   if(*b >= be) return -1;
   uint8_t ch = **b; *b += 1;
   *len = 0x1F & ch; int cmd = 0xC0 & ch;
-  if(0x20 & ch) *len = decv(b,be, *len,5);
-  if(*len < 0) return -1;
+  if(0x20 & ch) {
+    if(decv(b,be, len,5) < 0) return -1;
+  }
   return cmd;
 }
 static inline int enccmd(uint8_t** b, uint8_t* be, int cmd, int clen) {
@@ -297,14 +298,14 @@ end:
 
 // get the patch's resultant change length
 static int rcmdlen(uint8_t* xp, uint8_t* xe) {
-  int len = 0; while(xp < xe) {
-    int cmdlen; int cmd = deccmd(&xp,xe, &cmdlen);
+  uint64_t v; int len = 0; while(xp < xe) {
+    uint64_t cmdlen; int cmd = deccmd(&xp,xe, &cmdlen);
     len += cmdlen;
     switch(cmd) {
       case RUN:
       case ADD: break;
       case CPY:
-        if(decv(&xp,xe, 0,0) < 0) return -1;
+        if(decv(&xp,xe, &v,0) < 0) return -1;
         break;
       default: return -1;
     }
@@ -341,7 +342,7 @@ static int l_rpatch(LS* L) {
   uint8_t* error = "OOB error";
   while(xp < xe) {
     // x == command
-    int cmdlen; int cmd = deccmd(&xp,xe, &cmdlen);
+    uint64_t cmdlen; int cmd = deccmd(&xp,xe, &cmdlen);
     switch (cmd) {
       case ADD:
         DBG("ADD len=%i ti=%i  di=%i\n", cmdlen, tp-raw, dp-dec);
@@ -355,7 +356,7 @@ static int l_rpatch(LS* L) {
         break;
       case CPY:
         DBG("CPY len=%i ti=%i  di=%i\n", cmdlen, tp-raw, dp-dec);
-        int raddr = decv(&xp,xe, 0,0); if(raddr < 0) goto error;
+        uint64_t raddr = 0; if(decv(&xp,xe, &raddr,0) < 0) goto error;
         size_t di = dp - dec;
         raddr = di - raddr - cmdlen;
         if(raddr < 0)           { error = "negative CPY"; goto error; }
@@ -850,7 +851,7 @@ static int l_hdecode(LS* L) {
   size_t elen; uint8_t* enc = (uint8_t*)luaL_checklstring(L, 1, &elen);
   X* x = L_asX(L, 2); HN* root = x->ht.root;
   BIO io = { .bp = enc, .be = enc + elen};
-  size_t dlen = decv(&io.bp, io.be, 0,0);
+  uint64_t dlen = 0; ASSERT(decv(&io.bp, io.be, &dlen,0) >= 0, "OOB");
   ALLOC_FIELD(*x, dec, dlen); uint8_t *dp = x->dec, *de = x->dec + dlen;
   uint8_t* error = NULL;
   while(dp < de) {
@@ -863,7 +864,59 @@ static int l_hdecode(LS* L) {
 }
 
 //************************
-//* 3.a Lua Bindings (and run test)
+//* 3.a binary enc/dec types
+
+#define  B_TABLE    0x00
+#define  B_KEYVAL   0x20
+#define  B_STRING   0x40
+#define  B_FLOAT    0x80
+#define  B_PINT     0xA0
+#define  B_NINT     0xC0
+#define  B_BOOL     0xE0
+
+int decodeLuaB(LS* L, uint8_t** b, uint8_t* be);
+
+int decodeTable(LS* L, uint8_t* b, uint8_t* be) {
+  lua_createtable(L, 0, 0); int ti = 1; // ti: table index
+  while(b < be) {
+    int num = decodeLuaB(L, &b, be);
+    switch(num) {
+      case 1: lua_rawseti(L, -2, ti); ti += 1; break;
+      case 2: lua_rawset(L, -3);               break;
+      default: luaL_error(L, "unknown table item");
+    }
+  }
+  return 1;
+}
+
+int decodeLuaB(LS* L, uint8_t** b, uint8_t* be) {
+  if(*b >= be) {
+    if(*b == be) { return 0; } else { luaL_error(L, "OOB"); }
+  }
+  uint8_t ch = **b; *b += 1;
+  uint64_t len = 0x0F & ch;
+  if(0x10 & ch) len = decv(b, be, &len,4);
+  uint8_t* vp = *b;
+  if(0xE0 != B_BOOL) { *b += len; } ASSERT(*b <= be, "OOB");
+  switch(0xE0 & ch) {
+    case B_TABLE: return decodeTable(L, vp, vp+len);
+    case B_KEYVAL:
+      ASSERT(1 == decodeLuaB(L, &vp, vp+len), "kv: 1 val");
+      ASSERT(1 == decodeLuaB(L, &vp, vp+len), "kv: 1 val");
+      return 2;
+    case B_STRING: lua_pushlstring(L, vp, len); return 1;
+    case B_FLOAT: luaL_error(L, "not implemented");
+    case B_PINT:
+      return 1;
+    case B_NINT:
+      return 1;
+    default: luaL_error(L, "decodeLuaB: unreachable");
+  }
+}
+
+
+//************************
+//* 3.a Lua Bindings
 
 // int -> str: encode integer using encv
 static int l_encv(LS* L) {
@@ -872,12 +925,17 @@ static int l_encv(LS* L) {
   return 1;
 }
 
-// str -> int, elen: decode integer using decv
+// str, startindex=1 -> (int, elen): decode integer using decv
 // returns: the integer and the number of bytes used to encode it.
 static int l_decv(LS* L) {
   size_t tlen; uint8_t* txt = (uint8_t*)luaL_checklstring(L, 1, &tlen);
-  uint8_t* tp = txt; lua_pushinteger(L, decv(&tp, txt+tlen, 0, 0));
-  lua_pushinteger(L, tp - txt);
+  int startindex = luaL_optinteger(L, 2, 1) - 1;
+  if(startindex < 0) startindex = 0;
+  uint8_t* tp = txt + startindex;
+  uint64_t v = 0;
+  ASSERT(decv(&tp, txt+tlen, &v, 0) >= 0, "OOB");
+  lua_pushinteger(L, v);
+  lua_pushinteger(L, tp - txt - startindex);
   return 2;
 }
 

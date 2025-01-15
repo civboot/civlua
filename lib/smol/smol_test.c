@@ -41,7 +41,7 @@ static void test_encode_v() {
 
 static void test_encode_cmds() {
   printf("# test_encode_cmds (c)\n");
-  int len;
+  uint64_t len;
   uint8_t b[32] = "\x43z";
   uint8_t *bp=b, *be=b+32;
 

@@ -46,7 +46,6 @@ print'[[libs]]'
   dofile(dir..'lib/rebuf/tests/test_buffer.lua')
   dofile(dir..'lib/civix/test.lua')
   dofile(dir..'lib/smol/test.lua')
-  dofile(dir..'lib/patience/test.lua')
 
 print'[[apps]]'
   dofile(dir..'cmd/doc/test.lua')

@@ -1,7 +1,7 @@
 local G = G or _G
 
 --- metaty: simple but effective Lua type system using metatable
-local M = (G.mod and G.mod'metaty' or {})
+local M = G.mod and G.mod'metaty' or {}
 setmetatable(M, getmetatable(M) or {})
 
 local function copy(t)
