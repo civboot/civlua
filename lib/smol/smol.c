@@ -87,7 +87,7 @@ static inline int decv(uint8_t** b, uint8_t* be, uint64_t* v, int s) {
 }
 
 // encode value to bytes. v: current value, s: current shift
-static inline int encv(uint8_t** b, uint8_t* be, int v) {
+static inline int encv(uint8_t** b, uint8_t* be, uint64_t v) {
   while((*b < be) && (v > 0x7F)) {
     **b = 0x80 | v; v = v >> 7; *b += 1;
   }
@@ -874,13 +874,26 @@ static int l_hdecode(LS* L) {
 #define  B_NINT     0xC0
 #define  B_BOOL     0xE0
 
-int decodeLuaB(LS* L, uint8_t** b, uint8_t* be);
+int encodeLuaB(LS* L);
+int encodeLuaTable(LS* L) {
+  luaL_Buffer lb; luaL_buffinit(L, &lb);
+  int ti = 1; uint8_t* s; size_t len;
+  uint8_t *b, *be;
+  while(true) {
+    lua_geti(L, -2, ti);
+    if(lua_isnil(L, -1)) { lua_pop(L, 1); break; }
+    // ASSERT(1 == encodeLuaB(L), "unreachable");
+    s = (uint8_t*)lua_tolstring(L, -1, &len); lua_pop(L, 1);
+    b = luaL_prepbuffsize(&lb, len + 8); be = b + len + 8;
+    // encv(
+  }
+}
 
+int decodeLuaB(LS* L, uint8_t** b, uint8_t* be);
 int decodeTable(LS* L, uint8_t* b, uint8_t* be) {
   lua_createtable(L, 0, 0); int ti = 1; // ti: table index
   while(b < be) {
-    int num = decodeLuaB(L, &b, be);
-    switch(num) {
+    switch(decodeLuaB(L, &b, be)) {
       case 1: lua_rawseti(L, -2, ti); ti += 1; break;
       case 2: lua_rawset(L, -3);               break;
       default: luaL_error(L, "unknown table item");
@@ -895,21 +908,22 @@ int decodeLuaB(LS* L, uint8_t** b, uint8_t* be) {
   }
   uint8_t ch = **b; *b += 1;
   uint64_t len = 0x0F & ch;
-  if(0x10 & ch) ASSERT(decv(b, be, &len,4) >= 0, "OOB");
-  uint8_t* vp = *b;
-  if(0xE0 != B_BOOL) { *b += len; } ASSERT(*b <= be, "OOB");
+  if(0x10 & ch) ASSERT(decv(b,be, &len,4) >= 0, "OOB");
+
+  uint8_t *vb, *ve; // value buffer/end
+  #define SET_VP() vb = *b; *b += len; ASSERT(*b <= be, "OOB")
   switch(0xE0 & ch) {
-    case B_TABLE: return decodeTable(L, vp, vp+len);
+    case B_TABLE: SET_VP(); return decodeTable(L, vb, vb+len);
     case B_KEYVAL:
-      ASSERT(1 == decodeLuaB(L, &vp, vp+len), "kv: 1 val");
-      ASSERT(1 == decodeLuaB(L, &vp, vp+len), "kv: 1 val");
+      SET_VP(); ve = vb+len;
+      ASSERT(1 == decodeLuaB(L, &vb, ve), "kv key not 1");
+      ASSERT(1 == decodeLuaB(L, &vb, ve), "kv val not 1");
       return 2;
-    case B_STRING: lua_pushlstring(L, vp, len); return 1;
+    case B_STRING: SET_VP(); lua_pushlstring(L, vb, len); return 1;
     case B_FLOAT: luaL_error(L, "not implemented");
-    case B_PINT:
-      return 1;
-    case B_NINT:
-      return 1;
+    case B_PINT: lua_pushinteger(L, len);  return 1;
+    case B_NINT: lua_pushinteger(L, -len); return 1;
+    case B_BOOL: lua_pushboolean(L, len);  return 1;
     default: luaL_error(L, "decodeLuaB: unreachable");
   }
 }
