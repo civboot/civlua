@@ -298,9 +298,9 @@ end:
 
 // get the patch's resultant change length
 static int rcmdlen(uint8_t* xp, uint8_t* xe) {
-  uint64_t v; int len = 0; while(xp < xe) {
-    uint64_t cmdlen; int cmd = deccmd(&xp,xe, &cmdlen);
-    len += cmdlen;
+  uint64_t len = 0, v;
+  while(xp < xe) {
+    v = 0; int cmd = deccmd(&xp,xe, &v); len += v;
     switch(cmd) {
       case RUN:
       case ADD: break;
@@ -342,7 +342,7 @@ static int l_rpatch(LS* L) {
   uint8_t* error = "OOB error";
   while(xp < xe) {
     // x == command
-    uint64_t cmdlen; int cmd = deccmd(&xp,xe, &cmdlen);
+    uint64_t cmdlen = 0; int cmd = deccmd(&xp,xe, &cmdlen);
     switch (cmd) {
       case ADD:
         DBG("ADD len=%i ti=%i  di=%i\n", cmdlen, tp-raw, dp-dec);
@@ -895,7 +895,7 @@ int decodeLuaB(LS* L, uint8_t** b, uint8_t* be) {
   }
   uint8_t ch = **b; *b += 1;
   uint64_t len = 0x0F & ch;
-  if(0x10 & ch) len = decv(b, be, &len,4);
+  if(0x10 & ch) ASSERT(decv(b, be, &len,4) >= 0, "OOB");
   uint8_t* vp = *b;
   if(0xE0 != B_BOOL) { *b += len; } ASSERT(*b <= be, "OOB");
   switch(0xE0 & ch) {
@@ -932,8 +932,7 @@ static int l_decv(LS* L) {
   int startindex = luaL_optinteger(L, 2, 1) - 1;
   if(startindex < 0) startindex = 0;
   uint8_t* tp = txt + startindex;
-  uint64_t v = 0;
-  ASSERT(decv(&tp, txt+tlen, &v, 0) >= 0, "OOB");
+  uint64_t v = 0; ASSERT(decv(&tp, txt+tlen, &v,0) >= 0, "OOB");
   lua_pushinteger(L, v);
   lua_pushinteger(L, tp - txt - startindex);
   return 2;
