@@ -24,13 +24,14 @@ static void test_encode_v() {
   size_t i = 0;
   uint8_t b[12] = "\x85\x0F\x33";
   uint8_t *bp = b, *be = b + 12;
-  int v = decv(&bp,be, 0,0);
+  uint64_t v = 0; assert(decv(&bp,be, &v,0) >= 0);
   assert((bp - b) == 2);
   assert(v == ((0x0F << 7) | (0x5)));
 
  #define T_ROUND(V, IEXPECT) \
   bp = b; assert(0   == encv(&bp, be, V));  assert(IEXPECT == bp-b); \
-  bp = b; assert((V) == decv(&bp,be, 0,0)); assert(bp-b==IEXPECT);
+  bp = b; v = 0; assert(0 == decv(&bp,be, &v,0)); \
+    assert((V) == v); assert(bp-b==IEXPECT);
   T_ROUND(0x00,  1);
   T_ROUND(0x01,  1); T_ROUND(0x37,  1); T_ROUND(0x07F,  1);
   T_ROUND(0x080, 2); T_ROUND(0x100, 2); T_ROUND(0x3FFF, 2);
@@ -41,7 +42,7 @@ static void test_encode_v() {
 
 static void test_encode_cmds() {
   printf("# test_encode_cmds (c)\n");
-  int len;
+  uint64_t len, v;
   uint8_t b[32] = "\x43z";
   uint8_t *bp=b, *be=b+32;
 
@@ -61,8 +62,10 @@ static void test_encode_cmds() {
   T_ROUND(RUN, 3,    1, 1, 'z'); assert(*t == 'z');
   T_ROUND(RUN, 0x50, 2, 2, 'y'); assert(*t == 'y');
   T_ROUND(ADD, 4,    1, 1, "test"); assert(0 == memcmp(t, "test", 4));
-  T_ROUND(CPY, 7,    2, 1, 5); assert(5 == decv(&x.xp,x.xe, 0,0));
-  T_ROUND(CPY, 7,    4, 1, 0x4000); assert(0x4000 == decv(&x.xp,x.xe, 0,0));
+  T_ROUND(CPY, 7,    2, 1, 5);
+    v = 0; assert(0 == decv(&x.xp,x.xe, &v,0)); assert(v == 5);
+  T_ROUND(CPY, 7,    4, 1, 0x4000);
+    v = 0; assert(0 == decv(&x.xp,x.xe, &v,0)); assert(0x4000 == v);
 #undef T_ROUND
 }
 

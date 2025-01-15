@@ -8,7 +8,7 @@ local pth = require'ds.path'
 local Iter = require'ds.Iter'
 local civix = require'civix'
 
-local sfmt = string.format
+local sfmt, char = string.format, string.char
 
 local function rtest(base, change, expCmd, expText)
   print(('!! ### rtest (%q)  (%q)  ->  %q %q'):format(

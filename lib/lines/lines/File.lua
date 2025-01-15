@@ -26,6 +26,28 @@ local split, construct = mty.split, mty.construct
 local index, newindex = mty.index, mty.newindex
 local WeakV = ds.WeakV
 
+local TRUNC = {w=true, ['w+']=true}
+
+local modifiedEq = function(a, b)
+  local as, ans = a:modified()
+  local bs, bns = b:modified()
+  return as == bs and ans == bns
+end
+
+local loadIdx = function(T, f, path, fmode)
+  local idxpath, stat = pth.concat{T.IDX_DIR, path}, nil
+  local fstat, xstat = assert(ix.stat(fd.fileno(f)))
+  if TRUNC[fmode] then goto createnew end
+  xstat = ix.stat(idxpath)
+  if xstat and modifiedEq(fstat, xstat) then return U3File:load(idxpath) end
+  ::createnew::
+  ix.mkDirs(pth.last(idxpath))
+  local idx, err = U3File:create(idxpath); if not idx then return nil, err end
+  T._reindex(f, idx)
+  ix.setmodified(fd.fileno(idx.f), fstat:modified())
+  return idx
+end
+
 File.IDX_DIR = pth.concat{pth.home(), '.data/lines'}
 
 File._reindex = function(f, idx, l, pos)
@@ -46,26 +68,6 @@ File._reindex = function(f, idx, l, pos)
   return pos
 end
 
-local TRUNC = {w=true, ['w+']=true}
-local modifiedEq = function(a, b)
-  local as, ans = a:modified()
-  local bs, bns = b:modified()
-  return as == bs and ans == bns
-end
-local loadIdx = function(f, path, fmode)
-  local idxpath, stat = pth.concat{File.IDX_DIR, path}, nil
-  local fstat, xstat = assert(ix.stat(fd.fileno(f)))
-  if TRUNC[fmode] then goto createnew end
-  xstat = ix.stat(idxpath)
-  if xstat and modifiedEq(fstat, xstat) then return U3File:load(idxpath) end
-  ::createnew::
-  ix.mkDirs(pth.last(idxpath))
-  local idx, err = U3File:create(idxpath); if not idx then return nil, err end
-  File._reindex(f, idx)
-  ix.setmodified(fd.fileno(idx.f), fstat:modified())
-  return idx
-end
-
 getmetatable(File).__call = function(T, path, mode)
   local f, err, idx, fstat, xstat
   if not path then
@@ -74,7 +76,7 @@ getmetatable(File).__call = function(T, path, mode)
   elseif type(path) == 'string' then
     mode = mode or 'r'
     f, err = io.open(path, mode); if not f then return nil, err end
-    idx, err = loadIdx(f, path, mode)
+    idx, err = loadIdx(T, f, path, mode)
     if not idx then return nil, err end
   else error'invalid path' end
   return construct(T, {f=f, path=path, idx=idx, cache=WeakV{}})
@@ -120,13 +122,12 @@ File.__index = function(lf, i)
   end
   local cache = lf.cache
   local line = cache[i]; if line then return line end
-  local f, idx, pos = lf.f, lf.idx, lf._pos
+  local f, idx, pos, err = lf.f, lf.idx, lf._pos
   if i > #idx then return end -- line num OOB
   if not pos or i ~= lf._ln then -- update file pos
     pos = assert(lf.idx[i])
     assert(f:seek('set', pos))
   end
-  local err
   line, err = f:read'L'; assert(not err, err)
   line = line or ''; lf._pos = pos + #line
   if line:sub(-1) == '\n' then line = line:sub(1, -2) end
@@ -148,7 +149,7 @@ File.__newindex = function(lf, i, v)
     lf._pos = pos + #v + 1
     pos = pos + 1
   end
-  idx[i], cache[i], lf._ln = pos, v, false
+  idx[i], cache[i] = pos, v
 end
 
 File.__fmt = function(lf, fmt)
