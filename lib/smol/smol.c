@@ -86,7 +86,7 @@ static inline int decv(uint8_t** b, uint8_t* be, uint64_t* v, int s) {
   return 0;
 }
 
-// encode value to bytes. v: current value, s: current shift
+// encode value to bytes. v: current value
 static inline int encv(uint8_t** b, uint8_t* be, uint64_t v) {
   while((*b < be) && (v > 0x7F)) {
     **b = 0x80 | v; v = v >> 7; *b += 1;
@@ -874,19 +874,95 @@ static int l_hdecode(LS* L) {
 #define  B_NINT     0xC0
 #define  B_BOOL     0xE0
 
-int encodeLuaB(LS* L);
-int encodeLuaTable(LS* L) {
-  luaL_Buffer lb; luaL_buffinit(L, &lb);
-  int ti = 1; uint8_t* s; size_t len;
-  uint8_t *b, *be;
-  while(true) {
-    lua_geti(L, -2, ti);
-    if(lua_isnil(L, -1)) { lua_pop(L, 1); break; }
-    // ASSERT(1 == encodeLuaB(L), "unreachable");
-    s = (uint8_t*)lua_tolstring(L, -1, &len); lua_pop(L, 1);
-    b = luaL_prepbuffsize(&lb, len + 8); be = b + len + 8;
-    // encv(
+int enclv(uint8_t** b, uint8_t* e, uint8_t ty, uint64_t v) {
+  if(v > 0xFF) {
+    **b = ty | 0x10 | (0xFF & v); *b += 1;
+    return encv(b,e, v>>4);
   }
+  **b = ty | v; *b += 1;
+  return 0;
+}
+
+int l_encodeSmall(LS* L);
+
+int encodeString(LS* L, uint8_t type) {
+  size_t len; uint8_t const* s = lua_tolstring(L, -1, &len);
+  lua_pop(L, 1);
+  luaL_Buffer lb; luaL_buffinit(L, &lb);
+  uint8_t* bs = luaL_buffinitsize(L, &lb, 8 + len);
+  uint8_t* b = bs; ASSERT(0 == enclv(&b, b+8, type, len), "OOB");
+  printf("!! encoded pre len=%i\n", b-bs);
+  luaL_addsize(&lb, b-bs);
+  luaL_addlstring(&lb, s, len);
+  luaL_pushresult(&lb); return 1;
+}
+
+int encodeTable(LS* L) {
+  ASSERT(lua_checkstack(L, 20), "OOM");
+  // get the tablei and cache the next value before buffinit
+  int tablei = lua_gettop(L);
+  lua_pushnil(L); lua_next(L, tablei);
+  luaL_Buffer lb; luaL_buffinit(L, &lb);
+  int ti; uint8_t *s, *s2; size_t len, len2;
+  uint8_t *bs, *b; size_t blen;
+
+  for(ti = 1;;ti++) {
+    lua_geti(L, tablei, ti);
+    if(lua_isnil(L, -1)) { lua_pop(L, 1); break; }
+    ASSERT(1 == l_encodeSmall(L), "unreachable");
+    luaL_addvalue(&lb);
+  }
+
+  // loop through next(), keeping stack balanced by using cached tablei
+  while(true) {
+    lua_pushvalue(L, tablei+1);
+    if(!lua_next(L, tablei)) break;
+    lua_copy(L, -2, tablei+1); // copy key for next loop
+    if(lua_isinteger(L, -2) && (lua_tointeger(L, -2) <= ti)) {
+      lua_pop(L, 2); continue;
+    }
+
+    ASSERT(1 == l_encodeSmall(L), "unreachable"); // value
+    s2 = (uint8_t*) lua_tolstring(L, -1, &len2); lua_pop(L, 1);
+    ASSERT(1 == l_encodeSmall(L), "unreachable"); // key
+    s = (uint8_t*) lua_tolstring(L, -1, &len); lua_pop(L, 1);
+    blen = len + len2;
+    bs = luaL_prepbuffsize(&lb, 8 + len + len2);
+    b = bs; ASSERT(0 == enclv(&b, b+8, B_KEYVAL, blen), "OOB");
+    luaL_addsize(&lb, b - bs);
+    luaL_addlstring(&lb, s,  len);
+    luaL_addlstring(&lb, s2, len2);
+  }
+
+  luaL_pushresult(&lb);
+  return encodeString(L, B_TABLE);
+}
+
+int encodeNumber(LS* L) {
+  ASSERT(lua_isinteger(L, -1), "float not supported");
+  lua_Integer i = lua_tointeger(L, -1); lua_pop(L, 1);
+  bool positive = (i >= 0); if(!positive) i = -i;
+  uint8_t buf[9]; uint8_t* b = buf;
+  ASSERT(0 == enclv(&b, b+9, positive ? B_PINT : B_NINT, i), "OOB");
+  lua_pushlstring(L, buf, b-buf); return 1;
+}
+
+int encodeBoolean(LS* L) {
+  uint8_t b = B_BOOL | (lua_toboolean(L, -1) ? 1 : 0);
+  lua_pop(L, 1); lua_pushlstring(L, &b, 1); return 1;
+}
+
+// v -> string: encode value as binary
+int l_encodeSmall(LS* L) {
+  switch(lua_type(L, -1)) {
+    case LUA_TNUMBER:  return encodeNumber(L);
+    case LUA_TBOOLEAN: return encodeBoolean(L);
+    case LUA_TSTRING:  return encodeString(L, B_STRING);
+    case LUA_TTABLE:   return encodeTable(L);
+    default:
+      luaL_error(L, "unsupported lua type: %s", lua_typename(L, -1));
+  }
+  return 1;
 }
 
 int decodeLuaB(LS* L, uint8_t** b, uint8_t* be);
@@ -928,6 +1004,11 @@ int decodeLuaB(LS* L, uint8_t** b, uint8_t* be) {
   }
 }
 
+// string -> val: decode encoded lua value.
+int l_decodeSmall(LS* L) {
+  size_t len; uint8_t* s = (uint8_t*)luaL_checklstring(L, -1, &len);
+  return decodeLuaB(L, &s, s+len);
+}
 
 //************************
 //* 3.a Lua Bindings
@@ -960,6 +1041,7 @@ static const struct luaL_Reg smol_sys[] = {
   {"decodeHT", l_decodeHT}, {"encodeHT", l_encodeHT},
   {"hencode", l_hencode}, {"hdecode", l_hdecode},
   {"encv", l_encv}, {"decv", l_decv},
+  {"encodeSmall", l_encodeSmall}, {"decodeSmall", l_decodeSmall},
   {NULL, NULL}, // sentinel
 };
 
