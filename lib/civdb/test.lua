@@ -1,6 +1,9 @@
 
 local T = require'civtest'.Test
 local M = require'civdb'
+local S = require'civdb.sys'
+
+local char = string.char
 
 T.small = function()
   local str = "hello"

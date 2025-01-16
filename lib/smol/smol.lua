@@ -13,6 +13,7 @@ local rdelta, rpatch          = S.rdelta, S.rpatch
 local calcHT                  = S.calcHT
 local encodeHT, decodeHT      = S.encodeHT, S.decodeHT
 local hencode, hdecode        = S.hencode, S.hdecode
+local encv, decv              = S.encv, S.decv
 
 local sfmt = string.format
 local assertEq = require'civtest'.Test.eq

@@ -1,7 +1,8 @@
 local G = G or _G
 --- civdb: minimalistic CRUD database
-local M = G.mod and mod'smol' or setmetatable({}, {})
-local encv, decv              = S.encv, S.decv
+local M = G.mod and mod'civdb' or setmetatable({}, {})
+local S = require'civdb.sys'
+local encv, decv = S.encv, S.decv
 
 --- Write a row of data to a file encoding the length with encv.
 M.writerow = function(file, str) --> byteswritten?, err

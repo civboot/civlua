@@ -1,7 +1,7 @@
 # Copy/pastable Makefile for Lua C sources.
 
 # Modify these for a new library
-NAME  = smol
+NAME  = civdb
 FILES = $(NAME).c
 OUT   = $(NAME)
 LUA_VERSION = lua
@@ -17,9 +17,9 @@ WNO = -Wno-incompatible-function-pointer-types
 $(OUT).so: $(FILES)
 	make Build$(UNAME)
 
-test: $(FILES)
-	$(CC) smol_test.c -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -o smol_test
-	./smol_test
+# test: $(FILES)
+# 	$(CC) civdb_test.c -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -o smol_test
+# 	./civdb_test
 
 BuildLinux: $(FILES)
 	$(CC) $(FILES) -fPIC -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -shared -o $(OUT).so

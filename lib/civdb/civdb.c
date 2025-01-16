@@ -13,6 +13,8 @@
 
 typedef lua_State LS;
 
+#define ASSERT(OK, ...) if(!(OK)) { luaL_error(L, __VA_ARGS__); }
+
 // #define DBG(...) printf("!D! " __VA_ARGS__)
 #define DBG(...)
 
@@ -207,13 +209,7 @@ static int l_decv(LS* L) {
   return 2;
 }
 
-static const struct luaL_Reg smol_sys[] = {
-  {"createX", l_createX},
-  {"rpatch", l_rpatch}, {"rdelta", l_rdelta},
-  {"rcmdlen", l_rcmdlen},
-  {"fmtHT", l_fmtHT},       {"calcHT", l_calcHT},
-  {"decodeHT", l_decodeHT}, {"encodeHT", l_encodeHT},
-  {"hencode", l_hencode}, {"hdecode", l_hdecode},
+static const struct luaL_Reg civdb_sys[] = {
   {"encv", l_encv}, {"decv", l_decv},
   {"encodeSmall", l_encodeSmall}, {"decodeSmall", l_decodeSmall},
   {NULL, NULL}, // sentinel
@@ -223,12 +219,8 @@ static const struct luaL_Reg smol_sys[] = {
 #define L_setmethod(L, KEY, FN) \
   lua_pushcfunction(L, FN); lua_setfield(L, -2, KEY);
 
-int luaopen_smol_sys(LS *L) {
-  luaL_newlib(L, smol_sys);
-
-  luaL_newmetatable(L, META_X);
-    L_setmethod(L, "__gc",   l_X_free);
-  lua_setfield(L, -2, "X");
+int luaopen_civdb_sys(LS *L) {
+  luaL_newlib(L, civdb_sys);
 
   return 1;
 }

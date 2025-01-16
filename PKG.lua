@@ -12,6 +12,7 @@ pkgs = {
   'lib/fmt',
   'lib/civtest',
   'lib/ds',
+  'lib/civdb',
   'lib/lines',
   'lib/lap',
   'lib/fd',
