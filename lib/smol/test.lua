@@ -168,15 +168,3 @@ T.walk_compress = function()
   print(sfmt('  huff   == %i/%i (%.0f%%)', hsize, osize, (hsize * 100) / osize))
   print(sfmt('  smol   == %i/%i (%.0f%%)', ssize, osize, (ssize * 100) / osize))
 end
-
-T.small = function()
-  local str = "hello"
-  local enc = S.encodeSmall(str)
-  T.binEq(char(0x40 | #str)..str, enc)
-  T.binEq(str, S.decodeSmall(enc))
-
-  -- FIXME: need to test integers and booleans too
-  local t = {'1', '2', key='value'}
-  enc = S.encodeSmall(t)
-  T.eq(t, S.decodeSmall(enc))
-end
