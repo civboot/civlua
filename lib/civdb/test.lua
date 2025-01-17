@@ -12,9 +12,10 @@ T.small = function()
   T.binEq(str, S.decodeSmall(enc))
 
   -- FIXME: need to test integers and booleans too
-  local t = {'1', '2', key='value'}
+  local t = {'11', '22', key='value'}
   enc = S.encodeSmall(t)
   T.eq(t, S.decodeSmall(enc))
-  error'ok'
 
+  t[3] = 77
+  T.eq(t, S.decodeSmall(S.encodeSmall(t)))
 end

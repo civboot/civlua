@@ -90,25 +90,18 @@ int encodeString(LS* L, uint8_t type) {
 int encodeTable(LS* L) {
   // get the tablei and cache the next value before buffinit
   int tablei = lua_gettop(L);
-  assert(lua_istable(L, tablei)); // FIXME: remove
   size_t llen = lua_rawlen(L, tablei); // list len
-  assert(tablei == lua_gettop(L)); // FIXME: remove
-  printf("!! first loop next tablei=%i\n", tablei);
-  lua_pushnil(L);
   size_t mlen = 0;
-  while(lua_next(L, tablei)) {
+  lua_pushnil(L); while(lua_next(L, tablei)) {
     printf("!! after next key count\n");
     lua_pop(L, 1); // pop value
     if(!lua_isinteger(L, -1) || (lua_tointeger(L, -1) > llen)) mlen += 1;
   }
   ASSERT(lua_checkstack(L, 20 + llen + mlen), "not enough stack");
 
-  // pop last element then push first
-  lua_pop(L, 1);
-  assert(tablei == lua_gettop(L)); // FIXME: remove
   printf("!! second loop next tablei=%i\n", tablei);
   lua_pushnil(L); lua_next(L, tablei); // st:(table, firstv)
-  luaL_Buffer lb; luaL_buffinit(L, &lb);
+  luaL_Buffer lb; luaL_buffinit(L, &lb); // stack must balance until EoF
   uint8_t* bs = luaL_prepbuffsize(&lb, 16); uint8_t* b = bs;
   if(mlen) {
     ASSERT(0 == enclv(&b,bs+16, llen ? B_TABLE : B_MAP, mlen), "OOB");
@@ -116,16 +109,14 @@ int encodeTable(LS* L) {
   } else ASSERT(0 == enclv(&b,bs+16, B_LIST, llen), "OOB");
   luaL_addsize(&lb, b-bs);
 
-  // serialize list items
-  for(int i=1; i <= llen; i++) {
+  for(int i=1; i <= llen; i++) { // serialize list items
     lua_geti(L, tablei, i);
     ASSERT(1 == l_encodeSmall(L), "unreachable");
     luaL_addvalue(&lb);
   }
 
-  // serialize map items (keeping stack balanced)
   uint8_t *s; size_t len;
-  while(true) {
+  while(true) { // serialize map items
     lua_pushvalue(L, tablei+1); if(!lua_next(L, tablei)) break;
     printf("!! after key/val loop next\n");
     lua_copy(L, -2, tablei+1); // copy key for next loop
