@@ -90,17 +90,24 @@ int encodeString(LS* L, uint8_t type) {
 int encodeTable(LS* L) {
   // get the tablei and cache the next value before buffinit
   int tablei = lua_gettop(L);
-  lua_pushnil(L); lua_next(L, tablei);
+  assert(lua_istable(L, tablei)); // FIXME: remove
   size_t llen = lua_rawlen(L, tablei); // list len
+  assert(tablei == lua_gettop(L)); // FIXME: remove
+  printf("!! first loop next tablei=%i\n", tablei);
+  lua_pushnil(L);
   size_t mlen = 0;
   while(lua_next(L, tablei)) {
-    if(!lua_isinteger(L, -2) || (lua_tointeger(L, -2) > llen)) mlen += 1;
-    lua_pop(L, 2);
+    printf("!! after next key count\n");
+    lua_pop(L, 1); // pop value
+    if(!lua_isinteger(L, -1) || (lua_tointeger(L, -1) > llen)) mlen += 1;
   }
   ASSERT(lua_checkstack(L, 20 + llen + mlen), "not enough stack");
 
   // pop last element then push first
-  lua_pop(L, 1); lua_pushnil(L); lua_next(L, tablei); // st:(table, firstv)
+  lua_pop(L, 1);
+  assert(tablei == lua_gettop(L)); // FIXME: remove
+  printf("!! second loop next tablei=%i\n", tablei);
+  lua_pushnil(L); lua_next(L, tablei); // st:(table, firstv)
   luaL_Buffer lb; luaL_buffinit(L, &lb);
   uint8_t* bs = luaL_prepbuffsize(&lb, 16); uint8_t* b = bs;
   if(mlen) {
@@ -120,6 +127,7 @@ int encodeTable(LS* L) {
   uint8_t *s; size_t len;
   while(true) {
     lua_pushvalue(L, tablei+1); if(!lua_next(L, tablei)) break;
+    printf("!! after key/val loop next\n");
     lua_copy(L, -2, tablei+1); // copy key for next loop
     if(lua_isinteger(L, -2) && (lua_tointeger(L, -2) <= llen)) {
       lua_pop(L, 2); continue;
