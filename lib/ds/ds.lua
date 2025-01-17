@@ -321,6 +321,7 @@ M.extend = function(t, l) --> t: move vals to end of t
   if meth then return meth(t, l) end
   return move(l, 1, #l, #t + 1, t)
 end
+local extend = M.extend
 
 -- clear(t, startindex=1, len=#t) -> t: set t[si:si+len-1] = nil
 M.clear = function(t, si, len) --> t
@@ -341,6 +342,13 @@ end
 M.update = function(t, add) --> t
   for k, v in pairs(add) do t[k] = v end; return t
 end
+--- return new list which contains all elements inserted in order
+M.flatten = function(...)
+  local t, len = {}, select('#', ...)
+  for i=1,len do extend(t, select(i, ...)) end
+  return t
+end
+
 --- like update but only for specified keys
 M.updateKeys = function(t, add, keys) --> t
   for _, k in ipairs(keys) do t[k] = add[k] end; return t

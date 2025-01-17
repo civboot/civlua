@@ -42,30 +42,44 @@ static inline int encv(uint8_t** b, uint8_t* be, uint64_t v) {
 //************************
 //* 3.a binary enc/dec types
 
-#define  B_TABLE    0x00
-#define  B_KEYVAL   0x20
-#define  B_STRING   0x40
-#define  B_FLOAT    0x80
-#define  B_PINT     0xA0
-#define  B_NINT     0xC0
-#define  B_BOOL     0xE0
+#define  B_TABLE    0x00 /* indexed vals and key/vals */
+#define  B_MAP      0x20 /* key/vals */
+#define  B_LIST     0x40 /* indexed vals */
+#define  B_BYTES    0x60
+#define  B_POSITIVE 0x80 /*positive int*/
+#define  B_NEGATIVE 0xA0 /*negative int*/
+#define  B_RESERVED 0xC0 /*unused*/
+#define  B_OTHER    0xE0 /*none, false, true, floats/etc*/
 
+#define B_OTHER_NONE  0x00
+#define B_OTHER_FALSE 0x01
+#define B_OTHER_TRUE  0x02
+
+// encode lua type and count
 int enclv(uint8_t** b, uint8_t* e, uint8_t ty, uint64_t v) {
-  if(v > 0xFF) {
-    **b = ty | 0x10 | (0xFF & v); *b += 1;
+  if(*b >= e) return -1;
+  if(v > 0x0F) {
+    **b = ty | 0x10 | (0x0F & v); *b += 1;
     return encv(b,e, v>>4);
   }
   **b = ty | v; *b += 1;
   return 0;
 }
 
-int l_encodeSmall(LS* L);
+// decode lua type and count
+int declv(uint8_t** b,uint8_t* e, uint64_t* v, uint8_t* ty) {
+  if(*b >= e) return -1;
+  uint8_t c = **b; *b += 1; *ty = 0xE0 & c; *v = 0x0F & c;
+  if(0x10 & c) return decv(b,e, v,4);
+  return 0;
+}
+
+int l_encode(LS* L);
 
 int encodeString(LS* L, uint8_t type) {
   size_t len; uint8_t const* s = lua_tolstring(L, -1, &len);
   lua_pop(L, 1);
-  luaL_Buffer lb; luaL_buffinit(L, &lb);
-  uint8_t* bs = luaL_buffinitsize(L, &lb, 8 + len);
+  luaL_Buffer lb; uint8_t* bs = luaL_buffinitsize(L, &lb, 8 + len);
   uint8_t* b = bs; ASSERT(0 == enclv(&b, b+8, type, len), "OOB");
   printf("!! encoded pre len=%i\n", b-bs);
   luaL_addsize(&lb, b-bs);
@@ -74,44 +88,52 @@ int encodeString(LS* L, uint8_t type) {
 }
 
 int encodeTable(LS* L) {
-  ASSERT(lua_checkstack(L, 20), "OOM");
   // get the tablei and cache the next value before buffinit
   int tablei = lua_gettop(L);
-  lua_pushnil(L); lua_next(L, tablei);
-  luaL_Buffer lb; luaL_buffinit(L, &lb);
-  int ti; uint8_t *s, *s2; size_t len, len2;
-  uint8_t *bs, *b; size_t blen;
+  size_t llen = lua_rawlen(L, tablei); // list len
+  size_t mlen = 0;
+  lua_pushnil(L); while(lua_next(L, tablei)) {
+    printf("!! after next key count\n");
+    lua_pop(L, 1); // pop value
+    if(!lua_isinteger(L, -1) || (lua_tointeger(L, -1) > llen)) mlen += 1;
+  }
+  ASSERT(lua_checkstack(L, 20 + llen + mlen), "not enough stack");
 
-  for(ti = 1;;ti++) {
-    lua_geti(L, tablei, ti);
-    if(lua_isnil(L, -1)) { lua_pop(L, 1); break; }
-    ASSERT(1 == l_encodeSmall(L), "unreachable");
+  printf("!! second loop next tablei=%i\n", tablei);
+  lua_pushnil(L); lua_next(L, tablei); // st:(table, firstv)
+  luaL_Buffer lb; luaL_buffinit(L, &lb); // stack must balance until EoF
+  uint8_t* bs = luaL_prepbuffsize(&lb, 16); uint8_t* b = bs;
+  if(mlen) {
+    ASSERT(0 == enclv(&b,bs+16, llen ? B_TABLE : B_MAP, mlen), "OOB");
+    if(llen) ASSERT(0 == encv(&b,bs+16,llen), "OOB");
+  } else ASSERT(0 == enclv(&b,bs+16, B_LIST, llen), "OOB");
+  luaL_addsize(&lb, b-bs);
+
+  for(int i=1; i <= llen; i++) { // serialize list items
+    lua_geti(L, tablei, i);
+    ASSERT(1 == l_encode(L), "unreachable");
     luaL_addvalue(&lb);
   }
 
-  // loop through next(), keeping stack balanced by using cached tablei
-  while(true) {
-    lua_pushvalue(L, tablei+1);
-    if(!lua_next(L, tablei)) break;
+  uint8_t *s; size_t len;
+  while(true) { // serialize map items
+    lua_pushvalue(L, tablei+1); if(!lua_next(L, tablei)) break;
+    printf("!! after key/val loop next\n");
     lua_copy(L, -2, tablei+1); // copy key for next loop
-    if(lua_isinteger(L, -2) && (lua_tointeger(L, -2) <= ti)) {
+    if(lua_isinteger(L, -2) && (lua_tointeger(L, -2) <= llen)) {
       lua_pop(L, 2); continue;
     }
 
-    ASSERT(1 == l_encodeSmall(L), "unreachable"); // value
-    s2 = (uint8_t*) lua_tolstring(L, -1, &len2); lua_pop(L, 1);
-    ASSERT(1 == l_encodeSmall(L), "unreachable"); // key
+    ASSERT(1 == l_encode(L), "unreachable"); // value
     s = (uint8_t*) lua_tolstring(L, -1, &len); lua_pop(L, 1);
-    blen = len + len2;
-    bs = luaL_prepbuffsize(&lb, 8 + len + len2);
-    b = bs; ASSERT(0 == enclv(&b, b+8, B_KEYVAL, blen), "OOB");
-    luaL_addsize(&lb, b - bs);
-    luaL_addlstring(&lb, s,  len);
-    luaL_addlstring(&lb, s2, len2);
+
+    ASSERT(1 == l_encode(L), "unreachable"); // key
+    luaL_addvalue(&lb);           // key
+    luaL_addlstring(&lb, s, len); // value
   }
 
   luaL_pushresult(&lb);
-  return encodeString(L, B_TABLE);
+  return 1;
 }
 
 int encodeNumber(LS* L) {
@@ -119,21 +141,21 @@ int encodeNumber(LS* L) {
   lua_Integer i = lua_tointeger(L, -1); lua_pop(L, 1);
   bool positive = (i >= 0); if(!positive) i = -i;
   uint8_t buf[9]; uint8_t* b = buf;
-  ASSERT(0 == enclv(&b, b+9, positive ? B_PINT : B_NINT, i), "OOB");
+  ASSERT(0 == enclv(&b, b+9, positive ? B_POSITIVE : B_NEGATIVE, i), "OOB");
   lua_pushlstring(L, buf, b-buf); return 1;
 }
 
 int encodeBoolean(LS* L) {
-  uint8_t b = B_BOOL | (lua_toboolean(L, -1) ? 1 : 0);
+  uint8_t b = B_OTHER | (lua_toboolean(L, -1) ? B_OTHER_TRUE : B_OTHER_FALSE);
   lua_pop(L, 1); lua_pushlstring(L, &b, 1); return 1;
 }
 
 // v -> string: encode value as binary
-int l_encodeSmall(LS* L) {
+int l_encode(LS* L) {
   switch(lua_type(L, -1)) {
     case LUA_TNUMBER:  return encodeNumber(L);
     case LUA_TBOOLEAN: return encodeBoolean(L);
-    case LUA_TSTRING:  return encodeString(L, B_STRING);
+    case LUA_TSTRING:  return encodeString(L, B_BYTES);
     case LUA_TTABLE:   return encodeTable(L);
     default:
       luaL_error(L, "unsupported lua type: %s", lua_typename(L, -1));
@@ -142,15 +164,29 @@ int l_encodeSmall(LS* L) {
 }
 
 int decodeLuaB(LS* L, uint8_t** b, uint8_t* be);
-int decodeTable(LS* L, uint8_t* b, uint8_t* be) {
-  lua_createtable(L, 0, 0); int ti = 1; // ti: table index
-  while(b < be) {
-    switch(decodeLuaB(L, &b, be)) {
-      case 1: lua_rawseti(L, -2, ti); ti += 1; break;
-      case 2: lua_rawset(L, -3);               break;
-      default: luaL_error(L, "unknown table item");
-    }
+int decodeTable(LS* L, uint8_t** b, uint8_t* be, uint8_t ty, uint64_t v) {
+  uint64_t llen = 0, mlen = 0;
+  switch (ty) {
+    case B_TABLE:
+      mlen = v;
+      ASSERT(0 == decv(b,be, &llen,0), "OOB");
+      break;
+    case B_MAP:  mlen = v; break;
+    case B_LIST: llen = v; break;
+    default: luaL_error(L, "unknown table type");
   }
+
+  lua_createtable(L, llen, mlen);
+  for(uint64_t i = 1; i <= llen; i++) {
+    ASSERT(1 == decodeLuaB(L, b, be), "no item");
+    lua_rawseti(L, -2, i);
+  }
+  for(uint64_t i = 1; i <= mlen; i++) {
+    ASSERT(1 == decodeLuaB(L, b, be), "no key");
+    ASSERT(1 == decodeLuaB(L, b, be), "no value");
+    lua_rawset(L, -3);
+  }
+
   return 1;
 }
 
@@ -158,30 +194,30 @@ int decodeLuaB(LS* L, uint8_t** b, uint8_t* be) {
   if(*b >= be) {
     if(*b == be) { return 0; } else { luaL_error(L, "OOB"); }
   }
-  uint8_t ch = **b; *b += 1;
-  uint64_t len = 0x0F & ch;
-  if(0x10 & ch) ASSERT(decv(b,be, &len,4) >= 0, "OOB");
-
-  uint8_t *vb, *ve; // value buffer/end
-  #define SET_VP() vb = *b; *b += len; ASSERT(*b <= be, "OOB")
-  switch(0xE0 & ch) {
-    case B_TABLE: SET_VP(); return decodeTable(L, vb, vb+len);
-    case B_KEYVAL:
-      SET_VP(); ve = vb+len;
-      ASSERT(1 == decodeLuaB(L, &vb, ve), "kv key not 1");
-      ASSERT(1 == decodeLuaB(L, &vb, ve), "kv val not 1");
-      return 2;
-    case B_STRING: SET_VP(); lua_pushlstring(L, vb, len); return 1;
-    case B_FLOAT: luaL_error(L, "not implemented");
-    case B_PINT: lua_pushinteger(L, len);  return 1;
-    case B_NINT: lua_pushinteger(L, -len); return 1;
-    case B_BOOL: lua_pushboolean(L, len);  return 1;
+  printf("!! decoding LuaB\n");
+  uint64_t v; uint8_t ty; ASSERT(0 == declv(b,be, &v,&ty), "OOB");
+  printf("!!   ty=0x%X v=%li\n", ty, v);
+  switch(ty) {
+    case B_TABLE:
+    case B_MAP:
+    case B_LIST: return decodeTable(L, b,be, ty,v);
+    case B_BYTES:
+      lua_pushlstring(L, *b, v);
+      *b += v;
+      return 1;
+    case B_POSITIVE: lua_pushinteger(L, v);  return 1;
+    case B_NEGATIVE: lua_pushinteger(L, -v); return 1;
+    case B_OTHER: switch(v) {
+      case B_OTHER_FALSE: lua_pushboolean(L, false); return 1;
+      case B_OTHER_TRUE:  lua_pushboolean(L, true);  return 1;
+      default: // fallthrough
+    }
     default: luaL_error(L, "decodeLuaB: unreachable");
   }
 }
 
 // string -> val: decode encoded lua value.
-int l_decodeSmall(LS* L) {
+int l_decode(LS* L) {
   size_t len; uint8_t* s = (uint8_t*)luaL_checklstring(L, -1, &len);
   return decodeLuaB(L, &s, s+len);
 }
@@ -211,7 +247,7 @@ static int l_decv(LS* L) {
 
 static const struct luaL_Reg civdb_sys[] = {
   {"encv", l_encv}, {"decv", l_decv},
-  {"encodeSmall", l_encodeSmall}, {"decodeSmall", l_decodeSmall},
+  {"encode", l_encode}, {"decode", l_decode},
   {NULL, NULL}, // sentinel
 };
 
