@@ -74,7 +74,7 @@ int declv(uint8_t** b,uint8_t* e, uint64_t* v, uint8_t* ty) {
   return 0;
 }
 
-int l_encodeSmall(LS* L);
+int l_encode(LS* L);
 
 int encodeString(LS* L, uint8_t type) {
   size_t len; uint8_t const* s = lua_tolstring(L, -1, &len);
@@ -111,7 +111,7 @@ int encodeTable(LS* L) {
 
   for(int i=1; i <= llen; i++) { // serialize list items
     lua_geti(L, tablei, i);
-    ASSERT(1 == l_encodeSmall(L), "unreachable");
+    ASSERT(1 == l_encode(L), "unreachable");
     luaL_addvalue(&lb);
   }
 
@@ -124,10 +124,10 @@ int encodeTable(LS* L) {
       lua_pop(L, 2); continue;
     }
 
-    ASSERT(1 == l_encodeSmall(L), "unreachable"); // value
+    ASSERT(1 == l_encode(L), "unreachable"); // value
     s = (uint8_t*) lua_tolstring(L, -1, &len); lua_pop(L, 1);
 
-    ASSERT(1 == l_encodeSmall(L), "unreachable"); // key
+    ASSERT(1 == l_encode(L), "unreachable"); // key
     luaL_addvalue(&lb);           // key
     luaL_addlstring(&lb, s, len); // value
   }
@@ -151,7 +151,7 @@ int encodeBoolean(LS* L) {
 }
 
 // v -> string: encode value as binary
-int l_encodeSmall(LS* L) {
+int l_encode(LS* L) {
   switch(lua_type(L, -1)) {
     case LUA_TNUMBER:  return encodeNumber(L);
     case LUA_TBOOLEAN: return encodeBoolean(L);
@@ -217,7 +217,7 @@ int decodeLuaB(LS* L, uint8_t** b, uint8_t* be) {
 }
 
 // string -> val: decode encoded lua value.
-int l_decodeSmall(LS* L) {
+int l_decode(LS* L) {
   size_t len; uint8_t* s = (uint8_t*)luaL_checklstring(L, -1, &len);
   return decodeLuaB(L, &s, s+len);
 }
@@ -247,7 +247,7 @@ static int l_decv(LS* L) {
 
 static const struct luaL_Reg civdb_sys[] = {
   {"encv", l_encv}, {"decv", l_decv},
-  {"encodeSmall", l_encodeSmall}, {"decodeSmall", l_decodeSmall},
+  {"encode", l_encode}, {"decode", l_decode},
   {NULL, NULL}, // sentinel
 };
 
