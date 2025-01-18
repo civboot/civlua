@@ -93,3 +93,9 @@ T.test('lson.pod', function()
   ltest(a, nil, [[{"??":"Tm.A","a1":{"??":"Tm.A","a2":"bye"}}]])
   ltest({a=Tm.A{a1='hi'}}, nil, [[{"a":{"??":"Tm.A","a1":"hi"}}]])
 end)
+
+T.test('lson run testing_pod', function()
+  local tp = require'ds.testing_pod'
+  tp.testAll(M.lson, M.decode)
+  tp.testAll(M.json, M.decode)
+end)
