@@ -286,6 +286,8 @@ T.list = function()
   assertEq({1, 2}, replace({4, 5, 6}, {1, 2}))
   assertEq({1, 2}, replace({3}, {1, 2}))
 
+  assertEq({1,2,5,7}, M.flatten({1,2},{5},{7}))
+
   local l = {'a', 'b', 'c', 1, 2, 3}
   assertEq({1, 2, 3}, drain(l, 3))
   assertEq({'a', 'b', 'c'}, l)
@@ -602,6 +604,9 @@ T['ds.pod'] = function()
     {b={a='inner', ['??']='test.A'}, ['??']='test.A'},
     pod.toPod(a))
   assertEq(a, pod.fromPod(pod.toPod(a)))
+
+  local testing_pod = require'ds.testing_pod'
+  testing_pod.testAll(pod.toPod, pod.fromPod)
 end
 
 ---------------------
