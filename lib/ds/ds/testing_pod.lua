@@ -3,6 +3,7 @@ local M = G.mod and mod'ds.testing_pod' or {}
 
 local T  = require'civtest'
 local ds = require'ds'
+local fmt = require'fmt'
 
 --- Test [$eq(v, decFn(encFn(v))]
 --- If expectEncoding is provided then test [$eq(expectEncoding, encFn(v)]
@@ -16,7 +17,12 @@ M.round = function(v, encFn, decFn, expectEncoding) --> (enc, dec)
   return enc, dec
 end
 M.roundList = function(values, encFn, decFn)
-  for _, v in ipairs(values) do M.round(v, encFn, decFn) end
+  for _, v in ipairs(values) do
+    local ok, err = ds.try(M.round, v, encFn, decFn)
+    if not ok then
+      fmt.errorf('for value:\n%q\ngot: %s', v, err)
+    end
+  end
 end
 
 M.BOOLS = { false, true, }

@@ -18,4 +18,7 @@ T.small = function()
 
   t[3] = 77
   T.eq(t, S.decode(S.encode(t)))
+
+  local tp = require'ds.testing_pod'
+  tp.testAll(S.encode, S.decode)
 end
