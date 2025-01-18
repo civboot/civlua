@@ -75,11 +75,13 @@ S.FD.__index.write = function(fd, ...)
     c = fd:_write(s)
   end
   if c > 0 then error(fd:codestr()) end
+  return fd
 end
 M.FDT.__index.write = function(fd, ...)
   local s = table.concat{...}
   fd:_write(s)
   M.finishRunning(fd, 'poll', fd:_evfileno(), S.POLLIN)
+  return fd
 end
 
 local WHENCE = { set=S.SEEK_SET, cur=S.SEEK_CUR, ['end']=S.SEEK_END }
