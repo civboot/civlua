@@ -64,6 +64,13 @@ M.finishRunning = function(fd, kind, ...)
   while fd:code() == S.FD_RUNNING do yield(kind or true, ...) end
 end
 
+--- return whether two fstat's have equal modification times
+M.modifiedEq = function(fs1, fs2)
+  local s1, ns1 = fs1:modified()
+  local s2, ns2 = fs2:modified()
+  return (s1 == s2) and (ns1 == ns2)
+end
+
 ----------------------------
 -- WRITE / SEEK
 
