@@ -69,6 +69,7 @@ File._reindex = function(f, idx, l, pos)
 end
 
 getmetatable(File).__call = function(T, path, mode)
+  print("!! lines.File", path, mode)
   local f, err, idx, fstat, xstat
   if not path then
     f, err   = io.tmpfile(); if not f   then return nil, err end

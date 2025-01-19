@@ -218,12 +218,17 @@ void decodeLuaB(LS* L, uint8_t const** b, uint8_t const* be) {
   }
 }
 
-// string -> val: decode encoded lua value.
+// (string, index=1) -> (val, encodelen)
+// decode encoded lua value starting at index. Return
+// the decoded value and the length of the string used.
 int l_decode(LS* L) {
-  size_t len; uint8_t const* s = luaL_checklstring(L, -1, &len);
+  size_t len; uint8_t const* s = luaL_checklstring(L, 1, &len);
+  lua_Integer i = luaL_optinteger(L, 2, 1);
+  ASSERT((i >= 1) && (i <= len + 1), "invalid index");
+  uint8_t const* se = s + len; s = s + i - 1;
   uint8_t const* b = s;
-  if(!len) lua_pushnil(L);
-  else     decodeLuaB(L, &b, s+len);
+  if(b >= s + len) lua_pushnil(L);
+  else             decodeLuaB(L, &b, se);
   lua_pushinteger(L, b - s);
   return 2;
 }

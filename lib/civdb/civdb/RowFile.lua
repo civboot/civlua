@@ -1,15 +1,14 @@
 local mty = require'metaty'
 
---- rf: binary row file
-local RowFile = metaty'smol.RowFile' {
+--- binary row file with encoded length
+local RowFile = mty'civdb.RowFile' {
   'f   [file]: open file', 'path [string]',
   'idx [lines.U3File]: row index of f',
   'cache [WeakV]: cache of rows',
-  '_rn  [int]:  current row num (false=end)',
-  '_pos [bool]: current file pos',
+  '_eofpos [nil|int]: nil or pos at eof',
 }
 
-local smol = require'smol'
+local civdb = require'civdb'
 local ds = require'ds'
 local pth = require'ds.path'
 local log = require'ds.log'
@@ -20,14 +19,14 @@ local ix = require'civix'
 
 local getmt = getmetatable
 local index, newindex = mty.index, mty.newindex
-local readrow, writerow = smol.readrow, smol.writerow
+local readrow, startrow = civdb.readrow, civdb.startrow
 
 RowFile.IDX_DIR = pth.concat{pth.home(), '.data/rf'}
 getmetatable(RowFile).__call    = getmetatable(LFile).__call
-getmetatable(RowFile).close     = LFile.close
-getmetatable(RowFile).flush     = LFile.flush
-getmetatable(RowFile).__len     = LFile.__len
-getmetatable(RowFile).__reader  = LFile.reader
+RowFile.close     = LFile.close
+RowFile.flush     = LFile.flush
+RowFile.__len     = LFile.__len
+RowFile.__reader  = LFile.reader
 
 RowFile._reindex = function(f, idx, r, pos)
   r, pos = r or 1, pos or 0
@@ -49,33 +48,32 @@ RowFile.__index = function(rf, i)
     return rawget(mt, i) or index(mt, i)
   end
   local cache = rf.cache
-  local row = cache[i]; if row then return row end
-  local f, idx, pos, rowsz = rf.f, rf.idx, rf._pos
+  local row, rowsz = cache[i]; if row then return row end
+  local f, idx = rf.f, rf.idx
   if i > #idx then return end -- line num OOB
-  if not pos or i ~= lf._rn then -- update file pos
-    pos = assert(lf.idx[i])
-    assert(f:seek('set', pos))
-  end
+  local pos = assert(rf.idx[i])
+  print('!! pos', pos)
+  rf._eofpos = nil
+  assert(pos == assert(f:seek('set', pos)))
   row, rowsz = readrow(f); assert(row, rowsz)
-  rf._pos = pos + rowsz + #row
-  rf._rn, cache[i] = i + 1, row
   return row
 end
 
 RowFile.__newindex = function(rf, i, v)
   if type(i) == 'string' then return newindex(rf, i, v) end
-  local f, idx, cache, pos = lf.f, lf.idx, lf.cache, lf._pos
+  local f, idx, cache, pos = rf.f, rf.idx, rf.cache, rf._eofpos
+  local pos = rf._eofpos or assert(f:seek'end')
   local len = #idx; assert(i == len + 1, 'only append allowed')
-  if not pos or rf._rn then pos = assert(f:seek'end') end
-  rf._rn, rf._pos = false, false
-  local rowsz = assert(writerow(v))
-  idx[i], rf._pos, cache[i] = pos, pos + rowsz, v
+  rf._eofpos = nil -- clear before write
+  local rowsz = assert(startrow(f, #v))
+  assert(f:write(v))
+  idx[i], rf._eofpos, cache[i] = pos, pos + rowsz + #v, v
 end
 
-RowFile.__fmt = function(rf)
-  push(fmt, 'smol.RowFile(')
-  if rf.path then push(fmt, rf.path) end
-  push(fmt, ')')
+RowFile.__fmt = function(rf, f)
+  f:write'civdb.RowFile('
+  if rf.path then f:write(rf.path) end
+  f:write')'
 end
 
-return M
+return RowFile
