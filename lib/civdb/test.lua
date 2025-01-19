@@ -10,30 +10,30 @@ local RF, IDX = '.out/rowfile.raw', '.out/rowfile.idx'
 
 T.small = function()
   local str = "hello"
-  local enc = S.encode(str)
+  local enc = M.encode(str)
   T.binEq(char(0x60 | #str)..str, enc)
-  T.binEq(str, S.decode(enc))
+  T.binEq(str, M.decode(enc))
 
   local t = {'11', '22', key='value'}
-  enc = S.encode(t)
-  T.eq(t, S.decode(enc))
-  t[3] = 77; T.eq(t, S.decode(S.encode(t)))
+  enc = M.encode(t)
+  T.eq(t, M.decode(enc))
+  t[3] = 77; T.eq(t, M.decode(M.encode(t)))
 
   local tp = require'ds.testing_pod'
-  tp.testAll(S.encode, function(enc)
-    local d, len = S.decode(enc)
+  tp.testAll(M.encode, function(enc)
+    local d, len = M.decode(enc)
     T.eq(#enc, len) -- decoded full length
     return d
   end)
 end
 
-T.RowFile = function()
-  local RowFile = require'civdb.RowFile'
-  local rf = RowFile(RF, 'w+')
+T.CFile = function()
+  local CFile = require'civdb.CFile'
+  local rf = CFile(RF, 'w+')
   local f = rf.f
 
   -- write and read first row manually
-  assert(M.startrow(f, 5))
+  assert(CFile._startrow(f, 5))
   assert(f:seek('set', 0)); assert('\5' == f:read())
   assert(f:write'hello', 'what');
   assert(0 == f:seek('set', 0))
