@@ -11,13 +11,10 @@ T.small = function()
   T.binEq(char(0x60 | #str)..str, enc)
   T.binEq(str, S.decode(enc))
 
-  -- FIXME: need to test integers and booleans too
   local t = {'11', '22', key='value'}
   enc = S.encode(t)
   T.eq(t, S.decode(enc))
-
-  t[3] = 77
-  T.eq(t, S.decode(S.encode(t)))
+  t[3] = 77; T.eq(t, S.decode(S.encode(t)))
 
   local tp = require'ds.testing_pod'
   tp.testAll(S.encode, S.decode)

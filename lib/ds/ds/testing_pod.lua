@@ -1,7 +1,7 @@
 local G = G or _G
 local M = G.mod and mod'ds.testing_pod' or {}
 
-local T  = require'civtest'
+local T  = require'civtest'.Test
 local ds = require'ds'
 local fmt = require'fmt'
 
@@ -13,7 +13,7 @@ M.round = function(v, encFn, decFn, expectEncoding) --> (enc, dec)
     T.binEq(expectEncoding, enc)
   end
   local dec = decFn(enc)
-  T.assertEq(v, dec)
+  T.eq(v, dec)
   return enc, dec
 end
 M.roundList = function(values, encFn, decFn)

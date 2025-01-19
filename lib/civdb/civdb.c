@@ -90,17 +90,13 @@ int encodeString(LS* L, uint8_t type) {
 int encodeTable(LS* L) {
   // get the tablei and cache the next value before buffinit
   int tablei = lua_gettop(L);
-  size_t llen = lua_rawlen(L, tablei); // list len
-  size_t mlen = 0;
+  size_t llen = lua_rawlen(L, tablei), mlen = 0; // list/map lens
   lua_pushnil(L); while(lua_next(L, tablei)) {
-    printf("!! after next key count\n");
     lua_pop(L, 1); // pop value
     if(!lua_isinteger(L, -1) || (lua_tointeger(L, -1) > llen)) mlen += 1;
   }
   ASSERT(lua_checkstack(L, 20 + llen + mlen), "not enough stack");
-
-  printf("!! second loop next tablei=%i\n", tablei);
-  lua_pushnil(L); lua_next(L, tablei); // st:(table, firstv)
+  lua_pushnil(L); // for map loop, needed BEFORE buffinit
   luaL_Buffer lb; luaL_buffinit(L, &lb); // stack must balance until EoF
   uint8_t* bs = luaL_prepbuffsize(&lb, 16); uint8_t* b = bs;
   if(mlen) {
@@ -118,21 +114,27 @@ int encodeTable(LS* L) {
   uint8_t *s; size_t len;
   while(true) { // serialize map items
     lua_pushvalue(L, tablei+1); if(!lua_next(L, tablei)) break;
-    printf("!! after key/val loop next\n");
     lua_copy(L, -2, tablei+1); // copy key for next loop
     if(lua_isinteger(L, -2) && (lua_tointeger(L, -2) <= llen)) {
       lua_pop(L, 2); continue;
     }
 
     ASSERT(1 == l_encode(L), "unreachable"); // value
+    ASSERT(tablei+3 == lua_gettop(L), "tablei=%I i=%I", tablei, lua_gettop(L));
     s = (uint8_t*) lua_tolstring(L, -1, &len); lua_pop(L, 1);
 
     ASSERT(1 == l_encode(L), "unreachable"); // key
+    ASSERT(tablei+2 == lua_gettop(L), "tablei=%I i=%I", tablei, lua_gettop(L));
+    size_t len2; uint8_t const* s2 = lua_tolstring(L, -1, &len2);
+    printf("!! encoded key: %.*s\n",   len2, s2);
+    printf("!! encoded value: %.*s\n", len,  s);
+
     luaL_addvalue(&lb);           // key
     luaL_addlstring(&lb, s, len); // value
   }
 
-  luaL_pushresult(&lb);
+  luaL_pushresult(&lb); // push encoded, end use of buffer
+  lua_replace(L, tablei); lua_pop(L, 1); // replace table and pop nextv
   return 1;
 }
 
