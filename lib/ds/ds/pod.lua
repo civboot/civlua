@@ -26,6 +26,7 @@ local ds = require'ds'
 local getmt = getmetatable
 local icopy, popk, none = ds.icopy, ds.popk
 
+local isPod = ds.isPod
 local toPod, fromPod, TO_POD, FROM_POD
 
 --- Serialize value t into plain old data
@@ -45,10 +46,11 @@ M.TO_POD = { -- pod value into pod
   table = function(t)
     local mt = getmt(t); if mt then
       if type(mt) == 'table' then
-        return assert(mt.__toPod, 'does not implement pod')(t)
+        return assert(mt.__toPod, 'metatable missing __toPod')(t)
       end
       if mt ~= 'table' then return t end -- is a sentinel
     end
+    if isPod(t) then return t end
     local out = {}; for k, v in pairs(t) do out[k] = toPod(v) end
     return out
   end,
