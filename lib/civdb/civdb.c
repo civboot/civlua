@@ -221,9 +221,11 @@ void decodeLuaB(LS* L, uint8_t const** b, uint8_t const* be) {
 // string -> val: decode encoded lua value.
 int l_decode(LS* L) {
   size_t len; uint8_t const* s = luaL_checklstring(L, -1, &len);
+  uint8_t const* b = s;
   if(!len) lua_pushnil(L);
-  else     decodeLuaB(L, &s, s+len);
-  return 1;
+  else     decodeLuaB(L, &b, s+len);
+  lua_pushinteger(L, b - s);
+  return 2;
 }
 
 //************************
