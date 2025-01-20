@@ -27,6 +27,8 @@ local index, newindex = mty.index, mty.newindex
 local sfmt, byte = string.format, string.byte
 local encv, decv = S.encv, S.decv
 
+CFile.IDX_DIR = pth.concat{pth.home(), '.data/counted'}
+
 --- Start a row by encoding the length.
 --- It is the caller's job to actually write the row data.
 local startrow = function(file, len) --> byteswritten?, err
@@ -52,7 +54,6 @@ end
 
 CFile._startrow, CFile.readrow = startrow, readrow
 
-CFile.IDX_DIR = pth.concat{pth.home(), '.data/rf'}
 getmetatable(CFile).__call    = getmetatable(LFile).__call
 CFile.close     = LFile.close
 CFile.flush     = LFile.flush

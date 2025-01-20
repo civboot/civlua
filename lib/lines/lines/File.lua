@@ -28,6 +28,8 @@ local WeakV = ds.WeakV
 
 local TRUNC = {w=true, ['w+']=true}
 
+File.IDX_DIR = pth.concat{pth.home(), '.data/lines'}
+
 local modifiedEq = function(a, b)
   local as, ans = a:modified()
   local bs, bns = b:modified()
@@ -47,8 +49,7 @@ local loadIdx = function(T, f, path, fmode)
   ix.setmodified(fd.fileno(idx.f), fstat:modified())
   return idx
 end
-
-File.IDX_DIR = pth.concat{pth.home(), '.data/lines'}
+File._loadIdx = loadIdx -- for re-use by other functions
 
 File._reindex = function(f, idx, l, pos)
   l, pos = l or 1, pos or 0

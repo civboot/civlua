@@ -12,8 +12,8 @@ local encode, decode = S.encode, S.decode
 local toPod, fromPod = pod.toPod, pod.fromPod
 
 M.encode = function(val) return encode(toPod(val)) end --> string
-M.decode = function(encoded) --> value, encodedLen
-  local v, elen = decode(encoded)
+M.decode = function(encoded, index--[[=1]]) --> value, encodedLen
+  local v, elen = decode(encoded, index)
   return fromPod(v), elen
 end
 
