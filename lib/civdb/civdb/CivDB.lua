@@ -10,6 +10,7 @@ local civdb = require'civdb'
 local CFile = require'civdb.CFile'
 local construct = mty.construct
 local loadIdx = require'lines.File'._loadIdx
+local mtype = math.type
 
 local encode, decode = civdb.encode, civdb.decode
 
@@ -17,29 +18,27 @@ CivDB.IDX_DIR = pth.concat{pth.home(), '.data/rows'}
 
 CivDB.Op = mty'Op' {
   'kind [string]: create, delete or update',
-  'row  [int]: the row index',
-  'tidx [int]: the previous transaction index (create/delete only)',
+  'row  [int]: the row index being modified',
 }
 
 -- encode an operation. Operations are encoded as lua values
 -- which are then encoded by civdb.encode
 local OP_ENCODE = {
   -- create a row and record what the row number is
-  create = function(rowNum)          return rowNum end,
-  -- update a row with backreference to previous tidx
-  update = function(rowNum, oldTidx) return {rowNum,  oldTidx} end,
-  -- delete a row with backreference to previous tidx
-  delete = function(rowNum, oldTidx) return {rowNum, -oldTidx} end,
+  create = function()       return  true   end,
+  -- update a row
+  update = function(rowNum) return  rowNum end,
+  -- delete a row
+  delete = function(rowNum) return -rowNum end,
 }
-
-CivDB.Op.encode = function(op) return OP_ENCODE[op.kind](op.row, op.tidx) end
+CivDB.Op.encode = function(op) return OP_ENCODE[op.kind](op.row) end
 
 --- Op:decode(val) - decode the operation.
-CivDB.Op.decode = function(T, t)
-  if type(t) == 'number' then return T{op='create', row=t} end
-  local t1, t2 = t[1], t[2]; assert(type(t1) == 'number', 'not implemented')
-  if t1 >= 0 then return T{op='update', row=t1, tidx= t2}
-  else            return T{op='delete', row=t1, tidx=-t2} end
+CivDB.Op.decode = function(T, v)
+  if v == true then return T{op='create'} end
+  assert(mtype(v) == 'number', 'invalid op')
+  if v >= 0    then return T{op='update', row= v}
+               else return T{op='delete', row=-v} end
 end
 
 --- Get the operation from the transaction file

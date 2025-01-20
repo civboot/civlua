@@ -18,6 +18,7 @@ local lines = require'lines'
 local U3File = require'lines.U3File'
 local fd = require'fd'
 local ix = require'civix'
+local loadIdx = require'lines.futils'.loadIdx
 
 local largs = lines.args
 local push, concat = table.insert, table.concat
@@ -26,7 +27,6 @@ local split, construct = mty.split, mty.construct
 local index, newindex = mty.index, mty.newindex
 local WeakV = ds.WeakV
 
-local TRUNC = {w=true, ['w+']=true}
 
 File.IDX_DIR = pth.concat{pth.home(), '.data/lines'}
 
@@ -35,21 +35,6 @@ local modifiedEq = function(a, b)
   local bs, bns = b:modified()
   return as == bs and ans == bns
 end
-
-local loadIdx = function(T, f, path, fmode)
-  local idxpath, stat = pth.concat{T.IDX_DIR, path}, nil
-  local fstat, xstat = assert(ix.stat(fd.fileno(f)))
-  if TRUNC[fmode] then goto createnew end
-  xstat = ix.stat(idxpath)
-  if xstat and modifiedEq(fstat, xstat) then return U3File:load(idxpath) end
-  ::createnew::
-  ix.mkDirs(pth.last(idxpath))
-  local idx, err = U3File:create(idxpath); if not idx then return nil, err end
-  T._reindex(f, idx)
-  ix.setmodified(fd.fileno(idx.f), fstat:modified())
-  return idx
-end
-File._loadIdx = loadIdx -- for re-use by other functions
 
 File._reindex = function(f, idx, l, pos)
   l, pos = l or 1, pos or 0
@@ -78,7 +63,7 @@ getmetatable(File).__call = function(T, path, mode)
   elseif type(path) == 'string' then
     mode = mode or 'r'
     f, err = io.open(path, mode); if not f then return nil, err end
-    idx, err = loadIdx(T, f, path, mode)
+    idx, err = loadIdx(f, path, pth.concat{T.IDX_DIR, path}, mode, T._reindex)
     if not idx then return nil, err end
   else error'invalid path' end
   return construct(T, {f=f, path=path, idx=idx, cache=WeakV{}})
