@@ -43,7 +43,7 @@ pkgs = {
 
 local FILE = 'https://github.com/civboot/civlua/blob/main/'
 local FILE_LINE = FILE..'%s#L%s'
-local RENDERED = 'https://htmlpreview.github.io/'
+local RENDERED = 'https://html-preview.github.io/'
                ..'?https://github.com/civboot/civlua/main/'
 local EXT_PAT = '%.(%w+)$'
 local USE_RENDERED = {html='html', cxt='html'}
