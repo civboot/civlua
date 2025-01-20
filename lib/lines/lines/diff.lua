@@ -187,9 +187,9 @@ getmetatable(Diff).__call = function(T, linesB, linesC) --> Diff
   return d
 end
 
---- iterate through nochange and change
---- blocks, calling the functions for each [+
---- * [$nocFn(baseStart, numUnchanged, changeStart, numUnchanged)
+--- iterate through nochange and change blocks, calling the functions for each
+--- [+
+--- * [$nocFn(baseStart, numUnchanged, changeStart, numUnchanged)]
 --- * [$chgFn(baseStart, numRemoved,   changeStart, numAdded)]
 --- ]
 --- Note that the num removed/added will be nil if none were added/removed.
