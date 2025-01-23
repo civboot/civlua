@@ -10,7 +10,7 @@ local pth = require'ds.path'
 local TRUNC = {w=true, ['w+']=true}
 
 --- load or reindex the file at path to/from idxpath.
-M.loadIdx = function(f, path, idxpath, fmode, reindex) --> idxFile
+M.loadIdx = function(f, idxpath, fmode, reindex) --> idxFile
   local fstat, xstat = assert(ix.stat(fd.fileno(f)))
   if TRUNC[fmode] then goto createnew end
   xstat = ix.stat(idxpath)

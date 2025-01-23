@@ -9,7 +9,7 @@ local pth = require'ds.path'
 local civdb = require'civdb'
 local CFile = require'civdb.CFile'
 local construct = mty.construct
-local loadIdx = require'lines.File'._loadIdx
+local loadIdx = require'lines.futils'.loadIdx
 local mtype = math.type
 
 local encode, decode = civdb.encode, civdb.decode
@@ -62,7 +62,8 @@ getmetatable(CivDB).__call = function(T, path, mode)
   if not path then
     ridx, err = U3File:create(); if not ridx then return nil, err end
   else
-    ridx, err = loadIdx(T, tf, path, mode)
+    local idxpath = error'todo'
+    ridx, err = loadIdx(f, idxpath, mode, T._reindex)
     if not ridx then return nil, err end
   else error'invalid path' end
   return construct(T, {tf=tf, ridx=ridx})

@@ -30,12 +30,6 @@ local WeakV = ds.WeakV
 
 File.IDX_DIR = pth.concat{pth.home(), '.data/lines'}
 
-local modifiedEq = function(a, b)
-  local as, ans = a:modified()
-  local bs, bns = b:modified()
-  return as == bs and ans == bns
-end
-
 File._reindex = function(f, idx, l, pos)
   l, pos = l or 1, pos or 0
   if f:seek'end' == 0 then return end
@@ -63,7 +57,7 @@ getmetatable(File).__call = function(T, path, mode)
   elseif type(path) == 'string' then
     mode = mode or 'r'
     f, err = io.open(path, mode); if not f then return nil, err end
-    idx, err = loadIdx(f, path, pth.concat{T.IDX_DIR, path}, mode, T._reindex)
+    idx, err = loadIdx(f, pth.concat{T.IDX_DIR, path}, mode, T._reindex)
     if not idx then return nil, err end
   else error'invalid path' end
   return construct(T, {f=f, path=path, idx=idx, cache=WeakV{}})
