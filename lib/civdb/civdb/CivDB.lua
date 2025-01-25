@@ -37,7 +37,6 @@ local startEntry = function(f, len) --> byteswritten?, err
 end
 
 --- read the next counted entry from a file, decoding the length with decv.
---- Return the row and the length of the encv integer encoding.
 local readEntry = function(f) --> (string?, lensz|error)
   local len, sh, s = 0, 0
   while true do
@@ -45,6 +44,7 @@ local readEntry = function(f) --> (string?, lensz|error)
     local b = byte(s); len = ((0x7F & b) << sh) | len
     if (0x80 & b) ~= 0 then sh = sh + 7 else break end
   end
+  trace('readEntry len=%i', len)
   s = f:read(len); if not s then return nil, 'read row data' end
   if not s or len ~= #s then
     return nil, sfmt('did not read full len: %i ~= %i', len, #s)
