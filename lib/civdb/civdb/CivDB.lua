@@ -1,7 +1,7 @@
 local mty = require'metaty'
 --- a database object backed by a civdb CFile
 local CivDB = mty'civdb.CivDB' {
-  'f [File]',
+  'f [File]', 'path [string]',
   'idx [lines.U3File]: row -> pos',
   'cache [WeakV]: cache of rows',
   '_row [int] the next row', _row = 1,
@@ -9,17 +9,72 @@ local CivDB = mty'civdb.CivDB' {
 }
 CivDB.MAGIC = 'civdb\0'
 
+local ds = require'ds'
 local pth = require'ds.path'
 local LFile = require'lines.File'
-local futils = require'civdb.futils'
 local civdb = require'civdb'
 
 local construct = mty.construct
 local mtype = math.type
 local fmt = require'fmt'
+local fbin = require'fmt.binary'
 
 local encode, decode = civdb.encode, civdb.decode
-local startEntry, readTx = futils.startEntry, futils.readTx
+
+
+----------------------------
+-- Utility Functions
+
+--- Start an entry by writing the encoded length.
+--- It is the caller's job to actually write the entry data.
+local startEntry = function(f, len) --> byteswritten?, err
+  len = encv(len); assert(f:write(len), 'write error')
+  return #len
+end
+
+--- read the next counted entry from a file, decoding the length with decv.
+--- Return the row and the length of the encv integer encoding.
+local readEntry = function(f) --> (string?, lensz|error)
+  local len, sh, s = 0, 0
+  while true do
+    s = f:read(1); if not s then return nil end
+    local b = byte(s); len = ((0x7F & b) << sh) | len
+    if (0x80 & b) ~= 0 then sh = sh + 7 else break end
+  end
+  s = f:read(len); if not s then return nil, 'read row data' end
+  if not s or len ~= #s then
+    return nil, sfmt('did not read full len: %i ~= %i', len, #s)
+  end
+  return s, (sh + 7) // 7
+end
+
+local Op = mty'Op' {
+  'kind [string]: create, delete or update',
+  'row  [int]: the row index being modified',
+}
+
+local CREATE_OP = assert(encode(true))
+local updateOp = function(row) return encode( row) end
+local deleteOp = function(row) return enocde(-row) end
+
+--- Op:decode(val) - decode the operation.
+Op.decode = function(T, v)
+  if v == true then return T{op='create'} end
+  assert(mtype(v) == 'number', 'invalid op')
+  if v >= 0    then return T{op='update', row= v}
+               else return T{op='delete', row=-v} end
+end
+
+--- read a single transaction from the file
+local readTx = function(f) --> Op, value, readamt
+  local tx, lensz = readEntry(f)
+  if not tx then return nil, lensz end
+  local op, oplen = decode(tx)
+  return Op:decode(op), decode(tx, oplen + 1), lensz + #tx
+end
+
+----------------------------
+-- CivDB Type
 
 CivDB.IDX_DIR = pth.concat{pth.home(), '.data/rows'}
 
@@ -94,6 +149,7 @@ CivDB.delete = function(db, row)
 end
 
 CivDB._pushvalue = function(db, op, value) --> pos, dat
+  print('!! pushvalue', fbin(op), value)
   local dat = assert(encode(value))
   local f, pos, len = db.f, db._eofpos, #op + #dat
   assert(pos == f:seek(pos))
