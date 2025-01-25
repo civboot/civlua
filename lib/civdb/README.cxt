@@ -1,2 +1,59 @@
 [{h1}civdb: minimalistic CRUD database]
 
+CivDB's basic requirements are: [+
+* "Single file" database: all data is stored in a single file
+  * indexes can be added which are separate files but all indexes can always be
+    rebuilt from the single file.
+
+* CRUD database: you can create rows, read rows, update rows and delete rows
+  using an integer row id.
+
+* Fast O(1) row creation and updates which can hold arbitrary Lua values
+  (but typically hold the value referenced by the schema).
+
+* Can hold metadata, especially the schema (auto type conversion)
+]
+
+[{h2}Design]
+The basic design is: [+
+* The "database" is a folder, i.e. [$path/to/mydata.civdb/]
+
+* Within the folder is a single file called `data` which contains entries
+  which contain the operation and row data encoded using `civdb.encode`
+  (binary encoding format) [+
+  * The data file starts with the magic bytes `civdb\0`
+  * The size of the entry is 7bit encoded, followed by the entry data
+  ]
+
+* Values are de/serialized by first calling [$ds.pod.(from/to)Pod] and then
+  de/serializing them using [$pod.[de]ser].
+  ["If the type of fromPod matches the schema then it is first stripped to
+    save on binary space.
+  ]
+
+* Also within the folder is the [$rows] file, which contains 3-byte positions
+  into the [$data] file (the start of that row's entry), or `0` if that row
+  was deleted. [+
+  * The rows file is updated as the data file is written to. On flush their
+    timestamps are set to the same value (indicating a reindex is not necessary)
+  * The [$rows] file is the most basic index as it points to a specific position.
+    All other indexes operate similarily but instead of pointing to a position
+    they point to a row.
+  ]
+
+* "Transactions" are written into the [$data] file one at a time. A transaction
+  is encoded as an "operation" ([$create], [$update(row)], [$delete(row)],
+  [$metadata]) and a value (except for delete). [+
+  * When the transaction is written the [$rows] table is updated, and then
+    other indexes are updated.
+  ]
+
+* Other indexes are stored based on the schema, but are basically just a list of
+  functions to call every time a row is created or modified (with some sane
+  defaults for the schema). [+
+  * These typically modify BOTH a [$field.rhood] and [$field.ll].
+    The [$field.rhood] contains a 3-byte robin hood hash table which point to
+    entries in [$field.ll], which is a linked-list file containing the rows
+    containing that field value.
+  ]
+]
