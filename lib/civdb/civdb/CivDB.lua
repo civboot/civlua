@@ -11,14 +11,17 @@ CivDB.MAGIC = 'civdb\0'
 
 local ds = require'ds'
 local pth = require'ds.path'
-local LFile = require'lines.File'
+local linesFileInit = getmetatable(require'lines.File').__call
 local civdb = require'civdb'
+local S = require'civdb.sys'
 
 local construct = mty.construct
 local mtype = math.type
 local fmt = require'fmt'
 local fbin = require'fmt.binary'
+local byte = string.byte
 
+local encv = S.encv
 local encode, decode = civdb.encode, civdb.decode
 
 
@@ -59,10 +62,10 @@ local deleteOp = function(row) return enocde(-row) end
 
 --- Op:decode(val) - decode the operation.
 Op.decode = function(T, v)
-  if v == true then return T{op='create'} end
+  if v == true then return T{kind='create'} end
   assert(mtype(v) == 'number', 'invalid op')
-  if v >= 0    then return T{op='update', row= v}
-               else return T{op='delete', row=-v} end
+  if v >= 0    then return T{kind='update', row= v}
+               else return T{kind='delete', row=-v} end
 end
 
 --- read a single transaction from the file
@@ -78,7 +81,13 @@ end
 
 CivDB.IDX_DIR = pth.concat{pth.home(), '.data/rows'}
 
-getmetatable(CivDB).__call = getmetatable(LFile).__call
+getmetatable(CivDB).__call = function(T, t)
+  local mode = t.mode or 'w+'
+  local db = assert(linesFileInit(T, t.path, mode))
+  db._eofpos = assert(db.f:seek'end')
+  db._row = #db.idx + 1
+  return db
+end
 
 CivDB._initnew = function(f) assert(f:write(CivDB.MAGIC)) end
 CivDB._reindex = function(f, idx, row, pos)
@@ -113,8 +122,8 @@ CivDB.__len = function(db) return #db.idx end
 CivDB.createRaw = function(db, value) --> row
   local row = db._row
   local pos, dat = db:_pushvalue(CREATE_OP, value)
-  idx[row] = pos; db._row = row + 1
-  db._cache[row] = dat
+  db.idx[row] = pos; db._row = row + 1
+  db.cache[row] = dat
   return row
 end
 
@@ -122,7 +131,7 @@ end
 --- Note: does not attempt to convert to the schema type.
 CivDB.readRaw = function(db, row) --> value?
   local pos = db.idx[row]; if not pos or pos == 0 then return end
-  local f = db.f; assert(pos == f:seek(pos))
+  local f = db.f; assert(pos == f:seek('set', pos))
   local op, val = readTx(f)
   if not op then error(val) end
   if val then return (decode(val)) end -- else nil
@@ -133,26 +142,27 @@ end
 CivDB.updateRaw = function(db, row, value)
   local row = db._row
   local pos, dat = db:_pushvalue(updateOp(row), value)
-  idx[row] = pos; db._row = row + 1
-  db._cache[row] = dat
+  db.idx[row] = pos; db._row = row + 1
+  db.cache[row] = dat
 end
 
 --- Delete the row, future reads will return nil
 CivDB.delete = function(db, row)
   local op = deleteOp(row)
   local f, pos = db.f, db._eofpos
-  assert(pos == f:seek(pos))
+  assert(pos == f:seek('set', pos))
   local enclen = assert(startEntry(f, #op))
   assert(f:write(op))
   db._eofpos = pos + enclen + #op
-  idx[row] = 0; db._cache[row] = nil
+  db.idx[row] = 0; db.cache[row] = nil
 end
 
 CivDB._pushvalue = function(db, op, value) --> pos, dat
   print('!! pushvalue', fbin(op), value)
   local dat = assert(encode(value))
   local f, pos, len = db.f, db._eofpos, #op + #dat
-  assert(pos == f:seek(pos))
+  assert(pos)
+  assert(pos == f:seek('set', pos))
   local enclen = assert(startEntry(f, len))
   assert(f:write(op)); assert(f:write(dat))
   db._eofpos = pos + enclen + len
