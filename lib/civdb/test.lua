@@ -36,8 +36,8 @@ T.CivDB = function()
   --              elen op str5
   T.binEq('civdb\0\x07\xE2\x65test1', db.f:read())
   T.eq(6, db.idx[1])
-
   T.binEq('test1', db:readRaw(1))
+  error'ok'
 
   T.eq(2, db:createRaw(22))
   T.eq(22,      db:readRaw(2))

@@ -45,7 +45,7 @@ local readEntry = function(f) --> (string?, lensz|error)
     if (0x80 & b) ~= 0 then sh = sh + 7 else break end
   end
   trace('readEntry len=%i', len)
-  s = f:read(len); if not s then return nil, 'read row data' end
+  s = f:read(len); if not s then return nil, 'readEntry len' end
   if not s or len ~= #s then
     return nil, sfmt('did not read full len: %i ~= %i', len, #s)
   end
@@ -72,8 +72,10 @@ end
 --- read a single transaction from the file
 local readTx = function(f) --> Op, value, readamt
   local tx, lensz = readEntry(f)
-  if not tx then return nil, lensz end
+  print('!! readTx lensz:', lensz)
+  if not tx then return nil, nil, lensz end
   local op, oplen = decode(tx)
+  trace('readTx: op=%q vlen=%i', op, #tx - oplen)
   return Op:decode(op), decode(tx, oplen + 1), lensz + #tx
 end
 
@@ -137,8 +139,9 @@ CivDB.readRaw = function(db, row) --> value?
   if not pos or pos == 0 then return end
   local f = db.f; assert(pos == f:seek('set', pos))
   local op, val = readTx(f)
+  trace('readRaw: row=%i op=%q val=%q', row, op, val)
   if not op then error(val) end
-  if val then return (decode(val)) end -- else nil
+  return val
 end
 
 --- Modify the value of the row with the value
