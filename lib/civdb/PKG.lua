@@ -8,7 +8,6 @@ doc = 'README.cxt'
 srcs = {
   'civdb.lua',
   ['civdb.sys'] = 'civdb.c',
-  'civdb/CFile.lua',
   'civdb/CivDB.lua',
 }
 libs = {

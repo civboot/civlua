@@ -1,95 +1,106 @@
 local mty = require'metaty'
 --- a database object backed by a civdb CFile
 local CivDB = mty'civdb.CivDB' {
-  'tf   [civdb.CFile]: file indexed by transaction index',
-  'ridx [lines.U3File]: row -> transaction index',
+  'f [File]',
+  'idx [lines.U3File]: row -> pos',
+  'cache [WeakV]: cache of rows',
+  '_row [int] the next row', _row = 1,
+  '_eofpos [nil|int]: nil or pos at eof',
 }
+CivDB.MAGIC = 'civdb\0'
 
 local pth = require'ds.path'
+local LFile = require'lines.File'
+local futils = require'civdb.futils'
 local civdb = require'civdb'
-local CFile = require'civdb.CFile'
+
 local construct = mty.construct
-local loadIdx = require'lines.futils'.loadIdx
 local mtype = math.type
+local fmt = require'fmt'
 
 local encode, decode = civdb.encode, civdb.decode
+local startEntry, readTx = futils.startEntry, futils.readTx
 
 CivDB.IDX_DIR = pth.concat{pth.home(), '.data/rows'}
 
-CivDB.Op = mty'Op' {
-  'kind [string]: create, delete or update',
-  'row  [int]: the row index being modified',
-}
+getmetatable(CivDB).__call = getmetatable(LFile).__call
 
--- encode an operation. Operations are encoded as lua values
--- which are then encoded by civdb.encode
-local OP_ENCODE = {
-  -- create a row and record what the row number is
-  create = function()       return  true   end,
-  -- update a row
-  update = function(rowNum) return  rowNum end,
-  -- delete a row
-  delete = function(rowNum) return -rowNum end,
-}
-CivDB.Op.encode = function(op) return OP_ENCODE[op.kind](op.row) end
+CivDB._initnew = function(f) assert(f:write(CivDB.MAGIC)) end
+CivDB._reindex = function(f, idx, row, pos)
+  local magic = CivDB.MAGIC
+  row, pos = row or 1, pos or 0
+  local len = f:seek'end'
+  if len < 6 then
+    assert(pos == 0); assert(0 == f:seek'set')
+    assert(f:write(magic))
+    pos = 6
+  elseif pos < 6 then
+    assert(pos == 0); assert(0 == f:seek'set')
+    assert(f:read(#magic) == magic)
+    pos = 6
+  else assert(pos == f:seek('set', pos)) end
 
---- Op:decode(val) - decode the operation.
-CivDB.Op.decode = function(T, v)
-  if v == true then return T{op='create'} end
-  assert(mtype(v) == 'number', 'invalid op')
-  if v >= 0    then return T{op='update', row= v}
-               else return T{op='delete', row=-v} end
+  while pos < len do
+    local op, val, readSz = readTx(f); assert(op, val);
+    if     op.kind == 'delete' then idx[op.row] = 0
+    elseif op.kind == 'update' then idx[op.row] = pos
+    elseif op.kind == 'create' then
+      idx[row] = pos; row = row + 1
+    else error('unknown op: '..fmt(op)) end
+    pos = pos + readSz
+  end
 end
 
---- Get the operation from the transaction file
---- Returns the txbytes and opLen so the value can (optionally) be decoded.
-local readOperation = function(tf, i) --> txbytes, op, oplen
-  local tx = tf[i]; if not tx then return end
-  local op, opLen = decode(tx)
-  return tx, decodeOp(op), opLen
-end
+CivDB.__len = function(db) return #db.idx end
 
-local readTransaction = function(tf, i)
-  local tx = assert(tf[i])
-  local opt, optlen = decode(tx)
-  local val = decode(tx, optlen + 1)
-end
-
-getmetatable(CivDB).__call = function(T, path, mode)
-  mode = mode or 'r+'
-  local tf, err, ridx = CFile(path, mode)
-  if not tf then return nil, err end
-  if not path then
-    ridx, err = U3File:create(); if not ridx then return nil, err end
-  else
-    local idxpath = error'todo'
-    ridx, err = loadIdx(f, idxpath, mode, T._reindex)
-    if not ridx then return nil, err end
-  else error'invalid path' end
-  return construct(T, {tf=tf, ridx=ridx})
-end
-
-CivDB._reindex = function(tf, ridx, l, pos)
-  l, pos = l or 1, pos or 0
-  if #tf == 0 then return end
-  -- FIXME: walk transactions, update rowidx
-end
-
-CivDB.__len = function(db) return #db.ridx end
---- Create a new row with value, returning the row index.
-CivDB.create = function(db, value) --> row
+--- Create a new row with value, returning the rownum
+--- Note: directly encodes with toPod (ignores schema)
+CivDB.createRaw = function(db, value) --> row
+  local row = db._row
+  local pos, dat = db:_pushvalue(CREATE_OP, value)
+  idx[row] = pos; db._row = row + 1
+  db._cache[row] = dat
+  return row
 end
 
 --- Read the row, returning its value
-CivDB.read = function(db, row) --> value
+--- Note: does not attempt to convert to the schema type.
+CivDB.readRaw = function(db, row) --> value?
+  local pos = db.idx[row]; if not pos or pos == 0 then return end
+  local f = db.f; assert(pos == f:seek(pos))
+  local op, val = readTx(f)
+  if not op then error(val) end
+  if val then return (decode(val)) end -- else nil
 end
 
 --- Modify the value of the row with the value
-CivDB.update = function(db, row, value)
+--- Note: directly encodes with toPod (ignores schema)
+CivDB.updateRaw = function(db, row, value)
+  local row = db._row
+  local pos, dat = db:_pushvalue(updateOp(row), value)
+  idx[row] = pos; db._row = row + 1
+  db._cache[row] = dat
 end
 
 --- Delete the row, future reads will return nil
-CivDB.delete = function(db, index)
+CivDB.delete = function(db, row)
+  local op = deleteOp(row)
+  local f, pos = db.f, db._eofpos
+  assert(pos == f:seek(pos))
+  local enclen = assert(startEntry(f, #op))
+  assert(f:write(op))
+  db._eofpos = pos + enclen + #op
+  idx[row] = 0; db._cache[row] = nil
+end
+
+CivDB._pushvalue = function(db, op, value) --> pos, dat
+  local dat = assert(encode(value))
+  local f, pos, len = db.f, db._eofpos, #op + #dat
+  assert(pos == f:seek(pos))
+  local enclen = assert(startEntry(f, len))
+  assert(f:write(op)); assert(f:write(dat))
+  db._eofpos = pos + enclen + len
+  return pos, dat
 end
 
 return CivDB

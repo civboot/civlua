@@ -19,8 +19,10 @@ M.loadIdx = function(f, idxpath, fmode, reindex) --> idxFile
   end
   ::createnew::
   ix.mkDirs(pth.last(idxpath))
-  local idx, err = U3File:create(idxpath); if not idx then return nil, err end
+  local idx, err = U3File:create(idxpath)
+  if not idx then return nil, err end
   reindex(f, idx)
+  f:flush(); idx:flush()
   ix.setmodified(fd.fileno(idx.f), fstat:modified())
   return idx
 end

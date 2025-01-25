@@ -1,3 +1,23 @@
+T.CFile = function()
+  local CFile = require'civdb.CFile'
+  local rf = CFile(RF, 'w+')
+  local f = rf.f
+
+  -- write and read first row manually
+  assert(CFile._startrow(f, 5))
+  assert(f:seek('set', 0)); assert('\5' == f:read())
+  assert(f:write'hello', 'what');
+  assert(0 == f:seek('set', 0))
+  T.eq('\05', f:read(1)); T.eq('hello', f:read(5))
+  rf.idx[1] = 0; T.eq(0, rf.idx[1])
+  T.eq('hello', rf[1])
+
+  rf[2] = 'my name\0is';
+    T.eq('my name\0is', rf[2]);
+    T.eq('hello', rf[1])
+  rf[3] = 'Rett'; T.eq({'hello', 'my name\0is', 'Rett'}, ds.icopy(rf))
+end
+
 local mty = require'metaty'
 
 --- Indexed file which contains entries encoded by their length
@@ -74,38 +94,45 @@ CFile._reindex = function(f, idx, r, pos)
 end
 
 getmetatable(CFile).__index  = nil
-CFile.__index = function(rf, i)
+CFile.__index = function(cf, i)
   if type(i) == 'string' then
-    local mt = getmt(rf)
+    local mt = getmt(cf)
     return rawget(mt, i) or index(mt, i)
   end
-  local cache = rf.cache
+  local cache = cf.cache
   local row, rowsz = cache[i]; if row then return row end
-  local f, idx = rf.f, rf.idx
+  local f, idx = cf.f, cf.idx
   if i > #idx then return end -- line num OOB
-  local pos = assert(rf.idx[i])
+  local pos = assert(cf.idx[i])
   print('!! pos', pos)
-  rf._eofpos = nil
+  cf._eofpos = nil
   assert(pos == assert(f:seek('set', pos)))
   row, rowsz = readrow(f); assert(row, rowsz)
   return row
 end
 
-CFile.__newindex = function(rf, i, v)
-  if type(i) == 'string' then return newindex(rf, i, v) end
-  local f, idx, cache, pos = rf.f, rf.idx, rf.cache, rf._eofpos
-  local pos = rf._eofpos or assert(f:seek'end')
-  local len = #idx; assert(i == len + 1, 'only append allowed')
-  rf._eofpos = nil -- clear before write
-  local rowsz = assert(startrow(f, #v))
-  assert(f:write(v))
-  idx[i], rf._eofpos, cache[i] = pos, pos + rowsz + #v, v
+CFile.__newindex = function(cf, i, v)
+  if type(i) == 'string' then return newindex(cf, i, v) end
+  assert(i == #cf.idx + 1, 'only append allowed')
+  return cf:append(v)
 end
 
-CFile.__fmt = function(rf, f)
+CFile.append = function(cf, dat) --> pos
+  local f, idx, cache = cf.f, cf.idx, cf.cache
+  local pos = cf._eofpos or assert(f:seek'end')
+  local i = #idx + 1
+  cf._eofpos = nil -- clear before write
+  local rowsz = assert(startrow(f, #dat))
+  assert(f:write(dat))
+  idx[i], cf._eofpos, cache[i] = pos, pos + rowsz + #dat, dat
+  return pos
+end
+
+CFile.__fmt = function(cf, f)
   f:write'civdb.CFile('
-  if rf.path then f:write(rf.path) end
+  if cf.path then f:write(cf.path) end
   f:write')'
 end
 
 return CFile
+
