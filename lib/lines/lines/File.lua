@@ -69,7 +69,13 @@ File.close = function(lf)
   if lf.idx then lf.idx:close()             end
   if lf.f   then lf.f:close(); lf.f = false end
 end
-File.flush = function(lf) lf.idx:flush(); return lf.f:flush() end
+File.flush = function(lf)
+  local ok, err = lf.idx:flush(); if not ok then return nil, err end
+  ok, err = lf.f:flush()          if not ok then return nil, err end
+  local fstat, err = ix.stat(fd.fileno(lf.f))
+  if not fstat then return nil, err end
+  return ix.setmodified(fd.fileno(lf.idx.f), fstat:modified())
+end
 
 --- append to file
 File.write = function(lf, ...)

@@ -11,7 +11,7 @@ CivDB.MAGIC = 'civdb\0'
 
 local ds = require'ds'
 local pth = require'ds.path'
-local linesFileInit = getmetatable(require'lines.File').__call
+local LFile = require'lines.File'
 local civdb = require'civdb'
 local S = require'civdb.sys'
 
@@ -24,6 +24,8 @@ local trace = require'ds.log'.trace
 
 local encv = S.encv
 local encode, decode = civdb.encode, civdb.decode
+
+local fileInit = getmetatable(LFile).__call
 
 
 ----------------------------
@@ -86,7 +88,7 @@ CivDB.IDX_DIR = pth.concat{pth.home(), '.data/rows'}
 
 getmetatable(CivDB).__call = function(T, t)
   local mode = t.mode or 'w+'
-  local db = assert(linesFileInit(T, t.path, mode))
+  local db = assert(fileInit(T, t.path, mode))
   db._eofpos = assert(db.f:seek'end')
   db._row = #db.idx + 1
   return db
@@ -135,13 +137,12 @@ end
 --- Note: does not attempt to convert to the schema type.
 CivDB.readRaw = function(db, row) --> value?
   local pos = db.idx[row]
-  trace('readRaw row=%i from pos=%i', row, pos)
+  trace('readRaw row=%i from pos=%s', row, pos)
   if not pos or pos == 0 then return end
   local f = db.f; assert(pos == f:seek('set', pos))
   local op, val = readTx(f)
   trace('readRaw: row=%i op=%q val=%q', row, op, val)
-  if not op then error(val) end
-  return val
+  return not op and error(val) or val
 end
 
 --- Modify the value of the row with the value
@@ -175,6 +176,11 @@ CivDB._pushvalue = function(db, op, value) --> pos, dat
   trace('pushvalue pos=%i enclen=%i len=%i', pos, enclen, len)
   db._eofpos = pos + enclen + len
   return pos, dat
+end
+
+CivDB.flush = LFile.flush
+CivDB.close = function(db)
+  db:flush(); db.idx:close(); db.f:close();
 end
 
 return CivDB
