@@ -135,13 +135,12 @@ end
 --- Note: does not attempt to convert to the schema type.
 CivDB.readRaw = function(db, row) --> value?
   local pos = db.idx[row]
-  trace('readRaw row=%i from pos=%i', row, pos)
+  trace('readRaw row=%i from pos=%s', row, pos)
   if not pos or pos == 0 then return end
   local f = db.f; assert(pos == f:seek('set', pos))
   local op, val = readTx(f)
   trace('readRaw: row=%i op=%q val=%q', row, op, val)
-  if not op then error(val) end
-  return val
+  return not op and error(val) or val
 end
 
 --- Modify the value of the row with the value
