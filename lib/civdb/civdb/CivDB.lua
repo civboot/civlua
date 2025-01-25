@@ -20,6 +20,7 @@ local mtype = math.type
 local fmt = require'fmt'
 local fbin = require'fmt.binary'
 local byte = string.byte
+local trace = require'ds.log'.trace
 
 local encv = S.encv
 local encode, decode = civdb.encode, civdb.decode
@@ -31,7 +32,7 @@ local encode, decode = civdb.encode, civdb.decode
 --- Start an entry by writing the encoded length.
 --- It is the caller's job to actually write the entry data.
 local startEntry = function(f, len) --> byteswritten?, err
-  len = encv(len); assert(f:write(len), 'write error')
+  len = encv(len); assert(f:write(len))
   return #len
 end
 
@@ -122,6 +123,7 @@ CivDB.__len = function(db) return #db.idx end
 CivDB.createRaw = function(db, value) --> row
   local row = db._row
   local pos, dat = db:_pushvalue(CREATE_OP, value)
+  trace('createRow row=%i pos=%i', row, pos)
   db.idx[row] = pos; db._row = row + 1
   db.cache[row] = dat
   return row
@@ -130,7 +132,9 @@ end
 --- Read the row, returning its value
 --- Note: does not attempt to convert to the schema type.
 CivDB.readRaw = function(db, row) --> value?
-  local pos = db.idx[row]; if not pos or pos == 0 then return end
+  local pos = db.idx[row]
+  trace('readRaw row=%i from pos=%i', row, pos)
+  if not pos or pos == 0 then return end
   local f = db.f; assert(pos == f:seek('set', pos))
   local op, val = readTx(f)
   if not op then error(val) end
@@ -165,6 +169,7 @@ CivDB._pushvalue = function(db, op, value) --> pos, dat
   assert(pos == f:seek('set', pos))
   local enclen = assert(startEntry(f, len))
   assert(f:write(op)); assert(f:write(dat))
+  trace('pushvalue pos=%i enclen=%i len=%i', pos, enclen, len)
   db._eofpos = pos + enclen + len
   return pos, dat
 end

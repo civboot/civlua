@@ -31,6 +31,10 @@ end
 T.CivDB = function()
   local db = CivDB(DBF, 'w+')
   T.eq(1, db:createRaw'test1')
+  db.f:seek('set', 0)
+  --              elen op str5
+  T.binEq('civdb\0\x07\xE2\x65test1', db.f:read())
+
   T.binEq('test1', db:readRaw(1))
 
   T.eq(2, db:createRaw(22))

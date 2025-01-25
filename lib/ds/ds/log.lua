@@ -1,6 +1,6 @@
 local G = G or _G
 
---- Simple logging library.
+--- Simple logging library, set i.e. LOGLEVEL=TRACE to enable logging.
 ---
 --- This module has the functions [$trace info warn err crit] with the signature:
 --- [$function(fmt, ... [, data])] [+
