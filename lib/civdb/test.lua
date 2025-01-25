@@ -31,8 +31,9 @@ end
 T.CivDB = function()
   local db = CivDB(DBF, 'w+')
   T.eq(1, db:createRaw'test1')
+  T.binEq('test1', db:readRaw(1))
+
   T.eq(2, db:createRaw(22))
-  T.eq('test1', db:readRaw(1))
   T.eq(22,      db:readRaw(2))
   T.eq(nil,     db:readRaw(3))
 
