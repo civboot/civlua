@@ -9,7 +9,6 @@ srcs = {
   'civdb.lua',
   ['civdb.sys'] = 'civdb.c',
   'civdb/CivDB.lua',
-  'civdb/futils.lua',
 }
 libs = {
   ['civdb.sys'] = 'civdb.so',

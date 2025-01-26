@@ -756,17 +756,17 @@ gaps (needed "batteries") in Lua's standard library. It's only dependency is
 uses to define the logging interface.
 <p>
 <h3>none: "set but none" vs nil's simply "unset"</h3>
-In Lua `nil` always means "unset". Certain APIs (like JSON) might distinguish
-between unset vs null/empty/none. For such APIs `none` can be used to mean "set
-as none" instead of simply "unset" (which is what `nil` means).
+In Lua <code>nil</code> always means "unset". Certain APIs (like JSON) might distinguish
+between unset vs null/empty/none. For such APIs <code>none</code> can be used to mean "set
+as none" instead of simply "unset" (which is what <code>nil</code> means).
 <p>
-`none` overrides `__metatable='none'` so that `getmetatable(none)=='none'` and
-`metaty.ty(none) == 'none'`.
+<code>none</code> overrides <code>__metatable='none'</code> so that <code>getmetatable(none)=='none'</code> and
+<code>metaty.ty(none) == 'none'</code>.
 <p>
-WARNING: `assert(none)` will pass.  Use `ds.bool` to make `none` falsy.
+<blockquote>WARNING: <code>assert(none)</code> will pass.  Use <code>ds.bool</code> to make <code>none</code> falsy.</blockquote>
 <p>
 <h3>path</h3>
-`ds.path` has some functions for working with paths.
+<code>ds.path</code> has some functions for working with paths.
 <p>
 It interacts (but does not set) the <b>globals</b> <code>CWD</code> and <code>HOME</code> to get the
 "current working directory" and "home directory", respectively.
@@ -775,14 +775,14 @@ It interacts (but does not set) the <b>globals</b> <code>CWD</code> and <code>HO
 <h2>Module <a id="ds" href="#ds">ds</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L3"><i>src</i></a>)</h2>
 <p>
 <h3>Table <a id="ds.CONCRETE_TYPES" href="#ds.CONCRETE_TYPES">ds.CONCRETE_TYPES</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L79"><i>src</i></a>)</h3>
-<h3>Table <a id="ds.DURATION_ZERO" href="#ds.DURATION_ZERO">ds.DURATION_ZERO</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L757"><i>src</i></a>)</h3>
-<h3>Table <a id="ds.IGNORE_TRACE" href="#ds.IGNORE_TRACE">ds.IGNORE_TRACE</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1017"><i>src</i></a>)</h3><code class="block">M.IGNORE_TRACE = {
+<h3>Table <a id="ds.DURATION_ZERO" href="#ds.DURATION_ZERO">ds.DURATION_ZERO</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L765"><i>src</i></a>)</h3>
+<h3>Table <a id="ds.IGNORE_TRACE" href="#ds.IGNORE_TRACE">ds.IGNORE_TRACE</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1025"><i>src</i></a>)</h3><code class="block">M.IGNORE_TRACE = {
   [""]=true,
   ['stack traceback:']=true,
   ["[C]: in function 'error'"]=true,
   ["[C]: in ?"]=true,
 }</code>
-<h3>Table <a id="ds.R" href="#ds.R">ds.R</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1107"><i>src</i></a>)</h3>
+<h3>Table <a id="ds.R" href="#ds.R">ds.R</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1115"><i>src</i></a>)</h3>
 indexrequire: <code>R.foo</code> is same as <code>require'foo'</code>
 This is mostly used in scripts/etc<code class="block">M.R = setmetatable({}, {
   __index=function(_, k) return require(k) end,
@@ -791,12 +791,12 @@ This is mostly used in scripts/etc<code class="block">M.R = setmetatable({}, {
 <h4>Value <a id="ds.SKIP" href="#ds.SKIP">ds.SKIP</a></h4>
 <h4>Value <a id="ds.__name" href="#ds.__name">ds.__name</a></h4>
 <h3>Table <a id="ds.empty" href="#ds.empty">ds.empty</a></h3>
-<h3>Table <a id="ds.none" href="#ds.none">ds.none</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L668"><i>src</i></a>)</h3>
+<h3>Table <a id="ds.none" href="#ds.none">ds.none</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L676"><i>src</i></a>)</h3>
 none: "set as none" vs nil aka "unset"
 <p>
 none is a sentinel value. Use it in APIs where there is an
 "unset but none" such as JSON's "null".
-<h3>Record <a id="ds.BiMap" href="#ds.BiMap">ds.BiMap</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L933"><i>src</i></a>)</h3>
+<h3>Record <a id="ds.BiMap" href="#ds.BiMap">ds.BiMap</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L941"><i>src</i></a>)</h3>
 Bidirectional Map.
 Maps both <code>key -&gt; value</code> and <code>value -&gt; key</code>.
 Must use <code>:remove</code> (instead of <code>bm[k] = nil</code> to handle deletions.
@@ -808,16 +808,16 @@ Note that <code>pairs()</code> will return BOTH directions (in an unspecified or
 <b>Records: </b> <table>
 <tr>
 <td><code>ds.BiMap.__index</code></td>
-<td>[Ty<BiMap>] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L933">src</a>)</td>
+<td>[Ty<BiMap>] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L941">src</a>)</td>
 </tr>
 </table>
-<h4>Function <a id="BiMap.remove" href="#BiMap.remove">BiMap.remove</a><code>(t, k) -&gt; v</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L948"><i>src</i></a>)</h4>
-<h3>Record <a id="ds.Checked" href="#ds.Checked">ds.Checked</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L619"><i>src</i></a>)</h3>
+<h4>Function <a id="BiMap.remove" href="#BiMap.remove">BiMap.remove</a><code>(t, k) -&gt; v</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L956"><i>src</i></a>)</h4>
+<h3>Record <a id="ds.Checked" href="#ds.Checked">ds.Checked</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L627"><i>src</i></a>)</h3>
 Table that errors on missing key
 <p>
 <h4>Value <a id="ds.Checked.__metatable" href="#ds.Checked.__metatable">ds.Checked.__metatable</a></h4>
 <h4>Value <a id="ds.Checked.__name" href="#ds.Checked.__name">ds.Checked.__name</a></h4>
-<h3>Record <a id="ds.Deq" href="#ds.Deq">ds.Deq</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L964"><i>src</i></a>)</h3>
+<h3>Record <a id="ds.Deq" href="#ds.Deq">ds.Deq</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L972"><i>src</i></a>)</h3>
 <code>Deq() -&gt; Deq</code>, a deque
 Use as a first in/out with <code>deq:push(v)/deq()</code>
 <p>
@@ -841,7 +841,7 @@ Calling it is the same as popLeft (use as iterator)
 <b>Records: </b> <table>
 <tr>
 <td><code>ds.Deq.__index</code></td>
-<td>[Ty<Deq>] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L964">src</a>)</td>
+<td>[Ty<Deq>] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L972">src</a>)</td>
 </tr>
 </table>
 <b>Methods: </b> <table>
@@ -851,29 +851,29 @@ Calling it is the same as popLeft (use as iterator)
 </tr>
 <tr>
 <td><code>ds.Deq.pop</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L990">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L998">src</a>)</td>
 </tr>
 <tr>
 <td><code>ds.Deq.popLeft</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L990">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L998">src</a>)</td>
 </tr>
 <tr>
 <td><code>ds.Deq.pushRight</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L970">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L978">src</a>)</td>
 </tr>
 </table>
-<h4>Function <a id="Deq.popLeft" href="#Deq.popLeft">Deq.popLeft</a><code>(deq) -&gt; v</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L990"><i>src</i></a>)</h4>
-<h4>Function <a id="Deq.__len" href="#Deq.__len">Deq.__len</a><code>(d) -&gt; #d</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L997"><i>src</i></a>)</h4>
-<h4>Function <a id="Deq.clear" href="#Deq.clear">Deq.clear</a><code>(deq) -&gt; nil: clear deq</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1003"><i>src</i></a>)</h4>
-<h4>Function <a id="Deq.drain" href="#Deq.drain">Deq.drain</a><code>(deq) -&gt; table: get all items and clear deq</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1007"><i>src</i></a>)</h4>
-<h4>Function <a id="Deq.extendLeft" href="#Deq.extendLeft">Deq.extendLeft</a><code>(deq, vals) -&gt; nil</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L985"><i>src</i></a>)</h4>
+<h4>Function <a id="Deq.popLeft" href="#Deq.popLeft">Deq.popLeft</a><code>(deq) -&gt; v</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L998"><i>src</i></a>)</h4>
+<h4>Function <a id="Deq.__len" href="#Deq.__len">Deq.__len</a><code>(d) -&gt; #d</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1005"><i>src</i></a>)</h4>
+<h4>Function <a id="Deq.clear" href="#Deq.clear">Deq.clear</a><code>(deq) -&gt; nil: clear deq</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1011"><i>src</i></a>)</h4>
+<h4>Function <a id="Deq.drain" href="#Deq.drain">Deq.drain</a><code>(deq) -&gt; table: get all items and clear deq</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1015"><i>src</i></a>)</h4>
+<h4>Function <a id="Deq.extendLeft" href="#Deq.extendLeft">Deq.extendLeft</a><code>(deq, vals) -&gt; nil</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L993"><i>src</i></a>)</h4>
 extend deq to left (<code>vals[1]</code> is left-most)
-<h4>Function <a id="Deq.extendRight" href="#Deq.extendRight">Deq.extendRight</a><code>(deq, vals) -&gt; nil</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L976"><i>src</i></a>)</h4>
+<h4>Function <a id="Deq.extendRight" href="#Deq.extendRight">Deq.extendRight</a><code>(deq, vals) -&gt; nil</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L984"><i>src</i></a>)</h4>
 extend deq to right
-<h4>Function <a id="Deq.popRight" href="#Deq.popRight">Deq.popRight</a><code>(deq) -&gt; v</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L995"><i>src</i></a>)</h4>
-<h4>Function <a id="Deq.pushRight" href="#Deq.pushRight">Deq.pushRight</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L970"><i>src</i></a>)</h4>
-<h4>Function <a id="Deq.pushLeft" href="#Deq.pushLeft">Deq.pushLeft</a><code>(deq, val) -&gt; nil</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L979"><i>src</i></a>)</h4>
-<h3>Record <a id="ds.Duration" href="#ds.Duration">ds.Duration</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L733"><i>src</i></a>)</h3>
+<h4>Function <a id="Deq.popRight" href="#Deq.popRight">Deq.popRight</a><code>(deq) -&gt; v</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1003"><i>src</i></a>)</h4>
+<h4>Function <a id="Deq.pushRight" href="#Deq.pushRight">Deq.pushRight</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L978"><i>src</i></a>)</h4>
+<h4>Function <a id="Deq.pushLeft" href="#Deq.pushLeft">Deq.pushLeft</a><code>(deq, val) -&gt; nil</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L987"><i>src</i></a>)</h4>
+<h3>Record <a id="ds.Duration" href="#ds.Duration">ds.Duration</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L741"><i>src</i></a>)</h3>
 <p>
 <b>Fields: </b> <table>
 <tr>
@@ -894,7 +894,7 @@ nanoseconds</td>
 <b>Records: </b> <table>
 <tr>
 <td><code>ds.Duration.__index</code></td>
-<td>[Ty<Duration>] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L733">src</a>)</td>
+<td>[Ty<Duration>] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L741">src</a>)</td>
 </tr>
 </table>
 <b>Methods: </b> <table>
@@ -903,14 +903,14 @@ nanoseconds</td>
 <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L179">src</a>)</td>
 </tr>
 </table>
-<h4>Function <a id="Duration.__add" href="#Duration.__add">Duration.__add</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L749"><i>src</i></a>)</h4>
-<h4>Function <a id="Duration.__lt" href="#Duration.__lt">Duration.__lt</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L753"><i>src</i></a>)</h4>
-<h4>Function <a id="Duration.__sub" href="#Duration.__sub">Duration.__sub</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L744"><i>src</i></a>)</h4>
-<h4>Function <a id="Duration.__tostring" href="#Duration.__tostring">Duration.__tostring</a><code>(self) -&gt; self:asSeconds() .. 's'</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L755"><i>src</i></a>)</h4>
-<h4>Function <a id="Duration.asSeconds" href="#Duration.asSeconds">Duration.asSeconds</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L739"><i>src</i></a>)</h4>
-<h4>Function <a id="Duration.fromMs" href="#Duration.fromMs">Duration.fromMs</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L738"><i>src</i></a>)</h4>
-<h4>Function <a id="Duration.fromSeconds" href="#Duration.fromSeconds">Duration.fromSeconds</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L737"><i>src</i></a>)</h4>
-<h3>Record <a id="ds.Epoch" href="#ds.Epoch">ds.Epoch</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L763"><i>src</i></a>)</h3>
+<h4>Function <a id="Duration.__add" href="#Duration.__add">Duration.__add</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L757"><i>src</i></a>)</h4>
+<h4>Function <a id="Duration.__lt" href="#Duration.__lt">Duration.__lt</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L761"><i>src</i></a>)</h4>
+<h4>Function <a id="Duration.__sub" href="#Duration.__sub">Duration.__sub</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L752"><i>src</i></a>)</h4>
+<h4>Function <a id="Duration.__tostring" href="#Duration.__tostring">Duration.__tostring</a><code>(self) -&gt; self:asSeconds() .. 's'</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L763"><i>src</i></a>)</h4>
+<h4>Function <a id="Duration.asSeconds" href="#Duration.asSeconds">Duration.asSeconds</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L747"><i>src</i></a>)</h4>
+<h4>Function <a id="Duration.fromMs" href="#Duration.fromMs">Duration.fromMs</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L746"><i>src</i></a>)</h4>
+<h4>Function <a id="Duration.fromSeconds" href="#Duration.fromSeconds">Duration.fromSeconds</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L745"><i>src</i></a>)</h4>
+<h3>Record <a id="ds.Epoch" href="#ds.Epoch">ds.Epoch</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L771"><i>src</i></a>)</h3>
 <p>
 <b>Fields: </b> <table>
 <tr>
@@ -930,7 +930,7 @@ nanoseconds</td>
 <b>Records: </b> <table>
 <tr>
 <td><code>ds.Epoch.__index</code></td>
-<td>[Ty<Epoch>] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L763">src</a>)</td>
+<td>[Ty<Epoch>] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L771">src</a>)</td>
 </tr>
 </table>
 <b>Methods: </b> <table>
@@ -940,17 +940,17 @@ nanoseconds</td>
 </tr>
 <tr>
 <td><code>ds.Epoch.asSeconds</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L739">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L747">src</a>)</td>
 </tr>
 <tr>
 <td><code>ds.Epoch.fromSeconds</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L737">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L745">src</a>)</td>
 </tr>
 </table>
-<h4>Function <a id="Epoch.__lt" href="#Epoch.__lt">Epoch.__lt</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L779"><i>src</i></a>)</h4>
-<h4>Function <a id="Epoch.__sub" href="#Epoch.__sub">Epoch.__sub</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L775"><i>src</i></a>)</h4>
-<h4>Function <a id="Epoch.__tostring" href="#Epoch.__tostring">Epoch.__tostring</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L783"><i>src</i></a>)</h4>
-<h3>Record <a id="ds.Error" href="#ds.Error">ds.Error</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1035"><i>src</i></a>)</h3>
+<h4>Function <a id="Epoch.__lt" href="#Epoch.__lt">Epoch.__lt</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L787"><i>src</i></a>)</h4>
+<h4>Function <a id="Epoch.__sub" href="#Epoch.__sub">Epoch.__sub</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L783"><i>src</i></a>)</h4>
+<h4>Function <a id="Epoch.__tostring" href="#Epoch.__tostring">Epoch.__tostring</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L791"><i>src</i></a>)</h4>
+<h3>Record <a id="ds.Error" href="#ds.Error">ds.Error</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1043"><i>src</i></a>)</h3>
 Error message, traceback and cause
 NOTE: you should only use this for printing/logging/etc.
 <p>
@@ -974,7 +974,7 @@ NOTE: you should only use this for printing/logging/etc.
 <b>Records: </b> <table>
 <tr>
 <td><code>ds.Error.__index</code></td>
-<td>[Ty<Error>] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1035">src</a>)</td>
+<td>[Ty<Error>] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1043">src</a>)</td>
 </tr>
 </table>
 <b>Methods: </b> <table>
@@ -983,19 +983,19 @@ NOTE: you should only use this for printing/logging/etc.
 <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L179">src</a>)</td>
 </tr>
 </table>
-<h4>Function <a id="Error.__fmt" href="#Error.__fmt">Error.__fmt</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1048"><i>src</i></a>)</h4>
-<h4>Function <a id="Error.__tostring" href="#Error.__tostring">Error.__tostring</a><code>(e) -&gt; fmt(e)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1049"><i>src</i></a>)</h4>
-<h4>Function <a id="Error.from" href="#Error.from">Error.from</a><code>(msg, tb, cause) -&gt; Error</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1060"><i>src</i></a>)</h4>
+<h4>Function <a id="Error.__fmt" href="#Error.__fmt">Error.__fmt</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1056"><i>src</i></a>)</h4>
+<h4>Function <a id="Error.__tostring" href="#Error.__tostring">Error.__tostring</a><code>(e) -&gt; fmt(e)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1057"><i>src</i></a>)</h4>
+<h4>Function <a id="Error.from" href="#Error.from">Error.from</a><code>(msg, tb, cause) -&gt; Error</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1068"><i>src</i></a>)</h4>
 create the error from the arguments.
 tb can be one of: <code>coroutine|string|table</code>
-<h4>Function <a id="Error.msgh" href="#Error.msgh">Error.msgh</a><code>(msg, level) -&gt; Error</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1065"><i>src</i></a>)</h4>
+<h4>Function <a id="Error.msgh" href="#Error.msgh">Error.msgh</a><code>(msg, level) -&gt; Error</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1073"><i>src</i></a>)</h4>
 for use with xpcall. See: try
-<h3>Record <a id="ds.Forget" href="#ds.Forget">ds.Forget</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L611"><i>src</i></a>)</h3>
-Table that never accepts new indexes. Used to disable caching in tests.
+<h3>Record <a id="ds.Forget" href="#ds.Forget">ds.Forget</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L619"><i>src</i></a>)</h3>
+Table that ignores new indexes. Used to disable caching in tests.
 <p>
 <h4>Value <a id="ds.Forget.__name" href="#ds.Forget.__name">ds.Forget.__name</a></h4>
 <h4>Function <a id="ds.noop" href="#ds.noop">ds.noop</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L85"><i>src</i></a>)</h4>
-<h3>Record <a id="ds.Imm" href="#ds.Imm">ds.Imm</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L682"><i>src</i></a>)</h3>
+<h3>Record <a id="ds.Imm" href="#ds.Imm">ds.Imm</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L690"><i>src</i></a>)</h3>
 Immutable table
 <p>
 <b>Values: </b> <table>
@@ -1007,8 +1007,8 @@ Immutable table
 <h3>Table <a id="ds.Imm.__docs" href="#ds.Imm.__docs">ds.Imm.__docs</a></h3>
 <h3>Table <a id="ds.Imm.__fields" href="#ds.Imm.__fields">ds.Imm.__fields</a></h3>
 <h4>Value <a id="ds.Imm.__name" href="#ds.Imm.__name">ds.Imm.__name</a></h4>
-<h4>Function <a id="Imm.__len" href="#Imm.__len">Imm.__len</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L695"><i>src</i></a>)</h4>
-<h4>Function <a id="Imm.__pairs" href="#Imm.__pairs">Imm.__pairs</a><code>(t) -&gt; next, rawget(t, IMM_DATA) or t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L692"><i>src</i></a>)</h4>
+<h4>Function <a id="Imm.__len" href="#Imm.__len">Imm.__len</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L703"><i>src</i></a>)</h4>
+<h4>Function <a id="Imm.__pairs" href="#Imm.__pairs">Imm.__pairs</a><code>(t) -&gt; next, rawget(t, IMM_DATA) or t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L700"><i>src</i></a>)</h4>
 <h3>Record <a id="ds.PlainStyler" href="#ds.PlainStyler">ds.PlainStyler</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L18"><i>src</i></a>)</h3>
 <p>
 <h3>Table <a id="ds.PlainStyler.__docs" href="#ds.PlainStyler.__docs">ds.PlainStyler.__docs</a></h3>
@@ -1026,7 +1026,7 @@ Immutable table
 <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L179">src</a>)</td>
 </tr>
 </table>
-<h3>Record <a id="ds.Set" href="#ds.Set">ds.Set</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L787"><i>src</i></a>)</h3>
+<h3>Record <a id="ds.Set" href="#ds.Set">ds.Set</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L795"><i>src</i></a>)</h3>
 <p>
 <h3>Table <a id="ds.Set.__docs" href="#ds.Set.__docs">ds.Set.__docs</a></h3>
 <h3>Table <a id="ds.Set.__fields" href="#ds.Set.__fields">ds.Set.__fields</a></h3>
@@ -1034,15 +1034,15 @@ Immutable table
 <b>Records: </b> <table>
 <tr>
 <td><code>ds.Set.__index</code></td>
-<td>[Ty<Set>] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L787">src</a>)</td>
+<td>[Ty<Set>] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L795">src</a>)</td>
 </tr>
 </table>
-<h4>Function <a id="Set.__eq" href="#Set.__eq">Set.__eq</a><code>(self, t) -&gt; bool</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L820"><i>src</i></a>)</h4>
-<h4>Function <a id="Set.__fmt" href="#Set.__fmt">Set.__fmt</a><code>(self, f) -&gt; nil</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L807"><i>src</i></a>)</h4>
-<h4>Function <a id="Set.diff" href="#Set.diff">Set.diff</a><code>(self, s) -&gt; Set</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L833"><i>src</i></a>)</h4>
+<h4>Function <a id="Set.__eq" href="#Set.__eq">Set.__eq</a><code>(self, t) -&gt; bool</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L828"><i>src</i></a>)</h4>
+<h4>Function <a id="Set.__fmt" href="#Set.__fmt">Set.__fmt</a><code>(self, f) -&gt; nil</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L815"><i>src</i></a>)</h4>
+<h4>Function <a id="Set.diff" href="#Set.diff">Set.diff</a><code>(self, s) -&gt; Set</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L841"><i>src</i></a>)</h4>
 items in self but not in s
-<h4>Function <a id="Set.union" href="#Set.union">Set.union</a><code>(self, s) -&gt; Set</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L826"><i>src</i></a>)</h4>
-<h3>Record <a id="ds.Slc" href="#ds.Slc">ds.Slc</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L628"><i>src</i></a>)</h3>
+<h4>Function <a id="Set.union" href="#Set.union">Set.union</a><code>(self, s) -&gt; Set</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L834"><i>src</i></a>)</h4>
+<h3>Record <a id="ds.Slc" href="#ds.Slc">ds.Slc</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L636"><i>src</i></a>)</h3>
 A slice of anything with start and end indexes.
 <blockquote>Note: This object does not hold a reference to the object being
 sliced.</blockquote>
@@ -1065,7 +1065,7 @@ end index</td>
 <b>Records: </b> <table>
 <tr>
 <td><code>ds.Slc.__index</code></td>
-<td>[Ty<Slc>] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L628">src</a>)</td>
+<td>[Ty<Slc>] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L636">src</a>)</td>
 </tr>
 </table>
 <b>Methods: </b> <table>
@@ -1074,11 +1074,11 @@ end index</td>
 <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L179">src</a>)</td>
 </tr>
 </table>
-<h4>Function <a id="Slc.__len" href="#Slc.__len">Slc.__len</a><code>(s) -&gt; #s</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L630"><i>src</i></a>)</h4>
-<h4>Function <a id="Slc.__tostring" href="#Slc.__tostring">Slc.__tostring</a><code>(s) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L641"><i>src</i></a>)</h4>
-<h4>Function <a id="Slc.merge" href="#Slc.merge">Slc.merge</a><code>(a, b) -&gt; first, second?</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L637"><i>src</i></a>)</h4>
+<h4>Function <a id="Slc.__len" href="#Slc.__len">Slc.__len</a><code>(s) -&gt; #s</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L638"><i>src</i></a>)</h4>
+<h4>Function <a id="Slc.__tostring" href="#Slc.__tostring">Slc.__tostring</a><code>(s) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L649"><i>src</i></a>)</h4>
+<h4>Function <a id="Slc.merge" href="#Slc.merge">Slc.merge</a><code>(a, b) -&gt; first, second?</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L645"><i>src</i></a>)</h4>
 return either a single (new) merged or two sorted Slcs.
-<h3>Record <a id="ds.TypoSafe" href="#ds.TypoSafe">ds.TypoSafe</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L500"><i>src</i></a>)</h3>
+<h3>Record <a id="ds.TypoSafe" href="#ds.TypoSafe">ds.TypoSafe</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L508"><i>src</i></a>)</h3>
 A typo-safe table, typically used in libraries for storing constants.
 <p>
 Adding keys is always allowed but getting non-existant keys is an error.
@@ -1089,20 +1089,20 @@ Adding keys is always allowed but getting non-existant keys is an error.
 <b>Records: </b> <table>
 <tr>
 <td><code>ds.TypoSafe.__index</code></td>
-<td>[Ty<TypoSafe>] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L500">src</a>)</td>
+<td>[Ty<TypoSafe>] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L508">src</a>)</td>
 </tr>
 </table>
-<h3>Record <a id="ds.WeakK" href="#ds.WeakK">ds.WeakK</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L593"><i>src</i></a>)</h3>
+<h3>Record <a id="ds.WeakK" href="#ds.WeakK">ds.WeakK</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L601"><i>src</i></a>)</h3>
 Weak key table, see docs on <code>__mode</code>
 <p>
 <h4>Value <a id="ds.WeakK.__mode" href="#ds.WeakK.__mode">ds.WeakK.__mode</a></h4>
 <h4>Value <a id="ds.WeakK.__name" href="#ds.WeakK.__name">ds.WeakK.__name</a></h4>
-<h3>Record <a id="ds.WeakKV" href="#ds.WeakKV">ds.WeakKV</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L605"><i>src</i></a>)</h3>
+<h3>Record <a id="ds.WeakKV" href="#ds.WeakKV">ds.WeakKV</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L613"><i>src</i></a>)</h3>
 Weak key+value table, see docs on <code>__mode</code>
 <p>
 <h4>Value <a id="ds.WeakKV.__mode" href="#ds.WeakKV.__mode">ds.WeakKV.__mode</a></h4>
 <h4>Value <a id="ds.WeakKV.__name" href="#ds.WeakKV.__name">ds.WeakKV.__name</a></h4>
-<h3>Record <a id="ds.WeakV" href="#ds.WeakV">ds.WeakV</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L599"><i>src</i></a>)</h3>
+<h3>Record <a id="ds.WeakV" href="#ds.WeakV">ds.WeakV</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L607"><i>src</i></a>)</h3>
 Weak value table, see docs on <code>__mode</code>
 <p>
 <h4>Value <a id="ds.WeakV.__mode" href="#ds.WeakV.__mode">ds.WeakV.__mode</a></h4>
@@ -1117,53 +1117,55 @@ Weak value table, see docs on <code>__mode</code>
 <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L128">src</a>)</td>
 </tr>
 </table>
-<h3>Function <a id="ds.add" href="#ds.add">ds.add</a><code>(t, ...) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L335"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.auto" href="#ds.auto">ds.auto</a><code>(mod, i) -&gt; (mod, i)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1100"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.add" href="#ds.add">ds.add</a><code>(t, ...) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L336"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.auto" href="#ds.auto">ds.auto</a><code>(mod, i) -&gt; (mod, i)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1108"><i>src</i></a>)</h3>
 auto-set nil locals using require(mod)
 <code>local x, y, z; ds.auto'mm' -- sets x=mm.x; y=mm.y; z=mm.z</code>
-<h3>Function <a id="ds.binarySearch" href="#ds.binarySearch">ds.binarySearch</a><code>(t, v, cmp, si--[[1]], ei--[[#t]]) -&gt; index</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L856"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.binarySearch" href="#ds.binarySearch">ds.binarySearch</a><code>(t, v, cmp, si--[[1]], ei--[[#t]]) -&gt; index</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L864"><i>src</i></a>)</h3>
 Search the sorted table, return i such that: <ul>
 <li><code>cmp(t[i], v)</code> returns true  for indexes <= i</li>
 <li><code>cmp(t[i], v)</code> returns false for indexes >  i</li>
 </ul>
 If you want a value perfectly equal then check equality
 on the resulting index.
-<h3>Function <a id="ds.bool" href="#ds.bool">ds.bool</a><code>(v) -&gt; bool</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L673"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.bool" href="#ds.bool">ds.bool</a><code>(v) -&gt; bool</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L681"><i>src</i></a>)</h3>
 convert to boolean (none aware)
 <h3>Function <a id="ds.bound" href="#ds.bound">ds.bound</a><code>(v, min, max) -&gt; value within [min,max]</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L126"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.clear" href="#ds.clear">ds.clear</a><code>(t, si, len) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L329"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.copy" href="#ds.copy">ds.copy</a><code>(t, update) -&gt; new t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L519"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.clear" href="#ds.clear">ds.clear</a><code>(t, si, len) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L330"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.copy" href="#ds.copy">ds.copy</a><code>(t, update) -&gt; new t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L527"><i>src</i></a>)</h3>
 Copy and update full table
 <h3>Function <a id="ds.coroutineErrorMessage" href="#ds.coroutineErrorMessage">ds.coroutineErrorMessage</a><code>(cor, err) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L112"><i>src</i></a>)</h3>
 <h3>Function <a id="ds.decAbs" href="#ds.decAbs">ds.decAbs</a><code>(v) -&gt; number</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L139"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.deepcopy" href="#ds.deepcopy">ds.deepcopy</a><code>(t) -&gt; table</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L527"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.dotpath" href="#ds.dotpath">ds.dotpath</a><code>(dots) -&gt; list split by '.'</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L417"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.deepcopy" href="#ds.deepcopy">ds.deepcopy</a><code>(t) -&gt; table</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L535"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.dotpath" href="#ds.dotpath">ds.dotpath</a><code>(dots) -&gt; list split by '.'</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L425"><i>src</i></a>)</h3>
 used with ds.get and ds.set. Example <code class="block">  local dp = require'ds'.dotpath
   ds.get(t, dp'a.b.c')</code>
-<h3>Function <a id="ds.drain" href="#ds.drain">ds.drain</a><code>(t, len--[[#t]]) -&gt; table</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L382"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.drain" href="#ds.drain">ds.drain</a><code>(t, len--[[#t]]) -&gt; table</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L390"><i>src</i></a>)</h3>
 return len items from the end of <code>t</code>, removing them from <code>t</code>
-<h3>Function <a id="ds.emptyTable" href="#ds.emptyTable">ds.emptyTable</a><code>() -&gt; {}</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L393"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.emptyTable" href="#ds.emptyTable">ds.emptyTable</a><code>() -&gt; {}</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L401"><i>src</i></a>)</h3>
 <h3>Function <a id="ds.eq" href="#ds.eq">ds.eq</a><code>(a, b) -&gt; a == b</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L91"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.eval" href="#ds.eval">ds.eval</a><code>(chunk, env, name) -&gt; (ok, ...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L584"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.eval" href="#ds.eval">ds.eval</a><code>(chunk, env, name) -&gt; (ok, ...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L592"><i>src</i></a>)</h3>
 evaluate lua code
 <h3>Function <a id="ds.extend" href="#ds.extend">ds.extend</a><code>(t, l) -&gt; t: move vals to end of t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L323"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.fdMv" href="#ds.fdMv">ds.fdMv</a><code>(fdTo, fdFrom) -&gt; (fdTo, fdFrom)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L558"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.fdMv" href="#ds.fdMv">ds.fdMv</a><code>(fdTo, fdFrom) -&gt; (fdTo, fdFrom)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L566"><i>src</i></a>)</h3>
 Read data from fdFrom and write to fdTo, then flush.
 <blockquote> memonic: fdTo = fdFrom</blockquote>
-<h3>Function <a id="ds.fileWithText" href="#ds.fileWithText">ds.fileWithText</a><code>(path, text, mode) -&gt; file</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L548"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.fileWithText" href="#ds.fileWithText">ds.fileWithText</a><code>(path, text, mode) -&gt; file</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L556"><i>src</i></a>)</h3>
 <h3>Function <a id="ds.find" href="#ds.find">ds.find</a><code>(subj, pats, si, plain) -&gt; (ms, me, pi, pat)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L163"><i>src</i></a>)</h3>
 find any of a list of patterns. Return the match <code>start, end</code> as well as
 the <code>index, pat</code> of the pattern matched.
-<h3>Function <a id="ds.get" href="#ds.get">ds.get</a><code>(t, path) -&gt; value? at path</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L430"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.flatten" href="#ds.flatten">ds.flatten</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L350"><i>src</i></a>)</h3>
+return new list which contains all elements inserted in order
+<h3>Function <a id="ds.get" href="#ds.get">ds.get</a><code>(t, path) -&gt; value? at path</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L438"><i>src</i></a>)</h3>
 get the value at the path or nil if the value or any
 intermediate table is missing.
 <code class="block">  get(t, {'a', 2, 'c'})  -&gt; t.a?[2]?.c?
   get(t, dotpath'a.b.c') -&gt; t.a?.b?.c?</code>
-<h3>Function <a id="ds.getOrSet" href="#ds.getOrSet">ds.getOrSet</a><code>(t, k, newFn) -&gt; t[k] or newFn()</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L388"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.getOrSet" href="#ds.getOrSet">ds.getOrSet</a><code>(t, k, newFn) -&gt; t[k] or newFn()</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L396"><i>src</i></a>)</h3>
 <h3>Function <a id="ds.geti" href="#ds.geti">ds.geti</a><code>(t, i) -&gt; t[i]</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L248"><i>src</i></a>)</h3>
 get index, handling negatives
 <h3>Function <a id="ds.gt" href="#ds.gt">ds.gt</a><code>(a, b) -&gt; a &gt; b</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L121"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.icopy" href="#ds.icopy">ds.icopy</a><code>(t) -&gt; list</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L510"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.icopy" href="#ds.icopy">ds.icopy</a><code>(t) -&gt; list</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L518"><i>src</i></a>)</h3>
 Copy list-elements only
 <h3>Function <a id="ds.iden" href="#ds.iden">ds.iden</a><code>(...) -&gt; ...</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L87"><i>src</i></a>)</h3>
 <h3>Function <a id="ds.ilast" href="#ds.ilast">ds.ilast</a><code>(t, starti, endi) -&gt; iter[starti:endi]</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L309"><i>src</i></a>)</h3>
@@ -1171,8 +1173,8 @@ iend(t, starti, endi=-1): get islice from the end.
 starti and endi must be negative.
 <p>
 Example: <code>iend({1, 2, 3, 4, 5}, -3, -2) -&gt; 3, 4</code>
-<h3>Function <a id="ds.indexOf" href="#ds.indexOf">ds.indexOf</a><code>(t, find) -&gt; int</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L456"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.indexOfPat" href="#ds.indexOfPat">ds.indexOfPat</a><code>(strs, pat) -&gt; int</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L460"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.indexOf" href="#ds.indexOf">ds.indexOf</a><code>(t, find) -&gt; int</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L464"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.indexOfPat" href="#ds.indexOfPat">ds.indexOfPat</a><code>(strs, pat) -&gt; int</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L468"><i>src</i></a>)</h3>
 <h3>Function <a id="ds.inext" href="#ds.inext">ds.inext</a><code>(t, i) -&gt; (i+1, v)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L270"><i>src</i></a>)</h3>
 next(t, key) but with indexes
 <h3>Function <a id="ds.inset" href="#ds.inset">ds.inset</a><code>(t, i, values, rmlen) -&gt; removed?</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L49"><i>src</i></a>)</h3>
@@ -1197,11 +1199,11 @@ return the string if it is only lowercase letters
 return the string if it is only uppercase letters
 <h3>Function <a id="ds.keys" href="#ds.keys">ds.keys</a><code>(t) -&gt; list</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L267"><i>src</i></a>)</h3>
 <h3>Function <a id="ds.last" href="#ds.last">ds.last</a><code>(t) -&gt; t[#t]</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L249"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.lineschunk" href="#ds.lineschunk">ds.lineschunk</a><code>(dat) -&gt; iter()</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L572"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.lineschunk" href="#ds.lineschunk">ds.lineschunk</a><code>(dat) -&gt; iter()</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L580"><i>src</i></a>)</h3>
 convert lines-like table into chunk for eval
 <h3>Function <a id="ds.lt" href="#ds.lt">ds.lt</a><code>(a, b) -&gt; a &lt; b</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L120"><i>src</i></a>)</h3>
 <h3>Function <a id="ds.lte" href="#ds.lte">ds.lte</a><code>(a, b) -&gt; a &lt;= b</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L122"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.merge" href="#ds.merge">ds.merge</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L372"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.merge" href="#ds.merge">ds.merge</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L380"><i>src</i></a>)</h3>
 recursively update t with add. This will call update on inner tables as
 well.
 <blockquote>Note: treats list indexes as normal keys (does not append)</blockquote>
@@ -1211,55 +1213,55 @@ if t is a table returns t.__name or '?'
 <h3>Function <a id="ds.nosupport" href="#ds.nosupport">ds.nosupport</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L86"><i>src</i></a>)</h3>
 <h3>Function <a id="ds.only" href="#ds.only">ds.only</a><code>(t) -&gt; t[1]</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L255"><i>src</i></a>)</h3>
 get the first (and assert only) element of the list
-<h3>Function <a id="ds.orderedKeys" href="#ds.orderedKeys">ds.orderedKeys</a><code>(t, cmpFn) -&gt; keys</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L352"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.orderedKeys" href="#ds.orderedKeys">ds.orderedKeys</a><code>(t, cmpFn) -&gt; keys</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L360"><i>src</i></a>)</h3>
 <h3>Function <a id="ds.pairlen" href="#ds.pairlen">ds.pairlen</a><code>(t) -&gt; int</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L239"><i>src</i></a>)</h3>
 the full length of all pairs
 <blockquote>WARNING: very slow, requires iterating the whole table</blockquote>
-<h3>Function <a id="ds.popit" href="#ds.popit">ds.popit</a><code>(t, i) -&gt; t[i] and length of t is reduced by 1</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L470"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.popit" href="#ds.popit">ds.popit</a><code>(t, i) -&gt; t[i] and length of t is reduced by 1</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L478"><i>src</i></a>)</h3>
 popit (aka pop-index-top) will return the value at <code>t[i]</code>, replacing it
 with the value at the end (aka top) of the list.
 <p>
 if <code>i &gt; #t</code> returns nil and doesn't affect the size of the list.
-<h3>Function <a id="ds.popk" href="#ds.popk">ds.popk</a><code>(t, key) -&gt; t[k]: pop key</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L376"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.pushSortedKeys" href="#ds.pushSortedKeys">ds.pushSortedKeys</a><code>(t, cmpFn) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L359"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.popk" href="#ds.popk">ds.popk</a><code>(t, key) -&gt; t[k]: pop key</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L384"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.pushSortedKeys" href="#ds.pushSortedKeys">ds.pushSortedKeys</a><code>(t, cmpFn) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L367"><i>src</i></a>)</h3>
 adds all <code>key=index</code> to the table so the keys can
 be iterated using <code>for _, k in ipairs(t)</code>
 <h3>Function <a id="ds.pushfmt" href="#ds.pushfmt">ds.pushfmt</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L232"><i>src</i></a>)</h3>
 push the <code>fmt:format(...)</code> to the table
 <p>
 Example: <code>pushfmt(t, 'a=%s b=%s', a, b)</code>
-<h3>Function <a id="ds.rawget" href="#ds.rawget">ds.rawget</a><code>(t, path) -&gt; value? at path</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L438"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.rawget" href="#ds.rawget">ds.rawget</a><code>(t, path) -&gt; value? at path</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L446"><i>src</i></a>)</h3>
 same as ds.get but uses <code>rawget</code>
 <h3>Function <a id="ds.rawislice" href="#ds.rawislice">ds.rawislice</a><code>(state, i) -&gt; (i+1, v)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L284"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.readPath" href="#ds.readPath">ds.readPath</a><code>(path) -&gt; ok</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L535"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.replace" href="#ds.replace">ds.replace</a><code>(t, r) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L339"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.readPath" href="#ds.readPath">ds.readPath</a><code>(path) -&gt; ok</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L543"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.replace" href="#ds.replace">ds.replace</a><code>(t, r) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L340"><i>src</i></a>)</h3>
 <h3>Function <a id="ds.repr" href="#ds.repr">ds.repr</a><code>(v) -&gt; sfmt('%q', v)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L130"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.resource" href="#ds.resource">ds.resource</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1114"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.resource" href="#ds.resource">ds.resource</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1122"><i>src</i></a>)</h3>
 Include a resource (raw data) relative to the current file.
 <p>
 Example: <code>M.myData = ds.resource'data/myData.csv'</code>
-<h3>Function <a id="ds.resume" href="#ds.resume">ds.resume</a><code>(th) -&gt; (ok, err, b, c)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1081"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.resume" href="#ds.resume">ds.resume</a><code>(th) -&gt; (ok, err, b, c)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1089"><i>src</i></a>)</h3>
 Same as coroutine.resume except uses a ds.Error object for errors
 (has traceback)
 <h3>Function <a id="ds.retFalse" href="#ds.retFalse">ds.retFalse</a><code>() -&gt; false</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L89"><i>src</i></a>)</h3>
 <h3>Function <a id="ds.retTrue" href="#ds.retTrue">ds.retTrue</a><code>() -&gt; true</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L88"><i>src</i></a>)</h3>
 <h3>Function <a id="ds.reverse" href="#ds.reverse">ds.reverse</a><code>(t) -&gt; t (reversed)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L317"><i>src</i></a>)</h3>
 reverse a list-like table in-place
-<h3>Function <a id="ds.rmleft" href="#ds.rmleft">ds.rmleft</a><code>(t, rm, eq--[[ds.eq]]) -&gt; t (mutated)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L408"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.rmleft" href="#ds.rmleft">ds.rmleft</a><code>(t, rm, eq--[[ds.eq]]) -&gt; t (mutated)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L416"><i>src</i></a>)</h3>
 remove (mutate) the left side of the table (list).
 noop if rm is not exactly equal to the left side.
-<h3>Function <a id="ds.sentinel" href="#ds.sentinel">ds.sentinel</a><code>(name, mt) -&gt; NewType</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L662"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.sentinel" href="#ds.sentinel">ds.sentinel</a><code>(name, mt) -&gt; NewType</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L670"><i>src</i></a>)</h3>
 <code>sentinel(name, metatable)</code>
 Use to create a "sentinel type". Return the (singular) instance.
 <p>
 Sentinels are "single values" commonly used for things like: none, empty, EOF, etc.
 They have most metatable methods disallowed and are immutable down. Methods can
 only be set by the provided metatable value.
-<h3>Function <a id="ds.set" href="#ds.set">ds.set</a><code>(d, path, value, newFn) -&gt; nil</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L450"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.set" href="#ds.set">ds.set</a><code>(d, path, value, newFn) -&gt; nil</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L458"><i>src</i></a>)</h3>
 set the value at path using newFn (default=ds.newTable) to create
 missing intermediate tables.
 <code class="block">set(t, dotpath'a.b.c', 2) -- t.a?.b?.c = 2</code>
-<h3>Function <a id="ds.setIfNil" href="#ds.setIfNil">ds.setIfNil</a><code>(t, k, v) -&gt; nil</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L392"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.setIfNil" href="#ds.setIfNil">ds.setIfNil</a><code>(t, k, v) -&gt; nil</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L400"><i>src</i></a>)</h3>
 <h3>Function <a id="ds.shortloc" href="#ds.shortloc">ds.shortloc</a><code>(level) -&gt; "dir/file.lua:10"</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L102"><i>src</i></a>)</h3>
 <h3>Function <a id="ds.simplestr" href="#ds.simplestr">ds.simplestr</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L223"><i>src</i></a>)</h3>
 A way to declare simpler mulitline strings which: <ul>
@@ -1283,26 +1285,26 @@ Eventually this may use the <code>__sort</code> metamethod
 Squash a string: convert all whitespace to repl (default=' ').
 <h3>Function <a id="ds.srcdir" href="#ds.srcdir">ds.srcdir</a><code>(level) -&gt; "/path/to/dir/"</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L105"><i>src</i></a>)</h3>
 <h3>Function <a id="ds.srcloc" href="#ds.srcloc">ds.srcloc</a><code>(level) -&gt; "/path/to/dir/file.lua:10"</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L97"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.traceback" href="#ds.traceback">ds.traceback</a><code>(level) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1029"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.tracelist" href="#ds.tracelist">ds.tracelist</a><code>(tbstr, level) -&gt; {traceback}</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1026"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.traceback" href="#ds.traceback">ds.traceback</a><code>(level) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1037"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.tracelist" href="#ds.tracelist">ds.tracelist</a><code>(tbstr, level) -&gt; {traceback}</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1034"><i>src</i></a>)</h3>
 convert the string traceback into a list
 <h3>Function <a id="ds.trim" href="#ds.trim">ds.trim</a><code>(subj, pat, index) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L153"><i>src</i></a>)</h3>
 <h3>Function <a id="ds.trimEnd" href="#ds.trimEnd">ds.trimEnd</a><code>(subj, pat, index) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L176"><i>src</i></a>)</h3>
 trim the end of the string by removing pat (default='%s')
-<h3>Function <a id="ds.try" href="#ds.try">ds.try</a><code>(fn, ...) -&gt; (ok, ...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1073"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.try" href="#ds.try">ds.try</a><code>(fn, ...) -&gt; (ok, ...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1081"><i>src</i></a>)</h3>
 try to run the fn. Similar to pcall. Return one of: <ul>
 <li>successs: <code>(true, ...)</code></li>
 <li>failure: <code>(false, ds.Error{...})</code></li>
 </ul>
-<h3>Function <a id="ds.update" href="#ds.update">ds.update</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L343"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.update" href="#ds.update">ds.update</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L344"><i>src</i></a>)</h3>
 return t with the key/vals of add inserted
-<h3>Function <a id="ds.updateKeys" href="#ds.updateKeys">ds.updateKeys</a><code>(t, add, keys) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L347"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.updateKeys" href="#ds.updateKeys">ds.updateKeys</a><code>(t, add, keys) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L355"><i>src</i></a>)</h3>
 like update but only for specified keys
 <h3>Function <a id="ds.usub" href="#ds.usub">ds.usub</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L193"><i>src</i></a>)</h3>
 utf8 sub. If len is pre-computed you can pass it in for better performance.
 <h3>Function <a id="ds.values" href="#ds.values">ds.values</a><code>(t) -&gt; list</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L261"><i>src</i></a>)</h3>
 get only the values of pairs(t) as a list
-<h3>Function <a id="ds.walk" href="#ds.walk">ds.walk</a><code>(t, fieldFn, tableFn, maxDepth, state) -&gt; nil</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L495"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.walk" href="#ds.walk">ds.walk</a><code>(t, fieldFn, tableFn, maxDepth, state) -&gt; nil</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L503"><i>src</i></a>)</h3>
 Walk the table up to depth maxDepth (or infinite if nil) <ul>
 <li><code>fieldFn(key, value, state)    -&gt; stop</code> is called for every non-table value.</li>
 <li><code>tableFn(key, tblValue, state) -&gt; stop</code> is called for every table value</li>
@@ -1310,28 +1312,28 @@ Walk the table up to depth maxDepth (or infinite if nil) <ul>
 <p>
 If tableFn <code>stop==ds.SKIP</code> (i.e. 'skip') then that table is not recursed.
 Else if stop then the walk is halted immediately
-<h3>Function <a id="ds.writePath" href="#ds.writePath">ds.writePath</a><code>(path, text) -&gt; ok</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L541"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.writePath" href="#ds.writePath">ds.writePath</a><code>(path, text) -&gt; ok</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L549"><i>src</i></a>)</h3>
 <p>
-<h2>Module <a id="bt" href="#bt">bt</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L864"><i>src</i></a>)</h2>
+<h2>Module <a id="bt" href="#bt">bt</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L872"><i>src</i></a>)</h2>
 indexed table as Binary Tree.
 These functions treat an indexed table as a binary tree
 where root is at <code>index=1</code>
 <p>
 <h4>Value <a id="ds.bt.__name" href="#ds.bt.__name">ds.bt.__name</a></h4>
-<h3>Function <a id="bt.left" href="#bt.left">bt.left</a><code>(t, i) -&gt; t[i * 2]</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L865"><i>src</i></a>)</h3>
-<h3>Function <a id="bt.lefti" href="#bt.lefti">bt.lefti</a><code>(t, i) -&gt; i * 2</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L868"><i>src</i></a>)</h3>
-<h3>Function <a id="bt.parent" href="#bt.parent">bt.parent</a><code>(t, i) -&gt; t[i // 2]</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L867"><i>src</i></a>)</h3>
-<h3>Function <a id="bt.parenti" href="#bt.parenti">bt.parenti</a><code>(t, i) -&gt; i // 2</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L870"><i>src</i></a>)</h3>
-<h3>Function <a id="bt.right" href="#bt.right">bt.right</a><code>(t, i) -&gt; t[i * 2 + 1]</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L866"><i>src</i></a>)</h3>
-<h3>Function <a id="bt.righti" href="#bt.righti">bt.righti</a><code>(t, i) -&gt; i * 2 + 1</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L869"><i>src</i></a>)</h3>
-<h2>Module <a id="dag" href="#dag">dag</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L876"><i>src</i></a>)</h2>
+<h3>Function <a id="bt.left" href="#bt.left">bt.left</a><code>(t, i) -&gt; t[i * 2]</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L873"><i>src</i></a>)</h3>
+<h3>Function <a id="bt.lefti" href="#bt.lefti">bt.lefti</a><code>(t, i) -&gt; i * 2</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L876"><i>src</i></a>)</h3>
+<h3>Function <a id="bt.parent" href="#bt.parent">bt.parent</a><code>(t, i) -&gt; t[i // 2]</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L875"><i>src</i></a>)</h3>
+<h3>Function <a id="bt.parenti" href="#bt.parenti">bt.parenti</a><code>(t, i) -&gt; i // 2</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L878"><i>src</i></a>)</h3>
+<h3>Function <a id="bt.right" href="#bt.right">bt.right</a><code>(t, i) -&gt; t[i * 2 + 1]</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L874"><i>src</i></a>)</h3>
+<h3>Function <a id="bt.righti" href="#bt.righti">bt.righti</a><code>(t, i) -&gt; i * 2 + 1</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L877"><i>src</i></a>)</h3>
+<h2>Module <a id="dag" href="#dag">dag</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L884"><i>src</i></a>)</h2>
 Functions for working with directed acyclic graphs.
 <p>
 <h4>Value <a id="ds.dag.__name" href="#ds.dag.__name">ds.dag.__name</a></h4>
-<h3>Function <a id="dag.missing" href="#dag.missing">dag.missing</a><code>(depsMap) -&gt; missingDeps</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L923"><i>src</i></a>)</h3>
+<h3>Function <a id="dag.missing" href="#dag.missing">dag.missing</a><code>(depsMap) -&gt; missingDeps</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L931"><i>src</i></a>)</h3>
 Given a depsMap return missing deps (items in a deps with no name).
-<h3>Function <a id="dag.reverseMap" href="#dag.reverseMap">dag.reverseMap</a><code>(childrenMap) -&gt; parentsMap (or vice-versa)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L913"><i>src</i></a>)</h3>
-<h3>Function <a id="dag.sort" href="#dag.sort">dag.sort</a><code>(depsMap) -&gt; sortedDeps</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L902"><i>src</i></a>)</h3>
+<h3>Function <a id="dag.reverseMap" href="#dag.reverseMap">dag.reverseMap</a><code>(childrenMap) -&gt; parentsMap (or vice-versa)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L921"><i>src</i></a>)</h3>
+<h3>Function <a id="dag.sort" href="#dag.sort">dag.sort</a><code>(depsMap) -&gt; sortedDeps</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L910"><i>src</i></a>)</h3>
 Sort the directed acyclic graph. depsMap must behave like a table which:
 <code class="block">  for pairs(depsMap) -&gt; nodeName, ...
   depsMap[nodeName]  -&gt; nodeDeps (list)</code>
@@ -1595,7 +1597,7 @@ comparison function to use</td>
 <h4>Function <a id="Heap.pop" href="#Heap.pop">Heap.pop</a><code>(h) -&gt; v</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/heap.lua#L83"><i>src</i></a>)</h4>
 <code>h:pop() -&gt; v</code> pop the top node.
 <h2>Module <a id="ds.log" href="#ds.log">ds.log</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/log.lua#L18"><i>src</i></a>)</h2>
-Simple logging library.
+Simple logging library, set i.e. LOGLEVEL=TRACE to enable logging.
 <p>
 This module has the functions <code>trace info warn err crit</code> with the signature:
 <code>function(fmt, ... [, data])</code> <ul>
@@ -1717,7 +1719,7 @@ already PoD. You can make your type as serializable with: <code class="block">  
 Alternatively, you can implement these methods yourself. See the
 requirements in the function documentation.
 <p>
-<h3>Table <a id="ds.pod.FROM_POD" href="#ds.pod.FROM_POD">ds.pod.FROM_POD</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L65"><i>src</i></a>)</h3><code class="block">M.FROM_POD = { -- fromPod pod into value
+<h3>Table <a id="ds.pod.FROM_POD" href="#ds.pod.FROM_POD">ds.pod.FROM_POD</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L67"><i>src</i></a>)</h3><code class="block">M.FROM_POD = { -- fromPod pod into value
   ['nil'] = ds.iden, boolean = ds.iden,
   number  = ds.iden, string  = ds.iden,
   table = function(t)
@@ -1725,23 +1727,24 @@ requirements in the function documentation.
     return ty and PKG_LOOKUP[ty]:__fromPod(t) or t
   end,
 }</code>
-<h3>Table <a id="ds.pod.TO_POD" href="#ds.pod.TO_POD">ds.pod.TO_POD</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L55"><i>src</i></a>)</h3><code class="block">M.TO_POD = { -- pod value into pod
+<h3>Table <a id="ds.pod.TO_POD" href="#ds.pod.TO_POD">ds.pod.TO_POD</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L57"><i>src</i></a>)</h3><code class="block">M.TO_POD = { -- pod value into pod
   ['nil'] = ds.iden, boolean = ds.iden,
   number  = ds.iden, string  = ds.iden,
   table = function(t)
     local mt = getmt(t); if mt then
       if type(mt) == 'table' then
-        return assert(mt.__toPod, 'does not implement pod')(t)
+        return assert(mt.__toPod, 'metatable missing __toPod')(t)
       end
       if mt ~= 'table' then return t end -- is a sentinel
     end
+    if isPod(t) then return t end
     local out = {}; for k, v in pairs(t) do out[k] = toPod(v) end
     return out
   end,
 }</code>
 <h4>Value <a id="ds.pod.TYPE_KEY" href="#ds.pod.TYPE_KEY">ds.pod.TYPE_KEY</a></h4>
 <h4>Value <a id="ds.pod.__name" href="#ds.pod.__name">ds.pod.__name</a></h4>
-<h3>Function <a id="ds.pod.__fromPod" href="#ds.pod.__fromPod">ds.pod.__fromPod</a><code>(T, pod) -&gt; value</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L94"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.pod.__fromPod" href="#ds.pod.__fromPod">ds.pod.__fromPod</a><code>(T, pod) -&gt; value</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L96"><i>src</i></a>)</h3>
 Default metaty <code>__fromPod</code> method.
 <p>
 This implementation converts a table of PoD to the metaty by first
@@ -1750,7 +1753,7 @@ converting it's fields (except TYPE_KEY) and then using
 <p>
 To use this, the metatable.call method must be able to handle the plain
 data input, otherwise you need to implement this method yourself.
-<h3>Function <a id="ds.pod.__toPod" href="#ds.pod.__toPod">ds.pod.__toPod</a><code>(self) -&gt; table</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L80"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.pod.__toPod" href="#ds.pod.__toPod">ds.pod.__toPod</a><code>(self) -&gt; table</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L82"><i>src</i></a>)</h3>
 Default metaty <code>__toPod</code> method.
 <p>
 Convert an type instance to a plain table. The returned table must be only
@@ -1758,10 +1761,51 @@ plain old data composed of only bool, number, string or non-metatable
 values.
 <p>
 The returned table has a TYPE_KEY field which can be used with PKG_LOOKUP.
-<h3>Function <a id="ds.pod.fromPod" href="#ds.pod.fromPod">ds.pod.fromPod</a><code>(pod) -&gt; value</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L39"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.pod.fromPod" href="#ds.pod.fromPod">ds.pod.fromPod</a><code>(pod) -&gt; value</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L40"><i>src</i></a>)</h3>
 Depod plain old data into metaty
-<h3>Function <a id="ds.pod.toPod" href="#ds.pod.toPod">ds.pod.toPod</a><code>(val) -&gt; PoD</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L32"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.pod.toPod" href="#ds.pod.toPod">ds.pod.toPod</a><code>(val) -&gt; PoD</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L33"><i>src</i></a>)</h3>
 Serialize value t into plain old data
+<h2>Module <a id="ds.testing_pod" href="#ds.testing_pod">ds.testing_pod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/testing_pod.lua#L2"><i>src</i></a>)</h2>
+<p>
+<h3>Table <a id="ds.testing_pod.ALL" href="#ds.testing_pod.ALL">ds.testing_pod.ALL</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/testing_pod.lua#L63"><i>src</i></a>)</h3>
+<h3>Table <a id="ds.testing_pod.BOOLS" href="#ds.testing_pod.BOOLS">ds.testing_pod.BOOLS</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/testing_pod.lua#L28"><i>src</i></a>)</h3>
+<h3>Table <a id="ds.testing_pod.BYTES" href="#ds.testing_pod.BYTES">ds.testing_pod.BYTES</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/testing_pod.lua#L39"><i>src</i></a>)</h3><code class="block">M.BYTES = {
+  'zero\x00okay', 'ff\xFFokay',
+}</code>
+<h3>Table <a id="ds.testing_pod.INTS" href="#ds.testing_pod.INTS">ds.testing_pod.INTS</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/testing_pod.lua#L32"><i>src</i></a>)</h3><code class="block">M.INTS = {
+  0, 1, 2, 10, 0xFF,   0x100,  0xFFFF,
+    -1,   -10, -0xFF, -0x100, -0xFFFF,
+}</code>
+<h3>Table <a id="ds.testing_pod.LISTS" href="#ds.testing_pod.LISTS">ds.testing_pod.LISTS</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/testing_pod.lua#L47"><i>src</i></a>)</h3><code class="block">M.LISTS = {
+  {},
+  {0}, {'0'},
+  M.BOOLS,
+  M.STRINGS,
+  M.BYTES,
+  ds.flatten(M.BOOLS, M.STRINGS, M.BYTES),
+}</code>
+<h3>Table <a id="ds.testing_pod.MAPS" href="#ds.testing_pod.MAPS">ds.testing_pod.MAPS</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/testing_pod.lua#L57"><i>src</i></a>)</h3><code class="block">M.MAPS = {
+  {a=1}, {akey='akeyval', bkey='bkeyval'},
+  {[4]='1num', [7]='7num'},
+  {table = {innerkey='inner value'}},
+  {bools = M.BOOLS},
+  {ints = M.INTS},
+  {strings = M.STRINGS},
+  {lists = M.LISTS},
+}</code>
+<h3>Table <a id="ds.testing_pod.STRINGS" href="#ds.testing_pod.STRINGS">ds.testing_pod.STRINGS</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/testing_pod.lua#L36"><i>src</i></a>)</h3><code class="block">M.STRINGS = {
+  'a', 'abc', '01234', 'A0B1',
+  '🚀rocket🚀',
+}</code>
+<h3>Table <a id="ds.testing_pod.TABLES" href="#ds.testing_pod.TABLES">ds.testing_pod.TABLES</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/testing_pod.lua#L61"><i>src</i></a>)</h3><code class="block">M.TABLES = {
+  {'one', 'two', 'three', key='value'},
+}</code>
+<h4>Value <a id="ds.testing_pod.__name" href="#ds.testing_pod.__name">ds.testing_pod.__name</a></h4>
+<h3>Function <a id="ds.testing_pod.round" href="#ds.testing_pod.round">ds.testing_pod.round</a><code>(v, encFn, decFn, expectEncoding) -&gt; (enc, dec)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/testing_pod.lua#L18"><i>src</i></a>)</h3>
+Test <code>eq(v, decFn(encFn(v))</code>
+If expectEncoding is provided then test <code>eq(expectEncoding, encFn(v)</code>
+<h3>Function <a id="ds.testing_pod.roundList" href="#ds.testing_pod.roundList">ds.testing_pod.roundList</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/testing_pod.lua#L26"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.testing_pod.testAll" href="#ds.testing_pod.testAll">ds.testing_pod.testAll</a><code>(...) -&gt; M.roundList(M.ALL, ...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/testing_pod.lua#L65"><i>src</i></a>)</h3>
 <h2>Module <a id="ds.utf8" href="#ds.utf8">ds.utf8</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/utf8.lua#L4"><i>src</i></a>)</h2>
 utf8 stream decoding.
 Get the length by decodelen(firstbyte), then decode the whole character
@@ -1773,6 +1817,155 @@ decode utf8 data (table) into an integer.
 Use <code>utf8.char</code> (from lua's stdlib) to turn into a string.
 <h3>Function <a id="ds.utf8.decodelen" href="#ds.utf8.decodelen">ds.utf8.decodelen</a><code>(firstbyte) -&gt; U8LEN[0xF8 & firstbyte]</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/utf8.lua#L17"><i>src</i></a>)</h3>
 given the first byte return the number of bytes in the utf8 char
+<p>
+<h1><a id="Package_civdb" href="#Package_civdb">Package civdb</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civdb"><i>src</i></a>)</h1><table>
+<tr>
+<td><b>summary</b></td>
+<td>minimalistic CRUD database</td>
+</tr>
+<tr>
+<td><b>version</b></td>
+<td><code>0.1-0</code></td>
+</tr>
+<tr>
+<td><b>homepage</b></td>
+<td><a href="https://lua.civboot.org#Package_civdb">https://lua.civboot.org#Package_civdb</a></td>
+</tr>
+</table>
+<h1>civdb: minimalistic CRUD database</h1>
+<p>
+CivDB's basic requirements are: <ul>
+<li>"Single file" database: all data is stored in a single file</li>
+<li>indexes can be added which are separate files but all indexes can always be
+rebuilt from the single file.</li>
+<li>CRUD database: you can create rows, read rows, update rows and delete rows
+using an integer row id.</li>
+<li>Fast O(1) row creation and updates which can hold arbitrary Lua values
+(but typically hold the value referenced by the schema).</li>
+<li>Can hold metadata, especially the schema (auto type conversion)</li>
+</ul>
+<p>
+<h2>Design</h2>
+The basic design is: <ul>
+<li>The "database" is a folder, i.e. <code>path/to/mydata.civdb/</code></li>
+<li>Within the folder is a single file called `data` which contains entries
+which contain the operation and row data encoded using `civdb.encode`
+(binary encoding format) <ul>
+<li>The data file starts with the magic bytes `civdb\0`</li>
+<li>The size of the entry is 7bit encoded, followed by the entry data</li>
+</ul></li>
+<li>Values are de/serialized by first calling <code>ds.pod.(from/to)Pod</code> and then
+de/serializing them using <code>pod.[de]ser</code>.
+<blockquote>If the type of fromPod matches the schema then it is first stripped to
+save on binary space.
+</blockquote></li>
+<li>Also within the folder is the <code>rows</code> file, which contains 3-byte positions
+into the <code>data</code> file (the start of that row's entry), or `0` if that row
+was deleted. <ul>
+<li>The rows file is updated as the data file is written to. On flush their
+timestamps are set to the same value (indicating a reindex is not necessary)</li>
+<li>The <code>rows</code> file is the most basic index as it points to a specific position.
+All other indexes operate similarily but instead of pointing to a position
+they point to a row.</li>
+</ul></li>
+<li>"Transactions" are written into the <code>data</code> file one at a time. A transaction
+is encoded as an "operation" (<code>create</code>, <code>update(row)</code>, <code>delete(row)</code>,
+<code>metadata</code>) and a value (except for delete). <ul>
+<li>When the transaction is written the <code>rows</code> table is updated, and then
+other indexes are updated.</li>
+</ul></li>
+<li>Other indexes are stored based on the schema, but are basically just a list of
+functions to call every time a row is created or modified (with some sane
+defaults for the schema). <ul>
+<li>These typically modify BOTH a <code>field.rhood</code> and <code>field.ll</code>.
+The <code>field.rhood</code> contains a 3-byte robin hood hash table which point to
+entries in <code>field.ll</code>, which is a linked-list file containing the rows
+containing that field value.</li>
+</ul></li>
+</ul>
+<p>
+<h2>Module <a id="civdb" href="#civdb">civdb</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civdb/civdb.lua#L7"><i>src</i></a>)</h2>
+civdb: minimalistic CRUD database
+Use <code>require'civdb.CivDB'</code> for the database object.
+<p>
+This module exports the encode/decode functions which
+can be used for encoding and decoding plain-old-data.
+<p>
+<h4>Value <a id="civdb.__name" href="#civdb.__name">civdb.__name</a></h4>
+<h3>Function <a id="civdb.decode" href="#civdb.decode">civdb.decode</a><code>(encoded, index--[[=1]]) -&gt; value, encodedLen</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civdb/civdb.lua#L18"><i>src</i></a>)</h3>
+<h3>Function <a id="civdb.encode" href="#civdb.encode">civdb.encode</a><code>(val) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civdb/civdb.lua#L14"><i>src</i></a>)</h3>
+<h3>Record <a id="civdb.CivDB" href="#civdb.CivDB">civdb.CivDB</a></h3>
+<p>
+<b>Fields: </b> <table>
+<tr>
+<td><code>civdb.CivDB.path</code></td>
+<td>[string] </td>
+</tr>
+<tr>
+<td><code>civdb.CivDB.mode</code></td>
+<td>[string] </td>
+</tr>
+<tr>
+<td><code>civdb.CivDB.f</code></td>
+<td>[File] </td>
+</tr>
+<tr>
+<td><code>civdb.CivDB.idx</code></td>
+<td>[lines.U3File] 
+row -> pos</td>
+</tr>
+<tr>
+<td><code>civdb.CivDB.cache</code></td>
+<td>[WeakV] 
+cache of rows</td>
+</tr>
+<tr>
+<td><code>civdb.CivDB._row</code></td>
+<td>[int] = <code>1</code>
+the next row</td>
+</tr>
+<tr>
+<td><code>civdb.CivDB._eofpos</code></td>
+<td>[nil</td>
+<td>int] 
+nil or pos at eof</td>
+</tr>
+</table>
+<h4>Value <a id="civdb.CivDB.IDX_DIR" href="#civdb.CivDB.IDX_DIR">civdb.CivDB.IDX_DIR</a></h4>
+<h4>Value <a id="civdb.CivDB.MAGIC" href="#civdb.CivDB.MAGIC">civdb.CivDB.MAGIC</a></h4>
+<h3>Table <a id="civdb.CivDB.__docs" href="#civdb.CivDB.__docs">civdb.CivDB.__docs</a></h3>
+<h3>Table <a id="civdb.CivDB.__fields" href="#civdb.CivDB.__fields">civdb.CivDB.__fields</a></h3>
+<h4>Value <a id="civdb.CivDB.__name" href="#civdb.CivDB.__name">civdb.CivDB.__name</a></h4>
+<b>Records: </b> <table>
+<tr>
+<td><code>civdb.CivDB.__index</code></td>
+<td>[Ty<civdb.CivDB>] </td>
+</tr>
+</table>
+<b>Methods: </b> <table>
+<tr>
+<td><code>civdb.CivDB.__newindex</code></td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L179">src</a>)</td>
+</tr>
+</table>
+<h4>Function <a id="civdb.CivDB.__len" href="#civdb.CivDB.__len">civdb.CivDB.__len</a><code>(db) -&gt; #db.idx</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civdb/civdb/CivDB.lua#L128"><i>src</i></a>)</h4>
+<h4>Function <a id="civdb.CivDB._initnew" href="#civdb.CivDB._initnew">civdb.CivDB._initnew</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civdb/civdb/CivDB.lua#L99"><i>src</i></a>)</h4>
+<h4>Function <a id="civdb.CivDB._pushvalue" href="#civdb.CivDB._pushvalue">civdb.CivDB._pushvalue</a><code>(db, op, value) -&gt; pos, dat</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civdb/civdb/CivDB.lua#L184"><i>src</i></a>)</h4>
+<h4>Function <a id="civdb.CivDB._reindex" href="#civdb.CivDB._reindex">civdb.CivDB._reindex</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civdb/civdb/CivDB.lua#L126"><i>src</i></a>)</h4>
+<h4>Function <a id="civdb.CivDB.close" href="#civdb.CivDB.close">civdb.CivDB.close</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civdb/civdb/CivDB.lua#L189"><i>src</i></a>)</h4>
+<h4>Function <a id="civdb.CivDB.createRaw" href="#civdb.CivDB.createRaw">civdb.CivDB.createRaw</a><code>(db, value) -&gt; row</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civdb/civdb/CivDB.lua#L139"><i>src</i></a>)</h4>
+Create a new row with value, returning the rownum
+Note: directly encodes with toPod (ignores schema)
+<h4>Function <a id="civdb.CivDB.delete" href="#civdb.CivDB.delete">civdb.CivDB.delete</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civdb/civdb/CivDB.lua#L171"><i>src</i></a>)</h4>
+Delete the row, future reads will return nil
+<h4>Function <a id="File.flush" href="#File.flush">File.flush</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L84"><i>src</i></a>)</h4>
+<h4>Function <a id="civdb.CivDB.readRaw" href="#civdb.CivDB.readRaw">civdb.CivDB.readRaw</a><code>(db, row) -&gt; value?</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civdb/civdb/CivDB.lua#L151"><i>src</i></a>)</h4>
+Read the row, returning its value
+Note: does not attempt to convert to the schema type.
+<h4>Function <a id="civdb.CivDB.updateRaw" href="#civdb.CivDB.updateRaw">civdb.CivDB.updateRaw</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civdb/civdb/CivDB.lua#L160"><i>src</i></a>)</h4>
+Modify the value of the row with the value
+Note: directly encodes with toPod (ignores schema)
+<h3>Table <a id="civdb.sys" href="#civdb.sys">civdb.sys</a></h3>
 <p>
 <h1><a id="Package_lines" href="#Package_lines">Package lines</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines"><i>src</i></a>)</h1><table>
 <tr>
@@ -1823,32 +2016,36 @@ rolling sum of dat lengths</td>
 <h3>Table <a id="lines.EdFile.__docs" href="#lines.EdFile.__docs">lines.EdFile.__docs</a></h3>
 <h3>Table <a id="lines.EdFile.__fields" href="#lines.EdFile.__fields">lines.EdFile.__fields</a></h3>
 <h4>Value <a id="lines.EdFile.__name" href="#lines.EdFile.__name">lines.EdFile.__name</a></h4>
-<h4>Function <a id="EdFile.__extend" href="#EdFile.__extend">EdFile.__extend</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/EdFile.lua#L156"><i>src</i></a>)</h4>
+<h4>Function <a id="EdFile.__extend" href="#EdFile.__extend">EdFile.__extend</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/EdFile.lua#L158"><i>src</i></a>)</h4>
 appends to lf for extend when possible.
-<h4>Function <a id="EdFile.__inset" href="#EdFile.__inset">EdFile.__inset</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/EdFile.lua#L271"><i>src</i></a>)</h4>
+<h4>Function <a id="EdFile.__inset" href="#EdFile.__inset">EdFile.__inset</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/EdFile.lua#L273"><i>src</i></a>)</h4>
 insert into EdFile's dats.
-<h4>Function <a id="EdFile.__len" href="#EdFile.__len">EdFile.__len</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/EdFile.lua#L48"><i>src</i></a>)</h4>
-<h4>Function <a id="EdFile._datindex" href="#EdFile._datindex">EdFile._datindex</a><code>(ef, i) -&gt; di</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/EdFile.lua#L57"><i>src</i></a>)</h4>
+<h4>Function <a id="EdFile.__len" href="#EdFile.__len">EdFile.__len</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/EdFile.lua#L50"><i>src</i></a>)</h4>
+<h4>Function <a id="EdFile._datindex" href="#EdFile._datindex">EdFile._datindex</a><code>(ef, i) -&gt; di</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/EdFile.lua#L59"><i>src</i></a>)</h4>
 get the index into dats where <code>ef[i]</code> is located
-<h4>Function <a id="EdFile._updateLens" href="#EdFile._updateLens">EdFile._updateLens</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/EdFile.lua#L43"><i>src</i></a>)</h4>
-<h4>Function <a id="EdFile.dumpf" href="#EdFile.dumpf">EdFile.dumpf</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/EdFile.lua#L140"><i>src</i></a>)</h4>
+<h4>Function <a id="EdFile._updateLens" href="#EdFile._updateLens">EdFile._updateLens</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/EdFile.lua#L45"><i>src</i></a>)</h4>
+<h4>Function <a id="EdFile.dumpf" href="#EdFile.dumpf">EdFile.dumpf</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/EdFile.lua#L142"><i>src</i></a>)</h4>
 Dump EdFile to file or path
-<h4>Function <a id="EdFile.flush" href="#EdFile.flush">EdFile.flush</a><code>(ef) -&gt; ef.lf:flush()</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/EdFile.lua#L125"><i>src</i></a>)</h4>
+<h4>Function <a id="EdFile.flush" href="#EdFile.flush">EdFile.flush</a><code>(ef) -&gt; ef.lf:flush()</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/EdFile.lua#L127"><i>src</i></a>)</h4>
 Flush the .lf member (which can only be extended).
 To write all data to disk use :dump()
-<h4>Function <a id="EdFile.iter" href="#EdFile.iter">EdFile.iter</a><code>(ef) -&gt; EdIter(ef)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/EdFile.lua#L121"><i>src</i></a>)</h4>
-<h4>Function <a id="EdFile.write" href="#EdFile.write">EdFile.write</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/EdFile.lua#L80"><i>src</i></a>)</h4>
+<h4>Function <a id="EdFile.iter" href="#EdFile.iter">EdFile.iter</a><code>(ef) -&gt; EdIter(ef)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/EdFile.lua#L123"><i>src</i></a>)</h4>
+<h4>Function <a id="EdFile.write" href="#EdFile.write">EdFile.write</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/EdFile.lua#L82"><i>src</i></a>)</h4>
 <h3>Record <a id="lines.File" href="#lines.File">lines.File</a></h3>
 <p>
 <b>Fields: </b> <table>
 <tr>
+<td><code>lines.File.path</code></td>
+<td>[string] </td>
+</tr>
+<tr>
+<td><code>lines.File.mode</code></td>
+<td>[string] </td>
+</tr>
+<tr>
 <td><code>lines.File.f</code></td>
 <td>[file] 
 open file</td>
-</tr>
-<tr>
-<td><code>lines.File.path</code></td>
-<td>[string] </td>
 </tr>
 <tr>
 <td><code>lines.File.idx</code></td>
@@ -1875,13 +2072,22 @@ current file pos</td>
 <h3>Table <a id="lines.File.__docs" href="#lines.File.__docs">lines.File.__docs</a></h3>
 <h3>Table <a id="lines.File.__fields" href="#lines.File.__fields">lines.File.__fields</a></h3>
 <h4>Value <a id="lines.File.__name" href="#lines.File.__name">lines.File.__name</a></h4>
-<h4>Function <a id="File.__fmt" href="#File.__fmt">File.__fmt</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L158"><i>src</i></a>)</h4>
-<h4>Function <a id="File.__len" href="#File.__len">File.__len</a><code>(lf) -&gt; #lf.idx</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L113"><i>src</i></a>)</h4>
-<h4>Function <a id="File._reindex" href="#File._reindex">File._reindex</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L47"><i>src</i></a>)</h4>
-<h4>Function <a id="File.close" href="#File.close">File.close</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L86"><i>src</i></a>)</h4>
-<h4>Function <a id="File.flush" href="#File.flush">File.flush</a><code>(lf) -&gt; lf.f:flush()</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L87"><i>src</i></a>)</h4>
-<h4>Function <a id="File.reader" href="#File.reader">File.reader</a><code>(lf) -&gt; lines.File (readonly)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L167"><i>src</i></a>)</h4>
-<h4>Function <a id="File.write" href="#File.write">File.write</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L111"><i>src</i></a>)</h4>
+<b>Methods: </b> <table>
+<tr>
+<td><code>lines.File._initnew</code></td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L85">src</a>)</td>
+</tr>
+<tr>
+<td><code>lines.File.flush</code></td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L84">src</a>)</td>
+</tr>
+</table>
+<h4>Function <a id="File.__fmt" href="#File.__fmt">File.__fmt</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L154"><i>src</i></a>)</h4>
+<h4>Function <a id="File.__len" href="#File.__len">File.__len</a><code>(lf) -&gt; #lf.idx</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L110"><i>src</i></a>)</h4>
+<h4>Function <a id="File._reindex" href="#File._reindex">File._reindex</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L53"><i>src</i></a>)</h4>
+<h4>Function <a id="File.close" href="#File.close">File.close</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L77"><i>src</i></a>)</h4>
+<h4>Function <a id="File.reader" href="#File.reader">File.reader</a><code>(lf) -&gt; lines.File (readonly)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L163"><i>src</i></a>)</h4>
+<h4>Function <a id="File.write" href="#File.write">File.write</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L108"><i>src</i></a>)</h4>
 append to file
 <h3>Record <a id="lines.Gap" href="#lines.Gap">lines.Gap</a></h3>
 <p>
@@ -2062,6 +2268,12 @@ iterate through nochange and change blocks, calling the functions for each
 </ul>
 Note that the num removed/added will be nil if none were added/removed.
 <h3>Function <a id="lines.diff.main" href="#lines.diff.main">lines.diff.main</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/diff.lua#L259"><i>src</i></a>)</h3>
+<h2>Module <a id="lines.futils" href="#lines.futils">lines.futils</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/futils.lua#L3"><i>src</i></a>)</h2>
+utilities for file loading of lines.
+<p>
+<h4>Value <a id="lines.futils.__name" href="#lines.futils.__name">lines.futils.__name</a></h4>
+<h3>Function <a id="lines.futils.loadIdx" href="#lines.futils.loadIdx">lines.futils.loadIdx</a><code>(f, idxpath, fmode, reindex) -&gt; idxFile</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/futils.lua#L31"><i>src</i></a>)</h3>
+load or reindex the file at path to/from idxpath.
 <h2>Module <a id="lines.testing" href="#lines.testing">lines.testing</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/testing.lua#L2"><i>src</i></a>)</h2>
 testing helpers for ds related data structures
 <p>
@@ -2489,7 +2701,7 @@ Can override default `io` module for global async mode.
   [S.S_IFIFO]  = 'fifo',
 }</code>
 <h4>Value <a id="fd.PIPE_BUF" href="#fd.PIPE_BUF">fd.PIPE_BUF</a></h4>
-<h3>Table <a id="fd.PollList" href="#fd.PollList">fd.PollList</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L238"><i>src</i></a>)</h3><code class="block">M.PollList = setmetatable({
+<h3>Table <a id="fd.PollList" href="#fd.PollList">fd.PollList</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L247"><i>src</i></a>)</h3><code class="block">M.PollList = setmetatable({
 __name='PollList',
 __index = {
   __len = function(pl) return pl._pl:size() - #pl.avail end,
@@ -2525,40 +2737,42 @@ __index = {
 })</code>
 <h4>Value <a id="fd.__name" href="#fd.__name">fd.__name</a></h4>
 <h3>Table <a id="fd.io" href="#fd.io">fd.io</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L50"><i>src</i></a>)</h3>
-<h4>Value <a id="fd.stdin" href="#fd.stdin">fd.stdin</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L287"><i>src</i></a>)</h4>
-<h4>Value <a id="fd.stdout" href="#fd.stdout">fd.stdout</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L288"><i>src</i></a>)</h4>
+<h4>Value <a id="fd.stdin" href="#fd.stdin">fd.stdin</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L296"><i>src</i></a>)</h4>
+<h4>Value <a id="fd.stdout" href="#fd.stdout">fd.stdout</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L297"><i>src</i></a>)</h4>
 <h3>Table <a id="fd.sys" href="#fd.sys">fd.sys</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L47"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.close" href="#fd.close">fd.close</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L255"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.fileno" href="#fd.fileno">fd.fileno</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L308"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.close" href="#fd.close">fd.close</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L264"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.fileno" href="#fd.fileno">fd.fileno</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L317"><i>src</i></a>)</h3>
 <h3>Function <a id="fd.finishRunning" href="#fd.finishRunning">fd.finishRunning</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L65"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.flush" href="#fd.flush">fd.flush</a><code>() -&gt; M.output():flush()</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L292"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.ftype" href="#fd.ftype">fd.ftype</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L313"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.input" href="#fd.input">fd.input</a><code>() -&gt; M.stdin</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L290"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.ioAsync" href="#fd.ioAsync">fd.ioAsync</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L348"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.ioSync" href="#fd.ioSync">fd.ioSync</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L345"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.isatty" href="#fd.isatty">fd.isatty</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L317"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.lines" href="#fd.lines">fd.lines</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L280"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.flush" href="#fd.flush">fd.flush</a><code>() -&gt; M.output():flush()</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L301"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.ftype" href="#fd.ftype">fd.ftype</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L322"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.input" href="#fd.input">fd.input</a><code>() -&gt; M.stdin</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L299"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.ioAsync" href="#fd.ioAsync">fd.ioAsync</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L357"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.ioSync" href="#fd.ioSync">fd.ioSync</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L354"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.isatty" href="#fd.isatty">fd.isatty</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L326"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.lines" href="#fd.lines">fd.lines</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L289"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.modifiedEq" href="#fd.modifiedEq">fd.modifiedEq</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L72"><i>src</i></a>)</h3>
+return whether two fstat's have equal modification times
 <h3>Function <a id="fd.newFD" href="#fd.newFD">fd.newFD</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L53"><i>src</i></a>)</h3>
 <h3>Function <a id="fd.newFDT" href="#fd.newFDT">fd.newFDT</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L53"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.open" href="#fd.open">fd.open</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L254"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.openFD" href="#fd.openFD">fd.openFD</a><code>(...) -&gt; M.openWith(S.openFD, ...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L250"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.openFDT" href="#fd.openFDT">fd.openFDT</a><code>(...) -&gt; M.openWith(S.openFDT, ...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L251"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.openFileno" href="#fd.openFileno">fd.openFileno</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L286"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.openWith" href="#fd.openWith">fd.openWith</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L249"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.output" href="#fd.output">fd.output</a><code>() -&gt; M.stdout</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L291"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.read" href="#fd.read">fd.read</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L268"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.tmpfileFn" href="#fd.tmpfileFn">fd.tmpfileFn</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L260"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.type" href="#fd.type">fd.type</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L302"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.write" href="#fd.write">fd.write</a><code>(...) -&gt; M.output():write(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L281"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.open" href="#fd.open">fd.open</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L263"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.openFD" href="#fd.openFD">fd.openFD</a><code>(...) -&gt; M.openWith(S.openFD, ...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L259"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.openFDT" href="#fd.openFDT">fd.openFDT</a><code>(...) -&gt; M.openWith(S.openFDT, ...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L260"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.openFileno" href="#fd.openFileno">fd.openFileno</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L295"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.openWith" href="#fd.openWith">fd.openWith</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L258"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.output" href="#fd.output">fd.output</a><code>() -&gt; M.stdout</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L300"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.read" href="#fd.read">fd.read</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L277"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.tmpfileFn" href="#fd.tmpfileFn">fd.tmpfileFn</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L269"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.type" href="#fd.type">fd.type</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L311"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.write" href="#fd.write">fd.write</a><code>(...) -&gt; M.output():write(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L290"><i>src</i></a>)</h3>
 <p>
 <h2>Module <a id="fd(async)" href="#fd(async)">fd(async)</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L49"><i>src</i></a>)</h2>
 <p>
 <h4>Value <a id="fd._async.__name" href="#fd._async.__name">fd._async.__name</a></h4>
-<h3>Function <a id="fd(async).tmpfile" href="#fd(async).tmpfile">fd(async).tmpfile</a><code>() -&gt; M.tmpfileFn(S.tmpFDT)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L262"><i>src</i></a>)</h3>
+<h3>Function <a id="fd(async).tmpfile" href="#fd(async).tmpfile">fd(async).tmpfile</a><code>() -&gt; M.tmpfileFn(S.tmpFDT)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L271"><i>src</i></a>)</h3>
 <h2>Module <a id="fd(sync)" href="#fd(sync)">fd(sync)</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L48"><i>src</i></a>)</h2>
 <p>
 <h4>Value <a id="fd._sync.__name" href="#fd._sync.__name">fd._sync.__name</a></h4>
-<h3>Function <a id="fd(sync).tmpfile" href="#fd(sync).tmpfile">fd(sync).tmpfile</a><code>() -&gt; M.tmpfileFn(S.tmpFD)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L261"><i>src</i></a>)</h3>
+<h3>Function <a id="fd(sync).tmpfile" href="#fd(sync).tmpfile">fd(sync).tmpfile</a><code>() -&gt; M.tmpfileFn(S.tmpFD)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L270"><i>src</i></a>)</h3>
 <code>fd.sys</code>        | [table] (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L47">src</a>)
 <p>
 <h1><a id="Package_civix" href="#Package_civix">Package civix</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix"><i>src</i></a>)</h1><table>
@@ -2813,12 +3027,12 @@ base directory</td>
 <h4>Function <a id="_WalkDir.__call" href="#_WalkDir.__call">_WalkDir.__call</a><code>(wd, walk) -&gt; path, ftype</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L206"><i>src</i></a>)</h4>
 <h3>Function <a id="civix.Lap" href="#civix.Lap">civix.Lap</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L275"><i>src</i></a>)</h3>
 <h3>Function <a id="civix._sh" href="#civix._sh">civix._sh</a><code>(cmd) -&gt; Sh</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L382"><i>src</i></a>)</h3>
-<h3>Function <a id="civix.dir" href="#civix.dir">civix.dir</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L342"><i>src</i></a>)</h3>
+<h3>Function <a id="civix.dir" href="#civix.dir">civix.dir</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L343"><i>src</i></a>)</h3>
 return t with the key/vals of add inserted
 <h3>Function <a id="civix.epoch" href="#civix.epoch">civix.epoch</a><code>() -&gt; ds.Epoch(lib.epoch())</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L72"><i>src</i></a>)</h3>
 Return the Epoch/Mono time
 Time according to realtime clock
-<h3>Function <a id="civix.exists" href="#civix.exists">civix.exists</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L342"><i>src</i></a>)</h3>
+<h3>Function <a id="civix.exists" href="#civix.exists">civix.exists</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L343"><i>src</i></a>)</h3>
 return t with the key/vals of add inserted
 <h3>Function <a id="civix.isDir" href="#civix.isDir">civix.isDir</a><code>(path) -&gt; M.pathtype(path) == 'dir'</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L90"><i>src</i></a>)</h3>
 <h3>Function <a id="civix.isFile" href="#civix.isFile">civix.isFile</a><code>(path) -&gt; M.pathtype(path) == 'file'</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L89"><i>src</i></a>)</h3>
@@ -2849,15 +3063,15 @@ a/a3/a4.txt # content: stuff in a3.txt</code>
 <h3>Function <a id="civix.mono" href="#civix.mono">civix.mono</a><code>() -&gt; ds.Duration(lib.mono())</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L74"><i>src</i></a>)</h3>
 Duration according to monotomically incrementing clock.
 <h3>Function <a id="civix.monoSec" href="#civix.monoSec">civix.monoSec</a><code>() -&gt; M.mono():asSeconds()</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L75"><i>src</i></a>)</h3>
-<h3>Function <a id="civix.mv" href="#civix.mv">civix.mv</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L342"><i>src</i></a>)</h3>
+<h3>Function <a id="civix.mv" href="#civix.mv">civix.mv</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L343"><i>src</i></a>)</h3>
 return t with the key/vals of add inserted
 <h3>Function <a id="civix.pathtype" href="#civix.pathtype">civix.pathtype</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L88"><i>src</i></a>)</h3>
 <h3>Function <a id="civix.quote" href="#civix.quote">civix.quote</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L56"><i>src</i></a>)</h3>
 quote the str if it's possible
-<h3>Function <a id="civix.rm" href="#civix.rm">civix.rm</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L342"><i>src</i></a>)</h3>
+<h3>Function <a id="civix.rm" href="#civix.rm">civix.rm</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L343"><i>src</i></a>)</h3>
 return t with the key/vals of add inserted
 <h3>Function <a id="civix.rmRecursive" href="#civix.rmRecursive">civix.rmRecursive</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L223"><i>src</i></a>)</h3>
-<h3>Function <a id="civix.rmdir" href="#civix.rmdir">civix.rmdir</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L342"><i>src</i></a>)</h3>
+<h3>Function <a id="civix.rmdir" href="#civix.rmdir">civix.rmdir</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L343"><i>src</i></a>)</h3>
 return t with the key/vals of add inserted
 <h3>Function <a id="civix.setmodified" href="#civix.setmodified">civix.setmodified</a><code>(fileno, sec, nsec) -&gt; error?</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L47"><i>src</i></a>)</h3>
 set the modified time of the fileno
@@ -4031,41 +4245,41 @@ http://parrot.github.io/parrot-docs0/0.4.7/html/languages/lua/doc/lua51.bnf.html
 was used as a reference.
 <p>
 <h4>Value <a id="pegl.lua.__name" href="#pegl.lua.__name">pegl.lua.__name</a></h4>
-<h3>Table <a id="pegl.lua.call" href="#pegl.lua.call">pegl.lua.call</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L342"><i>src</i></a>)</h3>
+<h3>Table <a id="pegl.lua.call" href="#pegl.lua.call">pegl.lua.call</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L343"><i>src</i></a>)</h3>
 return t with the key/vals of add inserted<code class="block">M.update = function(t, add) --&gt; t
   for k, v in pairs(add) do t[k] = v end; return t</code>
-<h3>Table <a id="pegl.lua.exp" href="#pegl.lua.exp">pegl.lua.exp</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L342"><i>src</i></a>)</h3>
+<h3>Table <a id="pegl.lua.exp" href="#pegl.lua.exp">pegl.lua.exp</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L343"><i>src</i></a>)</h3>
 return t with the key/vals of add inserted<code class="block">M.update = function(t, add) --&gt; t
   for k, v in pairs(add) do t[k] = v end; return t</code>
-<h3>Table <a id="pegl.lua.exp1" href="#pegl.lua.exp1">pegl.lua.exp1</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L342"><i>src</i></a>)</h3>
+<h3>Table <a id="pegl.lua.exp1" href="#pegl.lua.exp1">pegl.lua.exp1</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L343"><i>src</i></a>)</h3>
 return t with the key/vals of add inserted<code class="block">M.update = function(t, add) --&gt; t
   for k, v in pairs(add) do t[k] = v end; return t</code>
-<h3>Table <a id="pegl.lua.explist" href="#pegl.lua.explist">pegl.lua.explist</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L342"><i>src</i></a>)</h3>
+<h3>Table <a id="pegl.lua.explist" href="#pegl.lua.explist">pegl.lua.explist</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L343"><i>src</i></a>)</h3>
 return t with the key/vals of add inserted<code class="block">M.update = function(t, add) --&gt; t
   for k, v in pairs(add) do t[k] = v end; return t</code>
-<h3>Table <a id="pegl.lua.field" href="#pegl.lua.field">pegl.lua.field</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L342"><i>src</i></a>)</h3>
+<h3>Table <a id="pegl.lua.field" href="#pegl.lua.field">pegl.lua.field</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L343"><i>src</i></a>)</h3>
 return t with the key/vals of add inserted<code class="block">M.update = function(t, add) --&gt; t
   for k, v in pairs(add) do t[k] = v end; return t</code>
-<h3>Table <a id="pegl.lua.name" href="#pegl.lua.name">pegl.lua.name</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L342"><i>src</i></a>)</h3>
+<h3>Table <a id="pegl.lua.name" href="#pegl.lua.name">pegl.lua.name</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L343"><i>src</i></a>)</h3>
 return t with the key/vals of add inserted<code class="block">M.update = function(t, add) --&gt; t
   for k, v in pairs(add) do t[k] = v end; return t</code>
-<h3>Table <a id="pegl.lua.num" href="#pegl.lua.num">pegl.lua.num</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L342"><i>src</i></a>)</h3>
+<h3>Table <a id="pegl.lua.num" href="#pegl.lua.num">pegl.lua.num</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L343"><i>src</i></a>)</h3>
 return t with the key/vals of add inserted<code class="block">M.update = function(t, add) --&gt; t
   for k, v in pairs(add) do t[k] = v end; return t</code>
 <h3>Table <a id="pegl.lua.root" href="#pegl.lua.root">pegl.lua.root</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl/lua.lua#L250"><i>src</i></a>)</h3>
-<h3>Table <a id="pegl.lua.src" href="#pegl.lua.src">pegl.lua.src</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L342"><i>src</i></a>)</h3>
+<h3>Table <a id="pegl.lua.src" href="#pegl.lua.src">pegl.lua.src</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L343"><i>src</i></a>)</h3>
 return t with the key/vals of add inserted<code class="block">M.update = function(t, add) --&gt; t
   for k, v in pairs(add) do t[k] = v end; return t</code>
-<h3>Table <a id="pegl.lua.stmt" href="#pegl.lua.stmt">pegl.lua.stmt</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L342"><i>src</i></a>)</h3>
+<h3>Table <a id="pegl.lua.stmt" href="#pegl.lua.stmt">pegl.lua.stmt</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L343"><i>src</i></a>)</h3>
 return t with the key/vals of add inserted<code class="block">M.update = function(t, add) --&gt; t
   for k, v in pairs(add) do t[k] = v end; return t</code>
-<h3>Table <a id="pegl.lua.str" href="#pegl.lua.str">pegl.lua.str</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L342"><i>src</i></a>)</h3>
+<h3>Table <a id="pegl.lua.str" href="#pegl.lua.str">pegl.lua.str</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L343"><i>src</i></a>)</h3>
 return t with the key/vals of add inserted<code class="block">M.update = function(t, add) --&gt; t
   for k, v in pairs(add) do t[k] = v end; return t</code>
-<h3>Table <a id="pegl.lua.varset" href="#pegl.lua.varset">pegl.lua.varset</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L342"><i>src</i></a>)</h3>
+<h3>Table <a id="pegl.lua.varset" href="#pegl.lua.varset">pegl.lua.varset</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L343"><i>src</i></a>)</h3>
 return t with the key/vals of add inserted<code class="block">M.update = function(t, add) --&gt; t
   for k, v in pairs(add) do t[k] = v end; return t</code>
-<h3>Function <a id="pegl.lua.skipComment" href="#pegl.lua.skipComment">pegl.lua.skipComment</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L342"><i>src</i></a>)</h3>
+<h3>Function <a id="pegl.lua.skipComment" href="#pegl.lua.skipComment">pegl.lua.skipComment</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L343"><i>src</i></a>)</h3>
 return t with the key/vals of add inserted
 <p>
 <h1><a id="Package_asciicolor" href="#Package_asciicolor">Package asciicolor</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/asciicolor"><i>src</i></a>)</h1><table>
@@ -4745,227 +4959,6 @@ max size of len4 fingerprint table</td>
 </table>
 <h3>Function <a id="smol.main" href="#smol.main">smol.main</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/smol/smol.lua#L150"><i>src</i></a>)</h3>
 <h3>Table <a id="smol.sys" href="#smol.sys">smol.sys</a></h3>
-<p>
-<h1><a id="Package_patience" href="#Package_patience">Package patience</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/patience"><i>src</i></a>)</h1><table>
-<tr>
-<td><b>version</b></td>
-<td><code>0.1-0</code></td>
-</tr>
-<tr>
-<td><b>homepage</b></td>
-<td><a href="https://lua.civboot.org#Package_patience">https://lua.civboot.org#Package_patience</a></td>
-</tr>
-</table>
-<p>
-<h3>Table <a id="patience" href="#patience">patience</a></h3>
-<p>
-<h1><a id="Package_tv" href="#Package_tv">Package tv</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv"><i>src</i></a>)</h1><table>
-<tr>
-<td><b>summary</b></td>
-<td>Tabulated Values</td>
-</tr>
-<tr>
-<td><b>version</b></td>
-<td><code>0.1-0</code></td>
-</tr>
-<tr>
-<td><b>homepage</b></td>
-<td><a href="https://lua.civboot.org#Package_tv">https://lua.civboot.org#Package_tv</a></td>
-</tr>
-</table>
-<p>
-<h2>Module <a id="tv" href="#tv">tv</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L2"><i>src</i></a>)</h2>
-TV: tabulated values module
-<p>
-<h4>Value <a id="tv.__name" href="#tv.__name">tv.__name</a></h4>
-<h3>Table <a id="tv.bool" href="#tv.bool">tv.bool</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L111"><i>src</i></a>)</h3><code class="block">M.bool    = M.Serde { de = function(s)
-  local b = BOOL[s]; if b ~= nil then return b end
-  error('invalid bool: '..s)
-end }</code>
-<h3>Table <a id="tv.integer" href="#tv.integer">tv.integer</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L114"><i>src</i></a>)</h3>
-<h3>Table <a id="tv.json" href="#tv.json">tv.json</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L117"><i>src</i></a>)</h3>
-<h3>Table <a id="tv.lson" href="#tv.lson">tv.lson</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L118"><i>src</i></a>)</h3>
-<h3>Table <a id="tv.number" href="#tv.number">tv.number</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L115"><i>src</i></a>)</h3>
-<h3>Table <a id="tv.string" href="#tv.string">tv.string</a><code>(s) -&gt; s</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L116"><i>src</i></a>)</h3>
-<h3>Record <a id="tv.Decoder" href="#tv.Decoder">tv.Decoder</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L176"><i>src</i></a>)</h3>
-<p>
-<b>Fields: </b> <table>
-<tr>
-<td><code>tv.Decoder.serdeMap</code></td>
-<td>[SerdeMap] = <code>Ty&lt;SerdeMap&gt;{__docs={}, __fields={}, __index=self, __name="SerdeMap", bool=Serde{en=fn"tostring"[/home/rett/projects/civlua/cmd/doc/lua.lua:101], de=fn"function"[/home/rett/projects/civlua/lib/tv/tv.lua:108]}, epoch=Serde{en=fn"tostring"[/home/rett/projects/civlua/cmd/doc/lua.lua:101], de=fn"function"[nil]}, integer=Serde{en=fn"tostring"[/home/rett/projects/civlua/cmd/doc/lua.lua:101], de=fn"math.tointeger"[/home/rett/projects/civlua/cmd/doc/lua.lua:449]}, json=Serde{en=fn"lson.json"[/home/rett/projects/civlua/lib/lson/lson.lua:23], de=fn"lson.decode"[/home/rett/projects/civlua/lib/lson/lson.lua:32]}, lson=Serde{en=fn"lson.lson"[/home/rett/projects/civlua/lib/lson/lson.lua:29], de=fn"lson.decode"[/home/rett/projects/civlua/lib/lson/lson.lua:32]}, number=Serde{en=fn"tostring"[/home/rett/projects/civlua/cmd/doc/lua.lua:101], de=fn"function"[nil]}, string=Serde{en=fn"tostring"[/home/rett/projects/civlua/cmd/doc/lua.lua:101], de=fn"function"[/home/rett/projects/civlua/lib/tv/tv.lua:116]}}</code></td>
-</tr>
-<tr>
-<td><code>tv.Decoder._types</code></td>
-<td>[table] 
-column types (strings)</td>
-</tr>
-<tr>
-<td><code>tv.Decoder._names</code></td>
-<td>[table] 
-column names (strings)</td>
-</tr>
-</table>
-<h3>Table <a id="tv.Decoder.__docs" href="#tv.Decoder.__docs">tv.Decoder.__docs</a></h3>
-<h3>Table <a id="tv.Decoder.__fields" href="#tv.Decoder.__fields">tv.Decoder.__fields</a></h3>
-<h4>Value <a id="tv.Decoder.__name" href="#tv.Decoder.__name">tv.Decoder.__name</a></h4>
-<b>Records: </b> <table>
-<tr>
-<td><code>tv.Decoder.__index</code></td>
-<td>[Ty<Decoder>] (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L176">src</a>)</td>
-</tr>
-</table>
-<b>Methods: </b> <table>
-<tr>
-<td><code>tv.Decoder.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L179">src</a>)</td>
-</tr>
-</table>
-<h4>Function <a id="Decoder.__call" href="#Decoder.__call">Decoder.__call</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L203"><i>src</i></a>)</h4>
-<h4>Function <a id="Decoder.load" href="#Decoder.load">Decoder.load</a><code>(dec, file) -&gt; Decoder</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L199"><i>src</i></a>)</h4>
-load from file
-Example: dec:load(open'thing.tv')
-<h4>Function <a id="Decoder.names" href="#Decoder.names">Decoder.names</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L188"><i>src</i></a>)</h4>
-decode a row of names
-<h4>Function <a id="Decoder.types" href="#Decoder.types">Decoder.types</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L182"><i>src</i></a>)</h4>
-decode a row of types
-<h3>Record <a id="tv.Encoder" href="#tv.Encoder">tv.Encoder</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L66"><i>src</i></a>)</h3>
-Example: <code class="block">local enc = tv.Encoder{}
-f:write(enc:comment'some comment',    '\n')
-f:write(enc:types{'int', 'string'},   '\n')
-f:write(enc:names{'id',  'username'}, '\n')
-for _, v in ipairs(myData) do f:write(enc(v), '\n') end</code>
-<p>
-<p>
-<b>Fields: </b> <table>
-<tr>
-<td><code>tv.Encoder.serdeMap</code></td>
-<td>[SerdeMap] </td>
-</tr>
-<tr>
-<td><code>tv.Encoder._types</code></td>
-<td>[table] </td>
-</tr>
-<tr>
-<td><code>tv.Encoder._names</code></td>
-<td>[table] </td>
-</tr>
-</table>
-<h3>Table <a id="tv.Encoder.__docs" href="#tv.Encoder.__docs">tv.Encoder.__docs</a></h3>
-<h3>Table <a id="tv.Encoder.__fields" href="#tv.Encoder.__fields">tv.Encoder.__fields</a></h3>
-<h4>Value <a id="tv.Encoder.__name" href="#tv.Encoder.__name">tv.Encoder.__name</a></h4>
-<b>Records: </b> <table>
-<tr>
-<td><code>tv.Encoder.__index</code></td>
-<td>[Ty<Encoder>] (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L66">src</a>)</td>
-</tr>
-</table>
-<b>Methods: </b> <table>
-<tr>
-<td><code>tv.Encoder.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L179">src</a>)</td>
-</tr>
-</table>
-<h4>Function <a id="Encoder.__call" href="#Encoder.__call">Encoder.__call</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L92"><i>src</i></a>)</h4>
-<h4>Function <a id="Encoder.comment" href="#Encoder.comment">Encoder.comment</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L72"><i>src</i></a>)</h4>
-encode a comment. Only valid in the header
-<h4>Function <a id="Encoder.names" href="#Encoder.names">Encoder.names</a><code>(enc, names) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L88"><i>src</i></a>)</h4>
-Set the names of the encoder and return the
-string to write.
-<h4>Function <a id="Encoder.types" href="#Encoder.types">Encoder.types</a><code>(enc, types) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L80"><i>src</i></a>)</h4>
-Set the types of the encoder and return the
-string to write.
-<h3>Record <a id="tv.Serde" href="#tv.Serde">tv.Serde</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L103"><i>src</i></a>)</h3>
-Interface for serialization/deserialization of types.
-<p>
-<b>Fields: </b> <table>
-<tr>
-<td><code>tv.Serde.en</code></td>
-<td>[function(v) -> string] = <code>fn"tostring"[/home/rett/projects/civlua/cmd/doc/lua.lua:101]</code>
-serializer</td>
-</tr>
-<tr>
-<td><code>tv.Serde.de</code></td>
-<td>[function(string) -> v] 
-deserializer</td>
-</tr>
-</table>
-<h3>Table <a id="tv.Serde.__docs" href="#tv.Serde.__docs">tv.Serde.__docs</a></h3>
-<h3>Table <a id="tv.Serde.__fields" href="#tv.Serde.__fields">tv.Serde.__fields</a></h3>
-<h4>Value <a id="tv.Serde.__name" href="#tv.Serde.__name">tv.Serde.__name</a></h4>
-<b>Records: </b> <table>
-<tr>
-<td><code>tv.Serde.__index</code></td>
-<td>[Ty<Serde>] (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L103">src</a>)</td>
-</tr>
-</table>
-<b>Methods: </b> <table>
-<tr>
-<td><code>tv.Serde.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L179">src</a>)</td>
-</tr>
-</table>
-<h3>Record <a id="tv.SerdeMap" href="#tv.SerdeMap">tv.SerdeMap</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L124"><i>src</i></a>)</h3>
-Overrideable map of type serializer/deserializer objects.
-Keys should be the "type name", values must have the following
-fields:
-<p>
-<b>Values: </b> <table>
-<tr>
-<td><code>tv.SerdeMap.bool</code></td>
-<td>[Serde] (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L111">src</a>)</td>
-</tr>
-<tr>
-<td><code>tv.SerdeMap.epoch</code></td>
-<td>[Serde] (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L115">src</a>)</td>
-</tr>
-<tr>
-<td><code>tv.SerdeMap.integer</code></td>
-<td>[Serde] (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L114">src</a>)</td>
-</tr>
-<tr>
-<td><code>tv.SerdeMap.json</code></td>
-<td>[Serde] (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L117">src</a>)</td>
-</tr>
-<tr>
-<td><code>tv.SerdeMap.lson</code></td>
-<td>[Serde] (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L118">src</a>)</td>
-</tr>
-<tr>
-<td><code>tv.SerdeMap.number</code></td>
-<td>[Serde] (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L115">src</a>)</td>
-</tr>
-<tr>
-<td><code>tv.SerdeMap.string</code></td>
-<td>[Serde] (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L116">src</a>)</td>
-</tr>
-</table>
-<h3>Table <a id="tv.SerdeMap.__docs" href="#tv.SerdeMap.__docs">tv.SerdeMap.__docs</a></h3>
-<h3>Table <a id="tv.SerdeMap.__fields" href="#tv.SerdeMap.__fields">tv.SerdeMap.__fields</a></h3>
-<h4>Value <a id="tv.SerdeMap.__name" href="#tv.SerdeMap.__name">tv.SerdeMap.__name</a></h4>
-<b>Records: </b> <table>
-<tr>
-<td><code>tv.SerdeMap.__index</code></td>
-<td>[Ty<SerdeMap>] (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L124">src</a>)</td>
-</tr>
-</table>
-<h3>Function <a id="tv.cellmatch" href="#tv.cellmatch">tv.cellmatch</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L142"><i>src</i></a>)</h3>
-decode the matched pattern
-<h3>Function <a id="tv.decodeCell" href="#tv.decodeCell">tv.decodeCell</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L151"><i>src</i></a>)</h3>
-decode a tv cell as a string
-<h3>Function <a id="tv.decodeHeader" href="#tv.decodeHeader">tv.decodeHeader</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L170"><i>src</i></a>)</h3>
-<h3>Function <a id="tv.decodeRow" href="#tv.decodeRow">tv.decodeRow</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L160"><i>src</i></a>)</h3>
-<h3>Function <a id="tv.encodeBackslashes" href="#tv.encodeBackslashes">tv.encodeBackslashes</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L25"><i>src</i></a>)</h3>
-encode any number of backslashes
-<h3>Function <a id="tv.encodeCell" href="#tv.encodeCell">tv.encodeCell</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L32"><i>src</i></a>)</h3>
-<h3>Function <a id="tv.encodeComment" href="#tv.encodeComment">tv.encodeComment</a><code>(comment) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L38"><i>src</i></a>)</h3>
-<h3>Function <a id="tv.encodeNames" href="#tv.encodeNames">tv.encodeNames</a><code>(names) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L44"><i>src</i></a>)</h3>
-<h3>Function <a id="tv.encodeRow" href="#tv.encodeRow">tv.encodeRow</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L53"><i>src</i></a>)</h3>
-<h3>Function <a id="tv.encodeTypes" href="#tv.encodeTypes">tv.encodeTypes</a><code>(types) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L41"><i>src</i></a>)</h3>
-<h3>Function <a id="tv.load" href="#tv.load">tv.load</a><code>(file, serdeMap) -&gt; data, decoder</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L221"><i>src</i></a>)</h3>
-load all the data and return it as a table
-<h3>Function <a id="tv.store" href="#tv.store">tv.store</a><code>(file, t, names, types, serdeMap) -&gt; encoder</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/tv/tv.lua#L213"><i>src</i></a>)</h3>
-<code>store(file, t, names=orderedKeys(t[1]), types=nil)</code>
-simple store function
 <p>
 <h1><a id="Package_vcds" href="#Package_vcds">Package vcds</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/vcds"><i>src</i></a>)</h1><table>
 <tr>

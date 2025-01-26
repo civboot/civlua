@@ -233,8 +233,8 @@ M.main = function(args)
     return 1
   end
   print('cxt.html', args[1], '-->', args[2])
-  local inp = LFile(args[1])
-  local to  = LFile(args[2], 'w+')
+  local inp = LFile{path=args[1]}
+  local to  = LFile{path=args[2], mode='w+'}
   if args.config then
     args.config = cxt.Config(pkglib.load('CxtConfig', args.config).html)
   end
