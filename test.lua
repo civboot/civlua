@@ -34,8 +34,8 @@ print'[[core]]'
   dofile(dir..'lib/fd/test.lua')
 
 print'[[libs]]'
-  dofile(dir..'lib/asciicolor/test.lua')
-  dofile(dir..'lib/vt100/test.lua')
+  dofile(dir..'ui/asciicolor/test.lua')
+  dofile(dir..'ui/vt100/test.lua')
   dofile(dir..'lib/lson/test.lua')
   dofile(dir..'lib/vcds/test.lua')
   dofile(dir..'lib/pegl/tests/test_pegl.lua')

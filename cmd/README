@@ -1,0 +1,4 @@
+cmd directory contains the primary command-line interfaces for civboot.
+
+Some of the libraries can also be invoked on the command line,
+but that is a secondary use for them.

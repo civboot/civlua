@@ -1,0 +1,3 @@
+ui: user interface directory.
+
+Contains libraries for interacting with a user, specifically a terminal.

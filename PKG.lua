@@ -20,10 +20,6 @@ pkgs = {
   'lib/lson',
   'lib/pegl',
 
-  -- pretty colors
-  'lib/asciicolor',
-  'lib/vt100',
-
   -- data storage / vcs
   'lib/smol',
   'lib/vcds',
@@ -31,6 +27,10 @@ pkgs = {
 
   -- TODO: refactor into other libs
   'lib/rebuf',
+
+  -- Interacting with the user
+  'ui/asciicolor',
+  'ui/vt100',
 
   -- cmd
   'cmd/cxt',
