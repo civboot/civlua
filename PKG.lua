@@ -26,7 +26,6 @@ pkgs = {
 
   -- data storage / vcs
   'lib/smol',
-  'lib/tv',
   'lib/vcds',
   'lib/luck',
 

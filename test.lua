@@ -37,7 +37,6 @@ print'[[libs]]'
   dofile(dir..'lib/asciicolor/test.lua')
   dofile(dir..'lib/vt100/test.lua')
   dofile(dir..'lib/lson/test.lua')
-  dofile(dir..'lib/tv/test.lua')
   dofile(dir..'lib/vcds/test.lua')
   dofile(dir..'lib/pegl/tests/test_pegl.lua')
   dofile(dir..'lib/pegl/tests/test_lua.lua')
