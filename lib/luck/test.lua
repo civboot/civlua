@@ -8,13 +8,13 @@ local D = 'lib/luck/'
 
 test("meta", function()
   local path = D..'testdata/small.luck'
-  local f = assert(LFile(path)); f.cache = ds.Forget{}
+  local f = assert(LFile{path=path}); f.cache = ds.Forget{}
   local meta = M.loadMeta(f, path)
   assertEq({'small'}, meta)
   f:close()
 
   local path = D..'testdata/withdeps.luck'
-  local f = assert(LFile(path)); f.cache = ds.Forget{}
+  local f = assert(LFile{path=path}); f.cache = ds.Forget{}
   local meta = M.loadMeta(f, path)
   assertEq({
     'test.withdeps',
