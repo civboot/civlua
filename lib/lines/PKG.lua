@@ -19,5 +19,6 @@ srcs = {
   'lines/EdFile.lua',
   'lines/testing.lua',
   'lines/futils.lua',
+  'lines/motion.lua',
 }
 

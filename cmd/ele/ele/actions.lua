@@ -5,7 +5,7 @@ local fmt = require'fmt'
 local ds = require'ds'
 local log = require'ds.log'
 local lines = require'lines'
-local motion = require'rebuf.motion'
+local motion = require'lines.motion'
 local et = require'ele.types'
 
 local push, pop = table.insert, table.remove

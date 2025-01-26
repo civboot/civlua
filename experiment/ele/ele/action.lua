@@ -4,7 +4,7 @@ local ds = require'ds'
 local gap = require'rebuf.gap'
 local T = require'ele.types'
 local keys = require'ele.keys'
-local motion = require'rebuf.motion'
+local motion = require'lines.motion'
 local window = require'ele.window'
 
 local Action = T.Action

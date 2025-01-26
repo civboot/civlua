@@ -7,7 +7,7 @@ local test, assertEq; ds.auto'civtest'
 local decDistance, lcLe, lcGe, lcWithin
 local forword, backword, findBack
 local wordKind
-ds.auto'rebuf.motion'
+ds.auto'lines.motion'
 
 test('distance', function()
   assertEq(3, decDistance(1, 4))

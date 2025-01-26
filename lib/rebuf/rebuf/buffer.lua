@@ -1,7 +1,7 @@
 local mty = require'metaty'
 local ds = require'ds'
 local lines = require'lines'
-local motion  = require'rebuf.motion'
+local motion  = require'lines.motion'
 local Gap  = require'lines.Gap'
 local log = require'ds.log'
 

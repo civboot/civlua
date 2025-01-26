@@ -5,7 +5,7 @@ local M = mod'ele.edit'
 local mty    = require'metaty'
 local ds     = require'ds'
 local log    = require'ds.log'
-local motion = require'rebuf.motion'
+local motion = require'lines.motion'
 local types = require'ele.types'
 local lines = require'lines'
 
