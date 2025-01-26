@@ -98,10 +98,10 @@ end
 
 CivDB._initnew = function(f) assert(f:write(CivDB.MAGIC)) end
 CivDB._reindex = function(f, idx, row, pos)
-  trace'CivDB _reindex'
   local magic = CivDB.MAGIC
   row, pos = row or 1, pos or 0
   local len = f:seek'end'
+  trace('CivDB _reindex row=%i pos=%i len=%s', row, pos, len)
   if len < 6 then
     assert(pos == 0); assert(0 == f:seek'set')
     assert(f:write(magic))
@@ -111,9 +111,11 @@ CivDB._reindex = function(f, idx, row, pos)
     assert(f:read(#magic) == magic)
     pos = 6
   else assert(pos == f:seek('set', pos)) end
+  trace('      _reindex row=%i pos=%i len=%s', row, pos, len)
 
   while pos < len do
     local op, val, readSz = readTx(f); assert(op, val);
+    trace('reindex op=%q val=%q readSz=%s', op, val, readSz)
     if     op.kind == 'delete' then idx[op.row] = 0
     elseif op.kind == 'update' then idx[op.row] = pos
     elseif op.kind == 'create' then

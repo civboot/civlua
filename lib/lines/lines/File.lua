@@ -61,6 +61,7 @@ getmetatable(File).__call = function(T, t)
     idx, err = U3File:create(); if not idx then return nil, err end
     T._initnew(f, idx)
   elseif type(t.path) == 'string' then
+    trace('reloading path %s', t.path)
     t.mode = t.mode or 'r'
     f, err = io.open(t.path, t.mode); if not f then return nil, err end
     idx, err = loadIdx(f, pth.concat{T.IDX_DIR, t.path}, t.mode, T._reindex)
