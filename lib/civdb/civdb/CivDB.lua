@@ -1,7 +1,8 @@
 local mty = require'metaty'
 --- a database object backed by a civdb CFile
 local CivDB = mty'civdb.CivDB' {
-  'f [File]', 'path [string]',
+  'path [string]', 'mode [string]',
+  'f [File]',
   'idx [lines.U3File]: row -> pos',
   'cache [WeakV]: cache of rows',
   '_row [int] the next row', _row = 1,
@@ -87,8 +88,9 @@ end
 CivDB.IDX_DIR = pth.concat{pth.home(), '.data/rows'}
 
 getmetatable(CivDB).__call = function(T, t)
-  local mode = t.mode or 'w+'
-  local db = assert(fileInit(T, t.path, mode))
+  t = t or {}; t.mode = t.mode or 'w+'
+  trace('CivDB init %q', t)
+  local db = assert(fileInit(T, t))
   db._eofpos = assert(db.f:seek'end')
   db._row = #db.idx + 1
   return db
@@ -99,6 +101,7 @@ CivDB._reindex = function(f, idx, row, pos)
   local magic = CivDB.MAGIC
   row, pos = row or 1, pos or 0
   local len = f:seek'end'
+  trace('CivDB _reindex row=%i pos=%i len=%s', row, pos, len)
   if len < 6 then
     assert(pos == 0); assert(0 == f:seek'set')
     assert(f:write(magic))
@@ -108,9 +111,11 @@ CivDB._reindex = function(f, idx, row, pos)
     assert(f:read(#magic) == magic)
     pos = 6
   else assert(pos == f:seek('set', pos)) end
+  trace('      _reindex row=%i pos=%i len=%s', row, pos, len)
 
   while pos < len do
     local op, val, readSz = readTx(f); assert(op, val);
+    trace('reindex op=%q val=%q readSz=%s', op, val, readSz)
     if     op.kind == 'delete' then idx[op.row] = 0
     elseif op.kind == 'update' then idx[op.row] = pos
     elseif op.kind == 'create' then

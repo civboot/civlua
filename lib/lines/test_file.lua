@@ -93,11 +93,11 @@ test('File', function()
   assertEq('four: still in line four and this', f[4])
 
   assertEq('one\ntwo\nthree\n', ds.readPath(SMALL))
-  f = assert(File(SMALL)); f.cache = ds.Forget{}
+  f = assert(File{path=SMALL}); f.cache = ds.Forget{}
   assertEq({'one', 'two', 'three', ''}, ds.icopy(f))
   assertEq('two', f[2])
 
-  f = File(TXT, 'w+')
+  f = File{path=TXT, mode='w+'}
   f:write'line 1\nline 2\nline 3'
   assertEq({0, 7, 14}, ds.icopy(f.idx))
   assertEq({'line 1', 'line 2', 'line 3'}, ds.icopy(f))

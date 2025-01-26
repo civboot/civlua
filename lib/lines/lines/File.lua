@@ -3,8 +3,11 @@ local mty = require'metaty'
 --- (read|append)-only line based file (indexed and cached)
 ---
 --- Note: use EdFile if you need to do non-append edits
+---
+--- Initialize with File{path=path?, mode=mode?}
 local File = mty'File' {
-  'f   [file]: open file', 'path [string]',
+  'path [string]', 'mode [string]',
+  'f   [file]: open file',
   'idx [U3File]: line index of f',
   'cache [WeakV]: cache of lines',
   '_ln  [int]:  current line num (false=end)',
@@ -13,13 +16,13 @@ local File = mty'File' {
 
 local ds = require'ds'
 local pth = require'ds.path'
-local log = require'ds.log'
 local lines = require'lines'
 local U3File = require'lines.U3File'
 local fd = require'fd'
 local ix = require'civix'
 local loadIdx = require'lines.futils'.loadIdx
 
+local trace = require'ds.log'.trace
 local largs = lines.args
 local push, concat = table.insert, table.concat
 local getmt = getmetatable
@@ -49,20 +52,23 @@ File._reindex = function(f, idx, l, pos)
   return pos
 end
 
-getmetatable(File).__call = function(T, path, mode)
-  print("!! ", tostring(T)..'.__call', path, mode)
+getmetatable(File).__call = function(T, t)
+  t = t and assert(type(t) == 'table') and t or {}
+  trace('%s.init%q', mty.tyName(T), t)
   local f, err, idx, fstat, xstat
-  if not path then
+  if not t.path then
     f, err   = io.tmpfile(); if not f   then return nil, err end
     idx, err = U3File:create(); if not idx then return nil, err end
     T._initnew(f, idx)
-  elseif type(path) == 'string' then
-    mode = mode or 'r'
-    f, err = io.open(path, mode); if not f then return nil, err end
-    idx, err = loadIdx(f, pth.concat{T.IDX_DIR, path}, mode, T._reindex)
+  elseif type(t.path) == 'string' then
+    trace('reloading path %s', t.path)
+    t.mode = t.mode or 'r'
+    f, err = io.open(t.path, t.mode); if not f then return nil, err end
+    idx, err = loadIdx(f, pth.concat{T.IDX_DIR, t.path}, t.mode, T._reindex)
     if not idx then return nil, err end
   else error'invalid path' end
-  return construct(T, {f=f, path=path, idx=idx, cache=WeakV{}})
+  t.f, t.idx, t.cache = f, idx, WeakV{}
+  return construct(T, t)
 end
 
 File.close = function(lf)
