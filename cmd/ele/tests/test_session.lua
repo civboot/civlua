@@ -8,7 +8,7 @@ local log = require'ds.log'
 local etest = require'ele.testing'
 local edit = require'ele.edit'
 local Session = require'ele.Session'
-local Buffer = require'rebuf.buffer'.Buffer
+local Buffer = require'lines.buffer'.Buffer
 local Fake = require'vt100.testing'.Fake
 local path = require'ds.path'
 

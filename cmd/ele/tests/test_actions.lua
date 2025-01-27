@@ -6,7 +6,7 @@ local ds = require'ds'
 local M = require'ele.actions'
 local edit = require'ele.edit'
 local Ed = require'ele.Ed'
-local Buffer = require'rebuf.buffer'.Buffer
+local Buffer = require'lines.buffer'.Buffer
 
 local newEd = function(lines)
   return Ed{

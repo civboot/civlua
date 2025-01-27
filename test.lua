@@ -31,6 +31,7 @@ print'[[core]]'
   dofile(dir..'lib/lines/test_motion.lua')
   assert(io_open == io.open)
   dofile(dir..'lib/lines/test_file.lua')
+  dofile(dir..'lib/lines/test_buffer.lua')
   dofile(dir..'lib/lap/test.lua')
   dofile(dir..'lib/fd/test.lua')
 
@@ -42,7 +43,6 @@ print'[[libs]]'
   dofile(dir..'lib/pegl/tests/test_pegl.lua')
   dofile(dir..'lib/pegl/tests/test_lua.lua')
   dofile(dir..'lib/luck/test.lua')
-  dofile(dir..'lib/rebuf/tests/test_buffer.lua')
   dofile(dir..'lib/civix/test.lua')
   dofile(dir..'lib/civdb/test.lua')
   dofile(dir..'lib/smol/test.lua')

@@ -20,5 +20,6 @@ srcs = {
   'lines/testing.lua',
   'lines/futils.lua',
   'lines/motion.lua',
+  'lines/buffer.lua',
 }
 

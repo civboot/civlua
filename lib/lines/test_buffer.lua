@@ -4,7 +4,7 @@ local mty = require'metaty'
 local fmt = require'fmt'
 local test, assertEq; require'ds'.auto'civtest'
 
-local buffer = require'rebuf.buffer'
+local buffer = require'lines.buffer'
 
 local Buffer = buffer.Buffer
 local C, CS = buffer.Change, buffer.ChangeStart

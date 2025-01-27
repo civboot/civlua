@@ -5,7 +5,7 @@ local fmt = require'fmt'
 local ds, lines = require'ds', require'lines'
 local et   = require'ele.testing'
 local edit = require'ele.edit'
-local Buffer = require'rebuf.buffer'.Buffer
+local Buffer = require'lines.buffer'.Buffer
 local Fake = require'vt100.testing'.Fake
 
 local lines3 =

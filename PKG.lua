@@ -25,9 +25,6 @@ pkgs = {
   'lib/vcds',
   'lib/luck',
 
-  -- TODO: refactor into other libs
-  'lib/rebuf',
-
   -- Interacting with the user
   'ui/asciicolor',
   'ui/vt100',

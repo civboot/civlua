@@ -1,7 +1,7 @@
 -- helpers for testing ele and related libraries
 local M = mod and mod'ele.testing' or {}
 
-local buffer = require'rebuf.buffer'
+local buffer = require'lines.buffer'
 local eb = require'ele.bindings'
 local Session = require'ele.Session'
 local edit = require'ele.edit'

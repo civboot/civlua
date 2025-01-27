@@ -4,7 +4,7 @@ local ds     = require'ds'
 local path   = require'ds.path'
 local log    = require'ds.log'
 local Gap    = require'lines.Gap'
-local Buffer = require'rebuf.buffer'.Buffer
+local Buffer = require'lines.buffer'.Buffer
 local Edit   = require'ele.edit'.Edit
 local push, pop, concat = table.insert, table.remove, table.concat
 
