@@ -20,7 +20,7 @@ local mty = require'metaty'
 local fmt = require'fmt'
 local ds = require'ds'
 
-local push, concat, sfmt = table.insert, table.concat, string.format
+local push, sfmt = table.insert, string.format
 local Fmt = fmt.Fmt
 local io = io
 

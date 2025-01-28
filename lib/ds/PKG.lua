@@ -12,6 +12,7 @@ deps = {
 }
 srcs = {
   'ds.lua',
+  ['ds.native'] = 'ds.c',
   'ds/Iter.lua',
   'ds/pod.lua',
   'ds/testing_pod.lua',
@@ -21,4 +22,7 @@ srcs = {
   'ds/heap.lua',
   'ds/log.lua',
   'ds/Grid.lua',
+}
+libs = {
+  ['ds.native'] = 'ds.so',
 }

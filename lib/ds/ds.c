@@ -17,6 +17,29 @@ typedef lua_State LS;
 // #define DBG(...) printf("!D! " __VA_ARGS__)
 #define DBG(...)
 
+//************************
+//* String
+
+
+// concat(sep, ...) --> string
+// concatenate all values (calling tostring on them) separated by sep.
+static inline int l_concat(LS* L) {
+  int lasti = lua_gettop(L);
+  if(lasti == 1) { lua_pushstring(L, ""); return 1; }
+  size_t slen; uint8_t const* sep = luaL_checklstring(L, 1, &slen);
+  luaL_Buffer lb; luaL_buffinit(L, &lb);
+  luaL_tolstring(L, 2, NULL); luaL_addvalue(&lb);
+  for(int i=3; i <= lasti; i++) {
+    luaL_addlstring(&lb, sep, slen);
+    luaL_tolstring(L, i, NULL); luaL_addvalue(&lb);
+  }
+  luaL_pushresult(&lb);
+  return 1;
+}
+
+//************************
+//* POD: de/serialization of plain-old-data
+
 // decode value from bytes. v: current value, s: current shift
 static inline int deci(uint8_t const** b, uint8_t const* be, uint64_t* v, int s) {
   while((*b < be) && (0x80 & **b)) {
@@ -37,9 +60,6 @@ static inline int enci(uint8_t** b, uint8_t* be, uint64_t v) {
   **b = v; *b += 1;
   return 0;
 }
-
-//************************
-//* 3.a binary enc/dec types
 
 #define  B_TABLE    0x00 /* indexed vals and key/vals */
 #define  B_MAP      0x20 /* key/vals */
@@ -233,7 +253,7 @@ int l_deser(LS* L) {
 }
 
 //************************
-//* 3.a Lua Bindings
+//* Lua Bindings
 
 // int -> str: encode integer using enci
 static int l_enci(LS* L) {
@@ -256,6 +276,7 @@ static int l_deci(LS* L) {
 }
 
 static const struct luaL_Reg ds_native[] = {
+  {"concat", l_concat},
   {"enci", l_enci}, {"deci", l_deci},
   {"ser",  l_ser},  {"deser", l_deser},
   {NULL, NULL}, // sentinel

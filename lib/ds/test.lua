@@ -12,6 +12,7 @@ local sfmt = string.format
 local mty = require'metaty'
 local fmt = require'fmt'
 local M, lines = require'ds', require'lines'
+local N = require'ds.native'
 local testing = require'lines.testing'
 
 local test, assertEq, assertMatch, assertErrorPat; M.auto'civtest'
@@ -65,6 +66,13 @@ a]])
   T.eq('easy',  s[[
   easy
   ]])
+end
+
+T.concat = function()
+  T.eq('', N.concat(''))
+  T.eq('1 2', N.concat(' ', '1', 2))
+  T.eq('12', N.concat('', '1', 2))
+  T.eq('1 none', N.concat(' ', 1, M.none))
 end
 
 T.bool_and_none = function()

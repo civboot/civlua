@@ -2,6 +2,7 @@
 
 local M = mod and mod'ds' or {}
 
+local N = require'ds.native'
 local mty = require'metaty'
 local fmt = require'fmt'
 local push, pop, sfmt    = table.insert, table.remove, string.format
@@ -14,6 +15,8 @@ local xpcall, traceback = xpcall, debug.traceback
 local resume = coroutine.resume
 local getmethod = mty.getmethod
 local EMPTY = {}
+
+local sconcat = N.concat
 
 M.PlainStyler = mty'PlainStyler' {}
 
@@ -105,10 +108,9 @@ M.srcdir = function(level) --> "/path/to/dir/"
 end
 
 M.coroutineErrorMessage = function(cor, err) --> string
-  return concat{
+  return sconcat('',
     'Coroutine error: ', debug.stacktraceback(cor, err), '\n',
-    'Coroutine failed!',
-  }
+    'Coroutine failed!')
 end
 
 ---------------------
@@ -140,6 +142,18 @@ end
 
 ---------------------
 -- String Functions
+
+
+-- Concatenate all values in ..., calling tostring on them
+-- if necessary.
+-- This has several differences than table.concat:[+
+-- * it does not require allocating a table to be called.
+-- * it automatically calls tostring on the arguments.
+-- ]
+--
+-- This function is most useful if you have a known number
+-- of arguments or ... which you want to concatenate.
+M.concat = N.native--(sep, ...) --> string
 
 --- return the string if it is only uppercase letters
 M.isupper = function(c) return c:match'^%u+$' end --> string?
