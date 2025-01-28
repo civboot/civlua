@@ -153,7 +153,7 @@ end
 --
 -- This function is most useful if you have a known number
 -- of arguments or ... which you want to concatenate.
-M.concat = N.native--(sep, ...) --> string
+M.concat = N.concat--(sep, ...) --> string
 
 --- return the string if it is only uppercase letters
 M.isupper = function(c) return c:match'^%u+$' end --> string?

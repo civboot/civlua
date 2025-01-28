@@ -617,6 +617,16 @@ T['ds.pod'] = function()
   testing_pod.testAll(pod.toPod, pod.fromPod)
 end
 
+T['ds.pod.serialize'] = function()
+  local pod = require'ds.pod'
+  local tp = require'ds.testing_pod'
+  tp.testAll(pod.ser, function(str)
+    local d, len = pod.deser(str)
+    T.eq(#str, len) -- decoded full length
+    return d
+  end)
+end
+
 ---------------------
 -- ds/Iter.lua
 T['ds.Iter'] = function()

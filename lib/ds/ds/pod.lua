@@ -1,9 +1,9 @@
 --- pod: convert types from/to plain old data (pod)
 ---
---- This module exports the toPod() and fromPod() functions for serialization
---- libraries to use. These convert a metaty value (or lua concrete value)
---- to/from plain old data and add the configurable TYPE_KEY (default='??') for
---- deserializing the type.
+--- This module exports the [$toPod()] and [$fromPod()] functions for
+--- serialization libraries to use. These convert a metaty value (or lua
+--- concrete value) to/from plain old data and add the configurable TYPE_KEY
+--- (default='??') for deserializing the type.
 ---
 --- A (metatable) type can support these methods by by supporting the methods
 --- [$__fromPod()] and [$__toPod()]. This module provides metaty defaults for
@@ -23,11 +23,32 @@ local M = mod and mod'ds.pod' or {}
 M.TYPE_KEY = '??'
 
 local ds = require'ds'
+local N = require'ds.native'
 local getmt = getmetatable
 local icopy, popk, none = ds.icopy, ds.popk
 
 local isPod = ds.isPod
 local toPod, fromPod, TO_POD, FROM_POD
+local ser, deser = N.ser, N.deser
+
+--- serialize the value (without calling toPod on it)
+M.serRaw = N.ser--(value) --> string
+
+--- deserialize the value (without calling fromPod on it)
+M.deserRaw = N.deser--(string) --> value
+
+--- Serialize value, converting it to a compact string.
+--- Note: this function first calls toPod on the value.
+M.ser = function(value) --> string
+  return ser(toPod(value))
+end
+
+--- Deserialize value from a compact string (and call fromPod on it)
+--- [$index] (default=1) is where to start in [$str]
+M.deser = function(str, index) --> value, lenUsed
+  local v, elen = deser(str, index)
+  return fromPod(v), elen
+end
 
 --- Serialize value t into plain old data
 M.toPod = function(val) return TO_POD[type(val)](val) end --> PoD

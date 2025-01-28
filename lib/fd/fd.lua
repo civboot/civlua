@@ -12,12 +12,14 @@ G.LAP_FNS_SYNC  = G.LAP_FNS_SYNC  or {}
 
 local trace = G.LOG and G.LOG.trace or function() end
 local S = require'fd.sys' -- fd.c, fd.h
+local ds = require'ds'
 
 local sfmt      = string.format
 local push, pop = table.insert, table.remove
 local yield     = coroutine.yield
 local NL        = -string.byte'\n'
 local iotype    = io.type
+local sconcat   = ds.concat
 
 S.POLLIO = S.POLLIN | S.POLLOUT
 
@@ -75,7 +77,7 @@ end
 -- WRITE / SEEK
 
 S.FD.__index.write = function(fd, ...)
-  local s = table.concat{...}
+  local s = sconcat('', ...)
   local c = fd:_write(s, 0)
   while YIELD_CODE[c] do
     yield('poll', fd:fileno(), S.POLLOUT)
@@ -85,7 +87,7 @@ S.FD.__index.write = function(fd, ...)
   return fd
 end
 M.FDT.__index.write = function(fd, ...)
-  local s = table.concat{...}
+  local s = sconcat('', ...)
   fd:_write(s)
   M.finishRunning(fd, 'poll', fd:_evfileno(), S.POLLIN)
   return fd
