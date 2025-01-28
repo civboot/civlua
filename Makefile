@@ -16,7 +16,7 @@ demo: build
 	$(PRETEST) $(LUA) lib/vt100/demo.lua
 	# $(PRETEST) $(LUA) cmd/ele/demo_term.lua
 
-build: fd ds civix civdb smol
+build: fd ds civix smol
 
 fd: lib/fd/fd.c
 	cd lib/fd && make build LUA_VERSION=$(LUA_VERSION)
@@ -26,9 +26,6 @@ ds: lib/ds/ds.c
 
 civix: lib/civix/civix/lib.c
 	cd lib/civix && make build LUA_VERSION=$(LUA_VERSION)
-
-civdb: lib/civdb/civdb.c
-	cd lib/civdb && make build LUA_VERSION=$(LUA_VERSION)
 
 smol: lib/smol/smol.c
 	cd lib/smol && make test  LUA_VERSION=$(LUA_VERSION)

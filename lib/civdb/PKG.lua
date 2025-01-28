@@ -7,11 +7,6 @@ url      = 'git+http://github.com/civboot/civlua'
 doc = 'README.cxt'
 srcs = {
   'civdb.lua',
-  ['civdb.sys'] = 'civdb.c',
-  'civdb/CivDB.lua',
-}
-libs = {
-  ['civdb.sys'] = 'civdb.so',
 }
 deps = {
   "lua ~> 5.3",

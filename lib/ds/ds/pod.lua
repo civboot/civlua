@@ -1,9 +1,10 @@
---- pod: convert types from/to plain old data (pod)
+--- pod: convert types from/to plain old data (pod).
 ---
---- This module exports the [$toPod()] and [$fromPod()] functions for
---- serialization libraries to use. These convert a metaty value (or lua
---- concrete value) to/from plain old data and add the configurable TYPE_KEY
---- (default='??') for deserializing the type.
+--- In addition to exporting it's own "pod" serialization format (via ser() and
+--- deser() functions), this module exports the [$toPod()] and [$fromPod()]
+--- functions for serialization libraries to use. These convert a metaty value
+--- (or lua concrete value) to/from plain old data and add the configurable
+--- TYPE_KEY (default='??') for deserializing the type.
 ---
 --- A (metatable) type can support these methods by by supporting the methods
 --- [$__fromPod()] and [$__toPod()]. This module provides metaty defaults for
