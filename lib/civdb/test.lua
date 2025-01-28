@@ -28,7 +28,7 @@ T.small = function()
   end)
 end
 
-T.CivDB = function()
+T.dbRaw = function()
   local db = CivDB{path=DBF, mode='w+'}; db.cache = ds.Forget{}
   T.eq(1, db:createRaw'test1')
   db.f:seek('set', 0)
@@ -47,11 +47,24 @@ T.CivDB = function()
   T.binEq('civdb\0\x07\xE2\x65test1', f:read(14))
   f:close()
 
-  -- reload index
+  -- reload
   local db = CivDB{path=DBF, mode='r+'}; db.cache = ds.Forget{}
   T.eq('test1', db:readRaw(1))
   T.eq(22,      db:readRaw(2))
   T.eq(nil,     db:readRaw(3))
   T.eq(3,       db:createRaw{33})
   T.eq({33},    db:readRaw(3))
+
+  db:updateRaw(2, 23)
+  T.eq('test1', db:readRaw(1))
+  T.eq(23,      db:readRaw(2))
+  T.eq({33},    db:readRaw(3))
+  db:delete(1); T.eq(nil, db:readRaw(1))
+  db:close()
+
+  -- reload
+  local db = CivDB{path=DBF, mode='r+'}; db.cache = ds.Forget{}
+  T.eq(nil,  db:readRaw(1))
+  T.eq(23,   db:readRaw(2))
+  T.eq({33}, db:readRaw(3))
 end

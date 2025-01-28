@@ -62,12 +62,12 @@ local Op = mty'Op' {
 
 local CREATE_OP = assert(encode(true))
 local updateOp = function(row) return encode( row) end
-local deleteOp = function(row) return enocde(-row) end
+local deleteOp = function(row) return encode(-row) end
 
 --- Op:decode(val) - decode the operation.
 Op.decode = function(T, v)
   if v == true then return T{kind='create'} end
-  assert(mtype(v) == 'number', 'invalid op')
+  assert(mtype(v) == 'integer', 'invalid op')
   if v >= 0    then return T{kind='update', row= v}
                else return T{kind='delete', row=-v} end
 end
@@ -153,10 +153,9 @@ end
 --- Modify the value of the row with the value
 --- Note: directly encodes with toPod (ignores schema)
 CivDB.updateRaw = function(db, row, value)
-  local row = db._row
+  assert(row < db._row)
   local pos, dat = db:_pushvalue(updateOp(row), value)
-  db.idx[row] = pos; db._row = row + 1
-  db.cache[row] = dat
+  db.idx[row], db.cache[row] = pos, dat
 end
 
 --- Delete the row, future reads will return nil
