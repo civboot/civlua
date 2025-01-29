@@ -15,14 +15,7 @@ local shim = require'shim'
 --- Typically [$t.to] is unset (default=stderr) or set to stdout.
 M.Fmt = function(t)
   t.to = t.to or io.stderr
-  if t.style == nil then t.style = shim.getEnvBool'COLOR' end
-  if t.style or (t.style==nil) and fd.isatty(t.to) then
-    t.style, t.to = true, acs.Styler {
-      acwriter = require'vt100.AcWriter'{f=t.to},
-      style = acs.loadStyle(),
-    }
-  end
-  return fmt.Fmt(t)
+  return acs.Fmt(t)
 end
 
 M.setupFmt = function(to) io.fmt = M.Fmt{to=to} end

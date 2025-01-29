@@ -104,4 +104,18 @@ M.Styler.__newindex = function(st, k, v)
   st.acwriter:write(v)
 end
 
+--- create a Fmt with sensible defaults from the config
+M.Fmt = function(t)
+  assert(t.to, 'must set to = the output')
+  if t.style == nil then t.style = shim.getEnvBool'COLOR' end
+  if t.style or (t.style==nil) and fd.isatty(t.to) then
+    t.style, t.to = true, M.Styler {
+      acwriter = require'vt100.AcWriter'{f=t.to},
+      style = M.loadStyle(),
+    }
+  end
+  return fmt.Fmt(t)
+end
+
+
 return M

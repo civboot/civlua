@@ -10,6 +10,7 @@ local ds   = require'ds'
 local pth  = require'ds.path'
 local Iter = require'ds.Iter'
 local civix = require'civix'
+local acs = require'asciicolor.style'
 
 local sfmt, gsub = string.format, string.gsub
 local push = table.insert
@@ -41,12 +42,12 @@ M.Main = mty'Main' {
 --- to [$io.fmt].
 M.find = function(path, pats, sub) --> boolean
   local found, l, find, ms, me, pi, pat = false, 0, ds.find
-  local f, stdout = io.fmt, io.stdout
+  local f, sf = io.fmt, acs.Fmt{to=io.stdout}
   for line in io.lines(path) do
     l, ms, me, pi, pat = l + 1, find(line, pats)
     if ms then
       if not found then
-        stdout:write(nice(path), '\n'); stdout:flush()
+        sf:styled('path', nice(path), '\n'); sf:flush()
         found = true
       end
       fmtMatch(f, l, line, ms, me)
