@@ -53,7 +53,16 @@ PKG_LOOKUP['myMod.Pos'] = M.Pos
 * [$ty(v)] return the metaty of [$v]. For tables this is [$getmetatable(v)],
   else it is [$type(v)].
 * [$metaty'name' {'field1[type] documentation', 'field2[type]'}]
-  creates a documented and typo-safe record type (see examples)
+  creates a documented and typo-safe record type (see examples) [+
+    * the [$[type]] field can also be in the form [${type}] for a list
+      of the type or [${string: type}] for a map of the type.
+    * [$@<decimal>] (i.e. [$@2]) can be put after the type to specify the
+      decimal value to use for the field when de/serializing.
+
+      It is recommended that once you assign a field to a decimal value to
+      never change it if there is any chance it is stored or being used
+      by an RPC service/etc with the previous version.
+  ]
 ]
 
 See also: [<#Package_fmt>]
@@ -84,6 +93,8 @@ The following fields can optionally be set on the metatable: [+
   ]
 * default values (i.e. [$y] in the example) are assigned directly to the type.
   Documentation formatters may use these to format help messages.
+* [$__fieldIds]: set using the [$@<decimal>] syntax after the type, used
+  for de/serializing.
 ]
 
 In addition, there is runtime type specification defined below.

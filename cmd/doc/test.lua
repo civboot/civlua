@@ -108,6 +108,7 @@ another line\
 ]\
 [*Values: ] [{table}\
 + [$doc_test.Example.__docs] | \\[table\\] \
++ [$doc_test.Example.__fieldIds] | \\[table\\] \
 + [$doc_test.Example.__fields] | \\[table\\] \
 + [$doc_test.Example.__name] | \\[string\\] \
 ]\

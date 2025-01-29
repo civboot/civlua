@@ -17,10 +17,10 @@ end
 
 local function assertEq(expect, result)
   if M.eq(expect, result) then return end
-  local f = Fmt:pretty{}
-  print("! EXPECT: ", tostring(expect))
-  print("! RESULT: ", tostring(result))
-  error'Values not mty.eq'
+  error('Values not mty.eq: '..
+    require'fmt'.Fmt:pretty{}:concat('',
+      "! EXPECT: ", expect, '\n',
+      "! RESULT: ", result, '\n'):tostring())
 end
 
 local function assertMatch(expectPat, result)
@@ -104,10 +104,10 @@ end)
 test('record', function()
   local A = M'A'{'a2[any]', 'a1[any]'}
   local B = mty'B'{
-    'b1[number]', 'b2[number] (default=32)',
-    'a[A]'
+    'b1[number]@1',
+    'b2[number]@2: has default', b2 = 32,
+    'a[A]@3'
   }
-  B.b2 = 32
 
   local a = A{a1='hi', a2=5}
   assert(A == getmetatable(a))
@@ -131,6 +131,8 @@ test('record', function()
   assertEq(A.meth, M.getmethod(A,   'meth'))
   assertEq(A.meth, M.getmethod(A{}, 'meth'))
   assertEq(nil,    M.getmethod(A{}, 'does-not-exist'))
+
+  assertEq({'b1', 'b2', 'a', b1=1, b2=2, a=3}, B.__fieldIds)
 end)
 
 test('record maybe', function()

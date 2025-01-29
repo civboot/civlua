@@ -194,27 +194,39 @@ M.constructUnchecked = function(T, t)
   return setmetatable(t, T)
 end
 M.construct = (CHECK and M.constructChecked) or M.constructUnchecked
-M.extendFields = function(fields, R)
-  local docs = {}
+M.extendFields = function(fields, ids, R)
+  local docs, ids = {}, {}
   for i=1,#R do
     local spec = rawget(R, i); rawset(R, i, nil)
     -- name [type] : some docs, but [type] and ':' are optional.
     local name, tyname, fdoc =
-      spec:match'^([%w_]+)%s*(%b[])%s*:?%s*(.*)$'
+        spec:match'^([%w_]+)%s*(%b[])%s*:?%s*(.*)$'
+    if not name then -- check for {type}
+      name, tyname, fdoc =
+        spec:match'^([%w_]+)%s*(%b{})%s*:?%s*(.*)$'
+    end
     if not name then
       name, fdoc = spec:match'^([%w_]+)%s*:?%s*(.*)$'
     end
     assert(name,      'invalid spec')
     assert(#name > 0, 'empty name')
     add(fields, name); fields[name] = tyname or true
+    local id, iddoc = fdoc:match'^%s*@(%d+)%s*:?%s*(.*)$'
+    if id then
+      id = tonumber(id); fdoc = iddoc
+      if ids[id] or ids[name] then
+        error('id specified multiple times: '..name)
+      end
+      ids[name] = id; ids[id] = name
+    end
     docs[name] = fdoc ~= '' and fdoc or nil
   end
-  return fields, docs
+  return fields, ids, docs
 end
 
 M.namedRecord = function(name, R, loc)
   rawset(R, '__name', name)
-  R.__fields, R.__docs = M.extendFields({}, R)
+  R.__fields, R.__fieldIds, R.__docs = M.extendFields({}, {}, R)
   R.__index  = rawget(R, '__index') or R
   local mt = {
     __name='Ty<'..R.__name..'>',
@@ -253,7 +265,10 @@ M.extend = function(Type, name, fields)
   local E, mt = copy(Type), copy(getmetatable(Type))
   E.__name, mt.__name = name, 'Ty<'..name..'>'
   E.__index = E
-  E.__fields = copy(E.__fields); M.extendFields(E.__fields, fields)
+  E.__fields   = copy(E.__fields);
+  E.__fieldIds = copy(E.__fieldIds);
+  E.__fields, E.__fieldIds, E.__docs = M.extendFields(
+    copy(E.__fields), copy(E.__fieldIds), fields)
   for k, v in pairs(fields) do E[k] = v end
   return setmetatable(E, mt)
 end

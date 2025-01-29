@@ -15,6 +15,7 @@ Documentation for A
   are the best docs
 ]
 [{h3}Table [:docfake.A.__docs]]
+[{h3}Table [:docfake.A.__fieldIds]]
 [{h3}Table [:docfake.A.__fields]]
 [{h4}Value [:docfake.A.__name]]
 [*Records: ] [{table}

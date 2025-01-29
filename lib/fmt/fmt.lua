@@ -202,17 +202,25 @@ Fmt.format = function(f, fmt, ...) --> varargsUsed
 end
 
 --- fmt ... separated by sep
-Fmt.concat = function(f, sep, ...)
+Fmt.concat = function(f, sep, ...) --> f
   f(select(1, ...))
   for i=2,select('#', ...) do
     add(f, sep); f(select(i, ...))
   end
+  return f
 end
 --- fmt ... separated by tabs
 Fmt.tabulated = function(f, ...) return f:concat('\t', ...) end
 
 --- fmt ... separated by newlines
 Fmt.lined = function(f, ...) return f:concat('\n', ...) end
+
+Fmt.__tostring = function(f)
+  assert(not f.to, 'tostring called while storing to object')
+  return concat(f)
+end
+Fmt.tostring = Fmt.__tostring
+
 
 M.tostring = function(v, fmt)
   fmt = fmt or Fmt{}; assert(#fmt == 0, 'non-empty Fmt')

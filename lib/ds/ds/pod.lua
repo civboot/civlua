@@ -117,6 +117,11 @@ M.__fromPod = function(T, pod) --> value
   return T(t)
 end
 
+M.impl = function(T, typeMap)
+  typeMap = typeMap or {}
+  -- types = T.__types or 
+end
+
 if not getmetatable(M) then setmetatable(M, {}) end
 getmetatable(M).__call = function(_, T)
   assert(PKG_NAMES[T], 'not in PKG_NAMES')
