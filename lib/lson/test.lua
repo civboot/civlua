@@ -24,16 +24,16 @@ T.test('skipWs', function()
   de:skipWs(); T.assertEq('b', de.line:sub(de.c,de.c))
 end)
 
-local function ltest(t, enc, expectEncoding)
+local function ltest(t, enc, expectEncoding, P)
   enc = enc or M.Json{}
-  enc(t)
+  enc(t, P)
   local encoded = table.concat(enc)
   if expectEncoding then
     T.assertEq(expectEncoding, encoded)
   end
   local de = M.De(lines(encoded))
   print(encoded)
-  local decoded = de()
+  local decoded = de(P)
   T.assertEq(t, decoded)
   return enc, de
 end
@@ -85,13 +85,17 @@ T.test('round', function()
 end)
 
 T.test('lson.pod', function()
-  Tm.A = mty'A' { 'a1', 'a2' }
+  Tm.A = mty'A' { 'a1 [builtin]', 'a2 [Tm.A]' }
   pod(Tm.A)
-  local a = Tm.A{1, a1='hi'}
-  ltest(a, nil, [[{"??":"Tm.A","a1":"hi",1:1}]])
-  a = Tm.A{a1=Tm.A{a2='bye'}}
-  ltest(a, nil, [[{"??":"Tm.A","a1":{"??":"Tm.A","a2":"bye"}}]])
-  ltest({a=Tm.A{a1='hi'}}, nil, [[{"a":{"??":"Tm.A","a1":"hi"}}]])
+  local a = Tm.A{ a1='hi'}
+  ltest(a, nil, [[{"a1":"hi"}]], Tm.A)
+  a = Tm.A{a1={key='bye'}}
+  ltest(a, nil, [[{"a1":{"key":"bye"}}]], Tm.A)
+  ltest({
+      a=Tm.A{a1='a1value'}
+    }, nil,
+    [[{"a":{"a1":"a1value"}}]],
+    pod.Map{K=pod.str, V=Tm.A})
 end)
 
 T.test('lson run testing_pod', function()

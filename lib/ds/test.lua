@@ -11,9 +11,11 @@ local sfmt = string.format
 
 local mty = require'metaty'
 local fmt = require'fmt'
-local M, lines = require'ds', require'lines'
+local ds = require'ds'; local M = ds
+local lines = require'lines'
 local N = require'ds.native'
 local testing = require'lines.testing'
+local pod = require'ds.pod'
 
 local test, assertEq, assertMatch, assertErrorPat; M.auto'civtest'
 local T = require'civtest'.Test
@@ -594,27 +596,58 @@ end
 
 ---------------------
 -- ds/pod.lua
+local podRound = function(T, v)
+  local t = T(ds.deepcopy(v))
+  assertEq(v, pod.toPod(t))
+  assertEq(t, pod.fromPod(v, T))
+end
+
 T['ds.pod'] = function()
-  local pod = require'ds.pod'
   local test = mod'test'
-  test.A = mty'A'{'a', 'b', b=3}
-  test.A.__toPod = pod.__toPod; test.A.__fromPod = pod.__fromPod
+
+  -- simple type
+  test.A = pod(mty'A'{'a1 [int]#1', 'a2 [int]#2', b=3})
+  assert(test.A.__toPod)
   assertEq('test.A', PKG_NAMES[test.A])
   assertEq(test.A, PKG_LOOKUP['test.A'])
-  local a = test.A{1, 2, a='hi'}
-  assertEq({1, 2, a='hi', ['??']='test.A'}, pod.toPod(a))
-  local result = pod.fromPod(pod.toPod(a))
-  assertEq(a, result)
-  assertEq(3, result.b)
-
-  a = test.A{b=test.A{a='inner'}}
-  assertEq(
-    {b={a='inner', ['??']='test.A'}, ['??']='test.A'},
-    pod.toPod(a))
-  assertEq(a, pod.fromPod(pod.toPod(a)))
+  podRound(test.A, {a1=11})
 
   local testing_pod = require'ds.testing_pod'
   testing_pod.testAll(pod.toPod, pod.fromPod)
+
+  -- type with a map
+  test.M = pod(mty'M'{
+    's [str] #1',
+    'm {key: builtin} #2',
+  })
+  podRound(test.M, {
+    s='test string',
+    m = {
+      keya = 'valuea', [3] = 'value3',
+      l = {'value list'},
+    },
+  })
+
+  -- type with an inner type
+  test.I = mty'I'{
+    'n [number] #1',
+    'iA [test.A] #2',
+    'iI [test.I] #3',
+  }
+  getmetatable(test.I).__call = function(T, t)
+    t.iA = t.iA and test.A(t.iA) or nil
+    t.iI = t.iI and test.I(t.iI) or nil
+    return mty.construct(T, t)
+  end
+  pod(test.I)
+  podRound(test.I, {
+    n = 33,
+    iA = {a1 = -1, a2=222 },
+    iI = {
+      n = 4444,
+      iI = { n = 55555 },
+    }
+  })
 end
 
 T['ds.pod.serialize'] = function()

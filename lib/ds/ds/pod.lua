@@ -1,36 +1,222 @@
---- pod: convert types from/to plain old data (pod).
----
---- In addition to exporting it's own "pod" serialization format (via ser() and
---- deser() functions), this module exports the [$toPod()] and [$fromPod()]
---- functions for serialization libraries to use. These convert a metaty value
---- (or lua concrete value) to/from plain old data and add the configurable
---- TYPE_KEY (default='??') for deserializing the type.
----
---- A (metatable) type can support these methods by by supporting the methods
---- [$__fromPod()] and [$__toPod()]. This module provides metaty defaults for
---- these methods that should work for most simple metadta types that are
---- already PoD. You can make your type as serializable with: [{## lang=lua}
----   local M = mod'mymod' -- see pkglib for PKG_NAMES, PKG_LOOKUP
----   local pod = require'ds.pod'
----   M.MyType = mty'MyType' { ... }
----   pod(M.MyType)
----   -- Or simply:
----   M.MyType.__toPod, M.MyType.__fromPod = pod.__toPod, pod.__fromPod
---- ]##
---- Alternatively, you can implement these methods yourself. See the
---- requirements in the function documentation.
-local M = mod and mod'ds.pod' or {}
-
-M.TYPE_KEY = '??'
-
-local ds = require'ds'
+local G = G or _G
+--- pod: plain old data
+local M = G.mod and mod'ds.pod' or setmetatable({}, {})
 local N = require'ds.native'
-local getmt = getmetatable
-local icopy, popk, none = ds.icopy, ds.popk
 
+local mty = require'metaty'
+local ds   = require'ds'
+local trace = require'ds.log'.trace
+
+local push = table.insert
 local isPod = ds.isPod
-local toPod, fromPod, TO_POD, FROM_POD
 local ser, deser = N.ser, N.deser
+local errorf = require'fmt'.errorf
+local mtype = math.type
+
+
+--- Pod: configuration for converting values to/from POD.
+M.Pod = mty'Pod'{
+  'fieldIds [boolean]: if true use the fieldIds when possible',
+}
+local Pod = M.Pod
+Pod.DEFAULT = Pod{}
+local CONCRETE = { boolean=1, number=1, string=1 }
+local BUILTIN = ds.copy(CONCRETE, { ['nil']=1, table=1 })
+
+--- A type who's sole job is converting values to/from POD.
+M.Podder = mty'Podder' {
+  'name [string]',
+  '__toPod   [(self, pset, v) -> p]',
+  '__fromPod [(self, pset, p) -> v]',
+}
+M.Podder.__tostring = function(p) return p.name end
+
+local makeNativePodder = function(ty)
+  local expected = 'expected '..ty
+  local f = function(self, pod, v)
+    if v == nil then return end
+    if type(v) ~= ty then errorf('expected %s got %s', ty, type(v)) end
+    return v
+  end
+  return M.Podder{name=ty, __toPod=f, __fromPod=f}
+end
+local tpInt = function(self, pod, i)
+  if i == nil then return end
+  if mtype(i) ~= 'integer' then error('expected integer got '..type(i)) end
+  return i
+end
+
+local BUILTIN_PODDER = {
+  ['nil'] = makeNativePodder'nil',
+  boolean = makeNativePodder'boolean',
+  number = makeNativePodder'number',
+  string = makeNativePodder'string',
+  table = makeNativePodder'table',
+  integer = M.Podder{
+    name='integer', __toPod=tpInt, __fromPod=tpInt,
+  },
+}
+BUILTIN_PODDER.table.__toPod = function(T, pod, t)
+  if type(t) ~= 'table' then error('expected table got '..type(t)) end
+  assert(isPod(t), 'table is not plain-old-data')
+  return t
+end
+BUILTIN_PODDER.int = BUILTIN_PODDER.integer
+BUILTIN_PODDER.str = BUILTIN_PODDER.string
+
+for k, p in pairs(BUILTIN_PODDER) do M[k] = p end
+M['nil'], M.nil_ = nil, BUILTIN_PODDER['nil']
+
+--- Handles concrete non-nil types (boolean, number, string)
+M.key = mty'key' {}
+M.key.__toPod = function(self, pod, v)
+  if CONCRETE[type(v)] then return v end
+  error('nonconrete type: '..type(v))
+end
+M.key.__fromPod = M.key.__toPod
+BUILTIN_PODDER.key = M.key
+
+--- Handles all native types (nil, boolean, number, string, table)
+M.builtin = mty'builtin' {}; local builtin = M.builtin
+builtin.__toPod = function(self, pod, v)
+  local ty = type(v)
+  if ty == 'table' then
+    assert(isPod(v), 'table is not plain-old-data')
+    return v
+  elseif BUILTIN[ty]   then return v end
+  error('nonnative type: '..type(v))
+end
+builtin.__fromPod = function(self, pod, v)
+  if BUILTIN[type(v)] then return v end
+  error('nonbuiltin type: '..type(v))
+end
+BUILTIN_PODDER.builtin = builtin
+
+--- Poder for a list of items with a type.
+M.List = mty'List' {'I [Podder]: the type of each list item'}
+M.List.__toPod = function(self, pod, l)
+  local I, p = self.I, {}
+  for i, v in ipairs(l) do p[i] = I:__toPod(pod, v) end
+  return p
+end
+M.List.__fromPod = function(self, pod, p)
+  local I, l = self.I, {}
+  for i, v in ipairs(l) do l[i] = I:__fromPod(pod, v) end
+  return l
+end
+
+--- Poder for a map of key/value pairs.
+M.Map = mty'Map' {
+  'K [Podder]: keys type', K=M.key,
+  'V [Podder]: values type',
+}
+M.Map.__toPod = function(self, pod, m)
+  local K, V, p = self.K, self.V, {}
+  for k, v in pairs(m) do
+    p[K:__toPod(pod, k)] = V:__toPod(pod, v)
+  end
+  return p
+end
+M.Map.__fromPod = function(self, pod, p)
+  local K, V, m = self.K, self.V, {}
+  for k, v in pairs(p) do
+    m[K:__fromPod(pod, k)] = V:__fromPod(pod, v)
+  end
+  return m
+end
+
+M.toPod = function(v, podder, pod)
+  trace('toPod start podder=%q', podder)
+  if not podder then
+    local ty = type(v)
+    if ty == 'table' then
+      podder = getmetatable(v) or M.table
+      if podder == 'table' then podder = M.table end
+    else
+      podder = BUILTIN_PODDER[ty] or error('not pod: '..ty)
+    end
+  end
+  trace('toPod %q podder=%q', v, podder)
+  return podder:__toPod(pod or Pod.DEFAULT, v)
+end
+M.fromPod = function(v, poder, pod)
+  return (poder or builtin):__fromPod(pod or Pod.DEFAULT, v)
+end
+local toPod, fromPod = M.toPod, M.fromPod
+
+--- Default __toPod for metatype records
+M.mty_toPod = function(T, pod, t)
+  local p, podders = {}, T.__podders
+  if pod.fieldIds then
+    local fieldIds = T.__fieldIds
+    for _, field in ipairs(T.__fields) do
+      local v = t[field]; if v ~= nil then
+        p[fieldIds[field]] = podders[field]:__toPod(pod, v)
+      end
+    end
+  else
+    for _, field in ipairs(T.__fields) do
+      local v = t[field]; if v ~= nil then
+        p[field]           = podders[field]:__toPod(pod, v)
+      end
+    end
+  end
+  return p
+end
+
+--- Default __fromPod for metatype records
+M.mty_fromPod = function(T, pod, p)
+  local t, podders, fieldIds = {}, T.__podders, T.__fieldIds
+  for k, v in pairs(p) do
+    if type(k) == 'number' then k = fieldIds[k] end
+    t[k] = podders[k]:__fromPod(pod, v)
+  end
+  return T(t)
+end
+
+--- lookup podder from types, native, PKG_LOOKUP
+local lookupPodder = function(T, types, name)
+  if G.PKG_NAMES[T] == name then return T end
+  local p = types[name] or BUILTIN_PODDER[name] or G.PKG_LOOKUP[name]
+         or error('Cannot find type '..name)
+  if not (p.__toPod and p.__fromPod) then
+    error(name.." doesn't implement both __toPod and __fromPod")
+  end
+  return p
+end
+
+--- Make metaty type convertable to/from plain-old-data
+---
+--- Typically this is called by calling the module itself,
+--- i.e. [$pod(mty'myType'{'field [int]#1'})]
+M.implPod = function(T, tys)
+  tys = tys or {}
+  local errs, podders, podder = {}, {}, nil
+  for _, field in ipairs(T.__fields) do
+    local tyname = T.__fields[field]
+    if type(tyname) ~= 'string' then
+      push(errs, field..' does not have tyname specified') end
+    if tyname:match'%b[]' then
+      podder = lookupPodder(T, tys, tyname:sub(2,-2))
+    elseif tyname:match'%b{}' then
+      tyname = tyname:sub(2,-2)
+      local kname, vname = tyname:match'^%s*(.-)%s*:%s*(.-)%s*$'
+      if kname then
+        podder = M.Map {
+          K=lookupPodder(T, tys, kname), V=lookupPodder(T, tys, vname),
+        }
+      else podder = M.List{I=lookupPodder(T, tys, tyname)} end
+    else error('unrecognized tyname: '..tyname) end
+    podders[field] = podder
+  end
+  if #errs > 0 then errorf(
+    'Errors: \n * %s\n', table.concat(errs, '\n * ')
+  )end
+  T.__podders = podders
+  T.__toPod = M.mty_toPod
+  T.__fromPod = M.mty_fromPod
+  return T
+end
 
 --- serialize the value (without calling toPod on it)
 M.serRaw = N.ser--(value) --> string
@@ -51,81 +237,5 @@ M.deser = function(str, index) --> value, lenUsed
   return fromPod(v), elen
 end
 
---- Serialize value t into plain old data
-M.toPod = function(val) return TO_POD[type(val)](val) end --> PoD
-toPod = M.toPod
-
---- Depod plain old data into metaty
-M.fromPod = function(pod) --> value
-  return (FROM_POD[type(pod)] or error('unknown type: '..type(pod)))
-    (pod)
-end
-fromPod = M.fromPod
-
-M.TO_POD = { -- pod value into pod
-  ['nil'] = ds.iden, boolean = ds.iden,
-  number  = ds.iden, string  = ds.iden,
-  table = function(t)
-    local mt = getmt(t); if mt then
-      if type(mt) == 'table' then
-        return assert(mt.__toPod, 'metatable missing __toPod')(t)
-      end
-      if mt ~= 'table' then return t end -- is a sentinel
-    end
-    if isPod(t) then return t end
-    local out = {}; for k, v in pairs(t) do out[k] = toPod(v) end
-    return out
-  end,
-}
-TO_POD = M.TO_POD
-
-M.FROM_POD = { -- fromPod pod into value
-  ['nil'] = ds.iden, boolean = ds.iden,
-  number  = ds.iden, string  = ds.iden,
-  table = function(t)
-    local ty = rawget(t, M.TYPE_KEY)
-    return ty and PKG_LOOKUP[ty]:__fromPod(t) or t
-  end,
-}
-FROM_POD = M.FROM_POD
-
---- Default metaty [$__toPod] method.
----
---- Convert an type instance to a plain table. The returned table must be only
---- plain old data composed of only bool, number, string or non-metatable
---- values.
----
---- The returned table has a TYPE_KEY field which can be used with PKG_LOOKUP.
-M.__toPod = function(self) --> table
-  local t, mt = icopy(self), getmt(self)
-  t[M.TYPE_KEY] = PKG_NAMES[mt]
-  for k in pairs(mt.__fields) do t[k] = toPod(rawget(self, k)) end
-  return t
-end
-
---- Default metaty [$__fromPod] method.
----
---- This implementation converts a table of PoD to the metaty by first
---- converting it's fields (except TYPE_KEY) and then using
---- [$getmetatable(T).__call] to construct it.
----
---- To use this, the metatable.call method must be able to handle the plain
---- data input, otherwise you need to implement this method yourself.
-M.__fromPod = function(T, pod) --> value
-  local t = {}; for k, v in pairs(pod) do t[k] = fromPod(v) end
-  rawset(t, M.TYPE_KEY, nil)
-  return T(t)
-end
-
-M.impl = function(T, typeMap)
-  typeMap = typeMap or {}
-  -- types = T.__types or 
-end
-
-if not getmetatable(M) then setmetatable(M, {}) end
-getmetatable(M).__call = function(_, T)
-  assert(PKG_NAMES[T], 'not in PKG_NAMES')
-  T.__toPod, T.__fromPod = M.__toPod, M.__fromPod
-end
-
+getmetatable(M).__call = function(M, ...) return M.implPod(...) end
 return M

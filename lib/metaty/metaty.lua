@@ -194,8 +194,7 @@ M.constructUnchecked = function(T, t)
   return setmetatable(t, T)
 end
 M.construct = (CHECK and M.constructChecked) or M.constructUnchecked
-M.extendFields = function(fields, ids, R)
-  local docs, ids = {}, {}
+M.extendFields = function(fields, ids, docs, R)
   for i=1,#R do
     local spec = rawget(R, i); rawset(R, i, nil)
     -- name [type] : some docs, but [type] and ':' are optional.
@@ -211,7 +210,7 @@ M.extendFields = function(fields, ids, R)
     assert(name,      'invalid spec')
     assert(#name > 0, 'empty name')
     add(fields, name); fields[name] = tyname or true
-    local id, iddoc = fdoc:match'^%s*@(%d+)%s*:?%s*(.*)$'
+    local id, iddoc = fdoc:match'^%s*#(%d+)%s*:?%s*(.*)$'
     if id then
       id = tonumber(id); fdoc = iddoc
       if ids[id] or ids[name] then
@@ -219,14 +218,14 @@ M.extendFields = function(fields, ids, R)
       end
       ids[name] = id; ids[id] = name
     end
-    docs[name] = fdoc ~= '' and fdoc or nil
+    docs[name] = (fdoc ~= '') and fdoc or nil
   end
   return fields, ids, docs
 end
 
 M.namedRecord = function(name, R, loc)
   rawset(R, '__name', name)
-  R.__fields, R.__fieldIds, R.__docs = M.extendFields({}, {}, R)
+  R.__fields, R.__fieldIds, R.__docs = M.extendFields({}, {}, {}, R)
   R.__index  = rawget(R, '__index') or R
   local mt = {
     __name='Ty<'..R.__name..'>',
@@ -268,7 +267,7 @@ M.extend = function(Type, name, fields)
   E.__fields   = copy(E.__fields);
   E.__fieldIds = copy(E.__fieldIds);
   E.__fields, E.__fieldIds, E.__docs = M.extendFields(
-    copy(E.__fields), copy(E.__fieldIds), fields)
+    copy(E.__fields), copy(E.__fieldIds), copy(E.__docs), fields)
   for k, v in pairs(fields) do E[k] = v end
   return setmetatable(E, mt)
 end

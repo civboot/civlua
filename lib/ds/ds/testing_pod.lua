@@ -60,8 +60,10 @@ M.TABLES = {
   {'one', 'two', 'three', key='value'},
 }
 
-M.ALL = ds.flatten(M.BOOLS, M.STRINGS, M.BYTES, M.LISTS, M.MAPS, M.TABLES)
+M.BUILTIN = ds.flatten(M.BOOLS, M.STRINGS, M.BYTES, M.LISTS, M.MAPS, M.TABLES)
 
-M.testAll = function(...) return M.roundList(M.ALL, ...) end
+M.testAll = function(...)
+  M.roundList(M.BUILTIN, ...)
+end
 
 return M

@@ -12,6 +12,7 @@ local sfmt, rep = string.format, string.rep
 local sortKeys = fmt.sortKeys
 local toPod, fromPod = pod.toPod, pod.fromPod
 local Json, Lson, De
+local none = ds.none
 
 --------------------
 -- Main Public API
@@ -38,7 +39,7 @@ M.decode = function(s) return De(s)() end --> obj
 --- This works identically to metaty.Fmt except it overrides
 --- how tables are formatted to use JSON instead of printing them.
 M.Json = mty.extend(fmt.Fmt, 'Json', {
-  'null [any]: value to use for null', null=ds.none,
+  'null [any]: value to use for null', null=none,
   'listStart [string]', listStart = '[',
   'listEnd [string]',   listEnd   = ']',
   indexEnd = ',',  keyEnd = ',',
@@ -76,8 +77,11 @@ M.Json.table = function(f, t)
     if #keys > 1 then push(f, f.tableEnd)   else push(f, '}') end
   end
 end
-M.Json.__call = function(f, v)
-  v = toPod(v)
+M.Json.__call = function(f, v, podder, pod)
+  log.trace('Json.__call %q', v)
+  if v ~= none then
+    v = toPod(v, podder, pod)
+  end
   f[type(v)](f, v); return f
 end
 M.Json.tableKey = M.Json.__call
@@ -209,7 +213,7 @@ end
 --- [$for val in De'["my", "lson"]' do ... end]
 M.De = mty'De' {
   'dat [lines]: lines-like data to parse',
-  'null [any]: value to use for null', null=ds.none,
+  'null [any]: value to use for null', null=none,
 
   -- mostly internal
   'l [int]', 'c [int]', 'line [string]',
@@ -249,13 +253,13 @@ M.De.consume = function(de, pat, context)
   de.c = c2 + 1
   return line:sub(c1, c2)
 end
-M.De.__call = function(de)
+M.De.__call = function(de, podder, pod)
   de:skipWs(true)
   local l, c = de.l, de.c
   if l > #de.dat then return end
   local fn = DE_FNS[de.line:sub(c, c)] or error(sfmt(
     'unrecognized character: %q', de.line:sub(c,c)))
-  return fromPod(fn(de))
+  return fromPod(fn(de), podder, pod)
 end
 
 Json, Lson, De = M.Json, M.Lson, M.De -- locals

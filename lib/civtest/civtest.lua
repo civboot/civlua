@@ -22,7 +22,7 @@ local function errordiff(e, r)
   io.fmt(require'lines.diff'.Diff(e, r));
 end
 local function fail(name)
-  error(sfmt('Failed %s', name), 3)
+  error(sfmt('Failed %s', name), 2)
 end
 
 M.Test = (mty'Test'{})

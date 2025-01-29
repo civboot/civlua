@@ -69,6 +69,9 @@ local isPod; isPod = function(v)
   local ty = type(v)
   if ty == 'table' then
     local mt = getmetatable(v)
+    if mt then
+      return type(mt) == 'string' -- allow sentinels
+    end
     if mt and (mt ~= 'table') then return false end
     for k, v in pairs(v) do
       if not (isPod(k) and isPod(v)) then
@@ -680,7 +683,15 @@ M.sentinel = function(name, mt) --> NewType
   }, mt or {})
   mt.__index = mt
   setmetatable(mt, {__name='Ty<'..name..'>', __index=mty.indexError})
-  return setmetatable({}, mt)
+  local S = setmetatable({}, mt)
+  mt.__toPod   = function() return S end
+  mt.__fromPod = function(_, pod, v)
+    if v ~= S then error('expected '..name..' got '..type(v)) end
+    return v
+  end
+  rawset(S, '__toPod', mt.__toPod)
+  rawset(S, '__fromPod', mt.__fromPod)
+  return S
 end
 
 --- none: "set as none" vs nil aka "unset"

@@ -104,9 +104,9 @@ end)
 test('record', function()
   local A = M'A'{'a2[any]', 'a1[any]'}
   local B = mty'B'{
-    'b1[number]@1',
-    'b2[number]@2: has default', b2 = 32,
-    'a[A]@3'
+    'b1[number]#1',
+    'b2[number]#2: has default', b2 = 32,
+    'a[A]#3'
   }
 
   local a = A{a1='hi', a2=5}
