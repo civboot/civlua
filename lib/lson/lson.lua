@@ -14,6 +14,11 @@ local toPod, fromPod = pod.toPod, pod.fromPod
 local Json, Lson, De
 local none = ds.none
 
+--- classify none as pod
+local podSet = pod.Pod{
+  mtPodFn=function(v, mt) return v == none end
+}
+
 --------------------
 -- Main Public API
 
@@ -80,7 +85,7 @@ end
 M.Json.__call = function(f, v, podder, pod)
   log.trace('Json.__call %q', v)
   if v ~= none then
-    v = toPod(v, podder, pod)
+    v = toPod(v, podder, pod or podSet)
   end
   f[type(v)](f, v); return f
 end
@@ -259,7 +264,7 @@ M.De.__call = function(de, podder, pod)
   if l > #de.dat then return end
   local fn = DE_FNS[de.line:sub(c, c)] or error(sfmt(
     'unrecognized character: %q', de.line:sub(c,c)))
-  return fromPod(fn(de), podder, pod)
+  return fromPod(fn(de), podder, pod or podSet)
 end
 
 Json, Lson, De = M.Json, M.Lson, M.De -- locals

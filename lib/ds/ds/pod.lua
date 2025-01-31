@@ -5,7 +5,6 @@ local N = require'ds.native'
 
 local mty = require'metaty'
 local ds   = require'ds'
-local trace = require'ds.log'.trace
 
 local push = table.insert
 local isPod = ds.isPod
@@ -17,6 +16,8 @@ local mtype = math.type
 --- Pod: configuration for converting values to/from POD.
 M.Pod = mty'Pod'{
   'fieldIds [boolean]: if true use the fieldIds when possible',
+  'mtPodFn  [(mt) -> boolean]: function to classify if mt is pod',
+    mtPodFn = ds.noop,
 }
 local Pod = M.Pod
 Pod.DEFAULT = Pod{}
@@ -58,7 +59,7 @@ local BUILTIN_PODDER = {
 }
 BUILTIN_PODDER.table.__toPod = function(T, pod, t)
   if type(t) ~= 'table' then error('expected table got '..type(t)) end
-  assert(isPod(t), 'table is not plain-old-data')
+  assert(isPod(t, pod.mtPodFn), 'table is not plain-old-data')
   return t
 end
 BUILTIN_PODDER.int = BUILTIN_PODDER.integer
@@ -81,7 +82,7 @@ M.builtin = mty'builtin' {}; local builtin = M.builtin
 builtin.__toPod = function(self, pod, v)
   local ty = type(v)
   if ty == 'table' then
-    assert(isPod(v), 'table is not plain-old-data')
+    assert(isPod(v, pod.mtPodFn), 'table is not plain-old-data')
     return v
   elseif BUILTIN[ty]   then return v end
   error('nonnative type: '..type(v))
@@ -126,7 +127,6 @@ M.Map.__fromPod = function(self, pod, p)
 end
 
 M.toPod = function(v, podder, pod)
-  trace('toPod start podder=%q', podder)
   if not podder then
     local ty = type(v)
     if ty == 'table' then
@@ -136,7 +136,6 @@ M.toPod = function(v, podder, pod)
       podder = BUILTIN_PODDER[ty] or error('not pod: '..ty)
     end
   end
-  trace('toPod %q podder=%q', v, podder)
   return podder:__toPod(pod or Pod.DEFAULT, v)
 end
 M.fromPod = function(v, poder, pod)

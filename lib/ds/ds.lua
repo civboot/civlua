@@ -65,16 +65,13 @@ M.isConcrete = function(v) return CONCRETE_TYPES[type(v)] end
 --
 -- Plain old data is defined as any concrete type or a table with no metatable
 -- and who's pairs() are only POD.
-local isPod; isPod = function(v)
+local isPod; isPod = function(v, mtFn)
   local ty = type(v)
   if ty == 'table' then
     local mt = getmetatable(v)
-    if mt then
-      return type(mt) == 'string' -- allow sentinels
-    end
-    if mt and (mt ~= 'table') then return false end
+    if mt then return mtFn(v, mt) end
     for k, v in pairs(v) do
-      if not (isPod(k) and isPod(v)) then
+      if not (isPod(k, mtFn) and isPod(v, mtFn)) then
         return false
       end
     end
