@@ -1,15 +1,17 @@
 local G = G or _G
 
 --- metaty: simple but effective Lua type system using metatable
-local M = G.mod and G.mod'metaty' or {}
-setmetatable(M, getmetatable(M) or {})
+local M = G.mod and G.mod'metaty' or setmetatable({}, {})
+
+local concat = table.concat
+local srep = string.rep
+local add, sfmt = table.insert, string.format
 
 local function copy(t)
   local o = {}; for k, v in pairs(t) do o[k] = v end; return o
 end
 
-local concat = table.concat
-local srep = string.rep
+-- FIXME: remove this
 string.concat = string.concat or function(...)
   return select('#', ...) > 1 and concat{...} or (...) or ''
 end
@@ -42,7 +44,6 @@ end
 ---------------
 -- general functions and constants
 M.DEPTH_ERROR = '{!max depth reached!}'
-local add, sfmt = table.insert, string.format
 
 M.ty = function(o) --> Type: string or metatable
   local t = type(o)
@@ -250,7 +251,7 @@ end
 
 M.record = function(name)
   assert(type(name) == 'string' and #name > 0,
-         'must set __name=string')
+         'must set name to string')
   return function(R) return M.namedRecord(name, R) end
 end
 assert(not getmetatable(M).__call)
@@ -270,6 +271,121 @@ M.extend = function(Type, name, fields)
     copy(E.__fields), copy(E.__fieldIds), copy(E.__docs), fields)
   for k, v in pairs(fields) do E[k] = v end
   return setmetatable(E, mt)
+end
+
+M.enum_tostring = function(E) return E.__name end
+M.enum_toPod = function(E, pset, e)
+  if pset.enumId then return E.id(e) else return E.name(e) end
+end
+M.enum_partialMatcher = function(E, fnMap)
+  for name, fn in pairs(fnMap) do
+    if not E.__names[name] then error(name..' is not in enum '..E.__name) end
+    if not M.callable(fn) then error(name ..'is not callable') end
+  end
+  for name, id in pairs(E.__names) do
+    if fnMap[name] then fnMap[id] = fnMap[name] end
+  end
+  return fnMap
+end
+M.enum_matcher = function(E, fnMap)
+  local missing = {}
+  for name in pairs(E.__names) do
+    if not fnMap[name] then add(missing, name) end
+  end
+  if #missing > 0 then
+    error('missing variants (or set default): '
+          ..table.concat(missing, ' '))
+  end
+  return E:partialMatcher(fnMap)
+end
+
+local ENUM_INVALID = {id=1, name=1, matcher=1, partialMatcher=2}
+M.namedEnum = function(ename, nameIds)
+  local names, ids = {}, {}
+  for name, id in pairs(nameIds) do
+    assert(type(name) == 'string' and #name > 0,
+      'keys must be string names')
+    assert(math.type(id) == 'integer' and id > 0,
+      'values must be integer ids greater than 0')
+    assert(not ENUM_INVALID[name], 'must not name variant id, name')
+    assert(name:sub(1,2) ~= '__', "name must not start with '__'")
+    names[name] = name; names[id] = name
+    ids[name]   = id;   ids[id]   = id
+  end
+  local errmsg = ' is not a variant of enum '..ename
+  local E = {
+    __name = ename,
+    __names=nameIds,
+    name = function(v) return names[v]
+                       or error(tostring(v)..errmsg) end,
+    id = function(v) return ids[v]
+                     or error(tostring(v)..errmsg) end,
+    __tostring = M.enum_tostring,
+    matcher = M.enum_matcher, partialMatcher = M.enum_partialMatcher,
+  }
+  for name in pairs(nameIds) do E[name] = name end
+  E.__toPod, E.__fromPod = M.enum_toPod, E.name
+  return setmetatable(E, {
+    __name = ename, __tostring = E.__tostring,
+    __index = function(k) error(sfmt(
+      'enum %s has no method %s', ename, k
+    )) end
+  })
+end
+
+--- Create an enum type which can convert between string and integers.
+---
+--- This "type" is mainly to allow typosafe enums, both when creating the variant
+--- (i.e. [$v = MyEnum.VARIANT]) and when matching using the [$matcher] method below.
+--- It also allows using checked enums in [$ds.pod].
+---
+--- One of the main benefits of using an enum is to ensure that when you are
+--- matching you don't make a typo mistake (i.e. WOKER instead of WORKER). In
+--- lua there is no native [$switch] statement (or similar), but table lookup
+--- on functions can be equally as good -- see the example below.
+---
+--- [{h2}Example]
+--- [{### lang=lua}
+--- M.Job = enum'Job' {
+---   OWNER   = 1,
+---   MANAGER = 2,
+---   COOK    = 3,
+---   WAITER  = 4,
+--- }
+---
+--- assert('OWNER', M.Job.OWNER)
+---
+--- -- either string or id will return string
+--- assert('OWNER', M.Job.name(1))
+--- assert('OWNER', M.Job.name('OWNER'))
+---
+--- -- either string or id will return id
+--- assert(1, M.Job.id(1))
+--- assert(1, M.Job.id('OWNER'))
+---
+--- -- create a table that converts a variant (name or id) -> function.
+--- local doJob = M.Job:matcher {
+---   OWNER   = function() print'tell them to get to work' end,
+---   MANAGER = function() print'get to work!'             end,
+---   COOK    = function() print'order up!'                end,
+---   WAITER  = function() print'they want spam and eggs'  end,
+---
+---   -- Removing any of the above will cause an error that not all variants
+---   -- are covered. You can use :partialMatcher if you want to
+---   -- return nil instead.
+---   --
+---   -- Below will cause an error: no variant DISHWASHER
+---   DISHWASHER = function() end
+--- }
+---
+--- -- call in your own function like:
+--- doJob[job](my, args)
+--- ]###
+---
+M.enum = function(name)
+  assert(type(name) == 'string' and #name > 0,
+        'must set name to string')
+  return function(nameIds) return M.namedEnum(name, nameIds) end
 end
 
 return M

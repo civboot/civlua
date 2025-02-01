@@ -18,6 +18,7 @@ M.Pod = mty'Pod'{
   'fieldIds [boolean]: if true use the fieldIds when possible',
   'mtPodFn  [(mt) -> boolean]: function to classify if mt is pod',
     mtPodFn = ds.noop,
+  'enumIds [boolean]: if true use enum id variants, else name variants',
 }
 local Pod = M.Pod
 Pod.DEFAULT = Pod{}

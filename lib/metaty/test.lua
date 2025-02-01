@@ -162,6 +162,32 @@ test('globals', function()
   assertEq(ge, gr)
 end)
 
+test('enum', function()
+  local E = M.enum'E' {
+    A = 1, B = 2, C = 3,
+  }
+  assertEq('A', E.A); assertEq('B', E.B)
+  assertEq('A', E.name'A'); assertEq('A', E.name(1))
+  assertEq('C', E.name'C'); assertEq('C', E.name(3))
+
+  assertEq(1, E.id'A'); assertEq(1, E.id(1))
+
+  local fn = function() end
+  assertErrorPat('missing variants',
+    function() E:matcher {A=fn, B=fn} end)
+
+  local var, val
+  local m = E:matcher{
+    A=function(v) var, val = 'A', v end,
+    B=function(v) var, val = 'B', v end,
+    C=function(v) var, val = 'C', v end,
+  }
+  m.A(22);  assertEq('A', var);  assertEq(22, val)
+  m.B(33);  assertEq('B', var);  assertEq(33, val)
+  m[3](44); assertEq('C', var); assertEq(44, val)
+  assertEq(nil, m.D)
+end)
+
 -- test('fmtFile', function()
 --   local f = Fmt{file=io.open('.out/TEST', 'w+')}
 --   f:fmt{1, 2, z='bob', a='hi'}
