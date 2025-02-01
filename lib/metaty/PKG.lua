@@ -1,5 +1,5 @@
 name     = 'metaty'
-version  = '0.1-14'
+version  = '0.1-15'
 url      = 'git+http://github.com/civboot/civlua'
 summary  = "Simple but effective Lua type system using metatables"
 homepage = "https://lua.civboot.org#Package_metaty"
