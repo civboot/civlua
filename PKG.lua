@@ -6,35 +6,37 @@ repo    = 'https://github.com/civboot/civlua'
 homepage = 'https://lua.civboot.org'
 srcs = { 'civ.lua' }
 pkgs = {
+  -- lib/pkg: better lua package management
+
   -- Core
-  'lib/shim',
-  'lib/metaty',
-  'lib/fmt',
-  'lib/civtest',
-  'lib/ds',
-  'lib/civdb',
-  'lib/lines',
-  'lib/lap',
-  'lib/fd',
-  'lib/civix',
-  'lib/lson',
-  'lib/pegl',
+  'lib/shim',    -- cmdline args library
+  'lib/metaty',  -- simple types based on metatables
+  'lib/fmt',     -- formatting for types (and raw tables)
+  'lib/civtest', -- simple unit testing
+  'lib/ds',      -- data structures and algorithms
+  'lib/lines',   -- work with files as a table of lines
+  'lib/lap',     -- lua asynchronous protocol
+  'lib/fd',      -- asynchronous filedescriptors
+  'lib/civix',   -- civlua unix interface
+  'lib/lson',    -- JSON and binary-supporting LSON serde
+  'lib/pegl',    -- PEG-like parsing library
 
   -- data storage / vcs
-  'lib/smol',
+  'lib/luck',    -- user configuration
+  'lib/smol',    -- binary diffs and compression
+  'lib/civdb',   -- minimalist CRUD database
   'lib/vcds',
-  'lib/luck',
 
   -- Interacting with the user
-  'ui/asciicolor',
-  'ui/vt100',
+  'ui/asciicolor', -- simple style and color to the user
+  'ui/vt100',    -- VT100 terminal interface
 
   -- cmd
-  'cmd/cxt',
-  'cmd/doc',
-  'cmd/ff',
-  'cmd/pkgrock',
-  'cmd/ele',
+  'cmd/cxt',     -- simple text markup language
+  'cmd/doc',     -- read and write inline documentation
+  'cmd/ff',      -- fast-find and replace tool
+  'cmd/pkgrock', -- interface with luarocks
+  'cmd/ele',     -- Extendable Lua Editor (and shell)
 }
 
 local FILE = 'https://github.com/civboot/civlua/blob/main/'

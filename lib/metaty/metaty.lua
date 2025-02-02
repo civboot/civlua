@@ -305,8 +305,8 @@ M.namedEnum = function(ename, nameIds)
   for name, id in pairs(nameIds) do
     assert(type(name) == 'string' and #name > 0,
       'keys must be string names')
-    assert(math.type(id) == 'integer' and id > 0,
-      'values must be integer ids greater than 0')
+    assert(math.type(id) == 'integer' and id >= 0,
+      'values must be integer ids greater >= 0')
     assert(not ENUM_INVALID[name], 'must not name variant id, name')
     assert(name:sub(1,2) ~= '__', "name must not start with '__'")
     names[name] = name; names[id] = name
@@ -384,7 +384,7 @@ end
 ---
 M.enum = function(name)
   assert(type(name) == 'string' and #name > 0,
-        'must set name to string')
+        'must name the enum using a string')
   return function(nameIds) return M.namedEnum(name, nameIds) end
 end
 

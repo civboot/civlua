@@ -12,6 +12,7 @@ G.LAP_FNS_SYNC  = G.LAP_FNS_SYNC  or {}
 
 local trace = G.LOG and G.LOG.trace or function() end
 local S = require'fd.sys' -- fd.c, fd.h
+local mty = require'metaty'
 local ds = require'ds'
 
 local sfmt      = string.format
@@ -21,21 +22,26 @@ local NL        = -string.byte'\n'
 local iotype    = io.type
 local sconcat   = ds.concat
 
+local S_IFMT = S.S_IFMT
+local fstmode = S.fstmode
+
 S.POLLIO = S.POLLIN | S.POLLOUT
 
-M.FMODE = {
-  [S.S_IFSOCK] = 'sock', [S.S_IFLNK] = 'link', [S.S_IFREG] = 'file',
-  [S.S_IFBLK]  = 'blk',  [S.S_IFDIR] = 'dir',  [S.S_IFCHR] = 'chr',
-  [S.S_IFIFO]  = 'fifo',
+M.FMODE = mty.enum'FMODE' {
+  sock = S.S_IFSOCK, link = S.S_IFLNK, file = S.S_IFREG,
+  blk = S.S_IFBLK,  dir = S.S_IFDIR,  chr = S.S_IFCHR,
+  fifo = S.S_IFIFO,
 }
+local fmodeName = M.FMODE.name
 
-local MFLAGS = {
+local MFLAGS = mty.enum'MFLAGS'{
   ['r']  = S.O_RDONLY, ['r+']= S.O_RDWR,
   ['w']  = S.O_WRONLY | S.O_CREAT | S.O_TRUNC,
   ['a']  = S.O_WRONLY | S.O_CREAT | S.O_APPEND,
   ['w+'] = S.O_RDWR   | S.O_CREAT | S.O_TRUNC,
   ['a+'] = S.O_RDWR   | S.O_CREAT | S.O_APPEND,
 }
+local mflagsInt = MFLAGS.id
 
 local AGAIN_CODE = {
   [S.EWOULDBLOCK] = true, [S.EAGAIN] = true,
@@ -253,7 +259,7 @@ __index = {
 
 M.openWith = function(openFn, path, mode)
   mode = mode or 'r'
-  local flags = assert(MFLAGS[mode:gsub('b', '')], 'invalid mode')
+  local flags = mflagsInt(mode:gsub('b', ''))
   local f = openFn(path, flags); M.finishRunning(f, 'sleep', 0.005)
   if f:code() ~= 0 then error(sfmt("open failed: %s", f:codestr())) end
   return f
@@ -317,13 +323,12 @@ M.fileno = function(fd)
   local meth = rawget(getmetatable(fd), 'fileno')
   return meth and meth(fd)
 end
+local fileno = M.fileno
 M.ftype = function(f)
-  local t = M.FMODE[S.S_IFMT & S.fstmode(M.fileno(f))]
-  if t then return t end
-  return nil, 'file has unknown mode'
+  return fmodeName(S_IFMT & fstmode(fileno(f)))
 end
 M.isatty = function(fd)
-  fd = type(fd) == 'number' and fd or M.fileno(fd)
+  fd = type(fd) == 'number' and fd or fileno(fd)
   return fd and S.isatty(fd)
 end
 

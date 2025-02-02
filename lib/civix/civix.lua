@@ -19,6 +19,7 @@ local construct = mty.construct
 
 local toDir, toNonDir = pth.toDir, pth.toNonDir
 local cmpDirsLast = pth.cmpDirsLast
+local fmodeName = fd.FMODE.name
 
 -- TODO: actually implement
 lib.getpagesize = function() return 4096 end
@@ -84,7 +85,7 @@ end
 M.pathtype = function(path)
   local stat, err = lib.stat(path)
   if not stat then return nil, err end
-  return assert(fd.FMODE[C.S_IFMT & stat:mode()])
+  return fmodeName(C.S_IFMT & stat:mode())
 end
 M.isFile = function(path) return M.pathtype(path) == 'file' end
 M.isDir  = function(path) return M.pathtype(path) == 'dir'  end
