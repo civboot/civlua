@@ -91,8 +91,12 @@ void serTable(LS* L) {
   int tablei = lua_gettop(L);
   size_t llen = lua_rawlen(L, tablei), mlen = 0; // list/map lens
   lua_pushnil(L); while(lua_next(L, tablei)) {
-    lua_pop(L, 1); // pop value
-    if(!lua_isinteger(L, -1) || (lua_tointeger(L, -1) > llen)) mlen += 1;
+    lua_pop(L, 1); // ignore value
+    if(!lua_isinteger(L, -1)) mlen += 1;
+    else {
+      lua_Integer i = lua_tointeger(L, -1);
+      if((i <= 0) || (i > llen)) mlen += 1;
+    }
   }
   ASSERT(lua_checkstack(L, 20 + llen + mlen), "not enough stack");
   lua_pushnil(L); // for map loop, needed BEFORE buffinit
@@ -114,8 +118,9 @@ void serTable(LS* L) {
   while(true) { // serialize map items
     lua_pushvalue(L, tablei+1); if(!lua_next(L, tablei)) break;
     lua_copy(L, -2, tablei+1); // copy key for next loop
-    if(lua_isinteger(L, -2) && (lua_tointeger(L, -2) <= llen)) {
-      lua_pop(L, 2); continue;
+    if(lua_isinteger(L, -2)) {
+      int i = lua_tointeger(L, -2);
+      if((0 < i) && (i <= llen)) { lua_pop(L, 2); continue; } // skip list item
     }
 
     ser(L);

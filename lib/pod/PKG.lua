@@ -1,5 +1,5 @@
 name     = 'pod'
-version  = '0.1-2'
+version  = '0.1-3'
 url      = 'git+http://github.com/civboot/civlua'
 summary  = "Plain old data (POD) de/serialization"
 homepage = "https://lua.civboot.org#Package_pod"

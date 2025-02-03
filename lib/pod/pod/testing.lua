@@ -58,6 +58,7 @@ M.MAPS = {
 
 M.TABLES = {
   {'one', 'two', 'three', key='value'},
+  {[-2] = 'neg 2', [-1] = 'neg 1', [0] = 'zero', 'one', 'two'}
 }
 
 M.BUILTIN = ds.flatten(M.BOOLS, M.STRINGS, M.BYTES, M.LISTS, M.MAPS, M.TABLES)
