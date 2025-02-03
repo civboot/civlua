@@ -1,5 +1,5 @@
 local G = G or _G
-local M = G.mod and mod'ds.testing_pod' or {}
+local M = G.mod and mod'pod.testing' or {}
 
 local T  = require'civtest'.Test
 local ds = require'ds'

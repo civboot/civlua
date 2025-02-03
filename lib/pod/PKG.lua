@@ -12,6 +12,7 @@ deps = {
 srcs = {
   'pod.lua',
   ['pod.native'] = 'pod.c',
+  'pod/testing.lua',
 }
 libs = {
   ['pod.native'] = 'pod.so',

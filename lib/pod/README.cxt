@@ -48,7 +48,7 @@ Explanation of above:[+
 [{h2}Serialization Best Practices]
 [+
 * Only make a type pod if it is actually plain-old-data -- the type must be
-  always convert to/from Lua concrete types [/even if called on a different
+  always convert to/from Lua concrete types [,even if called on a different
   machine or on a future date]. For instance don't implement pod on a type with
   a file inside it (even if you're using a path to reload it) since another
   machine might not have that specific path!

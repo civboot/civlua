@@ -99,7 +99,7 @@ T.test('lson.pod', function()
 end)
 
 T.test('lson run testing_pod', function()
-  local tp = require'ds.testing_pod'
+  local tp = require'pod.testing'
   tp.testAll(M.lson, M.decode)
   tp.testAll(M.json, M.decode)
 end)

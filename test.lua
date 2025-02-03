@@ -26,12 +26,15 @@ print'[[core]]'
 
   dofile(dir..'lib/shim/test.lua')
   dofile(dir..'lib/ds/test.lua')
+
   dofile(dir..'lib/lines/test_diff.lua')
   dofile(dir..'lib/lines/test.lua')
   dofile(dir..'lib/lines/test_motion.lua')
   assert(io_open == io.open)
   dofile(dir..'lib/lines/test_file.lua')
   dofile(dir..'lib/lines/test_buffer.lua')
+
+  dofile(dir..'lib/pod/test.lua')
   dofile(dir..'lib/lap/test.lua')
   dofile(dir..'lib/fd/test.lua')
 
