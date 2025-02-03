@@ -31,7 +31,7 @@ M.Test.eq = function(a, b)
   local f = io.fmt
   f:styled('error', '\n!! RESULT:', '\n');   f(b)
   if mty.ty(a) ~= mty.ty(b) then
-    f:styled('error', '!! TYPES NOT EQUAL', ': ',
+    f:styled('error', '\n!! TYPES:', ' ',
              mty.name(a), ' != ', mty.name(b), '\n')
   else
     if type(a) == 'string' then

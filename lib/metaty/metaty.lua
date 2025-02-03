@@ -243,6 +243,7 @@ M.namedRecord = function(name, R, loc)
   local mt = {
     __name='Ty<'..R.__name..'>',
     __newindex=mod and mod.__newindex,
+    __tostring=function() return R.__name end,
   }
   local R = setmetatable(R, mt)
   if G.METATY_CHECK then
@@ -255,17 +256,18 @@ M.namedRecord = function(name, R, loc)
   return R
 end
 
+M.record = function(name)
+  assert(type(name) == 'string' and #name > 0,
+         'must set name to string')
+  return function(R) return M.namedRecord(name, R) end
+end
+
 M.isRecord = function(t)
   if type(t) ~= 'table' then return false end
   local mt = getmetatable(t)
   return mt and mt.__name and mt.__name:find'^Ty<'
 end
 
-M.record = function(name)
-  assert(type(name) == 'string' and #name > 0,
-         'must set name to string')
-  return function(R) return M.namedRecord(name, R) end
-end
 
 --- Extend the Type with (optional) new name and (optional) additional fields.
 M.extend = function(Type, name, fields)
@@ -287,8 +289,9 @@ end
 
 M.enum_tostring = function(E) return E.__name end
 M.enum_toPod = function(E, pset, e)
-  if pset.enumId then return E.id(e) else return E.name(e) end
+  if pset.enumIds then return E.id(e) else return E.name(e) end
 end
+M.enum_fromPod = function(E, pset, e) return E.name(e) end
 M.enum_partialMatcher = function(E, fnMap)
   for name, fn in pairs(fnMap) do
     if not E.__names[name] then error(name..' is not in enum '..E.__name) end
@@ -336,7 +339,7 @@ M.namedEnum = function(ename, nameIds)
     matcher = M.enum_matcher, partialMatcher = M.enum_partialMatcher,
   }
   for name in pairs(nameIds) do E[name] = name end
-  E.__toPod, E.__fromPod = M.enum_toPod, E.name
+  E.__toPod, E.__fromPod = M.enum_toPod, M.enum_fromPod
   return setmetatable(E, {
     __name = ename, __tostring = E.__tostring,
     __index = function(k) error(sfmt(

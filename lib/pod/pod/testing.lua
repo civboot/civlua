@@ -2,17 +2,21 @@ local G = G or _G
 local M = G.mod and mod'pod.testing' or {}
 
 local T  = require'civtest'.Test
-local ds = require'ds'
+local mty = require'metaty'
+local ds  = require'ds'
 local fmt = require'fmt'
+local pod = require'pod'
 
 --- Test [$eq(v, decFn(encFn(v))]
 --- If expectEncoding is provided then test [$eq(expectEncoding, encFn(v)]
 M.round = function(v, encFn, decFn, expectEncoding) --> (enc, dec)
-  local enc = encFn(v)
+  local P = mty.ty(v); if type(P) == 'string' then P = nil end
+  print('!! round', fmt(P))
+  local enc = encFn(v, P)
   if expectEncoding ~= nil then
     T.binEq(expectEncoding, enc)
   end
-  local dec = decFn(enc)
+  local dec = decFn(enc, P)
   T.eq(v, dec)
   return enc, dec
 end
@@ -63,8 +67,46 @@ M.TABLES = {
 
 M.BUILTIN = ds.flatten(M.BOOLS, M.STRINGS, M.BYTES, M.LISTS, M.MAPS, M.TABLES)
 
+M.E = mty.enum'E' {
+  FIRST  = 1,
+  SECOND = 2,
+}
+
+--- A simple type
+M.A = pod(mty'A'{
+  'i [int]#1',
+  'e [pod.testing.E] #2', e=M.E.SECOND,
+})
+
+-- type with an embedded map
+M.M = pod(mty'M'{
+  's [str] #1',
+  'm {key: builtin} #2',
+})
+
+-- type with inner types (including recursive)
+M.I = mty'I'{
+  'n [number] #1',
+  'iA [pod.testing.A] #2',
+  'iI [pod.testing.I] #3',
+}
+getmetatable(M.I).__call = function(T, t)
+  t.iA = t.iA and M.A(t.iA) or nil
+  t.iI = t.iI and M.I(t.iI) or nil
+  return mty.construct(T, t)
+end
+pod(M.I)
+
+M.roundMetaty = function(encFn, decFn)
+  local round = function(v) return M.round(v, encFn, decFn) end
+
+  round(M.A{})
+  round(M.A{i=42, e=M.E.FIRST})
+end
+
 M.testAll = function(...)
   M.roundList(M.BUILTIN, ...)
+  M.roundMetaty(...)
 end
 
 return M

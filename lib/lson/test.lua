@@ -100,6 +100,8 @@ end)
 
 T.test('lson run testing_pod', function()
   local tp = require'pod.testing'
+  local encLson = function(v, P) return table.concat(Lson{}(v, P)) end
+  local encJson = function(v, P) return table.concat(Json{}(v, P)) end
   tp.testAll(M.lson, M.decode)
   tp.testAll(M.json, M.decode)
 end)

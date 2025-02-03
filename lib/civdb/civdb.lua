@@ -20,7 +20,7 @@ local byte = string.byte
 local trace = require'ds.log'.trace
 
 local encv = require'pod.native'.enci
-local encode, decode = pod.ser, pod.deser
+local ser, deser = pod.ser, pod.deser
 
 local fileInit = getmetatable(LFile).__call
 
@@ -69,9 +69,9 @@ local readEntry = function(f) --> (string?, lensz|error)
 end
 
 
-local CREATE_OP = assert(encode(true))
-local updateOp = function(row) return encode( row) end
-local deleteOp = function(row) return encode(-row) end
+local CREATE_OP = assert(ser(true))
+local updateOp = function(row) return ser( row) end
+local deleteOp = function(row) return ser(-row) end
 
 --- Op:decode(val) - decode the operation.
 Op.decode = function(T, v)
@@ -86,9 +86,9 @@ local readTx = function(f) --> Op, value, readamt
   local tx, lensz = readEntry(f)
   print('!! readTx lensz:', lensz)
   if not tx then return nil, nil, lensz end
-  local op, oplen = decode(tx)
+  local op, oplen = deser(tx)
   trace('readTx: op=%q vlen=%i', op, #tx - oplen)
-  return Op:decode(op), decode(tx, oplen + 1), lensz + #tx
+  return Op:decode(op), deser(tx, nil, oplen + 1), lensz + #tx
 end
 
 
@@ -176,7 +176,7 @@ end
 
 DB._pushvalue = function(db, op, value) --> pos, dat
   print('!! pushvalue', fbin(op), value)
-  local dat = assert(encode(value))
+  local dat = assert(ser(value))
   local f, pos, len = db.f, db._eofpos, #op + #dat
   assert(pos)
   assert(pos == f:seek('set', pos))

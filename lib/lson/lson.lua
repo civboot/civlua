@@ -35,7 +35,7 @@ M.lson = function(v, pretty) --> string
 end
 
 -- Decode JSON/LSON string to lua value
-M.decode = function(s) return De(s)() end --> obj
+M.decode = function(s, podder, pset) return De(s)(podder, pset) end --> obj
 
 ------------------
 -- JSON Encoder
@@ -258,13 +258,13 @@ M.De.consume = function(de, pat, context)
   de.c = c2 + 1
   return line:sub(c1, c2)
 end
-M.De.__call = function(de, podder, pod)
+M.De.__call = function(de, podder, pset)
   de:skipWs(true)
   local l, c = de.l, de.c
   if l > #de.dat then return end
   local fn = DE_FNS[de.line:sub(c, c)] or error(sfmt(
     'unrecognized character: %q', de.line:sub(c,c)))
-  return fromPod(fn(de), podder, pod or podSet)
+  return fromPod(fn(de), podder, pset or podSet)
 end
 
 Json, Lson, De = M.Json, M.Lson, M.De -- locals
