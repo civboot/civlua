@@ -18,6 +18,7 @@ local mty  = require'metaty'
 local fd = require'fd'
 local fmt  = require'fmt'
 local ds   = require'ds'
+local pod = require'pod'
 local pth = require'ds.path'
 local Iter = require'ds.Iter'
 local lines = require'lines'
@@ -45,8 +46,8 @@ local objTyStr = function(obj)
   local ty = type(obj)
   return (ty == 'table') and mty.tyName(mty.ty(obj)) or ty
 end
-local isConcrete = function(obj)
-  return ds.isConcrete(obj) or (getmetatable(obj) == nil)
+local isBuiltin = function(obj)
+  return pod.isConcrete(obj) or (obj == nil) or (getmetatable(obj) == nil)
 end
 
 local _construct = function(T, d)
@@ -252,7 +253,7 @@ local VALID = {['function']=true, table=true}
 
 M.modinfo = function(obj) --> (name, loc)
   if type(obj) == 'function' then return mty.fninfo(obj) end
-  if ds.isConcrete(obj)      then return type(obj), nil end
+  if isBuiltin(obj)          then return type(obj), nil end
   local name, loc = PKG_NAMES[obj], PKG_LOC[obj]
   name = name or (type(obj) == 'table') and rawget(obj, '__name')
   if loc and loc:find'%[' then loc = INTERNAL end

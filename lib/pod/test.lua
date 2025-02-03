@@ -12,7 +12,23 @@ local podRound = function(P, v)
   T.eq(t, pod.fromPod(v, P))
 end
 
-T['ds.pod'] = function()
+T.isPod = function()
+  T.eq(true,  pod.isPod(true))
+  T.eq(true,  pod.isPod(false))
+  T.eq(true,  pod.isPod(3))
+  T.eq(true,  pod.isPod(3.3))
+  T.eq(true,  pod.isPod'hi')
+
+  T.eq(nil,  pod.isPod(function() end))
+  T.eq(nil,  pod.isPod(io.open'PKG.lua'))
+
+  T.eq(true, pod.isPod{1, 2, a=3})
+  T.eq(true, pod.isPod{1, 2, a={4, 5, b=6}})
+  T.eq(false, pod.isPod{1, 2, a={4, 5, b=function() end}})
+end
+
+
+T.toPod = function()
   local test = mod'test'
 
   -- simple type
