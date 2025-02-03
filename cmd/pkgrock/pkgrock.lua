@@ -85,8 +85,7 @@ M.main = function(t)
   require'civ'.setupFmt()
   local to = io.fmt
   local styled = function(...)
-    to:styled('notify', table.concat({...}, '\t'))
-    to:write'\n'
+    to:styled('notify', table.concat({...}, '\t'), '\n')
   end
   if t.gitops then
     assert(os.execute'git diff --quiet --exit-code', 'git repo has diffs')
