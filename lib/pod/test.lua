@@ -76,10 +76,10 @@ T.toPod = function()
 end
 
 T['ds.pod.serialize'] = function()
-  testing.testAll(pod.ser, function(str)
-    local d, len = pod.deser(str)
+  testing.testAll(pod.ser, function(str, P)
+    local t, len = pod.deser(str, P)
     T.eq(#str, len) -- decoded full length
-    return d
+    return t
   end)
 end
 

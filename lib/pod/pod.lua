@@ -170,14 +170,14 @@ M.mty_toPod = function(T, pod, t)
   local p, podders = {}, T.__podders
   if pod.fieldIds then
     local fieldIds = T.__fieldIds
-    for _, field in ipairs(T.__fields) do
-      local v = t[field]; if v ~= nil then
+    for field, field in ipairs(T.__fields) do
+      local v = rawget(t, field); if v ~= nil then
         p[fieldIds[field]] = podders[field]:__toPod(pod, v)
       end
     end
   else
     for _, field in ipairs(T.__fields) do
-      local v = t[field]; if v ~= nil then
+      local v = rawget(t, field); if v ~= nil then
         p[field]           = podders[field]:__toPod(pod, v)
       end
     end
@@ -253,9 +253,9 @@ end
 
 --- Deserialize value from a compact string (and call fromPod on it)
 --- [$index] (default=1) is where to start in [$str]
-M.deser = function(str, index) --> value, lenUsed
-  local v, elen = deser(str, index)
-  return fromPod(v), elen
+M.deser = function(str, P, index) --> value, lenUsed
+  local p, elen = deser(str, index)
+  return fromPod(p, P), elen
 end
 
 getmetatable(M).__call = function(M, ...) return M.implPod(...) end

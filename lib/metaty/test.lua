@@ -203,6 +203,10 @@ test('enum', function()
   m.B(33);  assertEq('B', var);  assertEq(33, val)
   m[3](44); assertEq('C', var); assertEq(44, val)
   assertEq(nil, m.D)
+
+  local T = M'T' { 'i [int]', 'e [E]', e=E.A}
+  assertEq(T{i=3, e=E.A}, T{i=3, e=E.A})
+  assert(not M.eq(T{i=3}, T{i=3, e=E.A}))
 end)
 
 -- test('fmtFile', function()

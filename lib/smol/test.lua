@@ -150,6 +150,10 @@ T.compress_files = function()
 end
 
 T.walk_compress = function()
+  local walkpath = os.getenv'SMOL_TEST_PATH'
+  if not walkpath then
+    return print'skipping: set SMOL_TEST_PATH=./ (for example) to run'
+  end
   local sm = smol.Smol{}
   local num, osize, rsize, hsize, ssize = 0, 0, 0, 0, 0
   for path, ftype in civix.Walk{'./'} do
