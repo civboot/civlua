@@ -66,7 +66,7 @@ M.loadStyle = function(mode, path)
   if path and civix.isFile(path) then
     log.info('loading style from %s', path)
     local cfg = require'luck'.load(path, {MODE = mode})
-    return ds.update(ds.copy(style), cfg)
+    return ds.update(table.update({}, style), cfg)
   end
   return style
 end

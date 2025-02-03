@@ -20,7 +20,7 @@ local push, pop = table.insert, table.remove
 local yield     = coroutine.yield
 local NL        = -string.byte'\n'
 local iotype    = io.type
-local sconcat   = ds.concat
+local sconcat   = string.concat -- note: from metaty
 
 local S_IFMT = S.S_IFMT
 local fstmode = S.fstmode

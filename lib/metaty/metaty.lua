@@ -3,19 +3,28 @@ local G = G or _G
 --- metaty: simple but effective Lua type system using metatable
 local M = G.mod and G.mod'metaty' or setmetatable({}, {})
 
+do
+  local treq = function(n) --> try to require n from metaty.native
+    local ok, o = pcall(function() return require'metaty.native'[n] end)
+    if ok then return o end
+  end
+  string.concat = treq'concat'
+  or function(sep, ...) return concat({...}, sep) end
+
+  table.update = table.update or treq'update'
+  or function(t, update)
+    for k, v in pairs(update) do t[k] = v end; return t
+  end
+
+  table.push = table.push or treq'push'
+  or function(t, v) local i = #t + 1; t[i] = v; return i end
+end
+
 local concat = table.concat
 local srep = string.rep
-local add, sfmt = table.insert, string.format
+local sfmt = string.format
 
-local function copy(t)
-  local o = {}; for k, v in pairs(t) do o[k] = v end; return o
-end
-
--- FIXME: remove this
-string.concat = string.concat or function(...)
-  return select('#', ...) > 1 and concat{...} or (...) or ''
-end
-M.strcon = string.concat; local strcon = string.concat
+local push, update = table.push, table.update
 
 ---------------
 -- Pre module: environment variables
@@ -210,7 +219,7 @@ M.extendFields = function(fields, ids, docs, R)
     end
     assert(name,      'invalid spec')
     assert(#name > 0, 'empty name')
-    add(fields, name); fields[name] = tyname or true
+    push(fields, name); fields[name] = tyname or true
     local id, iddoc = fdoc:match'^%s*#(%d+)%s*:?%s*(.*)$'
     if id then
       id = tonumber(id); fdoc = iddoc
@@ -254,21 +263,21 @@ M.record = function(name)
          'must set name to string')
   return function(R) return M.namedRecord(name, R) end
 end
-assert(not getmetatable(M).__call)
-getmetatable(M).__call = function(T, name)
-  return M.record(name)
-end
 
 --- Extend the Type with (optional) new name and (optional) additional fields.
 M.extend = function(Type, name, fields)
   name, fields = name or Type.__name, fields or {}
-  local E, mt = copy(Type), copy(getmetatable(Type))
+  local E, mt = update({}, Type), update({}, getmetatable(Type))
   E.__name, mt.__name = name, 'Ty<'..name..'>'
   E.__index = E
-  E.__fields   = copy(E.__fields);
-  E.__fieldIds = copy(E.__fieldIds);
+  E.__fields   = update({}, E.__fields);
+  E.__fieldIds = update({}, E.__fieldIds);
   E.__fields, E.__fieldIds, E.__docs = M.extendFields(
-    copy(E.__fields), copy(E.__fieldIds), copy(E.__docs), fields)
+    update({}, E.__fields),
+    update({}, E.__fieldIds),
+    update({}, E.__docs),
+    fields
+  )
   for k, v in pairs(fields) do E[k] = v end
   return setmetatable(E, mt)
 end
@@ -290,7 +299,7 @@ end
 M.enum_matcher = function(E, fnMap)
   local missing = {}
   for name in pairs(E.__names) do
-    if not fnMap[name] then add(missing, name) end
+    if not fnMap[name] then push(missing, name) end
   end
   if #missing > 0 then
     error('missing variants (or set default): '
@@ -388,4 +397,5 @@ M.enum = function(name)
   return function(nameIds) return M.namedEnum(name, nameIds) end
 end
 
+getmetatable(M).__call = function(T, name) return M.record(name) end
 return M

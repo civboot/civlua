@@ -115,6 +115,11 @@ M.tostring = tostring--(v) --> string
 --- are [$\'] (literal [$']), [$\n] (newline) and [$\t] (tab).
 M.string = string
 
+--- concatenate all items in ... with sep.
+---
+--- Note: this is an addon to from metaty.
+M['string.concat'] = string.concat--(sep, ...) --> string
+
 --- Find the pattern in the subj (subject) string, starting at the index.
 --- returns the si (start index), ei (end index) and match groups
 ---
@@ -283,17 +288,22 @@ for k, v in pairs(undocumented'io') do M[k] = v end
 --- ]
 M.table = table
 
--- concatenate a table of strings with optional separator.
---
--- Examples: [{## lang=lua}
--- concat = table.concat
--- assertEq(1..' = '..3, concat{1, ' = ', 3})
--- assertEq('1, 2, 3',   concat({1, 2, 3}, ', ')
--- ]##
+--- update to with from, return to.
+---
+--- Note: this is an addon from metaty.
+M['table.update'] = table.update--(to, from) --> to
+
+--- concatenate a table of strings with optional separator.
+---
+--- Examples: [{## lang=lua}
+--- concat = table.concat
+--- assertEq(1..' = '..3, concat{1, ' = ', 3})
+--- assertEq('1, 2, 3',   concat({1, 2, 3}, ', ')
+--- ]##
 M['table.concat'] = table.concat--(t, sep='') --> string
 
--- remove an item from a table, returning it.
--- The table is shifted if index < #table which may cost up to O(n)
+--- remove an item from a table, returning it.
+--- The table is shifted if index < #table which may cost up to O(n)
 M['table.remove'] = table.remove--(t, index=#table) --> t[index]
 
 --- sort a table in place using a comparison function [$cmp] who's behavior

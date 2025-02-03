@@ -9,6 +9,7 @@ local sfmt, srep = string.format, string.rep
 local add, concat = table.insert, table.concat
 local sort = table.sort
 local mathtype = math.type
+local sconcat = string.concat -- note: from metaty
 
 local DEPTH_ERROR = '{!max depth reached!}'
 
@@ -30,8 +31,6 @@ then      true      until     while
 ]], '%w+') do M.KEYWORD[kw] = true end
 local KEYWORD = M.KEYWORD
 
-M.strcon = rawget(string, 'concat') or function(...) return concat(...) end
-local strcon = M.strcon
 
 -- TODO: move this over here
 local split = mty.split
@@ -93,7 +92,7 @@ Fmt._write = function(f, str)
   if f.to then f.to:write(str) else rawset(f, #f + 1, str) end
 end
 Fmt.write = function(f, ...)
-  local str = strcon(...)
+  local str = sconcat('', ...)
   local doIndent = false
   for _, line in split(str, '\n') do
     if doIndent then f:_write(f._nl) end
@@ -108,7 +107,7 @@ Fmt.styled = function(f, style, text, ...)
     to:styled(style, line); doIndent = true
   end
   doIndent = false
-  for _, line in split(strcon(...), '\n') do
+  for _, line in split(sconcat('', ...), '\n') do
     if doIndent then f:_write(f._nl) end
     to:write(line); doIndent = true
   end

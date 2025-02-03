@@ -11,6 +11,7 @@ local civtest = require'civtest'
 local add, sfmt, srep = table.insert, string.format, string.rep
 local pop = table.remove
 local max = math.max
+local update = table.update
 
 local Key
 local Pat, Or, Not, Many, Maybe
@@ -371,7 +372,7 @@ local function resolveFetches(p, node, named)
   if nty == Token or nty == 'string' then return node end
   if node.clone then
     local n = named[node.clone]; if n then
-      local n = ds.copy(n)
+      local n = update({}, n)
       n.hidden, n.name, n.value = nil, nil, nil
       return n
     else return node end

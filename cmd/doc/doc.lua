@@ -27,6 +27,7 @@ local cxt = require'cxt'
 local escape = cxt.escape
 local sfmt, srep = string.format, string.rep
 local push, concat = table.insert, table.concat
+local update = table.update
 
 local sfmt, pushfmt = string.format, ds.pushfmt
 
@@ -126,7 +127,7 @@ end
 --- get fields as DocItems removing from t
 local setFields = function(d, t)
   d.fields = rawget(d.obj, '__fields'); if not d.fields then return end
-  d.fields = ds.copy(d.fields)
+  d.fields = update({}, d.fields)
   local npre = d.name..'.'
   local fdocs = rawget(d.obj, '__docs') or {}
   for i, field in ipairs(d.fields) do
@@ -172,7 +173,7 @@ M._Construct.__call = function(c, obj, key, expand, lvl) --> Doc | DocItem
   if mt ~= nil and type(mt) ~= 'table' then return d end
 
   d.call = mty.getmethod(obj, '__call')
-  local t = ds.copy(obj) -- we will remove from t as we go
+  local t = update({}, obj) -- we will remove from t as we go
   setmetatable(t, nil)
 
   setFields(d, t)

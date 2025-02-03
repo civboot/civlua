@@ -70,15 +70,6 @@ a]])
   ]])
 end
 
-T.concat = function()
-  T.eq('', N.concat(''))
-  T.eq('one', N.concat(' ', 'one'))
-  T.eq('1 2', N.concat(' ', '1', 2))
-  T.eq('12', N.concat('', '1', 2))
-  T.eq('1 none', N.concat(' ', 1, M.none))
-  T.eq('one-two-true', N.concat('-', 'one', 'two', true))
-end
-
 T.bool_and_none = function()
   local none = assert(M.none)
   assertEq(false, M.bool())

@@ -9,5 +9,9 @@ deps = {
   "lua ~> 5.3",
 }
 srcs = {
-  'metaty.lua'
+  'metaty.lua',
+  ['metaty.native'] = 'metaty.c',
+}
+libs = {
+  ['metaty.native'] = 'metaty.so',
 }
