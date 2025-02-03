@@ -23,7 +23,7 @@ M.Pod = mty'Pod'{
 local Pod = M.Pod
 Pod.DEFAULT = Pod{}
 local CONCRETE = { boolean=1, number=1, string=1 }
-local BUILTIN = ds.copy(CONCRETE, { ['nil']=1, table=1 })
+local BUILTIN = table.copy(CONCRETE, { ['nil']=1, table=1 })
 
 --- A type who's sole job is converting values to/from POD.
 M.Podder = mty'Podder' {

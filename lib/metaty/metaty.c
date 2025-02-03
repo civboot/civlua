@@ -31,7 +31,7 @@ static inline int l_concat(LS* L) {
 static void copyt(LS* L, int f, int t) {
   lua_pushnil(L);
   while(lua_next(L, f)) {
-    lua_copy(L, -2, t+1); lua_rawset(L, t);
+    lua_copy(L, t+2, t+1); lua_rawset(L, t);
     lua_pushnil(L); lua_copy(L, t+1, t+2);
   }
 }
@@ -43,7 +43,7 @@ static inline int l_copy(LS* L) {
   if(t > 3) luaL_error(L, "copy only accepts args: (t, update)");
   lua_pushnil(L);  // key space
   copyt(L, 1, t);  // t -> newt
-  if(t == 3)      copyt(L, 2, t);  // update -> newt
+  if(t == 3 && !lua_isnil(L, 2)) copyt(L, 2, t);  // update -> newt
   lua_pop(L, 1); // pop key space
   return 1;
 }
