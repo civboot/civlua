@@ -26,25 +26,25 @@ static inline int l_concat(LS* L) {
   return 1;
 }
 
-// copy from index f to index t
-// Note: t+1 must be available to hold key
-static void copyt(LS* L, int f, int t) {
+// copy from index f to table at index 4, 3 holds the key
+static inline void copyt4(LS* L, int f) {
   lua_pushnil(L);
   while(lua_next(L, f)) {
-    lua_copy(L, t+2, t+1); lua_rawset(L, t);
-    lua_pushnil(L); lua_copy(L, t+1, t+2);
+    lua_copy(L, 5, 3); lua_rawset(L, 4);
+    lua_pushnil(L); lua_copy(L, 3, 5);
   }
 }
 
 // (t, update) -> t: perform a shallow copy of table (not it's metatype)
 // If update is given then modify those keys
 static inline int l_copy(LS* L) {
-  lua_newtable(L); int t = lua_gettop(L);
-  if(t > 3) luaL_error(L, "copy only accepts args: (t, update)");
-  lua_pushnil(L);  // key space
-  copyt(L, 1, t);  // t -> newt
-  if(t == 3 && !lua_isnil(L, 2)) copyt(L, 2, t);  // update -> newt
-  lua_pop(L, 1); // pop key space
+  if(!lua_istable(L, 1)) luaL_error(L, "arg[1] must be table");
+  lua_settop(L, 3); lua_newtable(L);
+  copyt4(L, 1);        // t -> newt
+  if(!lua_isnil(L, 2)) { // update -> newt
+    if(!lua_istable(L, 2)) luaL_error(L, "arg[2] must be table");
+    copyt4(L, 2);
+  }
   return 1;
 }
 
