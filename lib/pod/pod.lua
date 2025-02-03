@@ -1,7 +1,8 @@
+print('!! loading pod')
 local G = G or _G
 --- pod: plain old data
-local M = G.mod and mod'ds.pod' or setmetatable({}, {})
-local N = require'ds.native'
+local M = G.mod and mod'pod' or setmetatable({}, {})
+local N = require'pod.native'
 
 local mty = require'metaty'
 local ds   = require'ds'
@@ -238,4 +239,5 @@ M.deser = function(str, index) --> value, lenUsed
 end
 
 getmetatable(M).__call = function(M, ...) return M.implPod(...) end
+print('!! loaded pod')
 return M

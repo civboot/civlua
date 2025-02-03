@@ -158,6 +158,7 @@ M.get = function(name, fallback)
     if fallback then return fallback(name) end
     error(sfmt('name %s (pkgname=%s) not found', name, pkgname))
   end
+  print("!! search submodules", name)
   -- search in srcs for lua modules
   for mname, mpath in pairs(M.modules(pkg.srcs)) do
     if mname == name and type(mpath) == 'string' and mpath:match'%.lua$' then
@@ -165,13 +166,16 @@ M.get = function(name, fallback)
       return package.loaded[mname]
     end
   end
+  print("!! search dynamic", name)
   -- search in libs for dynamic libraries
   for mname, mpath in pairs(pkg.libs or {}) do
-    passert(mpath)
-    package.loaded[mname] = M.loadlib(mname, pjoin(pkgdir, mpath))
-    return package.loaded[mname]
+    if mname == name then
+      passert(mpath)
+      package.loaded[mname] = M.loadlib(mname, pjoin(pkgdir, mpath))
+      return package.loaded[mname]
+    end
   end
-  error(sfmt('PKG %s found but not sub-module %q', pkgname, name))
+  error(sfmt('PKG %q found but not sub-module %q', pkgname, name))
 end
 
 --- get any path separated by '.' including both [$require'some'.thing] and

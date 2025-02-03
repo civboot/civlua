@@ -1,0 +1,60 @@
+[{h1}pod: plain-old-data library and serialization]
+
+A Lua library for specifying and converting types to/from "plain old data" and
+methods to serialize/deserialize those types to/from bytes. In lua, the 5
+supported types are: nil, boolean, integer, string, table.
+
+[{## lang=lua}
+local M = mod'mymod'
+local mty = require'metaty'
+local pod = require'pod'
+
+-- enums are already plain-old-data.
+M.Job = mty.enum'Job' { BOSS = 1, PEON = 2 }
+
+--- records need to have pod() called on them.
+--- This implements __toPod and __fromPod for the metaty record.
+M.Worker = pod(mty'Worker' {
+  'name [string] #1',    -- must specify type and #id
+  'job  [mymod.Job] #2', -- can lookup any type in PKG_LOOKUP
+  'salary [int] #3',
+  'schedule {int: mymod.Schedule} #4', -- map of weekday[1,7] -> scheduled time
+})
+
+M.Schedule = pod(mty'Schedule' {
+  'start [int]: start time in seconds since midnight',
+  'stop  [int]: stop time in seconds since midnight',
+})
+
+local serialized = pod.ser(M.Worker{...})   -- convert to string
+local worker = pod.de(serialized, M.Worker) -- convert from string
+]##
+
+Explanation of above:[+
+* [$metaty.enum] are already plain-old-data.
+* [$metaty] record types can be made plain old data by calling the
+  [$pod()] module on them.
+  * This simply implements the [$__toPod] and [$__fromPod] methods on them --
+    you can do this yourself if you prefer!
+* pod parses the metaty field type stanza as [$[singleType]], [${listType}] or
+  [${map: type}] repsecitively. The collection types are converted to
+  [$pod.List] and [$pod.Map] respectively.
+]
+
+[{h2}Best Practices]
+[+
+* Only make a type pod if it is actually plain-old-data -- the type must be
+  always convertable to/from Lua concrete types [/even if called on a different
+  machine]. For instance don't implement pod on a type with a file inside it
+  (even if you're using a path to reload it) since the other machine might not
+  have that specific path!
+* If a type may be serialized anywhere (even by an older version of the
+  program), never change or reuse the [$#id] of a field. If you need to
+  delete the field add it to [$__fieldIds={...}] to ensure future you
+  doesn't use the field id.
+]
+
+[{h2}library support]
+In addition to providing methods to de/serialize data to a compact binary form,
+pod provides the [$toPod()] and [$fromPod()] functions (used internally) to help
+other libraries (i.e. [#lson]) de/serialize arbitrary lua types.

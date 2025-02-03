@@ -3,7 +3,7 @@ local T = require'civtest'
 local M = require'lson'
 local mty = require'metaty'
 local ds  = require'ds'
-local pod = require'ds.pod'
+local pod = require'pod'
 local lines = require'lines'
 
 local Tm = mod'Tm'

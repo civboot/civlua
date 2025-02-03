@@ -4,7 +4,7 @@ local mty = require'metaty'
 local fmt = require'fmt'
 local ds = require'ds'
 local log = require'ds.log'
-local pod = require'ds.pod'
+local pod = require'pod'
 
 local empty = ds.empty
 local push, concat = table.insert, table.concat

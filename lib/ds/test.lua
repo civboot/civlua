@@ -15,7 +15,7 @@ local ds = require'ds'; local M = ds
 local lines = require'lines'
 local N = require'ds.native'
 local testing = require'lines.testing'
-local pod = require'ds.pod'
+local pod = require'pod'
 
 local test, assertEq, assertMatch, assertErrorPat; M.auto'civtest'
 local T = require'civtest'.Test
@@ -644,7 +644,6 @@ T['ds.pod'] = function()
 end
 
 T['ds.pod.serialize'] = function()
-  local pod = require'ds.pod'
   local tp = require'ds.testing_pod'
   tp.testAll(pod.ser, function(str)
     local d, len = pod.deser(str)
