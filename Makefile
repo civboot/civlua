@@ -16,7 +16,7 @@ demo: build
 	$(PRETEST) $(LUA) lib/vt100/demo.lua
 	# $(PRETEST) $(LUA) cmd/ele/demo_term.lua
 
-build: metaty fd ds civix smol
+build: metaty fd pod civix smol
 
 metaty: lib/metaty/metaty.c
 	cd lib/metaty && make build LUA_VERSION=$(LUA_VERSION)
@@ -24,8 +24,8 @@ metaty: lib/metaty/metaty.c
 fd: lib/fd/fd.c
 	cd lib/fd && make build LUA_VERSION=$(LUA_VERSION)
 
-ds: lib/ds/ds.c
-	cd lib/ds && make build LUA_VERSION=$(LUA_VERSION)
+pod: lib/pod/pod.c
+	cd lib/pod && make build LUA_VERSION=$(LUA_VERSION)
 
 civix: lib/civix/civix/lib.c
 	cd lib/civix && make build LUA_VERSION=$(LUA_VERSION)

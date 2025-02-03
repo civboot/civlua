@@ -3,7 +3,7 @@ local T = require'civtest'
 local M = require'lson'
 local mty = require'metaty'
 local ds  = require'ds'
-local pod = require'ds.pod'
+local pod = require'pod'
 local lines = require'lines'
 
 local Tm = mod'Tm'
@@ -99,7 +99,7 @@ T.test('lson.pod', function()
 end)
 
 T.test('lson run testing_pod', function()
-  local tp = require'ds.testing_pod'
+  local tp = require'pod.testing'
   tp.testAll(M.lson, M.decode)
   tp.testAll(M.json, M.decode)
 end)

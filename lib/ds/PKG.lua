@@ -12,10 +12,7 @@ deps = {
 }
 srcs = {
   'ds.lua',
-  ['ds.native'] = 'ds.c',
   'ds/Iter.lua',
-  'ds/pod.lua',
-  'ds/testing_pod.lua',
   'ds/LL.lua',
   'ds/path.lua',
   'ds/utf8.lua',

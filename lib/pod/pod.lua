@@ -1,29 +1,48 @@
+print('!! loading pod')
 local G = G or _G
 --- pod: plain old data
-local M = G.mod and mod'ds.pod' or setmetatable({}, {})
-local N = require'ds.native'
+local M = G.mod and mod'pod' or setmetatable({}, {})
+local N = require'pod.native'
 
 local mty = require'metaty'
-local ds   = require'ds'
 
 local push = table.insert
-local isPod = ds.isPod
 local ser, deser = N.ser, N.deser
-local errorf = require'fmt'.errorf
 local mtype = math.type
-
+local sfmt = string.format
 
 --- Pod: configuration for converting values to/from POD.
 M.Pod = mty'Pod'{
   'fieldIds [boolean]: if true use the fieldIds when possible',
   'mtPodFn  [(mt) -> boolean]: function to classify if mt is pod',
-    mtPodFn = ds.noop,
+    mtPodFn = function() end,
   'enumIds [boolean]: if true use enum id variants, else name variants',
 }
 local Pod = M.Pod
 Pod.DEFAULT = Pod{}
-local CONCRETE = { boolean=1, number=1, string=1 }
-local BUILTIN = ds.copy(CONCRETE, { ['nil']=1, table=1 })
+local CONCRETE = { boolean=true, number=true, string=true }
+local BUILTIN = table.update(table.update({}, CONCRETE), {
+  ['nil']=true, table=true
+})
+M.isConcrete = function(v) return CONCRETE[type(v)] end
+
+-- return true if the value is "plain old data".
+--
+-- Plain old data is defined as any native type or a table with no metatable
+-- and who's pairs() are only POD.
+local isPod; isPod = function(v, mtFn)
+  local ty = type(v); if ty == 'table' then
+    local mt = getmetatable(v); if mt then return mtFn(v, mt) end
+    for k, v in pairs(v) do
+      if not (isPod(k, mtFn) and isPod(v, mtFn)) then
+        return false
+      end
+    end
+    return true
+  end
+  return BUILTIN[ty]
+end
+M.isPod = isPod
 
 --- A type who's sole job is converting values to/from POD.
 M.Podder = mty'Podder' {
@@ -37,7 +56,9 @@ local makeNativePodder = function(ty)
   local expected = 'expected '..ty
   local f = function(self, pod, v)
     if v == nil then return end
-    if type(v) ~= ty then errorf('expected %s got %s', ty, type(v)) end
+    if type(v) ~= ty then error(sfmt(
+      'expected %s got %s', ty, type(v))
+    )end
     return v
   end
   return M.Podder{name=ty, __toPod=f, __fromPod=f}
@@ -209,9 +230,9 @@ M.implPod = function(T, tys)
     else error('unrecognized tyname: '..tyname) end
     podders[field] = podder
   end
-  if #errs > 0 then errorf(
+  if #errs > 0 then error(sfmt(
     'Errors: \n * %s\n', table.concat(errs, '\n * ')
-  )end
+  ))end
   T.__podders = podders
   T.__toPod = M.mty_toPod
   T.__fromPod = M.mty_fromPod
@@ -238,4 +259,5 @@ M.deser = function(str, index) --> value, lenUsed
 end
 
 getmetatable(M).__call = function(M, ...) return M.implPod(...) end
+print('!! loaded pod')
 return M

@@ -1,0 +1,94 @@
+[{h1}pod: plain-old-data library and serialization]
+
+A Lua library for specifying and converting types to/from "plain old data" and
+methods to serialize/deserialize those types to/from bytes. In Lua, the 5
+supported types considered "plain old data" are: nil, boolean, integer, string
+and any table of only these types.
+
+[{## lang=lua}
+local M = mod'mymod'
+local mty = require'metaty'
+local pod = require'pod'
+
+-- enums are already plain-old-data.
+M.Job = mty.enum'Job' { BOSS = 1, PEON = 2 }
+
+--- records need to have pod() called on them.
+--- This implements __toPod and __fromPod for the metaty record.
+M.Worker = pod(mty'Worker' {
+  'name [string] #1',    -- must specify type and #id
+  'job  [mymod.Job] #2', -- can lookup any type in PKG_LOOKUP
+  'salary [int] #3',
+  'schedule {int: mymod.Schedule} #4', -- map of weekday[1,7] -> scheduled time
+})
+
+M.Schedule = pod(mty'Schedule' {
+  'start [int]: start time in seconds since midnight',
+  'stop  [int]: stop time in seconds since midnight',
+})
+
+local serialized = pod.ser(M.Worker{...})   -- convert to string
+local worker = pod.de(serialized, M.Worker) -- convert from string
+]##
+
+Explanation of above:[+
+* [$metaty.enum] are already plain-old-data (no need to call [$pod()] on them).
+
+* [$metaty] record types can be made plain old data by calling the
+  [$pod()] module on them.
+
+  This simply implements the [$__toPod] and [$__fromPod] methods on them --
+  you can do this yourself if you prefer!
+
+* pod parses the metaty field type stanza as [$[singleType]], [${listType}] or
+  [${map: type}] repsecitively. The collection types are converted to
+  [$pod.List] and [$pod.Map] respectively.
+]
+
+[{h2}Serialization Best Practices]
+[+
+* Only make a type pod if it is actually plain-old-data -- the type must be
+  always convert to/from Lua concrete types [,even if called on a different
+  machine or on a future date]. For instance don't implement pod on a type with
+  a file inside it (even if you're using a path to reload it) since another
+  machine might not have that specific path!
+
+* If a type may be serialized anywhere (even by an older version of the
+  software), do not change or reuse the [$#id] of a field (changing the name is
+  okay if you can fix your dependencies).
+
+  ["If you need to delete the field then add it to [$__fieldIds={...}] to
+    ensure future you doesn't use the field id.]
+]
+
+[{h2}Usecases]
+Usecases of pod are:[+
+* database schema: The primary intended usecase of pod is to be used in
+  [@civdb] -- each "row" is simply a pod record.
+
+  ["This is likely the only usecase civlua will use]
+
+* general data storage: use [@pod.load] and [@pod.dump] to de/serialize
+  values to/from a file.
+
+* cross-language communication, see [<#xlang>Cross Language Tooling].
+
+* RPC framework: pod could be used in a similar capacity as JSON RPC to
+  communicate with other services (i.e. frontend <-> backend).
+]
+
+[{h2}library support]
+In addition to providing methods to de/serialize data to a compact binary form,
+pod exports the [$toPod()] and [$fromPod()] functions to help other libraries
+(i.e. [@lson]) de/serialize arbitrary lua types.
+
+[{h2 name=xlang}Cross Language Tooling]
+pod is designed to (eventually) serve the same need as
+[<https://protobuf.dev>protobuf]: it can and will generate code for other
+languages to read/write pod's binary serialization format.
+
+At this time, support for other languages has not started -- but the design of
+pod is meant to mimick protobuf as much as possible so that such a goal can be
+met in the future. Work on supporting multiple languages will likely not be
+part of the civlua project but the civlua project will support such work.
+

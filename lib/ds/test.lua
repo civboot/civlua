@@ -15,7 +15,6 @@ local ds = require'ds'; local M = ds
 local lines = require'lines'
 local N = require'ds.native'
 local testing = require'lines.testing'
-local pod = require'ds.pod'
 
 local test, assertEq, assertMatch, assertErrorPat; M.auto'civtest'
 local T = require'civtest'.Test
@@ -174,21 +173,6 @@ four
   assertEq("🫷!",  M.usub(u8, -2))
   assertEq("e 🫷", M.usub(u8, -4, -2))
   assertEq('',     M.usub(u8, 100))
-end
-
-T.isPod = function()
-  assertEq(true,  M.isPod(true))
-  assertEq(true,  M.isPod(false))
-  assertEq(true,  M.isPod(3))
-  assertEq(true,  M.isPod(3.3))
-  assertEq(true,  M.isPod'hi')
-
-  assertEq(nil,  M.isPod(M.noop))
-  assertEq(nil,  M.isPod(io.open'PKG.lua'))
-
-  assertEq(true, M.isPod{1, 2, a=3})
-  assertEq(true, M.isPod{1, 2, a={4, 5, b=6}})
-  assertEq(false, M.isPod{1, 2, a={4, 5, b=M.noop}})
 end
 
 T.table = function()
@@ -585,72 +569,6 @@ T.error = function()
   local ok, msg = coroutine.resume(cor)
   assert(not ok)
   assertEq(expect, M.Error.from(msg, cor))
-end
-
----------------------
--- ds/pod.lua
-local podRound = function(T, v)
-  local t = T(ds.deepcopy(v))
-  assertEq(v, pod.toPod(t))
-  assertEq(t, pod.fromPod(v, T))
-end
-
-T['ds.pod'] = function()
-  local test = mod'test'
-
-  -- simple type
-  test.A = pod(mty'A'{'a1 [int]#1', 'a2 [int]#2', b=3})
-  assert(test.A.__toPod)
-  assertEq('test.A', PKG_NAMES[test.A])
-  assertEq(test.A, PKG_LOOKUP['test.A'])
-  podRound(test.A, {a1=11})
-
-  local testing_pod = require'ds.testing_pod'
-  testing_pod.testAll(pod.toPod, pod.fromPod)
-
-  -- type with a map
-  test.M = pod(mty'M'{
-    's [str] #1',
-    'm {key: builtin} #2',
-  })
-  podRound(test.M, {
-    s='test string',
-    m = {
-      keya = 'valuea', [3] = 'value3',
-      l = {'value list'},
-    },
-  })
-
-  -- type with an inner type
-  test.I = mty'I'{
-    'n [number] #1',
-    'iA [test.A] #2',
-    'iI [test.I] #3',
-  }
-  getmetatable(test.I).__call = function(T, t)
-    t.iA = t.iA and test.A(t.iA) or nil
-    t.iI = t.iI and test.I(t.iI) or nil
-    return mty.construct(T, t)
-  end
-  pod(test.I)
-  podRound(test.I, {
-    n = 33,
-    iA = {a1 = -1, a2=222 },
-    iI = {
-      n = 4444,
-      iI = { n = 55555 },
-    }
-  })
-end
-
-T['ds.pod.serialize'] = function()
-  local pod = require'ds.pod'
-  local tp = require'ds.testing_pod'
-  tp.testAll(pod.ser, function(str)
-    local d, len = pod.deser(str)
-    T.eq(#str, len) -- decoded full length
-    return d
-  end)
 end
 
 ---------------------

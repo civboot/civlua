@@ -8,8 +8,8 @@ local M = G.mod and mod'civdb' or setmetatable({}, {})
 local mty = require'metaty'
 
 local ds = require'ds'
-local pod = require'ds.pod'
 local pth = require'ds.path'
+local pod = require'pod'
 local LFile = require'lines.File'
 
 local construct = mty.construct

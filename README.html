@@ -431,19 +431,19 @@ MyType.__newindex            = myNewIndex</code>
 metaty: simple but effective Lua type system using metatable
 <p>
 <h4>Value <a id="metaty.DEPTH_ERROR" href="#metaty.DEPTH_ERROR">metaty.DEPTH_ERROR</a></h4>
-<h3>Table <a id="metaty.KEYWORD" href="#metaty.KEYWORD">metaty.KEYWORD</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L84"><i>src</i></a>)</h3>
+<h3>Table <a id="metaty.KEYWORD" href="#metaty.KEYWORD">metaty.KEYWORD</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L87"><i>src</i></a>)</h3>
 keywords https://www.lua.org/manual/5.4/manual.html
 <h4>Value <a id="metaty.__name" href="#metaty.__name">metaty.__name</a></h4>
 <b>Functions: </b> <table>
 <tr>
 <td><code>metaty.constructChecked</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L199">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L202">src</a>)</td>
 </tr>
 </table>
-<h3>Function <a id="metaty.callable" href="#metaty.callable">metaty.callable</a><code>(obj) -&gt; bool: return if obj is callable</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L80"><i>src</i></a>)</h3>
-<h3>Function <a id="metaty.constructChecked" href="#metaty.constructChecked">metaty.constructChecked</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L199"><i>src</i></a>)</h3>
-<h3>Function <a id="metaty.constructUnchecked" href="#metaty.constructUnchecked">metaty.constructUnchecked</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L202"><i>src</i></a>)</h3>
-<h3>Function <a id="metaty.enum" href="#metaty.enum">metaty.enum</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L395"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.callable" href="#metaty.callable">metaty.callable</a><code>(obj) -&gt; bool: return if obj is callable</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L83"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.constructChecked" href="#metaty.constructChecked">metaty.constructChecked</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L202"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.constructUnchecked" href="#metaty.constructUnchecked">metaty.constructUnchecked</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L205"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.enum" href="#metaty.enum">metaty.enum</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L401"><i>src</i></a>)</h3>
 Create an enum type which can convert between string and integers.
 <p>
 This "type" is mainly to allow typosafe enums, both when creating the variant
@@ -491,51 +491,51 @@ local doJob = M.Job:matcher {
 -- call in your own function like:
 doJob[job](my, args)</code>
 <p>
-<h3>Function <a id="metaty.enum_matcher" href="#metaty.enum_matcher">metaty.enum_matcher</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L306"><i>src</i></a>)</h3>
-<h3>Function <a id="metaty.enum_partialMatcher" href="#metaty.enum_partialMatcher">metaty.enum_partialMatcher</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L295"><i>src</i></a>)</h3>
-<h3>Function <a id="metaty.enum_toPod" href="#metaty.enum_toPod">metaty.enum_toPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L285"><i>src</i></a>)</h3>
-<h3>Function <a id="metaty.enum_tostring" href="#metaty.enum_tostring">metaty.enum_tostring</a><code>(E) -&gt; E.__name</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L282"><i>src</i></a>)</h3>
-<h3>Function <a id="metaty.eq" href="#metaty.eq">metaty.eq</a><code>(a, b) -&gt; bool</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L169"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.enum_matcher" href="#metaty.enum_matcher">metaty.enum_matcher</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L312"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.enum_partialMatcher" href="#metaty.enum_partialMatcher">metaty.enum_partialMatcher</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L301"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.enum_toPod" href="#metaty.enum_toPod">metaty.enum_toPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L291"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.enum_tostring" href="#metaty.enum_tostring">metaty.enum_tostring</a><code>(E) -&gt; E.__name</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L288"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.eq" href="#metaty.eq">metaty.eq</a><code>(a, b) -&gt; bool</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L172"><i>src</i></a>)</h3>
 compare tables or anything else
-<h3>Function <a id="metaty.eqDeep" href="#metaty.eqDeep">metaty.eqDeep</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L166"><i>src</i></a>)</h3>
-<h3>Function <a id="metaty.extend" href="#metaty.extend">metaty.extend</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L280"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.eqDeep" href="#metaty.eqDeep">metaty.eqDeep</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L169"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.extend" href="#metaty.extend">metaty.extend</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L286"><i>src</i></a>)</h3>
 Extend the Type with (optional) new name and (optional) additional fields.
-<h3>Function <a id="metaty.extendFields" href="#metaty.extendFields">metaty.extendFields</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L231"><i>src</i></a>)</h3>
-<h3>Function <a id="metaty.fieldsCheck" href="#metaty.fieldsCheck">metaty.fieldsCheck</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L195"><i>src</i></a>)</h3>
-<h3>Function <a id="metaty.fninfo" href="#metaty.fninfo">metaty.fninfo</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L110"><i>src</i></a>)</h3>
-<h3>Function <a id="metaty.getCheck" href="#metaty.getCheck">metaty.getCheck</a><code>() -&gt; CHECK</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L41"><i>src</i></a>)</h3>
-<h3>Function <a id="metaty.getmethod" href="#metaty.getmethod">metaty.getmethod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L48"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.extendFields" href="#metaty.extendFields">metaty.extendFields</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L234"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.fieldsCheck" href="#metaty.fieldsCheck">metaty.fieldsCheck</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L198"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.fninfo" href="#metaty.fninfo">metaty.fninfo</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L113"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.getCheck" href="#metaty.getCheck">metaty.getCheck</a><code>() -&gt; CHECK</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L44"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.getmethod" href="#metaty.getmethod">metaty.getmethod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L51"><i>src</i></a>)</h3>
 get method of table if it exists.
 This first looks for the item directly on the table, then the item
 in the table's metatable. It does NOT use the table's normal <code>__index</code>.
-<h3>Function <a id="metaty.index" href="#metaty.index">metaty.index</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L180"><i>src</i></a>)</h3>
-<h3>Function <a id="metaty.indexError" href="#metaty.indexError">metaty.indexError</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L175"><i>src</i></a>)</h3>
-<h3>Function <a id="metaty.isEnv" href="#metaty.isEnv">metaty.isEnv</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L35"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.index" href="#metaty.index">metaty.index</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L183"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.indexError" href="#metaty.indexError">metaty.indexError</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L178"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.isEnv" href="#metaty.isEnv">metaty.isEnv</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L38"><i>src</i></a>)</h3>
 isEnv: returns boolean for below values, else nil
-<h3>Function <a id="metaty.isEnvG" href="#metaty.isEnvG">metaty.isEnvG</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L39"><i>src</i></a>)</h3>
-<h3>Function <a id="metaty.isRecord" href="#metaty.isRecord">metaty.isRecord</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L256"><i>src</i></a>)</h3>
-<h3>Function <a id="metaty.metaget" href="#metaty.metaget">metaty.metaget</a><code>(t, k) -&gt; rawget(getmetatable(t), k)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L81"><i>src</i></a>)</h3>
-<h3>Function <a id="metaty.name" href="#metaty.name">metaty.name</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L75"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.isEnvG" href="#metaty.isEnvG">metaty.isEnvG</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L42"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.isRecord" href="#metaty.isRecord">metaty.isRecord</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L262"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.metaget" href="#metaty.metaget">metaty.metaget</a><code>(t, k) -&gt; rawget(getmetatable(t), k)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L84"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.name" href="#metaty.name">metaty.name</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L78"><i>src</i></a>)</h3>
 Given an object (function, table, userdata) return its name.
 return nil if it's not one of the above types
-<h3>Function <a id="metaty.namedEnum" href="#metaty.namedEnum">metaty.namedEnum</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L340"><i>src</i></a>)</h3>
-<h3>Function <a id="metaty.namedRecord" href="#metaty.namedRecord">metaty.namedRecord</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L250"><i>src</i></a>)</h3>
-<h3>Function <a id="metaty.nativeEq" href="#metaty.nativeEq">metaty.nativeEq</a><code>(a, b) -&gt; a == b</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L139"><i>src</i></a>)</h3>
-<h3>Function <a id="metaty.newindex" href="#metaty.newindex">metaty.newindex</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186"><i>src</i></a>)</h3>
-<h3>Function <a id="metaty.rawsplit" href="#metaty.rawsplit">metaty.rawsplit</a><code>(subj, ctx) -&gt; (state, splitstr)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L124"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.namedEnum" href="#metaty.namedEnum">metaty.namedEnum</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L346"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.namedRecord" href="#metaty.namedRecord">metaty.namedRecord</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L256"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.nativeEq" href="#metaty.nativeEq">metaty.nativeEq</a><code>(a, b) -&gt; a == b</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L142"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.newindex" href="#metaty.newindex">metaty.newindex</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.rawsplit" href="#metaty.rawsplit">metaty.rawsplit</a><code>(subj, ctx) -&gt; (state, splitstr)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L127"><i>src</i></a>)</h3>
 You probably want split instead.
 Usage: <code>for ctx, line in rawsplit, text, {'\n', 1} do</code>
-<h3>Function <a id="metaty.record" href="#metaty.record">metaty.record</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L262"><i>src</i></a>)</h3>
-<h3>Function <a id="metaty.split" href="#metaty.split">metaty.split</a><code>(subj, pat--[[%s+]], index--[[1]]) -&gt; (cxt, str) iter</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L135"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.record" href="#metaty.record">metaty.record</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L268"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.split" href="#metaty.split">metaty.split</a><code>(subj, pat--[[%s+]], index--[[1]]) -&gt; (cxt, str) iter</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L138"><i>src</i></a>)</h3>
 split the subj by pattern. <code>ctx</code> has two keys: <code>si</code> (start index) and
 <code>ei</code> (end index)
 <code class="block">for ctx, line in split(text, '\n') do -- split lines
   ... do something with line
 end</code>
-<h3>Function <a id="metaty.ty" href="#metaty.ty">metaty.ty</a><code>(o) -&gt; Type: string or metatable</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L57"><i>src</i></a>)</h3>
-<h3>Function <a id="metaty.tyName" href="#metaty.tyName">metaty.tyName</a><code>(T, default) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L65"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.ty" href="#metaty.ty">metaty.ty</a><code>(o) -&gt; Type: string or metatable</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L60"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.tyName" href="#metaty.tyName">metaty.tyName</a><code>(T, default) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L68"><i>src</i></a>)</h3>
 Given a type return it's name
-<h3>Function <a id="metaty.validKey" href="#metaty.validKey">metaty.validKey</a><code>(s) -&gt; boolean: s=value is valid syntax</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L95"><i>src</i></a>)</h3>
+<h3>Function <a id="metaty.validKey" href="#metaty.validKey">metaty.validKey</a><code>(s) -&gt; boolean: s=value is valid syntax</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L98"><i>src</i></a>)</h3>
 <h3>Table <a id="metaty.native" href="#metaty.native">metaty.native</a></h3>
 <p>
 <h1><a id="Package_fmt" href="#Package_fmt">Package fmt</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fmt"><i>src</i></a>)</h1><table>
@@ -736,7 +736,7 @@ starting index to use</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>fmt.binary.Args.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h3>Function <a id="fmt.binary.ascii" href="#fmt.binary.ascii">fmt.binary.ascii</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fmt/binary.lua#L46"><i>src</i></a>)</h3>
@@ -782,7 +782,7 @@ module for writing simple tests
 <b>Methods: </b> <table>
 <tr>
 <td><code>civtest.Test.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Test.binEq" href="#Test.binEq">Test.binEq</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civtest/civtest.lua#L56"><i>src</i></a>)</h4>
@@ -917,7 +917,7 @@ Calling it is the same as popLeft (use as iterator)
 <b>Methods: </b> <table>
 <tr>
 <td><code>ds.Deq.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 <tr>
 <td><code>ds.Deq.pop</code></td>
@@ -971,7 +971,7 @@ nanoseconds</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>ds.Duration.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Duration.__add" href="#Duration.__add">Duration.__add</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L779"><i>src</i></a>)</h4>
@@ -1008,7 +1008,7 @@ nanoseconds</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>ds.Epoch.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 <tr>
 <td><code>ds.Epoch.asSeconds</code></td>
@@ -1053,7 +1053,7 @@ NOTE: you should only use this for printing/logging/etc.
 <b>Methods: </b> <table>
 <tr>
 <td><code>ds.Error.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Error.__fmt" href="#Error.__fmt">Error.__fmt</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1078"><i>src</i></a>)</h4>
@@ -1098,7 +1098,7 @@ Immutable table
 <b>Methods: </b> <table>
 <tr>
 <td><code>ds.PlainStyler.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h3>Record <a id="ds.Set" href="#ds.Set">ds.Set</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L817"><i>src</i></a>)</h3>
@@ -1148,7 +1148,7 @@ end index</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>ds.Slc.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Slc.__len" href="#Slc.__len">Slc.__len</a><code>(s) -&gt; #s</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L652"><i>src</i></a>)</h4>
@@ -1192,7 +1192,7 @@ Weak value table, see docs on <code>__mode</code>
 </tr>
 <tr>
 <td><code>ds.split</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L135">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L138">src</a>)</td>
 </tr>
 </table>
 <h3>Function <a id="ds.add" href="#ds.add">ds.add</a><code>(t, ...) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L351"><i>src</i></a>)</h3>
@@ -1447,7 +1447,7 @@ width</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>ds.Grid.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="ds.Grid.__fmt" href="#ds.Grid.__fmt">ds.Grid.__fmt</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Grid.lua#L57"><i>src</i></a>)</h4>
@@ -1487,7 +1487,7 @@ next key when <code>iter()</code>ated</td>
 </tr>
 <tr>
 <td><code>ds.Iter.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Iter.__call" href="#Iter.__call">Iter.__call</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L256"><i>src</i></a>)</h4>
@@ -1604,7 +1604,7 @@ value</td>
 </tr>
 <tr>
 <td><code>ds.LL.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 <tr>
 <td><code>ds.LL.__pairs</code></td>
@@ -1671,7 +1671,7 @@ comparison function to use</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>ds.heap.Heap.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Heap.add" href="#Heap.add">Heap.add</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/heap.lua#L74"><i>src</i></a>)</h4>
@@ -1721,7 +1721,7 @@ used in tests
 <b>Methods: </b> <table>
 <tr>
 <td><code>ds.log.LogTable.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="LogTable.__call" href="#LogTable.__call">LogTable.__call</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/log.lua#L75"><i>src</i></a>)</h4>
@@ -1737,7 +1737,6 @@ set the global logging level (default=os.getenv'LOGLEVEL')
 <h3>Function <a id="ds.log.time" href="#ds.log.time">ds.log.time</a><code>() -&gt; os.date():match'%d%d:%d%d:%d%d'</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/log.lua#L27"><i>src</i></a>)</h3>
 <h3>Function <a id="ds.log.trace" href="#ds.log.trace">ds.log.trace</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/log.lua#L71"><i>src</i></a>)</h3>
 <h3>Function <a id="ds.log.warn" href="#ds.log.warn">ds.log.warn</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/log.lua#L69"><i>src</i></a>)</h3>
-<h3>Table <a id="ds.native" href="#ds.native">ds.native</a></h3>
 <h2>Module <a id="ds.path" href="#ds.path">ds.path</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/path.lua#L5"><i>src</i></a>)</h2>
 working with paths
 Call directly to convert a list|str to a list of path components.
@@ -1783,265 +1782,6 @@ Return only the parent dir and final item.
 This is often used for documentation/etc
 <h3>Function <a id="ds.path.toDir" href="#ds.path.toDir">ds.path.toDir</a><code>(path) -&gt; path/</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/path.lua#L158"><i>src</i></a>)</h3>
 <h3>Function <a id="ds.path.toNonDir" href="#ds.path.toNonDir">ds.path.toNonDir</a><code>(path) -&gt; path (without ending /)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/path.lua#L162"><i>src</i></a>)</h3>
-<h2>Module <a id="ds.pod" href="#ds.pod">ds.pod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L3"><i>src</i></a>)</h2>
-pod: plain old data
-<p>
-<b>Values: </b> <table>
-<tr>
-<td><code>ds.pod.integer</code></td>
-<td>[Podder] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L69">src</a>)</td>
-</tr>
-<tr>
-<td><code>ds.pod.string</code></td>
-<td>[Podder] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L69">src</a>)</td>
-</tr>
-</table>
-<h4>Value <a id="ds.pod.__name" href="#ds.pod.__name">ds.pod.__name</a></h4>
-<h3>Table <a id="ds.pod.boolean" href="#ds.pod.boolean">ds.pod.boolean</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L69"><i>src</i></a>)</h3>
-<h3>Table <a id="ds.pod.int" href="#ds.pod.int">ds.pod.int</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L69"><i>src</i></a>)</h3>
-<h3>Table <a id="ds.pod.nil" href="#ds.pod.nil">ds.pod.nil</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L69"><i>src</i></a>)</h3>
-<h3>Table <a id="ds.pod.number" href="#ds.pod.number">ds.pod.number</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L69"><i>src</i></a>)</h3>
-<h3>Table <a id="ds.pod.string" href="#ds.pod.string">ds.pod.string</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L69"><i>src</i></a>)</h3>
-<h3>Table <a id="ds.pod.table" href="#ds.pod.table">ds.pod.table</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L69"><i>src</i></a>)</h3>
-<h3>Record <a id="ds.pod.List" href="#ds.pod.List">ds.pod.List</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L98"><i>src</i></a>)</h3>
-Poder for a list of items with a type.
-<p>
-<b>Fields: </b> <table>
-<tr>
-<td><code>ds.pod.List.I</code></td>
-<td>[Podder] 
-the type of each list item</td>
-</tr>
-</table>
-<h3>Table <a id="ds.pod.List.__docs" href="#ds.pod.List.__docs">ds.pod.List.__docs</a></h3>
-<h3>Table <a id="ds.pod.List.__fieldIds" href="#ds.pod.List.__fieldIds">ds.pod.List.__fieldIds</a></h3>
-<h3>Table <a id="ds.pod.List.__fields" href="#ds.pod.List.__fields">ds.pod.List.__fields</a></h3>
-<h4>Value <a id="ds.pod.List.__name" href="#ds.pod.List.__name">ds.pod.List.__name</a></h4>
-<b>Records: </b> <table>
-<tr>
-<td><code>ds.pod.List.__index</code></td>
-<td>[Ty<List>] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L98">src</a>)</td>
-</tr>
-</table>
-<b>Methods: </b> <table>
-<tr>
-<td><code>ds.pod.List.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
-</tr>
-</table>
-<h4>Function <a id="List.__fromPod" href="#List.__fromPod">List.__fromPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L108"><i>src</i></a>)</h4>
-<h4>Function <a id="List.__toPod" href="#List.__toPod">List.__toPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L103"><i>src</i></a>)</h4>
-<h3>Record <a id="ds.pod.Map" href="#ds.pod.Map">ds.pod.Map</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L114"><i>src</i></a>)</h3>
-Poder for a map of key/value pairs.
-<p>
-<b>Fields: </b> <table>
-<tr>
-<td><code>ds.pod.Map.K</code></td>
-<td>[Podder] = <code>Ty&lt;key&gt;{__docs={}, __fieldIds={}, __fields={}, __fromPod=fn"key.__toPod"[/home/rett/projects/civlua/lib/ds/ds/pod.lua:77], __index=self, __name="key", __newindex=fn"metaty.newindex"[/home/rett/projects/civlua/lib/metaty/metaty.lua:186], __toPod=fn"key.__toPod"[/home/rett/projects/civlua/lib/ds/ds/pod.lua:77]}</code>
-keys type</td>
-</tr>
-<tr>
-<td><code>ds.pod.Map.V</code></td>
-<td>[Podder] 
-values type</td>
-</tr>
-</table>
-<h3>Table <a id="ds.pod.Map.__docs" href="#ds.pod.Map.__docs">ds.pod.Map.__docs</a></h3>
-<h3>Table <a id="ds.pod.Map.__fieldIds" href="#ds.pod.Map.__fieldIds">ds.pod.Map.__fieldIds</a></h3>
-<h3>Table <a id="ds.pod.Map.__fields" href="#ds.pod.Map.__fields">ds.pod.Map.__fields</a></h3>
-<h4>Value <a id="ds.pod.Map.__name" href="#ds.pod.Map.__name">ds.pod.Map.__name</a></h4>
-<b>Records: </b> <table>
-<tr>
-<td><code>ds.pod.Map.__index</code></td>
-<td>[Ty<Map>] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L114">src</a>)</td>
-</tr>
-</table>
-<b>Methods: </b> <table>
-<tr>
-<td><code>ds.pod.Map.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
-</tr>
-</table>
-<h4>Function <a id="Map.__fromPod" href="#Map.__fromPod">Map.__fromPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L128"><i>src</i></a>)</h4>
-<h4>Function <a id="Map.__toPod" href="#Map.__toPod">Map.__toPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L121"><i>src</i></a>)</h4>
-<h3>Record <a id="ds.pod.Pod" href="#ds.pod.Pod">ds.pod.Pod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L22"><i>src</i></a>)</h3>
-Pod: configuration for converting values to/from POD.
-<p>
-<b>Fields: </b> <table>
-<tr>
-<td><code>ds.pod.Pod.fieldIds</code></td>
-<td>[boolean] 
-if true use the fieldIds when possible</td>
-</tr>
-<tr>
-<td><code>ds.pod.Pod.mtPodFn</code></td>
-<td>[(mt) -> boolean] = <code>fn"ds.noop"[/home/rett/projects/civlua/lib/ds/ds.lua:89]</code>
-function to classify if mt is pod</td>
-</tr>
-<tr>
-<td><code>ds.pod.Pod.enumIds</code></td>
-<td>[boolean] 
-if true use enum id variants, else name variants</td>
-</tr>
-</table>
-<h3>Table <a id="Pod.DEFAULT" href="#Pod.DEFAULT">Pod.DEFAULT</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L24"><i>src</i></a>)</h3>
-<h3>Table <a id="ds.pod.Pod.__docs" href="#ds.pod.Pod.__docs">ds.pod.Pod.__docs</a></h3>
-<h3>Table <a id="ds.pod.Pod.__fieldIds" href="#ds.pod.Pod.__fieldIds">ds.pod.Pod.__fieldIds</a></h3>
-<h3>Table <a id="ds.pod.Pod.__fields" href="#ds.pod.Pod.__fields">ds.pod.Pod.__fields</a></h3>
-<h4>Value <a id="ds.pod.Pod.__name" href="#ds.pod.Pod.__name">ds.pod.Pod.__name</a></h4>
-<b>Records: </b> <table>
-<tr>
-<td><code>ds.pod.Pod.__index</code></td>
-<td>[Ty<Pod>] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L22">src</a>)</td>
-</tr>
-</table>
-<b>Methods: </b> <table>
-<tr>
-<td><code>ds.pod.Pod.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
-</tr>
-</table>
-<h3>Record <a id="ds.pod.Podder" href="#ds.pod.Podder">ds.pod.Podder</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L33"><i>src</i></a>)</h3>
-A type who's sole job is converting values to/from POD.
-<p>
-<b>Fields: </b> <table>
-<tr>
-<td><code>ds.pod.Podder.name</code></td>
-<td>[string] </td>
-</tr>
-<tr>
-<td><code>ds.pod.Podder.__toPod</code></td>
-<td>[(self, pset, v) -> p] </td>
-</tr>
-<tr>
-<td><code>ds.pod.Podder.__fromPod</code></td>
-<td>[(self, pset, p) -> v] </td>
-</tr>
-</table>
-<h3>Table <a id="ds.pod.Podder.__docs" href="#ds.pod.Podder.__docs">ds.pod.Podder.__docs</a></h3>
-<h3>Table <a id="ds.pod.Podder.__fieldIds" href="#ds.pod.Podder.__fieldIds">ds.pod.Podder.__fieldIds</a></h3>
-<h3>Table <a id="ds.pod.Podder.__fields" href="#ds.pod.Podder.__fields">ds.pod.Podder.__fields</a></h3>
-<h4>Value <a id="ds.pod.Podder.__name" href="#ds.pod.Podder.__name">ds.pod.Podder.__name</a></h4>
-<b>Records: </b> <table>
-<tr>
-<td><code>ds.pod.Podder.__index</code></td>
-<td>[Ty<Podder>] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L33">src</a>)</td>
-</tr>
-</table>
-<b>Methods: </b> <table>
-<tr>
-<td><code>ds.pod.Podder.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
-</tr>
-</table>
-<h4>Function <a id="Podder.__tostring" href="#Podder.__tostring">Podder.__tostring</a><code>(p) -&gt; p.name</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L34"><i>src</i></a>)</h4>
-<h3>Record <a id="ds.pod.builtin" href="#ds.pod.builtin">ds.pod.builtin</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L82"><i>src</i></a>)</h3>
-Handles all native types (nil, boolean, number, string, table)
-<p>
-<h3>Table <a id="ds.pod.builtin.__docs" href="#ds.pod.builtin.__docs">ds.pod.builtin.__docs</a></h3>
-<h3>Table <a id="ds.pod.builtin.__fieldIds" href="#ds.pod.builtin.__fieldIds">ds.pod.builtin.__fieldIds</a></h3>
-<h3>Table <a id="ds.pod.builtin.__fields" href="#ds.pod.builtin.__fields">ds.pod.builtin.__fields</a></h3>
-<h4>Value <a id="ds.pod.builtin.__name" href="#ds.pod.builtin.__name">ds.pod.builtin.__name</a></h4>
-<b>Records: </b> <table>
-<tr>
-<td><code>ds.pod.builtin.__index</code></td>
-<td>[Ty<builtin>] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L82">src</a>)</td>
-</tr>
-</table>
-<b>Methods: </b> <table>
-<tr>
-<td><code>ds.pod.builtin.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
-</tr>
-</table>
-<h4>Function <a id="builtin.__fromPod" href="#builtin.__fromPod">builtin.__fromPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L94"><i>src</i></a>)</h4>
-<h4>Function <a id="builtin.__toPod" href="#builtin.__toPod">builtin.__toPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L90"><i>src</i></a>)</h4>
-<h3>Record <a id="ds.pod.key" href="#ds.pod.key">ds.pod.key</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L73"><i>src</i></a>)</h3>
-Handles concrete non-nil types (boolean, number, string)
-<p>
-<h3>Table <a id="ds.pod.key.__docs" href="#ds.pod.key.__docs">ds.pod.key.__docs</a></h3>
-<h3>Table <a id="ds.pod.key.__fieldIds" href="#ds.pod.key.__fieldIds">ds.pod.key.__fieldIds</a></h3>
-<h3>Table <a id="ds.pod.key.__fields" href="#ds.pod.key.__fields">ds.pod.key.__fields</a></h3>
-<h4>Value <a id="ds.pod.key.__name" href="#ds.pod.key.__name">ds.pod.key.__name</a></h4>
-<b>Records: </b> <table>
-<tr>
-<td><code>ds.pod.key.__index</code></td>
-<td>[Ty<key>] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L73">src</a>)</td>
-</tr>
-</table>
-<b>Methods: </b> <table>
-<tr>
-<td><code>ds.pod.key.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
-</tr>
-<tr>
-<td><code>ds.pod.key.__toPod</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L77">src</a>)</td>
-</tr>
-</table>
-<h4>Function <a id="key.__toPod" href="#key.__toPod">key.__toPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L77"><i>src</i></a>)</h4>
-<h3>Function <a id="ds.pod.deser" href="#ds.pod.deser">ds.pod.deser</a><code>(str, index) -&gt; value, lenUsed</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L238"><i>src</i></a>)</h3>
-Deserialize value from a compact string (and call fromPod on it)
-<code>index</code> (default=1) is where to start in <code>str</code>
-<h3>Function <a id="ds.pod.deserRaw" href="#ds.pod.deserRaw">ds.pod.deserRaw</a><code>(string) -&gt; value</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L225"><i>src</i></a>)</h3>
-deserialize the value (without calling fromPod on it)
-<h3>Function <a id="ds.pod.fromPod" href="#ds.pod.fromPod">ds.pod.fromPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L144"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.pod.implPod" href="#ds.pod.implPod">ds.pod.implPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L219"><i>src</i></a>)</h3>
-Make metaty type convertable to/from plain-old-data
-<p>
-Typically this is called by calling the module itself,
-i.e. <code>pod(mty'myType'{'field [int]#1'})</code>
-<h3>Function <a id="ds.pod.mty_fromPod" href="#ds.pod.mty_fromPod">ds.pod.mty_fromPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L175"><i>src</i></a>)</h3>
-Default __fromPod for metatype records
-<h3>Function <a id="ds.pod.mty_toPod" href="#ds.pod.mty_toPod">ds.pod.mty_toPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L165"><i>src</i></a>)</h3>
-Default __toPod for metatype records
-<h3>Function <a id="ds.pod.ser" href="#ds.pod.ser">ds.pod.ser</a><code>(value) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L231"><i>src</i></a>)</h3>
-Serialize value, converting it to a compact string.
-Note: this function first calls toPod on the value.
-<h3>Function <a id="ds.pod.serRaw" href="#ds.pod.serRaw">ds.pod.serRaw</a><code>(value) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L222"><i>src</i></a>)</h3>
-serialize the value (without calling toPod on it)
-<h3>Function <a id="ds.pod.toPod" href="#ds.pod.toPod">ds.pod.toPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/pod.lua#L141"><i>src</i></a>)</h3>
-<h2>Module <a id="ds.testing_pod" href="#ds.testing_pod">ds.testing_pod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/testing_pod.lua#L2"><i>src</i></a>)</h2>
-<p>
-<h3>Table <a id="ds.testing_pod.BOOLS" href="#ds.testing_pod.BOOLS">ds.testing_pod.BOOLS</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/testing_pod.lua#L28"><i>src</i></a>)</h3>
-<h3>Table <a id="ds.testing_pod.BUILTIN" href="#ds.testing_pod.BUILTIN">ds.testing_pod.BUILTIN</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/testing_pod.lua#L63"><i>src</i></a>)</h3>
-<h3>Table <a id="ds.testing_pod.BYTES" href="#ds.testing_pod.BYTES">ds.testing_pod.BYTES</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/testing_pod.lua#L39"><i>src</i></a>)</h3><code class="block">M.BYTES = {
-  'zero\x00okay', 'ff\xFFokay',
-}</code>
-<h3>Table <a id="ds.testing_pod.INTS" href="#ds.testing_pod.INTS">ds.testing_pod.INTS</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/testing_pod.lua#L32"><i>src</i></a>)</h3><code class="block">M.INTS = {
-  0, 1, 2, 10, 0xFF,   0x100,  0xFFFF,
-    -1,   -10, -0xFF, -0x100, -0xFFFF,
-}</code>
-<h3>Table <a id="ds.testing_pod.LISTS" href="#ds.testing_pod.LISTS">ds.testing_pod.LISTS</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/testing_pod.lua#L47"><i>src</i></a>)</h3><code class="block">M.LISTS = {
-  {},
-  {0}, {'0'},
-  M.BOOLS,
-  M.STRINGS,
-  M.BYTES,
-  ds.flatten(M.BOOLS, M.STRINGS, M.BYTES),
-}</code>
-<h3>Table <a id="ds.testing_pod.MAPS" href="#ds.testing_pod.MAPS">ds.testing_pod.MAPS</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/testing_pod.lua#L57"><i>src</i></a>)</h3><code class="block">M.MAPS = {
-  {a=1}, {akey='akeyval', bkey='bkeyval'},
-  {[4]='1num', [7]='7num'},
-  {table = {innerkey='inner value'}},
-  {bools = M.BOOLS},
-  {ints = M.INTS},
-  {strings = M.STRINGS},
-  {lists = M.LISTS},
-}</code>
-<h3>Table <a id="ds.testing_pod.STRINGS" href="#ds.testing_pod.STRINGS">ds.testing_pod.STRINGS</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/testing_pod.lua#L36"><i>src</i></a>)</h3><code class="block">M.STRINGS = {
-  'a', 'abc', '01234', 'A0B1',
-  '🚀rocket🚀',
-}</code>
-<h3>Table <a id="ds.testing_pod.TABLES" href="#ds.testing_pod.TABLES">ds.testing_pod.TABLES</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/testing_pod.lua#L61"><i>src</i></a>)</h3><code class="block">M.TABLES = {
-  {'one', 'two', 'three', key='value'},
-}</code>
-<h4>Value <a id="ds.testing_pod.__name" href="#ds.testing_pod.__name">ds.testing_pod.__name</a></h4>
-<h3>Function <a id="ds.testing_pod.round" href="#ds.testing_pod.round">ds.testing_pod.round</a><code>(v, encFn, decFn, expectEncoding) -&gt; (enc, dec)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/testing_pod.lua#L18"><i>src</i></a>)</h3>
-Test <code>eq(v, decFn(encFn(v))</code>
-If expectEncoding is provided then test <code>eq(expectEncoding, encFn(v)</code>
-<h3>Function <a id="ds.testing_pod.roundList" href="#ds.testing_pod.roundList">ds.testing_pod.roundList</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/testing_pod.lua#L26"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.testing_pod.testAll" href="#ds.testing_pod.testAll">ds.testing_pod.testAll</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/testing_pod.lua#L67"><i>src</i></a>)</h3>
 <h2>Module <a id="ds.utf8" href="#ds.utf8">ds.utf8</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/utf8.lua#L4"><i>src</i></a>)</h2>
 utf8 stream decoding.
 Get the length by decodelen(firstbyte), then decode the whole character
@@ -2265,7 +2005,7 @@ reload from path
 <b>Methods: </b> <table>
 <tr>
 <td><code>lines.Writer.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 <tr>
 <td><code>lines.Writer.flush</code></td>
@@ -2344,7 +2084,7 @@ added from c</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>lines.diff.Diff.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Diff.__fmt" href="#Diff.__fmt">Diff.__fmt</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/diff.lua#L236"><i>src</i></a>)</h4>
@@ -2399,6 +2139,368 @@ Test lines.remove on object. new must accept either a string or table of
 lines to create a new object (does NOT need to be copied)
 called for various data structures which implement lines
 <h3>Function <a id="lines.testing.testOffset" href="#lines.testing.testOffset">lines.testing.testOffset</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/testing.lua#L54"><i>src</i></a>)</h3>
+<p>
+<h1><a id="Package_pod" href="#Package_pod">Package pod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod"><i>src</i></a>)</h1><table>
+<tr>
+<td><b>summary</b></td>
+<td>Plain old data (POD) de/serialization</td>
+</tr>
+<tr>
+<td><b>version</b></td>
+<td><code>0.1-1</code></td>
+</tr>
+<tr>
+<td><b>homepage</b></td>
+<td><a href="https://lua.civboot.org#Package_ds">https://lua.civboot.org#Package_ds</a></td>
+</tr>
+</table>
+<h1>pod: plain-old-data library and serialization</h1>
+<p>
+A Lua library for specifying and converting types to/from "plain old data" and
+methods to serialize/deserialize those types to/from bytes. In Lua, the 5
+supported types considered "plain old data" are: nil, boolean, integer, string
+and any table of only these types.
+<p>
+<code class="block">local M = mod'mymod'
+local mty = require'metaty'
+local pod = require'pod'
+
+-- enums are already plain-old-data.
+M.Job = mty.enum'Job' { BOSS = 1, PEON = 2 }
+
+--- records need to have pod() called on them.
+--- This implements __toPod and __fromPod for the metaty record.
+M.Worker = pod(mty'Worker' {
+  'name [string] #1',    -- must specify type and #id
+  'job  [mymod.Job] #2', -- can lookup any type in PKG_LOOKUP
+  'salary [int] #3',
+  'schedule {int: mymod.Schedule} #4', -- map of weekday[1,7] -&gt; scheduled time
+})
+
+M.Schedule = pod(mty'Schedule' {
+  'start [int]: start time in seconds since midnight',
+  'stop  [int]: stop time in seconds since midnight',
+})
+
+local serialized = pod.ser(M.Worker{...})   -- convert to string
+local worker = pod.de(serialized, M.Worker) -- convert from string</code>
+<p>
+Explanation of above:<ul>
+<li><code>metaty.enum</code> are already plain-old-data (no need to call <code>pod()</code> on them).</li>
+<li><code>metaty</code> record types can be made plain old data by calling the
+<code>pod()</code> module on them.
+<p>
+This simply implements the <code>__toPod</code> and <code>__fromPod</code> methods on them --
+you can do this yourself if you prefer!</li>
+<li>pod parses the metaty field type stanza as <code>[singleType]</code>, <code>{listType}</code> or
+<code>{map: type}</code> repsecitively. The collection types are converted to
+<code>pod.List</code> and <code>pod.Map</code> respectively.</li>
+</ul>
+<p>
+<h2>Serialization Best Practices</h2>
+<ul>
+<li>Only make a type pod if it is actually plain-old-data -- the type must be
+always convert to/from Lua concrete types <i>even if called on a different
+machine or on a future date</i>. For instance don't implement pod on a type with
+a file inside it (even if you're using a path to reload it) since another
+machine might not have that specific path!</li>
+<li>If a type may be serialized anywhere (even by an older version of the
+software), do not change or reuse the <code>#id</code> of a field (changing the name is
+okay if you can fix your dependencies).
+<p>
+<blockquote>If you need to delete the field then add it to <code>__fieldIds={...}</code> to
+ensure future you doesn't use the field id.</blockquote></li>
+</ul>
+<p>
+<h2>Usecases</h2>
+Usecases of pod are:<ul>
+<li>database schema: The primary intended usecase of pod is to be used in
+civdb -- each "row" is simply a pod record.
+<p>
+<blockquote>This is likely the only usecase civlua will use</blockquote></li>
+<li>general data storage: use pod.load and pod.dump to de/serialize
+values to/from a file.</li>
+<li>cross-language communication, see <a href="#xlang">Cross Language Tooling</a>.</li>
+<li>RPC framework: pod could be used in a similar capacity as JSON RPC to
+communicate with other services (i.e. frontend <-> backend).</li>
+</ul>
+<p>
+<h2>library support</h2>
+In addition to providing methods to de/serialize data to a compact binary form,
+pod exports the <code>toPod()</code> and <code>fromPod()</code> functions to help other libraries
+(i.e. lson) de/serialize arbitrary lua types.
+<p>
+<h2><a id="xlang" href="#xlang">Cross Language Tooling</h2></a>
+pod is designed to (eventually) serve the same need as
+<a href="https://protobuf.dev">protobuf</a>: it can and will generate code for other
+languages to read/write pod's binary serialization format.
+<p>
+At this time, support for other languages has not started -- but the design of
+pod is meant to mimick protobuf as much as possible so that such a goal can be
+met in the future. Work on supporting multiple languages will likely not be
+part of the civlua project but the civlua project will support such work.
+<p>
+<p>
+<h2>Module <a id="pod" href="#pod">pod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L4"><i>src</i></a>)</h2>
+pod: plain old data
+<p>
+<b>Values: </b> <table>
+<tr>
+<td><code>pod.integer</code></td>
+<td>[Podder] (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L70">src</a>)</td>
+</tr>
+<tr>
+<td><code>pod.string</code></td>
+<td>[Podder] (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L70">src</a>)</td>
+</tr>
+</table>
+<h4>Value <a id="pod.__name" href="#pod.__name">pod.__name</a></h4>
+<h3>Table <a id="pod.boolean" href="#pod.boolean">pod.boolean</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L70"><i>src</i></a>)</h3>
+<h3>Table <a id="pod.integer" href="#pod.integer">pod.integer</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L70"><i>src</i></a>)</h3>
+<h3>Table <a id="pod.nil" href="#pod.nil">pod.nil</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L70"><i>src</i></a>)</h3>
+<h3>Table <a id="pod.number" href="#pod.number">pod.number</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L70"><i>src</i></a>)</h3>
+<h3>Table <a id="pod.string" href="#pod.string">pod.string</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L70"><i>src</i></a>)</h3>
+<h3>Table <a id="pod.table" href="#pod.table">pod.table</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L70"><i>src</i></a>)</h3>
+<h3>Record <a id="pod.List" href="#pod.List">pod.List</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L99"><i>src</i></a>)</h3>
+Poder for a list of items with a type.
+<p>
+<b>Fields: </b> <table>
+<tr>
+<td><code>pod.List.I</code></td>
+<td>[Podder] 
+the type of each list item</td>
+</tr>
+</table>
+<h3>Table <a id="pod.List.__docs" href="#pod.List.__docs">pod.List.__docs</a></h3>
+<h3>Table <a id="pod.List.__fieldIds" href="#pod.List.__fieldIds">pod.List.__fieldIds</a></h3>
+<h3>Table <a id="pod.List.__fields" href="#pod.List.__fields">pod.List.__fields</a></h3>
+<h4>Value <a id="pod.List.__name" href="#pod.List.__name">pod.List.__name</a></h4>
+<b>Records: </b> <table>
+<tr>
+<td><code>pod.List.__index</code></td>
+<td>[Ty<List>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L99">src</a>)</td>
+</tr>
+</table>
+<b>Methods: </b> <table>
+<tr>
+<td><code>pod.List.__newindex</code></td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
+</tr>
+</table>
+<h4>Function <a id="List.__fromPod" href="#List.__fromPod">List.__fromPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L109"><i>src</i></a>)</h4>
+<h4>Function <a id="List.__toPod" href="#List.__toPod">List.__toPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L104"><i>src</i></a>)</h4>
+<h3>Record <a id="pod.Map" href="#pod.Map">pod.Map</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L115"><i>src</i></a>)</h3>
+Poder for a map of key/value pairs.
+<p>
+<b>Fields: </b> <table>
+<tr>
+<td><code>pod.Map.K</code></td>
+<td>[Podder] = <code>Ty&lt;key&gt;{__docs={}, __fieldIds={}, __fields={}, __fromPod=fn"key.__toPod"[/home/rett/projects/civlua/lib/pod/pod.lua:78], __index=self, __name="key", __newindex=fn"metaty.newindex"[/home/rett/projects/civlua/lib/metaty/metaty.lua:189], __toPod=fn"key.__toPod"[/home/rett/projects/civlua/lib/pod/pod.lua:78]}</code>
+keys type</td>
+</tr>
+<tr>
+<td><code>pod.Map.V</code></td>
+<td>[Podder] 
+values type</td>
+</tr>
+</table>
+<h3>Table <a id="pod.Map.__docs" href="#pod.Map.__docs">pod.Map.__docs</a></h3>
+<h3>Table <a id="pod.Map.__fieldIds" href="#pod.Map.__fieldIds">pod.Map.__fieldIds</a></h3>
+<h3>Table <a id="pod.Map.__fields" href="#pod.Map.__fields">pod.Map.__fields</a></h3>
+<h4>Value <a id="pod.Map.__name" href="#pod.Map.__name">pod.Map.__name</a></h4>
+<b>Records: </b> <table>
+<tr>
+<td><code>pod.Map.__index</code></td>
+<td>[Ty<Map>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L115">src</a>)</td>
+</tr>
+</table>
+<b>Methods: </b> <table>
+<tr>
+<td><code>pod.Map.__newindex</code></td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
+</tr>
+</table>
+<h4>Function <a id="Map.__fromPod" href="#Map.__fromPod">Map.__fromPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L129"><i>src</i></a>)</h4>
+<h4>Function <a id="Map.__toPod" href="#Map.__toPod">Map.__toPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L122"><i>src</i></a>)</h4>
+<h3>Record <a id="pod.Pod" href="#pod.Pod">pod.Pod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L23"><i>src</i></a>)</h3>
+Pod: configuration for converting values to/from POD.
+<p>
+<b>Fields: </b> <table>
+<tr>
+<td><code>pod.Pod.fieldIds</code></td>
+<td>[boolean] 
+if true use the fieldIds when possible</td>
+</tr>
+<tr>
+<td><code>pod.Pod.mtPodFn</code></td>
+<td>[(mt) -> boolean] = <code>fn"ds.noop"[/home/rett/projects/civlua/lib/ds/ds.lua:89]</code>
+function to classify if mt is pod</td>
+</tr>
+<tr>
+<td><code>pod.Pod.enumIds</code></td>
+<td>[boolean] 
+if true use enum id variants, else name variants</td>
+</tr>
+</table>
+<h3>Table <a id="Pod.DEFAULT" href="#Pod.DEFAULT">Pod.DEFAULT</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L25"><i>src</i></a>)</h3>
+<h3>Table <a id="pod.Pod.__docs" href="#pod.Pod.__docs">pod.Pod.__docs</a></h3>
+<h3>Table <a id="pod.Pod.__fieldIds" href="#pod.Pod.__fieldIds">pod.Pod.__fieldIds</a></h3>
+<h3>Table <a id="pod.Pod.__fields" href="#pod.Pod.__fields">pod.Pod.__fields</a></h3>
+<h4>Value <a id="pod.Pod.__name" href="#pod.Pod.__name">pod.Pod.__name</a></h4>
+<b>Records: </b> <table>
+<tr>
+<td><code>pod.Pod.__index</code></td>
+<td>[Ty<Pod>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L23">src</a>)</td>
+</tr>
+</table>
+<b>Methods: </b> <table>
+<tr>
+<td><code>pod.Pod.__newindex</code></td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
+</tr>
+</table>
+<h3>Record <a id="pod.Podder" href="#pod.Podder">pod.Podder</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L34"><i>src</i></a>)</h3>
+A type who's sole job is converting values to/from POD.
+<p>
+<b>Fields: </b> <table>
+<tr>
+<td><code>pod.Podder.name</code></td>
+<td>[string] </td>
+</tr>
+<tr>
+<td><code>pod.Podder.__toPod</code></td>
+<td>[(self, pset, v) -> p] </td>
+</tr>
+<tr>
+<td><code>pod.Podder.__fromPod</code></td>
+<td>[(self, pset, p) -> v] </td>
+</tr>
+</table>
+<h3>Table <a id="pod.Podder.__docs" href="#pod.Podder.__docs">pod.Podder.__docs</a></h3>
+<h3>Table <a id="pod.Podder.__fieldIds" href="#pod.Podder.__fieldIds">pod.Podder.__fieldIds</a></h3>
+<h3>Table <a id="pod.Podder.__fields" href="#pod.Podder.__fields">pod.Podder.__fields</a></h3>
+<h4>Value <a id="pod.Podder.__name" href="#pod.Podder.__name">pod.Podder.__name</a></h4>
+<b>Records: </b> <table>
+<tr>
+<td><code>pod.Podder.__index</code></td>
+<td>[Ty<Podder>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L34">src</a>)</td>
+</tr>
+</table>
+<b>Methods: </b> <table>
+<tr>
+<td><code>pod.Podder.__newindex</code></td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
+</tr>
+</table>
+<h4>Function <a id="Podder.__tostring" href="#Podder.__tostring">Podder.__tostring</a><code>(p) -&gt; p.name</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L35"><i>src</i></a>)</h4>
+<h3>Record <a id="pod.builtin" href="#pod.builtin">pod.builtin</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L83"><i>src</i></a>)</h3>
+Handles all native types (nil, boolean, number, string, table)
+<p>
+<h3>Table <a id="pod.builtin.__docs" href="#pod.builtin.__docs">pod.builtin.__docs</a></h3>
+<h3>Table <a id="pod.builtin.__fieldIds" href="#pod.builtin.__fieldIds">pod.builtin.__fieldIds</a></h3>
+<h3>Table <a id="pod.builtin.__fields" href="#pod.builtin.__fields">pod.builtin.__fields</a></h3>
+<h4>Value <a id="pod.builtin.__name" href="#pod.builtin.__name">pod.builtin.__name</a></h4>
+<b>Records: </b> <table>
+<tr>
+<td><code>pod.builtin.__index</code></td>
+<td>[Ty<builtin>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L83">src</a>)</td>
+</tr>
+</table>
+<b>Methods: </b> <table>
+<tr>
+<td><code>pod.builtin.__newindex</code></td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
+</tr>
+</table>
+<h4>Function <a id="builtin.__fromPod" href="#builtin.__fromPod">builtin.__fromPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L95"><i>src</i></a>)</h4>
+<h4>Function <a id="builtin.__toPod" href="#builtin.__toPod">builtin.__toPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L91"><i>src</i></a>)</h4>
+<h3>Record <a id="pod.key" href="#pod.key">pod.key</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L74"><i>src</i></a>)</h3>
+Handles concrete non-nil types (boolean, number, string)
+<p>
+<h3>Table <a id="pod.key.__docs" href="#pod.key.__docs">pod.key.__docs</a></h3>
+<h3>Table <a id="pod.key.__fieldIds" href="#pod.key.__fieldIds">pod.key.__fieldIds</a></h3>
+<h3>Table <a id="pod.key.__fields" href="#pod.key.__fields">pod.key.__fields</a></h3>
+<h4>Value <a id="pod.key.__name" href="#pod.key.__name">pod.key.__name</a></h4>
+<b>Records: </b> <table>
+<tr>
+<td><code>pod.key.__index</code></td>
+<td>[Ty<key>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L74">src</a>)</td>
+</tr>
+</table>
+<b>Methods: </b> <table>
+<tr>
+<td><code>pod.key.__newindex</code></td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
+</tr>
+<tr>
+<td><code>pod.key.__toPod</code></td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L78">src</a>)</td>
+</tr>
+</table>
+<h4>Function <a id="key.__toPod" href="#key.__toPod">key.__toPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L78"><i>src</i></a>)</h4>
+<h3>Function <a id="pod.deser" href="#pod.deser">pod.deser</a><code>(str, index) -&gt; value, lenUsed</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L239"><i>src</i></a>)</h3>
+Deserialize value from a compact string (and call fromPod on it)
+<code>index</code> (default=1) is where to start in <code>str</code>
+<h3>Function <a id="pod.deserRaw" href="#pod.deserRaw">pod.deserRaw</a><code>(string) -&gt; value</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L226"><i>src</i></a>)</h3>
+deserialize the value (without calling fromPod on it)
+<h3>Function <a id="pod.fromPod" href="#pod.fromPod">pod.fromPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L145"><i>src</i></a>)</h3>
+<h3>Function <a id="pod.implPod" href="#pod.implPod">pod.implPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L220"><i>src</i></a>)</h3>
+Make metaty type convertable to/from plain-old-data
+<p>
+Typically this is called by calling the module itself,
+i.e. <code>pod(mty'myType'{'field [int]#1'})</code>
+<h3>Function <a id="pod.mty_fromPod" href="#pod.mty_fromPod">pod.mty_fromPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L176"><i>src</i></a>)</h3>
+Default __fromPod for metatype records
+<h3>Function <a id="pod.mty_toPod" href="#pod.mty_toPod">pod.mty_toPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L166"><i>src</i></a>)</h3>
+Default __toPod for metatype records
+<h3>Function <a id="pod.ser" href="#pod.ser">pod.ser</a><code>(value) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L232"><i>src</i></a>)</h3>
+Serialize value, converting it to a compact string.
+Note: this function first calls toPod on the value.
+<h3>Function <a id="pod.serRaw" href="#pod.serRaw">pod.serRaw</a><code>(value) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L223"><i>src</i></a>)</h3>
+serialize the value (without calling toPod on it)
+<h3>Function <a id="pod.toPod" href="#pod.toPod">pod.toPod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L142"><i>src</i></a>)</h3>
+<h3>Table <a id="pod.native" href="#pod.native">pod.native</a></h3>
+<h2>Module <a id="pod.testing" href="#pod.testing">pod.testing</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod/testing.lua#L2"><i>src</i></a>)</h2>
+<p>
+<h3>Table <a id="pod.testing.BOOLS" href="#pod.testing.BOOLS">pod.testing.BOOLS</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod/testing.lua#L28"><i>src</i></a>)</h3>
+<h3>Table <a id="pod.testing.BUILTIN" href="#pod.testing.BUILTIN">pod.testing.BUILTIN</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod/testing.lua#L63"><i>src</i></a>)</h3>
+<h3>Table <a id="pod.testing.BYTES" href="#pod.testing.BYTES">pod.testing.BYTES</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod/testing.lua#L39"><i>src</i></a>)</h3><code class="block">M.BYTES = {
+  'zero\x00okay', 'ff\xFFokay',
+}</code>
+<h3>Table <a id="pod.testing.INTS" href="#pod.testing.INTS">pod.testing.INTS</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod/testing.lua#L32"><i>src</i></a>)</h3><code class="block">M.INTS = {
+  0, 1, 2, 10, 0xFF,   0x100,  0xFFFF,
+    -1,   -10, -0xFF, -0x100, -0xFFFF,
+}</code>
+<h3>Table <a id="pod.testing.LISTS" href="#pod.testing.LISTS">pod.testing.LISTS</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod/testing.lua#L47"><i>src</i></a>)</h3><code class="block">M.LISTS = {
+  {},
+  {0}, {'0'},
+  M.BOOLS,
+  M.STRINGS,
+  M.BYTES,
+  ds.flatten(M.BOOLS, M.STRINGS, M.BYTES),
+}</code>
+<h3>Table <a id="pod.testing.MAPS" href="#pod.testing.MAPS">pod.testing.MAPS</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod/testing.lua#L57"><i>src</i></a>)</h3><code class="block">M.MAPS = {
+  {a=1}, {akey='akeyval', bkey='bkeyval'},
+  {[4]='1num', [7]='7num'},
+  {table = {innerkey='inner value'}},
+  {bools = M.BOOLS},
+  {ints = M.INTS},
+  {strings = M.STRINGS},
+  {lists = M.LISTS},
+}</code>
+<h3>Table <a id="pod.testing.STRINGS" href="#pod.testing.STRINGS">pod.testing.STRINGS</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod/testing.lua#L36"><i>src</i></a>)</h3><code class="block">M.STRINGS = {
+  'a', 'abc', '01234', 'A0B1',
+  '🚀rocket🚀',
+}</code>
+<h3>Table <a id="pod.testing.TABLES" href="#pod.testing.TABLES">pod.testing.TABLES</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod/testing.lua#L61"><i>src</i></a>)</h3><code class="block">M.TABLES = {
+  {'one', 'two', 'three', key='value'},
+}</code>
+<h4>Value <a id="pod.testing.__name" href="#pod.testing.__name">pod.testing.__name</a></h4>
+<h3>Function <a id="pod.testing.round" href="#pod.testing.round">pod.testing.round</a><code>(v, encFn, decFn, expectEncoding) -&gt; (enc, dec)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod/testing.lua#L18"><i>src</i></a>)</h3>
+Test <code>eq(v, decFn(encFn(v))</code>
+If expectEncoding is provided then test <code>eq(expectEncoding, encFn(v)</code>
+<h3>Function <a id="pod.testing.roundList" href="#pod.testing.roundList">pod.testing.roundList</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod/testing.lua#L26"><i>src</i></a>)</h3>
+<h3>Function <a id="pod.testing.testAll" href="#pod.testing.testAll">pod.testing.testAll</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod/testing.lua#L67"><i>src</i></a>)</h3>
 <p>
 <h1><a id="Package_lap" href="#Package_lap">Package lap</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lap"><i>src</i></a>)</h1><table>
 <tr>
@@ -2579,7 +2681,7 @@ superpower your libraries run either sync or async
 <b>Methods: </b> <table>
 <tr>
 <td><code>lap.Any.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Any.ignore" href="#Any.ignore">Any.ignore</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lap/lap.lua#L236"><i>src</i></a>)</h4>
@@ -2652,7 +2754,7 @@ poll for durationSec (float), return any ready filenos.
 <b>Methods: </b> <table>
 <tr>
 <td><code>lap.Lap.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Lap.__call" href="#Lap.__call">Lap.__call</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lap/lap.lua#L372"><i>src</i></a>)</h4>
@@ -2705,7 +2807,7 @@ OR all senders are closed and <code>#recv == 0</code></li>
 <b>Methods: </b> <table>
 <tr>
 <td><code>lap.Recv.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 <tr>
 <td><code>lap.Recv.close</code></td>
@@ -2758,7 +2860,7 @@ automatically close if it is garbage collected.
 <b>Methods: </b> <table>
 <tr>
 <td><code>lap.Send.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 <tr>
 <td><code>lap.Send.close</code></td>
@@ -3012,7 +3114,7 @@ internal C implemented shell</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>civix.Sh.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Sh.finish" href="#Sh.finish">Sh.finish</a><code>(sh, other) -&gt; out, err</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L363"><i>src</i></a>)</h4>
@@ -3061,7 +3163,7 @@ write to then close stdin (either self's or shell's)</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>civix.ShFin.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h3>Record <a id="civix.Walk" href="#civix.Walk">civix.Walk</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L152"><i>src</i></a>)</h3>
@@ -3101,7 +3203,7 @@ a stack of WalkDirs that are being walked</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>civix.Walk.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Walk.__call" href="#Walk.__call">Walk.__call</a><code>(w) -&gt; path, ftype</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L175"><i>src</i></a>)</h4>
@@ -3144,7 +3246,7 @@ base directory</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>civix._WalkDir.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="_WalkDir.__call" href="#_WalkDir.__call">_WalkDir.__call</a><code>(wd, walk) -&gt; path, ftype</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L207"><i>src</i></a>)</h4>
@@ -3343,7 +3445,7 @@ value to use for null</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>lson.De.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="De.__call" href="#De.__call">De.__call</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lson/lson.lua#L268"><i>src</i></a>)</h4>
@@ -3882,7 +3984,7 @@ kind -> fmtFn</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>pegl.FmtPegl.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="FmtPegl.__call" href="#FmtPegl.__call">FmtPegl.__call</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L719"><i>src</i></a>)</h4>
@@ -3925,7 +4027,7 @@ To also match "+" use <code>['+']={true, '+'=true}</code>
 <b>Methods: </b> <table>
 <tr>
 <td><code>pegl.Key.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="pegl.fmtSpec" href="#pegl.fmtSpec">pegl.fmtSpec</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L126"><i>src</i></a>)</h4>
@@ -3967,7 +4069,7 @@ result is a list with <code>kind='myMany'</code>.
 </tr>
 <tr>
 <td><code>pegl.Many.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Many.parse" href="#Many.parse">Many.parse</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L438"><i>src</i></a>)</h4>
@@ -4000,7 +4102,7 @@ result is a list with <code>kind='myMany'</code>.
 </tr>
 <tr>
 <td><code>pegl.Not.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Not.parse" href="#Not.parse">Not.parse</a><code>(self, p) -&gt; not M.parseSeq(p, self)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L244"><i>src</i></a>)</h4>
@@ -4044,7 +4146,7 @@ not performant (<code>O(N)</code> vs Key's <code>O(1)</code>)
 </tr>
 <tr>
 <td><code>pegl.Or.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Or.parse" href="#Or.parse">Or.parse</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L417"><i>src</i></a>)</h4>
@@ -4125,7 +4227,7 @@ table of {line={col=CommentToken}}</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>pegl.Parser.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Parser.__tostring" href="#Parser.__tostring">Parser.__tostring</a><code>() -&gt; 'Parser()'</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L512"><i>src</i></a>)</h4>
@@ -4193,7 +4295,7 @@ get the current parser state <code>{l, c, line}</code>
 </tr>
 <tr>
 <td><code>pegl.Pat.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Pat.parse" href="#Pat.parse">Pat.parse</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L363"><i>src</i></a>)</h4>
@@ -4251,7 +4353,7 @@ performant data structure.</li>
 <b>Methods: </b> <table>
 <tr>
 <td><code>pegl.RootSpec.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="RootSpec.newFmt" href="#RootSpec.newFmt">RootSpec.newFmt</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L724"><i>src</i></a>)</h4>
@@ -4312,7 +4414,7 @@ sub-sequences).</li>
 </tr>
 <tr>
 <td><code>pegl.Seq.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Seq.parse" href="#Seq.parse">Seq.parse</a><code>(seq, p) -&gt; M.parseSeq(p, seq)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L398"><i>src</i></a>)</h4>
@@ -4338,7 +4440,7 @@ optional, used for debugging</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>pegl.Token.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Token.__fmt" href="#Token.__fmt">Token.__fmt</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L40"><i>src</i></a>)</h4>
@@ -4553,7 +4655,7 @@ luck: lua configuration language
 <b>Methods: </b> <table>
 <tr>
 <td><code>luck.Luck.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Luck.fromMeta" href="#Luck.fromMeta">Luck.fromMeta</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/luck/luck.lua#L81"><i>src</i></a>)</h4>
@@ -4626,7 +4728,7 @@ if true then don't write data</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>smol.Main.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h3>Record <a id="smol.Smol" href="#smol.Smol">smol.Smol</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/smol/smol.lua#L33"><i>src</i></a>)</h3>
@@ -4661,7 +4763,7 @@ whether to use huffman coding in compress and rdelta</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>smol.Smol.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Smol.compress" href="#Smol.compress">Smol.compress</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/smol/smol.lua#L84"><i>src</i></a>)</h4>
@@ -4691,7 +4793,7 @@ max size of len4 fingerprint table</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>smol.XConfig.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h3>Function <a id="smol.main" href="#smol.main">smol.main</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/smol/smol.lua#L150"><i>src</i></a>)</h3>
@@ -4822,7 +4924,7 @@ nil or pos at eof</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>civdb.DB.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 <tr>
 <td><code>civdb.DB.flush</code></td>
@@ -4872,7 +4974,7 @@ the row index being modified</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>civdb.Op.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Op.decode" href="#Op.decode">Op.decode</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civdb/civdb.lua#L82"><i>src</i></a>)</h4>
@@ -4929,7 +5031,7 @@ text to add</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>vcds.Change.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Change.len" href="#Change.len">Change.len</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/vcds/vcds.lua#L58"><i>src</i></a>)</h4>
@@ -4971,7 +5073,7 @@ This type is good for displaying differences to a user.
 <b>Methods: </b> <table>
 <tr>
 <td><code>vcds.Diff.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Diff.__tostring" href="#Diff.__tostring">Diff.__tostring</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/vcds/vcds.lua#L36"><i>src</i></a>)</h4>
@@ -5011,7 +5113,7 @@ change line</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>vcds.DiffsExtender.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="DiffsExtender.__call" href="#DiffsExtender.__call">DiffsExtender.__call</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/vcds/vcds.lua#L132"><i>src</i></a>)</h4>
@@ -5037,7 +5139,7 @@ extend change to diffs
 <b>Methods: </b> <table>
 <tr>
 <td><code>vcds.Keep.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Keep.len" href="#Keep.len">Keep.len</a><code>(k) -&gt; k.num and k.num or #k</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/vcds/vcds.lua#L50"><i>src</i></a>)</h4>
@@ -5066,7 +5168,7 @@ extend change to diffs
 <b>Methods: </b> <table>
 <tr>
 <td><code>vcds.Patch.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h3>Record <a id="vcds.Picks" href="#vcds.Picks">vcds.Picks</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/vcds/vcds.lua#L171"><i>src</i></a>)</h3>
@@ -5110,7 +5212,7 @@ settings (need refactor)</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>vcds.Picks.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Picks.__call" href="#Picks.__call">Picks.__call</a><code>(p) -&gt; iterator</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/vcds/vcds.lua#L193"><i>src</i></a>)</h4>
@@ -5504,7 +5606,7 @@ set to false to stop coroutines</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>vt100.Term.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Term.__fmt" href="#Term.__fmt">Term.__fmt</a><code>(tm, fmt) -&gt; tm.text:__fmt(fmt)</code> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L71"><i>src</i></a>)</h4>
@@ -5597,7 +5699,7 @@ current background ac letter</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>vt100.AcWriter.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="vt100.AcWriter.acwrite" href="#vt100.AcWriter.acwrite">vt100.AcWriter.acwrite</a><code>(aw, fgstr, bgstr, ...) -&gt; write(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100/AcWriter.lua#L22"><i>src</i></a>)</h4>
@@ -5675,7 +5777,7 @@ set to false to stop coroutines</td>
 </tr>
 <tr>
 <td><code>vt100.testing.Fake.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 <tr>
 <td><code>vt100.testing.Fake._ready</code></td>
@@ -6049,7 +6151,7 @@ typically used for html header</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>cxt.Config.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h3>Record <a id="cxt.Writer" href="#cxt.Writer">cxt.Writer</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/cxt/cxt.lua#L460"><i>src</i></a>)</h3>
@@ -6164,7 +6266,7 @@ output file (default=stdout)</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>cxt.term.Args.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h3>Function <a id="cxt.term.convert" href="#cxt.term.convert">cxt.term.convert</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/cxt/cxt/term.lua#L125"><i>src</i></a>)</h3>
@@ -6266,7 +6368,7 @@ if true only unpacks local pkgs/mods</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>doc.Args.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h3>Record <a id="doc.Doc" href="#doc.Doc">doc.Doc</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/doc.lua#L92"><i>src</i></a>)</h3>
@@ -6374,7 +6476,7 @@ level inside another type (nil or 1)</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>doc.Doc.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Doc.__tostring" href="#Doc.__tostring">Doc.__tostring</a><code>(d) -&gt; sfmt('Doc%q', d.name)</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/doc.lua#L94"><i>src</i></a>)</h4>
@@ -6432,7 +6534,7 @@ function signature</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>doc.DocItem.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="DocItem.__tostring" href="#DocItem.__tostring">DocItem.__tostring</a><code>(di) -&gt; sfmt('DocItem%q', di.name)</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/doc.lua#L104"><i>src</i></a>)</h4>
@@ -6459,7 +6561,7 @@ objects already documented</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>doc._Construct.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="_Construct.__call" href="#_Construct.__call">_Construct.__call</a><code>(c, obj, key, expand, lvl) -&gt; Doc | DocItem</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/doc.lua#L206"><i>src</i></a>)</h4>
@@ -7625,7 +7727,7 @@ set to the luarocks api key</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>pkgrock.Args.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h3>Function <a id="pkgrock.loadrock" href="#pkgrock.loadrock">pkgrock.loadrock</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pkgrock/pkgrock.lua#L75"><i>src</i></a>)</h3>
@@ -7756,7 +7858,7 @@ set to true to force a redraw</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>ele.Ed.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Ed.buffer" href="#Ed.buffer">Ed.buffer</a><code>(ed, v) -&gt; Buffer</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Ed.lua#L63"><i>src</i></a>)</h4>
@@ -7805,7 +7907,7 @@ set to true to force a redraw</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>ele.Session.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Session.draw" href="#Session.draw">Session.draw</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Session.lua#L115"><i>src</i></a>)</h4>
@@ -7861,7 +7963,7 @@ set to true to force a redraw</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>ele.bindings.Chain.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Chain.__call" href="#Chain.__call">Chain.__call</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L81"><i>src</i></a>)</h4>
@@ -7893,7 +7995,7 @@ set to true to force a redraw</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>ele.bindings.Hotkey.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Hotkey.__call" href="#Hotkey.__call">Hotkey.__call</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L93"><i>src</i></a>)</h4>
@@ -7935,7 +8037,7 @@ if true the above fields will be preserved in next call</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>ele.bindings.Keys.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Keys.check" href="#Keys.check">Keys.check</a><code>(k, ele) -&gt; errstring?</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L33"><i>src</i></a>)</h4>
@@ -8052,7 +8154,7 @@ if true the above fields will be preserved in next call</td>
 <b>Methods: </b> <table>
 <tr>
 <td><code>ele.edit.Edit.__newindex</code></td>
-<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L186">src</a>)</td>
+<td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L189">src</a>)</td>
 </tr>
 </table>
 <h4>Function <a id="Edit.__len" href="#Edit.__len">Edit.__len</a><code>(e) -&gt; #e.buf</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L47"><i>src</i></a>)</h4>
@@ -8253,5 +8355,5 @@ Any globals that the PKG.lua script defines are used as the configuration.
 <h4>Value <a id="pkglib.LIB_EXT" href="#pkglib.LIB_EXT">pkglib.LIB_EXT</a></h4>
 <h3>Table <a id="pkglib.PKGS" href="#pkglib.PKGS">pkglib.PKGS</a></h3>
 <h4>Value <a id="pkglib.UNAME" href="#pkglib.UNAME">pkglib.UNAME</a></h4>
-<h3>Table <a id="mod" href="#mod">mod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pkg/pkglib.lua#L205"><i>src</i></a>)</h3>
+<h3>Table <a id="mod" href="#mod">mod</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pkg/pkglib.lua#L209"><i>src</i></a>)</h3>
 </body></html>

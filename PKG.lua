@@ -15,6 +15,7 @@ pkgs = {
   'lib/civtest', -- simple unit testing
   'lib/ds',      -- data structures and algorithms
   'lib/lines',   -- work with files as a table of lines
+  'lib/pod',     -- de/serialize plain-old-data
   'lib/lap',     -- lua asynchronous protocol
   'lib/fd',      -- asynchronous filedescriptors
   'lib/civix',   -- civlua unix interface

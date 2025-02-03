@@ -1,7 +1,7 @@
 # Copy/pastable Makefile for Lua C sources.
 
 # Modify these for a new library
-NAME  = ds
+NAME  = pod
 FILES = $(NAME).c
 OUT   = $(NAME)
 LUA_VERSION = lua
@@ -32,5 +32,4 @@ BuildDarwin:
 
 clean:
 	rm -f $(OUT).o $(OUT).so $(OUT).dll smol_test
-
 

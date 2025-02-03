@@ -255,14 +255,14 @@ static int l_deci(LS* L) {
   return 2;
 }
 
-static const struct luaL_Reg ds_native[] = {
+static const struct luaL_Reg pod_native[] = {
   {"enci", l_enci}, {"deci", l_deci},
   {"ser",  l_ser},  {"deser", l_deser},
   {NULL, NULL}, // end sentinel
 };
 
-int luaopen_ds_native(LS *L) {
-  luaL_newlib(L, ds_native);
+int luaopen_pod_native(LS *L) {
+  luaL_newlib(L, pod_native);
   return 1;
 }
 

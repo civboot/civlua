@@ -235,7 +235,10 @@ end
 
 M.namedRecord = function(name, R, loc)
   rawset(R, '__name', name)
-  R.__fields, R.__fieldIds, R.__docs = M.extendFields({}, {}, {}, R)
+  local fieldIds = {}; for id in ipairs(R.reserved or {}) do
+    fieldIds[id] = id
+  end; R.reserved = nil
+  R.__fields, R.__fieldIds, R.__docs = M.extendFields({}, fieldIds, {}, R)
   R.__index  = rawget(R, '__index') or R
   local mt = {
     __name='Ty<'..R.__name..'>',
