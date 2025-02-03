@@ -19,7 +19,7 @@ local fbin = require'fmt.binary'
 local byte = string.byte
 local trace = require'ds.log'.trace
 
-local encv = require'ds.native'.enci
+local encv = require'pod.native'.enci
 local encode, decode = pod.ser, pod.deser
 
 local fileInit = getmetatable(LFile).__call

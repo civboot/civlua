@@ -13,7 +13,6 @@ local mty = require'metaty'
 local fmt = require'fmt'
 local ds = require'ds'; local M = ds
 local lines = require'lines'
-local N = require'ds.native'
 local testing = require'lines.testing'
 
 local test, assertEq, assertMatch, assertErrorPat; M.auto'civtest'

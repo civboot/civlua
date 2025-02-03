@@ -1,5 +1,5 @@
 name     = 'ds'
-version  = '0.1-12'
+version  = '0.1-13'
 url      = 'git+http://github.com/civboot/civlua'
 summary  = "Tiny data structures and algorithms"
 homepage = "https://lua.civboot.org#Package_ds"
@@ -19,7 +19,4 @@ srcs = {
   'ds/heap.lua',
   'ds/log.lua',
   'ds/Grid.lua',
-}
-libs = {
-  ['ds.native'] = 'ds.so',
 }
