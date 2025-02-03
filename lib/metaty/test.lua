@@ -56,6 +56,12 @@ test('table.update', function()
         tu({1, a=3, b=4}, {b=44, c=5}))
 end)
 
+test('table.push', function()
+  local tp = table.push
+  local t = {1, 2, a=3}
+  assertEq(3, tp(t, 3)); assertEq({1, 2, 3, a=3}, t)
+end)
+
 local function splitT(...)
   local t = {}; for st, item in split(...) do
     add(t, {item, st.si, st.ei})

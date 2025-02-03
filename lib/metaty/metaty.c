@@ -27,7 +27,7 @@ static inline int l_concat(LS* L) {
 }
 
 // (t, update) -> t
-static inline int l_update(LS* L) {
+static int l_update(LS* L) {
   if(!lua_istable(L, 1)) luaL_error(L, "arg[1] must be table");
   if(!lua_istable(L, 2)) luaL_error(L, "arg[2] must be table");
   lua_settop(L, 3); lua_pushnil(L); // stack: t, upd, k, nil
@@ -39,9 +39,19 @@ static inline int l_update(LS* L) {
   return 1;
 }
 
+// push v to the end of table, returning the index
+// (t, v) --> index
+static int l_push(LS* L) {
+  if(!lua_istable(L, 1)) luaL_error(L, "arg[1] must be table");
+  lua_len(L, 1); lua_Integer i = lua_tointeger(L, -1) + 1;
+  lua_settop(L, 2); lua_seti(L, 1, i);
+  lua_pushinteger(L, i); return 1;
+}
+
 static const struct luaL_Reg metaty_native[] = {
   {"concat", l_concat},
   {"update", l_update},
+  {"push",   l_push},
   {NULL, NULL},
 };
 

@@ -3,25 +3,28 @@ local G = G or _G
 --- metaty: simple but effective Lua type system using metatable
 local M = G.mod and G.mod'metaty' or setmetatable({}, {})
 
-local concat = table.concat
-local srep = string.rep
-local add, sfmt = table.insert, string.format
-
 do
   local treq = function(n) --> try to require n from metaty.native
     local ok, o = pcall(function() return require'metaty.native'[n] end)
     if ok then return o end
   end
   string.concat = treq'concat'
-    or function(sep, ...) return concat({...}, sep) end
+  or function(sep, ...) return concat({...}, sep) end
 
   table.update = table.update or treq'update'
-    or function(t, update)
-      for k, v in pairs(update) do t[k] = v end; return t
-    end
+  or function(t, update)
+    for k, v in pairs(update) do t[k] = v end; return t
+  end
+
+  table.push = table.push or treq'push'
+  or function(t, v) local i = #t + 1; t[i] = v; return i end
 end
 
-local update = table.update
+local concat = table.concat
+local srep = string.rep
+local sfmt = string.format
+
+local push, update = table.push, table.update
 
 ---------------
 -- Pre module: environment variables
@@ -216,7 +219,7 @@ M.extendFields = function(fields, ids, docs, R)
     end
     assert(name,      'invalid spec')
     assert(#name > 0, 'empty name')
-    add(fields, name); fields[name] = tyname or true
+    push(fields, name); fields[name] = tyname or true
     local id, iddoc = fdoc:match'^%s*#(%d+)%s*:?%s*(.*)$'
     if id then
       id = tonumber(id); fdoc = iddoc
@@ -296,7 +299,7 @@ end
 M.enum_matcher = function(E, fnMap)
   local missing = {}
   for name in pairs(E.__names) do
-    if not fnMap[name] then add(missing, name) end
+    if not fnMap[name] then push(missing, name) end
   end
   if #missing > 0 then
     error('missing variants (or set default): '
