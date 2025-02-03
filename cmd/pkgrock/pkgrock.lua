@@ -76,7 +76,7 @@ end
 
 local function execute(styler, ...)
   local cmd = string.format(...)
-  styler:styled('code', 'executing:\t'..cmd)
+  styler:styled('code', 'executing: '..cmd, '\n')
   if not os.execute(cmd) then error('execute failed: '..cmd) end
 end
 
