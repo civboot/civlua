@@ -288,10 +288,10 @@ for k, v in pairs(undocumented'io') do M[k] = v end
 --- ]
 M.table = table
 
---- perform a shallow copy of table (and modify with optional update).
+--- update to with from, return to.
 ---
 --- Note: this is an addon from metaty.
-M['table.copy'] = table.copy--(t, update?) --> table
+M['table.update'] = table.update--(to, from) --> to
 
 --- concatenate a table of strings with optional separator.
 ---

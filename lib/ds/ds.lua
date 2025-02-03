@@ -17,7 +17,7 @@ local getmethod = mty.getmethod
 local EMPTY = {}
 
 local sconcat = string.concat -- note: from metaty
-local copy    = table.copy    -- note: from metaty
+local tupdate  = table.update  -- note: from metaty
 
 M.PlainStyler = mty'PlainStyler' {}
 
@@ -534,7 +534,10 @@ M.icopy = function(t) return move(t, 1, #t, 1, {}) end --> list
 
 --- Copy and update full table
 M.copy = function(t, update) --> new t
-  return setmetatable(copy(t, update), getmetatable(t))
+  return setmetatable(
+    update and tupdate(tupdate({}, t), update) -- copy+update
+            or tupdate({}, t)                  -- copy
+    , getmetatable(t))
 end
 
 M.deepcopy = function(t) --> table

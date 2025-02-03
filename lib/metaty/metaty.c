@@ -26,30 +26,22 @@ static inline int l_concat(LS* L) {
   return 1;
 }
 
-// copy from index f to table at index 4, 3 holds the key
-static inline void copyt4(LS* L, int f) {
-  lua_pushnil(L);
-  while(lua_next(L, f)) {
-    lua_copy(L, 5, 3); lua_rawset(L, 4);
-    lua_pushnil(L); lua_copy(L, 3, 5);
-  }
-}
-
-// (t, update) -> t: perform a shallow copy of table (not it's metatype)
-// If update is given then modify those keys
-static inline int l_copy(LS* L) {
+// (t, update) -> t
+static inline int l_update(LS* L) {
   if(!lua_istable(L, 1)) luaL_error(L, "arg[1] must be table");
-  lua_settop(L, 3); lua_newtable(L);
-  copyt4(L, 1);        // t -> newt
-  if(!lua_isnil(L, 2)) { // update -> newt
-    if(!lua_istable(L, 2)) luaL_error(L, "arg[2] must be table");
-    copyt4(L, 2);
+  if(!lua_istable(L, 2)) luaL_error(L, "arg[2] must be table");
+  lua_settop(L, 3); lua_pushnil(L); // stack: t, upd, k, nil
+  while(lua_next(L, 2)) { // iterate through update
+    lua_copy(L, 4, 3); lua_settable(L, 1);
+    lua_pushnil(L);    lua_copy(L, 3, 4);
   }
+  lua_settop(L, 1);
   return 1;
 }
 
 static const struct luaL_Reg metaty_native[] = {
-  {"concat", l_concat}, {"copy", l_copy},
+  {"concat", l_concat},
+  {"update", l_update},
   {NULL, NULL},
 };
 

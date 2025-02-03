@@ -14,17 +14,14 @@ do
   end
   string.concat = treq'concat'
     or function(sep, ...) return concat({...}, sep) end
-  table.copy = treq'copy'
+
+  table.update = table.update or treq'update'
     or function(t, update)
-      local o = {}; for k, v in pairs(t) do o[k] = v end
-      if update then
-        for k, v in pairs(update) do o[k] = v end
-      end
-      return o
+      for k, v in pairs(update) do t[k] = v end; return t
     end
 end
 
-local copy = table.copy
+local update = table.update
 
 ---------------
 -- Pre module: environment variables
@@ -267,13 +264,17 @@ end
 --- Extend the Type with (optional) new name and (optional) additional fields.
 M.extend = function(Type, name, fields)
   name, fields = name or Type.__name, fields or {}
-  local E, mt = copy(Type), copy(getmetatable(Type))
+  local E, mt = update({}, Type), update({}, getmetatable(Type))
   E.__name, mt.__name = name, 'Ty<'..name..'>'
   E.__index = E
-  E.__fields   = copy(E.__fields);
-  E.__fieldIds = copy(E.__fieldIds);
+  E.__fields   = update({}, E.__fields);
+  E.__fieldIds = update({}, E.__fieldIds);
   E.__fields, E.__fieldIds, E.__docs = M.extendFields(
-    copy(E.__fields), copy(E.__fieldIds), copy(E.__docs), fields)
+    update({}, E.__fields),
+    update({}, E.__fieldIds),
+    update({}, E.__docs),
+    fields
+  )
   for k, v in pairs(fields) do E[k] = v end
   return setmetatable(E, mt)
 end

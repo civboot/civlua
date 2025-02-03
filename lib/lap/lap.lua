@@ -15,7 +15,7 @@ local resume, status = coroutine.resume, coroutine.status
 local log = require'ds.log'
 local errorFrom = ds.Error.from
 local TRACE = log.LEVEL.TRACE
-local copy = table.copy
+local update = table.update
 
 M._async = {}; M._sync = {}
 
@@ -102,7 +102,7 @@ end
 M.Recv.close =
 (function(r)
   local sends = r._sends; if not sends then return end
-  for s in pairs(copy(sends)) do s:close() end
+  for s in pairs(update({}, sends)) do s:close() end
   r._sends = nil
 end)
 M.Recv.__close  = M.Recv.close

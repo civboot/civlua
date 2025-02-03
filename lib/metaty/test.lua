@@ -47,19 +47,13 @@ test('string.concat', function()
   assertEq('one-two-true', sc('-', 'one', 'two', true))
 end)
 
-test('table.copy', function()
-  local tc = table.copy
-  assertEq({},       tc{}); assertEq({}, tc({}, nil))
-  assertEq({1},      tc{1})
-  assertEq({1, a=3}, tc{1, a=3})
+test('table.update', function()
+  local tu = table.update
+  assertEq({},       tu({},  {}))
+  assertEq({1},      tu({},  {1}))
+  assertEq({1, a=3}, tu({1}, {a=3}))
   assertEq({1, a=3, b=44, c=5},
-        tc({1, a=3, b=4}, {b=44, c=5}))
-
-  local t = {a=3}
-  local c = tc(t, {b=7})
-  assertEq({a=3, b=7}, c)
-  t.c = 8
-  assertEq({a=3, c=8}, t); assertEq({a=3, b=7}, c)
+        tu({1, a=3, b=4}, {b=44, c=5}))
 end)
 
 local function splitT(...)
