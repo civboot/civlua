@@ -16,7 +16,7 @@ local resume = coroutine.resume
 local getmethod = mty.getmethod
 local EMPTY = {}
 
-local sconcat = N.concat
+local sconcat = string.concat -- note: from metaty
 
 M.PlainStyler = mty'PlainStyler' {}
 

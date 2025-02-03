@@ -7,15 +7,24 @@ local concat = table.concat
 local srep = string.rep
 local add, sfmt = table.insert, string.format
 
-local function copy(t)
-  local o = {}; for k, v in pairs(t) do o[k] = v end; return o
+do
+  local treq = function(n) --> try to require n from metaty.native
+    local ok, o = pcall(function() return require'metaty.native'[n] end)
+    if ok then return o end
+  end
+  string.concat = treq'concat'
+    or function(sep, ...) return concat({...}, sep) end
+  table.copy = treq'copy'
+    or function(t, update)
+      local o = {}; for k, v in pairs(t) do o[k] = v end
+      if update then
+        for k, v in pairs(update) do o[k] = v end
+      end
+      return o
+    end
 end
 
--- FIXME: remove this
-string.concat = string.concat or function(...)
-  return select('#', ...) > 1 and concat{...} or (...) or ''
-end
-M.strcon = string.concat; local strcon = string.concat
+local copy = table.copy
 
 ---------------
 -- Pre module: environment variables
@@ -254,10 +263,6 @@ M.record = function(name)
          'must set name to string')
   return function(R) return M.namedRecord(name, R) end
 end
-assert(not getmetatable(M).__call)
-getmetatable(M).__call = function(T, name)
-  return M.record(name)
-end
 
 --- Extend the Type with (optional) new name and (optional) additional fields.
 M.extend = function(Type, name, fields)
@@ -388,4 +393,5 @@ M.enum = function(name)
   return function(nameIds) return M.namedEnum(name, nameIds) end
 end
 
+getmetatable(M).__call = function(T, name) return M.record(name) end
 return M

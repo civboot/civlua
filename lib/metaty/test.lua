@@ -39,11 +39,22 @@ local function assertErrorPat(errPat, fn, plain)
 end
 
 test('string.concat', function()
-  assertEq('',   string.concat())
-  assertEq('a',  string.concat('a'))
-  assertEq('ab', string.concat('a', 'b'))
+  local sc = string.concat
+  assertEq('',             sc(''))
+  assertEq('one',          sc(' ', 'one'))
+  assertEq('1 2',          sc(' ', '1', 2))
+  assertEq('12',           sc('', '1', 2))
+  assertEq('one-two-true', sc('-', 'one', 'two', true))
 end)
 
+test('table.copy', function()
+  local tc = table.copy
+  assertEq({},       tc{})
+  assertEq({1},      tc{1})
+  assertEq({1, a=3}, tc{1, a=3})
+  assertEq({1, a=3, b=44, c=5},
+        tc({1, a=3, b=4}, {b=44, c=5}))
+end)
 
 local function splitT(...)
   local t = {}; for st, item in split(...) do
