@@ -7,6 +7,7 @@ local M = G.mod and mod'ds.path' or setmetatable({}, {__name='ds.path'})
 local mty = require'metaty'
 local ds = require'ds'
 local push = table.insert
+local copy = table.copy
 
 getmetatable(M).__call = function(_, p)
   if type(p) == 'table' then return p end
@@ -71,7 +72,7 @@ end
 --- resolve any `..` or `.` path components, making the path
 --- /absolute if necessary.
 M.resolve = function(path, wd) --> list
-  if type(path) == 'table' then path = ds.copy(path)
+  if type(path) == 'table' then path = copy(path)
   else path = M(path) end
 
   -- walk path, resolving . and ..
