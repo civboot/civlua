@@ -76,13 +76,13 @@ end
 
 local function execute(styler, ...)
   local cmd = string.format(...)
-  styler:style('code', 'executing:\t'..cmd)
+  styler:styled('code', 'executing:\t'..cmd)
   if not os.execute(cmd) then error('execute failed: '..cmd) end
 end
 
 M.main = function(t)
   t = M.Args(shim.parseStr(t))
-  require'civ'.setup()
+  require'civ'.setupFmt()
   local to = io.fmt
   local styled = function(...)
     to:styled('notify', table.concat({...}, '\t'))
@@ -102,7 +102,7 @@ M.main = function(t)
     push(rpaths, rpath); push(tags, assert(rock.source.tag))
   end
   if gitops.tag then
-    style'... getting tags'
+    styled'... getting tags'
     local out = civix.sh'git tag'
     local exist = ds.Set(require'lines'(out))
       :union(ds.Set(tags))
@@ -115,7 +115,7 @@ M.main = function(t)
     execute(io.fmt, [[git add -f %s]], rp)
   end end
   if gitops.commit then
-    style'... commiting'
+    styled'... commiting'
     execute(io.fmt, [[git commit -am 'pkgrock: %s']], table.concat(tags, ' '))
   end
   if gitops.tag then for _, tag in ipairs(tags) do
@@ -123,7 +123,7 @@ M.main = function(t)
     execute(io.fmt, [[git tag '%s']], tag)
   end end
   if t.gitpush then
-    style'... pushing'
+    styled'... pushing'
     execute(io.fmt, [[git push %s]], t.gitpush)
   end
   if t.upload then for _, rp in ipairs(rpaths) do
