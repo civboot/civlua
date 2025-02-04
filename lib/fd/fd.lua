@@ -73,6 +73,7 @@ M.finishRunning = function(fd, kind, ...)
 end
 
 --- return whether two fstat's have equal modification times
+--- FIXME: move this to civix
 M.modifiedEq = function(fs1, fs2)
   local s1, ns1 = fs1:modified()
   local s2, ns2 = fs2:modified()

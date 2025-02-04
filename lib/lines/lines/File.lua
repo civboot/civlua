@@ -78,9 +78,9 @@ end
 File.flush = function(lf)
   local ok, err = lf.idx:flush(); if not ok then return nil, err end
   ok, err = lf.f:flush()          if not ok then return nil, err end
-  local fstat, err = ix.stat(fd.fileno(lf.f))
+  local fstat, err = ix.stat(lf.f)
   if not fstat then return nil, err end
-  return ix.setmodified(fd.fileno(lf.idx.f), fstat:modified())
+  return ix.setModified(lf.idx.f, fstat:modified())
 end
 
 --- append to file

@@ -21,6 +21,36 @@ local toDir, toNonDir = pth.toDir, pth.toNonDir
 local cmpDirsLast = pth.cmpDirsLast
 local fmodeName = fd.FMODE.name
 
+--- Stat object with mode() and modified() functions
+M.Stat = C.Stat
+
+--- Given two Stat objects return whether their modifications
+--- are equal
+M.statModifiedEq = function(fs1, fs2)
+  local s1, ns1 = fs1:modified()
+  local s2, ns2 = fs2:modified()
+  return (s1 == s2) and (ns1 == ns2)
+end
+
+--- Given a path|File|Stat return a Stat
+M.stat = function(v) --> Stat
+  if getmetatable(v) == M.Stat then return v end
+  if type(v) == 'string'       then return lib.stat(v) end
+  return lib.stat(fd.fileno(v))
+end
+
+--- return whether two Stat's have equal modification times
+M.statModifiedEq = function(fs1, fs2) --> boolean
+  local s1, ns1 = fs1:modified()
+  local s2, ns2 = fs2:modified()
+  return (s1 == s2) and (ns1 == ns2)
+end
+
+--- return whether two path|File|Stat have equal modification times
+M.modifiedEq = function(a, b)
+  return M.statModifiedEq(M.stat(a), M.stat(b))
+end
+
 -- TODO: actually implement
 lib.getpagesize = function() return 4096 end
 
@@ -38,14 +68,10 @@ ds.update(M, {
   mv = lib.rename,
 })
 
---- get the stat of the path, which has methods [+
---- * [$:mode() -> mode] see FMODE
---- * [$:modified() -> sec, nsec] time modified
---- ]
-M.stat = lib.stat--(path) -> Stat
-
 --- set the modified time of the fileno
-M.setmodified = lib.setmodified--(fileno, sec, nsec) --> error?
+M.setModified = function(f, sec, nsec) --> error?
+   return lib.setmodified(fd.fileno(f), sec, nsec)
+end
 
 -------------------------------------
 -- Utility
