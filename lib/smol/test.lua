@@ -156,7 +156,7 @@ T.walk_compress = function()
   end
   local sm = smol.Smol{}
   local num, osize, rsize, hsize, ssize = 0, 0, 0, 0, 0
-  for path, ftype in civix.Walk{'./'} do
+  for path, ftype in civix.Walk{walkpath} do
     if ftype ~= 'file' or path:find'/%.'
       or path:find'experiment' then
       goto continue end

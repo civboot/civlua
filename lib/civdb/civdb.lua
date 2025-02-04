@@ -19,17 +19,19 @@ local fbin = require'fmt.binary'
 local byte = string.byte
 local trace = require'ds.log'.trace
 
+local index, newindex = mty.index, mty.newindex
+local ty = mty.ty
 local encv = require'pod.native'.enci
 local ser, deser = pod.ser, pod.deser
 
 local fileInit = getmetatable(LFile).__call
 
 M.DB = mty'DB' {
+  'schema [pod.Podder]: the type to deserialize each row',
   'path [string]', 'mode [string]',
   'f [File]',
   'idx [lines.U3File]: row -> pos',
   'cache [WeakV]: cache of rows',
-  '_row [int] the next row', _row = 1,
   '_eofpos [nil|int]: nil or pos at eof',
 }
 local DB = M.DB
@@ -73,8 +75,8 @@ local CREATE_OP = assert(ser(true))
 local updateOp = function(row) return ser( row) end
 local deleteOp = function(row) return ser(-row) end
 
---- Op:decode(val) - decode the operation.
-Op.decode = function(T, v)
+--- Op:decode(val) - decode the operation from lua value.
+Op.decode = function(T, v) --> Op
   if v == true then return T{kind='create'} end
   assert(mtype(v) == 'integer', 'invalid op')
   if v >= 0    then return T{kind='update', row= v}
@@ -82,24 +84,43 @@ Op.decode = function(T, v)
 end
 
 --- read a single transaction from the file
-local readTx = function(f) --> Op, value, readamt
+local readTx = function(f, vty) --> Op, value, readamt
   local tx, lensz = readEntry(f)
   print('!! readTx lensz:', lensz)
   if not tx then return nil, nil, lensz end
   local op, oplen = deser(tx)
   trace('readTx: op=%q vlen=%i', op, #tx - oplen)
-  return Op:decode(op), deser(tx, nil, oplen + 1), lensz + #tx
+  return Op:decode(op), deser(tx, vty, oplen + 1), lensz + #tx
 end
-
 
 getmetatable(DB).__call = function(T, t)
   t = t or {}; t.mode = t.mode or 'w+'
   trace('civdb.DB init %q', t)
   local db = assert(fileInit(T, t))
   db._eofpos = assert(db.f:seek'end')
-  db._row = #db.idx + 1
   return db
 end
+
+DB.__index = function(db, row)
+  if type(row) == 'string' then
+    local mt = getmt(db)
+    return rawget(mt, row) or index(db, i)
+  end
+  return db:readRaw(row, db.schema)
+end
+
+DB.__newindex = function(db, row, val)
+  if type(i) == 'string' then return newindex(lf, i, v) end
+  local vty = ty(val)
+  if not rawequal(vty, db.schema) then error(fmt(
+    'schema ty %q ~= val ty %q', db.schema, vty
+  ))end
+  local len = #db.idx; if row > len then
+    assert(row == len + 1, "can only set from [1,len+1]")
+    return db:createRaw(str, vty)
+  end
+end
+
 
 DB._initnew = function(f) assert(f:write(DB.MAGIC)) end
 DB._reindex = function(f, idx, row, pos)
@@ -134,23 +155,23 @@ DB.__len = function(db) return #db.idx end
 
 --- Create a new row with value, returning the rownum
 --- Note: directly encodes with toPod (ignores schema)
-DB.createRaw = function(db, value) --> row
-  local row = db._row
+DB.createRaw = function(db, value, vty) --> row
+  local idx = db.idx; local row = #idx + 1
   local pos, dat = db:_pushvalue(CREATE_OP, value)
   trace('createRow row=%i pos=%i', row, pos)
-  db.idx[row] = pos; db._row = row + 1
+  idx[row] = pos;
   db.cache[row] = dat
   return row
 end
 
 --- Read the row, returning its value
 --- Note: does not attempt to convert to the schema type.
-DB.readRaw = function(db, row) --> value?
+DB.readRaw = function(db, row, vty) --> value?
   local pos = db.idx[row]
   trace('readRaw row=%i from pos=%s', row, pos)
   if not pos or pos == 0 then return end
   local f = db.f; assert(pos == f:seek('set', pos))
-  local op, val = readTx(f)
+  local op, val = readTx(f, vty)
   trace('readRaw: row=%i op=%q val=%q', row, op, val)
   return not op and error(val) or val
 end
@@ -158,9 +179,9 @@ end
 --- Modify the value of the row with the value
 --- Note: directly encodes with toPod (ignores schema)
 DB.updateRaw = function(db, row, value)
-  assert(row < db._row)
+  local idx = db.idx; assert(row <= #idx)
   local pos, dat = db:_pushvalue(updateOp(row), value)
-  db.idx[row], db.cache[row] = pos, dat
+  idx[row], db.cache[row] = pos, dat
 end
 
 --- Delete the row, future reads will return nil
@@ -174,9 +195,9 @@ DB.delete = function(db, row)
   db.idx[row] = 0; db.cache[row] = nil
 end
 
-DB._pushvalue = function(db, op, value) --> pos, dat
+DB._pushvalue = function(db, op, value, vty) --> pos, dat
   print('!! pushvalue', fbin(op), value)
-  local dat = assert(ser(value))
+  local dat = assert(ser(value, vty))
   local f, pos, len = db.f, db._eofpos, #op + #dat
   assert(pos)
   assert(pos == f:seek('set', pos))
