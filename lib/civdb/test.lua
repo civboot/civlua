@@ -8,7 +8,7 @@ local char = string.char
 local DBF, IDX = '.out/file.civdb', '.out/rowfile.idx'
 
 T.dbRaw = function()
-  -- local db = M.DB{path=DBF, mode='w+'}; db.cache = ds.Forget{}
+  local db = M.DB:new{path=DBF}; db.cache = ds.Forget{}
   -- T.eq(1, db:createRaw'test1')
   -- db.f:seek('set', 0)
   -- --              elen op str5
