@@ -11,51 +11,74 @@ local ds = require'ds'
 local pth = require'ds.path'
 local pod = require'pod'
 local LFile = require'lines.File'
-
-local construct = mty.construct
-local mtype = math.type
+local U3File = require'lines.U3File'
 local fmt = require'fmt'
 local fbin = require'fmt.binary'
-local byte = string.byte
-local trace = require'ds.log'.trace
+local ix = require'civix'
 
+local trace = require'ds.log'.trace
+local byte = string.byte
+local mtype = math.type
+local construct = mty.construct
 local index, newindex = mty.index, mty.newindex
 local ty = mty.ty
 local encv = require'pod.native'.enci
 local ser, deser = pod.ser, pod.deser
+local WeakV = ds.WeakV
 
 local fileInit = getmetatable(LFile).__call
 
 M.DB = mty'DB' {
   'schema [pod.Podder]: the type to deserialize each row',
+  'meta [table]: table of metadata',
   'path [string]', 'mode [string]',
   'f [File]',
   'idx [lines.U3File]: row -> pos',
-  'cache [WeakV]: cache of rows',
+  'cache [ds.WeakV]: cache of rows',
   '_eofpos [nil|int]: nil or pos at eof',
 }
+getmetatable(M.DB).__call = function(T, t)
+  error'use :new{} or :load{}'
+end
 local DB = M.DB
 DB.MAGIC = 'civdb\0'
 DB.IDX_DIR = pth.concat{pth.home(), '.data/rows'}
 
+-- subtract 1: idx[1] is metadata
+DB.__len = function(db) return #db.idx - 1 end
+
+---------------------
+--- Op Type: this specifies what the entry is doing
 M.Op = mty'Op' {
-  'kind [string]: create, delete or update',
+  'kind [civdb.Op.Kind]',
   'row  [int]: the row index being modified',
+  'other [table]',
 }
-local Op = M.Op
 
-----------------------------
--- Utility Functions
+M.Op.Kind = mty.enum'Op.Kind' {
+  CREATE = 1, DELETE = 2, UPDATE = 3, OTHER  = 4,
+}
+local Op, OpKind = M.Op, M.Op.Kind
 
---- Start an entry by writing the encoded length.
---- It is the caller's job to actually write the entry data.
-local startEntry = function(f, len) --> byteswritten?, err
-  len = encv(len); assert(f:write(len))
-  return #len
+local CREATE_OP = assert(ser(true))
+local updateOp = function(row)  return ser( row) end
+local deleteOp = function(row)  return ser(-row) end
+local otherOp  = ser
+
+--- Op:decode(val) - decode the operation from lua value.
+Op.decode = function(T, v) --> Op
+  if v == true then return T{kind=OpKind.CREATE} end
+  if type(v) == 'table' then return T{kind=OpKind.OTHER, other=v} end
+  assert(mtype(v) == 'integer', 'invalid op')
+  if v >= 0    then return T{kind=OpKind.UPDATE, row= v}
+               else return T{kind=OpKind.DELETE, row=-v} end
 end
 
---- read the next counted entry from a file, decoding the length with decv.
-local readEntry = function(f) --> (string?, lensz|error)
+----------------------------
+-- Entry functions: how data is written/read from the file
+
+--- read the raw bytes of the next counted entry from a file
+local readEntryRaw = function(f) --> (string?, lensz|error)
   local len, sh, s = 0, 0
   while true do
     s = f:read(1); if not s then return nil end
@@ -70,35 +93,50 @@ local readEntry = function(f) --> (string?, lensz|error)
   return s, (sh + 7) // 7
 end
 
-
-local CREATE_OP = assert(ser(true))
-local updateOp = function(row) return ser( row) end
-local deleteOp = function(row) return ser(-row) end
-
---- Op:decode(val) - decode the operation from lua value.
-Op.decode = function(T, v) --> Op
-  if v == true then return T{kind='create'} end
-  assert(mtype(v) == 'integer', 'invalid op')
-  if v >= 0    then return T{kind='update', row= v}
-               else return T{kind='delete', row=-v} end
-end
-
---- read a single transaction from the file
-local readTx = function(f, vty) --> Op, value, readamt
-  local tx, lensz = readEntry(f)
+--- read the Op, oplen and (whole) rawdat of of the next entry from a file
+--- if the rawdat are decoded they must be offset by oplen+1
+local readEntryOp = function(f) -- op, oplen, rawdat
+  local dat, lensz = readEntry(f)
   print('!! readTx lensz:', lensz)
-  if not tx then return nil, nil, lensz end
-  local op, oplen = deser(tx)
-  trace('readTx: op=%q vlen=%i', op, #tx - oplen)
-  return Op:decode(op), deser(tx, vty, oplen + 1), lensz + #tx
+  if not dat then return nil, nil, lensz end
+  local op, oplen = deser(dat)
+  trace('readTx: op=%q vlen=%i', op, #dat - oplen)
+  return Op:decode(op), oplen, dat
 end
 
-getmetatable(DB).__call = function(T, t)
-  t = t or {}; t.mode = t.mode or 'w+'
-  trace('civdb.DB init %q', t)
-  local db = assert(fileInit(T, t))
-  db._eofpos = assert(db.f:seek'end')
-  return db
+--- write the raw operation and raw data, return bytes written
+--- Note: the rawop are created with the *Op() functions.
+local writeEntry = function(f, pos, rawop, dat) --> writelen
+  local f, pos, len = db.f, db._eofpos, #rawop + #dat
+  assert(pos); assert(pos == f:seek('set', pos))
+
+  local elenstr = encv(len)
+  assert(f:write(elenstr))
+  assert(f:write(op)); assert(f:write(dat))
+  trace('pushvalue pos=%i enclen=%i len=%i', pos, #elenstr, len)
+  return #elenstr + len
+end
+
+
+-----------------------
+-- READ
+
+local opDeser = function(db, oplen, rawdat)
+  return deser(rawdat, db.schema, oplen + 1)
+end
+local opRead = Op.Kind:matcher{
+  CREATE = opDeser, UPDATE = opDeser, DELETE = ds.noop,
+  OTHER = function() error'unreachable' end,
+}
+
+--- Read the row, returning its value
+--- Note: does not attempt to convert to the schema type.
+DB.readRaw = function(db, row) --> Op, oplen, rawdat
+  local pos = db.idx[row]
+  trace('readRaw row=%i from pos=%s', row, pos)
+  if not pos or pos == 0 then return end
+  assert(pos == db.f:seek('set', pos))
+  return readEntryOp(db.f)
 end
 
 DB.__index = function(db, row)
@@ -106,21 +144,91 @@ DB.__index = function(db, row)
     local mt = getmt(db)
     return rawget(mt, row) or index(db, i)
   end
-  return db:readRaw(row, db.schema)
+  trace('__index row=%i', row)
+  assert(row >= 1, 'row must be >= 1')
+  row = row + 1  -- idx[1] is metadata
+  local op, oplen, rawdat = db:readRaw(row, db.schema)
+  return opRead[op.kind](db, oplen, rawdat)
 end
 
-DB.__newindex = function(db, row, val)
+
+-----------------------
+-- CREATE / UPDATE / DELETE
+
+DB.__newindex = function(db, row, v)
   if type(i) == 'string' then return newindex(lf, i, v) end
-  local vty = ty(val)
-  if not rawequal(vty, db.schema) then error(fmt(
-    'schema ty %q ~= val ty %q', db.schema, vty
-  ))end
-  local len = #db.idx; if row > len then
-    assert(row == len + 1, "can only set from [1,len+1]")
-    return db:createRaw(str, vty)
+  local vty; if v ~= nil then vty = ty(v)
+    if not rawequal(vty, db.schema) then error(fmt(
+      'schema ty %q ~= val ty %q', db.schema, vty
+    ))end
   end
+  assert(row >= 1, 'row must be >= 1')
+  row = row + 1  -- idx[1] is metadata
+  local len = #db.idx
+  local f, idx, pos, epos = db.f, db.idx, db._eofpos, nil
+  if row > len then
+    assert(row == len + 1, "can only set from [1,len+1]")
+    epos = pos + writeEntry(f, pos, createOp(), ser(v, vty))
+  elseif v == nil then
+    epos = pos + writeEntry(f, pos, deleteOp(row), '')
+  else
+    epos = pos + writeEntry(f, pos, updateOp(row), ser(v, vty))
+  end
+  idx[row], db._eofpos = pos, epos
 end
 
+-----------------------
+-- Creating / Loading Database
+
+--- Do basic argument checking and initializaiton
+local dbInit = function(t, path) --> db, idxpath
+  local path = assert(t.path, 'must provide path')
+  local idxpath = ds.pop(t, 'idxpath') or pth.concat{DB.IDX_DIR, path}
+  local t = construct(T, t)
+  local ok, err = pod.isPodder(assert(t.schema, 'must set schema'))
+  if not ok then fmt.errorf('schema %s is not Podder: %s', t.schema, err) end
+  return t, idxpath
+end
+
+DB.new = function(T, t)
+  trace('civdb.DB new %q', t)
+  local t, idxpath = dbInit(t)
+  local f, err, idx
+  f, err = io.open(db.path, 'w+');  if not f   then return nil, err end
+  idx, err = U3File(idxpath, 'w+'); if not idx then return nil, err end
+  t.meta = t.meta or {}
+  t.meta.schema     = G.PKG_NAMES[t.schema]
+  t.meta.createdSec = t.meta.created or ix.epoch().s
+
+  assert(f:write(T.MAGIC))
+  local elen = writeEntry(f, #T.MAGIC, otherOp{meta=t.meta}, '')
+  idx[1] = #T.MAGIC
+  t.f, t.idx, t.cache = f, idx, ds.WeakV{}
+  t._eofpos = #T.MAGIC + elen
+  return t
+end
+
+local tryLoadIdx = function(db, idxpath)
+  if not civix.exists(idxpath) then return end
+  if not fd.modifiedEq(db.path, idxpath) then return end
+  idx, err = U3File(idxpath, 'r+'); if not idx then return end
+
+end
+
+DB.load = function(T, t)
+  trace('civdb.DB load %q', t)
+  local t, idxpath = dbInit(t)
+  local f, err, idx, fstat, xstat
+  if not civix.exists(t.path) then error('path not found: '..t.path) end
+  t.idx = tryLoadIdx(db, idxpath)
+
+  f, err = io.open(t.path, 'a+'); if not f then return nil, err end
+
+  return t
+end
+
+-----------------------
+-- JUNK
 
 DB._initnew = function(f) assert(f:write(DB.MAGIC)) end
 DB._reindex = function(f, idx, row, pos)
@@ -162,18 +270,6 @@ DB.createRaw = function(db, value, vty) --> row
   idx[row] = pos;
   db.cache[row] = dat
   return row
-end
-
---- Read the row, returning its value
---- Note: does not attempt to convert to the schema type.
-DB.readRaw = function(db, row, vty) --> value?
-  local pos = db.idx[row]
-  trace('readRaw row=%i from pos=%s', row, pos)
-  if not pos or pos == 0 then return end
-  local f = db.f; assert(pos == f:seek('set', pos))
-  local op, val = readTx(f, vty)
-  trace('readRaw: row=%i op=%q val=%q', row, op, val)
-  return not op and error(val) or val
 end
 
 --- Modify the value of the row with the value

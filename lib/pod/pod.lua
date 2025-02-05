@@ -51,6 +51,13 @@ M.Podder = mty'Podder' {
   '__fromPod [(self, pset, p) -> v]',
 }
 M.Podder.__tostring = function(p) return p.name end
+M.isPodder = function(P) --> isPodder, whyNot?
+  if not mty.callable(P.__toPod) and mty.callable(P.__fromPod) then
+    return false, 'must implement __toPod and __fromPod'
+  end
+  if not G.PKG_NAMES[P] then return false, 'must be in PKG_NAMES' end
+  return true
+end
 
 local makeNativePodder = function(ty)
   local expected = 'expected '..ty

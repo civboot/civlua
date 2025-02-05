@@ -79,7 +79,8 @@ end
 
 M.callable = function(obj) --> bool: return if obj is callable
   if type(obj) == 'function' then return true end
-  local m = getmetatable(obj); return m and rawget(m, '__call')
+  local m = getmetatable(obj)
+  return m and rawget(m, '__call') and true
 end
 M.metaget = function(t, k)   return rawget(getmetatable(t), k) end
 

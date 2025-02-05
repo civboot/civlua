@@ -13,7 +13,7 @@ local TRUNC = {w=true, ['w+']=true}
 --- load or reindex the file at path to/from idxpath.
 M.loadIdx = function(f, idxpath, fmode, reindex) --> idxFile
   trace('loadIdx idxpath=%s mode=%s reindex=%q', idxpath, fmode, reindex)
-  local fstat, xstat = assert(ix.stat(fd.fileno(f)))
+  local fstat, xstat = assert(ix.stat(f))
   if TRUNC[fmode] then goto createnew end
   xstat = ix.stat(idxpath)
   if xstat and fd.modifiedEq(fstat, xstat) then
@@ -26,7 +26,7 @@ M.loadIdx = function(f, idxpath, fmode, reindex) --> idxFile
   if not idx then return nil, err end
   reindex(f, idx)
   f:flush(); idx:flush()
-  ix.setmodified(fd.fileno(idx.f), fstat:modified())
+  ix.setModified(idx.f, fstat:modified())
   return idx
 end
 
