@@ -18,6 +18,7 @@ if civix.exists(dir) then civix.rmRecursive(dir) end
 local a = {}; for i=1,100 do push(a, 'a '..i) end
 local b = {}; for i=1,100 do push(b, 'b '..i) end
 
+local NOPATH = {"^%..*/", "/%..*/"}
 civix.mkTree(dir, {
   ['a.txt'] = table.concat(a, '\n'),
   b = {
@@ -59,7 +60,7 @@ test('ff.Main', function()
   assertEq(mty.construct(ff.Main, {
     root={'root/', '--weird'},
     pat={'a'},    nopat={},
-    path={'dir/'}, nopath={},
+    path={'dir/'}, nopath=NOPATH,
     sub = 'b',
   }), m)
 end)
@@ -75,17 +76,23 @@ local function runFF(args) --> ok, paths, stdout, stderr
 end
 
 local function testA()
-  local ok, res, stdout, stderr = runFF{'a %d1', '--', dir}
+  local ok, res, stdout, stderr = runFF{'-p:', 'a %d1', '--', dir}
   assert(ok, res)
   assertEq({dir..'a.txt'}, res)
   assertEq(dir..'a.txt\n', stdout)
   assertEq(expectSimple'    %i1 a %i1', stderr)
+
+  -- do without -p: means .out/ never gets searched
+  -- (because of default)
+  local ok, res, stdout, stderr = runFF{'a %d1', '--', dir}
+  assert(ok, res)
+  assertEq({}, res); assertEq('', stdout); assertEq('', stderr)
 end
 
 test('ff_find', function()
   testA()
 
-  local bArgs = {'b %d1', '--', dir}
+  local bArgs = {'-p:', 'b %d1', '--', dir}
   local ok, res, stdout, stderr = runFF(ds.copy(bArgs))
   assert(ok, res)
   assertEq({dir..'b/b1.txt'}, res)
@@ -93,13 +100,13 @@ test('ff_find', function()
   assertEq(expectSimple'    %i1 b %i1', stderr)
 
   -- adding /b/ does nothing
-  local ok, res, stdout, stderr = runFF{'b %d1', 'p:/b/', 'r:'..dir}
+  local ok, res, stdout, stderr = runFF{'-p:', 'b %d1', 'p:/b/', 'r:'..dir}
   assert(ok, res);
   assertEq({dir..'b/b1.txt'}, res)
 end)
 
 test('ff_sub', function()
-  local subArgs = {'a (%d1)', sub='s %1', '--', dir}
+  local subArgs = {'-p:', 'a (%d1)', sub='s %1', '--', dir}
   local ok, res, stdout, stderr = runFF(ds.copy(subArgs))
   assert(ok, res)
   assertEq({dir..'a.txt'}, res)
@@ -119,7 +126,7 @@ test('ff_sub', function()
   assertEq({}, res); assertEq('', stderr) -- no matches
 
   -- there are 's %i1'
-  local ok, res, stdout, stderr = runFF{'s %d1', 'r:'..dir}
+  local ok, res, stdout, stderr = runFF{'-p:', 's %d1', 'r:'..dir}
   assert(ok, res)
   assertEq({dir..'a.txt'}, res)
   assertEq(expectSimple'    %i1 s %i1', stderr)

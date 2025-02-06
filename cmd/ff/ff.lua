@@ -7,6 +7,7 @@ MAIN = MAIN or M
 local shim = require'shim'
 local mty  = require'metaty'
 local ds   = require'ds'
+local log  = require'ds.log'
 local pth  = require'ds.path'
 local Iter = require'ds.Iter'
 local civix = require'civix'
@@ -21,21 +22,38 @@ local fmtMatch, fmtSub
 
 -- TODO: '-' should mean --stdin. Also support stdin
 
---- find-fix utility
+--- find-fix: find (and optionally replace) patterns
 ---
---- Example, note that args are parsed special: [{## sh}
----   ff r:some/dir/ some[pat] -not[pat] p:some%.path -p:not%.path]
+--- Colon args:[+
+--- * [$ r:some/dir/]: same as [$--root=some/dir/]
+--- * [$ p:a_path.*pattern]: same as [$--path=some/dir]
+--- * [$-p:a_path.*pattern]: same as [$--nopath=some/dir]
+--- ]
+---
+--- Examples:[{## sh}
+--- ff some.*pattern  # search recursively in local dir
+--- ff r:some/dir/ some.*pat -not.*pat p:some%.path -p:not%.path]
 --- ]##
+---
+--- ff's replacing functionality is intended to be used incrementally:[+
+--- * use [$--sub=whatever] to see what changes will happen
+--- * only use [$--mut] when everything looks correct
+--- ]
+---
+--- Note that all directories/ always end with [$/]
 M.Main = mty'Main' {
   'root [list] [$r:path1 r:path2]: list of root paths',
   'pat  [list] [$any.+pat1 pat2]: list of patterns to find',
   'nopat [list] [$-notpat]: list of (file-wide) pattern exclusions',
   'path [list] [$p:%.lua] list of file path patterns',
-  'nopath [list] [$-p:%.bin] list of file path patterns to exclude',
+  'nopath [list] [$-p:%.bin] list of file path patterns to exclude.\n'
+  .."default: exclude dirs starting with '.'. Disable default by setting "
+  ..'to an empty string, i.e. [$--nopath=]',
   'sub [string]: the subsitution string to use with pat',
   'mut [bool]: mutate files (used with sub)',
   'dirs [bool]: show all non-excluded directories',
 }
+
 
 --- find patterns in path.
 --- If there is a match then the path is logged to [$io.stdout] and the matches
@@ -75,6 +93,9 @@ end
 M.iter = function(args) --> Iter
   args = M.Main(args)
   if #args.root == 0 then args.root[1] = pth.cwd() end
+  log.info('ff %q', args)
+  local sf = acs.Fmt{to=io.stdout}
+
   local w = civix.Walk(args.root)
   local it, ffind, finds = Iter{w}, M.find, ds.find
   -- check nopath patterns
@@ -84,7 +105,7 @@ M.iter = function(args) --> Iter
   end); end
   -- show/no-show dirs
   if args.dirs then;   it:map(function(p, pty)
-      if pty == 'dir' then io.stdout:write(p, '\n') end
+      if pty == 'dir' then sf:styled('path', nice(p), '\n') end
       return p, pty
     end)
   else
@@ -143,6 +164,11 @@ getmetatable(M.Main).__call = function(T, args)
   end
   shim.popRaw(args, args.root)
   M.parseColons(args)
+  if #args.nopath == 0 then args.nopath={'^%..*/', '/%..*/'} end
+  local i = 1; while i <= #args.nopath do
+    if args.nopath[i] == '' then table.remove(args.nopath, i)
+    else i = i + 1 end
+  end
   return construct(T, args)
 end
 

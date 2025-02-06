@@ -6,7 +6,6 @@ local G = G or _G
 local M = G.mod and mod'civdb' or setmetatable({}, {})
 
 local mty = require'metaty'
-
 local pkg = require'pkglib'
 local ds = require'ds'
 local pth = require'ds.path'
@@ -18,12 +17,14 @@ local fbin = require'fmt.binary'
 local ix = require'civix'
 
 local trace = require'ds.log'.trace
+local encv = require'pod.native'.enci
+
+local getmt = getmetatable
 local byte = string.byte
 local mtype = math.type
 local construct = mty.construct
 local index, newindex = mty.index, mty.newindex
 local ty = mty.ty
-local encv = require'pod.native'.enci
 local ser, deser = pod.ser, pod.deser
 local WeakV = ds.WeakV
 
@@ -143,7 +144,7 @@ end
 DB.__index = function(db, row)
   if type(row) == 'string' then
     local mt = getmt(db)
-    return rawget(mt, row) or index(db, i)
+    return rawget(mt, row) or index(db, row)
   end
   trace('__index row=%i', row)
   assert(row >= 1, 'row must be >= 1')

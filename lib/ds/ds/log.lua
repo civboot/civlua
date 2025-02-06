@@ -35,6 +35,10 @@ local LEVEL = ds.Checked{
   T=5, TRACE=5,
   'CRIT', 'ERROR', 'WARN', 'INFO', 'TRACE'
 }; M.LEVEL = LEVEL
+
+M.CRIT, M.ERROR, M.WARN = LEVEL.CRIT, LEVEL.ERROR, LEVEL.WARN
+M.INFO, M.TRACE = LEVEL.INFO, LEVEL.TRACE
+
 local SHORT = ds.Checked{'C', 'E', 'W', 'I', 'T'}
 function M.levelInt(lvl)
   local lvl = tonumber(lvl) or M.LEVEL[lvl]

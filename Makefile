@@ -43,6 +43,6 @@ doc:
 	$(LUA) civ.lua cxt.html .out/README.cxt README.html --config=PKG.lua
 
 clean:
-	rm -f $$($(LUA) civ.lua ff -r --fpat='%.rockspec$$')
-	rm -f $$($(LUA) civ.lua ff -r --fpat='%.src%.rock$$')
+	rm -f $$($(LUA) civ.lua ff r:lib r:ui r:cmd f:'%.rockspec$$')
+	rm -f $$($(LUA) civ.lua ff r:lib r:ui r:cmd f:'%.src%.rock$$')
 
