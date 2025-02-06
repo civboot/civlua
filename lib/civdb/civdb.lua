@@ -33,8 +33,8 @@ local fileInit = getmetatable(LFile).__call
 M.DB = mty'DB' {
   'schema [pod.Podder]: the type to deserialize each row',
   'meta [table]: table of metadata',
-  'path [string]', 'mode [string]',
-  'f [File]',
+  'path [string]', 'datPath [string]',
+  'f [File]', 'mode [string]',
   '_rows [lines.U3File]: row -> pos',
   'cache [ds.WeakV]: cache of rows',
   '_eofpos [nil|int]: nil or pos at eof',
@@ -111,7 +111,6 @@ end
 local writeEntry = function(f, pos, rawop, dat) --> writelen
   local len = #rawop + #dat
   assert(pos); assert(pos == f:seek('set', pos))
-
   local elenstr = encv(len)
   assert(f:write(elenstr))
   assert(f:write(rawop)); assert(f:write(dat))
@@ -159,22 +158,17 @@ end
 
 DB.__newindex = function(db, row, v)
   if type(row) == 'string' then return newindex(db, row, v) end
-  local vty; if v ~= nil then vty = ty(v)
-    if not rawequal(vty, db.schema) then error(fmt(
-      'schema ty %q ~= val ty %q', db.schema, vty
-    ))end
-  end
   assert(row >= 1, 'row must be >= 1')
   row = row + 1  -- _rows[1] is metadata
   local len = #db._rows
   local f, rows, pos, epos = db.f, db._rows, db._eofpos, nil
   if row > len then
     assert(row == len + 1, "can only set from [1,len+1]")
-    epos = pos + writeEntry(f, pos, createOp(), ser(v, vty))
+    epos = pos + writeEntry(f, pos, CREATE_OP, ser(v, db.schema))
   elseif v == nil then
     epos = pos + writeEntry(f, pos, deleteOp(row), '')
   else
-    epos = pos + writeEntry(f, pos, updateOp(row), ser(v, vty))
+    epos = pos + writeEntry(f, pos, updateOp(row), ser(v, db.schema))
   end
   rows[row], db._eofpos = pos, epos
 end
@@ -189,8 +183,11 @@ end
 --- Do basic argument checking and initializaiton
 local dbInit = function(T, t) --> db, rowsPath
   assert(t.schema, 'must set schema')
-  local path = assert(t.path, 'must provide path')
+  local path, datPath = assert(t.path, 'must provide path')
   local rowsPath = getIdxPath(path, ds.popk(t, 'rowsPath'))
+  if ix.isDir(path) then datPath = pth.concat{path, 'dat'}
+  else datPath = path; path = pth.last(path) end
+  t.path, t.datPath = path, datPath
   local t = construct(T, t)
   local ok, err = pod.isPodder(t.schema)
   if not ok then fmt.errorf('schema %s is not Podder: %s', t.schema, err) end
@@ -202,12 +199,12 @@ DB.new = function(T, t)
   trace('civdb.DB new %q', t)
   local t, rowsPath = dbInit(T, t)
   local f, err, rows
-  f, err = io.open(t.path, 'w+');      if not f    then return nil, err end
-  rows, err = U3File:create(rowsPath); if not rows then return nil, err end
+  ix.mkDirs(t.path)
+  f,    err = io.open(t.datPath, 'w+'); if not f    then return nil, err end
+  rows, err = U3File:create(rowsPath);  if not rows then return nil, err end
   t.meta = t.meta or {}
   t.meta.schema     = G.PKG_NAMES[t.schema]
   t.meta.createdSec = t.meta.created or ix.epoch().s
-
   assert(f:write(T.MAGIC))
   local elen = writeEntry(f, #T.MAGIC, otherOp{meta=t.meta}, '')
   rows[1] = #T.MAGIC
@@ -268,9 +265,9 @@ end
 DB.load = function(T, t)
   trace('civdb.DB load %q', t)
   local t, rowsPath = dbInit(T, t)
-  if not ix.exists(t.path) then error('path not found: '..t.path) end
+  if not ix.exists(t.datPath) then error('dat path not found: '..t.datPath) end
   local err;
-  t.f, err = io.open(t.path, 'a+'); if not t.f then return nil, err end
+  t.f, err = io.open(t.datPath, 'a+'); if not t.f then return nil, err end
   t:tryLoadIdx(rowsPath)
   return t
 end

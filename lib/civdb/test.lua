@@ -11,12 +11,12 @@ local DBF, IDX = '.out/file.civdb', '.out/rowfile.idx'
 T.dbRaw = function()
   local db = assert(M.DB:new{path=DBF, schema=pod.builtin})
   db.cache = ds.Forget{}
-  -- T.eq(1, db:createRaw'test1')
-  -- db.f:seek('set', 0)
-  -- --              elen op str5
+  T.eq(0, #db); db[1] = 'test1'
+  db.f:seek('set', 0)
+  --             elen op str5
   -- T.binEq('civdb\0\x07\xE2\x65test1', db.f:read())
-  -- T.eq(6, db.idx[1])
-  -- T.binEq('test1', db:readRaw(1))
+  -- T.eq(6, db._rows[1])
+  T.binEq('test1', db[1])
 
   -- T.eq(2, db:createRaw(22))
   -- T.binEq('test1', db:readRaw(1))
