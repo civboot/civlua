@@ -109,12 +109,12 @@ end
 --- write the raw operation and raw data, return bytes written
 --- Note: the rawop are created with the *Op() functions.
 local writeEntry = function(f, pos, rawop, dat) --> writelen
-  local f, pos, len = db.f, db._eofpos, #rawop + #dat
+  local len = #rawop + #dat
   assert(pos); assert(pos == f:seek('set', pos))
 
   local elenstr = encv(len)
   assert(f:write(elenstr))
-  assert(f:write(op)); assert(f:write(dat))
+  assert(f:write(rawop)); assert(f:write(dat))
   trace('pushvalue pos=%i enclen=%i len=%i', pos, #elenstr, len)
   return #elenstr + len
 end
@@ -144,7 +144,7 @@ end
 DB.__index = function(db, row)
   if type(row) == 'string' then
     local mt = getmt(db)
-    return rawget(mt, row) or index(db, row)
+    return rawget(mt, row) or index(mt, row)
   end
   trace('__index row=%i', row)
   assert(row >= 1, 'row must be >= 1')
@@ -158,7 +158,7 @@ end
 -- CREATE / UPDATE / DELETE
 
 DB.__newindex = function(db, row, v)
-  if type(i) == 'string' then return newindex(lf, i, v) end
+  if type(row) == 'string' then return newindex(db, row, v) end
   local vty; if v ~= nil then vty = ty(v)
     if not rawequal(vty, db.schema) then error(fmt(
       'schema ty %q ~= val ty %q', db.schema, vty
@@ -188,10 +188,11 @@ end
 
 --- Do basic argument checking and initializaiton
 local dbInit = function(T, t) --> db, rowsPath
+  assert(t.schema, 'must set schema')
   local path = assert(t.path, 'must provide path')
   local rowsPath = getIdxPath(path, ds.popk(t, 'rowsPath'))
   local t = construct(T, t)
-  local ok, err = pod.isPodder(assert(t.schema, 'must set schema'))
+  local ok, err = pod.isPodder(t.schema)
   if not ok then fmt.errorf('schema %s is not Podder: %s', t.schema, err) end
   return t, rowsPath
 end
@@ -201,8 +202,8 @@ DB.new = function(T, t)
   trace('civdb.DB new %q', t)
   local t, rowsPath = dbInit(T, t)
   local f, err, rows
-  f, err = io.open(db.path, 'w+');  if not f   then return nil, err end
-  rows, err = U3File(rowsPath, 'w+'); if not idx then return nil, err end
+  f, err = io.open(t.path, 'w+');      if not f    then return nil, err end
+  rows, err = U3File:create(rowsPath); if not rows then return nil, err end
   t.meta = t.meta or {}
   t.meta.schema     = G.PKG_NAMES[t.schema]
   t.meta.createdSec = t.meta.created or ix.epoch().s
