@@ -33,7 +33,7 @@ local fileInit = getmetatable(LFile).__call
 M.DB = mty'DB' {
   'schema [pod.Podder]: the type to deserialize each row',
   'meta [table]: table of metadata',
-  'path [string]', 'datPath [string]',
+  'path [string]', 'datPath [string]', 'metaPath [string]',
   'f [File]', 'mode [string]',
   '_rows [lines.U3File]: row -> pos',
   'cache [ds.WeakV]: cache of rows',
@@ -46,8 +46,7 @@ local DB = M.DB
 DB.MAGIC = 'civdb\0'
 DB.IDX_DIR = pth.concat{pth.home(), '.data/rows'}
 
--- subtract 1: rows[1] is metadata
-DB.__len = function(db) return #db._rows - 1 end
+DB.__len = function(db) return #db._rows end
 
 ---------------------
 --- Op Type: this specifies what the entry is doing
@@ -147,7 +146,6 @@ DB.__index = function(db, row)
   end
   trace('__index row=%i', row)
   assert(row >= 1, 'row must be >= 1')
-  row = row + 1  -- rows[1] is metadata
   local op, oplen, rawdat = db:readRaw(row, db.schema)
   return opRead[op.kind](db, oplen, rawdat)
 end
@@ -159,7 +157,6 @@ end
 DB.__newindex = function(db, row, v)
   if type(row) == 'string' then return newindex(db, row, v) end
   assert(row >= 1, 'row must be >= 1')
-  row = row + 1  -- _rows[1] is metadata
   local len = #db._rows
   local f, rows, pos, epos = db.f, db._rows, db._eofpos, nil
   if row > len then
@@ -176,22 +173,16 @@ end
 -----------------------
 -- Creating / Loading Database
 
-local getIdxPath = function(path, rowsPath)
-  return rowsPath or pth.concat{DB.IDX_DIR, path}
-end
-
 --- Do basic argument checking and initializaiton
 local dbInit = function(T, t) --> db, rowsPath
   assert(t.schema, 'must set schema')
-  local path, datPath = assert(t.path, 'must provide path')
-  local rowsPath = getIdxPath(path, ds.popk(t, 'rowsPath'))
-  if ix.isDir(path) then datPath = pth.concat{path, 'dat'}
-  else datPath = path; path = pth.last(path) end
-  t.path, t.datPath = path, datPath
+  t.path = (not ix.exists(assert(t.path, 'must provide path'))
+            or ix.isDir(t.path)) and pth.concat{t.path, 'db'}
+           or t.path
   local t = construct(T, t)
   local ok, err = pod.isPodder(t.schema)
   if not ok then fmt.errorf('schema %s is not Podder: %s', t.schema, err) end
-  return t, rowsPath
+  return t
 end
 
 
@@ -199,17 +190,17 @@ DB.new = function(T, t)
   trace('civdb.DB new %q', t)
   local t, rowsPath = dbInit(T, t)
   local f, err, rows
-  ix.mkDirs(t.path)
-  f,    err = io.open(t.datPath, 'w+'); if not f    then return nil, err end
-  rows, err = U3File:create(rowsPath);  if not rows then return nil, err end
+  ix.mkDirs((pth.last(t.path)))
+  f,    err = io.open(t.path, 'w+'); if not f then return nil, err end
+  rows, err = U3File:create(t.path..'.rows')
+  if not rows then return nil, err end
   t.meta = t.meta or {}
   t.meta.schema     = G.PKG_NAMES[t.schema]
   t.meta.createdSec = t.meta.created or ix.epoch().s
+  pod.dump(t.path..'.meta', t.meta, pod.table)
   assert(f:write(T.MAGIC))
-  local elen = writeEntry(f, #T.MAGIC, otherOp{meta=t.meta}, '')
-  rows[1] = #T.MAGIC
   t.f, t._rows, t.cache = f, rows, ds.WeakV{}
-  t._eofpos = #T.MAGIC + elen
+  t._eofpos = #T.MAGIC
   return t
 end
 
@@ -262,15 +253,15 @@ DB.tryLoadIdx = function(db, rowsPath)
   return true
 end
 
-DB.load = function(T, t)
-  trace('civdb.DB load %q', t)
-  local t, rowsPath = dbInit(T, t)
-  if not ix.exists(t.datPath) then error('dat path not found: '..t.datPath) end
-  local err;
-  t.f, err = io.open(t.datPath, 'a+'); if not t.f then return nil, err end
-  t:tryLoadIdx(rowsPath)
-  return t
-end
+-- DB.load = function(T, t)
+--   trace('civdb.DB load %q', t)
+--   local t, rowsPath = dbInit(T, t)
+--   if not ix.exists(t.datPath) then error('dat path not found: '..t.datPath) end
+--   local err;
+--   t.f, err = io.open(t.datPath, 'a+'); if not t.f then return nil, err end
+--   t:tryLoadIdx(rowsPath)
+--   return t
+-- end
 
 DB.needsReindex = function(db) return nil ~= db._rows end
 

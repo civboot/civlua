@@ -555,8 +555,8 @@ end
 
 M.writePath = function(path, text) --> ok
   local f = fmt.assertf(io.open(path, 'w'), 'invalid %s', path)
-  local out = f:write(text); f:close()
-  return out
+  local out, err = f:write(text); f:close()
+  return out, err
 end
 
 M.fileWithText = function(path, text, mode) --> file
