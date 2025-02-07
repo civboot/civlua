@@ -31,13 +31,13 @@ local WeakV = ds.WeakV
 local fileInit = getmetatable(LFile).__call
 
 M.DB = mty'DB' {
-  'schema [pod.Podder]: the type to deserialize each row',
-  'meta [table]: table of metadata',
   'path [string]', 'datPath [string]', 'metaPath [string]',
   'f [File]', 'mode [string]',
+  '_schema [pod.Podder]: the type to deserialize each row',
   '_rows [lines.U3File]: row -> pos',
   'cache [ds.WeakV]: cache of rows',
   '_eofpos [nil|int]: nil or pos at eof',
+  '_meta [table]',
 }
 getmetatable(M.DB).__call = function(T, t)
   error'use :new{} or :load{}'
@@ -109,7 +109,8 @@ end
 --- Note: the rawop are created with the *Op() functions.
 local writeEntry = function(f, pos, rawop, dat) --> writelen
   local len = #rawop + #dat
-  assert(pos); assert(pos == f:seek('set', pos))
+  assert(pos);
+  assert(pos == f:seek('set', pos))
   local elenstr = encv(len)
   assert(f:write(elenstr))
   assert(f:write(rawop)); assert(f:write(dat))
@@ -122,7 +123,7 @@ end
 -- READ
 
 local opDeser = function(db, oplen, rawdat)
-  return deser(rawdat, db.schema, oplen + 1)
+  return deser(rawdat, db._schema, oplen + 1)
 end
 local opRead = Op.Kind:matcher{
   CREATE = opDeser, UPDATE = opDeser, DELETE = ds.noop,
@@ -146,10 +147,10 @@ DB.__index = function(db, row)
   end
   trace('__index row=%i', row)
   assert(row >= 1, 'row must be >= 1')
-  local op, oplen, rawdat = db:readRaw(row, db.schema)
+  local op, oplen, rawdat = db:readRaw(row, db._schema)
+  if not op then return end
   return opRead[op.kind](db, oplen, rawdat)
 end
-
 
 -----------------------
 -- CREATE / UPDATE / DELETE
@@ -161,123 +162,148 @@ DB.__newindex = function(db, row, v)
   local f, rows, pos, epos = db.f, db._rows, db._eofpos, nil
   if row > len then
     assert(row == len + 1, "can only set from [1,len+1]")
-    epos = pos + writeEntry(f, pos, CREATE_OP, ser(v, db.schema))
+    epos = pos + writeEntry(f, pos, CREATE_OP, ser(v, db._schema))
   elseif v == nil then
     epos = pos + writeEntry(f, pos, deleteOp(row), '')
   else
-    epos = pos + writeEntry(f, pos, updateOp(row), ser(v, db.schema))
+    epos = pos + writeEntry(f, pos, updateOp(row), ser(v, db._schema))
   end
   rows[row], db._eofpos = pos, epos
 end
 
 -----------------------
+-- META
+
+--- [$db:meta()] get's the metadata and [$db:meta(new)] updates it. The
+--- schema is overriden with the current schema [$PKG_NAME].
+---
+--- Note: this updates the metadata inside a [$db] file as well as the
+--- [$db.meta] file. Do not modify the result of [$:meta()] directly unless you
+--- are immediately passing it back.
+DB.meta = function(db, meta)
+  if not meta then return db._meta end
+  local pos = db._eofpos
+  meta.schema = G.PKG_NAMES[db._schema]
+  db._eofpos = pos + writeEntry(db.f, pos, otherOp{meta=meta}, '')
+  db._meta = meta
+end
+
+--- [+ * [$db:schema()] returns the current schema
+---    * [$db:schema(newSchema)] sets a new schema]
+---
+--- ["WARNING: the new schema must be byte-compatible with the old one, else
+---   existing data will break on read. You may need to reindex the table after
+---   setting a new schema.]
+DB.schema = function(db, schema) --> current schema
+  if schema then
+    local ok, err = pod.isPodder(schema)
+    if not ok then fmt.errorf('schema %s is not Podder: %s', schema, err) end
+    db._schema = schema; db:meta(db._meta)
+  end
+  return db._schema
+end
+
+
+-----------------------
 -- Creating / Loading Database
 
 --- Do basic argument checking and initializaiton
-local dbInit = function(T, t) --> db, rowsPath
-  assert(t.schema, 'must set schema')
+local dbInit = function(t) --> t
   t.path = (not ix.exists(assert(t.path, 'must provide path'))
             or ix.isDir(t.path)) and pth.concat{t.path, 'db'}
            or t.path
-  local t = construct(T, t)
-  local ok, err = pod.isPodder(t.schema)
-  if not ok then fmt.errorf('schema %s is not Podder: %s', t.schema, err) end
   return t
 end
 
 
 DB.new = function(T, t)
   trace('civdb.DB new %q', t)
-  local t, rowsPath = dbInit(T, t)
+  local schema = assert(ds.popk(t, 'schema'), 'must set schema')
+  t = dbInit(t); t._meta = ds.popk(t, 'meta') or {}
+  t = construct(T, t)
   local f, err, rows
   ix.mkDirs((pth.last(t.path)))
   f,    err = io.open(t.path, 'w+'); if not f then return nil, err end
   rows, err = U3File:create(t.path..'.rows')
   if not rows then return nil, err end
-  t.meta = t.meta or {}
-  t.meta.schema     = G.PKG_NAMES[t.schema]
-  t.meta.createdSec = t.meta.created or ix.epoch().s
-  pod.dump(t.path..'.meta', t.meta, pod.table)
-  assert(f:write(T.MAGIC))
+  assert(f:write(T.MAGIC)); t._eofpos = #T.MAGIC
   t.f, t._rows, t.cache = f, rows, ds.WeakV{}
-  t._eofpos = #T.MAGIC
+  t:schema(schema)
   return t
 end
 
 local opRow = function(_rows, row, pos) rows[row] = pos end
 local opReindex = Op.Kind:matcher{
-  CREATE = function(_rows, _,   pos) rows[#_rows+1]   = pos end,
-  UPDATE = function(_rows, row, pos) rows[row+1]    = pos end,
-  DELETE = function(_rows, row, _)   rows[row+1]    = 0   end,
-  OTHER  = function(_rows, _, pos)   rows[1]        = pos end,
+  CREATE = function(rows,  _,   pos) rows[#rows+1] = pos end,
+  UPDATE = function(rows, row, pos)  rows[row]     = pos end,
+  DELETE = function(rows, row, _)    rows[row]     = 0   end,
+  OTHER  = function() error'unreachable' end,
 }
 
-local finishRows = function(db, rows)
-  local mpos = rows[1]; if not mpos or mpos == 0 then
-    return nil, 'no metadata'
-  end; assert(mpos == f:seek('set', mpos))
-  local op = readEntryOp(f)
-  local meta = G.op.other.meta
-  local schema = assert(pkg.getpath(meta.schema), meta.schema)
-  if db.schema and not rawequal(db.schema, schema) then fmt.errorf(
-    'loaded schema %q not equal to set schema %q', schema, db.schema
-  )end
-  assert(pod.isPodder(schema)); db.schema = schema
-  db._rows, db.meta = rows, meta
-end
-
-DB.reindex = function(db, rowsPath)
-  rowsPath = getIdxpath(db.path, rowsPath)
-  local rows, err = U3File(rowsPath, 'w+')
-  if not rows then return err end
-  local f, pos = db.f, #DB.MAGIC; local len = f:seek'end'
-  trace('DB reindex pos=%i len=%s', row, pos, len)
+local reindex = function(f, path) --> endpos, rows, meta
+  local rowsPath = path..'.rows'
+  local rows, err = assert(U3File:create(rowsPath))
+  local pos = #DB.MAGIC; local len = f:seek'end'
+  trace('reindex pos=%i len=%s', pos, len)
   f:seek'set'; assert(DB.MAGIC == f:read(#DB.MAGIC))
+  local meta
   while pos < len do
     local op, _, rawdat, lensz = readEntryOp(f)
     if not op then break end -- incomplete entry, treat as EOF
-    opReindex[op.kind](_rows, op.row, pos)
+    if op.other then
+      if op.other.meta then meta = op.other.meta end
+    else
+      opReindex[op.kind](rows, op.row, pos)
+    end
     pos = pos + lensz + #rawdat
   end
-  finishRows(db, rows)
-  db._eofpos = pos
-  return db
+  assert(meta, 'OTHER.meta was never set')
+  return pos, rows, meta
 end
 
-DB.tryLoadIdx = function(db, rowsPath)
-  rowsPath = getIdxpath(db.f, rowsPath)
+local tryLoad = function(f, path) --> pos?, rows?, meta?
+  local rowsPath, metaPath = path..'.rows', path..'.meta'
   if not ix.exists(rowsPath)              then return end
-  if not ix.modifiedEq(db.path, rowsPath) then return end
-  rows, err = U3File(rowsPath, 'r+'); if not rows then return end
-  finishRows(db, rows)
-  return true
+  if not ix.modifiedEq(f, rowsPath) then return end
+  if not ix.modifiedEq(f, metaPath) then return end
+  local rows = assert(U3File:load(rowsPath))
+  local meta = assert(pod.deser(ds.readPath(metaPath), pod.table))
+
+  print('!! #rows', #rows)
+  local pos; if #rows == 0 then pos = #DB.MAGIC
+  else                          pos = rows[#rows] end
+  f:seek('set', pos);
+  local str, lensz = readEntryRaw(f); assert(str, lensz)
+  return pos + lensz + #str, rows, meta
 end
 
--- DB.load = function(T, t)
---   trace('civdb.DB load %q', t)
---   local t, rowsPath = dbInit(T, t)
---   if not ix.exists(t.datPath) then error('dat path not found: '..t.datPath) end
---   local err;
---   t.f, err = io.open(t.datPath, 'a+'); if not t.f then return nil, err end
---   t:tryLoadIdx(rowsPath)
---   return t
--- end
+DB.load = function(T, t)
+  trace('civdb.DB load %q', t)
+  local t = dbInit(t)
+  if not ix.exists(t.path) then error('path not found: '..t.path) end
+  local err;
+  t.f, err = io.open(t.path, 'a+'); if not t.f then return nil, err end
+  local pos, rows, meta = tryLoad(t.f, t.path)
+  if not rows then pos, rows, meta = reindex(t.f, t.path) end
+  if not rows then error("couldn't reload "..t.path..'.rows') end
 
-DB.needsReindex = function(db) return nil ~= db._rows end
-
-DB.check = function(db) --> ok, err
-  if db:needsReindex() then return false, 'needs :reindex()' end
+  t._schema = PKG_LOOKUP[assert(meta.schema, 'no schema in meta')]
+  t._eofpos, t._rows, t._meta = pos, rows, meta
+  return construct(T, t)
 end
 
 DB.flush = function(db)
-  local ok, err = db.rows:flush(); if not ok then return nil, err end
+  local ok, err = db._rows:flush(); if not ok then return nil, err end
   ok, err = db.f:flush()           if not ok then return nil, err end
   local fs, err = ix.stat(db.f);   if not fs then return nil, err end
-  return ix.setModified(db.rows.f, fs:modified())
+  ix.setModified(db._rows.f,       fs:modified())
+  ix.setModified(db.path..'.meta', fs:modified())
 end
 
 DB.close = function(db)
-  db:flush(); db.rows:close(); db.f:close();
+  db:flush(); db._rows:close(); db.f:close();
 end
+
+DB.nocache = function(db) db.cache = ds.Forget{} end
 
 return M

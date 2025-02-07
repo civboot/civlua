@@ -21,7 +21,7 @@ local function iseek(u3, i)
   if u3._i == i then return end
   local to = (i-1) * 3
   local pos = assert(u3.f:seek('set', to))
-  log.info('seek i=%s pos=%s -> got=%s (u3len=%s)', i, to, pos, #u3)
+  log.trace('seek i=%s pos=%s -> got=%s (u3len=%s)', i, to, pos, #u3)
   assert(pos % 3 == 0, 'pos incorrect')
 end
 
@@ -41,7 +41,8 @@ U3File.reload = function(u3, mode)
   local bytes = f:seek'end'
   f:seek('set', bytes - bytes % 3) -- truncate invalid bytes
   local len = bytes // 3
-  u3.f, u3.len, u3._i = f, len, len
+  log.trace('U3File reload end=%i (len=%i)', bytes, len)
+  u3.f, u3.len, u3._i = f, len, len + 1
   return u3
 end
 

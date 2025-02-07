@@ -68,9 +68,13 @@ ds.update(M, {
   mv = lib.rename,
 })
 
---- set the modified time of the fileno
+--- set the modified time of the path|file
 M.setModified = function(f, sec, nsec) --> error?
-   return lib.setmodified(fd.fileno(f), sec, nsec)
+  local close
+  if type(f) == 'string' then f = io.open(f); close = true end
+  local ok, err = lib.setmodified(fd.fileno(f), sec, nsec)
+  if close then f:close() end
+  return ok, err
 end
 
 -------------------------------------

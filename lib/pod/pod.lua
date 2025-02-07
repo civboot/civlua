@@ -108,6 +108,9 @@ BUILTIN_PODDER.key = M.key
 
 --- Handles all native types (nil, boolean, number, string, table)
 M.builtin = mty'builtin' {}; local builtin = M.builtin
+
+assert(PKG_LOOKUP['pod.builtin'] == M.builtin)
+
 builtin.__toPod = function(self, pod, v)
   local ty = type(v)
   if ty == 'table' then

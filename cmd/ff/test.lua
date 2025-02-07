@@ -66,12 +66,14 @@ test('ff.Main', function()
 end)
 
 local function runFF(args) --> ok, paths, stdout, stderr
+  local ll = LOGLEVEL; LOGLEVEL = 0
   local f, out = fmt.Fmt{to=io.tmpfile()}, io.tmpfile()
   local iofmt, ioout = io.fmt, io.stdout
   io.fmt, io.stdout = f, out
   local ok, paths = ds.try(ff, args)
   io.fmt, io.stdout = iofmt, ioout
   f.to:seek'set'; out:seek'set'
+  LOGLEVEL = ll
   return ok, paths, out:read'a', f.to:read'a'
 end
 

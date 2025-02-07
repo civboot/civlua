@@ -179,8 +179,7 @@ static int l_stat_modified(LS *L) {
   return 2;
 }
 
-// set the modified time of the fileno.
-// (fileno, sec, nsec) --> error?
+// (fd, modified_s, modified_ns) --> error?
 static int l_setmodified(LS* L) {
   int fno = luaL_checkinteger(L, 1);
   struct timespec times[2];
