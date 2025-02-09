@@ -7,6 +7,7 @@ url      = 'git+http://github.com/civboot/civlua'
 doc = 'README.cxt'
 srcs = {
   'civdb.lua',
+  'civdb/HashIdx.lua',
 }
 deps = {
   "lua ~> 5.3",

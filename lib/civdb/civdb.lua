@@ -33,6 +33,8 @@ local fileInit = getmetatable(LFile).__call
 M.DB = mty'DB' {
   'path [string]', 'datPath [string]', 'metaPath [string]',
   'f [File]', 'mode [string]',
+  'idxs {str: civdb.Idx}: indexers for a specific key.'
+  ..' These will be used instead of a full table scan if available.',
   '_schema [pod.Podder]: the type to deserialize each row',
   '_rows [lines.U3File]: row -> pos',
   'cache [ds.WeakV]: cache of rows',
@@ -159,13 +161,16 @@ DB.__newindex = function(db, row, v)
   assert(row >= 1, 'row must be >= 1')
   local len = #db._rows
   local f, rows, pos, epos = db.f, db._rows, db._eofpos, nil
-  if row > len then
+  if row > len then -----: CREATE
     assert(row == len + 1, "can only set from [1,len+1]")
     epos = pos + writeEntry(f, pos, CREATE_OP, ser(v, db._schema))
-  elseif v == nil then
+    for _, idx in pairs(db.idxs) do idx:create(row, v) end
+  elseif v == nil then --: DELETE
     epos = pos + writeEntry(f, pos, deleteOp(row), '')
-  else
+    for _, idx in pairs(db.idxs) do idx:delete(row) end
+  else ------------------: UPDATE
     epos = pos + writeEntry(f, pos, updateOp(row), ser(v, db._schema))
+    for _, idx in pairs(db.idxs) do idx:update(row, v) end
   end
   rows[row], db._eofpos = pos, epos
 end
@@ -207,6 +212,7 @@ end
 
 --- Do basic argument checking and initializaiton
 local dbInit = function(t) --> t
+  t.idxs = t.idxs or {}
   t.path = (not ix.exists(assert(t.path, 'must provide path'))
             or ix.isDir(t.path)) and pth.concat{t.path, 'db'}
            or t.path
@@ -352,11 +358,12 @@ local qMatcher = M.QOp:matcher {
 ---
 --- [{h2}Why this is better than a [$for] loop]
 --- Some fields (or keys composed of multiple fields) are indexed. If the query
---- is looking for a field with a relatively rare value, then it can be found
---- in O(1) time (for a hash index) instead of requiring a complete table scan.
+--- is looking for a key with a relatively rare value, then it can be found in
+--- O(1) time (for a hash index) instead of requiring a complete table scan.
 DB.query = function(db, q) --> iter (rowId, value)
   if not getmt(q) then q = Query(q) end
-  local k = q.key
+  local k = q.key;
+  local idx = db.idxs[k]; if idx then return idx(q) end
   if not db._schema.__podders[k] then error('db key not found: '..k) end
   return qMatcher[q.op](db, k, q)
 end
