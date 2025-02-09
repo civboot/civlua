@@ -15,7 +15,7 @@ local push = table.insert
 T.lapTest('sh', function()
   local sh, o = M.sh
 
-  assertEq('',           sh'true')
+  assertEq(nil,           sh'true')
   assertEq('hi there\n', sh{'echo', 'hi there'})
   assertEq('from stdin', sh{stdin='from stdin', 'cat'})
   assertEq('foo --abc=ya --aa=bar --bb=42\n',

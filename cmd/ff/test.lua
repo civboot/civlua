@@ -88,7 +88,7 @@ local function testA()
   -- (because of default)
   local ok, res, stdout, stderr = runFF{'a %d1', '--', dir}
   assert(ok, res)
-  assertEq({}, res); assertEq('', stdout); assertEq('', stderr)
+  assertEq({}, res); assertEq(nil, stdout); assertEq(nil, stderr)
 end
 
 test('ff_find', function()
@@ -125,7 +125,7 @@ test('ff_sub', function()
   -- there are no more 'a %i1'
   local ok, res, stdout, stderr = runFF(ds.copy(subArgs))
   assert(ok, res)
-  assertEq({}, res); assertEq('', stderr) -- no matches
+  assertEq({}, res); assertEq(nil, stderr) -- no matches
 
   -- there are 's %i1'
   local ok, res, stdout, stderr = runFF{'-p:', 's %d1', 'r:'..dir}

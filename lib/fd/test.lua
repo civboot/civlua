@@ -103,3 +103,31 @@ CT.asyncTest('pipe', function()
   aeq('b', r:read(1)); aeq('ye', r:read(2))
 end)
 
+--- testFn(openFn) is called with both file types.
+local allFileTest = function(testFn)
+  testFn(M.io.open)
+  testFn(M.open)
+end
+
+--- check that both files behave the same
+T.checkBoth = function() allFileTest(function(open)
+  local f = open(p, 'w+')
+  f:write'hello!'
+    T.eq(nil, f:read())
+    T.eq(6, f:seek'cur')
+
+  T.eq(0, f:seek'set')
+    T.eq('hello!', f:read())
+    T.eq(6, f:seek'cur')
+    T.eq(nil, f:read())
+
+  T.eq(3, f:seek('set', 3))
+    T.eq('lo!', f:read(3))
+    T.eq(6, f:seek'cur'); T.eq(nil, f:read())
+
+  T.eq(0, f:seek'set');
+    T.eq('hel', f:read(3)); T.eq(3, f:seek'cur')
+    T.eq('lo!', f:read(3)); T.eq(6, f:seek'cur')
+    T.eq(nil, f:read())
+end) end
+

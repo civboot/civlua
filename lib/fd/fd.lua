@@ -166,7 +166,7 @@ local function iden(x) return x end
 local function noNL(s)
   return s and (s:sub(-1) == '\n') and s:sub(1, -2) or s
 end
-local function readAll(fd) fd:_readTill(); return fd:_pop() or '' end
+local function readAll(fd) fd:_readTill(); return fd:_pop() end
 local function readLine(fd, lineFn)
   local s = fd:_pop(NL); if s then return lineFn(s) end
   fd:_readTill(NL)

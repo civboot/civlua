@@ -285,7 +285,7 @@ static void assertReady(LS* L, FD* fd, const char* name) {
 //     Return nil character not found.
 // * positive: pop exactly that many characters or nil.
 //
-// note: returns nil instead of an empty string
+// note: if result would be '' returns nil instead
 static int l_FD_pop(LS* L) {
   FD* fd = asfd(L); assertReady(L, fd, "pop");
   int till = luaL_optnumber(L, 2, 0);
