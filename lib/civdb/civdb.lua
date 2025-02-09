@@ -98,7 +98,6 @@ end
 --- if the rawdat are decoded they must be offset by oplen+1
 local readEntryOp = function(f) -- op, oplen, rawdat, lensz
   local dat, lensz = readEntryRaw(f)
-  print('!! readTx lensz:', lensz)
   if not dat then return nil, nil, lensz end
   local op, oplen = deser(dat)
   trace('readTx: op=%q vlen=%i', op, #dat - oplen)
@@ -203,7 +202,6 @@ DB.schema = function(db, schema) --> current schema
   return db._schema
 end
 
-
 -----------------------
 -- Creating / Loading Database
 
@@ -214,7 +212,6 @@ local dbInit = function(t) --> t
            or t.path
   return t
 end
-
 
 DB.new = function(T, t)
   trace('civdb.DB new %q', t)
@@ -269,7 +266,6 @@ local tryLoad = function(f, path) --> pos?, rows?, meta?
   local rows = assert(U3File:load(rowsPath))
   local meta = assert(pod.deser(ds.readPath(metaPath), pod.table))
 
-  print('!! #rows', #rows)
   local pos; if #rows == 0 then pos = #DB.MAGIC
   else                          pos = rows[#rows] end
   f:seek('set', pos);
@@ -300,10 +296,69 @@ DB.flush = function(db)
   ix.setModified(db.path..'.meta', fs:modified())
 end
 
-DB.close = function(db)
-  db:flush(); db._rows:close(); db.f:close();
+DB.close = function(db) db:flush(); db._rows:close(); db.f:close(); end
+DB.nocache = function(db) db.cache = ds.Forget{} end
+
+-----------------------
+-- Query API
+
+--- Return a iterator (row, val) of rows where
+--- [$filterFn(fieldValue) == true]
+DB.filterField = function(db, field, filterFn) --> iter (row, val)
+  if not db._schema.__podders[field] then error('field not found: '..f) end
+  local r, len = 0, #db
+  return function()
+    while r <= len do
+      r = r + 1
+      local v = db[r]; if v ~= nil then
+        if filterFn(v[field]) then return r, v end
+      end
+    end
+  end
 end
 
-DB.nocache = function(db) db.cache = ds.Forget{} end
+M.QOp = mty.enum'QOp' {
+  EQ = 1,
+}
+local qopName = M.QOp.name
+
+--- A basic query request on a field, For example:
+--- [{# lang=lua}
+--- Query{field='name', op=QOp.Eq, 'rett'}]
+--- ]#
+---
+--- ["Note: this is just data, to actually execute the query
+---  call DB:query.]
+M.Query = mty'Query' {
+  'key [string]: field name (or defined key index) to query',
+  'op [QOp]', kind=M.QOp.EQ,
+}
+local Query = M.Query
+getmetatable(M.Query).__call = function(T, t)
+  assert(type(t.key) == 'string' or type(t.key) == 'number',
+         'must set field = str|int')
+  t.op = qopName(t.op or 'EQ')
+  return construct(T, t)
+end
+
+local qMatcher = M.QOp:matcher {
+  EQ = function(db, field, query)
+    local eqv = query[1]
+    return db:filterField(field, function(v) return v == eqv end)
+  end,
+}
+
+--- Query: return an iterator of (rowId, value) that matches the query.
+---
+--- [{h2}Why this is better than a [$for] loop]
+--- Some fields (or keys composed of multiple fields) are indexed. If the query
+--- is looking for a field with a relatively rare value, then it can be found
+--- in O(1) time (for a hash index) instead of requiring a complete table scan.
+DB.query = function(db, q) --> iter (rowId, value)
+  if not getmt(q) then q = Query(q) end
+  local k = q.key
+  if not db._schema.__podders[k] then error('db key not found: '..k) end
+  return qMatcher[q.op](db, k, q)
+end
 
 return M

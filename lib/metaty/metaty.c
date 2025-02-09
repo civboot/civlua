@@ -11,6 +11,10 @@ static inline int l_concat(LS* L) {
   size_t slen; uint8_t const* sep = luaL_checklstring(L, 1, &slen);
   int lasti = lua_gettop(L);
   if(lasti == 1) { lua_pushstring(L, ""); return 1; }
+  // require space for all arguments to be converted to strings + result.
+  if (!lua_checkstack(L, (lasti - 1) * 2 + 1)) {
+    luaL_error(L, "string.concat stack overflow");
+  }
   int size = slen * (lasti - 2);  // size of all separators
   for(int i=2; i <= lasti; i++) { // convert tostring and calc bufsize
     luaL_tolstring(L, i, NULL); size += lua_rawlen(L, -1);

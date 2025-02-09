@@ -1,5 +1,6 @@
 local mty = require'metaty'
 --- fluent iterator
+---
 --- [{## lang=lua}
 --- isNumber = function(v) return type(v) == 'number' end
 --- t = {4, 5, 'six', 7}
@@ -44,6 +45,19 @@ Iter.of = function(T, t) return T{pairs(t)} end
 
 --- create iterable of [$ipairs(t)]
 Iter.ofList = function(T, t) return T{ipairs(t)} end
+
+--- create an iterable that returns [$table.unpack] on each
+--- value in [$ipairs(t)].
+---
+--- i.e. [$Iter:ofUnpacked{{5, 'five'}, {6, 'six'}}] will
+--- return (5, 'five') then (6, 'six')
+Iter.ofUnpacked = function(T, t)
+  local i, len = 0, #t
+  return T{function()
+    if i >= len then return end
+    i = i + 1; return unpack(t[i])
+  end}
+end
 
 --- create an iterable of [$t] which emits keys in order.
 ---
@@ -262,9 +276,28 @@ Iter.__ipairs = ds.nosupport
 
 
 --- create an iterator that returns a single value
-Iter.single = function(k, v) --> (k, v)->nil
+Iter.single = function(k, v) --> fn(): (k, v) .. nil
   local done = false; return function()
     if not done then done = true; return k, v end
+  end
+end
+
+--- Used for testing. [$Iter:assertEq(it1, it2)] constructs both
+--- iterators using [$Iter()] and then asserts the results are
+--- identical.
+Iter.assertEq = function(it1, it2)
+  assert(mty.ty(it1) == Iter, 'it1 is not Iter')
+  assert(mty.ty(it2) == Iter, 'it2 is not Iter')
+  local i, T = 0, require'civtest'.Test
+  while true do
+    i = i + 1
+    local r1 = {it1()}
+    local r2 = {it2()}
+    if not mty.eq(r1, r2) then
+      io.fmt:styled('error', 'Result differs at index '..i, '\n')
+      T.eq(r1, r2); error'unreachable'
+    end
+    if rawequal(r1[1], nil) then return end
   end
 end
 

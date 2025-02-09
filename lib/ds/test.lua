@@ -639,6 +639,20 @@ T['ds.Iter'] = function()
   assertEq(false, It:of{true, false, true}:all())
   assertEq(true,  It:of{false, false, true, false}:any())
   assertEq(false, It:of{false, false, false, false}:any())
+
+  It{ipairs{11, 12, 13}}:assertEq(It{ipairs{11, 12, 13}})
+
+  local i = 0
+  local it = It{function()
+    if i >= 3 then return end
+    i = i + 1; return i, 10 + i
+  end}
+  It{ipairs{11, 12, 13}}:assertEq(it)
+
+  it = It:ofUnpacked{{11, 'first'}, {22, 'second'}}
+  T.eq({11, 'first'},  {it()})
+  T.eq({22, 'second'}, {it()})
+  T.eq(nil, it())
 end
 
 ---------------------
