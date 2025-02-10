@@ -18,7 +18,7 @@ local function iseek(fi, i, sz)
   if fi._i == i then return end
   local to = (i-1) * sz
   local pos = assert(fi.f:seek('set', to))
-  assert(pos % 3 == 0, 'pos incorrect')
+  assert(pos % sz == 0, 'pos incorrect')
 end
 
 --- This creates a new index file at path (path=nil uses tmpfile()).
@@ -86,7 +86,7 @@ IFile.__newindex = function(fi, i, v)
 end
 
 IFile.__fmt = function(fi, fmt)
-  fmt:write('U3File(sz=', tostring(fi.sz), ' ')
+  fmt:write('IFile(sz=', tostring(fi.sz), ' ')
   if fi.path then fmt:write(fi.path) end
   fmt:write')'
 end

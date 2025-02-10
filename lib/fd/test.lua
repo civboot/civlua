@@ -3,6 +3,7 @@ local iotype = io.type
 local T   = require'civtest'.Test
 local CT = require'civtest'
 local M   = require'fd'
+local ds = require'ds'
 local S   = M.sys
 local aeq = T.eq
 M.ioSync()
@@ -130,4 +131,20 @@ T.checkBoth = function() allFileTest(function(open)
     T.eq('lo!', f:read(3)); T.eq(6, f:seek'cur')
     T.eq(nil, f:read())
 end) end
+
+
+-- Note: most test coverage is in things that
+-- use IFile (i.e. U3File).
+T.IFile = function()
+  local IFile = require'fd.IFile'
+  local fi = IFile:create(1)
+  ds.extend(fi, {'a', 'b', 'c'})
+  T.eq({'a', 'b', 'c'}, ds.icopy(fi))
+  fi[2] = 'B'
+  T.eq({'a', 'B', 'c'}, ds.icopy(fi))
+
+  local fi = IFile:create(2)
+  ds.extend(fi, {'aa', 'bb', 'cc'})
+  T.eq({'aa', 'bb', 'cc'}, ds.icopy(fi))
+end
 
