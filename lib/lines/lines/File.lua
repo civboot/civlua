@@ -80,7 +80,7 @@ File.flush = function(lf)
   ok, err = lf.f:flush()          if not ok then return nil, err end
   local fstat, err = ix.stat(lf.f)
   if not fstat then return nil, err end
-  return ix.setModified(lf.idx.fi.f, fstat:modified())
+  return ix.setModified(lf.idx.f, fstat:modified())
 end
 
 --- append to file
@@ -155,7 +155,7 @@ end
 
 File.reader = function(lf) --> lines.File (readonly)
   local idx, err = assert(
-    getmt(lf.idx):load(assert(lf.idx.fi.path, 'idx path not set'), 'r'))
+    getmt(lf.idx):load(assert(lf.idx.path, 'idx path not set'), 'r'))
   local path = assert(lf.path, 'path not set')
   return construct(getmt(lf), {
     f=io.open(path, 'r'), path=path, cache=lf.cache, idx=idx,

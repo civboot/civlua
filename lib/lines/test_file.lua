@@ -30,16 +30,16 @@ test('U3File', function()
   assertEq(11, u[1])
   assertEq(22, u[2])
   assertEq(33, u[3]); assertEq(nil, rawget(u, 3))
-  assertEq({11, 22, 33}, loadu3s(u.fi.f))
+  assertEq({11, 22, 33}, loadu3s(u.f))
   assertEq(11, u[1]) -- testing loadu3s
   assertEq(3, #u)
 
-  u[2] = 20; assertEq({11, 20, 33}, loadu3s(u.fi.f))
+  u[2] = 20; assertEq({11, 20, 33}, loadu3s(u.f))
   assertEq(20, u[2])
   assertEq(33, u[3])
 
   u[1] = 10; u[4] = 44; u[5] = 55
-  assertEq({10, 20, 33, 44, 55}, loadu3s(u.fi.f))
+  assertEq({10, 20, 33, 44, 55}, loadu3s(u.f))
   assertEq(10, u[1])
   assertEq(55, u[5])
 

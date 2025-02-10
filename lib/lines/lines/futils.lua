@@ -26,7 +26,7 @@ M.loadIdx = function(f, idxpath, fmode, reindex) --> idxFile
   if not idx then return nil, err end
   reindex(f, idx)
   f:flush(); idx:flush()
-  ix.setModified(idx.fi.f, fstat:modified())
+  ix.setModified(idx.f, fstat:modified())
   return idx
 end
 

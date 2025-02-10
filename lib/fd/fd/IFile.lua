@@ -2,9 +2,9 @@ local mty = require'metaty'
 --- Indexed File: supports setting and getting fixed-length values (bytes) by
 --- index, implementing the API of a list-like table.
 local IFile = mty'fd.IFile' {
-  'sz [int]: the size of each value',
   'f [file]', 'path [str]',
   'len [int]', '_i [int]',
+  'sz [int]: the size of each value',
 }
 
 local mtype = math.type
@@ -56,20 +56,22 @@ IFile.close = function(fi)
   if fi.f then fi.f:close(); fi.f = false end
 end
 
-IFile.__index = function(fi, i)
-  if type(i) == 'string' then
-    local mt = getmetatable(fi)
-    return rawget(mt, i) or index(mt, i)
-  end
+IFile.getbytes = function(fi, i)
   if i > fi.len then return end
   local sz = fi.sz; iseek(fi, i, sz)
   local v = fi.f:read(sz); assert(#v == sz, 'did not read sz bytes')
   fi._i = i + 1
   return v
 end
+IFile.__index = function(fi, i)
+  if type(i) == 'string' then
+    local mt = getmetatable(fi)
+    return rawget(mt, i) or index(mt, i)
+  end
+  return fi:getbytes(i)
+end
 
-IFile.__newindex = function(fi, i, v)
-  if type(i) == 'string' then return newindex(fi, i, v) end
+IFile.setbytes = function(fi, i, v)
   local len = fi.len; assert(i <= len + 1, 'newindex OOB')
   local sz = fi.sz
   if #v ~= sz then error('attempt to write '..#v..' bytes') end
@@ -77,6 +79,10 @@ IFile.__newindex = function(fi, i, v)
   local _, err = fi.f:write(v); if err then error(err) end
   if i > len then fi.len = i end
   fi._i = i + 1
+end
+IFile.__newindex = function(fi, i, v)
+  if type(i) == 'string' then return newindex(fi, i, v) end
+  return fi:setbytes(i, v)
 end
 
 IFile.__fmt = function(fi, fmt)
