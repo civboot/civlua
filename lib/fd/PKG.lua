@@ -8,10 +8,12 @@ doc = 'README.cxt'
 srcs = {
   'fd.lua',
   ['fd.sys'] = 'fd.c',
+  'fd/IFile.lua',
 }
 libs = {
   ['fd.sys'] = 'fd.so',
 }
 deps = {
   "lua ~> 5.3",
+  "metaty ~> 0.1",
 }
