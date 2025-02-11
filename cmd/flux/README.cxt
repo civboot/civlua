@@ -30,6 +30,11 @@ the [$flux] commandline software through the following architecure: [+
     order of ids less than non-tar files. Flux will automatically move patches
     to this tarball, mainly to avoid file exhaustion in the OS.
 
+  * [$tags] file where each line is a patch id (i.e. [$442]) followed by tags
+    for that id, all separated by tabs.
+    ["Typically the software allows tags to only be added to the [$root]
+      branch. Typically tags cannot be removed.]
+
   * additional metadata files to help with the fast execution of the software: [+
     * [$tip] contains just the current highest commit.
     ]
@@ -71,6 +76,46 @@ the user.
 A file containing a newlineline separated list of lua [$+include] and
 [$-exclude] Lua patterns to display files the user may have forgotten to
 include.
+
+[{h3}Archive]
+A branch is "archived" as a single file for transmission or storage by:[+
+* moving all patch files to the end of [$tar].
+* moving the [$tags] to the end of [$tar].
+* copying (or renaming) [$tar] to [$branch.tar]
+]
+
+[{h3 n=flux.collapse}Collapsing Patches]
+One advantage over flux's simplisitic model is that it allows the
+maintainer to collapse patches. For example, say you have the
+following tags: [##
+443 0.1.3
+551 0.1.4
+]##
+
+Say you no longer need the specific changes that occured between [$[444, 551]]
+and just want the diffs between the tagged versions. Flux can create (and
+understand) a single [$444-551] patch file which is all the diffs rolled into
+one, allowing the maintainer to also cleanup the collapsed COMMITS file (note
+that the HASH doesn't include the COMMITS file).
+
+["Note: If a tagged patch is being collapsed it must be the last patch id in a
+  collapsed range to prevent loss of tags.
+]
+
+When clients of your repo see the collapsed commit, they should perform the
+collapse themselves and verify the hash as well as the signature for the new
+commit message.
+
+Flux will create a [$branch.<epochSeconds>.443-550.tar.gz] (or other suitable
+compression) to [$./flux/backups] to allow rolling back the change. Backup
+files of this kind are also kept when ammending local commits or rebasing to
+head.
+
+There are many benefits of this, the main one being it allows for very
+fine-grained patches during development with the possibility of future repo
+maintence in the future -- one doesn't have to second-guess the best practice
+of using small patches during development when they can always be collapsed at
+a later date.
 
 [{h2}Common Operations]
 Below are common operations and how they are handled by the software.
