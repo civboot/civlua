@@ -37,6 +37,7 @@ pkgs = {
   'cmd/doc',     -- read and write inline documentation
   'cmd/ff',      -- fast-find and replace tool
   'cmd/pkgrock', -- interface with luarocks
+  'cmd/flux',    -- version control
   'cmd/ele',     -- Extendable Lua Editor (and shell)
 }
 

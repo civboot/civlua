@@ -1,4 +1,4 @@
-pkg: local and recursive require
+[{h1}pkg: local and recursive require]
 
 This directory exports one lua module ([$pkglib.lua]) and enables [$PKG.lua]
 files to be used for looking up [$require'someModule'] statements in lua.

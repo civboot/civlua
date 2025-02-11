@@ -9,7 +9,6 @@ srcs = {
   'fd.lua',
   ['fd.sys'] = 'fd.c',
   'fd/IFile.lua',
-  'fd/LLFile.lua',
 }
 libs = {
   ['fd.sys'] = 'fd.so',
