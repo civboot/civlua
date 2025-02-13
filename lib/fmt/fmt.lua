@@ -9,7 +9,7 @@ local sfmt, srep = string.format, string.rep
 local add, concat = table.insert, table.concat
 local sort = table.sort
 local mathtype = math.type
-local sconcat = string.concat -- note: from metaty
+local sconcat = string.concat
 
 local DEPTH_ERROR = '{!max depth reached!}'
 
