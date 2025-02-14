@@ -4,7 +4,7 @@ local T = require'civtest'.Test
 local pvc = require'pvc'
 local ds = require'ds'
 
-T.patchPath = function()
+T.Patch = function()
   local p = pvc.Patch{}:depth(2)
   T.eq('1.p',  p:patchPath(1))
   T.throws('123 has longer length than depth=2', function()
@@ -18,7 +18,6 @@ T.patchPath = function()
   p.id, p.minId, p.maxId = 1, 1, 3
   T.eq({1, '00/1.p'}, {p()}) T.eq({2, '00/2.p'}, {p()})
   T.eq({3, '00/3.p'}, {p()}) T.eq(nil          , p())
-
-
-  error'ok'
 end
+
+

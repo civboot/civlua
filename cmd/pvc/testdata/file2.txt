@@ -1,6 +1,0 @@
-# Test file
-This is the 2nd version.
-This fil will b fxd.
-file2 added this line.
-The end... for now.
-Fin.

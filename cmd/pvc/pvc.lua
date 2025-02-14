@@ -35,7 +35,6 @@ end
 M.Patch = mty'Patches' {
   'id [int]: the current patch id',
   'path [string]: path to current patch id',
-  'branch [string]: path to the branch',
   'snap [string]: path to patch snapshot (if exists)',
   'minId [int]', 'maxId [int]',
   '_depth [int]: length of all change directories',
@@ -46,10 +45,6 @@ M.Patch.depth = function(pch, d)
   if not d then return pch._depth end
   assert(d % 2 == 0); assert(d > 0); pch._depth = d
   return pch
-end
-
-M.Patch.fullpath = function(pch)
-  return sconcat('/', pch.branch, pch.path)
 end
 
 --- given a patch id return it's common (non-merged) path

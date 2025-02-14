@@ -1,4 +1,0 @@
-# Test file
-This is th firs version.
-This fil will b fxd.
-The end... for now.
