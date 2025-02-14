@@ -236,7 +236,7 @@ static int l_sh_wait(LS *L) {
   sh_wait(tolsh(L), 0);
   return 0; }
 
-// (command, argList, envList=nil, stdin, out, err) -> (sh, r, w)
+// (command, argList, envList=nil, stdin, out, err, CWD) -> (sh, r, w)
 // Note: all file-descriptors are integers
 // Note: file descriptors are only returned if they have been created
 //   by pipe(), they are not returned if they were passed in.
@@ -271,6 +271,8 @@ static int l_sh(LS *L) {
     createdChL = true; if(pipe(rw)) goto error; pr_l  = rw[0]; ch_l  = rw[1];
   }
 
+  const char* cwd = luaL_optstring(L, 7, NULL);
+
   int pid = fork(); if(pid == -1) goto error;
   else if(pid == 0) { // child
     CLOSE(pr_r); CLOSE(pr_w); CLOSE(pr_l);
@@ -280,6 +282,10 @@ static int l_sh(LS *L) {
     else if (ch_r < 0) close(STDIN_FILENO);
     if(ch_l != STDERR_FILENO) { dup2(ch_l,  STDERR_FILENO); close(ch_l); }
     else if (ch_l < 0) close(STDERR_FILENO);
+    if(env) {
+      clearenv(); while(*env) { putenv(*env); env += 1; }
+    }
+    if(cwd) chdir(cwd);
     return execvp(command, argv);
   } // else parent
   sh->pid = pid;

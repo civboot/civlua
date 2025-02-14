@@ -12,6 +12,14 @@ local lib = require'civix.lib'
 local D = 'lib/civix/'
 local push = table.insert
 
+T.test('simple', function()
+  local sh, o = M.sh
+  assertEq('/tmp\n', sh{'pwd', CWD='/tmp'})
+
+  assertEq('/tmp thisIsFOO\n', sh{'/usr/bin/sh', '-c', 'echo $PWD $FOO',
+                        CWD='/tmp', ENV={'FOO=thisIsFOO'}})
+end)
+
 T.lapTest('sh', function()
   local sh, o = M.sh
 

@@ -327,6 +327,7 @@ M.Sh = mty'Sh' {
   "stdout [file|bool]: shell's stdout              (default=empty)",
   "stderr [file|bool]: shell's stderr              (default=empty)",
   "env [list]:  shell's environment {'FOO=bar', ...}",
+  "cwd [string]: current working directory",
   '_sh [userdata]: internal C implemented shell',
 }
 getmetatable(M.Sh).__index = function(sh, k)
@@ -348,7 +349,8 @@ M.Sh.start = function(sh)
   local ex, _r, _w, _l = lib.sh(
     sh.args[1], sh.args, sh.env,
     _fnomaybe(sh.stdin), _fnomaybe(sh.stdout, true),
-    _fnomaybe(sh.stderr, fd.sys.STDERR_FILENO)
+    _fnomaybe(sh.stderr, fd.sys.STDERR_FILENO),
+    sh.cwd
   )
   sh._sh = ex
   if _r then r:_setfileno(_r); r:toNonblock() else r = nil end
@@ -401,6 +403,8 @@ M._sh = function(cmd) --> Sh
     sh.stdin  = pk(cmd, 'stdin')
     sh.stdout = pk(cmd, 'stdout')
     sh.stderr = pk(cmd, 'stderr')
+    sh.env    = pk(cmd, 'ENV')
+    sh.cwd    = pk(cmd, 'CWD')
   end
   sh.args = shim.expand(cmd)
   if type(sh.stdin) == 'string' then
