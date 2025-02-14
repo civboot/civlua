@@ -11,9 +11,9 @@ function create1() {
   echo ls;       ls
   echo creating 1
   diff -N --unified=1 DNE story.txt.1 --label="$CREATED_LABEL" --label=story.txt \
-    > patch.story.1
+    > patch.story.txt.1
   diff -N --unified=1 DNE hello.lua.1 --label="$CREATED_LABEL" --label=hello.lua \
-    > patch.hello.1
+    > patch.hello.lua.1
   cat patch.story.txt.1 patch.hello.lua.1 > patch.1
 }
 
