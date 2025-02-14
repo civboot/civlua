@@ -68,6 +68,12 @@ ds.update(M, {
   mv = lib.rename,
 })
 
+--- swap paths a <-> b
+M.swap = function(a, b, ext)
+  ext = ext or '.SWAP'
+  M.mv(a, a..ext); M.mv(b, a); M.mv(a..ext, a)
+end
+
 --- set the modified time of the path|file
 M.setModified = function(f, sec, nsec) --> error?
   local close
