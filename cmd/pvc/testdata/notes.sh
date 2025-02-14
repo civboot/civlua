@@ -6,8 +6,10 @@ TD=$PWD/cmd/pvc/testdata
 OD=$PWD/.out/pvc
 
 function create1() {
-  cd $TD
-  # creating 1
+  echo create1
+  echo "cd $TD"; cd $TD
+  echo ls;       ls
+  echo creating 1
   diff -N --unified=1 DNE story.txt.1 --label="$CREATED_LABEL" --label=story.txt \
     > patch.story.1
   diff -N --unified=1 DNE hello.lua.1 --label="$CREATED_LABEL" --label=hello.lua \
@@ -34,4 +36,5 @@ function patch2() {
   cat $TD/patch.2 | patch -u
 }
 
+echo "Running $1"
 $1
