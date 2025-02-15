@@ -13,9 +13,9 @@ function create1() {
   echo ls;       ls
   echo creating 1
   # create comes FROM /dev/null and to the path
-  diff -Nu /dev/null story.txt.1 --label=/dev/null --label=story.txt \
+  diff -N --unified=0 /dev/null story.txt.1 --label=/dev/null --label=story.txt \
     > patch.story.txt.1
-  diff -Nu /dev/null hello.lua.1 --label=/dev/null --label=hello.lua \
+  diff -N --unified=0 /dev/null hello.lua.1 --label=/dev/null --label=hello.lua \
     > patch.hello.lua.1
   cat patch.story.txt.1 patch.hello.lua.1 > patch.1
 }
@@ -24,10 +24,10 @@ function create1() {
 function create2() {
   cd $TD
   # creating 2 (with deleted hello.lua)
-  diff -Nu story.txt.1 story.txt.2 --label=story.txt --label=story.txt \
+  diff -N --unified=0 story.txt.1 story.txt.2 --label=story.txt --label=story.txt \
     > patch.story.txt.2
   # delete goes TO /dev/null
-  diff -Nu hello.lua.1 /dev/null  --label=hello.lua  --label=/dev/null \
+  diff -N --unified=0 hello.lua.1 /dev/null  --label=hello.lua  --label=/dev/null \
     > patch.hello.lua.2
   cat patch.story.txt.2 patch.hello.lua.2 > patch.2
 }
@@ -36,9 +36,9 @@ function create2() {
 function create3_3b() {
   cd $TD
   # creating 2 (with deleted hello.lua)
-  diff -Nu story.txt.2 story.txt.3 --label=story.txt --label=story.txt \
+  diff -N --unified=0 story.txt.2 story.txt.3 --label=story.txt --label=story.txt \
     > patch.3
-  diff -Nu story.txt.2 story.txt.3b --label=story.txt --label=story.txt \
+  diff -N --unified=0 story.txt.2 story.txt.3b --label=story.txt --label=story.txt \
     > patch.3b
 }
 
