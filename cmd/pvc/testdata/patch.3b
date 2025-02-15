@@ -1,0 +1,17 @@
+--- story.txt
++++ story.txt
+@@ -1,10 +1,12 @@
+ # Story
+ This is a story
+ about a man
+-and his cat.
++and his water cat,
++Sam.
+ 
+-Him and his cat took
++He and Sam cat took
+ a swim. The cat was
+ very unhappy.
+ 
+ THE END.
++Fin.

@@ -9,13 +9,10 @@ local sconcat = string.concat
 local push = table.insert
 
 local assertf = require'fmt'.assertf
+local NULL = '/dev/null'
 
 --- the .pvc/ directory where data is stored
 M.DOT = '.pvc/'
---- new file (used in unified diff label)
-M.CREATED = '(created)'
---- deleted file (used in unified diff label)
-M.DELETED = '(deleted)'
 
 M.RESERVED_FILES = {
   [M.DOT]=1, [M.CREATED]=1, [M.DELETED]=1,
@@ -71,14 +68,20 @@ end
 -- Utility functions
 
 M.unix = G.mod and mod'pvc.unix' or {}
+
+--- Get the unified diff using unix [$diff --unified=1],
+--- properly handling file creation/deleting
 M.unix.diff = function(a, b, dir)
-  dir = dir or ''
-  a, b = checkFile(a) or M.CREATED, checkFile(b) or M.DELETED
+  if not (a or b) then return end
+  local aPath, bPath
+  if not a then a, aPath = NULL, NULL
+  else             aPath = pth.concat{dir or '', a} end
+  if not b then b, bPath = NULL, NULL
+  else             bPath = pth.concat{dir or '', b} end
+
   return ix.sh{
-    -- take the diff
-    'diff', pth.concat{dir, a}, pth.concat{dir, b},
-    -- overwrite the label
-    '--label='..a, '--label='..b,
+    -- take the diff,     overwrite the label in the diff
+    'diff', aPath, bPath, '--label='..a, '--label='..b,
     unified='1', stderr=io.stderr}
 end
 
