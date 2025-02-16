@@ -770,3 +770,15 @@ T.Grid = function()
     ..'  hi cd\n'
     ..'     ef', fmt(g))
 end
+
+-----------------
+-- kev
+T.kev = function()
+  local kev = require'ds.kev'
+  local t = {a='value a', b='value b', e=''}
+  local r = {'a=value a', 'b=value b', 'e='}
+  T.eq(r, kev.to(t))
+  T.eq(t, kev.from(r))
+  push(r, 'this has no equal sign and is ignored')
+  T.eq(t, kev.from(r))
+end

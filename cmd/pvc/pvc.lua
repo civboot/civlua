@@ -123,8 +123,8 @@ M.unix.merge = function(to, base, change)
 end
 
 local postCmd = {
-  rename = function(a, b) info('rename %q %q', a, b); civix.mv(a, b) end
-  swap   = function(a, b) info('swap %q %q', a, b); civix.swap(a, b) end
+  rename = function(a, b) info('rename %q %q', a, b); civix.mv(a, b) end,
+  swap   = function(a, b) info('swap %q %q', a, b); civix.swap(a, b) end,
 }
 
 --- Given a patch string perform post-patch requirements in dir.
@@ -153,11 +153,7 @@ end
 -- PVC functions
 
 --- reference to the id of a branch.
-M.Ref = mty'Ref' {
-  'branch [string]',
-  'id [string]',
-  'url [string]: (optional) for external branch',
-}
+M.Ref = mty'Ref' { 'branch [string]', 'id [string]' }
 M.Ref.__toPod = function(T, pset, ref)
   return table.concat({
     'BRANCH='..ref.branch,
