@@ -6,6 +6,8 @@ CWD = CWD or os.getenv'PWD' or os.getenv'CD'
 local lap = require'lap'
 local log = require'ds.log'
 local fd = require'fd'
+local fail = require'fail'
+
 local ioopen = io.open
 
 -- shim exe function
@@ -20,7 +22,7 @@ M.main = function(args)
 
   local l = require'civix'.Lap{}:run(
   function() -- setup terminal and kickoff ele coroutines
-    local stderr = assert(ioopen('/tmp/ele.err', 'w'))
+    local stderr = fail.assert(ioopen('/tmp/ele.err', 'w'))
     vt.start(stderr)
 
     s.ed.display = vt.Term{}

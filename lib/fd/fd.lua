@@ -14,6 +14,7 @@ local trace = G.LOG and G.LOG.trace or function() end
 local S = require'fd.sys' -- fd.c, fd.h
 local mty = require'metaty'
 local ds = require'ds'
+local fail = require'fail'
 
 local sfmt      = string.format
 local push, pop = table.insert, table.remove
@@ -21,6 +22,7 @@ local yield     = coroutine.yield
 local NL        = -string.byte'\n'
 local iotype    = io.type
 local sconcat   = string.concat -- note: from metaty
+local check     = fail.check
 
 local S_IFMT = S.S_IFMT
 local fstmode = S.fstmode

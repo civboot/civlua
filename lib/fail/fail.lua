@@ -29,6 +29,9 @@ end
 --- Convert lua's standard [$ok, errmsg] to fail when not ok.
 ---
 --- This is useful to return the result of "standard" lua (ok, errmsg) APIs.
-fail.check = function(ok, errmsg) return ok or fail{errmsg} end
+fail.check = function(ok, ...) --> ok?, ...
+  if ok then return ok, ... end
+  return fail{(...) or 'check failed'}
+end
 
 return fail

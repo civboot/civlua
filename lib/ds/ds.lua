@@ -3,6 +3,7 @@
 local M = mod and mod'ds' or {}
 
 local mty = require'metaty'
+local fail = require'fail'
 local fmt = require'fmt'
 local push, pop, sfmt    = table.insert, table.remove, string.format
 local sfind = string.find
@@ -15,6 +16,7 @@ local resume = coroutine.resume
 local getmethod = mty.getmethod
 local EMPTY = {}
 
+local failed, fassert, fcheck = fail.failed, fail.assert, fail.check
 local sconcat = string.concat -- note: from metaty
 local tupdate  = table.update  -- note: from metaty
 
@@ -547,16 +549,16 @@ end
 
 ---------------------
 -- File Functions
-M.readPath = function(path) --> ok
-  local f, err = assert(io.open(path))
-  local out = f:read('a'); f:close()
+M.readPath = function(path) --> string
+  local f, err = fcheck(io.open(path)); if failed(f) then return f end
+  local out = fcheck(f:read('a'), 'read failed'); f:close()
   return out
 end
 
 M.writePath = function(path, text) --> ok
-  local f = fmt.assertf(io.open(path, 'w'), 'invalid %s', path)
-  local out, err = f:write(text); f:close()
-  return out, err
+  local f = fcheck(io.open(path, 'w')); if failed(f) then return f end
+  local err = fcheck(f:write(text), 'write failed'); f:close()
+  if failed(err) then return err end
 end
 
 M.fileWithText = function(path, text, mode) --> file

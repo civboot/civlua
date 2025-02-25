@@ -3,6 +3,7 @@ local M = mod'ele.edit'
 -- #####################
 -- # Edit struct
 local mty    = require'metaty'
+local fail   = require'fail'
 local ds     = require'ds'
 local log    = require'ds.log'
 local motion = require'lines.motion'
@@ -89,7 +90,7 @@ end
 M.Edit.changeStart = function(e) e.buf:changeStart(e.l, e.c) end
 
 M.Edit.changeUpdate2 = function(e)
-  local ch = assert(e.buf:getStart())
+  local ch = fail.assert(e.buf:getStart())
   ch.l2, ch.c2 = e.l, e.c
 end
 M.Edit.append = function(e, msg)

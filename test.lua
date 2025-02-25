@@ -48,7 +48,6 @@ print'[[libs]]'
   dofile(dir..'lib/pegl/tests/test_lua.lua')
   dofile(dir..'lib/luck/test.lua')
   dofile(dir..'lib/civix/test.lua')
-  dofile(dir..'lib/civdb/test.lua')
   dofile(dir..'lib/smol/test.lua')
 
 print'[[apps]]'
