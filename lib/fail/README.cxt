@@ -1,0 +1,37 @@
+The fail type: an ergonomic mechanism to return failure.
+
+[{h2}Constructing]
+The fail type should be constructed as the arguments to [$string.format],
+which are formatted directly by [$fail.__tostring]. For example
+[$fail{'divide by zero: %i / %i', num, denom}].
+
+Common additional fields are:[+
+* code (int): an error code
+* stack (str): the stacktrace, commonly set if fail is returned
+  after a failed pcall.
+]
+
+[{h2}Example Usage]
+[{## lang=lua}
+local fail = require'fail'
+local failed, assert = fail.failed, fail.assert
+
+function divmod(a, b) --> a/b!, a%b
+  if b == 0 then return fail{'divide by zero: %i / %i', a, b} end
+  return a / b, a % b
+end
+
+local d, m = divmod(numerator, denom)
+if failed(d) then return d end
+
+local d, m = assert(divmod(1, 0)) -- also works!
+]##
+
+[{h2}Notes on Lua's default error handling]
+Lua's error returning convention of returning [$nil, errormsg] is
+not ergonomic except when you want to assert on the first value. Except
+for simple scripts or tests asserting is not best practice.
+
+Even worse, [$assert] isn't ergonomic if you want more than one value,
+i.e. [$local val1, val2 = assert(thing())] will not give you [$val2].
+[$fail.assert] solves this problem.
