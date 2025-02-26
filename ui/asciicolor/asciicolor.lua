@@ -2,8 +2,11 @@
 local M = mod and mod'asciicolor' or {}
 
 local mty = require'metaty'
+local fail = require'fail'
 local ds  = require'ds'
+
 local sfmt = string.format
+local fassert = fail.assert
 
 --- typosafe mapping of asciicode -> fullname
 ---
@@ -29,10 +32,10 @@ for k, v in pairs(M.Color) do M.Ascii[v] = k end
 M.Ascii.zero = 'z' -- hardocde as there are 3 possibilities
 
 M.fgColor = function(c) --> colorCode
-  return M.FgColor[assert(M.AsciiColor[lower(c or 'z')], c)]
+  return M.FgColor[assert(M.Color[lower(c or 'z')], c)]
 end
 M.bgColor = function(c) --> colorCode
-  return M.BgColor[assert(M.AsciiColor[lower(c or 'z')], c)]
+  return M.BgColor[assert(M.Color[lower(c or 'z')], c)]
 end
 
 --- makes [$' '] and [$''] both convert to [$'z']

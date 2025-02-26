@@ -269,8 +269,8 @@ M.mkDirs = function(path)
   end
 end
 M.mkDir = function(path, parents)
-  if parents then M.mkDirs(pth(path))
-  else fmt.assertf(lib.mkdir(path), "mkdir failed: %s", path) end
+  if parents then return M.mkDirs(pth(path)) end
+  if not lib.mkdir(path) then return failed{"mkdir failed: %s", path} end
 end
 
 --- mkTree(tree) builds a tree of files and dirs at `dir` [+
