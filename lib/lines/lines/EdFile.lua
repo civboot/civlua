@@ -14,6 +14,7 @@ local U3File = require'lines.U3File'
 local Gap = require'lines.Gap'
 local File = require'lines.File'
 local U3File = require'lines.U3File'
+local fail = require'fail'
 
 local push = table.insert
 local getmt = getmetatable
@@ -24,10 +25,11 @@ local gt, binsearch = ds.lt, ds.binarySearch
 local Slc = ds.Slc
 local extend, inset, clear = ds.extend, ds.inset, ds.clear
 local move, EMPTY = table.move, {}
+local failed, fassert = fail.failed, fail.assert
 
 getmetatable(EdFile).__call = function(T, v, mode)
   local lf, err = File{path=v, mode=mode or 'a+'}
-  if not lf then return nil, err end
+  if failed(lf) then return lf end
 
   return construct(T, {
     lf=lf, dats={Slc{si=1, ei=#lf}}, lens={},
@@ -133,10 +135,10 @@ EdFile.dumpf = function(ef, f)
     if getmt(d) == Slc then
       local sp, ep = efx[d.si], efx[d.si + 1]
       assert(sp == ef:seek('set', sp))
-      assert(f:write(ef:read(ep and (ep - sp + 1) or nil)))
+      fassert(f:write(ef:read(ep and (ep - sp + 1) or nil)))
     else
-      assert(f:write(concat(d, '\n')))
-      if i < #ef.dats then assert(f:write'\n') end
+      fassert(f:write(concat(d, '\n')))
+      if i < #ef.dats then fassert(f:write'\n') end
     end
   end
 end

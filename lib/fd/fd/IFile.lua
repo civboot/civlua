@@ -1,4 +1,7 @@
 local mty = require'metaty'
+local fail = require'fail'
+local fassert = fail.assert
+
 --- Indexed File: supports setting and getting fixed-length values (bytes) by
 --- index, implementing the API of a list-like table.
 local IFile = mty'fd.IFile' {
@@ -17,7 +20,7 @@ local index, newindex = mty.index, mty.newindex
 local function iseek(fi, i, sz)
   if fi._i == i then return end
   local to = (i-1) * sz
-  local pos = assert(fi.f:seek('set', to))
+  local pos = fassert(fi.f:seek('set', to))
   assert(pos % sz == 0, 'pos incorrect')
 end
 

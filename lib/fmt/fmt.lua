@@ -4,12 +4,14 @@ local G = G or _G
 local M = G.mod and G.mod'fmt' or setmetatable({}, {})
 
 local mty = require'metaty'
+local fail = require'fail'
 
 local sfmt, srep = string.format, string.rep
 local add, concat = table.insert, table.concat
 local sort = table.sort
 local mathtype = math.type
 local sconcat = string.concat
+local failed, check = fail.failed, fail.check
 
 local DEPTH_ERROR = '{!max depth reached!}'
 
@@ -235,7 +237,11 @@ end
 local format = M.format
 
 M.errorf  = function(...)    error(format(...), 2)             end
-M.assertf = function(a, ...) return a or error(format(...), 2) end
+M.assertf = function(a, ...)
+  if failed(a) then error(sconcat('', format(...), ' (fail: ', a, ')'), 2) end
+  if not a     then error(format(...), 2) end
+  return a
+end
 
 io.fmt = io.fmt or Fmt{to=io.stderr}
 

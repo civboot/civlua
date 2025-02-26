@@ -14,6 +14,7 @@ local File = mty'File' {
   '_pos [bool]: current file pos',
 }
 
+local fail = require'fail'
 local ds = require'ds'
 local pth = require'ds.path'
 local lines = require'lines'
@@ -22,6 +23,7 @@ local fd = require'fd'
 local ix = require'civix'
 local loadIdx = require'lines.futils'.loadIdx
 
+local fassert, check, failed = fail.assert, fail.check, fail.failed
 local trace = require'ds.log'.trace
 local largs = lines.args
 local push, concat = table.insert, table.concat
@@ -37,7 +39,7 @@ File._initnew = ds.noop -- empty file: do nothing
 File._reindex = function(f, idx, l, pos)
   l, pos = l or 1, pos or 0
   if f:seek'end' == 0 then return end
-  assert(f:seek('set', pos))
+  fassert(f:seek('set', pos))
   local lines = f:lines'L'
   local prev = lines()
   while true do
@@ -57,15 +59,15 @@ getmetatable(File).__call = function(T, t)
   trace('%s.init%q', mty.tyName(T), t)
   local f, err, idx, fstat, xstat
   if not t.path then
-    f, err   = io.tmpfile(); if not f   then return nil, err end
-    idx, err = U3File:create(); if not idx then return nil, err end
+    f, err   = check(io.tmpfile()); if failed(f) then return f end
+    idx, err = U3File:create();     if failed(idx) then return idx end
     T._initnew(f, idx)
   elseif type(t.path) == 'string' then
     trace('reloading path %s', t.path)
     t.mode = t.mode or 'r'
-    f, err = io.open(t.path, t.mode); if not f then return nil, err end
+    f, err = check(io.open(t.path, t.mode)); if failed(f) then return f end
     idx, err = loadIdx(f, pth.concat{T.IDX_DIR, t.path}, t.mode, T._reindex)
-    if not idx then return nil, err end
+    if failed(idx) then return idx end
   else error'invalid path' end
   t.f, t.idx, t.cache = f, idx, WeakV{}
   return construct(T, t)
@@ -76,10 +78,10 @@ File.close = function(lf)
   if lf.f   then lf.f:close(); lf.f = false end
 end
 File.flush = function(lf)
-  local ok, err = lf.idx:flush(); if not ok then return nil, err end
-  ok, err = lf.f:flush()          if not ok then return nil, err end
-  local fstat, err = ix.stat(lf.f)
-  if not fstat then return nil, err end
+  local ok, err = lf.idx:flush(); if failed(ok) then return ok end
+  ok, err = lf.f:flush()          if failed(ok) then return ok end
+  local fstat, err = check(ix.stat(lf.f))
+  if failed(fstat) then return fstat end
   return ix.setModified(lf.idx.f, fstat:modified())
 end
 
@@ -90,17 +92,17 @@ File.write = function(lf, ...)
   local tlen = #t
   if tlen == 0 then return end
   if lf._ln or not lf._pos then
-    pos = assert(f:seek'end')
+    pos = fassert(f:seek'end')
     lf._ln = false
   else pos = lf._pos end
   lf._pos = false
-  assert(f:write(t[1])); pos = pos + #t[1]
+  fassert(f:write(t[1])); pos = pos + #t[1]
   local len = #idx -- start length
   if len == 0 then len = 1; idx[1] = 0 end
   cache[len] = nil
   for l=2,tlen do
     local line = t[l];
-    assert(f:write('\n', line));
+    fassert(f:write('\n', line));
     len = len + 1; idx[len] = pos + 1
     pos = pos + 1 + #line
   end
@@ -121,7 +123,7 @@ File.__index = function(lf, i)
   if i > #idx then return end -- line num OOB
   if not pos or i ~= lf._ln then -- update file pos
     pos = assert(lf.idx[i])
-    assert(f:seek('set', pos))
+    fassert(f:seek('set', pos))
   end
   line, err = f:read'L'; assert(not err, err)
   line = line or ''; lf._pos = pos + #line
@@ -134,13 +136,13 @@ File.__newindex = function(lf, i, v)
   if type(i) == 'string' then return newindex(lf, i, v) end
   local f, idx, cache, pos = lf.f, lf.idx, lf.cache, lf._pos
   local len = #idx; assert(i == len + 1, 'only append allowed')
-  if not pos or lf._ln then pos = assert(f:seek'end') end
+  if not pos or lf._ln then pos = fassert(f:seek'end') end
   lf._ln, lf._pos = false, false
   if pos == 0 then
-    assert(f:write(v))
+    fassert(f:write(v))
     lf._pos = pos + #v
   else
-    assert(f:write('\n', v))
+    fassert(f:write('\n', v))
     lf._pos = pos + #v + 1
     pos = pos + 1
   end
@@ -154,7 +156,7 @@ File.__fmt = function(lf, fmt)
 end
 
 File.reader = function(lf) --> lines.File (readonly)
-  local idx, err = assert(
+  local idx, err = fassert(
     getmt(lf.idx):load(assert(lf.idx.path, 'idx path not set'), 'r'))
   local path = assert(lf.path, 'path not set')
   return construct(getmt(lf), {

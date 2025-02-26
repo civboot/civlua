@@ -3,6 +3,7 @@ local T = require'civtest'.Test
 local CT = require'civtest'
 local mty = require'metaty'
 local M = require'fmt'
+local fail = require'fail'
 local fmt = M
 local assertEq, assertMatch = T.eq, CT.assertMatch
 
@@ -71,4 +72,14 @@ T.binary = function()
   , bin('hi there bob!', 4))
   T.eq(
 "     0: 68 69        | hi", bin('hi', 4))
+end
+
+T.assertf = function()
+  fmt.assertf(true, 'no errors')
+  T.throws('expected error', function()
+    fmt.assertf(false, '%s error', 'expected')
+  end)
+  T.throws('expected error (fail: expected fail)', function()
+    fmt.assertf(fail{'%s fail', 'expected'}, '%s error', 'expected')
+  end)
 end
