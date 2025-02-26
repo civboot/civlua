@@ -14,7 +14,6 @@ local trace = G.LOG and G.LOG.trace or function() end
 local S = require'fd.sys' -- fd.c, fd.h
 local mty = require'metaty'
 local ds = require'ds'
-local fail = require'fail'
 
 local sfmt      = string.format
 local push, pop = table.insert, table.remove
@@ -22,7 +21,6 @@ local yield     = coroutine.yield
 local NL        = -string.byte'\n'
 local iotype    = io.type
 local sconcat   = string.concat -- note: from metaty
-local check     = fail.check
 
 local S_IFMT = S.S_IFMT
 local fstmode = S.fstmode
@@ -84,10 +82,6 @@ end
 
 ----------------------------
 -- WRITE / SEEK
-local function failfd(fmt, fd)
-  return fail{fmt, fd:codestr(), code=fd:code()}
-end
-
 S.FD.__index.write = function(fd, ...)
   local s = sconcat('', ...)
   local c = fd:_write(s, 0)
@@ -95,14 +89,14 @@ S.FD.__index.write = function(fd, ...)
     yield('poll', fd:fileno(), S.POLLOUT)
     c = fd:_write(s)
   end
-  if c > 0 then return failfd("write failed: %s", fd) end
+  if c > 0 then return nil, fd:codestr() end
   return fd
 end
 M.FDT.__index.write = function(fd, ...)
   local s = sconcat('', ...)
   fd:_write(s)
   M.finishRunning(fd, 'poll', fd:_evfileno(), S.POLLIN)
-  if fd:code() > 0 then return failfd("write failed: %s", fd) end
+  if fd:code() > 0 then return nil, fd:codestr() end
   return fd
 end
 
@@ -111,28 +105,28 @@ S.FD.__index.seek = function(fd, whence, offset)
   whence = assert(WHENCE[whence or 'cur'], 'unrecognized whence')
   fd:_seek(offset or 0, whence)
   M.finishRunning(fd, 'poll', fd:getpoll(S.POLLIN | S.POLLOUT))
-  if fd:code() > 0 then return failfd("seek failed: %s", fd) end
+  if fd:code() > 0 then return nil, fd:codestr() end
   return fd:pos()
 end
 
 S.FD.__index.flush = function(fd)
   fd:_flush(); M.finishRunning(fd, 'sleep', 0.001)
-  if fd:code() > 0 then return failfd("seek failed: %s", fd) end
+  if fd:code() > 0 then return nil, fd:codestr() end
 end
 
 S.FD.__index.flags = function(fd)
   local code, flags = fd:_getflags()
-  if code ~= 0 then return failfd("get flags failed: %s", fd) end
+  if code ~= 0 then return nil, fd:codestr() end
   return flags
 end
 S.FD.__index.toNonblock = function(fd)
   if fd:_setflags(S.O_NONBLOCK | fd:flags()) ~= 0 then
-    return failfd("failed %s", fd)
+    return nil, fd:codestr()
   end; return fd
 end
 S.FD.__index.toBlock = function(fd)
   if fd:_setflags(~S.O_NONBLOCK & fd:flags()) ~= 0 then
-    return failfd("failed %s", fd)
+    return nil, fd:codestr()
   end; return fd
 end
 S.FD.__index.isAsync = function(fd)
@@ -157,7 +151,7 @@ local function readLap(fd, c)
     yield('poll', fd:getpoll(S.POLLIN))
     return true
   end
-  return fail{"%s (%s)", fd:codestr(), c, code=c}
+  return nil, fd:codestr()
 end
 S.FD.__index._readTill = function(fd, till)
   while readLap(fd, fd:_read(till)) do end
@@ -268,7 +262,7 @@ M.openWith = function(openFn, path, mode)
   mode = mode or 'r'
   local flags = mflagsInt(mode:gsub('b', ''))
   local f = openFn(path, flags); M.finishRunning(f, 'sleep', 0.005)
-  if f:code() ~= 0 then return failfd("open failed: %s", f) end
+  if f:code() ~= 0 then return nil, f:codestr() end
   return f
 end
 M.openFD  = function(...) return M.openWith(S.openFD, ...)  end
@@ -279,7 +273,7 @@ end
 M.close   = function(fd) fd:close() end
 M.tmpfileFn = function(sysFn)
   local f = sysFn(); M.finishRunning(f, 'sleep', 0.005)
-  if f:code() ~= 0 then return failfd("tmp failed: %s", f) end
+  if f:code() ~= 0 then return nil, f:codestr() end
   return f
 end
 M._sync.tmpfile  = function() return M.tmpfileFn(S.tmpFD)  end
