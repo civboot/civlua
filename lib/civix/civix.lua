@@ -33,7 +33,7 @@ M.statModifiedEq = function(fs1, fs2)
 end
 
 --- Given a path|File|Stat return a Stat
-M.stat = function(v) --> Stat
+M.stat = function(v) --> Stat?, errmsg?
   if getmetatable(v) == M.Stat then return v end
   if type(v) == 'string'       then return lib.stat(v) end
   return lib.stat(fd.fileno(v))
@@ -75,7 +75,7 @@ M.swap = function(a, b, ext)
 end
 
 --- set the modified time of the path|file
-M.setModified = function(f, sec, nsec) --> error?
+M.setModified = function(f, sec, nsec) --> ok, errmsg?
   local close
   if type(f) == 'string' then f = io.open(f); close = true end
   local ok, err = lib.setmodified(fd.fileno(f), sec, nsec)

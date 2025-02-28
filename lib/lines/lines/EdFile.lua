@@ -27,10 +27,9 @@ local extend, inset, clear = ds.extend, ds.inset, ds.clear
 local move, EMPTY = table.move, {}
 local failed, fassert = fail.failed, fail.assert
 
-getmetatable(EdFile).__call = function(T, v, mode)
+getmetatable(EdFile).__call = function(T, v, mode) --!> EdFile
   local lf, err = File{path=v, mode=mode or 'a+'}
   if failed(lf) then return lf end
-
   return construct(T, {
     lf=lf, dats={Slc{si=1, ei=#lf}}, lens={},
   })
@@ -60,7 +59,7 @@ EdFile._datindex = function(ef, i) --> di
   return binsearch(lens, i, gt) + 1
 end
 
-EdFile.__index = function(ef, i)
+EdFile.__index = function(ef, i) --!> string
   if type(i) == 'string' then
     local mt = getmt(ef)
     return rawget(mt, i) or index(mt, i)
@@ -72,15 +71,16 @@ EdFile.__index = function(ef, i)
       or dat[i]
 end
 
-EdFile.write = function(ef, ...)
+EdFile.write = function(ef, ...) --> fail?
   assert(not ef.readonly, 'attempt to modify readonly file')
   local dats = ef.dats
-  local last = dats[#dats]
+  local last, r = dats[#dats], nil
   ef.lens[#dats] = nil
   if getmt(last) == Slc then
-    ef.lf:write(...)
+    r = ef.lf:write(...)
     last.ei = #ef.lf.idx
-  else last:write(...) end
+  else r = last:write(...) end
+  return r
 end
 
 EdFile.__newindex = function(ef, i, v)
