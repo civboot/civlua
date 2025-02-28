@@ -1,6 +1,7 @@
 local mty = require'metaty'
 local fmt = require'fmt'
 local ds = require'ds'
+local pth = require'ds.path'
 local test, assertEq, assertMatch, assertErrorPat; ds.auto'civtest'
 local lines = require'lines'
 local testing = require'lines.testing'
@@ -93,7 +94,7 @@ test('File', function()
   f:write' and this'
   assertEq('four: still in line four and this', f[4])
 
-  assertEq('one\ntwo\nthree\n', ds.readPath(SMALL))
+  assertEq('one\ntwo\nthree\n', pth.read(SMALL))
   f = assert(File{path=SMALL}); f.cache = ds.Forget{}
   assertEq({'one', 'two', 'three', ''}, ds.icopy(f))
   assertEq('two', f[2])
@@ -187,7 +188,7 @@ test('EdFile.write', function()
   ed:write'one\nthree\nfive'
   ed:flush()
   assertEq(3, #ed)
-  assertEq('one\nthree\nfive', ds.readPath(TXT))
+  assertEq('one\nthree\nfive', pth.read(TXT))
   assertEq({ds.Slc{si=1, ei=3}}, ed.dats)
   ed:write' 5'
   assertEq('five 5', ed[3])

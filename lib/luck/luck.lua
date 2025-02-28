@@ -36,9 +36,7 @@ end
 
 M.loadraw = function(dat, env, path)
   local res = setmetatable({}, env and M.createEnv(env) or M.LUCK)
-  local e, err = load(ds.lineschunk(dat), path, 'bt', res)
-  if err then error(err) end
-  e()
+  ds.check(2, load(ds.lineschunk(dat), path, 'bt', res))()
   setmetatable(res, nil)
   return res
 end
@@ -62,20 +60,21 @@ M.Luck = mty'Luck' {
   'deps', 'dat', 'path',
 }
 
-local function _error(l, msg) error(sfmt('ERROR %s\n%s', l.path, msg)) end
-local function _assertf(chk, l, fmt, ...)
-  if not chk then _error(l, sfmt(fmt, ...)) end
+--- internal "luck" variants of error/assertf
+local function lerror(l, msg) error(sfmt('ERROR %s\n%s', l.path, msg)) end
+local function lassertf(chk, l, fmt, ...)
+  if not chk then lerror(l, sfmt(fmt, ...)) end
 end
 
 M.Luck.fromMeta = function(T, meta, dat, path)
   local l = meta; l.dat, l.path = dat, path
-  _assertf(not (l.name and l[1]), l, "name provided as both position and key")
+  lassertf(not (l.name and l[1]), l, "name provided as both position and key")
   l.name = l.name or l[1]; l[1] = nil
-  _assertf(l.name, 'must have a name')
+  lassertf(l.name, 'must have a name')
   l.deps = l.deps or {}
   for k, v in pairs(l.deps) do
-    _assertf(type(k) == 'string', l, 'dep name %s is not a string', k)
-    _assertf(type(v) == 'string', l, 'value of dep %q is not a string', k)
+    lassertf(type(k) == 'string', l, 'dep name %s is not a string', k)
+    lassertf(type(v) == 'string', l, 'value of dep %q is not a string', k)
   end
   return mty.construct(T, l)
 end
@@ -87,7 +86,7 @@ M.loadMetas = function(paths)
     local l = M.loadMeta(dat, path) or {}
     l = M.Luck:fromMeta(l, dat, path)
     if lucks[l.name] then
-      _error(l, sfmt('name %s also used at %s (or path is repeated)',
+      lerror(l, sfmt('name %s also used at %s (or path is repeated)',
                 l.name, lucks[l.name].path))
     end
     lucks[l.name] = l

@@ -1,3 +1,7 @@
+local G = G or _G
+assert(not G.MAIN, 'this script must be main')
+G.MAIN = {}
+
 local mty = require'metaty'
 local fmt = require'fmt'
 local ds = require'ds'

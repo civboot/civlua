@@ -1,3 +1,4 @@
+local G = G or _G
 --- Civboot vt100 Terminal library that supports LAP protocol.
 --- Module for interacting with the vt100 via keys and AsciiColors.
 --- [##
@@ -5,7 +6,7 @@
 --- Originally written 2022 Phil Leblanc, modified 2023 Rett Berg (Civboot.org)
 --- Authorized for relicense in: http://github.com/philanc/plterm/issues/4
 --- ]##
-local M = mod and mod'vt100' or {}
+local M = G.mod and mod'vt100' or {}
 
 local mty = require'metaty'
 local ds  = require'ds'
@@ -392,10 +393,10 @@ local setrawmode = function()
   return os.execute'stty raw -echo 2> /dev/null'
 end
 local setsanemode = function() return os.execute'stty sane' end
-local savemode = function()
+local savemode = function() --> mode?, errmsg?
   local fh = io.popen'stty -g'; local mode = fh:read(READALL)
-  local succ, e, msg = fh:close()
-  return succ and mode or nil, e, msg
+  local ok, e, msg = fh:close()
+  return ok and mode or nil, msg
 end
 local restoremode = function(mode) return os.execute('stty '..mode) end
 
@@ -412,19 +413,17 @@ M.start = function(stderr, ...); assert(select('#', ...) == 0)
   log.info'vt100.start() begin'
   assert(stderr, 'must provide new stderr')
   assert(not getmetatable(M.ATEXIT))
-  local SAVED, ok, msg = savemode()
-  assert(ok, msg); ok, msg = nil, nil
+  local SAVED = assert(savemode())
   local mt = {
     __gc = function()
       if not getmetatable(M.ATEXIT) then return end
       ctrl.clear(io.stdout); ctrl.show(io.stdout)
       restoremode(SAVED)
-      if exitFn then exitFn() end
    end,
   }
   setmetatable(M.ATEXIT, mt)
   M.ATEXIT.stderr = io.stderr; io.stderr = stderr
-  setrawmode(); if enteredFn then enteredFn() end
+  setrawmode()
   log.info'vt100.start() complete'
 end
 

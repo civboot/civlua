@@ -13,7 +13,6 @@ pkgs = {
   'lib/metaty',  -- simple types based on metatables
   'lib/fmt',     -- formatting for types (and raw tables)
   'lib/civtest', -- simple unit testing
-  'lib/fail',    -- an ergonomic mechanism to return failure.
   'lib/ds',      -- data structures and algorithms
   'lib/lines',   -- work with files as a table of lines
   'lib/pod',     -- de/serialize plain-old-data

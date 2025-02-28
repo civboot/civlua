@@ -107,7 +107,7 @@ local function print_stats(name, path, tsize, csize)
     name, csize, tsize, math.floor(csize * 100 / tsize), pth.nice(path)))
 end
 local function rdelta_testpath(sm, path)
-  local ftext = ds.readPath(path)
+  local ftext = pth.read(path)
   local xmds, txt = S.rdelta(ftext, sm.x); local csize
   if not xmds then csize = #ftext -- no compression
   else
@@ -120,7 +120,7 @@ local function rdelta_testpath(sm, path)
 end
 
 local function huff_testpath(sm, path) --> encsz, pathsz
-  local ftext = ds.readPath(path)
+  local ftext = pth.read(path)
   if ftext == '' then print('skipping: '..path); return end
   assert(S.calcHT(sm.x, ftext))
   local enc = S.hencode(ftext, sm.x)
@@ -132,7 +132,7 @@ local function huff_testpath(sm, path) --> encsz, pathsz
 end
 
 local function smol_testpath(sm, path) --> encsz, pathsz
-  local ftext = ds.readPath(path)
+  local ftext = pth.read(path)
   local enc = sm:compress(ftext)
   print_stats('smol', path, #ftext, #enc)
   assert(#enc <= #ftext * 2, 'enc too large')

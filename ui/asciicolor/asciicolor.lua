@@ -28,13 +28,6 @@ M.Ascii = mod and mod'Ascii' or {}
 for k, v in pairs(M.Color) do M.Ascii[v] = k end
 M.Ascii.zero = 'z' -- hardocde as there are 3 possibilities
 
-M.fgColor = function(c) --> colorCode
-  return M.FgColor[assert(M.AsciiColor[lower(c or 'z')], c)]
-end
-M.bgColor = function(c) --> colorCode
-  return M.BgColor[assert(M.AsciiColor[lower(c or 'z')], c)]
-end
-
 --- makes [$' '] and [$''] both convert to [$'z']
 --- as well as check that the ascii code is valid.
 local CODES = {}; do

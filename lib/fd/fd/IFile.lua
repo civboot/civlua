@@ -14,7 +14,7 @@ local sfmt = string.format
 local index, newindex = mty.index, mty.newindex
 
 --- seek to index. Invariant: [$i <= len+1]
-local function iseek(fi, i, sz)
+local function iseek(fi, i, sz) --!!> nil
   if fi._i == i then return end
   local to = (i-1) * sz
   local pos = assert(fi.f:seek('set', to))
@@ -23,16 +23,16 @@ end
 
 --- This creates a new index file at path (path=nil uses tmpfile()).
 --- Note: Use load if you want to load an existing index.
-IFile.create = function(T, sz, path) --> IFile?, err
+IFile.create = function(T, sz, path) --> IFile?, errmsg?
   assert(sz, 'must provide sz')
-  local f, err; if path then f, err = io.open(path, 'w+')
-  else                       f, err = io.tmpfile() end
-  if not f then return f, err end
+  local f,e; if path then f,e = io.open(path, 'w+')
+  else                    f,e = io.tmpfile() end
+  if not f then return f,e end
   return T{sz=sz, f=f, len=0, _i = 1, path=path}
 end
 
 --- reload from path
-IFile.reload = function(fi, mode)
+IFile.reload = function(fi, mode) --> IFile?, errmsg?
   local f, err = io.open(fi.path, mode or 'r+')
   if not f then return nil, err end
   local sz, bytes = fi.sz, f:seek'end'
@@ -43,7 +43,7 @@ IFile.reload = function(fi, mode)
 end
 
 --- load an index file
-IFile.load = function(T, sz, path, mode)
+IFile.load = function(T, sz, path, mode) --> IFile?, errmsg?
   assert(sz, 'must provide sz')
   return mty.construct(T, {sz=sz, path=path}):reload(mode)
 end
@@ -56,10 +56,13 @@ IFile.close = function(fi)
   if fi.f then fi.f:close(); fi.f = false end
 end
 
-IFile.getbytes = function(fi, i)
+--- get bytes. If index out of bounds return nil.
+--- Panic if there are read errors.
+IFile.getbytes = function(fi, i) --!!> str?
   if i > fi.len then return end
   local sz = fi.sz; iseek(fi, i, sz)
-  local v = fi.f:read(sz); assert(#v == sz, 'did not read sz bytes')
+  local v = assert(fi.f:read(sz))
+  assert(#v == sz, 'did not read sz bytes')
   fi._i = i + 1
   return v
 end
@@ -74,9 +77,8 @@ end
 IFile.setbytes = function(fi, i, v)
   local len = fi.len; assert(i <= len + 1, 'newindex OOB')
   local sz = fi.sz
-  if #v ~= sz then error('attempt to write '..#v..' bytes') end
-  iseek(fi, i, sz)
-  local _, err = fi.f:write(v); if err then error(err) end
+  if #v ~= sz then error(sfmt('failed to write %i bytes', #v)) end
+  iseek(fi, i, sz); assert(fi.f:write(v))
   if i > len then fi.len = i end
   fi._i = i + 1
 end

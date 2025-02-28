@@ -2,6 +2,7 @@ METATY_CHECK = true
 
 local mty = require'metaty'
 local ds = require'ds'
+local pth = require'ds.path'
 local T = require'civtest'
 
 local RootSpec, Token
@@ -347,7 +348,7 @@ T.test('error', function()
 end)
 
 local function testLuaPath(path)
-  local text = ds.readPath(path)
+  local text = pth.read(path)
   assertParse{dat=text, spec=src, root=root, parseOnly=true}
 end
 

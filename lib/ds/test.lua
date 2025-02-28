@@ -546,6 +546,11 @@ stack traceback:
         lib/ds/ds.lua:1084: in function <lib/ds/ds.lua:1081>
 ]]
 T.error = function()
+  T.throws('expect failure', function()
+    M.check(3, nil, nil, 'expect failure', 'other')
+  end)
+  T.eq({'a', nil, 'c'}, {M.check(2, 'a', nil, 'c')})
+
   assertEq({
     "[C]: in function 'string.gsub'",
     "lib/ds/ds.lua:1064: in function 'ds.tracelist'",

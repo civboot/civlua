@@ -28,13 +28,13 @@ local push, concat = table.insert, table.concat
 local getmt = getmetatable
 local split, construct = mty.split, mty.construct
 local index, newindex = mty.index, mty.newindex
-local WeakV = ds.WeakV
+local check, WeakV = ds.check, ds.WeakV
 
 
 File.IDX_DIR = pth.concat{pth.home(), '.data/lines'}
 
 File._initnew = ds.noop -- empty file: do nothing
-File._reindex = function(f, idx, l, pos)
+File._reindex = function(f, idx, l, pos) --!!> nil
   l, pos = l or 1, pos or 0
   if f:seek'end' == 0 then return end
   assert(f:seek('set', pos))
@@ -52,12 +52,12 @@ File._reindex = function(f, idx, l, pos)
   return pos
 end
 
-getmetatable(File).__call = function(T, t)
+getmetatable(File).__call = function(T, t) --> File?, errmsg?
   t = t and assert(type(t) == 'table') and t or {}
   trace('%s.init%q', mty.tyName(T), t)
   local f, err, idx, fstat, xstat
   if not t.path then
-    f, err   = io.tmpfile(); if not f   then return nil, err end
+    f, err   = io.tmpfile();    if not f   then return nil, err end
     idx, err = U3File:create(); if not idx then return nil, err end
     T._initnew(f, idx)
   elseif type(t.path) == 'string' then
@@ -75,32 +75,33 @@ File.close = function(lf)
   if lf.idx then lf.idx:close()             end
   if lf.f   then lf.f:close(); lf.f = false end
 end
-File.flush = function(lf)
-  local ok, err = lf.idx:flush(); if not ok then return nil, err end
-  ok, err = lf.f:flush()          if not ok then return nil, err end
-  local fstat, err = ix.stat(lf.f)
-  if not fstat then return nil, err end
+File.flush = function(lf) --> ok, errmsg?
+  local o,e = lf.idx:flush(); if not o then return o,e end
+  o,e = lf.f:flush()          if not o then return o,e end
+  local fstat, e = ix.stat(lf.f)
+  if not fstat then return nil,e end
   return ix.setModified(lf.idx.f, fstat:modified())
 end
 
 --- append to file
-File.write = function(lf, ...)
-  local f, idx, cache, pos = lf.f, lf.idx, lf.cache
+File.write = function(lf, ...) --> ok, errmsg?
+  local f, idx, cache, pos, o,e = lf.f, lf.idx, lf.cache
   local t = largs(...)
   local tlen = #t
   if tlen == 0 then return end
   if lf._ln or not lf._pos then
-    pos = assert(f:seek'end')
+    pos,e = f:seek'end'; if not pos then return pos,e end
     lf._ln = false
   else pos = lf._pos end
   lf._pos = false
-  assert(f:write(t[1])); pos = pos + #t[1]
+  o,e = f:write(t[1]); if not o then return o,e end
+  pos = pos + #t[1]
   local len = #idx -- start length
   if len == 0 then len = 1; idx[1] = 0 end
   cache[len] = nil
   for l=2,tlen do
     local line = t[l];
-    assert(f:write('\n', line));
+    o,e = f:write('\n', line); if not o then return o,e end
     len = len + 1; idx[len] = pos + 1
     pos = pos + 1 + #line
   end
@@ -110,7 +111,7 @@ end
 File.__len = function(lf) return #lf.idx end
 
 getmetatable(File).__index = nil
-File.__index = function(lf, i)
+File.__index = function(lf, i) --!!> string
   if type(i) == 'string' then
     local mt = getmt(lf)
     return rawget(mt, i) or index(mt, i)
@@ -123,8 +124,8 @@ File.__index = function(lf, i)
     pos = assert(lf.idx[i])
     assert(f:seek('set', pos))
   end
-  line, err = f:read'L'; assert(not err, err)
-  line = line or ''; lf._pos = pos + #line
+  line = check(2, f:read'L') or ''
+  lf._pos = pos + #line
   if line:sub(-1) == '\n' then line = line:sub(1, -2) end
   lf._ln, cache[i] = i + 1, line
   return line
@@ -154,11 +155,11 @@ File.__fmt = function(lf, fmt)
 end
 
 File.reader = function(lf) --> lines.File (readonly)
+  local path = assert(lf.path, 'path not set')
   local idx, err = assert(
     getmt(lf.idx):load(assert(lf.idx.path, 'idx path not set'), 'r'))
-  local path = assert(lf.path, 'path not set')
   return construct(getmt(lf), {
-    f=io.open(path, 'r'), path=path, cache=lf.cache, idx=idx,
+    f=assert(io.open(path, 'r')), path=path, cache=lf.cache, idx=idx,
   })
 end
 

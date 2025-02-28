@@ -2,6 +2,7 @@ METATY_CHECK = true
 
 local mty = require'metaty'
 local ds = require'ds'
+local pth = require'ds.path'
 local Iter = require'ds.Iter'
 local T = require'civtest'
 local assertEq, assertErrorPat; ds.auto'civtest'
@@ -80,10 +81,10 @@ end
 
 T.lapTest('mkTree', function()
   local d = mkTestTree()
-  assertEq(ds.readPath'.out/civix/a.txt', 
+  assertEq(pth.read'.out/civix/a.txt', 
   'for civix a test')
-  assertEq(ds.readPath'.out/civix/b/b1.txt', '1 in dir b/')
-  assertEq(ds.readPath'.out/civix/b/b2.txt', '2 in dir b/')
+  assertEq(pth.read'.out/civix/b/b1.txt', '1 in dir b/')
+  assertEq(pth.read'.out/civix/b/b2.txt', '2 in dir b/')
 end)
 
 T.test('fd-perf', function()

@@ -58,7 +58,7 @@ EdFile._datindex = function(ef, i) --> di
   return binsearch(lens, i, gt) + 1
 end
 
-EdFile.__index = function(ef, i)
+EdFile.__index = function(ef, i) --!!> string
   if type(i) == 'string' then
     local mt = getmt(ef)
     return rawget(mt, i) or index(mt, i)
@@ -70,18 +70,20 @@ EdFile.__index = function(ef, i)
       or dat[i]
 end
 
-EdFile.write = function(ef, ...)
+EdFile.write = function(ef, ...) --> self?, errmsg?
   assert(not ef.readonly, 'attempt to modify readonly file')
   local dats = ef.dats
   local last = dats[#dats]
   ef.lens[#dats] = nil
+  local ok, errmsg
   if getmt(last) == Slc then
-    ef.lf:write(...)
+    ok, errmsg = ef.lf:write(...)
     last.ei = #ef.lf.idx
-  else last:write(...) end
+  else ok, errmsg = last:write(...) end
+  return ok and self or nil, errmsg
 end
 
-EdFile.__newindex = function(ef, i, v)
+EdFile.__newindex = function(ef, i, v) --!!> nil
   if type(i) == 'string' then return newindex(ef, i, v) end
   ef:__inset(i, {v}, 1)
 end

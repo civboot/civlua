@@ -4,6 +4,7 @@ local T = require'civtest'
 local mty = require'metaty'
 local fmt = require'fmt'
 local ds, lines = require'ds', require'lines'
+local pth = require'ds.path'
 local log = require'ds.log'
 local etest = require'ele.testing'
 local edit = require'ele.edit'
@@ -114,7 +115,7 @@ Test{'open', open=SMALL, th=9, tw=30, function(tst)
   aeq(SMALL, b.dat.path)
   s:play'' -- draws
     aeq('-- a small lua file for tests', b[1])
-    aeq(ds.readPath(SMALL), fmt(ed.display))
+    aeq(pth.read(SMALL), fmt(ed.display))
   s:play'd f space'
     aeq('a small lua file for tests', b[1])
   e = ed:open(SMALL)

@@ -547,23 +547,15 @@ end
 
 ---------------------
 -- File Functions
-M.readPath = function(path) --> ok
-  local f, err = assert(io.open(path))
-  local out = f:read('a'); f:close()
-  return out
+M.readPath = function(path) --!!> string
+  local f, out, err = assert(io.open(path))
+  out, err = f:read('a'); f:close()
+  return assert(out, err)
 end
 
-M.writePath = function(path, text) --> ok
+M.writePath = function(path, text) --!!> nil
   local f = fmt.assertf(io.open(path, 'w'), 'invalid %s', path)
-  local out, err = f:write(text); f:close()
-  return out, err
-end
-
-M.fileWithText = function(path, text, mode) --> file
-  local f = fmt.assertf(
-    io.open(path, mode or 'w+'), 'invalid path: %s', path)
-  f:write(text); f:flush(); f:seek'set'
-  return f
+  local out, err = f:write(text); f:close(); assert(out, err)
 end
 
 --- Read data from fdFrom and write to fdTo, then flush.
@@ -1034,7 +1026,20 @@ M.Deq.drain = function(deq) --> table: get all items and clear deq
 end
 
 -----------------------
--- ERROR type
+-- Handling Errors
+
+--- Throw an error if [$select(i, ...)] is truthy, else return ...
+---
+--- For example, [$file:read'L'] returns [$line?, errmsg?].
+--- However, the absence of line doesn't necessarily
+--- indicate the presence of errmsg: EOF is just [$nil].
+---
+--- Therefore you can use [$line = check(2, f:read'L')]
+--- to only assert on the presence of errmsg.
+M.check = function(i, ...) --!!> ...
+  if select(i, ...) then error(tostring(select(i, ...))) end
+  return ...
+end
 
 M.IGNORE_TRACE = {
   [""]=true,
@@ -1137,7 +1142,7 @@ M.R = setmetatable({}, {
 ---
 --- Example: [$M.myData = ds.resource'data/myData.csv']
 M.resource = function(relpath)
-  return M.readPath(M.srcdir(1)..relpath)
+  return require'ds.path'.read(M.srcdir(1)..relpath)
 end
 
 return M

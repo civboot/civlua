@@ -7,11 +7,32 @@ local M = G.mod and mod'ds.path' or setmetatable({}, {__name='ds.path'})
 local mty = require'metaty'
 local ds = require'ds'
 local push = table.insert
+local sfmt = string.format
 local update = table.update
+
+local extend, splitList = ds.extend, ds.splitList
+local clear, ds_rmleft  = ds.clear, ds.rmleft
+
+--- read file at path or throw error
+M.read = function(path) --!!> string
+  local f, err, out = io.open(path, 'r'); if not f then error(sfmt(
+    "open %q mode=r: %s", path, err
+  ))end
+  out, err = f:read('a'); f:close()
+  return assert(out, err)
+end
+
+--- write string to file at path or throw error
+M.write = function(path, text) --!!> nil
+  local f, err, out = io.open(path, 'w'); if not f then error(sfmt(
+    "open %q mode=w: %s", path, err
+  ))end
+  out, err = f:write(text); f:close(); assert(out, err)
+end
 
 getmetatable(M).__call = function(_, p)
   if type(p) == 'table' then return p end
-  p = ds.splitList(p, '/+')
+  p = splitList(p, '/+')
   if p[1] == ''  then p[1] = '/' end
   local len = #p
   if len > 1 and p[len] == '' then
@@ -66,7 +87,7 @@ M.abs = function(path, wd) --> /absolute/path
   end
   if path[1]:sub(1,1) == '/' then return path end
   assert(type(wd) == 'string')
-  return ds.extend(M(wd), path)
+  return extend(M(wd), path)
 end
 
 --- resolve any `..` or `.` path components, making the path
@@ -98,7 +119,7 @@ M.resolve = function(path, wd) --> list
       i = i + 1; j = j + 1
     end
   end
-  ds.clear(path, i, len)
+  clear(path, i, len)
   len = #path; last = path[#path]
   if isdir and last and last:sub(-1) ~= '/' then
     path[len] = last..'/'
@@ -112,7 +133,7 @@ end
 
 --- ds.rmleft for path components
 M.rmleft = function(path, rm)
-  return ds.rmleft(path, rm, M.itemeq)
+  return ds_rmleft(path, rm, M.itemeq)
 end
 
 --- return a nice path (string) that is resolved and readable.

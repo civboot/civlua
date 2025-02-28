@@ -33,7 +33,7 @@ M.statModifiedEq = function(fs1, fs2)
 end
 
 --- Given a path|File|Stat return a Stat
-M.stat = function(v) --> Stat
+M.stat = function(v) --> Stat?, errmsg?
   if getmetatable(v) == M.Stat then return v end
   if type(v) == 'string'       then return lib.stat(v) end
   return lib.stat(fd.fileno(v))
@@ -75,7 +75,7 @@ M.swap = function(a, b, ext)
 end
 
 --- set the modified time of the path|file
-M.setModified = function(f, sec, nsec) --> error?
+M.setModified = function(f, sec, nsec) --> ok, errmsg?
   local close
   if type(f) == 'string' then f = io.open(f); close = true end
   local ok, err = lib.setmodified(fd.fileno(f), sec, nsec)
@@ -268,7 +268,7 @@ M.mkDirs = function(path)
                     dir, lib.strerrno(errno)) end
   end
 end
-M.mkDir = function(path, parents)
+M.mkDir = function(path, parents) --!!> nil
   if parents then M.mkDirs(pth(path))
   else fmt.assertf(lib.mkdir(path), "mkdir failed: %s", path) end
 end
@@ -294,12 +294,12 @@ end
 --- a/a2.txt    # content: stuff in a2.txt
 --- a/a3/a4.txt # content: stuff in a3.txt
 --- ]#
-M.mkTree = function(dir, tree, parents)
+M.mkTree = function(dir, tree, parents) --!!> nil
   M.mkDir(dir, parents)
   for name, v in pairs(tree) do
     local p = pc{dir, name, type(v) == 'table' and '/' or nil}
     if     type(v) == 'table'  then M.mkTree(p, v)
-    elseif type(v) == 'string' then ds.writePath(p, v)
+    elseif type(v) == 'string' then pth.write(p, v)
     elseif type(v) == 'userdata' then
       local f = ds.fdMv(io.popen(p, 'w'), v)
       f:close(); v:close()

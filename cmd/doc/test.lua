@@ -16,7 +16,7 @@ METATY_CHECK = true
 local pkglib = require'pkglib'
 local mty = require'metaty'
 local fmt = require'fmt'
-local ds = require'ds'
+local pth = require'ds.path'
 local T = require'civtest'
 local doc = require'doc'
 
@@ -135,7 +135,7 @@ T.test('doc module', function()
 
   local res = doFmt(doc.fmtDoc, doc.construct(fm, nil, 5))
   res = res..'\n'
-  ds.writePath(dir..'docfake.cxt', res) -- uncomment to update, then check diff!
-  local cxt = ds.readPath(dir..'docfake.cxt')
+  pth.write(dir..'docfake.cxt', res) -- uncomment to update, then check diff!
+  local cxt = pth.read(dir..'docfake.cxt')
   T.assertEq(cxt, res)
 end)

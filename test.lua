@@ -16,7 +16,6 @@ print'[[core]]'
   require'civ'.setupFmt()
   dofile(dir..'lib/fmt/test.lua')
   dofile(dir..'lib/civtest/test.lua')
-  dofile(dir..'lib/fail/test.lua')
 
   local log = require'ds.log'
   LOGFN = log.logFn; log.setLevel()

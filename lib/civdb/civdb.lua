@@ -270,7 +270,7 @@ local tryLoad = function(f, path) --> pos?, rows?, meta?
   if not ix.modifiedEq(f, rowsPath) then return end
   if not ix.modifiedEq(f, metaPath) then return end
   local rows = assert(U3File:load(rowsPath))
-  local meta = assert(pod.deser(ds.readPath(metaPath), pod.table))
+  local meta = assert(pod.deser(pth.read(metaPath), pod.table))
 
   local pos; if #rows == 0 then pos = #DB.MAGIC
   else                          pos = rows[#rows] end

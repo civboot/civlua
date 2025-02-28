@@ -6,6 +6,7 @@ local S = require'smol.sys'
 local shim = require'shim'
 local mty  = require'metaty'
 local ds   = require'ds'
+local pth  = require'ds.path'
 local construct = mty.construct
 local char, byte = string.char, string.byte
 
@@ -127,7 +128,7 @@ M.main = function(args)
     print'Usage: smol file.txt file.txt.sm'
     return 1
   end
-  local sm, inp, toPath, out = M.Smol{}, ds.readPath(args[1])
+  local sm, inp, toPath, out = M.Smol{}, pth.read(args[1])
 
   if args.compress then
     toPath = args[2] or (args[1]..'.sm')
@@ -145,7 +146,7 @@ M.main = function(args)
   end
   if args.dry then
     io.fmt:write('smol would write to: '..toPath..'\n')
-  else ds.writePath(toPath, out) end
+  else pth.write(toPath, out) end
   return out
 end
 

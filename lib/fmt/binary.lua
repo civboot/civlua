@@ -81,10 +81,11 @@ getmetatable(M).__call = function(_, ...) return concat(columns(Fmt{}, ...)) end
 
 M.main = function(args)
   args = M.Args(shim.parseStr(args))
+  assert(#args > 0, 'fmt.binary: must provide at least one argument')
   local raw = shim.popRaw(args)
   local fmt, width, si = args.fmt, args.width, args.i
   local f = require'civ'.Fmt{to=args.to or io.stdout}
-  local read = require'ds'.readPath
+  local read = require'ds.path'.read
   for _, path in ipairs(args) do
     columns(f, (path=='-') and io.stdin:read'a' or read(path), width, si, fmt)
   end

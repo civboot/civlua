@@ -1,10 +1,12 @@
 local G = G or _G
 
+print'!! require civtest'
 --- module for writing simple tests
 local M = G.mod and G.mod'civtest' or {}
 
 local mty = require'metaty'
 local fmt = require'fmt'
+print'!! here'
 local fbin = require'fmt.binary'
 local ds = require'ds'
 local pth = require'ds.path'

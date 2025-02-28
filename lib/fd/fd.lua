@@ -90,13 +90,14 @@ S.FD.__index.write = function(fd, ...)
     yield('poll', fd:fileno(), S.POLLOUT)
     c = fd:_write(s)
   end
-  if c > 0 then error(fd:codestr()) end
+  if c > 0 then return nil, fd:codestr() end
   return fd
 end
 M.FDT.__index.write = function(fd, ...)
   local s = sconcat('', ...)
   fd:_write(s)
   M.finishRunning(fd, 'poll', fd:_evfileno(), S.POLLIN)
+  if fd:code() > 0 then return nil, fd:codestr() end
   return fd
 end
 
@@ -105,13 +106,13 @@ S.FD.__index.seek = function(fd, whence, offset)
   whence = assert(WHENCE[whence or 'cur'], 'unrecognized whence')
   fd:_seek(offset or 0, whence)
   M.finishRunning(fd, 'poll', fd:getpoll(S.POLLIN | S.POLLOUT))
-  if(fd:code() > 0) then error(fd:codestr()) end
+  if(fd:code() > 0) then return nil, fd:codestr() end
   return fd:pos()
 end
 
 S.FD.__index.flush = function(fd)
   fd:_flush(); M.finishRunning(fd, 'sleep', 0.001)
-  if fd:code() ~= 0 then error('flush: '..fd:codestr()) end
+  if fd:code() ~= 0 then return nil, fd:codestr() end
 end
 
 S.FD.__index.flags = function(fd)
@@ -121,12 +122,12 @@ S.FD.__index.flags = function(fd)
 end
 S.FD.__index.toNonblock = function(fd)
   if fd:_setflags(S.O_NONBLOCK | fd:flags()) ~= 0 then
-    error(fd:codestr())
+    return nil, fd:codestr()
   end; return fd
 end
 S.FD.__index.toBlock = function(fd)
   if fd:_setflags(~S.O_NONBLOCK & fd:flags()) ~= 0 then
-    error(fd:codestr())
+    return nil, fd:codestr()
   end; return fd
 end
 S.FD.__index.isAsync = function(fd)
@@ -151,7 +152,7 @@ local function readLap(fd, c)
     yield('poll', fd:getpoll(S.POLLIN))
     return true
   end
-  error(sfmt('%s (%s)', fd:codestr(), c))
+  return nil, fd:codestr()
 end
 S.FD.__index._readTill = function(fd, till)
   while readLap(fd, fd:_read(till)) do end
@@ -262,7 +263,7 @@ M.openWith = function(openFn, path, mode)
   mode = mode or 'r'
   local flags = mflagsInt(mode:gsub('b', ''))
   local f = openFn(path, flags); M.finishRunning(f, 'sleep', 0.005)
-  if f:code() ~= 0 then error(sfmt("open failed: %s", f:codestr())) end
+  if f:code() ~= 0 then return nil, f:codestr() end
   return f
 end
 M.openFD  = function(...) return M.openWith(S.openFD, ...)  end
@@ -273,7 +274,7 @@ end
 M.close   = function(fd) fd:close() end
 M.tmpfileFn = function(sysFn)
   local f = sysFn(); M.finishRunning(f, 'sleep', 0.005)
-  if f:code() ~= 0 then error(sfmt("tmp failed: %s", f:codestr())) end
+  if f:code() ~= 0 then return nil, f:codestr() end
   return f
 end
 M._sync.tmpfile  = function() return M.tmpfileFn(S.tmpFD)  end
