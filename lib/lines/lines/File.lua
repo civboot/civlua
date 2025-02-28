@@ -143,13 +143,13 @@ File.__newindex = function(lf, i, v)
   if type(i) == 'string' then return newindex(lf, i, v) end
   local f, idx, cache, pos = lf.f, lf.idx, lf.cache, lf._pos
   local len = #idx; assert(i == len + 1, 'only append allowed')
-  if not pos or lf._ln then pos = fassert(f:seek'end') end
+  if not pos or lf._ln then pos = assert(f:seek'end') end
   lf._ln, lf._pos = false, false
   if pos == 0 then
-    fassert(f:write(v))
+    assert(f:write(v))
     lf._pos = pos + #v
   else
-    fassert(f:write('\n', v))
+    assert(f:write('\n', v))
     lf._pos = pos + #v + 1
     pos = pos + 1
   end
@@ -167,7 +167,7 @@ File.reader = function(lf) --!> lines.File (readonly)
   local idx, err = fassert(
     getmt(lf.idx):load(assert(lf.idx.path, 'idx path not set'), 'r'))
   return construct(getmt(lf), {
-    f=io.open(path, 'r'), path=path, cache=lf.cache, idx=idx,
+    f=assert(io.open(path, 'r')), path=path, cache=lf.cache, idx=idx,
   })
 end
 

@@ -18,7 +18,7 @@ local index, newindex = mty.index, mty.newindex
 
 --- seek to index. Invariant: [$i <= len+1]
 local function iseek(fi, i, sz) --> pos?, errmsg?
-  if fi._i == i then return end
+  if fi._i == i then return true end
   local to = (i-1) * sz
   local pos, err = fi.f:seek('set', to)
   if not pos then return pos, err end
@@ -84,17 +84,27 @@ IFile.__index = function(fi, i) --!> str
 end
 
 IFile.setbytes = function(fi, i, v) --> ok, errmsg?
-  local len = fi.len; assert(i <= len + 1, 'newindex OOB')
+  print('!! IFile setbytes', i, v)
+  local len = fi.len
+  if i > len + 1 then error(sfmt(
+    'newindex OOB: %i > len=%i + 1', i, len
+  ))end
+  assert(i <= len + 1, 'newindex OOB')
   local sz = fi.sz
   if #v ~= sz then error('attempt to write '..#v..' bytes') end
-  local r, err = iseek(fi, i, sz); if not r then return r, err end
-        r, err = fi.f:write(v);    if not r then return r, err end
+  print('!! here')
+  local r, err = iseek(fi, i, sz)
+  if not r then return r, err or 'seek failed'end
+  r, err = fi.f:write(v)
+  if not r then return r, err or 'write failed' end
+  print('!!   i, len', i, len)
   if i > len then fi.len = i end
   fi._i = i + 1
   return true
 end
 IFile.__newindex = function(fi, i, v)
   if type(i) == 'string' then return newindex(fi, i, v) end
+  print('!! IFile newindex setbytes', i, v)
   assert(fi:setbytes(i, v))
 end
 
