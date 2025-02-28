@@ -12,6 +12,7 @@ local pth  = require'ds.path'
 local Iter = require'ds.Iter'
 local civix = require'civix'
 local acs = require'asciicolor.style'
+local fassert = require'fail'.assert
 
 local sfmt, gsub = string.format, string.gsub
 local push = table.insert
@@ -140,7 +141,7 @@ M.iter = function(args) --> Iter
     it:map(function(p, pty)
       if pty == 'file' then
         local subPath = p..'.SUB'
-        local to = assert(io.open(subPath, 'w+'))
+        local to = fassert(io.open(subPath, 'w+'))
         if to:seek'end' ~= 0 then error(sfmt(
           '%s already exists', subPath
         ))end

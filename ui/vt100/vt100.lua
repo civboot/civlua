@@ -392,10 +392,10 @@ local setrawmode = function()
   return os.execute'stty raw -echo 2> /dev/null'
 end
 local setsanemode = function() return os.execute'stty sane' end
-local savemode = function()
+local savemode = function() --> mode?, errmsg
   local fh = io.popen'stty -g'; local mode = fh:read(READALL)
-  local succ, e, msg = fh:close()
-  return succ and mode or nil, e, msg
+  local succ, e, msg = fh:close() if not succ then return e, msg end
+  return mode
 end
 local restoremode = function(mode) return os.execute('stty '..mode) end
 
@@ -412,8 +412,7 @@ M.start = function(stderr, ...); assert(select('#', ...) == 0)
   log.info'vt100.start() begin'
   assert(stderr, 'must provide new stderr')
   assert(not getmetatable(M.ATEXIT))
-  local SAVED, ok, msg = savemode()
-  assert(ok, msg); ok, msg = nil, nil
+  local SAVED = assert(savemode())
   local mt = {
     __gc = function()
       if not getmetatable(M.ATEXIT) then return end

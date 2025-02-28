@@ -478,7 +478,7 @@ M.Parser.assertNode = function(p, expect, node, root)
       print('## Note: They format the same but they differ')
       civtest.assertEq(t.expect, result)
     end
-    assert(false, 'failed parse test')
+    error'failed parse test'
   end
   return result
 end

@@ -138,9 +138,7 @@ end
 
 --- get pkg's PKG.lua values
 M.getpkg = function(pkgname) --> PKG, pkgdir
-  if not M.PKGS then
-    M.discover(assert(os.getenv'LUA_PKGS' or '', 'must export LUA_PKGS'))
-  end
+  if not M.PKGS then M.discover(os.getenv'LUA_PKGS' or '') end
   local pkgdir = M.PKGS[pkgname]; if not pkgdir then return end
   local pkg = M.loadpkg(pkgdir, pkgname)
   return pkg, pkgdir

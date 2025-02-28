@@ -24,11 +24,13 @@ local Iter = require'ds.Iter'
 local lines = require'lines'
 local style = require'asciicolor.style'
 local cxt = require'cxt'
+local fail = require'fail'
 
 local escape = cxt.escape
 local sfmt, srep = string.format, string.rep
 local push, concat = table.insert, table.concat
 local update = table.update
+local fassert = fail.assert
 
 local sfmt, pushfmt = string.format, ds.pushfmt
 
@@ -223,7 +225,7 @@ M._Construct.pkg = function(c, pkg, expand) --> Doc
     repo = pkg.repo, homepage = pkg.homepage,
   }
   if pkg.doc then
-    d.comments = assert(lines.load(pth.concat{pkg.dir, pkg.doc}))
+    d.comments = fassert(lines.load(pth.concat{pkg.dir, pkg.doc}))
   end
   if pkg.main then
     local m = fmt.assertf(

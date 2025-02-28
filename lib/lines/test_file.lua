@@ -25,8 +25,9 @@ end
 
 test('U3File', function()
   local u = U3File:create()
-  u[1] = 11
-  u[2] = 22; u[3] = 33
+  u[1] = 11; assertEq(1, #u)
+  u[2] = 22; assertEq(2, #u)
+  u[3] = 33
   assertEq(11, u[1])
   assertEq(22, u[2])
   assertEq(33, u[3]); assertEq(nil, rawget(u, 3))

@@ -5,11 +5,13 @@ local M = G.mod and mod'pod' or setmetatable({}, {})
 local N = require'pod.native'
 
 local mty = require'metaty'
+local fail = require'fail'
 
 local push = table.insert
 local ser, deser = N.ser, N.deser
 local mtype = math.type
 local sfmt = string.format
+local check, failed, fassert = fail.check, fail.failed, fail.assert
 
 --- Pod: configuration for converting values to/from POD.
 M.Pod = mty'Pod'{
@@ -273,7 +275,7 @@ M.dump = function(f, ...)
   print('!! dumping to '..f)
   local close
   if type(f) == 'string' then
-    f = assert(io.open(f, 'w')); close = true
+    f = fassert(io.open(f, 'w')); close = true
   end
   local ok, err = f:write(M.ser(...)); f:flush()
   if close then f:close() end; assert(ok, err)

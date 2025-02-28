@@ -4,6 +4,7 @@ local G = G or _G
 local M = G.mod and G.mod'luck' or {}
 
 local mty = require'metaty'
+local fail = require'fail'
 local fmt = require'fmt'
 local ds, lines  = require'ds', require'lines'
 local LFile = require'lines.File'
@@ -11,6 +12,7 @@ local pegl = require'pegl'
 local lua = require'pegl.lua'
 
 local sfmt, push = string.format, table.insert
+local assertf = fmt.assertf
 
 M.LUCK = {
   meta = function() end,
@@ -34,10 +36,10 @@ M.createEnv = function(env)
   return env
 end
 
-M.loadraw = function(dat, env, path)
+M.loadraw = function(dat, env, path) --!> res
   local res = setmetatable({}, env and M.createEnv(env) or M.LUCK)
   local e, err = load(ds.lineschunk(dat), path, 'bt', res)
-  if err then error(err) end
+  if err then return fail{tostring(err)} end
   e()
   setmetatable(res, nil)
   return res
@@ -63,19 +65,16 @@ M.Luck = mty'Luck' {
 }
 
 local function _error(l, msg) error(sfmt('ERROR %s\n%s', l.path, msg)) end
-local function _assertf(chk, l, fmt, ...)
-  if not chk then _error(l, sfmt(fmt, ...)) end
-end
 
 M.Luck.fromMeta = function(T, meta, dat, path)
   local l = meta; l.dat, l.path = dat, path
-  _assertf(not (l.name and l[1]), l, "name provided as both position and key")
+  assertf(not (l.name and l[1]), l, "name provided as both position and key")
   l.name = l.name or l[1]; l[1] = nil
-  _assertf(l.name, 'must have a name')
+  assertf(l.name, 'must have a name')
   l.deps = l.deps or {}
   for k, v in pairs(l.deps) do
-    _assertf(type(k) == 'string', l, 'dep name %s is not a string', k)
-    _assertf(type(v) == 'string', l, 'value of dep %q is not a string', k)
+    assertf(type(k) == 'string', l, 'dep name %s is not a string', k)
+    assertf(type(v) == 'string', l, 'value of dep %q is not a string', k)
   end
   return mty.construct(T, l)
 end
@@ -83,7 +82,7 @@ end
 M.loadMetas = function(paths)
   local lucks = {}
   for _, path in ipairs(paths) do
-    local dat = assert(LFile{path=path})
+    local dat = fail.assert(LFile{path=path})
     local l = M.loadMeta(dat, path) or {}
     l = M.Luck:fromMeta(l, dat, path)
     if lucks[l.name] then
@@ -120,17 +119,17 @@ M.loadall = function(paths, allenv) --> built, lucks, sorted
       ))end
       env[localName] = ds.deepcopy(dep)
     end
-    built[name] = assert(M.loadraw(l.dat, env))
+    built[name] = fail.assert(M.loadraw(l.dat, env))
   end
   return built, lucks, sorted
 end
 
 --- Load a single path which has no dependencies.
 M.load = function(path, env) --> table
-  local dat = assert(LFile{path=path})
+  local dat = fail.assert(LFile{path=path})
   local meta = M.loadMeta(dat, path)
   assert(not meta or not meta.deps, 'single must have no deps')
-  return assert(M.loadraw(dat, env))
+  return fail.assert(M.loadraw(dat, env))
 end
 
 return M
