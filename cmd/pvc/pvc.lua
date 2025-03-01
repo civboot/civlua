@@ -37,7 +37,7 @@ M.calcDirDepth = function(id)
   return len - (2 - (len % 2))
 end
 
---- Access to a single patch.
+--- Reference to a single patch.
 --- Also acts as an iterator of patches
 M.Patch = mty'Patches' {
   'id [int]: (required) the current patch id',
@@ -152,7 +152,6 @@ end
 --------------------------------
 -- PVC functions
 
-
 --- base object which holds locations
 M.PVC = mty'PVC' {
   'dir [string]: source code directory (user editable)',
@@ -160,34 +159,45 @@ M.PVC = mty'PVC' {
 }
 getmetatable(M.PVC).__call = function(T, t)
   assert(t.dir, 'must set dir')
-  t.pvc = t.pvc or pth.concat{t.dir, M.DOT}
+  t.dot = t.dot or pth.concat{t.dir, M.DOT}
   return mty.construct(T, t)
 end
 
 --- get the path to branch
-M.branchPath = function(pvc, name) return pth.concat{pvc.dot, name} end
+M.PVC.pathOfBranch = function(p, name) return pth.concat{p.dot, name} end
 
---- Initialize the branch directory.
-M.initBranchDir = function(pvc, name, ref) --> branch dir
+--- Create a new branch
+M.PVC.branch = function(p, name, ref) --> path
   if ref then ref = M.Ref(ref) end -- asserts valid
-  local p = pvc:branchPath(name)
-  assertf(not ix.exists(p), 'branch %s already exists', name)
+  local path = p:pathOfBranch(name)
+  assertf(not ix.exists(path), 'branch %q already exists', name)
   local tree = { patch = {}, archive = {} }
   if ref then tree.branch = concat(kev.to(ref), '\n') end
   tree.depth = tostring(M.calcDirDepth((ref and ref.id or 1) + 50))
-  ix.mkTree(p, tree, true)
-  return p
+  ix.mkTree(path, tree, true)
+  return path
 end
 
 --- initialize a directory as a new PVC project
-M.PVC.init = function(pvc, main)
+M.PVC.init = function(p) --> p
+  if not ix.exists(p.dir) then error(p.dir' does not exist') end
+  if ix.exists(p.dot) then error(p.dot..' already exists') end
+  ix.mkDir(p.dot)
+  return p
 end
 
-M.init = function(dir, branch, from)
-  local pvc = pth.concat{dir, M.DOT}
-  if ix.exists(pvc) then error(dir..' already exists') end
-  ix.mkdir(pvc)
-  M.newbranch(branch or 'main', from)
+----------------
+-- API
+
+--- get a PVC object from a directory
+M.load = function(dir) return M.PVC{dir=dir} end
+
+--- initialize a directory as PVC
+M.init = function(dir, branch, ref)
+  if ref then error'unimplemented' end
+  local p = M.load(dir):init()
+  p:branch(branch or 'main')
+  return p
 end
 
 return M

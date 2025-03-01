@@ -112,7 +112,7 @@ end
 
 S.FD.__index.flush = function(fd)
   fd:_flush(); M.finishRunning(fd, 'sleep', 0.001)
-  if fd:code() ~= 0 then return nil, fd:codestr() end
+  if fd:code() ~= 0 then return nil, fd:codestr() else return true end
 end
 
 S.FD.__index.flags = function(fd)

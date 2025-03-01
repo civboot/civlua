@@ -92,7 +92,7 @@ static int rmfn(LS* L, char* name, int fn(const char*)) {
 // if reterrno just returns errno on failure, else fails
 static int l_rm(LS* L)    { return rmfn(L, "rm",    unlink); }
 static int l_rmdir(LS* L) { return rmfn(L, "rmdir", rmdir); }
-static int l_rename(LS* L) { // rename(old, new, reterrno) -> errno
+static int l_copy(LS* L) { // copy(from, to) -> errno
   const char* old = luaL_checkstring(L, 1);
   const char* new = luaL_checkstring(L, 2);
   bool rerr       = lua_toboolean(L, 3);
@@ -312,7 +312,7 @@ static const struct luaL_Reg civix_lib[] = {
   {"dir", l_dir},
   {"stat", l_stat}, {"setmodified", l_setmodified},
   {"mkdir", l_mkdir}, {"rm",  l_rm}, {"rmdir", l_rmdir},
-  {"rename", l_rename}, {"exists", l_exists},
+  {"exists", l_exists},
   {"sh", l_sh},
   {NULL, NULL}, // sentinel
 };

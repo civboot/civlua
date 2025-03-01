@@ -3,6 +3,11 @@ local T = require'civtest'.Test
 
 local pvc = require'pvc'
 local ds = require'ds'
+local pth = require'ds.path'
+local ix = require'civix'
+
+local TD, D = 'cmd/pvc/testdata/', '.out/pvc/'
+local pc = pth.concat
 
 --- test some basic internal functions
 T.internal = function()
@@ -27,4 +32,8 @@ T.Patch = function()
   T.eq({3, '00/3.p'}, {p()}) T.eq(nil          , p())
 end
 
-
+T.patch = function()
+  ix.rmRecursive(D); ix.mkDir(D)
+  local p = pvc.init(D)
+  ix.cp(TD..'story.txt.1', D..'story.txt')
+end

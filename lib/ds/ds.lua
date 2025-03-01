@@ -558,16 +558,6 @@ M.writePath = function(path, text) --!!> nil
   local out, err = f:write(text); f:close(); assert(out, err)
 end
 
---- Read data from fdFrom and write to fdTo, then flush.
---- [" memonic: fdTo = fdFrom]
-M.fdMv = function(fdTo, fdFrom) --> (fdTo, fdFrom)
-  while true do
-    local d = fdFrom:read(4096); if not d then break end
-    fdTo:write(d)
-  end fdTo:flush()
-  return fdTo, fdFrom
-end
-
 ---------------------
 -- Source Code Functions
 
