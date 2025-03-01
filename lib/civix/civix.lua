@@ -17,9 +17,16 @@ local yield = coroutine.yield
 local pc = pth.concat
 local construct = mty.construct
 
+local type = type
+local fdType = fd.type
+local check = ds.check
 local toDir, toNonDir = pth.toDir, pth.toNonDir
 local cmpDirsLast = pth.cmpDirsLast
 local fmodeName = fd.FMODE.name
+
+--- Block size used as default for file moves/etc
+--- Default is 32 KiB
+M.BLOCK_SZ = 1 << 15
 
 --- Stat object with mode() and modified() functions
 M.Stat = C.Stat
@@ -65,8 +72,32 @@ ds.update(M, {
   exists = lib.exists,
 
   -- TODO: probably good to catch return code for cross-filesystem
-  mv = lib.rename,
 })
+
+--- Move path from old -> new, throwing an error on failure.
+M.mv = function(old, new) assert(os.rename(old, new)) end
+
+--- Read data from fd [$from] and write to fd [$to], then flush.
+M.fdWrite = function(to, from, sz--[[=BLOCK_SZ]]) --> (to, from)
+  sz = sz or M.BLOCK_SZ
+  while true do
+    local b = check(2, from:read(sz)); if not b then break end
+    assert(to:write(b))
+  end assert(to:flush())
+  return to, from
+end
+
+--- copy data from [$from] to [$to]. Their types can be either
+--- a string (path) or a file descriptor.
+M.cp = function(from, to)
+  local fd, fc, td, tc -- f:from, t:to, d:descriptor, c:close
+  if type(from) == 'string' then fd = assert(io.open(from, 'r')); fc = 1
+                            else fd = from end
+  if type(to)   == 'string' then td = assert(io.open(to, 'w')); tc = 1
+                            else td = to end
+  M.fdWrite(td, fd)
+  if fc then fd:close() end; if tc then td:close() end
+end
 
 --- swap paths a <-> b
 M.swap = function(a, b, ext)
@@ -125,6 +156,7 @@ M.pathtype = function(path)
 end
 M.isFile = function(path) return M.pathtype(path) == 'file' end
 M.isDir  = function(path) return M.pathtype(path) == 'dir'  end
+local isFile = M.isFile
 
 local function _walkcall(ftypeFns, path, ftype, err)
   if err then return ftypeFns.error(path, err) end
@@ -183,7 +215,7 @@ end
 --- ]
 M.Walk = mty'Walk' {
   'maxDepth [int]: maximum depth to walk (default=infinite)',
-  'pi [int]: the current (root) path being walked', pi = 0,
+  'pi [int]: the current (root) path index being walked', pi = 0,
   '_dirs [table]: a stack of WalkDirs that are being walked',
 }
 getmetatable(M.Walk).__call = function(T, t)
@@ -256,6 +288,7 @@ end
 
 local RMR_FNS = {dir = ds.noop, default = M.rm, dirDone = M.rmdir }
 M.rmRecursive = function(path)
+  if not M.exists(path) then return end
   M.walk({path}, RMR_FNS, nil)
 end
 M.mkDirs = function(path)
@@ -298,11 +331,11 @@ M.mkTree = function(dir, tree, parents) --!!> nil
   M.mkDir(dir, parents)
   for name, v in pairs(tree) do
     local p = pc{dir, name, type(v) == 'table' and '/' or nil}
-    if     type(v) == 'table'  then M.mkTree(p, v)
-    elseif type(v) == 'string' then pth.write(p, v)
-    elseif type(v) == 'userdata' then
-      local f = ds.fdMv(io.popen(p, 'w'), v)
+    if fdType(v) then
+      local f = M.fdWrite(assert(io.popen(p, 'w')), v)
       f:close(); v:close()
+    elseif type(v) == 'string' then pth.write(p, v)
+    elseif type(v) == 'table'  then M.mkTree(p, v)
     else error('invalid tree value of type '..type(v)) end
   end
 end
@@ -325,7 +358,7 @@ M.Lap = function() return lap.Lap {
 --- Examples (see civix.sh for more examples): [{table}
 --- # Lua                                                  | Bash
 --- + [$Sh({'ls', 'foo/bar'}, {stdout=io.stdout}):start()] | [$ls foo/bar]
---- + [$v = Sh{'ls foo/bar', stdout=true}:start():read()]  | [$v=$(ls foo/bar)]
+--- + [$v = Sh{'ls foo/bar', stdout=true}:start():read'a']  | [$v=$(ls foo/bar)]
 --- ]
 M.Sh = mty'Sh' {
   "args [table]: arguments to pass to shell",
@@ -394,8 +427,8 @@ M.Sh.finish = function(sh, other) --> out, err
       inpf:write(other.input); inpf:close()
     end)
   end
-  if outf then push(fns, function() out = outf:read() end) end
-  if errf then push(fns, function() err = errf:read() end) end
+  if outf then push(fns, function() out = outf:read'a' end) end
+  if errf then push(fns, function() err = errf:read'a' end) end
   if LAP_ASYNC then lap.all(fns) else M.Lap():run(fns) end
   return out, err
 end

@@ -1,16 +1,15 @@
 local G = G or _G
 
-print'!! require civtest'
 --- module for writing simple tests
 local M = G.mod and G.mod'civtest' or {}
 
 local mty = require'metaty'
 local fmt = require'fmt'
-print'!! here'
 local fbin = require'fmt.binary'
 local ds = require'ds'
 local pth = require'ds.path'
 local lines = require'lines'
+local ix = require'civix'
 
 local push, sfmt = table.insert, string.format
 local function exit(rc) io.stderr:flush(); os.exit(rc) end
@@ -27,9 +26,7 @@ local function fail(name)
   error(sfmt('Failed %s', name), 2)
 end
 
-M.Test = (mty'Test'{})
-M.Test.eq = function(a, b)
-  if mty.eq(a, b) then return end
+local showDiff = function(a, b)
   local f = io.fmt
   f:styled('error', '\n!! RESULT:', '\n');   f(b)
   if mty.ty(a) ~= mty.ty(b) then
@@ -43,8 +40,44 @@ M.Test.eq = function(a, b)
     else a, b = fmt.pretty(a), fmt.pretty(b) end
     errordiff(a, b)
   end
-  fail("Test.eq")
 end
+
+M.Test = (mty'Test'{})
+M.Test.eq = function(a, b)
+  if mty.eq(a, b) then return end
+  showDiff(a, b); fail("Test.eq")
+end
+
+M.Test.exists = function(p)
+  if not require'civix'.exists(p) then error(
+    'does not exist: '..p
+  )end
+end
+
+--- Assert the contents at the two paths are equal
+M.Test.pathEq = function(a, b)
+  at, bt = pth.read(a), pth.read(b)
+  if at == bt then return end
+  io.fmt:styled('error', sfmt('!! Path %s != %s', a, b), '\n')
+  showDiff(at, bt); fail'Test.pathEq'
+end
+
+--- Assert that path matches expect. Expect can be of type:
+--- * string: asserts the file contents match.
+--- * table: recursively assert the subtree contents exist.
+M.Test.path = function(path, expect)
+  print('!! assert path', path)
+  M.Test.exists(path)
+  if type(expect) == 'string' then
+    local txt = pth.read(path)
+    if expect == txt then return end
+    io.fmt:styled('error', '!! Path '..path, '\n')
+    showDiff(expect, txt); fail'Test.tree'
+  end
+  if ix.pathtype(path) ~= ix.DIR then error(path..' is not a dir') end
+  for k, v in pairs(expect) do M.Test.path(pth.concat{path, k}, v) end
+end
+
 -- binary equal
 M.Test.binEq = function(e, r)
   assert(type(e) == 'string', 'expect must be string')
@@ -89,6 +122,7 @@ M.Test.throws = function(contains, fn) --> ds.Error
   exit(1)
 end
 getmetatable(M.Test).__newindex = function(s, name, fn)
+  assert(not rawget(M.Test, name), name..' is a Test method')
   io.fmt:styled('h2', sfmt('## Test %-32s', name), ' ')
   io.fmt:styled('path', pth.nice(ds.srcloc(1)), '\n')
   fn(s)

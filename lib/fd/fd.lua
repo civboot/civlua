@@ -112,7 +112,7 @@ end
 
 S.FD.__index.flush = function(fd)
   fd:_flush(); M.finishRunning(fd, 'sleep', 0.001)
-  if fd:code() ~= 0 then return nil, fd:codestr() end
+  if fd:code() ~= 0 then return nil, fd:codestr() else return true end
 end
 
 S.FD.__index.flags = function(fd)
@@ -167,7 +167,7 @@ local function iden(x) return x end
 local function noNL(s)
   return s and (s:sub(-1) == '\n') and s:sub(1, -2) or s
 end
-local function readAll(fd) fd:_readTill(); return fd:_pop() end
+local function readAll(fd) fd:_readTill(); return fd:_pop() or '' end
 local function readLine(fd, lineFn)
   local s = fd:_pop(NL); if s then return lineFn(s) end
   fd:_readTill(NL)
@@ -187,7 +187,7 @@ local READ_MODE = {
   a=readAll, ['*a']=readAll, l=readLineNoNL, L=readLineYesNL,
 }
 local modeFn = function(mode)
-  local fn = (type(mode) == 'number') and readAmt or READ_MODE[mode or 'a']
+  local fn = (type(mode) == 'number') and readAmt or READ_MODE[mode or 'l']
   if not fn then error('mode not supported: '..tostring(mode)) end
   return fn
 end

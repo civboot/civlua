@@ -254,6 +254,19 @@ end
 --- Eventually this may use the [$__sort] metamethod
 M.sort = function(t, fn) sort(t, fn); return t end --> t
 
+--- sort t and remove duplicates
+M.sortUnique = function(t, sortFn, eqFn) --> t
+  sort(t, sortFn); eqFn = eqFn or M.eq
+  local i, len, iv, kv = 1, #t
+  for k=2,len do
+    iv, kv = t[i], t[k]
+    if not eqFn(iv, kv) then i = i + 1; t[i] = kv end
+    k = k + 1
+  end
+  move(EMPTY, i+1, len, i+1, t)
+  return t
+end
+
 --- get index, handling negatives
 M.geti = function(t, i) --> t[i]
   return (i >= 0) and t[i] or t[#t + i + 1]
@@ -556,16 +569,6 @@ end
 M.writePath = function(path, text) --!!> nil
   local f = fmt.assertf(io.open(path, 'w'), 'invalid %s', path)
   local out, err = f:write(text); f:close(); assert(out, err)
-end
-
---- Read data from fdFrom and write to fdTo, then flush.
---- [" memonic: fdTo = fdFrom]
-M.fdMv = function(fdTo, fdFrom) --> (fdTo, fdFrom)
-  while true do
-    local d = fdFrom:read(4096); if not d then break end
-    fdTo:write(d)
-  end fdTo:flush()
-  return fdTo, fdFrom
 end
 
 ---------------------

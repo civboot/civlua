@@ -246,6 +246,10 @@ T.table = function()
 
   assertEq({'a', 'b', 'c'}, M.orderedKeys{a=1, b=2, c=3})
   assertEq({'a', 'b', 'c', a=1, b=2, c=3}, M.pushSortedKeys{a=1, b=2, c=3})
+
+  assertEq({1}, M.sortUnique{1})
+  assertEq({'a', 'b', 'c'}, M.sortUnique{'c', 'b', 'a'})
+  assertEq({'a', 'b', 'c'}, M.sortUnique{'a', 'c', 'b', 'a'})
 end
 
 T.Slc = function()
@@ -382,7 +386,7 @@ local function assertPath(fn, expect, p)
   assertEq(expect, fn(p))       -- pass in string
   assertEq(expect, fn(path(p))) -- pass in table
 end
-T.path = function()
+T.ds_path = function()
   assertEq({'a', 'b', 'c'},  path('a/b/c'))
   assertEq({'/', 'b', 'c'},  path('/b/c'))
   assertEq({'a', 'b', 'c/'}, path('a/b/c/'))
@@ -438,14 +442,14 @@ T.path = function()
   assertEq({'/',  ''},       {pf'/'})
 
   local pl = path.last
-  assertEq({'/a/b', 'c/'}, {pl'/a/b/c/'})
-  assertEq({'a/b', 'c/'},  {pl'a/b/c/'})
-  assertEq({'/a', 'b/'},   {pl'/a/b/'})
-  assertEq({'/a', 'b'},    {pl'/a/b'})
-  assertEq({'', '/b'},     {pl'/b'})
-  assertEq({'', 'b'},      {pl'b'})
-  assertEq({'', '/b/'},    {pl'/b/'})
-  assertEq({'', '/'},      {pl'/'})
+  assertEq({'/a/b/', 'c/'}, {pl'/a/b/c/'})
+  assertEq({'a/b/', 'c/'},  {pl'a/b/c/'})
+  assertEq({'/a/', 'b/'},   {pl'/a/b/'})
+  assertEq({'/a/', 'b'},    {pl'/a/b'})
+  assertEq({'', '/b'},      {pl'/b'})
+  assertEq({'', 'b'},       {pl'b'})
+  assertEq({'', '/b/'},     {pl'/b/'})
+  assertEq({'', '/'},       {pl'/'})
 
   assertEq(true, path.isDir('/'))
   assertEq('/',  path.toDir('/'))

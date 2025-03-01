@@ -279,13 +279,13 @@ M.dump = function(f, ...)
   if close then f:close() end; assert(ok, err)
 end
 
---- load [$deser(f:read(), ...)], f can be a path or file.
+--- load [$deser(f:read'a', ...)], f can be a path or file.
 M.load = function(f, ...)
   local close
   if type(f) == 'string' then
     f = assert(io.open(f)); close = true
   end
-  local str, err = f:read(); if close then f:close() end
+  local str, err = f:read'a'; if close then f:close() end
   print('!! read', str, err)
   assert(str, err); return M.deser(str, ...)
 end
