@@ -2,15 +2,18 @@ local G = G or _G
 local M = G.mod and mod'pvc' or setmetatable({}, {})
 
 local mty = require'metaty'
+local ds  = require'ds'
 local pth = require'ds.path'
 local kev = require'ds.kev'
 local ix  = require'civix'
+local lines = require'lines'
 
 local srep, sfmt = string.rep, string.format
 local sconcat = string.concat
 local push, concat = table.insert, table.concat
 local info = require'ds.log'.info
 local construct = mty.construct
+local pconcat = pth.concat
 
 local assertf = require'fmt'.assertf
 local NULL = '/dev/null'
@@ -32,7 +35,7 @@ end
 
 --- calculate necessary directory depth.
 --- Example: 01/23/12345.p has dirDepth=4
-M.calcDirDepth = function(id)
+M.calcDepth = function(id)
   local len = #tostring(id); if len <= 2 then return 0 end
   return len - (2 - (len % 2))
 end
@@ -40,33 +43,33 @@ end
 --- Reference to a single patch.
 --- Also acts as an iterator of patches
 M.Patch = mty'Patches' {
+  'dir [string]', dir='',
   'id [int]: (required) the current patch id',
-  'minId [int]: (required)', 'maxId [int]: (required)',
   'depth [int]: (required) length of all change directories',
 }
 getmetatable(M.Patch).__call = function(T, t)
-  assert(t.id and t.minId and t.maxId and t.depth, 'must set required fields')
+  assert(t.id and t.depth, 'must set required fields')
   assert(t.depth >= 0 and t.depth % 2 == 0
-         and t.depth <= M.calcDirDepth(t.maxId), 'invalid depth')
+     and M.calcDepth(t.id) <= t.depth , 'invalid depth')
   return construct(T, t)
 end
 
---- Return the (non-merged) path relative to [$branch/patches/] of an id
-M.Patch.path = function(pch, id) --> path
-  id = id or pch.id; local dirstr = tostring(id):sub(1,-3)
+--- Return the (non-merged) path relative to [$branch/patches/] of an id.
+--- return nil if id is too large for [$depth]
+M.Patch.path = function(pch, id) id=id or pch.id --> path?
+  if M.calcDepth(id) > pch.depth then return end
+  local dirstr = tostring(id):sub(1,-3)
   dirstr = srep('0', pch.depth - #dirstr)..dirstr -- zero padded
-  assertf(#dirstr <= pch.depth,
-    '%i has longer length than depth=%i', id, pch.depth)
-  local path = {}; for i=1,#dirstr,2 do
+  local path = {pch.dir}; for i=1,#dirstr,2 do
     push(path, dirstr:sub(i,i+1)) -- i.e. 00/12.p
   end
   push(path, id..'.p')
-  return pth.concat(path)
+  return pconcat(path)
 end
 
 --- Get next (id, path). Mutates id so it can be used as an iterator.
 M.Patch.__call = function(pch) --> id, path
-  local id = pch.id; if id > pch.maxId then return end
+  local id = pch.id; if M.calcDepth(id) > pch.depth then return end
   pch.id = id + 1; return id, pch:path(id)
 end
 
@@ -79,12 +82,12 @@ M.unix = G.mod and mod'pvc.unix' or {}
 
 --- Get the unified diff using unix [$diff --unified=1],
 --- properly handling file creation/deleting
-M.unix.diff = function(dir, a, b)
+M.unix.diff = function(dir, a, b) --> string
   local aPath, bPath
   if not a then a, aPath = NULL, NULL
-  else             aPath = pth.concat{dir or './', a} end
+  else             aPath = pconcat{dir or './', a} end
   if not b then b, bPath = NULL, NULL
-  else             bPath = pth.concat{dir or './', b} end
+  else             bPath = pconcat{dir or './', b} end
   return ix.sh{
     'diff', '-N', aPath, '--label='..a, bPath, '--label='..b,
     unified='0', stderr=io.stderr}
@@ -133,7 +136,7 @@ M.patchPost = function(dir, patch, reverse)
     if line:sub(1,1) == '!' then
       local cmd, a, b = table.unpack(ds.splitList(line:match'!%s*(.*)'))
       if reverse then a, b = b, a end
-      (postCmd[cmd] or error('unknown cmd: '..cmd))(pth.concat{dir, a}, pth.concat{dir, b})
+      (postCmd[cmd] or error('unknown cmd: '..cmd))(pconcat{dir, a}, pconcat{dir, b})
     end
   end
 end
@@ -150,6 +153,70 @@ getmetatable(M.Ref).__call = function(T, t)
 end
 
 --------------------------------
+-- Branch functions
+M.Branch = mty'Branch' {
+  'name [string]',
+  'dir [string]: directory of branch',
+}
+M.Branch.exists = function(b) return ix.exists(b.dir) end
+M.Branch.remove = function(b) ix.rmRecursive(b.dir)   end
+
+--- Initialize the branch
+M.Branch.init = function(b, ref) --> Branch
+  if ref then ref = M.Ref(ref) end -- asserts valid
+  assertf(not ix.exists(b.dir), 'branch %q already exists', b.name)
+  local id = ref and ref.id or 0
+  local depth = M.calcDepth(id + 50)
+  local tree = {
+    patch = {}, archive = {},
+    files='', id=tostring(id), depth=tostring(depth),
+  }
+   if ref then
+    tree.branch = concat(kev.to(ref), '\n')
+    error'not implemented'
+  else
+    tree.patches = {
+      [M.Patch{id=id, depth=depth}:path()..'.snap/'] = {}
+    }
+  end
+  ix.mkTree(b.dir, tree, true)
+  return b
+end
+
+local function integerFileMethod(name)
+  return function(self, int)
+    local path = self.dir..name
+    if not int then return tonumber(pth.read(path)) end
+    pth.write(path, tostring(int))
+  end
+end
+
+--- get or set the id
+M.Branch.id    = integerFileMethod'id'
+--- get or set the depth
+M.Branch.depth = integerFileMethod'depth'
+--- Get or set list of files.
+M.Branch.files = function(b, files) --> files?
+  local fpath = b.dir..'files'
+  if not files then return lines.load(fpath) end
+  return lines.dump(ds.sortUnique(files), fpath)
+end
+
+--- Get the Patch at the id
+M.Branch.patch = function(b, id)id=id or b.id() --> Patch
+  return M.Patch{dir=b.dir..'patches/', id=id, depth=b.depth()}
+end
+
+M.Branch.commit = function(b)
+  local id = b:id()
+
+  for i, path in b:files() do
+  end
+
+  b:id(id + 1)
+end
+
+--------------------------------
 -- PVC functions
 
 --- base object which holds locations
@@ -159,23 +226,13 @@ M.PVC = mty'PVC' {
 }
 getmetatable(M.PVC).__call = function(T, t)
   assert(t.dir, 'must set dir')
-  t.dot = t.dot or pth.concat{t.dir, M.DOT}
+  t.dot = pconcat{t.dot or pconcat{t.dir, M.DOT}, '/'}
   return mty.construct(T, t)
 end
 
---- get the path to branch
-M.PVC.pathOfBranch = function(p, name) return pth.concat{p.dot, name} end
-
---- Create a new branch
-M.PVC.branch = function(p, name, ref) --> path
-  if ref then ref = M.Ref(ref) end -- asserts valid
-  local path = p:pathOfBranch(name)
-  assertf(not ix.exists(path), 'branch %q already exists', name)
-  local tree = { patch = {}, archive = {} }
-  if ref then tree.branch = concat(kev.to(ref), '\n') end
-  tree.depth = tostring(M.calcDirDepth((ref and ref.id or 1) + 50))
-  ix.mkTree(path, tree, true)
-  return path
+--- Get a branch object. The branch may or may not exist.
+M.PVC.branch = function(p, name) --> Branch
+  return M.Branch{name=name, dir=pconcat{p.dot, name, '/'}}
 end
 
 --- initialize a directory as a new PVC project
@@ -196,7 +253,7 @@ M.load = function(dir) return M.PVC{dir=dir} end
 M.init = function(dir, branch, ref)
   if ref then error'unimplemented' end
   local p = M.load(dir):init()
-  p:branch(branch or 'main')
+  p:branch(branch or 'main'):init(ref)
   return p
 end
 

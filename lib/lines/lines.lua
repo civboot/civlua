@@ -260,18 +260,20 @@ M.load = function(f, close) --> (table?, errstr?)
   return t
 end
 
---- write lines to file in chunks (default = 16KiB)
---- if f is a string opens it as a file and closes when done.
+--- write lines [$t] to file [$f] in chunks (default = 16KiB)
+--- if f is a string then it is opened as a file and closed when done
 M.dump = function(t, f, close, chunk)
   local dat, len, chunk = {}, 0, chunk or M.CHUNK
-  if type(f) == 'string' then f = io.open(f, 'w'); close = true end
+  if type(f) == 'string' then
+    f = assert(io.open(f, 'w')); close = true
+  end
   for i, line in ipairs(t) do
     push(dat, line); len = len + #line + 1
     if len >= chunk then
-      f:write(concat(dat, '\n')); ds.clear(dat); len = 0
+      assert(f:write(concat(dat, '\n'))); ds.clear(dat); len = 0
     end
   end
-  if #dat > 0 then f:write(concat(dat, '\n')) end
+  if #dat > 0 then assert(f:write(concat(dat, '\n'))) end
   if close then f:close() end
 end
 

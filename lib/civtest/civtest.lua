@@ -45,6 +45,17 @@ M.Test.eq = function(a, b)
   end
   fail("Test.eq")
 end
+
+M.Test.exists = function(p)
+  if not require'civix'.exists(p) then error(
+    'does not exist: '..p
+  )end
+end
+
+M.Test.pathEq = function(a, b)
+  M.Test.eq(pth.read(a), pth.read(b))
+end
+
 -- binary equal
 M.Test.binEq = function(e, r)
   assert(type(e) == 'string', 'expect must be string')

@@ -246,6 +246,10 @@ T.table = function()
 
   assertEq({'a', 'b', 'c'}, M.orderedKeys{a=1, b=2, c=3})
   assertEq({'a', 'b', 'c', a=1, b=2, c=3}, M.pushSortedKeys{a=1, b=2, c=3})
+
+  assertEq({1}, M.sortUnique{1})
+  assertEq({'a', 'b', 'c'}, M.sortUnique{'c', 'b', 'a'})
+  assertEq({'a', 'b', 'c'}, M.sortUnique{'a', 'c', 'b', 'a'})
 end
 
 T.Slc = function()
