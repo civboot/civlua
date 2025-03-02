@@ -386,7 +386,7 @@ local function assertPath(fn, expect, p)
   assertEq(expect, fn(p))       -- pass in string
   assertEq(expect, fn(path(p))) -- pass in table
 end
-T.path = function()
+T.ds_path = function()
   assertEq({'a', 'b', 'c'},  path('a/b/c'))
   assertEq({'/', 'b', 'c'},  path('/b/c'))
   assertEq({'a', 'b', 'c/'}, path('a/b/c/'))
@@ -442,14 +442,14 @@ T.path = function()
   assertEq({'/',  ''},       {pf'/'})
 
   local pl = path.last
-  assertEq({'/a/b', 'c/'}, {pl'/a/b/c/'})
-  assertEq({'a/b', 'c/'},  {pl'a/b/c/'})
-  assertEq({'/a', 'b/'},   {pl'/a/b/'})
-  assertEq({'/a', 'b'},    {pl'/a/b'})
-  assertEq({'', '/b'},     {pl'/b'})
-  assertEq({'', 'b'},      {pl'b'})
-  assertEq({'', '/b/'},    {pl'/b/'})
-  assertEq({'', '/'},      {pl'/'})
+  assertEq({'/a/b/', 'c/'}, {pl'/a/b/c/'})
+  assertEq({'a/b/', 'c/'},  {pl'a/b/c/'})
+  assertEq({'/a/', 'b/'},   {pl'/a/b/'})
+  assertEq({'/a/', 'b'},    {pl'/a/b'})
+  assertEq({'', '/b'},      {pl'/b'})
+  assertEq({'', 'b'},       {pl'b'})
+  assertEq({'', '/b/'},     {pl'/b/'})
+  assertEq({'', '/'},       {pl'/'})
 
   assertEq(true, path.isDir('/'))
   assertEq('/',  path.toDir('/'))

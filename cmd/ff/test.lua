@@ -8,6 +8,7 @@ local mty = require'metaty'
 local fmt = require'fmt'
 local ds, lines = require'ds', require'lines'
 local civix  = require'civix'
+local T = require'civtest'.Test
 local test, assertEq; ds.auto'civtest'
 local ff = require'ff'
 
@@ -49,7 +50,7 @@ end
 
 test('ff.Main', function()
   local m = ff.Main{'a', 'p:b/c', '-b', '-p:%.ef', 'r:r1/', '--', 'r2/'}
-  assertEq(mty.construct(ff.Main, {
+  T.eq(mty.construct(ff.Main, {
     root={'r2/', 'r1/'},
     pat={'a'},    nopat={'b'},
     path={'b/c'}, nopath={'%.ef'},
@@ -57,7 +58,7 @@ test('ff.Main', function()
 
   local m = ff.Main(shim.parse{'a', '--sub=b', 'p:dir/',
                                 '--', 'root/', '--weird'})
-  assertEq(mty.construct(ff.Main, {
+  T.eq(mty.construct(ff.Main, {
     root={'root/', '--weird'},
     pat={'a'},    nopat={},
     path={'dir/'}, nopath=NOPATH,
@@ -80,15 +81,15 @@ end
 local function testA()
   local ok, res, stdout, stderr = runFF{'-p:', 'a %d1', '--', dir}
   assert(ok, res)
-  assertEq({dir..'a.txt'}, res)
-  assertEq(dir..'a.txt\n', stdout)
-  assertEq(expectSimple'    %i1 a %i1', stderr)
+  T.eq({dir..'a.txt'}, res)
+  T.eq(dir..'a.txt\n', stdout)
+  T.eq(expectSimple'    %i1 a %i1', stderr)
 
   -- do without -p: means .out/ never gets searched
   -- (because of default)
   local ok, res, stdout, stderr = runFF{'a %d1', '--', dir}
   assert(ok, res)
-  assertEq({}, res); assertEq(nil, stdout); assertEq(nil, stderr)
+  T.eq({}, res); T.eq('', stdout); T.eq('', stderr)
 end
 
 test('ff_find', function()
@@ -97,39 +98,39 @@ test('ff_find', function()
   local bArgs = {'-p:', 'b %d1', '--', dir}
   local ok, res, stdout, stderr = runFF(ds.copy(bArgs))
   assert(ok, res)
-  assertEq({dir..'b/b1.txt'}, res)
-  assertEq(dir..'b/b1.txt\n', stdout)
-  assertEq(expectSimple'    %i1 b %i1', stderr)
+  T.eq({dir..'b/b1.txt'}, res)
+  T.eq(dir..'b/b1.txt\n', stdout)
+  T.eq(expectSimple'    %i1 b %i1', stderr)
 
   -- adding /b/ does nothing
   local ok, res, stdout, stderr = runFF{'-p:', 'b %d1', 'p:/b/', 'r:'..dir}
   assert(ok, res);
-  assertEq({dir..'b/b1.txt'}, res)
+  T.eq({dir..'b/b1.txt'}, res)
 end)
 
 test('ff_sub', function()
   local subArgs = {'-p:', 'a (%d1)', sub='s %1', '--', dir}
   local ok, res, stdout, stderr = runFF(ds.copy(subArgs))
   assert(ok, res)
-  assertEq({dir..'a.txt'}, res)
-  assertEq(simpleSub('    %i1 a %i1', '   --> s %i1'), stderr)
+  T.eq({dir..'a.txt'}, res)
+  T.eq(simpleSub('    %i1 a %i1', '   --> s %i1'), stderr)
 
   testA() -- not mutated
 
   -- mutate it with sub
   local ok, res, stdout, stderr = runFF(ds.copy(subArgs, {mut=true}))
   assert(ok, res)
-  assertEq({dir..'a.txt'}, res)
-  assertEq(simpleSub('    %i1 a %i1', '   --> s %i1'), stderr)
+  T.eq({dir..'a.txt'}, res)
+  T.eq(simpleSub('    %i1 a %i1', '   --> s %i1'), stderr)
 
   -- there are no more 'a %i1'
   local ok, res, stdout, stderr = runFF(ds.copy(subArgs))
   assert(ok, res)
-  assertEq({}, res); assertEq(nil, stderr) -- no matches
+  T.eq({}, res); T.eq('', stderr) -- no matches
 
   -- there are 's %i1'
   local ok, res, stdout, stderr = runFF{'-p:', 's %d1', 'r:'..dir}
   assert(ok, res)
-  assertEq({dir..'a.txt'}, res)
-  assertEq(expectSimple'    %i1 s %i1', stderr)
+  T.eq({dir..'a.txt'}, res)
+  T.eq(expectSimple'    %i1 s %i1', stderr)
 end)

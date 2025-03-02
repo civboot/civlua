@@ -18,8 +18,9 @@ M.read = function(path) --!!> string
   local f, err, out = io.open(path, 'r'); if not f then error(sfmt(
     "open %q mode=r: %s", path, err
   ))end
-  out, err = f:read('a'); f:close()
-  return assert(out, err)
+  out, err = f:read'a'; f:close()
+  if not out then error(sfmt('read %s: %s', path, err)) end
+  return out
 end
 
 --- write string to file at path or throw error
@@ -164,8 +165,8 @@ end
 
 --- [$first/middle/last -> ("first/middle", "last")]
 M.last = function(path)
-  local a, b = path:match('^(.*)/(.+)$')
-  if not a or a == '' or b == '' then return '', path end
+  local a, b = path:match('^(.*/)(.+)$')
+  if not a or a == '/' or b == '' then return '', path end
   return a, b
 end
 
@@ -191,6 +192,5 @@ M.cmpDirsLast = function(a, b)
   elseif isDir(b) then return true end
   return a < b
 end
-
 
 return M

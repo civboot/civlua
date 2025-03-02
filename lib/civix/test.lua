@@ -17,10 +17,11 @@ local push = table.insert
 
 T.simple = function()
   local sh, o = M.sh
-  assertEq('/tmp\n', sh{'pwd', CWD='/tmp'})
+  T.eq('/tmp\n', sh{'pwd', CWD='/tmp'})
 
-  assertEq('/tmp thisIsFOO\n', sh{'/usr/bin/sh', '-c', 'echo $PWD $FOO',
-                        CWD='/tmp', ENV={'FOO=thisIsFOO'}})
+  T.eq('/tmp thisIsFOO\n',
+    sh{'/usr/bin/sh', '-c', 'echo $PWD $FOO',
+       CWD='/tmp', ENV={'FOO=thisIsFOO'}})
 end
 
 -- TODO: this behaves slighlty differently for the different file
@@ -28,10 +29,10 @@ end
 Tm.lapTest('sh', function()
   local sh, o = M.sh
 
-  assertEq(nil,           sh'true')
-  assertEq('hi there\n', sh{'echo', 'hi there'})
-  assertEq('from stdin', sh{stdin='from stdin', 'cat'})
-  assertEq('foo --abc=ya --aa=bar --bb=42\n',
+  T.eq('',           sh'true')
+  T.eq('hi there\n', sh{'echo', 'hi there'})
+  T.eq('from stdin', sh{stdin='from stdin', 'cat'})
+  T.eq('foo --abc=ya --aa=bar --bb=42\n',
     sh{'echo', 'foo', '--abc=ya', aa='bar', bb=42})
 
   assertErrorPat('Command failed with rc=1', function() sh'false' end)
@@ -43,18 +44,18 @@ Tm.lapTest('sh', function()
   local path = '.out/echo.test'
   local f = io.open(path, 'w+')
   local out, err, s = sh{'echo', 'send to file', stdout=f}
-  assertEq(nil, out); assertEq(nil, err);
-  assertEq(nil, s.stdin); assertEq(nil, s.stdout)
-  assertEq('send to file\n', io.open(path):read())
-  f:seek'set'; assertEq('send to file\n', f:read())
+  T.eq(nil, out); T.eq(nil, err);
+  T.eq(nil, s.stdin); T.eq(nil, s.stdout)
+  T.eq('send to file\n', io.open(path):read'a')
+  f:seek'set'; T.eq('send to file\n', f:read'a')
 
   f:seek'set'
   out, err, s = sh{stdin=f, 'cat', stdout=io.open('.out/cat.test', 'w+')}
-  assertEq(nil, out); assertEq(nil, err)
-  assertEq('send to file\n', io.open('.out/cat.test'):read())
+  T.eq(nil, out); T.eq(nil, err)
+  T.eq('send to file\n', io.open('.out/cat.test'):read'a')
 
   out, err, s = sh{'sh', '-c', "echo 'on STDERR' >&2 ", stdout=false, stderr=true}
-  assertEq(nil, out); assertEq('on STDERR\n', err)
+  T.eq(nil, out); T.eq('on STDERR\n', err)
   collectgarbage()
 end)
 
@@ -104,7 +105,7 @@ Tm.test('fd-perf', function()
     end end,
     function()
       local f = fd.openFDT(O..'perf.bin', 'w+')
-      f:write(data); f:seek'set'; res = f:read()
+      f:write(data); f:seek'set'; res = f:read'a'
       f:close()
       run = false
     end,
@@ -120,14 +121,14 @@ Tm.test('walk', function()
   local w = M.Walk{d}; for path, ty in w do
     push(paths, path); push(types, ty); push(depths, w:depth())
   end
-  assertEq({
+  T.eq({
       ".out/civix/", ".out/civix/a.txt",
       ".out/civix/b/",
         ".out/civix/b/b1.txt",
         ".out/civix/b/b2.txt" }, paths)
-  assertEq({'dir', 'file', 'dir', 'file', 'file'}, types)
-  assertEq({1,     1,      2,     2,       2},     depths)
-  assertEq(nil, w()); assertEq(nil, w());
+  T.eq({'dir', 'file', 'dir', 'file', 'file'}, types)
+  T.eq({1,     1,      2,     2,       2},     depths)
+  T.eq(nil, w()); T.eq(nil, w());
 
   local w = M.Walk{d}
   local saw = {}; local function see(path) push(saw, path) end
@@ -135,21 +136,21 @@ Tm.test('walk', function()
     return not path:find'/b/' or w:skip()
   end
   local expect = {".out/civix/", ".out/civix/a.txt", ".out/civix/b/"}
-  assertEq(expect, Iter{w}:listen(skipB):keysTo())
+  T.eq(expect, Iter{w}:listen(skipB):keysTo())
 
   w = M.Walk{d}
-  assertEq(
+  T.eq(
     {".out/civix/", ".out/civix/a.txt"},
     Iter{w}:listen(see):filterK(skipB):keysTo())
-  assertEq(expect, saw)
+  T.eq(expect, saw)
 end)
 
 T.mkRmTree = function()
   local d = mkTestTree()
-  assertEq(pth.read'.out/civix/a.txt', 
+  T.eq(pth.read'.out/civix/a.txt', 
   'for civix a test')
-  assertEq(pth.read'.out/civix/b/b1.txt', '1 in dir b/')
-  assertEq(pth.read'.out/civix/b/b2.txt', '2 in dir b/')
+  T.eq(pth.read'.out/civix/b/b1.txt', '1 in dir b/')
+  T.eq(pth.read'.out/civix/b/b2.txt', '2 in dir b/')
   M.rmRecursive(d)
   assert(not M.exists(d))
 end

@@ -29,7 +29,7 @@ end
 
 CT.lapTest('read', function()
   local f = M.open(p, 'r'); aeq(0, f:code())
-  aeq('line 1\nline 2\n', f:read()); aeq(14, f:pos())
+  aeq('line 1\nline 2\n', f:read'a'); aeq(14, f:pos())
   f:close()
 end)
 
@@ -63,7 +63,7 @@ CT.asyncTest('openFDT -> _read', function()
 end)
 
 CT.asyncTest('FDT:read', function()
-  local f = M.openFDT(p); aeq(text, f:read()); f:close()
+  local f = M.openFDT(p); aeq(text, f:read'a'); f:close()
 end)
 
 CT.asyncTest('FDT:lines', function()
@@ -114,21 +114,24 @@ end
 T.checkBoth = function() allFileTest(function(open)
   local f = open(p, 'w+')
   f:write'hello!'
-    T.eq(nil, f:read())
+    -- TODO: try read'a' here for odd results
+    T.eq(nil, f:read());
     T.eq(6, f:seek'cur')
 
   T.eq(0, f:seek'set')
-    T.eq('hello!', f:read())
+    T.eq('hello!', f:read'a')
     T.eq(6, f:seek'cur')
     T.eq(nil, f:read())
+    T.eq('',  f:read'a')
 
   T.eq(3, f:seek('set', 3))
     T.eq('lo!', f:read(3))
-    T.eq(6, f:seek'cur'); T.eq(nil, f:read())
+    T.eq(6, f:seek'cur'); T.eq(nil, f:read()) -- TODO: read'a' is weird here
 
   T.eq(0, f:seek'set');
     T.eq('hel', f:read(3)); T.eq(3, f:seek'cur')
     T.eq('lo!', f:read(3)); T.eq(6, f:seek'cur')
+    T.eq('',  f:read'a')
     T.eq(nil, f:read())
 end) end
 

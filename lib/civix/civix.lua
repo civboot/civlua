@@ -215,7 +215,7 @@ end
 --- ]
 M.Walk = mty'Walk' {
   'maxDepth [int]: maximum depth to walk (default=infinite)',
-  'pi [int]: the current (root) path being walked', pi = 0,
+  'pi [int]: the current (root) path index being walked', pi = 0,
   '_dirs [table]: a stack of WalkDirs that are being walked',
 }
 getmetatable(M.Walk).__call = function(T, t)
@@ -358,7 +358,7 @@ M.Lap = function() return lap.Lap {
 --- Examples (see civix.sh for more examples): [{table}
 --- # Lua                                                  | Bash
 --- + [$Sh({'ls', 'foo/bar'}, {stdout=io.stdout}):start()] | [$ls foo/bar]
---- + [$v = Sh{'ls foo/bar', stdout=true}:start():read()]  | [$v=$(ls foo/bar)]
+--- + [$v = Sh{'ls foo/bar', stdout=true}:start():read'a']  | [$v=$(ls foo/bar)]
 --- ]
 M.Sh = mty'Sh' {
   "args [table]: arguments to pass to shell",
@@ -427,8 +427,8 @@ M.Sh.finish = function(sh, other) --> out, err
       inpf:write(other.input); inpf:close()
     end)
   end
-  if outf then push(fns, function() out = outf:read() end) end
-  if errf then push(fns, function() err = errf:read() end) end
+  if outf then push(fns, function() out = outf:read'a' end) end
+  if errf then push(fns, function() err = errf:read'a' end) end
   if LAP_ASYNC then lap.all(fns) else M.Lap():run(fns) end
   return out, err
 end

@@ -33,13 +33,34 @@ T.Patch = function()
   T.eq({}                 , {p()})
 end
 
-T.patch = function()
+T.commit = function()
   ix.rmRecursive(D); ix.mkDir(D)
   -- initialize PVC
   local p = pvc.init(D)
-  local dot = '.out/pvc/.pvc/'; T.eq(dot, p.dot)
-  T.exists(dot..'main/files')
+  local d = '.out/pvc/'
+  T.path(d, {
+    ['.pvcpaths'] = '.pvcpaths',
+    ['.pvc'] = {
+      main = {
+        patch = {
+          depth = '2',
+          ['00'] = {
+            depth = '0', ['0.p'] = pvc.INIT_PATCH,
+            ['0.snap'] = {
+              PVC_DONE = '', ['.pvcpaths'] = '.pvcpaths',
+            }
+          }
+        }
+      }
+    }
+  })
+  error'ok'
+
+  local dot = d..'.pvc/'; T.eq(dot, p.dot)
+
+  T.eq('.pvcpaths', pth.read(d..'.pvcpaths'))
   local main = p:branch'main'
+  T.eq('.pvcpaths', pth.read(main.dir..main:patch():snap()..'.pvcpaths'))
 
   -- copy a file into it and add it
   ix.cp(TD..'story.txt.1', D..'story.txt')
