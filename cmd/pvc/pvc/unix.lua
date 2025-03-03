@@ -5,17 +5,24 @@ local G = G or _G
 -- algorithms.
 local M = G.mod and mod'pvc.unix' or {}
 
+local ix = require'civix'
+local pconcat = require'ds.path'.concat
+
+local NULL = '/dev/null'
+
 --- Get the unified diff using unix [$diff --unified=1],
 --- properly handling file creation/deleting
-M.diff = function(dir, a, b) --> string
-  local aPath, bPath
-  if not a then a, aPath = NULL, NULL
-  else             aPath = pconcat{dir or './', a} end
-  if not b then b, bPath = NULL, NULL
-  else             bPath = pconcat{dir or './', b} end
-  return ix.sh{
-    'diff', '-N', aPath, '--label='..a, bPath, '--label='..b,
-    unified='0', stderr=io.stderr}
+--- the [$l] variables are the "label" to use.
+--- when the coresponding value is nil then the label is [$/dev/null]
+M.diff = function(a,al, b,bl) --> string?
+  if not ix.exists(a) then a, al = NULL, NULL end
+  if not ix.exists(b) then b, bl = NULL, NULL end
+  local o, e, sh = ix.sh{
+    'diff', '-N', a, '--label='..al, b, '--label='..bl,
+    unified='0', stderr=io.stderr, rc=true}
+  if sh:rc() > 1 then error('diff failed:\n'..e) end
+  if sh:rc() == 1 then return o end
+  assert(o == '')
 end
 
 local patchArgs = function(cwd, path)

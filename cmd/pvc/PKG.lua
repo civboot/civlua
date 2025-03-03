@@ -10,4 +10,5 @@ deps = {
 }
 srcs = {
   'pvc.lua',
+  'pvc/unix.lua'
 }

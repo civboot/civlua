@@ -232,9 +232,10 @@ static int l_sh_rc(LS *L) {
 }
 
 // () -> : block until Sh is done.
-static int l_sh_wait(LS *L) { 
+static int l_sh_wait(LS *L) {
   sh_wait(tolsh(L), 0);
-  return 0; }
+  return 0;
+}
 
 // (command, argList, envList=nil, stdin, out, err, CWD) -> (sh, r, w)
 // Note: all file-descriptors are integers

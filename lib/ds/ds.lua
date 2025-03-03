@@ -230,7 +230,6 @@ M.simplestr = function(s)
     end
     i = i + 1
   end
-  if out[#out] == '' then pop(out) end
   return concat(out, '\n')
 end
 

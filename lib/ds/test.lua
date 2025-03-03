@@ -54,17 +54,18 @@ T.simplestr = function()
 a]])
   T.eq('this is\n  a simple str.', s[[
     this is
-      a simple str.
-  ]])
+      a simple str.]])
 
   T.eq('easy',    s[[easy]])
   T.eq('easy  ',  s[[  easy  ]])
   T.eq('easy\nhi\nthere',  s[[easy
     hi
-    there
-  ]])
+    there]])
   T.eq('easy',  s[[
-  easy
+  easy]])
+  T.eq('newline\n\n', s[[
+  newline
+
   ]])
 end
 

@@ -56,7 +56,7 @@ end
 
 --- Assert the contents at the two paths are equal
 M.Test.pathEq = function(a, b)
-  at, bt = pth.read(a), pth.read(b)
+  local at, bt = pth.read(a), pth.read(b)
   if at == bt then return end
   io.fmt:styled('error', sfmt('!! Path %s != %s', a, b), '\n')
   showDiff(at, bt); fail'Test.pathEq'
@@ -66,7 +66,6 @@ end
 --- * string: asserts the file contents match.
 --- * table: recursively assert the subtree contents exist.
 M.Test.path = function(path, expect)
-  print('!! assert path', path)
   M.Test.exists(path)
   if type(expect) == 'string' then
     local txt = pth.read(path)

@@ -9,6 +9,8 @@ local ix  = require'civix'
 local lines = require'lines'
 local T = require'civtest'.Test
 
+local pu = require'pvc.unix'
+
 local srep, sfmt = string.rep, string.format
 local sconcat = string.concat
 local push, concat = table.insert, table.concat
@@ -18,11 +20,12 @@ local construct = mty.construct
 local pconcat = pth.concat
 
 local assertf = require'fmt'.assertf
-local NULL = '/dev/null'
 
 --- the .pvc/ directory where data is stored
 M.DOT = '.pvc/'
 
+M.PVCPATHS = '.pvcpaths' -- file
+M.INIT_PVCPATHS = '.pvcpaths\n' -- initial contents
 M.INIT_PATCH = [[
 # initial patch
 --- /dev/null
@@ -52,6 +55,7 @@ end
 --- Reference to a single patch.
 --- Also acts as an iterator of patches
 M.Patch = mty'Patches' {
+  'dir [string]: .../patch/ directory',
   'id [int]: (required) the current patch id',
   'depth [int]: (required) length of all change directories',
 }
@@ -84,6 +88,11 @@ end
 --- return the snapshot directory path of patch id.
 M.Patch.snap = function(pch, id) --> path?
   local r = pch:rawpath(id); return r and (r..'.snap/') or nil
+end
+
+--- [$full'path'] gets the full.p, [$full'snap'] gets the full.snap/
+M.Patch.full = function(pch, name, id)
+  return pch.dir..pch[name](pch, id)
 end
 
 --- Get next (id, path). Mutates id so it can be used as an iterator.
@@ -180,15 +189,14 @@ M.Branch.init = function(b, ref) --> Branch
   local patch = b.dir..'patch/'
   if ref then error'not implemented'
   else assert(id == 0)
-    local pvcpaths = '.pvcpaths'
     local ppath, spath = patch..p:path(), patch..p:snap()
-    local mpath = pth.last(pth.last(b.dir))..pvcpaths
+    local mpath = pth.last(pth.last(b.dir))..M.PVCPATHS
     trace('init 0: %s %s', mpath, ppath)
     pth.write(patch..p:path(), M.INIT_PATCH)
     ix.mkTree(patch..p:snap(), {
-      PVC_DONE = '', [pvcpaths] = pvcpaths,
+      PVC_DONE = '', [M.PVCPATHS] = M.INIT_PVCPATHS,
     })
-    pth.write(mpath, pvcpaths)
+    pth.write(mpath, M.INIT_PVCPATHS)
   end
   return b
 end
@@ -214,31 +222,14 @@ end
 
 --- Get the Patch at the id
 M.Branch.patch = function(b, id, depth) --> Patch
-  return M.Patch{id=id or b:id(), depth=depth or b:depth()}
-end
-
-M.Branch.commit = function(b)
-  local id = b:id()
-  local cur, nxt = b:patch(id), b:patch(id)
-  if nxt() == nil then
-    b:deeper()
-    cur, nxt = b:patch(id), b:patch(id+1)
-  end
-
-  for i, path in b:files() do
-  end
-
-  b:id(id + 1)
+  return M.Patch{
+    dir=b.dir..'patch/',
+    id=id or b:id(), depth=depth or b:depth(),
+  }
 end
 
 --------------------------------
 -- PVC functions
-
---- Get or set list of paths from file at path (typically [$.pvcpaths])
-M.paths = function(b, path, paths) --> paths?
-  if not paths then return lines.load(path) end
-  return lines.dump(ds.sortUnique(paths), path)
-end
 
 --- base object which holds locations
 M.PVC = mty'PVC' {
@@ -256,28 +247,94 @@ M.PVC.branch = function(p, name) --> Branch
   return M.Branch{name=name, dir=pconcat{p.dot, name, '/'}}
 end
 
+--- Get or set the current branch and (optional) id
+M.PVC.head = function(p, name, id) --> Branch?, Patch?
+  local hpath = p.dot..'head'
+  if not name then
+    local h = kev.load(hpath)
+    local b = p:branch(assert(h.branch))
+    return b, b:patch(h.id and tonumber(h.id))
+  end
+  kev.dump({branch=name, id=tostring(id)}, hpath)
+end
+
 --- initialize a directory as a new PVC project
-M.PVC.init = function(p) --> p
+M.PVC.init = function(p, branch, ref) --> p
+  branch = branch or 'main'
+  info('init %q ref=%q', branch, ref)
   if not ix.exists(p.dir) then error(p.dir' does not exist') end
   if ix.exists(p.dot) then error(p.dot..' already exists') end
   trace('mkDir %s', p.dot)
   ix.mkDir(p.dot)
+  p:branch(branch or 'main'):init(ref)
+  p:head('main', ref and ref.id or 0)
   return p
 end
+
+--- Get or set the working paths
+M.PVC.paths = function(p, paths) --> paths?
+  local ppath = p.dir..M.PVCPATHS
+  if not paths then return lines.load(ppath) end
+  if paths[#paths] == '' then paths[#paths] = nil end
+  paths = ds.sortUnique(paths)
+  push(paths, '')
+  return lines.dump(paths, ppath)
+end
+
+M.PVC.addPaths = function(p, paths) --> PVC
+  local fpaths = p:paths()
+  for _, ap in pairs(paths) do push(fpaths, ap) end
+  p:paths(fpaths)
+end
+
+local mpush = function(t, v)
+  if v == nil then return else push(t, v) end
+end
+
+M.PVC.commit = function(p) --> Branch, Patch
+  local b, pat = p:head(); local nxt = ds.copy(pat)
+  if nxt() == nil then
+    b:deeper()
+    pat, nxt = b:patch(pat.id), b.patch(pat.id+1)
+  end
+  local cur, snap = p.dir, pat:full'snap'
+  trace('commit compare: %s', snap)
+  assert(ix.exists(snap), 'TODO: checkout')
+
+  local post, ptext, paths = {}, {'# message', '(post)'}, {}
+  for i, path in ipairs(p:paths()) do
+    if paths[path] then goto cont end; paths[path] = true
+    local d = pu.diff(snap..path, path, cur..path, path)
+    print('!! diff of', path); print(d)
+    if d then push(ptext, d) end
+    ::cont::
+  end
+  -- look for removed paths
+  for i, path in ipairs(lines.load(snap..M.PVCPATHS)) do
+    if not paths[path] then
+      push(ptext, pu.diff('', cpath, nil))
+      paths[path] = true
+    end
+  end
+  ptext[2] = concat(post, '\n')
+  local path = nxt:full'path'
+  pth.write(path, concat(ptext, '\n'))
+  info('created patch %s', path)
+
+  -- FIXME: create snap by applying the patch then validating
+  -- all the files are identical
+
+  b:id(nxt.id)
+  return b, nxt
+end
+
 
 ----------------
 -- API
 
---- get a PVC object from a directory
-M.load = function(dir) return M.PVC{dir=dir} end
-
 --- initialize a directory as PVC
 M.init = function(dir, branch, ref)
-  info('init %q ref=%q', branch, ref)
-  if ref then error'unimplemented' end
-  local p = M.load(dir):init()
-  p:branch(branch or 'main'):init(ref)
-  return p
+   return M.PVC{dir=dir}:init(branch, ref)
 end
 
 return M

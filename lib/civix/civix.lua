@@ -400,14 +400,16 @@ M.Sh.start = function(sh)
 end
 
 M.Sh.isDone = function(sh) return sh._sh:isDone() end
+M.Sh.rc     = function(sh) return sh._sh:rc()     end
 
 --- wait for shell to complete, returns return code
 M.Sh.wait = function(sh) --> int
   if LAP_ASYNC then
     while not sh:isDone() do yield('sleep', 0.005) end
   else sh._sh:wait() end
-  return sh._sh:rc()
+  return sh:rc()
 end
+
 
 M.ShFin = mty'ShFin'{
   'stdin [file]', 'stdout [file]', 'stderr [file]',
@@ -463,6 +465,10 @@ end
 --- * [$stdin[string|file]] the process's stdin. If string it will be sent to stdin.
 --- * [$stdout[file]] the process's stdout. out will be nil if this is set
 --- * [$stderr[file]] the process's stderr (default=io.stderr)
+--- * [$ENV [table]] the process's environment.
+--- * [$CWD [table]] the process's current directory.
+--- * [$rc [bool]] if true allow non-zero return codes (else throw error).
+---   You can get the rc with [$sh:rc()] (method on 3rd return argument).
 --- ]
 ---
 --- Note: use [$Plumb{...}:run()] if you want to pipe multiple shells together.
@@ -473,12 +479,15 @@ end
 --- + [$sh{stdin='sent to stdin', 'cat'}]  | [$echo "sent to stdin" | cat]
 --- ]
 M.sh = function(cmd) --> out, err, sh
-  local sh, other = M._sh(cmd); sh:start()
+  local rcOk; if type(cmd) == 'table' then rcOk = ds.popk(cmd, 'rc') end
+  local sh, other = M._sh(cmd)
+  sh:start()
   local out, err = sh:finish(other)
-  local rc = sh:wait(); if rc ~= 0 then
-    fmt.errorf('Command failed with rc=%s: %q%s', rc, cmd,
-      (out and (#out > 0) and ('\nSTDOUT:\n'..out) or ''))
-  end
+  local rc = sh:wait();
+  if not rcOk and rc ~= 0 then fmt.errorf(
+    'Command failed with rc=%s: %q%s', rc, cmd,
+    (out and (#out > 0) and ('\nSTDOUT:\n'..out) or '')
+  )end
   return out, err, sh
 end
 
