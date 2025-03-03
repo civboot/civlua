@@ -22,6 +22,9 @@ T.simple = function()
   T.eq('/tmp thisIsFOO\n',
     sh{'/usr/bin/sh', '-c', 'echo $PWD $FOO',
        CWD='/tmp', ENV={'FOO=thisIsFOO'}})
+
+  local o, e, sh = M.sh{'false', rc=true}
+  T.eq(1, sh:rc())
 end
 
 -- TODO: this behaves slighlty differently for the different file

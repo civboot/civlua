@@ -257,7 +257,7 @@ M.G = setmetatable({}, {
 local noG = function(_, k)
   error(sfmt(
     'global %s is nil/unset. Initialize with G.%s = non_nil_value', k, k
-  ))
+  ), 2)
 end
 
 --- make globals typosafe

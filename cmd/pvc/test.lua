@@ -8,6 +8,7 @@ local ix = require'civix'
 
 local TD, D = 'cmd/pvc/testdata/', '.out/pvc/'
 local pc = pth.concat
+local s = ds.simplestr
 
 --- test some basic internal functions
 T.internal = function()
@@ -38,35 +39,40 @@ T.commit = function()
   -- initialize PVC
   local p = pvc.init(D)
   local d = '.out/pvc/'
+  T.eq(d, p.dir); T.eq(d..'.pvc/', p.dot)
+
   T.path(d, {
-    ['.pvcpaths'] = '.pvcpaths',
+    ['.pvcpaths'] = '.pvcpaths\n',
     ['.pvc'] = {
-      main = {
-        patch = {
-          depth = '2',
-          ['00'] = {
-            depth = '0', ['0.p'] = pvc.INIT_PATCH,
-            ['0.snap'] = {
-              PVC_DONE = '', ['.pvcpaths'] = '.pvcpaths',
-            }
-          }
-        }
+      head = 'branch=main\nid=0'
+    },
+  })
+  T.path(d..'.pvc/main/patch/', {
+    depth = '2',
+    ['00'] = {
+      depth = '0', ['0.p'] = pvc.INIT_PATCH,
+      ['0.snap'] = {
+        PVC_DONE = '',
+        ['.pvcpaths'] = '.pvcpaths\n',
       }
     }
   })
-  error'ok'
 
-  local dot = d..'.pvc/'; T.eq(dot, p.dot)
-
-  T.eq('.pvcpaths', pth.read(d..'.pvcpaths'))
-  local main = p:branch'main'
-  T.eq('.pvcpaths', pth.read(main.dir..main:patch():snap()..'.pvcpaths'))
 
   -- copy a file into it and add it
-  ix.cp(TD..'story.txt.1', D..'story.txt')
-  main:files{'story.txt'}
-  T.eq({'story.txt'}, main:files())
+  ix.cp(TD..'story.txt.1', d..'story.txt')
+  p:addPaths{'story.txt'}
+  T.eq({'.pvcpaths', 'story.txt'}, p:paths())
+  local b, pat = p:commit()
+  T.path(pat:full'path', s[[
+  # message
 
-  -- commit the changes
-  -- main:commit()
+  --- .pvcpaths
+  +++ .pvcpaths
+  @@ -1,0 +2 @@
+  +story.txt
+
+  ]]..pth.read(TD..'patch.story.txt.1'))
+
+  error'ok'
 end
