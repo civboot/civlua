@@ -23,6 +23,7 @@ local assertf = require'fmt'.assertf
 
 --- the .pvc/ directory where data is stored
 M.DOT = '.pvc/'
+M.PVC_DONE = 'PVC_DONE'
 
 M.PVCPATHS = '.pvcpaths' -- file
 M.INIT_PVCPATHS = '.pvcpaths\n' -- initial contents
@@ -40,6 +41,45 @@ local checkFile = function(p)
   if not p then return end
   assert(not M.RESERVED_FILES[select(2, pth.last(p))], p)
   return p
+end
+
+local postCmd = {
+  rename = function(a, b) info('rename %q %q', a, b); civix.mv(a, b) end,
+  swap   = function(a, b) info('swap %q %q', a, b); civix.swap(a, b) end,
+}
+
+--- Given a patch string perform post-patch requirements in dir.
+---
+--- These must be given near the top of the patch file, before the first
+--- [$---].  Supported commands (arguments are actually tab separated):
+--- [##
+--- ! rename before  after
+--- ! swap   first   second
+--- ]##
+---
+--- If reverse is given it does the opposite; also this should be called BEFORE
+--- calling [$patch(reverse=true)]
+M.patchPost = function(dir, patch, reverse)
+  for line in io.lines(patch) do
+    if line:sub(1,3) == '---' then break end -- stop after first diff
+    if line:sub(1,1) == '!' then
+      local cmd, a, b = table.unpack(ds.splitList(line:match'!%s*(.*)'))
+      if reverse then a, b = b, a end
+      (postCmd[cmd] or error('unknown cmd: '..cmd))(pconcat{dir, a}, pconcat{dir, b})
+    end
+  end
+end
+
+--- forward patch, applying diff to dir
+M.patch = function(dir, diff)
+  pu.patch(dir, diff)
+  M.patchPost(dir, diff)
+end
+
+--- reverse patch, applying diff to dir
+M.rpatch = function(dir, diff)
+  M.patchPost(dir, diff, true)
+  pu.rpatch(dir, diff)
 end
 
 --------------------------------
@@ -101,33 +141,6 @@ M.Patch.__call = function(pch) --> id, path
   pch.id = id + 1; return id, pch:path(id)
 end
 
-local postCmd = {
-  rename = function(a, b) info('rename %q %q', a, b); civix.mv(a, b) end,
-  swap   = function(a, b) info('swap %q %q', a, b); civix.swap(a, b) end,
-}
-
---- Given a patch string perform post-patch requirements in dir.
----
---- These must be given near the top of the patch file, before the first
---- [$---].  Supported commands (arguments are actually tab separated):
---- [##
---- ! rename before  after
---- ! swap   first   second
---- ]##
----
---- If reverse is given it does the opposite; also this should be called BEFORE
---- calling [$patch(reverse=true)]
-M.patchPost = function(dir, patch, reverse)
-  for line in ds.split(patch, '\n') do
-    if line:sub(1,3) == '---' then return end -- stop after first diff
-    if line:sub(1,1) == '!' then
-      local cmd, a, b = table.unpack(ds.splitList(line:match'!%s*(.*)'))
-      if reverse then a, b = b, a end
-      (postCmd[cmd] or error('unknown cmd: '..cmd))(pconcat{dir, a}, pconcat{dir, b})
-    end
-  end
-end
-
 -------------------------------
 --- PVC Types
 
@@ -180,7 +193,7 @@ M.Branch.init = function(b, ref) --> Branch
   local depth = M.calcDepth(id + 1000)
   local tree = {
     patch = {}, archive = {},
-    files='', id=tostring(id),
+    files='', id=tostring(id), tip=tostring(id),
   }
   trace('mkTree', b.dir)
   ix.mkTree(b.dir, tree, true)
@@ -194,16 +207,54 @@ M.Branch.init = function(b, ref) --> Branch
     trace('init 0: %s %s', mpath, ppath)
     pth.write(patch..p:path(), M.INIT_PATCH)
     ix.mkTree(patch..p:snap(), {
-      PVC_DONE = '', [M.PVCPATHS] = M.INIT_PVCPATHS,
+      [M.PVC_DONE] = '', [M.PVCPATHS] = M.INIT_PVCPATHS,
     })
     pth.write(mpath, M.INIT_PVCPATHS)
   end
   return b
 end
 
---- get or set the id
-M.Branch.id    = function(b, id)
-  local path = b.dir..'id'
+--- find closest snapshot to id (either forward or backward)
+M.Branch.findSnap = function(b, id, tip) --!!> id
+  if ix.exists(b:patch(id):full'snap'..M.PVC_DONE) then
+    return id
+  end
+  tip = tip or b:tip()
+  local pl, pr = b:patch(id - 1), b:patch(id + 1)
+  while (0 <= pl.id) or (pr.id <= tip) do
+    print('!! looking in', pl:full'snap', pr:full'snap')
+    if     pl.id >= 0   and ix.exists(pl:full'snap'..M.PVC_DONE) then
+      return pr.id
+    elseif pr.id <= tip and ix.exists(pr:full'snap'..M.PVC_DONE) then
+      return pl.id
+    end
+    pl.id, pr.id = pl.id - 1, pr.id + 1
+  end
+  error'unable to find a .snap/'
+end
+
+--- Create a snapshot by applying patches
+M.Branch.snapshot = function(b, id)
+  local sid = b:findSnap(id); if id == sid then return end
+  local tip, snap = b:tip(), b:patch(id):full'snap';
+  trace('creating snapshot %s', snap)
+  if ix.exists(snap) then ix.rmRecursive(snap) end
+  ix.mkDir(snap)
+
+  local patch = (sid > id) and M.rpatch or M.patch
+  local inc   = (sid > id) and -1 or 1
+  while id ~= sid do
+    assert(id >= 0 or id <= tip)
+    patch(snap, b:patch(id):full'path')
+    id = id + inc
+  end
+  pth.write(snap..M.PVC_DONE, '')
+  info('created snapshot %s', snap)
+end
+
+--- get or set the tip id
+M.Branch.tip    = function(b, id)
+  local path = b.dir..'tip'
   if not id then return tonumber(pth.read(path)) end
   pth.write(path, tostring(id))
 end
@@ -224,7 +275,7 @@ end
 M.Branch.patch = function(b, id, depth) --> Patch
   return M.Patch{
     dir=b.dir..'patch/',
-    id=id or b:id(), depth=depth or b:depth(),
+    id=id or b:tip(), depth=depth or b:depth(),
   }
 end
 
@@ -291,6 +342,24 @@ local mpush = function(t, v)
   if v == nil then return else push(t, v) end
 end
 
+local forceCp = function(from, to)
+  ix.rmRecursive(to)
+  ix.cp(from, to)
+end
+
+M.PVC.checkout = function(p, branch, id)
+  local b = p:branch(branch)
+  b:snapshot(id)
+  local snap = b:patch(id):full'snap'
+  local snapPaths = ds.Set(lines.load(snap..M.PVCPATHS))
+  for path in io.lines(M.PVC_PATHS) do
+    if snapPaths[path] then
+      forceCp(snap..path, path); snapPaths[path] = false
+    else ix.rmRecursive(path) end
+  end
+  for path in pairs(snapPaths) do forceCp(snap..path, path) end
+end
+
 M.PVC.commit = function(p) --> Branch, Patch
   local b, pat = p:head(); local nxt = ds.copy(pat)
   if nxt() == nil then
@@ -298,14 +367,13 @@ M.PVC.commit = function(p) --> Branch, Patch
     pat, nxt = b:patch(pat.id), b.patch(pat.id+1)
   end
   local cur, snap = p.dir, pat:full'snap'
+  b:snapshot(pat.id)
   trace('commit compare: %s', snap)
-  assert(ix.exists(snap), 'TODO: checkout')
 
   local post, ptext, paths = {}, {'# message', '(post)'}, {}
   for i, path in ipairs(p:paths()) do
     if paths[path] then goto cont end; paths[path] = true
     local d = pu.diff(snap..path, path, cur..path, path)
-    print('!! diff of', path); print(d)
     if d then push(ptext, d) end
     ::cont::
   end
@@ -320,11 +388,14 @@ M.PVC.commit = function(p) --> Branch, Patch
   local path = nxt:full'path'
   pth.write(path, concat(ptext, '\n'))
   info('created patch %s', path)
+  b:snapshot(nxt.id)
 
-  -- FIXME: create snap by applying the patch then validating
-  -- all the files are identical
+  for path in io.lines(p.dir..M.PVCPATHS) do
+    T.pathEq(snap..path, p.dir..path)
+  end
 
-  b:id(nxt.id)
+  b:tip(nxt.id)
+  info('successfully commited %s/%s', b.name, nxt.id)
   return b, nxt
 end
 
