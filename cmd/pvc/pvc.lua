@@ -193,7 +193,7 @@ M.Branch.init = function(b, ref) --> Branch
   local depth = M.calcDepth(id + 1000)
   local tree = {
     patch = {}, archive = {},
-    files='', id=tostring(id),
+    files='', id=tostring(id), tip=tostring(id),
   }
   trace('mkTree', b.dir)
   ix.mkTree(b.dir, tree, true)
@@ -216,12 +216,13 @@ end
 
 --- find closest snapshot to id (either forward or backward)
 M.Branch.findSnap = function(b, id, tip) --!!> id
-  if ix.exists(b:branch(id):full'snap'..M.PVC_DONE) then
+  if ix.exists(b:patch(id):full'snap'..M.PVC_DONE) then
     return id
   end
   tip = tip or b:tip()
   local pl, pr = b:patch(id - 1), b:patch(id + 1)
-  while (0 <= pl.id) and (pr.id <= tip) do
+  while (0 <= pl.id) or (pr.id <= tip) do
+    print('!! looking in', pl:full'snap', pr:full'snap')
     if     pl.id >= 0   and ix.exists(pl:full'snap'..M.PVC_DONE) then
       return pr.id
     elseif pr.id <= tip and ix.exists(pr:full'snap'..M.PVC_DONE) then
@@ -235,14 +236,14 @@ end
 --- Create a snapshot by applying patches
 M.Branch.snapshot = function(b, id)
   local sid = b:findSnap(id); if id == sid then return end
-  local tip, snap = b:tip(), b:pch(id):full'snap';
+  local tip, snap = b:tip(), b:patch(id):full'snap';
   if ix.exists(snap) then ix.rmRecursive(snap) end
   ix.mkDir(snap)
 
   local patch = (sid > id) and M.rpatch or M.patch
   local inc   = (sid > id) and -1 or 1
   while id ~= sid do
-    assert(id >= 0 and id <= tip)
+    assert(id >= 0 or id <= tip)
     patch(snap, b:patch(id):full'path')
     id = id + inc
   end

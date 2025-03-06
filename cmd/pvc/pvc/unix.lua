@@ -8,6 +8,7 @@ local M = G.mod and mod'pvc.unix' or {}
 local ix = require'civix'
 local pth = require'ds.path'
 
+local push = table.insert
 local NULL = '/dev/null'
 
 --- Get the unified diff using unix [$diff --unified=1],
