@@ -6,7 +6,7 @@ local G = G or _G
 local M = G.mod and mod'pvc.unix' or {}
 
 local ix = require'civix'
-local pconcat = require'ds.path'.concat
+local pth = require'ds.path'
 
 local NULL = '/dev/null'
 
@@ -26,7 +26,7 @@ M.diff = function(a,al, b,bl) --> string?
 end
 
 local patchArgs = function(cwd, path)
-  return {'patch', '-fu', input=path, CWD=cwd}
+  return {'patch', '-fu', input=pth.abs(path), CWD=cwd}
 end
 
 --- forward patch
