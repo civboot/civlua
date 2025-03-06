@@ -247,6 +247,7 @@ M.Branch.snapshot = function(b, id)
     id = id + inc
   end
   pth.write(snap..M.PVC_DONE, '')
+  info('created snapshot %s', snap)
 end
 
 --- get or set the tip id
@@ -364,14 +365,13 @@ M.PVC.commit = function(p) --> Branch, Patch
     pat, nxt = b:patch(pat.id), b.patch(pat.id+1)
   end
   local cur, snap = p.dir, pat:full'snap'
+  b:snapshot(pat.id)
   trace('commit compare: %s', snap)
-  assert(ix.exists(snap), 'TODO: checkout')
 
   local post, ptext, paths = {}, {'# message', '(post)'}, {}
   for i, path in ipairs(p:paths()) do
     if paths[path] then goto cont end; paths[path] = true
     local d = pu.diff(snap..path, path, cur..path, path)
-    print('!! diff of', path); print(d)
     if d then push(ptext, d) end
     ::cont::
   end
@@ -386,11 +386,14 @@ M.PVC.commit = function(p) --> Branch, Patch
   local path = nxt:full'path'
   pth.write(path, concat(ptext, '\n'))
   info('created patch %s', path)
+  b:snapshot(nxt.id)
 
-  -- FIXME: create snap by applying the patch then validating
-  -- all the files are identical
+  for path in io.lines(p.dir..M.PVCPATHS) do
+    T.pathEq(snap..path, p.dir..path)
+  end
 
   b:tip(nxt.id)
+  info('successfully commited %s/%s', b.name, nxt.id)
   return b, nxt
 end
 
