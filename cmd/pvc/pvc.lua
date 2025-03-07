@@ -237,6 +237,7 @@ end
 M.Branch.snapshot = function(b, id)
   local sid = b:findSnap(id); if id == sid then return end
   local tip, snap = b:tip(), b:patch(id):full'snap';
+  trace('creating snapshot %s', snap)
   if ix.exists(snap) then ix.rmRecursive(snap) end
   ix.mkDir(snap)
 
