@@ -38,16 +38,15 @@ T.commit = function()
   ix.rmRecursive(D); ix.mkDir(D)
   -- initialize PVC
   local p = pvc.init(D)
-  local d = '.out/pvc/'
-  T.eq(d, p.dir); T.eq(d..'.pvc/', p.dot)
+  T.eq(D, p.dir); T.eq(D..'.pvc/', p.dot)
 
-  T.path(d, {
+  T.path(D, {
     ['.pvcpaths'] = '.pvcpaths\n',
     ['.pvc'] = {
       head = 'branch=main\nid=0'
     },
   })
-  T.path(d..'.pvc/main/patch/', {
+  T.path(D..'.pvc/main/patch/', {
     depth = '2',
     ['00'] = {
       depth = '0', ['0.p'] = pvc.INIT_PATCH,
@@ -57,12 +56,19 @@ T.commit = function()
       }
     }
   })
-
+  local b = p:getBranch'main'
+  T.eq(0, b:findSnap(1))
 
   -- copy a file into it and add it
-  ix.cp(TD..'story.txt.1', d..'story.txt')
+  ix.cp(TD..'story.txt.1', D..'story.txt')
   p:addPaths{'story.txt'}
   T.eq({'.pvcpaths', 'story.txt'}, p:paths())
+  T.eq(pvc.Diff{
+    dir1=D..'.pvc/main/patch/00/0.snap/', dir2=D,
+    equal={}, deleted={},
+    changed={'.pvcpaths'}, created={'story.txt'},
+  }, p:diff())
+
   local b, pat = p:commit()
   T.path(pat:full'path', s[[
   # message
@@ -73,6 +79,60 @@ T.commit = function()
   +story.txt
 
   ]]..pth.read(TD..'patch.story.txt.1'))
+  local STORY1 = pth.read(TD..'story.txt.1')
+  T.path(D, {
+    ['.pvcpaths'] = '.pvcpaths\nstory.txt\n',
+    ['story.txt'] = STORY1,
+  })
+  T.eq({b, b:patch(1)}, {p:head()})
+  T.eq(pvc.Diff{
+    dir1=D..'.pvc/main/patch/00/1.snap/', dir2=D,
+    equal={'.pvcpaths', 'story.txt'},
+    deleted={}, changed={}, created={},
+  }, p:diff())
 
-  error'ok'
+  -- go backwards
+  p:checkout('main', 0)
+  assert(not ix.exists(D..'story.txt'))
+  T.path(D..'.pvcpaths', '.pvcpaths\n')
+  T.eq(pvc.Diff{
+    dir1=D..'.pvc/main/patch/00/1.snap/', dir2=D,
+    equal={},
+    deleted={'story.txt'},
+    changed={'.pvcpaths'},
+    created={},
+  }, p:diff('main',1))
+
+  T.throws('ERROR: current head is not at tip.', function()
+    p:commit()
+  end)
+
+  -- go forwards
+  p:checkout('main', 1)
+  local EXPECT1 = {
+    ['.pvcpaths'] = '.pvcpaths\nstory.txt\n',
+    ['story.txt'] = STORY1,
+  }
+  T.path(D, EXPECT1)
+
+  -- change story, but don't commit yet
+  ix.cp(TD..'story.txt.2', D..'story.txt')
+  local STORY2 = pth.read(TD..'story.txt.2')
+  local EXPECT2 = ds.copy(EXPECT1)
+  EXPECT2['story.txt'] = STORY2
+  T.path(D, EXPECT2)
+
+  -- branch
+  p:branch'dev'
+  T.path(D, EXPECT2)
+  T.path(D..'.pvc/dev/patch/00/1.snap/', EXPECT1)
+  local b, pat = p:head()
+  T.eq({'dev', 1}, {b.name, pat.id})
+  T.eq({'story.txt'}, p:diff().changed)
+
+  p:commit()
+  p:checkout('dev', 1)
+  T.path(D, EXPECT1)
+  p:checkout('dev', 2)
+  T.path(D, EXPECT2)
 end

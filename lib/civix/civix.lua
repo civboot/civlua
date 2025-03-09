@@ -9,6 +9,7 @@ local lib  = require'civix.lib'; local C = lib
 local fd   = require'fd'
 local lap  = require'lap'
 
+local trace = require'ds.log'.trace
 local pth = require'ds.path'
 local concat, sfmt = table.concat, string.format
 local sort = table.sort
@@ -154,6 +155,17 @@ M.pathtype = function(path)
   if not stat then return nil, err end
   return fmodeName(C.S_IFMT & stat:mode())
 end
+
+--- return if the contents of the two paths are equal.
+--- If both are directories return true (do not recurse).
+--- If both don't exist return true
+M.pathEq = function(path1, path2)
+  local ty1, ty2 = M.pathtype(path1), M.pathtype(path2)
+  if ty1 ~= ty2              then return false end
+  if not ty1 or ty1 == 'dir' then return true end
+  return pth.read(path1) == pth.read(path2)
+end
+
 M.isFile = function(path) return M.pathtype(path) == 'file' end
 M.isDir  = function(path) return M.pathtype(path) == 'dir'  end
 local isFile = M.isFile
@@ -274,6 +286,21 @@ M._WalkDir.__call = function(wd, walk) --> path, ftype
   return path, ftype
 end
 
+--- recursively copy [$from/] to new [$to/] directory.
+M.cpRecursive = function(from, to, except)
+  assert(M.isDir(from),    'from must be a directory')
+  assert(not M.exists(to), 'to must not exist')
+  from, to = pth.toDir(from), pth.toDir(to)
+  M.mkDirs(to);
+  local w = M.Walk{from}
+  for fpath, ftype in w do
+    local path = fpath:sub(#from)
+    if except and except[path] then w:skip()
+    elseif ftype == 'dir' then M.mkDirs(to..path)
+    else                       M.cp(fpath, to..path) end
+  end
+end
+
 --- A very simple ls (list paths) implementation
 --- Returns (files, dirs) tables. Anything that is not a directory
 --- is treated as a file.
@@ -286,10 +313,10 @@ M.ls = function(paths, maxDepth)
   return files, dirs
 end
 
-local RMR_FNS = {dir = ds.noop, default = M.rm, dirDone = M.rmdir }
+local RM_FNS = {dir = ds.noop, default = M.rm, dirDone = M.rmdir }
 M.rmRecursive = function(path)
   if not M.exists(path) then return end
-  M.walk({path}, RMR_FNS, nil)
+  M.walk({path}, RM_FNS, nil)
 end
 M.mkDirs = function(path)
   if type(path) == 'string' then path = pth(path) end
@@ -479,6 +506,7 @@ end
 --- + [$sh{stdin='sent to stdin', 'cat'}]  | [$echo "sent to stdin" | cat]
 --- ]
 M.sh = function(cmd) --> out, err, sh
+  trace('sh%q', cmd)
   local rcOk; if type(cmd) == 'table' then rcOk = ds.popk(cmd, 'rc') end
   local sh, other = M._sh(cmd)
   sh:start()

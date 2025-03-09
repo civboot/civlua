@@ -74,16 +74,18 @@ Tm.lapTest('time', function()
   local m = M.mono(); M.sleep(0.001); assert(m < M.mono())
 end)
 
-local function mkTestTree()
+local TEST_TREE = {
+  ['a.txt'] = 'for civix a test',
+  b = {
+    ['b1.txt'] = '1 in dir b/',
+    ['b2.txt'] = '2 in dir b/',
+  },
+}
+
+local function mkTestTree(tree)
   local d = '.out/civix/'
   if M.exists(d) then M.rmRecursive(d) end
-  M.mkTree(d, {
-    ['a.txt'] = 'for civix a test',
-    b = {
-      ['b1.txt'] = '1 in dir b/',
-      ['b2.txt'] = '2 in dir b/',
-    },
-  }, true)
+  M.mkTree(d, tree or TEST_TREE, true)
   return d
 end
 
@@ -156,4 +158,15 @@ T.mkRmTree = function()
   T.eq(pth.read'.out/civix/b/b2.txt', '2 in dir b/')
   M.rmRecursive(d)
   assert(not M.exists(d))
+end
+
+T.cpTree = function()
+  local d = mkTestTree()
+  local d2 = '.out/civix2'
+  if M.exists(d2) then M.rmRecursive(d2) end
+  M.cpRecursive(d, d2)
+  T.path(d2, TEST_TREE)
+  M.rmRecursive(d2)
+  M.cpRecursive(d, d2, {['b/b2.txt']=true})
+  assert(not M.exists(d2..'b/b2.txt'))
 end

@@ -1147,4 +1147,12 @@ M.resource = function(relpath)
   return require'ds.path'.read(M.srcdir(1)..relpath)
 end
 
+--- exit immediately with message and errorcode = 99
+M.yeet = function(fmt, ...)
+  io.fmt:styled('error',
+    sfmt('YEET %s: %s', M.shortloc(1), sfmt(fmt or '', ...)),
+    '\n')
+  os.exit(99)
+end
+
 return M
