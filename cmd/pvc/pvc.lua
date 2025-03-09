@@ -1,6 +1,8 @@
 local G = G or _G
 local M = G.mod and mod'pvc' or setmetatable({}, {})
+MAIN = G.MAIN or M
 
+local shim = require'shim'
 local mty = require'metaty'
 local ds  = require'ds'
 local pth = require'ds.path'
@@ -94,20 +96,43 @@ M.Diff.of = function(T, dir1, dir2)
     equal,   changed,   deleted,   created
   return t
 end
-M.Diff.format = function(d, fmt)
-  if (#d.changed == 0) and (#d.deleted == 0) and (#d.created == 0) then
-    return fmt:styled('bold', 'No Difference')
+
+M.Diff.format = function(d, fmt, full)
+  if full then
+    for _, line in ds.split(d:patch(), '\n') do
+      if     line:sub(1,1) == '-' then fmt:styled('base',   line, '\n')
+      elseif line:sub(1,1) == '+' then fmt:styled('change', line, '\n')
+      else fmt:write(line, '\n') end
+    end
+  else
+    if (#d.changed == 0) and (#d.deleted == 0) and (#d.created == 0) then
+      return fmt:styled('bold', 'No Difference')
+    end
+    fmt:styled('bold', 'Diff:', ' ', d.dir1, ' --> ', d.dir2, '\n')
+    for _, path in ipairs(d.deleted) do
+      fmt:styled('base',   '-'..path, '\n')
+    end
+    for _, path in ipairs(d.created) do
+      fmt:styled('change', '-'..path, '\n')
+    end
+    for _, path in ipairs(d.changed) do
+      fmt:styled('notify', '~'..path, '\n')
+    end
   end
-  fmt:styled('bold', 'Diff:', ' ', d.dir1, ' --> ', d.dir2, '\n')
-  for _, path in ipairs(d.deleted) do
-    fmt:styled('base',   '-'..path, '\n')
+end
+
+M.Diff.patch = function(d) --> patchText
+  local patch = {}
+  for _, path in ipairs(d.changed) do
+    push(patch, pu.diff(dir1..path, path, dir2..path, path))
   end
   for _, path in ipairs(d.created) do
-    fmt:styled('change', '-'..path, '\n')
+    push(patch, pu.diff(nil, nil, dir2..path, path))
   end
-  for _, path in ipairs(d.changed) do
-    fmt:styled('notify', '~'..path, '\n')
+  for _, path in ipairs(d.deleted) do
+    push(patch, pu.diff(dir1..path, path))
   end
+  return table.concat(patch, '\n')
 end
 
 local postCmd = {
@@ -364,7 +389,7 @@ M.PVC = mty'PVC' {
   'dot [string]: typically dir/.pvc',
 }
 getmetatable(M.PVC).__call = function(T, t)
-  assert(t.dir, 'must set dir')
+  t.dir = pth.toDir(t.dir or pth.cwd())
   t.dot = pconcat{t.dot or pconcat{t.dir, M.DOT}, '/'}
   return mty.construct(T, t)
 end
@@ -576,9 +601,120 @@ end
 ----------------
 -- API
 
---- initialize a directory as PVC
-M.init = function(dir, branch, ref)
-   return M.PVC{dir=dir}:init(branch)
+
+--- Usage: [$pvc init --dir=$CWD --branch=main]
+---
+--- Initialize the directory (default = current) to be tracked by pvc.
+--- You may specify the default branch (default=main)
+M.init = function(args)
+   return M.PVC{dir=args[1] or args.dir or pth.cwd()}
+     :init(args.branch or args.branch or 'main')
 end
 
+M.BaseArgs = mty'BaseArgs' {
+  'dir [string]: base directory', dir=pth.cwd(),
+}
+M.BaseArgs.pvc = function(args) return M.PVC(args.dir) end
+
+--- start tracking paths (add to [$.pvcpaths])
+M.add = mty.extend(M.BaseArgs, 'add')
+getmetatable(M.add).__call = function(T, args)
+  args = mty.constructChecked(T, args)
+  local p = args:pvc()
+  local epaths = p:paths()
+  for _, path in ipairs(args) do push(epaths, path) end
+  p:paths(epaths)
+end
+
+-- stop tracking paths. If delete=true also delete the path.
+M.rm = mty.extend(M.BaseArgs, 'rm', {
+  'delete [bool]: delete the path',
+})
+getmetatable(M.rm).__call = function(T, args)
+  args = mty.constructChecked(T, args); local p = args:pvc()
+  local paths = ds.Set(p:paths())
+  for _, path in ipairs(args) do
+    if paths[path] then
+      paths[path] = nil
+      if args.delete and ix.exists(path) then ix.rm(path) end
+    else io.fmt:styled('error', 'path not tracked: '..path, '\n') end
+  end
+  local npaths = {}; for path in pairs(paths) do push(npaths, path) end
+  p:paths(npaths)
+end
+
+--- commit changes to current branch
+M.commit = mty.extend(M.BaseArgs, 'commit')
+getmetatable(M.commit).__call = function(T, args)
+  mty.constructChecked(T, args):pvc():commit()
+end
+
+local parseBranch = function(b, bdefault, idefault) --> bname, id
+  local i = b:find'/'
+  if i then               return b:sub(1,i-1), tonumber(b:sub(i+1))
+  elseif tonumber(b) then return bdefault,     tonumber(b)
+  else                    return b,            idefault end
+end
+
+--- Usage: [$checkout branch/id] into working directory.
+---
+--- The branch/id can be of form:[+
+--- * branch: get the tip of branch
+--- * id: get the id of current branch
+--- * branch/id: get the id of branch
+--- ]
+M.checkout = mty.extend(M.BaseArgs, 'checkout')
+getmetatable(M.checkout).__call = function(T, args)
+  args = mty.constructChecked(T, args); local p = args:pvc()
+  local b, id = parseBranch(args[1])
+  p:checkout(b or p:head().name, id or p:getBranch(args[1]):tip())
+end
+
+M.Format = mty.enum'Format' { path = 1, full = 2 }
+
+--- Usage: [$diff branch/id1 branch/id2 --format=paths|full]
+---
+--- Get the difference between two branches.
+--- The default for the first is 'head' and the second is 'local',
+--- which you can also specify explicitly.
+M.diff = mty.extend(M.BaseArgs, 'diff', {
+  'format [string]: path|full', format='full',
+})
+getmetatable(M.diff).__call = function(T, args)
+  args = mty.constructChecked(T, args); local p = args:pvc()
+
+  local b1, id1 = parseBranch(args[1] or 'head',  'head')
+  local b2, id2 = parseBranch(args[2] or 'local', 'local')
+  p:diff(b1, id1, b2, id2):format(io.fmt, M.Format.name(args.format))
+end
+
+local CMDS = {
+  init = M.init, add=M.add,
+}
+local NOCMD_ERROR = [[cmd must be one of:
+init, add, rm, commit, checkout, diff
+]]
+
+--- pvc: Patch Version Control
+--- Usage: [$pvc cmd ...]
+---
+--- Available commands:[+
+--- * [$init]: initialize the current directory to be tracked by pvc.
+--- * [$add path]: start tracking path (in [$.pvcpaths]).
+--- * [$rm  path --delete]: stop tracking and optionally delete path.
+--- * [$commit]: commit changes to added files.
+--- * [$checkout branch/id]: update local state to [$branch/id]
+--- * [$diff branch/id1 branch/id2 --format=] print difs
+--- ]
+---
+--- See [$doc pvc.cmd] for each sub-command's help.
+M.main = function(args)
+  local cmd = args[1];
+  table.remove(args, 1)
+  return assert(CMDS[cmd], NOCMD_ERROR)(args)
+end
+
+getmetatable(M).__call = function(_, args)
+  return M.main(shim.parse(args))
+end
 return M

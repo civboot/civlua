@@ -2,7 +2,7 @@ local G = G or _G
 
 --- re-imagining of ff using new tech and better args
 local M = G.mod and G.mod'ff' or setmetatable({}, {})
-MAIN = MAIN or M
+MAIN = G.MAIN or M
 
 local shim = require'shim'
 local mty  = require'metaty'

@@ -37,7 +37,7 @@ end
 T.commit = function()
   ix.rmRecursive(D); ix.mkDir(D)
   -- initialize PVC
-  local p = pvc.init(D)
+  local p = pvc.init({D})
   T.eq(D, p.dir); T.eq(D..'.pvc/', p.dot)
 
   T.path(D, {
