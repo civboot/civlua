@@ -97,6 +97,10 @@ M.Diff.of = function(T, dir1, dir2)
   return t
 end
 
+M.Diff.same = function(d)
+  return (#d.changed == 0) and (#d.deleted == 0) and (#d.created == 0)
+end
+
 M.Diff.format = function(d, fmt, full)
   if full then
     for _, line in ds.split(d:patch(), '\n') do
@@ -105,9 +109,7 @@ M.Diff.format = function(d, fmt, full)
       else fmt:write(line, '\n') end
     end
   else
-    if (#d.changed == 0) and (#d.deleted == 0) and (#d.created == 0) then
-      return fmt:styled('bold', 'No Difference')
-    end
+    if d:same() then return fmt:styled('bold', 'No Difference') end
     fmt:styled('bold', 'Diff:', ' ', d.dir1, ' --> ', d.dir2, '\n')
     for _, path in ipairs(d.deleted) do
       fmt:styled('base',   '-'..path, '\n')
@@ -596,6 +598,65 @@ M.PVC.commit = function(p) --> Branch, Patch
   b:tip(nxt.id); p:head(b.name, nxt.id)
   info('successfully commited %s/%s', b.name, nxt.id)
   return b, nxt
+end
+
+M.PVC.tmp = function(p) --> string
+  local tmp = p.dir..'tmp/'
+  if ix.exists(tmp) then ix.rmRecursive(tmp) end
+  ix.mkdir(tmp)
+  return tmp
+end
+
+--- Merge all pvcpaths in [$base] and [$change] to [$to].
+local merge = function(to, base, change) --> ok
+  local errors
+  local cpaths = ds.Set(lines.load(pth.concat{change, M.PVCPATHS}))
+  for path in pairs(cpaths) do
+    local o, e, sh = pu.merge(to..path, base..path, change..path)
+    if sh:rc() > 0 then
+      io.fmt:styled('error', path..' encountered errors:\n',
+                             o, '\n', e, '\n')
+      errors = true
+    end
+  end
+  for path in io.lines(pth.concat{to, M.PVCPATHS}) do
+    if not cpaths[path] then
+      local tpath = to..path; if ix.exists(tpath) then
+        if ix.pathEq(tpath, base..path) then ix.rm(tpath)
+        else
+          io.fmt:styled('error', tpath..' was deleted in change', '\n')
+          errors = true
+        end
+      end
+    end
+  end
+  return not errors
+end
+
+--- cherrypick ids at path to the tip of branch.
+M.PVC.cherrypick = function(p, cherry, branch)
+  assert(ix.isDir(cherry), 'cherry must be a directory')
+  local b
+  if branch then b = p:branch(branch)
+  else           b = p:head() end
+
+  local tmp = p.dir..'tmp/'; ix.rmRecursive(tmp)
+  ix.cpRecursive(cherry, tmp)
+  local cb = M.Branch{name='cherrypick-from', path=tmp}
+
+  -- initialize first snapshot
+  local csnap, tid = cb:full('snap', id), b:tip()
+  ix.cpRecursive(b:snapshot(id), csnap)
+
+  local bsnap, csnap, tsnap -- b=base, c=cherry, t=to
+  while true do
+    csnap = cb:snapshot(id+1); if not csnap then break end
+    bsnap, tsnap = cb:snapshot(id), b:patch(tid + 1):full'snap'
+    ix.cpRecursive(b:snapshot(tid), tsnap, {[M.PVC_DONE]=true})
+    assert(merge(tsnap, bsnap, csnap), 'errors during merge')
+    pth.write(tsnap..M.PVC_DONE, '')
+    id, tid = id + 1, tid + 1
+  end
 end
 
 ----------------

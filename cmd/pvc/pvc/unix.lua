@@ -44,7 +44,7 @@ end
 
 --- incorporate all changes that went into going from base to change into to
 M.merge = function(to, base, change)
-  return ix.sh{'merge', to, base, change}
+  return ix.sh{'merge', to, base, change, rc=true}
 end
 
 return M
