@@ -333,6 +333,18 @@ M.mkDir = function(path, parents) --!!> nil
   else fmt.assertf(lib.mkdir(path), "mkdir failed: %s", path) end
 end
 
+--- copy [$from] to [$to], creating the directory structure if necessary.
+M.forceCp = function(from, to)
+  M.rmRecursive(to); M.mkDirs( (pth.last(to)) )
+  M.cp(from, to)
+end
+
+--- write [$text] to [$path], creating the directory structure if necessary.
+M.forceWrite = function(path, text)
+  M.rmRecursive(path); M.mkDirs( (pth.last(path)) )
+  pth.write(path, text)
+end
+
 --- mkTree(tree) builds a tree of files and dirs at `dir` [+
 --- * Dirs  are tables.
 --- * Files are string or fd -- which are read+closed.

@@ -253,13 +253,16 @@ end
 --- Eventually this may use the [$__sort] metamethod
 M.sort = function(t, fn) sort(t, fn); return t end --> t
 
---- sort t and remove duplicates
-M.sortUnique = function(t, sortFn, eqFn) --> t
-  sort(t, sortFn); eqFn = eqFn or M.eq
+--- sort t and remove anything where [$rmFn(v1, v2)]
+--- (normally rmFn is [$ds.eq])
+M.sortUnique = function(t, sortFn, rmFn) --> t
+  sort(t, sortFn); rmFn = rmFn or M.eq
   local i, len, iv, kv = 1, #t
   for k=2,len do
     iv, kv = t[i], t[k]
-    if not eqFn(iv, kv) then i = i + 1; t[i] = kv end
+    if not rmFn(iv, kv) then
+      i = i + 1; t[i] = kv
+    end
     k = k + 1
   end
   move(EMPTY, i+1, len, i+1, t)

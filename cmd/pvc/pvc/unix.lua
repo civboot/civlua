@@ -9,6 +9,7 @@ local ix = require'civix'
 local pth = require'ds.path'
 
 local push = table.insert
+local trace = require'ds.log'.trace
 local NULL = '/dev/null'
 
 --- Get the unified diff using unix [$diff --unified=1],
@@ -16,8 +17,8 @@ local NULL = '/dev/null'
 --- the [$l] variables are the "label" to use.
 --- when the coresponding value is nil then the label is [$/dev/null]
 M.diff = function(a,al, b,bl) --> string?
-  if not ix.exists(a) then a, al = NULL, NULL end
-  if not ix.exists(b) then b, bl = NULL, NULL end
+  if not a then a, al = NULL, NULL end
+  if not b then b, bl = NULL, NULL end
   local o, e, sh = ix.sh{
     'diff', '-N', a, '--label='..al, b, '--label='..bl,
     unified='0', stderr=io.stderr, rc=true}
@@ -33,12 +34,14 @@ end
 --- forward patch
 M.patch = function(cwd, path)
   local args = patchArgs(cwd, path); push(args, '-N')
+  trace('sh%q', args)
   return ix.sh(args)
 end
 
 --- reverse patch
 M.rpatch = function(cwd, path)
   local args = patchArgs(cwd, path); push(args, '-R')
+  trace('sh%q', args)
   return ix.sh(args)
 end
 

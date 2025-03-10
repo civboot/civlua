@@ -31,6 +31,15 @@ M.write = function(path, text) --!!> nil
   out, err = f:write(text); f:close(); assert(out, err)
 end
 
+--- append text to path, adds a newline if text doesn't end in one.
+M.append = function(path, text)
+  local f, err, out = io.open(path, 'a'); if not f then error(sfmt(
+    "open %q mode=a: %s", path, err
+  ))end
+  out, err = f:write(text, text:sub(-1) ~= '\n' and '\n' or '')
+  f:close(); assert(out, err)
+end
+
 getmetatable(M).__call = function(_, p)
   if type(p) == 'table' then return p end
   p = splitList(p, '/+')
