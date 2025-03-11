@@ -21,7 +21,7 @@ local info = require'ds.log'.info
 local trace = require'ds.log'.trace
 local s = ds.simplestr
 local construct = mty.construct
-local pconcat = pth.concat
+local toDir, pconcat = pth.toDir, pth.concat
 
 local assertf = require'fmt'.assertf
 
@@ -39,7 +39,7 @@ M.INIT_PATCH = [[
 local toint = math.tointeger
 
 --- reserved branch names
-M.RESERVED_NAMES = { ['local']=1, head=1, tip=1, }
+M.RESERVED_NAMES = { ['local']=1, at=1, tip=1, }
 
 -----------------------------------
 -- Utilities
@@ -64,6 +64,7 @@ local readInt = function(path) return toint(pth.read(path)) end
 ---
 --- Note: the passed in paths are still relative.
 local mapPvcPaths = function(dir1, dir2, fn)
+  print('!! mapPaths dir1, dir2', dir1, dir2)
   local paths1, paths2 = {}, {}
   for p in io.lines(dir1..M.PVCPATHS) do paths1[p] = 1 end
   for p in io.lines(dir2..M.PVCPATHS) do paths2[p] = 1 end
@@ -134,6 +135,7 @@ M.Diff = mty'Diff' {
   'created [list]',
 }
 M.Diff.of = function(T, d1, d2)
+  print('!! getting diff:', d1, d2)
   local peq = ix.pathEq
   local t = (type(d1) == 'table') and d1 or {dir1=d1, dir2=d2}
   t = T(t)
@@ -190,12 +192,16 @@ end
 
 --- return the branch path in project regardless of whether it exists
 M.branchPath = function(pdir, branch, dot)
+  assert(branch, 'branch is nil')
   assert(not M.RESERVED_NAMES[branch], 'branch name is reserved')
   return pth.concat{pdir, dot or '.pvc', branch, '/'}
 end
 
-M.tip   = function(bpath) return readInt(bpath..'tip')         end
-M.depth = function(bpath) return readInt(bpath..'patch/depth') end
+M.tip = function(bpath, id)
+  if id then pth.write(toDir(bpath)..'tip', tostring(id))
+  else return readInt(toDir(bpath)..'tip') end
+end
+M.depth = function(bpath) return readInt(toDir(bpath)..'patch/depth') end
 
 M.patchPath = function(bpath, id, last, depth) --> string?
   depth = depth or M.depth(bpath)
@@ -291,11 +297,63 @@ M.parseBranch = function(str, bdefault, idefault) --> branch, id
   else                   return str,            idefault end
 end
 
---- get or set the current head
-M.head = function(pdir, branch, id) --> branch?, id?
-  local hpath = pth.concat{pdir, '.pvc/head'}
-  if branch then pth.write(hpath, sfmt('%s#%s', branch, id)) end
-  return M.parseBranch(pth.read(hpath))
+--- get or set where the working id is at.
+M.at = function(pdir, nbr, nid) --!!> branch?, id?
+  -- c=current, n=next
+  local cbr, cid = M.atraw(pdir); if not nbr then return cbr, cid end
+  local cpath, npath= M.branchPath(pdir, cbr), M.branchPath(pdir, nbr)
+  nid = nid or M.tip(npath)
+  trace('setting at from %s#%i (%s) to %s#%i (%s)',
+    cbr, cid, cpath, nbr, nid, npath)
+  local csnap  = M.snapshot(cpath, cid)
+  local nsnap  = M.snapshot(npath, nid)
+  local npaths = loadLineSet(nsnap..M.PVCPATHS)
+
+  local ok, cpPaths, rmPaths = true, {}, {}
+  for path in pairs(npaths) do
+    if ix.pathEq(pdir..path, nsnap..path) then goto cont end -- local==next
+    if ix.pathEq(pdir..path, csnap..path) then -- local didn't change
+      if not ix.pathEq(csnap..path, nsnap..path) then -- next did change
+        push(cpPaths, path)
+      end
+      goto cont
+    end
+    -- else local path changed
+    if ix.pathEq(csnap..path, nsnap..path) then
+      f:styled('meta',  sfmt('keeping changed %s', path), '\n')
+    else
+      f:styled('error', sfmt('path %s changed',    path), '\n')
+      ok = false
+    end
+    ::cont::
+  end
+  -- look at paths in current but not next
+  for path in io.lines(csnap..M.PVCPATHS) do
+    if npaths[path]              then goto cont end
+    if not ix.exists(pdir..path) then goto cont end -- already deleted
+    if ix.pathEq(pdir..path, csnap..path) then push(rmPaths, path)
+    else
+      f:styled('error',
+        sfmt('path %s changed but would be removed', path), '\n')
+      ok = false
+    end
+    ::cont::
+  end
+  if not ok then error(s[[
+    ERROR: local changes would be trampled by checkout. Solutions:
+    * commit the current changes
+    * revert the current changes
+  ]]) end
+  for _, path in ipairs(cpPaths) do
+    trace('checkout cp: %s', path)
+    ix.forceCp(nsnap..path, pdir..path)
+  end
+  for _, path in ipairs(rmPaths) do
+    trace('checkout rm: %s', path)
+    ix.rmRecursive(pdir..path)
+  end
+  info('checked out %s#%s', nbr, nid)
+  M.atraw(pdir, nbr, nid)
 end
 
 --- update paths file (path) with the added and removed items
@@ -313,37 +371,46 @@ end
 --- resolve a branch name. It can be one of: [+
 --- * A directory with [$/] in it.
 --- * [$branch] or [$branch#id]
---- * Special: local, head
+--- * Special: local, at
 --- ]
 M.resolve = function(pdir, branch) --> directory/
+  print('!! resolve', pdir, branch)
   if branch:find'/' then return branch end -- directory
   local br, id = M.parseBranch(branch)
   if not br then error('unknown branch: '..branch) end
   if br == 'local' then return pdir end
-  if br == 'head'  then br, id = M.head(pdir) end
-  return M.snapshot(M.branchPath(pdir, br), id)
+  if br == 'at'  then br, id = M.atraw(pdir) end
+  local bpath = M.branchPath(pdir, br)
+  return M.snapshot(bpath, id or M.tip(bpath))
 end
 
---- resolve two branches, such as for diff or patch. Defaults:[+
---- * br1 = 'head'
+--- resolve two branches into their branch directories. Defaults:[+
+--- * br1 = 'at'
 --- * br2 = 'local'
 --- ]
-M.resolve2 = function(pdir, br1, br2)
-  return M.resolve(pdir, br1 or 'head'),
-         M.resolve(pdir, br2 or 'local')
+M.resolve2 = function(pdir, br1, br2) --> branch1/ branch2/
+  return  M.resolve(pdir, br1 or 'at'),
+          M.resolve(pdir, br2 or 'local')
 end
 
 M.diff = function(pdir, branch1, branch2) --> Diff
   return M.Diff:of(M.resolve2(pdir, branch1, branch2))
 end
 
+--- get or hard set the current branch/id
+M.atraw = function(pdir, branch, id)
+  local apath = pth.concat{pdir, '.pvc/at'}
+  if branch then pth.write(apath, sfmt('%s#%s', branch, id))
+  else    return M.parseBranch(pth.read(apath)) end
+end
+
 M.init = function(pdir, branch)
-  pdir, branch = pth.toDir(pdir), branch or 'main'
+  pdir, branch = toDir(pdir), branch or 'main'
   local dot = pdir..'.pvc/';
   if ix.exists(dot) then error(dot..' already exists') end
   ix.mkDirs(dot)
   initBranch(M.branchPath(pdir, branch), 0)
-  M.head(pdir, branch, 0)
+  M.atraw(pdir, branch, 0)
   pth.write(pdir..M.PVCPATHS, M.INIT_PVCPATHS)
   info('initialized pvc repo: %s', pdir)
 end
@@ -354,13 +421,13 @@ M.patch = function(pdir, br1, br2) --> string, s1, s2
 end
 
 M.commit = function(pdir) --> snap/, id
-  local br, id = M.head(pdir)
+  local br, id = M.atraw(pdir)
   local bp, cid = M.branchPath(pdir, br), id+1
   trace('start commit %s/%s', br, cid)
   if id ~= M.tip(bp) then error(s[[
-    ERROR: current head is not at tip. Solutions:
-    * stash -> checkout head -> unstash -> commit
-    * prune <my new branch>: move downstream changes to new branch.
+    ERROR: working id is not at tip. Solutions:
+    * stash -> at tip -> unstash -> commit
+    * prune: move or delete downstream changes.
   ]])end
 
   -- b=base c=change
@@ -372,9 +439,13 @@ M.commit = function(pdir) --> snap/, id
   for path in io.lines(pdir..M.PVCPATHS) do
     T.pathEq(pdir..path, csnap..path)
   end
-  M.tip(bp, cid); M.head(pdir, br, cid)
+  M.tip(bp, cid); M.atraw(pdir, br, cid)
   info('commited %s#%s', br, cid)
   return csnap, cid
+end
+
+M.main = function(args)
+
 end
 
 return M
