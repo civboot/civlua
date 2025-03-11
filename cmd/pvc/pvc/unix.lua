@@ -46,8 +46,14 @@ M.rpatch = function(cwd, path)
 end
 
 --- incorporate all changes that went into going from base to change into to
-M.merge = function(to, base, change)
-  return ix.sh{'merge', to, base, change}
+M.merge = function(to, base, change) --> ok, err
+  assert(to, 'must provide to')
+  base, change = base or NULL, change or NULL
+  trace('merging t:%s b:%s c:%s', to, base, change)
+  local o, e, sh = ix.sh{'merge', '-A', to, base, change, rc=true}
+  trace('merge rc=%i', sh:rc())
+  if sh:rc() == 0 then return true end
+  return nil, e
 end
 
 return M

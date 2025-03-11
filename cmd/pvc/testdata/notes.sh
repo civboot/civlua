@@ -32,14 +32,14 @@ function create2() {
   cat patch.story.txt.2 patch.hello.lua.2 > patch.2
 }
 
-# Create 3 and 3b. 3 represents a "main" change whereas 3b must be rebased
+# Create 3 and 3d (d=dev) which diverge.
+# 3 represents a "main" change whereas 3d must be rebased
 function create3() {
   cd $TD
-  # creating 2 (with deleted hello.lua)
   diff -N --unified=0 story.txt.2 story.txt.3 --label=story.txt --label=story.txt \
     > patch.3
-  diff -N --unified=0 story.txt.2 story.txt.3b --label=story.txt --label=story.txt \
-    > patch.3b
+  diff -N --unified=0 story.txt.2 story.txt.3d --label=story.txt --label=story.txt \
+    > patch.3d
 }
 
 # renames story.txt -> kitty.txt and applies small diff
@@ -79,19 +79,19 @@ function patch3 {
   efile story.txt
 }
 
-function patch3b {
-  cd $OD; patch -Nfu --input=$TD/patch.3b; echo "rc=$?"
+function patch3d {
+  cd $OD; patch -Nfu --input=$TD/patch.3d; echo "rc=$?"
   efile story.txt
 }
 
 # use merge instead of patch when rebasing / cherry picking
 function rebase3 {
   cd $OD
-  merge story.txt $TD/story.txt.2 $TD/story.txt.3b
+  merge story.txt $TD/story.txt.2 $TD/story.txt.3d
   efile story.txt
 }
 
-# should happen after rebase3b
+# should happen after rebase3d
 function patch4 {
   cd $OD; patch -Nfu --input=$TD/patch.4; echo "rc=$?"
   efile story.txt

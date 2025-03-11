@@ -197,13 +197,19 @@ M.branchPath = function(pdir, branch, dot)
   return pth.concat{pdir, dot or '.pvc', branch, '/'}
 end
 
-M.tip = function(bpath, id)
+M.getbase = function(bpath, br) --> br?, id
+  bpath = bpath..'base'
+  if ix.exists(bpath) then return M.parseBranch(pth.read(bpath))
+  else return nil, 0 end
+end
+M.rawtip = function(bpath, id)
   if id then pth.write(toDir(bpath)..'tip', tostring(id))
   else return readInt(toDir(bpath)..'tip') end
 end
 M.depth = function(bpath) return readInt(toDir(bpath)..'patch/depth') end
 
 M.patchPath = function(bpath, id, last, depth) --> string?
+  print('!! patchPath', bpath, id, last, depth)
   depth = depth or M.depth(bpath)
   if M.calcPatchDepth(id) > depth then return end
   local dirstr = tostring(id):sub(1,-3)
@@ -226,39 +232,44 @@ local function initBranch(bpath, id)
   local depth = M.calcPatchDepth(id + 1000)
   trace('initbranch %s', bpath)
   ix.mkTree(bpath, {
-    patch = {depth=tostring(depth)},
-    id=tostring(id), tip=tostring(id),
+    tip=tostring(id), patch = {depth=tostring(depth)},
   }, true)
   if id ~= 0 then return bpath end
   local ppath = M.patchPath(bpath, id, '', depth)
-  print('!! ppath', ppath, '(from:)', bpath, id, depth)
   ix.forceWrite(ppath..'.snap/.pvcpaths', M.INIT_PVCPATHS)
   ix.forceWrite(ppath..'.snap/PVC_DONE', '')
 end
 
-M.findSnap = function(bpath, id, tip) --!!> snapDir, id
-  local snap = M.snapDir(bpath, id)
-  if ix.exists(snap) then return snap, id end
-  trace('searching for closest snap %s id=%s', bpath, id)
-  tip = tip or M.tip(bpath)
-  local idl, idr = id-1, id+1
-  while (0 <= idl) or (idr <= tip) do
-    snap = M.patchPath(bpath, idl, '.snap/PVC_DONE')
-    if ix.exists(snap) then return M.snapDir(bpath,idl), idl end
-    snap = M.patchPath(bpath, idr, '.snap/PVC_DONE')
-    if ix.exists(snap) then return M.snapDir(bpath,idr), idr end
-    idl, idr = idl-1, idr+1
-  end
-  error'unable to find .snap/'
-end
-
 --- Snapshot the branch#id by applying patches.
 --- Return the snapshot directory
-M.snapshot = function(bpath, id, tip) --> .../id.snap/
-  tip = tip or M.tip(bpath)
+M.snapshot = function(pdir, br,id) --> .../id.snap/
+  trace('snapshot %s#%s', br,id)
   -- f=from, t=to
-  local fsnap, fid = M.findSnap(bpath, id, tip)
-  if id == fid then return fsnap end
+  local bpath = M.branchPath(pdir, br)
+  local snap = M.snapDir(bpath, id)
+  if ix.exists(snap) then return snap, id end
+  local bbr,bid = M.getbase(bpath, br)
+  if id == bid then return M.snapshot(pdir, bbr,bid) end
+  trace('findSnap %s #%s', bpath, id)
+
+  local tip      = M.rawtip(bpath)
+  local fsnap, fid -- find the snap/id to patch from
+  local idl, idr = id-1, id+1
+  while (bid <= idl) or (idr <= tip) do
+    snap = M.patchPath(bpath, idl, '.snap/PVC_DONE')
+    if ix.exists(snap) then
+      fsnap, fid = M.snapDir(bpath,idl), idl; break
+    end
+    if bid == idl then
+      fsnap, fid = M.snapshot(pdir, bbr,bid), idl; break
+    end
+    snap = M.patchPath(bpath, idr, '.snap/PVC_DONE')
+    if ix.exists(snap) then
+      fsnap, fid = M.snapDir(bpath,idr), idr; break
+    end
+    idl, idr = idl-1, idr+1
+  end
+  if not fsnap then error(bpath..' does not have snapshot '..id) end
   local tsnap = M.snapDir(bpath, id)
   trace('creating snapshot %s from %s', tsnap, fsnap)
   if ix.exists(tsnap) then ix.rmRecursive(tsnap) end
@@ -301,12 +312,15 @@ end
 M.at = function(pdir, nbr, nid) --!!> branch?, id?
   -- c=current, n=next
   local cbr, cid = M.atraw(pdir); if not nbr then return cbr, cid end
-  local cpath, npath= M.branchPath(pdir, cbr), M.branchPath(pdir, nbr)
-  nid = nid or M.tip(npath)
-  trace('setting at from %s#%i (%s) to %s#%i (%s)',
-    cbr, cid, cpath, nbr, nid, npath)
-  local csnap  = M.snapshot(cpath, cid)
-  local nsnap  = M.snapshot(npath, nid)
+  local npath = M.branchPath(pdir, nbr)
+
+  nid = nid or M.rawtip(npath)
+  trace('at %s#%i -> %s#%i', cbr, cid, nbr, nid)
+  local csnap  = M.snapshot(pdir, cbr,cid)
+  local nsnap  = M.snapshot(pdir, nbr,nid)
+  trace('at snaps %s -> %s', csnap, nsnap)
+
+  print('!! at snaps', csnap, nsnap)
   local npaths = loadLineSet(nsnap..M.PVCPATHS)
 
   local ok, cpPaths, rmPaths = true, {}, {}
@@ -357,15 +371,18 @@ M.at = function(pdir, nbr, nid) --!!> branch?, id?
 end
 
 --- update paths file (path) with the added and removed items
-M.pathsUpdate = function(pathsFile, add, rm)
-  local paths = lines.load(pathsFile)
+M.pathsUpdate = function(pdir, add, rm)
+  local pfile = pth.concat{pdir, M.PVCPATHS}
+  local paths = assert(lines.load(pfile), pfile)
   if add then ds.extend(paths, add) end
   if rm and rm[1] then rm = ds.Set(rm) end
-  local rmFn = rm and function(v1, v2) return rm[v1] or (v1 == v2) end
+  local rmFn = rm and function(v1, v2) return rm[v2] or (v1 == v2) end
             or ds.eq
-  ds.sortUnique(paths, rmFn)
+  trace('!! before sort %q', rmFn, paths)
+  ds.sortUnique(paths, nil, rmFn)
+  trace('!! after sort', paths)
   push(paths, '')
-  lines.dump(paths, pathsFile)
+  lines.dump(paths, pfile)
 end
 
 --- resolve a branch name. It can be one of: [+
@@ -381,7 +398,7 @@ M.resolve = function(pdir, branch) --> directory/
   if br == 'local' then return pdir end
   if br == 'at'  then br, id = M.atraw(pdir) end
   local bpath = M.branchPath(pdir, br)
-  return M.snapshot(bpath, id or M.tip(bpath))
+  return M.snapshot(pdir, br, id or M.rawtip(bpath))
 end
 
 --- resolve two branches into their branch directories. Defaults:[+
@@ -424,28 +441,131 @@ M.commit = function(pdir) --> snap/, id
   local br, id = M.atraw(pdir)
   local bp, cid = M.branchPath(pdir, br), id+1
   trace('start commit %s/%s', br, cid)
-  if id ~= M.tip(bp) then error(s[[
+  if id ~= M.rawtip(bp) then error(s[[
     ERROR: working id is not at tip. Solutions:
     * stash -> at tip -> unstash -> commit
     * prune: move or delete downstream changes.
   ]])end
+  M.pathsUpdate(pdir) -- sort unique
 
   -- b=base c=change
   if M.calcPatchDepth(cid) > M.depth(bp) then M.deepen(bp) end
-  local bsnap = M.snapshot(bp, id)
+  local bsnap = M.snapshot(pdir, br,id)
+  -- TODO(commit): add description
   ix.forceWrite(M.patchPath(bp, cid, '.p'),
                 M.Diff:of(bsnap, pdir):patch())
-  local csnap = M.snapshot(bp, cid)
+  local csnap = M.snapshot(pdir, br,cid)
   for path in io.lines(pdir..M.PVCPATHS) do
     T.pathEq(pdir..path, csnap..path)
   end
-  M.tip(bp, cid); M.atraw(pdir, br, cid)
+  M.rawtip(bp, cid); M.atraw(pdir, br, cid)
   info('commited %s#%s', br, cid)
   return csnap, cid
 end
 
-M.main = function(args)
-
+--- get the conventional brName, id for a branch,id pair
+M.nameId = function(pdir, branch,id) --> br,id
+  local br,bid; if not branch then br,bid = M.at(pdir)
+  else                             br,bid = M.parseBranch(branch) end
+  return br, id or bid or M.rawtip(M.branchPath(pdir, br))
 end
+
+M.branch = function(pdir, name, fbr,fid) --> bpath, id
+  local fpath = M.branchPath(pdir, fbr)
+  if not ix.exists(fpath) then error(fpath..' does not exist') end
+  fid = fid or M.rawtip(fpath)
+  local npath = M.branchPath(pdir, name)
+  initBranch(npath, fid)
+  -- ix.forceCp(M.patchPath(fpath, fid, '.p'), M.patchPath(npath, fid, '.p'))
+  pth.write(npath..'base', sfmt('%s#%s', fbr,fid))
+  M.atraw(pdir, name, fid)
+  return npath, fid
+end
+
+local FAILED_MERGE = [[
+FAILED MERGE
+    to: %s
+  base: %s
+change: %s
+ ERROR: %s]]
+
+M.merge = function(tdir, bdir, cdir) --!!>
+  trace('pvc.merge to=%s base=%s change=%s', tdir, bdir, cdir)
+  local paths, conflicts = {}, false
+  mapPvcPaths(bdir, cdir, function(bpath, cpath)
+    local to     = tdir..(cpath or bpath)
+    local base   = bpath and (bdir..bpath) or nil
+    local change = cpath and (cdir..cpath) or nil
+    local ok, err = pu.merge(to, base, change)
+    if not ok then
+      io.fmt:styled('error', sfmt(
+        FAILED_MERGE, to, base, change, err), '\n')
+      conflicts = true
+    end
+  end)
+  assert(not conflicts, 'failed to merge, fix conflicts and then re-run')
+end
+
+--- rebase the branch (current branch) to make it's baseid=id
+M.rebase = function(pdir, branch, id)
+  -- TODO: assert no local changes
+  local cbr = branch
+
+  --- process: repeatedly use merge on the (new) branch__rebase branch.
+  --- the final result will be in to's last snapshot id
+  local cpath = M.branchPath(pdir, cbr)
+  local bbr, bid = M.getbase(cpath, cbr)
+  if bbr == cbr then error('the base of '..cbr..' is itself') end
+  if id == bid then return end
+  local bpath = M.branchPath(pdir, bbr)
+  local btip = M.rawtip(bpath)
+  if id > btip then error(id..' is > tip of '..btip) end
+
+  local cpath = M.branchPath(pdir, cbr)
+  local tbr = cbr..'__rebase'
+  local tpath = M.branchPath(pdir, tbr)
+  local ttip = id + M.rawtip(cpath) - bid
+  local tsnap
+
+  local op = sfmt('rebase %s %s', cbr, bid)
+  if ix.exists(tpath) then
+    T.pathEq(tpath..'op', op)
+    bid = select(2, M.getbase(tpath))
+    tsnap = M.snapDir(tpath, ttip)
+    assert(ix.exists(tsnap))
+  else
+    local tpath = M.branch(pdir, tbr, bbr,id)
+    tsnap = M.snapDir(tpath, ttip); ix.mkDirs(tsnap)
+    cpPaths(M.snapshot(pdir, bbr, id), tsnap)
+    pth.write(tpath..'op', op)
+  end
+  local bsnap = M.snapshot(pdir, bbr, bid)
+  local csnap = M.snapshot(pdir, cbr, bid + 1)
+  local tid = id + 1
+  -- the first base we must hard-code tsnap because
+  -- snapshot will freak out that there aren't any .p files.
+  local tbase = M.snapshot(pdir, bbr,id)
+
+  while bid < id do
+    trace('rebase loop %i < %i (%i)', bid, id, tid)
+    assert(tid <= ttip)
+    pth.write(tpath..'base', sfmt('%s#%s', bbr, bid))
+    M.merge(tsnap, bsnap, csnap)
+    trace('!! merged %s: %s  %s  %s',
+      M.patchPath(tpath,tid, '.p'), tsnap, bsnap, csnap)
+    -- TODO(commit): preserve description
+    tbase = tbase or M.snapshot(pdir, tbr,tid-1)
+    print('!! diff', tbase, tsnap)
+    pth.write(
+      M.patchPath(tpath,tid, '.p'),
+      M.Diff:of(tbase, tsnap):patch())
+    tbase = nil
+    bid, tid = bid + 1, tid + 1
+    bsnap = M.snapshot(pdir, bbr, bid)
+    csnap = M.snapshot(pdir, cbr, bid)
+  end
+end
+
+M.main = function(args) error'todo' end
 
 return M

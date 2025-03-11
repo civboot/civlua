@@ -251,6 +251,7 @@ T.table = function()
   assertEq({1}, M.sortUnique{1})
   assertEq({'a', 'b', 'c'}, M.sortUnique{'c', 'b', 'a'})
   assertEq({'a', 'b', 'c'}, M.sortUnique{'a', 'c', 'b', 'a'})
+  assertEq({'.', 'h', 's'}, M.sortUnique{'h', '.', 's', 'h'})
 end
 
 T.Slc = function()
