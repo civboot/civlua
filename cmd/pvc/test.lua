@@ -129,7 +129,8 @@ T.workflow = function()
   local EXPECT3d = ds.copy(EXPECT2)
     EXPECT3d['story.txt'] = STORY3d
 
-  pvc.branch(D, 'dev', 'main'); local Bd = D..'.pvc/dev/'
+  pvc.branch(D, 'dev', 'main'); pvc.at(D, 'dev')
+  local Bd = D..'.pvc/dev/'
   T.path(D, EXPECT2);
   T.eq(Bm..'patch/00/2.snap/', pvc.snapshot(D, 'dev', 2))
   pth.write(D..'story.txt', STORY3d); T.path(D, EXPECT3d)
@@ -157,28 +158,7 @@ T.workflow = function()
   pvc.at(D, 'dev',3);  T.path(D, EXPECT3d)
   pvc.rebase(D, 'dev',3)
 
-  local STORY3  = pth.read(TD..'story.txt.3final')
-  local EXPECT3 = ds.copy(EXPECT2, {['story.txt'] = STORY3})
-  T.path(D..'.pvc/dev__rebase/patch/00/4.snap/', EXPECT3)
-
-  ds.yeet'GOOD'
-
-  -- -- branch
-  -- pvc.branch(D, 'dev')
-  -- local Bd = D..'.pvc/dev/'
-  -- T.path(D, EXPECT2)
-  -- T.path(Bd, {
-  --   base = 'main#1', tip = '1',
-  --   patch = { depth = '2' }
-  -- })
-
-  -- -- the snapshot for dev is it's branch point from base
-  -- T.eq(Bm..'patch/00/1.snap/', pvc.snapshot(D, 'dev',1))
-
-  -- T.eq({'dev', 1}, {pvc.at(D)})
-  -- T.eq({'story.txt'}, pvc.diff(D).changed)
-
-  -- pvc.commit(D)
-  -- pvc.at(D, 'dev',1); T.path(D, EXPECT1)
-  -- pvc.at(D, 'dev',2); T.path(D, EXPECT2)
+  local EXPECT4 = ds.copy(EXPECT2, {['story.txt'] = pth.read(TD..'story.txt.4')})
+  T.path(Bd..'patch/00/4.snap/', EXPECT4)
+  T.path(D, EXPECT4)
 end

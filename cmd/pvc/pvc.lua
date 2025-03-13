@@ -38,6 +38,9 @@ M.INIT_PATCH = [[
 
 local toint = math.tointeger
 
+--- this exists for tests to override
+M.backupId = function() return toint(ix.epoch().s) end
+
 --- reserved branch names
 M.RESERVED_NAMES = { ['local']=1, at=1, tip=1, }
 
@@ -250,7 +253,7 @@ M.snapshot = function(pdir, br,id) --> .../id.snap/
   if ix.exists(snap) then return snap, id end
   local bbr,bid = M.getbase(bpath, br)
   if id == bid then return M.snapshot(pdir, bbr,bid) end
-  trace('findSnap %s #%s', bpath, id)
+  trace('findSnap %s id=%s with base %s#%s', bpath, id, bbr,bid)
 
   local tip      = M.rawtip(bpath)
   local fsnap, fid -- find the snap/id to patch from
@@ -277,7 +280,6 @@ M.snapshot = function(pdir, br,id) --> .../id.snap/
   cpPaths(fsnap, tsnap)
   local patch = (fid <= id) and pu.patch or pu.rpatch
   local inc   = (fid <= id) and 1       or -1
-  trace('!! patch fn %q', patch)
   fid = fid + inc
   while true do
     local ppath = M.patchPath(bpath, fid, '.p')
@@ -308,8 +310,15 @@ M.parseBranch = function(str, bdefault, idefault) --> branch, id
   else                   return str,            idefault end
 end
 
+--- get or hard set the current branch/id
+M.atraw = function(pdir, branch, id)
+  local apath = pth.concat{pdir, '.pvc/at'}
+  if branch then pth.write(apath, sfmt('%s#%s', branch, id))
+  else    return M.parseBranch(pth.read(apath)) end
+end
+
 --- get or set where the working id is at.
-M.at = function(pdir, nbr, nid) --!!> branch?, id?
+M.at = function(pdir, nbr,nid) --!!> branch?, id?
   -- c=current, n=next
   local cbr, cid = M.atraw(pdir); if not nbr then return cbr, cid end
   local npath = M.branchPath(pdir, nbr)
@@ -334,9 +343,9 @@ M.at = function(pdir, nbr, nid) --!!> branch?, id?
     end
     -- else local path changed
     if ix.pathEq(csnap..path, nsnap..path) then
-      f:styled('meta',  sfmt('keeping changed %s', path), '\n')
+      io.fmt:styled('meta',  sfmt('keeping changed %s', path), '\n')
     else
-      f:styled('error', sfmt('path %s changed',    path), '\n')
+      io.fmt:styled('error', sfmt('path %s changed',    path), '\n')
       ok = false
     end
     ::cont::
@@ -353,11 +362,13 @@ M.at = function(pdir, nbr, nid) --!!> branch?, id?
     end
     ::cont::
   end
-  if not ok then error(s[[
-    ERROR: local changes would be trampled by checkout. Solutions:
+  if not ok then error(sfmt(s[[
+
+    ERROR: local changes (%s#%s) would be trampled by checkout %s#%s
+    Solutions:
     * commit the current changes
     * revert the current changes
-  ]]) end
+  ]], cbr,cid, nbr,nid)) end
   for _, path in ipairs(cpPaths) do
     trace('checkout cp: %s', path)
     ix.forceCp(nsnap..path, pdir..path)
@@ -366,8 +377,8 @@ M.at = function(pdir, nbr, nid) --!!> branch?, id?
     trace('checkout rm: %s', path)
     ix.rmRecursive(pdir..path)
   end
-  info('checked out %s#%s', nbr, nid)
-  M.atraw(pdir, nbr, nid)
+  M.atraw(pdir, nbr,nid)
+  io.fmt:styled('notify', sfmt('pvc: at %s#%s', nbr,nid), '\n')
 end
 
 --- update paths file (path) with the added and removed items
@@ -414,21 +425,14 @@ M.diff = function(pdir, branch1, branch2) --> Diff
   return M.Diff:of(M.resolve2(pdir, branch1, branch2))
 end
 
---- get or hard set the current branch/id
-M.atraw = function(pdir, branch, id)
-  local apath = pth.concat{pdir, '.pvc/at'}
-  if branch then pth.write(apath, sfmt('%s#%s', branch, id))
-  else    return M.parseBranch(pth.read(apath)) end
-end
-
 M.init = function(pdir, branch)
   pdir, branch = toDir(pdir), branch or 'main'
   local dot = pdir..'.pvc/';
   if ix.exists(dot) then error(dot..' already exists') end
-  ix.mkDirs(dot)
+  ix.mkTree(dot, {backup = {}}, true)
   initBranch(M.branchPath(pdir, branch), 0)
-  M.atraw(pdir, branch, 0)
   pth.write(pdir..M.PVCPATHS, M.INIT_PVCPATHS)
+  M.atraw(pdir, branch, 0)
   info('initialized pvc repo: %s', pdir)
 end
 
@@ -478,7 +482,6 @@ M.branch = function(pdir, name, fbr,fid) --> bpath, id
   initBranch(npath, fid)
   -- ix.forceCp(M.patchPath(fpath, fid, '.p'), M.patchPath(npath, fid, '.p'))
   pth.write(npath..'base', sfmt('%s#%s', fbr,fid))
-  M.atraw(pdir, name, fid)
   return npath, fid
 end
 
@@ -508,13 +511,14 @@ end
 
 --- rebase the branch (current branch) to make it's baseid=id
 M.rebase = function(pdir, branch, id)
-  -- TODO: assert no local changes
   local cbr = branch
 
   --- process: repeatedly use merge on the (new) branch__rebase branch.
   --- the final result will be in to's last snapshot id
   local cpath = M.branchPath(pdir, cbr)
   local bbr, bid = M.getbase(cpath, cbr)
+  M.at(pdir, bbr,bid) -- checkout base to ensure cleaner checkout at end
+
   if bbr == cbr then error('the base of '..cbr..' is itself') end
   if id == bid then return end
   local bpath = M.branchPath(pdir, bbr)
@@ -536,7 +540,7 @@ M.rebase = function(pdir, branch, id)
   else
     local tpath = M.branch(pdir, tbr, bbr,id)
     tsnap = M.snapDir(tpath, ttip); ix.mkDirs(tsnap)
-    cpPaths(M.snapshot(pdir, bbr, id), tsnap)
+    cpPaths(M.snapshot(pdir, bbr,id), tsnap)
     pth.write(tpath..'op', op)
   end
   local bsnap = M.snapshot(pdir, bbr, bid)
@@ -547,23 +551,27 @@ M.rebase = function(pdir, branch, id)
   local tbase = M.snapshot(pdir, bbr,id)
 
   while bid < id do
-    trace('rebase loop %i < %i (%i)', bid, id, tid)
     assert(tid <= ttip)
-    pth.write(tpath..'base', sfmt('%s#%s', bbr, bid))
+    pth.write(tpath..'base', sfmt('%s#%s', bbr, bid+1))
     M.merge(tsnap, bsnap, csnap)
-    trace('!! merged %s: %s  %s  %s',
-      M.patchPath(tpath,tid, '.p'), tsnap, bsnap, csnap)
     -- TODO(commit): preserve description
     tbase = tbase or M.snapshot(pdir, tbr,tid-1)
-    print('!! diff', tbase, tsnap)
     pth.write(
       M.patchPath(tpath,tid, '.p'),
       M.Diff:of(tbase, tsnap):patch())
     tbase = nil
     bid, tid = bid + 1, tid + 1
-    bsnap = M.snapshot(pdir, bbr, bid)
-    csnap = M.snapshot(pdir, cbr, bid)
+    bsnap = M.snapshot(pdir, bbr,bid)
+    csnap = M.snapshot(pdir, cbr,bid)
   end
+
+  local backup = sfmt('%s.pvc/backup/%s-%s/', pdir, cbr, M.backupId())
+  ix.mv(cpath, backup)
+  io.fmt:styled('notify',
+    sfmt('pvc: rebase %s to %s#%s done. Backup at %s', cbr, bbr, id, backup),
+    '\n')
+  ix.mv(tpath, cpath); ix.rm(cpath..'op')
+  M.at(pdir, cbr,ttip)
 end
 
 M.main = function(args) error'todo' end

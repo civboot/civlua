@@ -43,10 +43,10 @@ function create3() {
 }
 
 # renames story.txt -> kitty.txt and applies small diff
-function create4() {
+function create5() {
   cd $TD
-  diff -N --unified=0 story.txt.3final story.txt.4 --label=story.txt --label=kitty.txt \
-    > patch.4
+  diff -N --unified=0 story.txt.4 story.txt.5 --label=story.txt --label=kitty.txt \
+    > patch.5
 }
 
 function efile() { echo; echo "## efile: $1"; cat "$1"; }
@@ -85,15 +85,15 @@ function patch3d {
 }
 
 # use merge instead of patch when rebasing / cherry picking
-function rebase3 {
+function rebase4 {
   cd $OD
   merge story.txt $TD/story.txt.2 $TD/story.txt.3d
   efile story.txt
 }
 
-# should happen after rebase3d
-function patch4 {
-  cd $OD; patch -Nfu --input=$TD/patch.4; echo "rc=$?"
+# should happen after rebase4
+function patch5 {
+  cd $OD; patch -Nfu --input=$TD/patch.5; echo "rc=$?"
   efile story.txt
   efile kitty.txt
 }
