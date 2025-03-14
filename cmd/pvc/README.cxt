@@ -11,11 +11,8 @@ Builtin cmds:[+
 
 * [$tip [branch]]: get the highest id for branch (default=current).
 
-* [$base [branch]]: if [$branch] is empty then return the base
-  ([$branch#id] of the current branch (or nothing if branch=root).
-
-  If [$branch] is set then rebase the current branch to make [$branch#id]
-  become the base of the branch (default id=tip).
+* [$rebase [branch [id]]]: change the base of branch to id.
+  (default branch=current, id=branch base's tip)
 
 * [$at [branch]]: if [$branch] is empty then return the active
   [$branch#id].
@@ -47,6 +44,10 @@ Builtin cmds:[+
   ["the resulting directory is commonly sent to [$tar -zcvf branch.tar.gz path/]
     and then [$branch.tar.gz] sent to a maintainer to be merged
   ]
+
+* [$prune branch id]: remove a branch by moving it to a backup
+    directory. If an id is given then instead move ids from [id,tip]
+    (inclusive) to a backup.
 ]
 
 [{h2}Basic Architecture]

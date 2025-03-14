@@ -2,7 +2,7 @@ local G = G or _G
 local M = G.mod and mod'pvc2' or setmetatable({}, {})
 MAIN = G.MAIN or M
 
-local shim = require'shim'
+local s= require'shim'
 local mty = require'metaty'
 local ds  = require'ds'
 local pth = require'ds.path'
@@ -22,6 +22,7 @@ local trace = require'ds.log'.trace
 local s = ds.simplestr
 local construct = mty.construct
 local toDir, pconcat = pth.toDir, pth.concat
+local pk = ds.popk
 
 local assertf = require'fmt'.assertf
 
@@ -200,10 +201,10 @@ M.branchPath = function(pdir, branch, dot)
   return pth.concat{pdir, dot or '.pvc', branch, '/'}
 end
 
-M.getbase = function(bpath, br) --> br?, id
+M.getbase = function(bpath, br) --> br, id
   bpath = bpath..'base'
   if ix.exists(bpath) then return M.parseBranch(pth.read(bpath))
-  else return nil, 0 end
+  else return br, 0 end
 end
 M.rawtip = function(bpath, id)
   if id then pth.write(toDir(bpath)..'tip', tostring(id))
@@ -311,7 +312,7 @@ M.parseBranch = function(str, bdefault, idefault) --> branch, id
 end
 
 --- get or hard set the current branch/id
-M.atraw = function(pdir, branch, id)
+M.rawat = function(pdir, branch, id)
   local apath = pth.concat{pdir, '.pvc/at'}
   if branch then pth.write(apath, sfmt('%s#%s', branch, id))
   else    return M.parseBranch(pth.read(apath)) end
@@ -320,7 +321,7 @@ end
 --- get or set where the working id is at.
 M.at = function(pdir, nbr,nid) --!!> branch?, id?
   -- c=current, n=next
-  local cbr, cid = M.atraw(pdir); if not nbr then return cbr, cid end
+  local cbr, cid = M.rawat(pdir); if not nbr then return cbr, cid end
   local npath = M.branchPath(pdir, nbr)
 
   nid = nid or M.rawtip(npath)
@@ -377,7 +378,7 @@ M.at = function(pdir, nbr,nid) --!!> branch?, id?
     trace('checkout rm: %s', path)
     ix.rmRecursive(pdir..path)
   end
-  M.atraw(pdir, nbr,nid)
+  M.rawat(pdir, nbr,nid)
   io.fmt:styled('notify', sfmt('pvc: at %s#%s', nbr,nid), '\n')
 end
 
@@ -407,7 +408,7 @@ M.resolve = function(pdir, branch) --> directory/
   local br, id = M.parseBranch(branch)
   if not br then error('unknown branch: '..branch) end
   if br == 'local' then return pdir end
-  if br == 'at'  then br, id = M.atraw(pdir) end
+  if br == 'at'  then br, id = M.rawat(pdir) end
   local bpath = M.branchPath(pdir, br)
   return M.snapshot(pdir, br, id or M.rawtip(bpath))
 end
@@ -432,8 +433,8 @@ M.init = function(pdir, branch)
   ix.mkTree(dot, {backup = {}}, true)
   initBranch(M.branchPath(pdir, branch), 0)
   pth.write(pdir..M.PVCPATHS, M.INIT_PVCPATHS)
-  M.atraw(pdir, branch, 0)
-  info('initialized pvc repo: %s', pdir)
+  M.rawat(pdir, branch, 0)
+  io.fmt:styled('notice', 'initialized pvc repo '..dot, '\n')
 end
 
 --- Create a patch file from two branch arguments (see resolve2).
@@ -442,7 +443,7 @@ M.patch = function(pdir, br1, br2) --> string, s1, s2
 end
 
 M.commit = function(pdir) --> snap/, id
-  local br, id = M.atraw(pdir)
+  local br, id = M.rawat(pdir)
   local bp, cid = M.branchPath(pdir, br), id+1
   trace('start commit %s/%s', br, cid)
   if id ~= M.rawtip(bp) then error(s[[
@@ -462,7 +463,7 @@ M.commit = function(pdir) --> snap/, id
   for path in io.lines(pdir..M.PVCPATHS) do
     T.pathEq(pdir..path, csnap..path)
   end
-  M.rawtip(bp, cid); M.atraw(pdir, br, cid)
+  M.rawtip(bp, cid); M.rawat(pdir, br, cid)
   info('commited %s#%s', br, cid)
   return csnap, cid
 end
@@ -483,6 +484,29 @@ M.branch = function(pdir, name, fbr,fid) --> bpath, id
   -- ix.forceCp(M.patchPath(fpath, fid, '.p'), M.patchPath(npath, fid, '.p'))
   pth.write(npath..'base', sfmt('%s#%s', fbr,fid))
   return npath, fid
+end
+
+M.checkBranch = function(pdir, dir, checks)
+  local bbr,bid = M.getbase(dir, nil)
+  local tip     = M.rawtip(dir)
+  if tip <= bid then error(sfmt('tip %i <= baseid %i'..tip, bid)) end
+  -- TODO: check that patch files exist, etc.
+
+  if checks.base and not bbr then error(from..' does not have base') end
+  if bbr then
+    local bt = M.rawtip(M.branchPath(pdir, bbr))
+    if bid > bt then error(sfmt(
+      '%s base.id %s > %s tip of %i', from, bid, bbr, bt
+    ))end
+    -- TODO(sig): check signature
+  end
+end
+
+M.graft = function(pdir, name, from)
+  local ndir = pdir..name
+  if ix.exists(ndir) then error(ndir..' already exists') end
+  M.checkBranch(pdir, from, {base=1})
+  ix.cpRecursive(from, ndir)
 end
 
 local FAILED_MERGE = [[
@@ -507,6 +531,12 @@ M.merge = function(tdir, bdir, cdir) --!!>
     end
   end)
   assert(not conflicts, 'failed to merge, fix conflicts and then re-run')
+end
+
+--- create a backup directory and return it
+M.createBackup = function(P, name) --> string
+  local b = sfmt('%s.pvc/backup/%s-%s/', P, name, M.backupId())
+  ix.mkDir(b); return b
 end
 
 --- rebase the branch (current branch) to make it's baseid=id
@@ -565,7 +595,7 @@ M.rebase = function(pdir, branch, id)
     csnap = M.snapshot(pdir, cbr,bid)
   end
 
-  local backup = sfmt('%s.pvc/backup/%s-%s/', pdir, cbr, M.backupId())
+  local backup = M.createBackup(pdir, cbr)
   ix.mv(cpath, backup)
   io.fmt:styled('notify',
     sfmt('pvc: rebase %s to %s#%s done. Backup at %s', cbr, bbr, id, backup),
@@ -574,6 +604,154 @@ M.rebase = function(pdir, branch, id)
   M.at(pdir, cbr,ttip)
 end
 
-M.main = function(args) error'todo' end
+local popdir = function(args)
+  return pk(args, 'dir') or pth.cwd()
+end
+
+local HELP = [=[[+
+* sh usage:  [$pvc <cmd> [args]]
+* lua usage: [$pvc{'cmd', ...}]
+]
+
+See README for details.
+]=]
+M.main = G.mod and G.mod'pvc.main' or setmetatable({}, {})
+
+  --- [$help [cmd]]: get help
+M.main.help = function(args) print(HELP) end
+
+--- [$init dir]: initialize the [$dir] (default=CWD) for PVC.
+M.main.init = function(args) --> nil
+  M.init(popdir(args), args[1] or 'main')
+end
+
+--- [$tip [branch]]: get the highest branch#id for branch (default=at).
+M.main.tip = function(args) --> string
+  local P = popdir(args)
+  local out = sfmt('%s#%s',
+    M.rawtip(M.branchPath(P, args[1] or M.rawat(P))))
+  print(out); return out
+end
+
+--- [$rebase [branch [id]]]: change the base of branch to id.
+--- (default branch=current, id=branch base's tip)
+M.main.rebase = function(args) --> string
+  local P = popdir(args)
+  local br = args[1] ~= '' and args[1] or M.rawat(P)
+  local base = M.getbase(M.branchPath(P,br))
+  M.rebase(br, M.rawtip(M.branchpath(P, base)))
+end
+
+--- [$at [branch]]: if [$branch] is empty then return the active
+--- [$branch#id].
+---
+--- If [$branch] is set then this sets the active [$branch#id], causing the
+--- local directory to be updated (default id=tip).
+--- ["git equivalent: [$checkout]]
+M.main.at = function(args) --> string
+  local D, branch = popdir(args), args[1]
+  if branch then return M.at(D, M.parseBranch(branch)) end
+  branch = sfmt('%s#%s', M.rawat(D))
+  print(branch); return branch
+end
+
+--- [$diff branch1 branch2]: get the difference (aka the patch) between
+--- [$branch1] (default=[$at]) and [$branch2] (default=local). Each value can be
+--- either a branch name or a directory which contains a [$.pvcpaths] file.
+M.main.diff = function(args) --> Diff
+  local d = M.diff(popdir(args), args[1], args[2])
+  d:format(io.fmt)
+  return d
+end
+
+
+--- [$commit]: add changes to the current branch as a patch and move [$at]
+--- forward. The commit message can be written to the COMMIT file or be
+--- specified after the [$--] argument.
+M.main.commit = function(args) M.commit(popdir(args)) end
+
+--- [$branch name [from]]: start a new branch of name [$name]. The optional
+--- [$from] (default=[$at]) argument can specify a local [$branch#id] or an
+--- (external) [$path/to/dir] to graft onto the pvc tree.
+---
+--- ["the [$from/dir] is commonly used by maintainers to accept patches from
+--- contributors.
+--- ]
+M.main.branch = function(args)
+  local D = popdir(args)
+  local name = assert(args[1], 'must provide branch name')
+  assert(not name:find'/', "branch name must not include '/'")
+
+  local fbr,fid = args[2]
+  if fbr and fbr:find'/' then return M.graft(D, name, fbr) end
+  if fbr then fbr, fid = M.parseBranch(fbr)
+  else        fbr, fid = M.rawat(D) end
+  return M.branch(D, name, fbr,fid)
+end
+
+--- [$export branch to/]: copy all patch files in the branch to [$to/].
+---
+--- ["the resulting directory is commonly sent to [$tar -zcvf branch.tar.gz path/]
+---   and then [$branch.tar.gz] sent to a maintainer to be merged
+--- ]
+M.main.export = function(args) --> to
+  local D = popdir(args)
+  local br = assert(args[1], 'must specify branch')
+  local to = pth.toDir(assert(args[2], 'must specify to/ directory'))
+  if ix.exists(to) then error('to/ directory already exists: '..to) end
+
+  local bdir = M.branchPath(D, br)
+  local tip, bbr,bid = M.rawtip(bdir), M.getbase(bdir,nil)
+
+  ix.mkDirs(to..'patch/')
+  pth.write(bdir..'tip', tip)
+  ix.cp(bdir..'patch/depth', to..'patch/depth')
+  if bbr then pth.write(bdir..'base', sfmt('%s#%s', bbr,bid)) end
+  -- Note: if base then first id isn't there
+  for id=bbr and (bid+1) or bid, tip do
+    ix.forceCp(M.patchPath(bdir,id, '.p', M.patchPath(to,id, '.p')))
+  end
+  io.fmt:styled('notify', sfmt('exported %s to %s', bdir, to))
+  return to
+end
+
+--- [$prune branch [id]] delete branch by moving it to backup directory.
+M.main.prune = function(args)
+  local D = popdir(args)
+  local br = assert(args[1], 'must specify branch')
+  local bdir = M.branchPath(D, br)
+  assert(ix.exists(bdir), bdir..' does not exist')
+  local back = M.createBackup(D, br)
+  local id = args[2]
+  if id then
+    id = toint(id); local tip = M.rawtip(bdir)
+    local d = M.depth(bdir)
+    local undo = {}
+    for i=id,tip do
+      local from = M.patchPath(bdir,id, '.p', d)
+      local to   = sfmt('%s%s.p', back, id)
+      ix.mv(from, to)
+      push(undo, sfmt('mv %s %s', to, from))
+    end
+    pth.write(back..'UNDO', table.concat(undo, '\n'))
+    io.fmt:styled('notify', sfmt('pruned [%s -> %s]. Undo with %s',
+      id, tip, back..'UNDO'))
+  else
+    ix.mv(bdir, back)
+    io.fmt:styled('notify', sfmt('moved %s -> %s', bdir, back))
+  end
+end
+
+getmetatable(M.main).__call = function(_, args)
+  args = shim.parse(args)
+  local cmd = table.remove(args, 1)
+  local fn = rawget(M.main); if not fn then
+    io.fmt:styled('error', cmd..' is not recognized', '\n')
+    M.main.help()
+  end
+  return fn(args)
+end
+
+getmetatable(M).__call = getmetatable(M.main).__call
 
 return M
