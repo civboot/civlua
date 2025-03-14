@@ -21,6 +21,27 @@ T.patchPath = function()
   T.eq('foo/patch/00/1.p', pvc.patchPath('foo', 1, '.p', 2))
 end
 
+local HELLO_PATCH1 = [[
+--- /dev/null
++++ hello.lua
+@@ -0,0 +1,5 @@
++local M = {}
++
++M.helloworld = function()
++  print'hello world'
++end
+]]
+
+local STORY_PATCH1 = [[
+--- /dev/null
++++ story.txt
+@@ -0,0 +1,4 @@
++# Story
++This is a story
++about a man
++and his dog.
+]]
+
 --- This test is large but does an entire "common" workflow
 T.workflow = function()
   ix.rmRecursive(D);
@@ -63,9 +84,9 @@ T.workflow = function()
   +story.txt
 
   ]]
-  ..pth.read(TD..'patch.hello.lua.1')
+  ..HELLO_PATCH1
   ..'\n'
-  ..pth.read(TD..'patch.story.txt.1');
+  ..STORY_PATCH1;
 
   local br, id = pvc.commit(D)
   T.path(pvc.patchPath(Bm, id, '.p'), DIFF1)
@@ -138,6 +159,13 @@ T.workflow = function()
   T.path(Bd, { tip = '3' }); T.eq({'dev', 3}, {pvc.at(D)})
   T.eq({'main', 2}, {pvc.getbase(Bd, 'dev')})
 
+  local STORY4d = pth.read(TD..'story.txt.4d')
+  pth.write(D..'story.txt', STORY4d)
+  local EXPECT4d = ds.copy(EXPECT3d, {
+    ['story.txt'] = STORY4d
+  })
+  pvc.commit(D)
+
   pvc.at(D, 'main',2)
   T.path(Bm, { tip = '2' }); T.eq({'main', 2}, {pvc.at(D)})
   T.path(D, EXPECT2)
@@ -153,12 +181,21 @@ T.workflow = function()
   pvc.at(D, 'dev',3);  T.path(D, EXPECT3d)
   pvc.at(D, 'dev',2);  T.path(D, EXPECT2)
   pvc.at(D, 'main',3); T.path(D, EXPECT3m)
+  pvc.at(D, 'dev',4);  T.path(D, EXPECT4d)
 
   -- perform rebase
-  pvc.at(D, 'dev',3);  T.path(D, EXPECT3d)
   pvc.rebase(D, 'dev',3)
+  T.eq({'dev', 5}, {pvc.rawat(D)})
+  T.eq(3, pvc.rawtip(Bm))
+  T.eq(5, pvc.rawtip(Bd))
 
-  local EXPECT4 = ds.copy(EXPECT2, {['story.txt'] = pth.read(TD..'story.txt.4')})
-  T.path(Bd..'patch/00/4.snap/', EXPECT4)
-  T.path(D, EXPECT4)
+  local EXPECT5 = ds.copy(EXPECT2, {
+    ['story.txt'] = pth.read(TD..'story.txt.5')
+  })
+  T.path(Bd..'patch/00/5.snap/', EXPECT5)
+  pvc.at(D, 'main',3); T.path(D, EXPECT3m)
+  pvc.at(D, 'dev',4);
+  -- dev4 has main3's changes.
+  T.path(D..'story.txt', STORY3d:gsub('unhappy', 'happy'))
+
 end

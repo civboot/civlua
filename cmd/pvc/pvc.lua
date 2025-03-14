@@ -481,7 +481,6 @@ M.branch = function(pdir, name, fbr,fid) --> bpath, id
   fid = fid or M.rawtip(fpath)
   local npath = M.branchPath(pdir, name)
   initBranch(npath, fid)
-  -- ix.forceCp(M.patchPath(fpath, fid, '.p'), M.patchPath(npath, fid, '.p'))
   pth.write(npath..'base', sfmt('%s#%s', fbr,fid))
   return npath, fid
 end
@@ -552,47 +551,43 @@ M.rebase = function(pdir, branch, id)
   if bbr == cbr then error('the base of '..cbr..' is itself') end
   if id == bid then return end
   local bpath = M.branchPath(pdir, bbr)
-  local btip = M.rawtip(bpath)
+  local btip  = M.rawtip(bpath)
   if id > btip then error(id..' is > tip of '..btip) end
 
-  local cpath = M.branchPath(pdir, cbr)
-  local tbr = cbr..'__rebase'
-  local tpath = M.branchPath(pdir, tbr)
-  local ttip = id + M.rawtip(cpath) - bid
-  local tsnap
+  local cpath, cid = M.branchPath(pdir, cbr), bid + 1
+  local ctip       = M.rawtip(cpath)
+  local tbr        = cbr..'__rebase'
+  local tpath      = M.branchPath(pdir, tbr)
+  local ttip       = id + M.rawtip(cpath) - bid
 
   local op = sfmt('rebase %s %s', cbr, bid)
-  if ix.exists(tpath) then
-    T.pathEq(tpath..'op', op)
-    bid = select(2, M.getbase(tpath))
-    tsnap = M.snapDir(tpath, ttip)
+  local tsnap; if ix.exists(tpath) then
     assert(ix.exists(tsnap))
+    T.pathEq(tpath..'op', op)
+    T.eq({bbr,bid}, M.getbase(tpath))
+    cid   = toint(pth.read(tpath..'rebase'))
+    tsnap = M.snapDir(tpath, ttip)
   else
-    local tpath = M.branch(pdir, tbr, bbr,id)
+    M.branch(pdir, tbr, bbr,id)
+    pth.write(tpath..'op', op)
     tsnap = M.snapDir(tpath, ttip); ix.mkDirs(tsnap)
     cpPaths(M.snapshot(pdir, bbr,id), tsnap)
-    pth.write(tpath..'op', op)
   end
-  local bsnap = M.snapshot(pdir, bbr, bid)
-  local csnap = M.snapshot(pdir, cbr, bid + 1)
   local tid = id + 1
-  -- the first base we must hard-code tsnap because
-  -- snapshot will freak out that there aren't any .p files.
-  local tbase = M.snapshot(pdir, bbr,id)
+  local tprev = M.snapshot(pdir, bbr,id) -- hard-code first prev
 
-  while bid < id do
+  while cid <= ctip do
     assert(tid <= ttip)
-    pth.write(tpath..'base', sfmt('%s#%s', bbr, bid+1))
-    M.merge(tsnap, bsnap, csnap)
+    local bsnap = M.snapshot(pdir, cbr,bid)
+    pth.write(tpath..'rebase', tostring(cid))
+    M.merge(tsnap, bsnap, M.snapshot(pdir, cbr,cid))
     -- TODO(commit): preserve description
-    tbase = tbase or M.snapshot(pdir, tbr,tid-1)
-    pth.write(
-      M.patchPath(tpath,tid, '.p'),
-      M.Diff:of(tbase, tsnap):patch())
-    tbase = nil
-    bid, tid = bid + 1, tid + 1
-    bsnap = M.snapshot(pdir, bbr,bid)
-    csnap = M.snapshot(pdir, cbr,bid)
+    tprev = tprev or M.snapshot(pdir, tbr,tid-1)
+    local tpatch = M.patchPath(tpath,tid, '.p')
+    trace('writing patch %s', tpatch)
+    ix.forceWrite(tpatch, M.Diff:of(tprev, tsnap):patch())
+    tprev = nil
+    bid, cid, tid = bid + 1, cid + 1, tid + 1
   end
 
   local backup = M.createBackup(pdir, cbr)
@@ -600,7 +595,9 @@ M.rebase = function(pdir, branch, id)
   io.fmt:styled('notify',
     sfmt('pvc: rebase %s to %s#%s done. Backup at %s', cbr, bbr, id, backup),
     '\n')
-  ix.mv(tpath, cpath); ix.rm(cpath..'op')
+  M.rawtip(tpath, ttip)
+  ix.rm(tpath..'op'); ix.rm(tpath..'rebase')
+  ix.mv(tpath, cpath)
   M.at(pdir, cbr,ttip)
 end
 
