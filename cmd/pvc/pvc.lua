@@ -552,17 +552,17 @@ M.rebase = function(pdir, branch, id)
   if bbr == cbr then error('the base of '..cbr..' is itself') end
   if id == bid then return end
   local bpath = M.branchPath(pdir, bbr)
-  local btip = M.rawtip(bpath)
+  local btip  = M.rawtip(bpath)
   if id > btip then error(id..' is > tip of '..btip) end
 
-  local cpath = M.branchPath(pdir, cbr)
-  local tbr = cbr..'__rebase'
-  local tpath = M.branchPath(pdir, tbr)
-  local ttip = id + M.rawtip(cpath) - bid
-  local tsnap
+  local cpath, cid = M.branchPath(pdir, cbr), bid + 1
+  local ctip       = M.rawtip(cpath)
+  local tbr        = cbr..'__rebase'
+  local tpath      = M.branchPath(pdir, tbr)
+  local ttip       = id + M.rawtip(cpath) - bid
 
   local op = sfmt('rebase %s %s', cbr, bid)
-  if ix.exists(tpath) then
+  local tsnap; if ix.exists(tpath) then
     T.pathEq(tpath..'op', op)
     bid = select(2, M.getbase(tpath))
     tsnap = M.snapDir(tpath, ttip)
@@ -573,14 +573,12 @@ M.rebase = function(pdir, branch, id)
     cpPaths(M.snapshot(pdir, bbr,id), tsnap)
     pth.write(tpath..'op', op)
   end
-  local bsnap = M.snapshot(pdir, bbr, bid)
-  local csnap = M.snapshot(pdir, cbr, bid + 1)
+  local bsnap = M.snapshot(pdir, bbr,bid)
+  local csnap = M.snapshot(pdir, cbr,cid)
   local tid = id + 1
-  -- the first prev we must hard-code to base#id because
-  -- snapshot will freak out that there aren't any .p files.
-  local tprev = M.snapshot(pdir, bbr,id)
+  local tprev = M.snapshot(pdir, bbr,id) -- hard-code first prev
 
-  while bid < id do
+  while cid <= ctip do
     assert(tid <= ttip)
     pth.write(tpath..'base', sfmt('%s#%s', bbr, bid+1))
     M.merge(tsnap, bsnap, csnap)
@@ -590,8 +588,8 @@ M.rebase = function(pdir, branch, id)
       M.patchPath(tpath,tid, '.p'),
       M.Diff:of(tprev, tsnap):patch())
     tprev = nil
-    bid, tid = bid + 1, tid + 1
-    csnap = M.snapshot(pdir, cbr,bid)
+    cid, tid = cid + 1, tid + 1
+    csnap = M.snapshot(pdir, cbr,cid)
   end
 
   local backup = M.createBackup(pdir, cbr)
