@@ -576,22 +576,21 @@ M.rebase = function(pdir, branch, id)
   local bsnap = M.snapshot(pdir, bbr, bid)
   local csnap = M.snapshot(pdir, cbr, bid + 1)
   local tid = id + 1
-  -- the first base we must hard-code tsnap because
+  -- the first prev we must hard-code to base#id because
   -- snapshot will freak out that there aren't any .p files.
-  local tbase = M.snapshot(pdir, bbr,id)
+  local tprev = M.snapshot(pdir, bbr,id)
 
   while bid < id do
     assert(tid <= ttip)
     pth.write(tpath..'base', sfmt('%s#%s', bbr, bid+1))
     M.merge(tsnap, bsnap, csnap)
     -- TODO(commit): preserve description
-    tbase = tbase or M.snapshot(pdir, tbr,tid-1)
+    tprev = tprev or M.snapshot(pdir, tbr,tid-1)
     pth.write(
       M.patchPath(tpath,tid, '.p'),
-      M.Diff:of(tbase, tsnap):patch())
-    tbase = nil
+      M.Diff:of(tprev, tsnap):patch())
+    tprev = nil
     bid, tid = bid + 1, tid + 1
-    bsnap = M.snapshot(pdir, bbr,bid)
     csnap = M.snapshot(pdir, cbr,bid)
   end
 
