@@ -21,6 +21,27 @@ T.patchPath = function()
   T.eq('foo/patch/00/1.p', pvc.patchPath('foo', 1, '.p', 2))
 end
 
+local HELLO_PATCH1 = [[
+--- /dev/null
++++ hello.lua
+@@ -0,0 +1,5 @@
++local M = {}
++
++M.helloworld = function()
++  print'hello world'
++end
+]]
+
+local STORY_PATCH1 = [[
+--- /dev/null
++++ story.txt
+@@ -0,0 +1,4 @@
++# Story
++This is a story
++about a man
++and his dog.
+]]
+
 --- This test is large but does an entire "common" workflow
 T.workflow = function()
   ix.rmRecursive(D);
@@ -63,9 +84,9 @@ T.workflow = function()
   +story.txt
 
   ]]
-  ..pth.read(TD..'patch.hello.lua.1')
+  ..HELLO_PATCH1
   ..'\n'
-  ..pth.read(TD..'patch.story.txt.1');
+  ..STORY_PATCH1;
 
   local br, id = pvc.commit(D)
   T.path(pvc.patchPath(Bm, id, '.p'), DIFF1)
