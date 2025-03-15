@@ -1,0 +1,8 @@
+.git/
+.out/
+bin/
+.rock$
+.rockspec$
+.o$
+.so$
+.gch$

@@ -2,12 +2,12 @@ local G = G or _G
 local M = G.mod and mod'pvc2' or setmetatable({}, {})
 MAIN = G.MAIN or M
 
-local s= require'shim'
-local mty = require'metaty'
-local ds  = require'ds'
-local pth = require'ds.path'
-local kev = require'ds.kev'
-local ix  = require'civix'
+local shim  = require'shim'
+local mty   = require'metaty'
+local ds    = require'ds'
+local pth   = require'ds.path'
+local kev   = require'ds.kev'
+local ix    = require'civix'
 local lines = require'lines'
 local T = require'civtest'.Test
 
@@ -53,6 +53,18 @@ local loadLineSet = function(path) --> set
   local s = {}; for l in io.lines(path) do s[l] = true end; return s
 end
 
+local loadPaths = function(P) --> list
+  local paths = lines.load(P..M.PVCPATHS)
+  push(paths, '.pvcpaths')
+  return paths
+end
+
+local loadIgnore = function(P) --> list
+  local ignore = lines.load(P..'.pvcignore')
+  push(ignore, './.pvc/')
+  return ignore
+end
+
 --- copy all paths in [$from/.pvcpaths] -> [$to/]
 local cpPaths = function(from, to)
   trace('cpPaths %s -> %s', from, to)
@@ -68,7 +80,6 @@ local readInt = function(path) return toint(pth.read(path)) end
 ---
 --- Note: the passed in paths are still relative.
 local mapPvcPaths = function(dir1, dir2, fn)
-  print('!! mapPaths dir1, dir2', dir1, dir2)
   local paths1, paths2 = {}, {}
   for p in io.lines(dir1..M.PVCPATHS) do paths1[p] = 1 end
   for p in io.lines(dir2..M.PVCPATHS) do paths2[p] = 1 end
@@ -139,7 +150,6 @@ M.Diff = mty'Diff' {
   'created [list]',
 }
 M.Diff.of = function(T, d1, d2)
-  print('!! getting diff:', d1, d2)
   local peq = ix.pathEq
   local t = (type(d1) == 'table') and d1 or {dir1=d1, dir2=d2}
   t = T(t)
@@ -172,7 +182,7 @@ M.Diff.format = function(d, fmt, full)
     end
     s('bold', 'Diff:', ' ', d.dir1, ' --> ', d.dir2, '\n')
     for _,path in ipairs(d.deleted) do s('base',   '-'..path, '\n') end
-    for _,path in ipairs(d.created) do s('change', '-'..path, '\n') end
+    for _,path in ipairs(d.created) do s('change', '+'..path, '\n') end
     for _,path in ipairs(d.changed) do s('notify', '~'..path, '\n') end
   end
 end
@@ -213,7 +223,6 @@ end
 M.depth = function(bpath) return readInt(toDir(bpath)..'patch/depth') end
 
 M.patchPath = function(bpath, id, last, depth) --> string?
-  print('!! patchPath', bpath, id, last, depth)
   depth = depth or M.depth(bpath)
   if M.calcPatchDepth(id) > depth then return end
   local dirstr = tostring(id):sub(1,-3)
@@ -330,7 +339,6 @@ M.at = function(pdir, nbr,nid) --!!> branch?, id?
   local nsnap  = M.snapshot(pdir, nbr,nid)
   trace('at snaps %s -> %s', csnap, nsnap)
 
-  print('!! at snaps', csnap, nsnap)
   local npaths = loadLineSet(nsnap..M.PVCPATHS)
 
   local ok, cpPaths, rmPaths = true, {}, {}
@@ -344,9 +352,9 @@ M.at = function(pdir, nbr,nid) --!!> branch?, id?
     end
     -- else local path changed
     if ix.pathEq(csnap..path, nsnap..path) then
-      io.fmt:styled('meta',  sfmt('keeping changed %s', path), '\n')
+      io.user:styled('meta',  sfmt('keeping changed %s', path), '\n')
     else
-      io.fmt:styled('error', sfmt('path %s changed',    path), '\n')
+      io.user:styled('error', sfmt('path %s changed',    path), '\n')
       ok = false
     end
     ::cont::
@@ -379,7 +387,7 @@ M.at = function(pdir, nbr,nid) --!!> branch?, id?
     ix.rmRecursive(pdir..path)
   end
   M.rawat(pdir, nbr,nid)
-  io.fmt:styled('notify', sfmt('pvc: at %s#%s', nbr,nid), '\n')
+  io.user:styled('notify', sfmt('pvc: at %s#%s', nbr,nid), '\n')
 end
 
 --- update paths file (path) with the added and removed items
@@ -390,9 +398,7 @@ M.pathsUpdate = function(pdir, add, rm)
   if rm and rm[1] then rm = ds.Set(rm) end
   local rmFn = rm and function(v1, v2) return rm[v2] or (v1 == v2) end
             or ds.eq
-  trace('!! before sort %q', rmFn, paths)
   ds.sortUnique(paths, nil, rmFn)
-  trace('!! after sort', paths)
   push(paths, '')
   lines.dump(paths, pfile)
 end
@@ -403,7 +409,6 @@ end
 --- * Special: local, at
 --- ]
 M.resolve = function(pdir, branch) --> directory/
-  print('!! resolve', pdir, branch)
   if branch:find'/' then return branch end -- directory
   local br, id = M.parseBranch(branch)
   if not br then error('unknown branch: '..branch) end
@@ -433,8 +438,9 @@ M.init = function(pdir, branch)
   ix.mkTree(dot, {backup = {}}, true)
   initBranch(M.branchPath(pdir, branch), 0)
   pth.write(pdir..M.PVCPATHS, M.INIT_PVCPATHS)
+  pth.write(pdir..'.pvcignore', '')
   M.rawat(pdir, branch, 0)
-  io.fmt:styled('notice', 'initialized pvc repo '..dot, '\n')
+  io.user:styled('notice', 'initialized pvc repo '..dot, '\n')
 end
 
 --- Create a patch file from two branch arguments (see resolve2).
@@ -524,7 +530,7 @@ M.merge = function(tdir, bdir, cdir) --!!>
     local change = cpath and (cdir..cpath) or nil
     local ok, err = pu.merge(to, base, change)
     if not ok then
-      io.fmt:styled('error', sfmt(
+      io.user:styled('error', sfmt(
         FAILED_MERGE, to, base, change, err), '\n')
       conflicts = true
     end
@@ -592,7 +598,7 @@ M.rebase = function(pdir, branch, id)
 
   local backup = M.createBackup(pdir, cbr)
   ix.mv(cpath, backup)
-  io.fmt:styled('notify',
+  io.user:styled('notify',
     sfmt('pvc: rebase %s to %s#%s done. Backup at %s', cbr, bbr, id, backup),
     '\n')
   M.rawtip(tpath, ttip)
@@ -602,7 +608,7 @@ M.rebase = function(pdir, branch, id)
 end
 
 local popdir = function(args)
-  return pk(args, 'dir') or pth.cwd()
+  return pth.toDir(pk(args, 'dir') or pth.cwd())
 end
 
 local HELP = [=[[+
@@ -652,15 +658,51 @@ M.main.at = function(args) --> string
   print(branch); return branch
 end
 
---- [$diff branch1 branch2]: get the difference (aka the patch) between
---- [$branch1] (default=[$at]) and [$branch2] (default=local). Each value can be
---- either a branch name or a directory which contains a [$.pvcpaths] file.
-M.main.diff = function(args) --> Diff
-  local d = M.diff(popdir(args), args[1], args[2])
-  d:format(io.fmt)
-  return d
+local untracked = function(P) --> list[string]
+  trace('untracked %s', P)
+  local out, paths, ignore = {}, ds.Set(loadPaths(P)), loadIgnore(P)
+  local w = ix.Walk{P}
+  for path, fty in w do
+    path = path:sub(#P+1)
+    if path == '' then goto cont end
+    trace('ut path %q', path)
+    if paths[path] then goto cont end
+    if fty == 'dir' then
+      for _, pat in ipairs(ignore) do
+        if pat:sub(-1,-1) == '/' and pat:find(path) then
+          w:skip(); goto cont
+        end
+      end
+    else
+      for _, pat in ipairs(ignore) do
+        if pat:sub(-1,-1) ~= '/' and pat:find(path) then
+          goto cont
+        end
+      end
+      push(out, path)
+    end
+    ::cont::
+  end
+  table.sort(out)
+  return out
 end
 
+--- [$diff branch1 branch2 --full]: get the difference (aka the patch) between
+--- [$branch1] (default=[$at]) and [$branch2] (default=local). Each value can be
+--- either a branch name or a directory which contains a [$.pvcpaths] file.
+---
+M.main.diff = function(args) --> Diff
+  local P = popdir(args)
+  local d = M.diff(P, args[1], args[2])
+  d:format(io.fmt, args.full)
+  if not args.full then
+    for _, path in ipairs(untracked(P)) do
+      io.user:styled('change', path, '\n')
+    end
+  end
+  io.fmt:write'\n'
+  return d
+end
 
 --- [$commit]: add changes to the current branch as a patch and move [$at]
 --- forward. The commit message can be written to the COMMIT file or be
@@ -708,7 +750,7 @@ M.main.export = function(args) --> to
   for id=bbr and (bid+1) or bid, tip do
     ix.forceCp(M.patchPath(bdir,id, '.p', M.patchPath(to,id, '.p')))
   end
-  io.fmt:styled('notify', sfmt('exported %s to %s', bdir, to))
+  io.user:styled('notify', sfmt('exported %s to %s', bdir, to))
   return to
 end
 
@@ -731,19 +773,19 @@ M.main.prune = function(args)
       push(undo, sfmt('mv %s %s', to, from))
     end
     pth.write(back..'UNDO', table.concat(undo, '\n'))
-    io.fmt:styled('notify', sfmt('pruned [%s -> %s]. Undo with %s',
+    io.user:styled('notify', sfmt('pruned [%s -> %s]. Undo with %s',
       id, tip, back..'UNDO'))
   else
     ix.mv(bdir, back)
-    io.fmt:styled('notify', sfmt('moved %s -> %s', bdir, back))
+    io.user:styled('notify', sfmt('moved %s -> %s', bdir, back))
   end
 end
 
 getmetatable(M.main).__call = function(_, args)
   args = shim.parse(args)
   local cmd = table.remove(args, 1)
-  local fn = rawget(M.main); if not fn then
-    io.fmt:styled('error', cmd..' is not recognized', '\n')
+  local fn = rawget(M.main, cmd); if not fn then
+    io.user:styled('error', cmd..' is not recognized', '\n')
     M.main.help()
   end
   return fn(args)
