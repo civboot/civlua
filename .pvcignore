@@ -1,0 +1,16 @@
+# directories
+%.git/
+%.out/
+bin/
+experiment/
+
+# extensions
+%.rock$
+%.rockspec$
+%.o$
+%.so$
+%.gch$
+%.html$
+
+# binaries
+lib/smol/smol_test

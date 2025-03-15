@@ -1,3 +1,4 @@
+.pvc/**/*.snap/
 .out/
 bin/
 API.html

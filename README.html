@@ -203,8 +203,8 @@ required but is highly appreciated, thanks!
 <h3>Function <a id="civ.Fmt" href="#civ.Fmt">civ.Fmt</a> (<a href="https://github.com/civboot/civlua/blob/main/civ.lua#L19"><i>src</i></a>)</h3>
 create a Fmt with sensible defaults for scripts
 Typically <code>t.to</code> is unset (default=stderr) or set to stdout.
-<h3>Function <a id="civ.main" href="#civ.main">civ.main</a><code>(arg) -&gt; int: return code</code> (<a href="https://github.com/civboot/civlua/blob/main/civ.lua#L37"><i>src</i></a>)</h3>
-<h3>Function <a id="civ.setupFmt" href="#civ.setupFmt">civ.setupFmt</a> (<a href="https://github.com/civboot/civlua/blob/main/civ.lua#L21"><i>src</i></a>)</h3>
+<h3>Function <a id="civ.main" href="#civ.main">civ.main</a><code>(arg) -&gt; int: return code</code> (<a href="https://github.com/civboot/civlua/blob/main/civ.lua#L40"><i>src</i></a>)</h3>
+<h3>Function <a id="civ.setupFmt" href="#civ.setupFmt">civ.setupFmt</a> (<a href="https://github.com/civboot/civlua/blob/main/civ.lua#L24"><i>src</i></a>)</h3>
 <p>
 <h1><a id="Package_shim" href="#Package_shim">Package shim</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/shim"><i>src</i></a>)</h1><table>
 <tr>
@@ -6801,6 +6801,8 @@ not documented: see <code>string</code> module
 not documented: see <code>string</code> module
 <h4>Value <a id="io.stdout" href="#io.stdout">io.stdout</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L265"><i>src</i></a>)</h4>
 not documented: see <code>string</code> module
+<h3>Table <a id="io.user" href="#io.user">io.user</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L265"><i>src</i></a>)</h3>
+not documented: see <code>string</code> module
 <h3>Table <a id="local" href="#local">local</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L536"><i>src</i></a>)</h3>
 <code>local x = (expression)</code>
 <p>
@@ -7337,6 +7339,10 @@ seek <table>
 <tr>
 <td><code>doc.lua.io.stdout</code></td>
 <td>[userdata] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L265">src</a>)</td>
+</tr>
+<tr>
+<td><code>doc.lua.io.user</code></td>
+<td>[Fmt] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L265">src</a>)</td>
 </tr>
 </table>
 <h3>Function <a id="io.close" href="#io.close">io.close</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L265"><i>src</i></a>)</h3>
@@ -7980,11 +7986,8 @@ files in the project directory.
 Builtin cmds:<ul>
 <li><code>init dir</code>: initialize the <code>dir</code> (default=CWD) for PVC.</li>
 <li><code>tip [branch]</code>: get the highest id for branch (default=current).</li>
-<li><code>base [branch]</code>: if <code>branch</code> is empty then return the base
-(<code>branch#id</code> of the current branch (or nothing if branch=root).
-<p>
-If <code>branch</code> is set then rebase the current branch to make <code>branch#id</code>
-become the base of the branch (default id=tip).</li>
+<li><code>rebase [branch [id]]</code>: change the base of branch to id.
+(default branch=current, id=branch base's tip)</li>
 <li><code>at [branch]</code>: if <code>branch</code> is empty then return the active
 <code>branch#id</code>.
 <p>
@@ -8011,6 +8014,9 @@ contributors.
 <blockquote>the resulting directory is commonly sent to <code>tar -zcvf branch.tar.gz path/</code>
 and then <code>branch.tar.gz</code> sent to a maintainer to be merged
 </blockquote></li>
+<li><code>prune branch id</code>: remove a branch by moving it to a backup
+directory. If an id is given then instead move ids from <code>[id,tip]</code>
+(inclusive) to a backup.</li>
 </ul>
 <p>
 <h2>Basic Architecture</h2>
@@ -8061,7 +8067,7 @@ match.</li>
 <h4>Value <a id="pvc.PVC_DONE" href="#pvc.PVC_DONE">pvc.PVC_DONE</a></h4>
 <h3>Table <a id="pvc2.RESERVED_NAMES" href="#pvc2.RESERVED_NAMES">pvc2.RESERVED_NAMES</a></h3>
 <h4>Value <a id="pvc.__name" href="#pvc.__name">pvc.__name</a></h4>
-<h3>Record <a id="pvc2.Diff" href="#pvc2.Diff">pvc2.Diff</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L135"><i>src</i></a>)</h3>
+<h3>Record <a id="pvc2.Diff" href="#pvc2.Diff">pvc2.Diff</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L155"><i>src</i></a>)</h3>
 <code>Diff:of(dir1, dir2)</code> returns what changed between two pvc dirs.
 <p>
 <b>Fields: </b> <table>
@@ -8102,7 +8108,7 @@ match.</li>
 <b>Records: </b> <table>
 <tr>
 <td><code>pvc.Diff.__index</code></td>
-<td>[Ty<Diff>] (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L135">src</a>)</td>
+<td>[Ty<Diff>] (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L155">src</a>)</td>
 </tr>
 </table>
 <b>Methods: </b> <table>
@@ -8111,27 +8117,36 @@ match.</li>
 <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L190">src</a>)</td>
 </tr>
 </table>
-<h4>Function <a id="Diff.format" href="#Diff.format">Diff.format</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L172"><i>src</i></a>)</h4>
-<h4>Function <a id="Diff.of" href="#Diff.of">Diff.of</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L153"><i>src</i></a>)</h4>
-<h4>Function <a id="Diff.patch" href="#Diff.patch">Diff.patch</a><code>(d) -&gt; patchText</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L186"><i>src</i></a>)</h4>
-<h3>Function <a id="pvc2.at" href="#pvc2.at">pvc2.at</a><code>(pdir, branch, id) -&gt; branch?, id?</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L299"><i>src</i></a>)</h3>
+<h4>Function <a id="Diff.format" href="#Diff.format">Diff.format</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L194"><i>src</i></a>)</h4>
+<h4>Function <a id="Diff.of" href="#Diff.of">Diff.of</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L173"><i>src</i></a>)</h4>
+<h4>Function <a id="Diff.patch" href="#Diff.patch">Diff.patch</a><code>(d) -&gt; patchText</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L208"><i>src</i></a>)</h4>
+<h3>Function <a id="pvc2.at" href="#pvc2.at">pvc2.at</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L397"><i>src</i></a>)</h3>
 get or set where the working id is at.
-<h3>Function <a id="pvc2.branchPath" href="#pvc2.branchPath">pvc2.branchPath</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L195"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc2.backupId" href="#pvc2.backupId">pvc2.backupId</a><code>() -&gt; toint(ix.epoch().s)</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L43"><i>src</i></a>)</h3>
+this exists for tests to override
+<h3>Function <a id="pvc2.branch" href="#pvc2.branch">pvc2.branch</a><code>(pdir, name, fbr,fid) -&gt; bpath, id</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L498"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc2.branchPath" href="#pvc2.branchPath">pvc2.branchPath</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L218"><i>src</i></a>)</h3>
 return the branch path in project regardless of whether it exists
-<h3>Function <a id="pvc2.calcPatchDepth" href="#pvc2.calcPatchDepth">pvc2.calcPatchDepth</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L123"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc2.calcPatchDepth" href="#pvc2.calcPatchDepth">pvc2.calcPatchDepth</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L143"><i>src</i></a>)</h3>
 calculate necessary directory depth.
 Example: 01/23/12345.p has dirDepth=4
-<h3>Function <a id="pvc2.commit" href="#pvc2.commit">pvc2.commit</a><code>(pdir) -&gt; snap/, id</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L378"><i>src</i></a>)</h3>
-<h3>Function <a id="pvc2.deepen" href="#pvc2.deepen">pvc2.deepen</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L282"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc2.checkBranch" href="#pvc2.checkBranch">pvc2.checkBranch</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L514"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc2.commit" href="#pvc2.commit">pvc2.commit</a><code>(pdir) -&gt; snap/, id</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L481"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc2.createBackup" href="#pvc2.createBackup">pvc2.createBackup</a><code>(P, name) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L551"><i>src</i></a>)</h3>
+create a backup directory and return it
+<h3>Function <a id="pvc2.deepen" href="#pvc2.deepen">pvc2.deepen</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L317"><i>src</i></a>)</h3>
 increase the depth of branch by 2, adding a <code>00/</code> directory.
-<h3>Function <a id="pvc2.depth" href="#pvc2.depth">pvc2.depth</a><code>(bpath) -&gt; readInt(bpath..'patch/depth')</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L198"><i>src</i></a>)</h3>
-<h3>Function <a id="pvc2.diff" href="#pvc2.diff">pvc2.diff</a><code>(pdir, branch1, branch2) -&gt; Diff</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L338"><i>src</i></a>)</h3>
-<h3>Function <a id="pvc2.findSnap" href="#pvc2.findSnap">pvc2.findSnap</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L247"><i>src</i></a>)</h3>
-<h3>Function <a id="pvc2.init" href="#pvc2.init">pvc2.init</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L349"><i>src</i></a>)</h3>
-<h3>Function <a id="pvc2.main" href="#pvc2.main">pvc2.main</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L382"><i>src</i></a>)</h3>
-<h3>Function <a id="pvc2.parseBranch" href="#pvc2.parseBranch">pvc2.parseBranch</a><code>(str, bdefault, idefault) -&gt; branch, id</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L292"><i>src</i></a>)</h3>
-<h3>Function <a id="pvc2.patchPath" href="#pvc2.patchPath">pvc2.patchPath</a><code>(bpath, id, last, depth) -&gt; string?</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L210"><i>src</i></a>)</h3>
-<h3>Function <a id="pvc2.patchPost" href="#pvc2.patchPost">pvc2.patchPost</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L104"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc2.depth" href="#pvc2.depth">pvc2.depth</a><code>(bpath) -&gt; readInt(toDir(bpath)..'patch/depth')</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L229"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc2.diff" href="#pvc2.diff">pvc2.diff</a><code>(pdir, branch1, branch2) -&gt; Diff</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L438"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc2.getbase" href="#pvc2.getbase">pvc2.getbase</a><code>(bpath, br) -&gt; br, id</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L224"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc2.graft" href="#pvc2.graft">pvc2.graft</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L521"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc2.init" href="#pvc2.init">pvc2.init</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L450"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc2.merge" href="#pvc2.merge">pvc2.merge</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L545"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc2.nameId" href="#pvc2.nameId">pvc2.nameId</a><code>(pdir, branch,id) -&gt; br,id</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L488"><i>src</i></a>)</h3>
+get the conventional brName, id for a branch,id pair
+<h3>Function <a id="pvc2.parseBranch" href="#pvc2.parseBranch">pvc2.parseBranch</a><code>(str, bdefault, idefault) -&gt; branch, id</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L327"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc2.patchPath" href="#pvc2.patchPath">pvc2.patchPath</a><code>(bpath, id, last, depth) -&gt; string?</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L241"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc2.patchPost" href="#pvc2.patchPost">pvc2.patchPost</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L124"><i>src</i></a>)</h3>
 Given a patch string perform post-patch requirements in dir.
 <p>
 These must be given near the top of the patch file, before the first
@@ -8141,40 +8156,88 @@ These must be given near the top of the patch file, before the first
 <p>
 If reverse is given it does the opposite; also this should be called BEFORE
 calling <code>patch(reverse=true)</code>
-<h3>Function <a id="pvc2.pathsUpdate" href="#pvc2.pathsUpdate">pvc2.pathsUpdate</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L311"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc2.pathsUpdate" href="#pvc2.pathsUpdate">pvc2.pathsUpdate</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L410"><i>src</i></a>)</h3>
 update paths file (path) with the added and removed items
-<h3>Function <a id="pvc2.resolve" href="#pvc2.resolve">pvc2.resolve</a><code>(pdir, branch) -&gt; directory/</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L325"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc2.rawat" href="#pvc2.rawat">pvc2.rawat</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L334"><i>src</i></a>)</h3>
+get or hard set the current branch/id
+<h3>Function <a id="pvc2.rawtip" href="#pvc2.rawtip">pvc2.rawtip</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L228"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc2.rebase" href="#pvc2.rebase">pvc2.rebase</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L614"><i>src</i></a>)</h3>
+rebase the branch (current branch) to make it's baseid=id
+<h3>Function <a id="pvc2.resolve" href="#pvc2.resolve">pvc2.resolve</a><code>(pdir, branch) -&gt; directory/</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L425"><i>src</i></a>)</h3>
 resolve a branch name. It can be one of: <ul>
 <li>A directory with <code>/</code> in it.</li>
 <li><code>branch</code> or <code>branch#id</code></li>
 <li>Special: local, at</li>
 </ul>
-<h3>Function <a id="pvc2.resolve2" href="#pvc2.resolve2">pvc2.resolve2</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L334"><i>src</i></a>)</h3>
-resolve two branches, such as for diff or patch. Defaults:<ul>
+<h3>Function <a id="pvc2.resolve2" href="#pvc2.resolve2">pvc2.resolve2</a><code>(pdir, br1, br2) -&gt; branch1/ branch2/</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L434"><i>src</i></a>)</h3>
+resolve two branches into their branch directories. Defaults:<ul>
 <li>br1 = 'at'</li>
 <li>br2 = 'local'</li>
 </ul>
-<h3>Function <a id="pvc2.rpatch" href="#pvc2.rpatch">pvc2.rpatch</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L116"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc2.rpatch" href="#pvc2.rpatch">pvc2.rpatch</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L136"><i>src</i></a>)</h3>
 reverse patch, applying diff to dir
-<h3>Function <a id="pvc2.snapDir" href="#pvc2.snapDir">pvc2.snapDir</a><code>(bpath, id) -&gt; string?</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L215"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc2.snapDir" href="#pvc2.snapDir">pvc2.snapDir</a><code>(bpath, id) -&gt; string?</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L246"><i>src</i></a>)</h3>
 Get the snap/ path regardless of whether it exists
-<h3>Function <a id="pvc2.snapshot" href="#pvc2.snapshot">pvc2.snapshot</a><code>(bpath, id, tip) -&gt; .../id.snap/</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L275"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc2.snapshot" href="#pvc2.snapshot">pvc2.snapshot</a><code>(pdir, br,id) -&gt; .../id.snap/</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L310"><i>src</i></a>)</h3>
 Snapshot the branch#id by applying patches.
 Return the snapshot directory
-<h3>Function <a id="pvc2.tip" href="#pvc2.tip">pvc2.tip</a><code>(bpath) -&gt; readInt(bpath..'tip')</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L197"><i>src</i></a>)</h3>
+<p>
+<h2>Module <a id="pvc.main" href="#pvc.main">pvc.main</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L627"><i>src</i></a>)</h2>
+<p>
+<h4>Value <a id="pvc.main.__name" href="#pvc.main.__name">pvc.main.__name</a></h4>
+<h3>Function <a id="pvc.main.at" href="#pvc.main.at">pvc.main.at</a><code>(args) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L665"><i>src</i></a>)</h3>
+<code>at [branch]</code>: if <code>branch</code> is empty then return the active
+<code>branch#id</code>.
+<p>
+If <code>branch</code> is set then this sets the active <code>branch#id</code>, causing the
+local directory to be updated (default id=tip).
+<blockquote>git equivalent: <code>checkout</code></blockquote>
+<h3>Function <a id="pvc.main.branch" href="#pvc.main.branch">pvc.main.branch</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L737"><i>src</i></a>)</h3>
+<code>branch name [from]</code>: start a new branch of name <code>name</code>. The optional
+<code>from</code> (default=<code>at</code>) argument can specify a local <code>branch#id</code> or an
+(external) <code>path/to/dir</code> to graft onto the pvc tree.
+<p>
+<blockquote>the <code>from/dir</code> is commonly used by maintainers to accept patches from
+contributors.
+</blockquote>
+<h3>Function <a id="pvc.main.commit" href="#pvc.main.commit">pvc.main.commit</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L718"><i>src</i></a>)</h3>
+<code>commit</code>: add changes to the current branch as a patch and move <code>at</code>
+forward. The commit message can be written to the COMMIT file or be
+specified after the <code>--</code> argument.
+<h3>Function <a id="pvc.main.diff" href="#pvc.main.diff">pvc.main.diff</a><code>(args) -&gt; Diff</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L713"><i>src</i></a>)</h3>
+<code>diff branch1 branch2 --full</code>: get the difference (aka the patch) between
+<code>branch1</code> (default=<code>at</code>) and <code>branch2</code> (default=local). Each value can be
+either a branch name or a directory which contains a <code>.pvcpaths</code> file.
+<p>
+<h3>Function <a id="pvc.main.export" href="#pvc.main.export">pvc.main.export</a><code>(args) -&gt; to</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L763"><i>src</i></a>)</h3>
+<code>export branch to/</code>: copy all patch files in the branch to <code>to/</code>.
+<p>
+<blockquote>the resulting directory is commonly sent to <code>tar -zcvf branch.tar.gz path/</code>
+and then <code>branch.tar.gz</code> sent to a maintainer to be merged
+</blockquote>
+<h3>Function <a id="pvc.main.help" href="#pvc.main.help">pvc.main.help</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L630"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc.main.init" href="#pvc.main.init">pvc.main.init</a><code>(args) -&gt; nil</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L635"><i>src</i></a>)</h3>
+<code>init dir</code>: initialize the <code>dir</code> (default=CWD) for PVC.
+<h3>Function <a id="pvc.main.prune" href="#pvc.main.prune">pvc.main.prune</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L790"><i>src</i></a>)</h3>
+<code>prune branch [id]</code> delete branch by moving it to backup directory.
+<h3>Function <a id="pvc.main.rebase" href="#pvc.main.rebase">pvc.main.rebase</a><code>(args) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L652"><i>src</i></a>)</h3>
+<code>rebase [branch [id]]</code>: change the base of branch to id.
+(default branch=current, id=branch base's tip)
+<h3>Function <a id="pvc.main.tip" href="#pvc.main.tip">pvc.main.tip</a><code>(args) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L643"><i>src</i></a>)</h3>
+<code>tip [branch]</code>: get the highest branch#id for branch (default=at).
 <h2>Module <a id="pvc.unix" href="#pvc.unix">pvc.unix</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc/unix.lua#L6"><i>src</i></a>)</h2>
 <p>
 <h4>Value <a id="pvc.unix.__name" href="#pvc.unix.__name">pvc.unix.__name</a></h4>
-<h3>Function <a id="pvc.unix.diff" href="#pvc.unix.diff">pvc.unix.diff</a><code>(a,al, b,bl) -&gt; string?</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc/unix.lua#L28"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc.unix.diff" href="#pvc.unix.diff">pvc.unix.diff</a><code>(a,al, b,bl) -&gt; string?</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc/unix.lua#L37"><i>src</i></a>)</h3>
 Get the unified diff using unix <code>diff --unified=1</code>,
 properly handling file creation/deleting
 the <code>l</code> variables are the "label" to use.
 when the coresponding value is nil then the label is <code>/dev/null</code>
-<h3>Function <a id="pvc.unix.merge" href="#pvc.unix.merge">pvc.unix.merge</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc/unix.lua#L51"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc.unix.merge" href="#pvc.unix.merge">pvc.unix.merge</a><code>(to, base, change) -&gt; ok, err</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc/unix.lua#L68"><i>src</i></a>)</h3>
 incorporate all changes that went into going from base to change into to
-<h3>Function <a id="pvc.unix.patch" href="#pvc.unix.patch">pvc.unix.patch</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc/unix.lua#L39"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc.unix.patch" href="#pvc.unix.patch">pvc.unix.patch</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc/unix.lua#L49"><i>src</i></a>)</h3>
 forward patch
-<h3>Function <a id="pvc.unix.rpatch" href="#pvc.unix.rpatch">pvc.unix.rpatch</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc/unix.lua#L46"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc.unix.rpatch" href="#pvc.unix.rpatch">pvc.unix.rpatch</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc/unix.lua#L57"><i>src</i></a>)</h3>
 reverse patch
 <p>
 <h1><a id="Package_ele" href="#Package_ele">Package ele</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele"><i>src</i></a>)</h1><table>

@@ -12,6 +12,12 @@ local push = table.insert
 local trace = require'ds.log'.trace
 local NULL = '/dev/null'
 
+local EMPTY_DIFF = [[
+--- %s
++++ %s
+@@ -0,0 +0,0 @@
+]]
+
 --- Get the unified diff using unix [$diff --unified=1],
 --- properly handling file creation/deleting
 --- the [$l] variables are the "label" to use.
@@ -22,24 +28,29 @@ M.diff = function(a,al, b,bl) --> string?
   local o, e, sh = ix.sh{
     'diff', '-N', a, '--label='..al, b, '--label='..bl,
     unified='0', stderr=io.stderr, rc=true}
+  trace('diff rc=%i', sh:rc())
   if sh:rc() > 1 then error('diff failed:\n'..e) end
-  if sh:rc() == 1 then return o end
-  assert(o == '')
+  if sh:rc() == 1 then
+    return o
+  end
+  return EMPTY_DIFF:format(al, bl)
 end
 
 local patchArgs = function(cwd, path)
-  return {'patch', '-fu', input=pth.abs(path), CWD=cwd}
+  return {'patch', '-p0', '-fu', input=pth.abs(path), CWD=cwd}
 end
 
 --- forward patch
 M.patch = function(cwd, path)
+  cwd = pth.toDir(cwd)
   local args = patchArgs(cwd, path); push(args, '-N')
   trace('sh%q', args)
-  return ix.sh(args)
+  return ix.sh(args) or ''
 end
 
 --- reverse patch
 M.rpatch = function(cwd, path)
+  cwd = pth.toDir(cwd)
   local args = patchArgs(cwd, path); push(args, '-R')
   trace('sh%q', args)
   return ix.sh(args)

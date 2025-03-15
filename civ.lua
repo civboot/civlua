@@ -18,7 +18,10 @@ M.Fmt = function(t)
   return acs.Fmt(t)
 end
 
-M.setupFmt = function(to) io.fmt = M.Fmt{to=to} end
+M.setupFmt = function(to, user)
+  io.fmt  = M.Fmt{to=to}
+  io.user = M.Fmt{to=user or io.stdout}
+end
 
 M.main = function(arg) --> int: return code
   M.setupFmt()

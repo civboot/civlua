@@ -46,7 +46,7 @@ Builtin cmds:[+
   ]
 
 * [$prune branch id]: remove a branch by moving it to a backup
-    directory. If an id is given then instead move ids from [id,tip]
+    directory. If an id is given then instead move ids from [$[id,tip]]
     (inclusive) to a backup.
 ]
 

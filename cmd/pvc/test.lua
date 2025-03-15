@@ -23,7 +23,7 @@ end
 
 local HELLO_PATCH1 = [[
 --- /dev/null
-+++ hello.lua
++++ hello/hello.lua
 @@ -0,0 +1,5 @@
 +local M = {}
 +
@@ -64,29 +64,31 @@ T.workflow = function()
   })
 
   -- copy some files and add them
-  ix.cp(TD..'story.txt.1', D..'story.txt')
-  ix.cp(TD..'hello.lua.1', D..'hello.lua')
+  ix.cp(TD..'story.txt.1',      D..'story.txt')
+  ix.forceCp(TD..'hello.lua.1', D..'hello/hello.lua')
 
   pth.append(D..'.pvcpaths', 'story.txt')
-  pth.append(D..'.pvcpaths', 'hello.lua')
-  T.path(D..'.pvcpaths', '.pvcpaths\nstory.txt\nhello.lua\n')
+  pth.append(D..'.pvcpaths', 'hello/hello.lua')
+  T.path(D..'.pvcpaths', '.pvcpaths\nstory.txt\nhello/hello.lua\n')
   T.eq(pvc.Diff{
     dir1=D..'.pvc/main/patch/00/0.snap/', dir2=D,
     equal={}, deleted={},
-    changed={'.pvcpaths'}, created={'hello.lua', 'story.txt'},
+    changed={'.pvcpaths'}, created={'hello/hello.lua', 'story.txt'},
   }, pvc.diff(D))
 
   local DIFF1 = s[[
   --- .pvcpaths
   +++ .pvcpaths
   @@ -1,0 +2,2 @@
-  +hello.lua
+  +hello/hello.lua
   +story.txt
 
   ]]
   ..HELLO_PATCH1
   ..'\n'
   ..STORY_PATCH1;
+  print('!! DIFF1')
+  print(DIFF1)
 
   local br, id = pvc.commit(D)
   T.path(pvc.patchPath(Bm, id, '.p'), DIFF1)
@@ -95,27 +97,27 @@ T.workflow = function()
   local HELLO1 = pth.read(TD..'hello.lua.1')
 
   T.path(D, {
-    ['.pvcpaths'] = '.pvcpaths\nhello.lua\nstory.txt\n',
-    ['story.txt'] = STORY1, ['hello.lua'] = HELLO1,
+    ['.pvcpaths'] = '.pvcpaths\nhello/hello.lua\nstory.txt\n',
+    ['story.txt'] = STORY1, hello = {['hello.lua'] = HELLO1},
     ['.pvc'] = { at = 'main#1' }
   })
   T.path(Bm, { tip = '1' })
   T.eq({'main', 1}, {pvc.at(D)})
   T.eq(pvc.Diff{
     dir1=D..'.pvc/main/patch/00/1.snap/', dir2=D,
-    equal={'.pvcpaths', 'hello.lua', 'story.txt'},
+    equal={'.pvcpaths', 'hello/hello.lua', 'story.txt'},
     deleted={}, changed={}, created={},
   }, pvc.diff(D))
 
   -- go backwards
   pvc.at(D, 'main', 0)
   assert(not ix.exists(D..'story.txt'))
-  assert(not ix.exists(D..'hello.lua'))
+  assert(not ix.exists(D..'hello/hello.lua'))
   T.path(D..'.pvcpaths', '.pvcpaths\n')
   T.eq(pvc.Diff{
     dir1=D..'.pvc/main/patch/00/1.snap/', dir2=D,
     equal={},
-    deleted={'hello.lua', 'story.txt'},
+    deleted={'hello/hello.lua', 'story.txt'},
     changed={'.pvcpaths'},
     created={},
   }, pvc.diff(D, 'main#1'))
@@ -127,8 +129,8 @@ T.workflow = function()
   -- go forwards
   pvc.at(D, 'main', 1)
   local EXPECT1 = {
-    ['.pvcpaths'] = '.pvcpaths\nhello.lua\nstory.txt\n',
-    ['story.txt'] = STORY1, ['hello.lua'] = HELLO1,
+    ['.pvcpaths'] = '.pvcpaths\nhello/hello.lua\nstory.txt\n',
+    ['story.txt'] = STORY1, hello = { ['hello.lua'] = HELLO1 },
   }
   T.path(D, EXPECT1)
 
@@ -136,8 +138,8 @@ T.workflow = function()
   local EXPECT2 = ds.copy(EXPECT1)
   local STORY2 = pth.read(TD..'story.txt.2')
   pth.write(D..'story.txt', STORY2); EXPECT2['story.txt'] = STORY2
-  ix.rm(D..'hello.lua');             EXPECT2['hello.lua'] = nil
-  pvc.pathsUpdate(D, nil, --[[rm=]]{'hello.lua'})
+  ix.rmRecursive(D..'hello/');       EXPECT2.hello = nil
+  pvc.pathsUpdate(D, nil, --[[rm=]]{'hello/hello.lua'})
   EXPECT2[pvc.PVCPATHS] = '.pvcpaths\nstory.txt\n'
   T.path(D, EXPECT2)
 
@@ -197,5 +199,4 @@ T.workflow = function()
   pvc.at(D, 'dev',4);
   -- dev4 has main3's changes.
   T.path(D..'story.txt', STORY3d:gsub('unhappy', 'happy'))
-
 end
