@@ -573,12 +573,12 @@ M.rebase = function(pdir, branch, id)
     tsnap = M.snapDir(tpath, ttip); ix.mkDirs(tsnap)
     cpPaths(M.snapshot(pdir, bbr,id), tsnap)
   end
-  local bsnap = M.snapshot(pdir, bbr,bid)
   local tid = id + 1
   local tprev = M.snapshot(pdir, bbr,id) -- hard-code first prev
 
   while cid <= ctip do
     assert(tid <= ttip)
+    local bsnap = M.snapshot(pdir, cbr,bid)
     pth.write(tpath..'rebase', tostring(cid))
     M.merge(tsnap, bsnap, M.snapshot(pdir, cbr,cid))
     -- TODO(commit): preserve description
@@ -587,7 +587,7 @@ M.rebase = function(pdir, branch, id)
     trace('writing patch %s', tpatch)
     ix.forceWrite(tpatch, M.Diff:of(tprev, tsnap):patch())
     tprev = nil
-    cid, tid = cid + 1, tid + 1
+    bid, cid, tid = bid + 1, cid + 1, tid + 1
   end
 
   local backup = M.createBackup(pdir, cbr)
@@ -595,7 +595,9 @@ M.rebase = function(pdir, branch, id)
   io.fmt:styled('notify',
     sfmt('pvc: rebase %s to %s#%s done. Backup at %s', cbr, bbr, id, backup),
     '\n')
-  ix.mv(tpath, cpath); ix.rm(cpath..'op')
+  M.rawtip(tpath, ttip)
+  ix.rm(tpath..'op'); ix.rm(tpath..'rebase')
+  ix.mv(tpath, cpath)
   M.at(pdir, cbr,ttip)
 end
 
