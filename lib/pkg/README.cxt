@@ -21,14 +21,13 @@ Why: [+
 
 
 [{h3 name=pkg-install}Installation]
-In your [$~/.bashrc] or equiavalent add:
-```
+In your [$~/.bashrc] or equiavalent add: [{## lang=sh}
 LUA_PATH="path/to/civlua/lib/pkg/?.lua;..."
 LUA_PKGS="path/to/civlua;path/to/other/pkg;..."
-```
+]##
 
 You can get an interactive lua prompt with
-[$lua -e \"require'pkglib'.install()\"; G.MAIN = {}" -i]
+[$lua -e \"require'pkglib'()\"; G.MAIN = {}" -i]
 (Note: however, you must use [$G.foo] for setting globals, so you may want to
 do it slightly different for the shell)
 

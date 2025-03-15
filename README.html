@@ -2306,7 +2306,7 @@ pod: plain old data
 </table>
 <h4>Value <a id="pod.__name" href="#pod.__name">pod.__name</a></h4>
 <h3>Table <a id="pod.boolean" href="#pod.boolean">pod.boolean</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
-<h3>Table <a id="pod.int" href="#pod.int">pod.int</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
+<h3>Table <a id="pod.integer" href="#pod.integer">pod.integer</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.nil" href="#pod.nil">pod.nil</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.number" href="#pod.number">pod.number</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.str" href="#pod.str">pod.str</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
@@ -8760,14 +8760,11 @@ rockspec using <code>./civ.lua pkgrock --help</code></blockquote>
 <p>
 <p>
 <h3><a id="pkg-install" href="#pkg-install">Installation</h3></a>
-In your <code>~/.bashrc</code> or equiavalent add:
-```
-LUA_PATH="path/to/civlua/lib/pkg/?.lua;..."
-LUA_PKGS="path/to/civlua;path/to/other/pkg;..."
-```
+In your <code>~/.bashrc</code> or equiavalent add: <code class="block">LUA_PATH="path/to/civlua/lib/pkg/?.lua;..."
+LUA_PKGS="path/to/civlua;path/to/other/pkg;..."</code>
 <p>
 You can get an interactive lua prompt with
-<code>lua -e \"require'pkglib'.install()\"; G.MAIN = {}" -i</code>
+<code>lua -e \"require'pkglib'()\"; G.MAIN = {}" -i</code>
 (Note: however, you must use <code>G.foo</code> for setting globals, so you may want to
 do it slightly different for the shell)
 <p>
