@@ -93,7 +93,11 @@ T.workflow = function()
   print(DIFF1)
 
   local br, id = pvc.commit(D, 'desc1')
-  T.path(pvc.patchPath(Bm, id, '.p'), DIFF1)
+  local p1 = pvc.patchPath(Bm, id, '.p')
+  T.path(p1, DIFF1)
+  T.eq({'desc1'}, pvc.desc(p1))
+  pvc.main.desc{'--', 'desc1 - edited', dir=D}
+  T.eq({'desc1 - edited'}, pvc.desc(p1))
 
   local STORY1 = pth.read(TD..'story.txt.1')
   local HELLO1 = pth.read(TD..'hello.lua.1')
@@ -200,11 +204,25 @@ T.workflow = function()
   T.path(Bd..'patch/00/5.snap/', EXPECT5)
   pvc.at(D, 'main',3); T.path(D, EXPECT3m)
   pvc.at(D, 'dev',4);
+
   -- dev4 has main3's changes.
-  T.path(D..'story.txt', STORY3d:gsub('unhappy', 'happy'))
+  local EXPECT4 = ds.copy(EXPECT3d, {
+    ['story.txt'] = STORY3d:gsub('unhappy', 'happy'),
+  })
+  T.path(D, EXPECT4)
 
   pvc.grow(D, 'main', 'dev')
   T.eq(5, pvc.rawtip(Bm))
-  T.path(pvc.snapshot(D, 'main', 5), EXPECT5)
+  T.eq({'main', 5}, {pvc.at(D)})
   assert(not ix.exists(Bd))
+  T.path(pvc.snapshot(D, 'main', 5), EXPECT5)
+  T.path(pvc.snapshot(D, 'main', 4), EXPECT4)
+
+  -- Squash main commit and first dev commit
+  pvc.squash(D, 'main', 3,4)
+  T.path(pvc.snapshot(D, 'main', 2), EXPECT2)
+  T.path(pvc.snapshot(D, 'main', 3), EXPECT4)
+  pvc.at(D, 'main',2); T.path(D, EXPECT2)
+  pvc.at(D, 'main',3); T.path(D, EXPECT4)
+  pvc.at(D, 'main',4); T.path(D, EXPECT5)
 end

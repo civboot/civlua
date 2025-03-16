@@ -415,16 +415,22 @@ end
 --- resolve a branch name. It can be one of: [+
 --- * A directory with [$/] in it.
 --- * [$branch] or [$branch#id]
---- * Special: local, at
+--- * Special: at
 --- ]
-M.resolve = function(pdir, branch) --> directory/
-  if branch:find'/' then return branch end -- directory
+M.resolve = function(P, branch) --> br, id, bpath
   local br, id = M.parseBranch(branch)
   if not br then error('unknown branch: '..branch) end
-  if br == 'local' then return pdir end
-  if br == 'at'  then br, id = M.rawat(pdir) end
-  local bpath = M.branchPath(pdir, br)
-  return M.snapshot(pdir, br, id or M.rawtip(bpath))
+  if br == 'local' then error('local not valid here') end
+  if br == 'at'  then br, id = M.rawat(P) end
+  return br, id, M.branchPath(P, br)
+end
+
+--- resolve and take snapshot, permits local
+M.resolveSnap = function(pdir, branch) --> snap/, br, id, bpath
+  if branch:find'/' then return branch end -- directory
+  if branch == 'local' then return pdir end
+  local br, id, bdir = M.resolve(pdir, branch)
+  return M.snapshot(pdir, br, id or M.rawtip(bdir)), br, id, bdir
 end
 
 --- resolve two branches into their branch directories. Defaults:[+
@@ -432,8 +438,8 @@ end
 --- * br2 = 'local'
 --- ]
 M.resolve2 = function(pdir, br1, br2) --> branch1/ branch2/
-  return  M.resolve(pdir, br1 or 'at'),
-          M.resolve(pdir, br2 or 'local')
+  return  M.resolveSnap(pdir, br1 or 'at'),
+          M.resolveSnap(pdir, br2 or 'local')
 end
 
 M.diff = function(pdir, branch1, branch2) --> Diff
@@ -457,15 +463,19 @@ M.patch = function(pdir, br1, br2) --> string, s1, s2
   return M.Diff:of(M.resolve2(pdir, br1, br2)):patch()
 end
 
+
+local isPatchLike = function(line)
+  return line:sub(1,3) == '---'
+      or line:sub(1,3) == '+++'
+      or line:sub(1,2) == '!!'
+end
 M.commit = function(pdir, desc) --> snap/, id
   assert(desc, 'commit must provide description')
-  if   desc:sub(1,3) == '---' or desc:find('\n---', 1, true)
-    or desc:sub(1,3) == '+++' or desc:find('\n+++', 1, true)
-    or desc:sub(1,2) == '!!'  or desc:find('\n!!',  1, true)
-    then error(
+  for _, line in ds.split(desc, '\n') do
+    assert(not isPatchLike(line),
       "commit message cannot have any of the following"
-    .." at the start of a line: +++, ---, !!"
-  )end
+    .." at the start of a line: +++, ---, !!")
+  end
 
   local br, id = M.rawat(pdir)
   local bp, cid = M.branchPath(pdir, br), id+1
@@ -667,6 +677,8 @@ M.grow = function(P, to, from) --!!>
   if ftip == bid then error(sfmt(
     "rebase not required: %s base is equal to it's tip (%s)", fbr, bid
   ))end
+  M.at(P, tbr,ttip)
+  if M.diff(P):hasDiff() then error'local changes detected' end
   -- TODO(sig): check signature
   for id=bid+1, M.rawtip(fdir) do
     local tpath = M.patchPath(tdir, id, '.p')
@@ -677,12 +689,72 @@ M.grow = function(P, to, from) --!!>
   end
   M.rawtip(tdir, ftip)
   local back = M.backupDir(P, fbr)
-  assert(not ix.exists(back), 'WHAT: '..back)
   io.fmt:styled('notify',
     sfmt('deleting %s (mv %s -> %s)', fbr, fdir, back), '\n')
   ix.mv(fdir, back)
   io.fmt:styled('notify', sfmt('grew %s tip to %s', tbr, ftip), '\n')
-  if not to then M.at(to, ftip) end
+  M.at(P, to,ftip)
+end
+
+--- return the description of ppath
+M.desc = function(ppath, num) --> {string}
+  local desc = {}
+  for line in io.lines(ppath) do
+    if line:sub(1,2) == '!!' or line:sub(1,3) == '---'
+      then break end
+    push(desc, line); if num and #desc >= num then break end
+  end
+  return desc
+end
+
+--- squash num commits together before br#id.
+M.squash = function(P, br, bot,top)
+  trace('squash %s [%s %s]', br, bot,top)
+  assert(br and bot and top, 'must set all args')
+  assert(top > 0)
+  if top - bot <= 0 then
+    io.fmt:notify('error', 'squashing ids [%s - %s] is a noop', bot, top)
+    return
+  end
+  local bdir = M.branchPath(P, br)
+  local tip, bbr, bid = M.rawtip(bdir), M.getbase(P, br)
+  if bot <= bid  then error(sfmt('bottom %i <= base id %s', top, bid)) end
+  if top  >  tip then error(sfmt('top %i > tip %i', top, tip)) end
+  M.at(P, br,top)
+  local back = M.backupDir(P, br..'-squash'); ix.mkDir(back)
+  local desc = {}
+  local last = M.patchPath(bdir, tip, '.p')
+  if not ix.exists(last) then error(last..' does not exist') end
+
+  local patch = M.Diff:of(M.snapshot(P, br,bot-1), M.snapshot(P, br,top))
+    :patch()
+  for i=bot,top do
+    local path = M.patchPath(bdir, i, '.p')
+    ds.extend(desc, M.desc(path))
+    local bpatch = back..i..'.p'
+    ix.mv(path, bpatch)
+    io.fmt:styled('notify', sfmt('mv %s %s', path, bpatch), '\n')
+    ix.rmRecursive(M.snapDir(bdir, i))
+  end
+  local f = io.open(M.patchPath(bdir, top, '.p'), 'w')
+  for _, line in ipairs(desc) do f:write(line, '\n') end
+  f:write(patch); f:flush(); f:close()
+
+  ix.rmRecursive(M.snapDir(bdir, bot))
+  local bi = bot + 1
+  for i=top+1, tip do
+    ix.rmRecursive(M.snapDir(bdir, i))
+    local bpat = M.patchPath(bdir, bi, '.p')
+    local tpat = M.patchPath(bdir, i, '.p')
+    io.fmt:styled('notify', sfmt('mv %s %s', tpat, bpat), '\n')
+    ix.mv(tpat, bpat)
+    bi = bi + 1
+  end
+  local ppath = M.patchPath(bdir, bot, '.p')
+  pth.write(ppath, patch)
+  M.rawat(P, br,bot)
+  io.fmt:styled('notify',
+    sfmt('squashed [%s - %s] into %s', bot, top, ppath), '\n')
 end
 
 local popdir = function(args)
@@ -854,7 +926,7 @@ M.main.prune = function(args)
   local br = assert(args[1], 'must specify branch')
   local bdir = M.branchPath(D, br)
   assert(ix.exists(bdir), bdir..' does not exist')
-  local back = M.createBackup(D, br)
+  local back = M.backupDir(D, br); ix.mkDir(back)
   local id = args[2]
   if id then
     id = toint(id); local tip = M.rawtip(bdir)
@@ -875,6 +947,14 @@ M.main.prune = function(args)
   end
 end
 
+--- [$pvc show [branch#id] --num=10 --full]
+---
+--- If no branch is specified: show branches. [$full] also displays
+--- the base and tip.
+---
+--- Else show branch#id and the previous [$num] commit messages.
+--- With [$full] show the full commit message, else show only
+--- the first line.
 M.main.show = function(args)
   local D = popdir(args)
   local full = args.full
@@ -902,18 +982,57 @@ M.main.show = function(args)
       bbr, bid = M.getbase(dir)
     end
     local ppath = M.patchPath(dir, i, '.p')
-    local desc = {}
-    for line in io.lines(ppath) do
-      if line:sub(1,2) == '!!' or line:sub(1,3) == '---'
-        then break end
-      push(desc, line); if not full then break end
-    end
+    local desc = M.desc(ppath, not full and 1 or nil)
     io.user:styled('notify', sfmt('%s#%s:', br,i), '')
     io.user:level(1)
     io.user:write(full and '\n' or ' ', concat(desc, '\n'))
     io.user:level(-1)
     io.user:write'\n'
   end
+end
+
+
+--- [$pvc desc branch [$path/to/new]]
+--- get or set the description for a single branch id.
+--- The default branch is [$at].
+---
+--- The new description can be passed via [$path/to/new] or
+--- after [$--] (like commit).
+M.main.desc = function(args)
+  local P = popdir(args)
+  local br, id, bdir = M.resolve(P,
+    args[1] == '--' and 'at' or args[1] or 'at')
+  local desc = shim.popRaw(args) or lines.load(args[2])
+  local oldp = M.patchPath(bdir, id, '.p')
+  if not desc then
+    return print(concat(M.desc(oldp), '\n'))
+  end
+  local newp = sconcat('', bdir, tostring(id), '.p')
+  local n = io.open(newp, 'w')
+  for _, line in ipairs(desc) do n:write(line, '\n') end
+  local o = io.open(oldp, 'r')
+  for line in o:lines() do
+    if isPatchLike(line) then n:write(line, '\n'); break end
+  end
+  for line in o:lines() do n:write(line, '\n') end
+  local back = M.backupDir(P, sfmt('%s#%s', br, id)); ix.mkDir(back)
+  back = back..id..'.p'
+  ix.mv(oldp, back)
+  io.fmt:styled('notify', sfmt('moved %s -> %s', oldp, back), '\n')
+  ix.mv(newp, oldp)
+  io.fmt:styled('notify', 'updated desc of '..oldp, '\n')
+end
+
+--- [$pvc squash [branch#id endId]]
+--- squash branch id -> endId (inclusive) into a single patch at [$id].
+---
+--- You can then edit the description by using [$pvc desc branch#id].
+M.main.squash = function(args)
+  trace('squash%q', args)
+  local P = popdir(args)
+  local br,bot = M.resolve(P, assert(args[1], 'must set branch#id (aka "at")'))
+  local top = toint(assert(args[2], 'must set endId'))
+  M.squash(P, br, bot,top)
 end
 
 getmetatable(M.main).__call = function(_, args)
