@@ -11,9 +11,6 @@ Builtin cmds:[+
 
 * [$tip [branch]]: get the highest id for branch (default=current).
 
-* [$rebase [branch [id]]]: change the base of branch to id.
-  (default branch=current, id=branch base's tip)
-
 * [$at [branch]]: if [$branch] is empty then return the active
   [$branch#id].
 
@@ -37,6 +34,14 @@ Builtin cmds:[+
     contributors.
   ]
 
+* [$rebase [branch [id]]]: change the base of branch to id.
+  (default branch=current, id=branch base's tip)
+
+* [$grow from]: copy the commits at [$from] onto current branch.
+  The base of [$from] must be the current branch's tip.
+  Then move the branch to backup.
+  ["in git this is a "fast forward" merge]
+
 * [$export path/ [branch]]: copy all patch files in the branch directory to
   [$path/]. If an [$#id] is specified then it is used as the maximum id
   (defaults: branch=current, id=tip)
@@ -49,6 +54,41 @@ Builtin cmds:[+
     directory. If an id is given then instead move ids from [$[id,tip]]
     (inclusive) to a backup.
 ]
+
+[{h2}Usage]
+First install [@Package_civ], then run pvc in bash with [$civ.lua pvc <cmd>].
+
+To track an existing directory:[+
+* [$cd path/to/dir] to navigate to the directory
+* [$pvc init] to initialize pvc
+* [$pvc diff] prints the diff of local changes to stderr and untracked files
+  (that are not matched in [$.pvcignore] to stdout. Edit [$.pvcignore]
+  with appropriate entries (see [@pvcignore]) to ignore paths you don't
+  want tracked until [$pvc diff] shows only files you want tracked.
+
+  When ready, running [$pvc diff >> .pvcpaths] in bash will track all untracked
+  files.
+  ["Alternatively, manually add files to [$.pvcpaths]]
+* [$pvc commit -- initial pvc commit] will commit your changes to
+  [$.pvc/main/patch/.../1.p].
+]
+
+[{:h3}pvcignore]
+The [$.pvcignore] file should contain a line-separated list of lua patterns
+([@lua.find]) that should be ignored. Items ending in [$/] will apply to
+whole directories. A common pvc ignore file might look like:
+
+[##
+# directories
+%.git/
+%.out/
+
+# extensions
+%.so$
+
+# specific files
+%./path/to/some_file
+]##
 
 [{h2}Basic Architecture]
 

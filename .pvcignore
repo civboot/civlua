@@ -3,6 +3,7 @@
 %.out/
 bin/
 experiment/
+cmd/pvc/testdata/0.snap/
 
 # extensions
 %.rock$

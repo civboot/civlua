@@ -77,6 +77,7 @@ T.workflow = function()
   }, pvc.diff(D))
 
   local DIFF1 = s[[
+  desc1
   --- .pvcpaths
   +++ .pvcpaths
   @@ -1,0 +2,2 @@
@@ -90,7 +91,7 @@ T.workflow = function()
   print('!! DIFF1')
   print(DIFF1)
 
-  local br, id = pvc.commit(D)
+  local br, id = pvc.commit(D, 'desc1')
   T.path(pvc.patchPath(Bm, id, '.p'), DIFF1)
 
   local STORY1 = pth.read(TD..'story.txt.1')
@@ -123,7 +124,7 @@ T.workflow = function()
   }, pvc.diff(D, 'main#1'))
 
   T.throws('ERROR: working id is not at tip.', function()
-    pvc.commit(D)
+    pvc.commit(D, 'desc error')
   end)
 
   -- go forwards
@@ -143,7 +144,7 @@ T.workflow = function()
   EXPECT2[pvc.PVCPATHS] = '.pvcpaths\nstory.txt\n'
   T.path(D, EXPECT2)
 
-  pvc.commit(D)
+  pvc.commit(D, 'desc2')
   T.path(Bm, { tip = '2' }); T.eq({'main', 2}, {pvc.at(D)})
   T.path(D, EXPECT2); T.path(Bm..'patch/00/2.snap/', EXPECT2)
 
@@ -157,7 +158,7 @@ T.workflow = function()
   T.path(D, EXPECT2);
   T.eq(Bm..'patch/00/2.snap/', pvc.snapshot(D, 'dev', 2))
   pth.write(D..'story.txt', STORY3d); T.path(D, EXPECT3d)
-  pvc.commit(D)
+  pvc.commit(D, 'desc3d')
   T.path(Bd, { tip = '3' }); T.eq({'dev', 3}, {pvc.at(D)})
   T.eq({'main', 2}, {pvc.getbase(Bd, 'dev')})
 
@@ -166,7 +167,7 @@ T.workflow = function()
   local EXPECT4d = ds.copy(EXPECT3d, {
     ['story.txt'] = STORY4d
   })
-  pvc.commit(D)
+  pvc.commit(D, 'desc4d')
 
   pvc.at(D, 'main',2)
   T.path(Bm, { tip = '2' }); T.eq({'main', 2}, {pvc.at(D)})
@@ -177,7 +178,7 @@ T.workflow = function()
   local EXPECT3m = ds.copy(EXPECT2, {['story.txt'] = STORY3m})
 
   pth.write(D..'story.txt', STORY3m); T.path(D, EXPECT3m)
-  pvc.commit(D)
+  pvc.commit(D, 'desc3')
 
   -- just test checkout a few times
   pvc.at(D, 'dev',3);  T.path(D, EXPECT3d)
@@ -199,4 +200,9 @@ T.workflow = function()
   pvc.at(D, 'dev',4);
   -- dev4 has main3's changes.
   T.path(D..'story.txt', STORY3d:gsub('unhappy', 'happy'))
+
+  pvc.grow(D, 'main', 'dev')
+  T.eq(5, pvc.rawtip(Bm))
+  T.path(pvc.snapshot(D, 'main', 5), EXPECT5)
+  assert(not ix.exists(Bd))
 end

@@ -40,7 +40,7 @@ M.INIT_PATCH = [[
 local toint = math.tointeger
 
 --- this exists for tests to override
-M.backupId = function() return toint(ix.epoch().s) end
+M.backupId = function() return tostring(ix.epoch():asSeconds()) end
 
 --- reserved branch names
 M.RESERVED_NAMES = { ['local']=1, at=1, tip=1, }
@@ -153,6 +153,7 @@ M.Diff = mty'Diff' {
   'deleted [list]',
   'created [list]',
 }
+
 M.Diff.of = function(T, d1, d2)
   local peq = ix.pathEq
   local t = (type(d1) == 'table') and d1 or {dir1=d1, dir2=d2}
@@ -172,6 +173,10 @@ M.Diff.of = function(T, d1, d2)
   return t
 end
 
+M.Diff.hasDiff = function(d)
+  return (#d.changed > 0) or (#d.deleted > 0) or (#d.created > 0)
+end
+
 M.Diff.format = function(d, fmt, full)
   local function s(...) return fmt:styled(...) end
   if full then
@@ -183,9 +188,7 @@ M.Diff.format = function(d, fmt, full)
       else fmt:write(line, '\n') end
     end
   else
-    if (#d.changed == 0) and (#d.deleted == 0) and (#d.created == 0) then
-      return s('bold', 'No Difference')
-    end
+    if not d:hasDiff() then return s('bold', 'No Difference') end
     s('bold', 'Diff:', ' ', d.dir1, ' --> ', d.dir2, '\n')
     for _,path in ipairs(d.deleted) do s('base',   '-'..path, '\n') end
     for _,path in ipairs(d.created) do s('change', '+'..path, '\n') end
@@ -358,9 +361,9 @@ M.at = function(pdir, nbr,nid) --!!> branch?, id?
     end
     -- else local path changed
     if ix.pathEq(csnap..path, nsnap..path) then
-      io.user:styled('meta',  sfmt('keeping changed %s', path), '\n')
+      io.fmt:styled('meta',  sfmt('keeping changed %s', path), '\n')
     else
-      io.user:styled('error', sfmt('path %s changed',    path), '\n')
+      io.fmt:styled('error', sfmt('path %s changed',    path), '\n')
       ok = false
     end
     ::cont::
@@ -393,7 +396,7 @@ M.at = function(pdir, nbr,nid) --!!> branch?, id?
     ix.rmRecursive(pdir..path)
   end
   M.rawat(pdir, nbr,nid)
-  io.user:styled('notify', sfmt('pvc: at %s#%s', nbr,nid), '\n')
+  io.fmt:styled('notify', sfmt('pvc: at %s#%s', nbr,nid), '\n')
 end
 
 --- update paths file (path) with the added and removed items
@@ -446,7 +449,7 @@ M.init = function(pdir, branch)
   pth.write(pdir..M.PVCPATHS, M.INIT_PVCPATHS)
   pth.write(pdir..'.pvcignore', '')
   M.rawat(pdir, branch, 0)
-  io.user:styled('notice', 'initialized pvc repo '..dot, '\n')
+  io.fmt:styled('notice', 'initialized pvc repo '..dot, '\n')
 end
 
 --- Create a patch file from two branch arguments (see resolve2).
@@ -454,7 +457,16 @@ M.patch = function(pdir, br1, br2) --> string, s1, s2
   return M.Diff:of(M.resolve2(pdir, br1, br2)):patch()
 end
 
-M.commit = function(pdir) --> snap/, id
+M.commit = function(pdir, desc) --> snap/, id
+  assert(desc, 'commit must provide description')
+  if   desc:sub(1,3) == '---' or desc:find('\n---', 1, true)
+    or desc:sub(1,3) == '+++' or desc:find('\n+++', 1, true)
+    or desc:sub(1,2) == '!!'  or desc:find('\n!!',  1, true)
+    then error(
+      "commit message cannot have any of the following"
+    .." at the start of a line: +++, ---, !!"
+  )end
+
   local br, id = M.rawat(pdir)
   local bp, cid = M.branchPath(pdir, br), id+1
   trace('start commit %s/%s', br, cid)
@@ -469,14 +481,15 @@ M.commit = function(pdir) --> snap/, id
   if M.calcPatchDepth(cid) > M.depth(bp) then M.deepen(bp) end
   local bsnap = M.snapshot(pdir, br,id)
   -- TODO(commit): add description
-  ix.forceWrite(M.patchPath(bp, cid, '.p'),
-                M.Diff:of(bsnap, pdir):patch())
+  local patchf = M.patchPath(bp, cid, '.p')
+  ix.forceWrite(patchf,
+    sconcat('\n', desc, M.Diff:of(bsnap, pdir):patch()))
   local csnap = M.snapshot(pdir, br,cid)
   for path in io.lines(pdir..M.PVCPATHS) do
     T.pathEq(pdir..path, csnap..path)
   end
   M.rawtip(bp, cid); M.rawat(pdir, br, cid)
-  info('commited %s#%s', br, cid)
+  io.fmt:styled('notify', sfmt('commited %s#%s to %s', br, cid, patchf), '\n')
   return csnap, cid
 end
 
@@ -536,7 +549,7 @@ M.merge = function(tdir, bdir, cdir) --!!>
     local change = cpath and (cdir..cpath) or nil
     local ok, err = pu.merge(to, base, change)
     if not ok then
-      io.user:styled('error', sfmt(
+      io.fmt:styled('error', sfmt(
         FAILED_MERGE, to, base, change, err), '\n')
       conflicts = true
     end
@@ -544,10 +557,14 @@ M.merge = function(tdir, bdir, cdir) --!!>
   assert(not conflicts, 'failed to merge, fix conflicts and then re-run')
 end
 
---- create a backup directory and return it
-M.createBackup = function(P, name) --> string
-  local b = sfmt('%s.pvc/backup/%s-%s/', P, name, M.backupId())
-  ix.mkDir(b); return b
+--- return a backup directory (uses the timestamp)
+M.backupDir = function(P, name) --> string
+  for _=1,10 do
+    local b = sfmt('%s.pvc/backup/%s-%s/', P, name, M.backupId())
+    print('!! backupDir', b)
+    if ix.exists(b) then ix.sleep(0.01) else return b end
+  end
+  error('could not find empty backup')
 end
 
 --- rebase the branch (current branch) to make it's baseid=id
@@ -602,15 +619,50 @@ M.rebase = function(pdir, branch, id)
     bid, cid, tid = bid + 1, cid + 1, tid + 1
   end
 
-  local backup = M.createBackup(pdir, cbr)
+  local backup = M.backupDir(pdir, cbr); ix.mkDir(backup)
   ix.mv(cpath, backup)
-  io.user:styled('notify',
+  io.fmt:styled('notify',
     sfmt('pvc: rebase %s to %s#%s done. Backup at %s', cbr, bbr, id, backup),
     '\n')
   M.rawtip(tpath, ttip)
   ix.rm(tpath..'op'); ix.rm(tpath..'rebase')
   ix.mv(tpath, cpath)
   M.at(pdir, cbr,ttip)
+end
+
+--- Grow [$to] by copying patches [$from]
+M.grow = function(P, to, from) --!!>
+  local fbr, fdir = assert(from, 'must set from'), M.branchPath(P, from)
+  local ftip = M.rawtip(fdir)
+  local bbr, bid = M.getbase(fdir)
+  local tbr = to or M.rawat(P)
+  if bbr ~= tbr then error(sfmt(
+    'the base of %s is %s, not %s', from, bbr, tbr
+  ))end
+  local tdir = M.branchPath(P, tbr)
+  local ttip = M.rawtip(tdir)
+  if bid ~= ttip then error(sfmt(
+    'rebase required (%s tip=%s, %s base id=%s)', tbr, ttip, bbr, bid
+  ))end
+  if ftip == bid then error(sfmt(
+    "rebase not required: %s base is equal to it's tip (%s)", fbr, bid
+  ))end
+  -- TODO(sig): check signature
+  for id=bid+1, M.rawtip(fdir) do
+    local tpath = M.patchPath(tdir, id, '.p')
+    assert(not ix.exists(tpath))
+    local fpath = M.patchPath(fdir, id, '.p')
+    info('copying: %s -> %s', fpath, tpath)
+    ix.forceCp(fpath, tpath)
+  end
+  M.rawtip(tdir, ftip)
+  local back = M.backupDir(P, fbr)
+  assert(not ix.exists(back), 'WHAT: '..back)
+  io.fmt:styled('notify',
+    sfmt('deleting %s (mv %s -> %s)', fbr, fdir, back), '\n')
+  ix.mv(fdir, back)
+  io.fmt:styled('notify', sfmt('grew %s tip to %s', tbr, ftip), '\n')
+  if not to then ix.at(to, ftip) end
 end
 
 local popdir = function(args)
@@ -640,6 +692,12 @@ M.main.tip = function(args) --> string
   local out = sfmt('%s#%s',
     M.rawtip(M.branchPath(P, args[1] or M.rawat(P))))
   print(out); return out
+end
+
+--- [$grow from --to=at]: grow [$to] (default=[$at]) using branch from.
+M.main.grow = function(args)
+  local P = popdir(args)
+  return M.grow(P, args.to, args[1])
 end
 
 --- [$rebase [branch [id]]]: change the base of branch to id.
@@ -714,8 +772,15 @@ end
 
 --- [$commit]: add changes to the current branch as a patch and move [$at]
 --- forward. The commit message can be written to the COMMIT file or be
---- specified after the [$--] argument.
-M.main.commit = function(args) M.commit(popdir(args)) end
+--- specified after the [$--] argument, where multiple arguments are newline
+--- separated.
+M.main.commit = function(args)
+  local P = popdir(args)
+  local desc = shim.popRaw(args)
+  if desc then desc = concat(desc, '\n')
+  else         desc = pth.read(P..'COMMIT') end
+  M.commit(P, desc)
+end
 
 --- [$branch name [from]]: start a new branch of name [$name]. The optional
 --- [$from] (default=[$at]) argument can specify a local [$branch#id] or an
@@ -733,7 +798,8 @@ M.main.branch = function(args)
   if fbr and fbr:find'/' then return M.graft(D, name, fbr) end
   if fbr then fbr, fid = M.parseBranch(fbr)
   else        fbr, fid = M.rawat(D) end
-  return M.branch(D, name, fbr,fid)
+  local bpath, id = M.branch(D, name, fbr,fid)
+  M.at(D, name)
 end
 
 --- [$export branch to/]: copy all patch files in the branch to [$to/].
@@ -758,7 +824,7 @@ M.main.export = function(args) --> to
   for id=bbr and (bid+1) or bid, tip do
     ix.forceCp(M.patchPath(bdir,id, '.p', M.patchPath(to,id, '.p')))
   end
-  io.user:styled('notify', sfmt('exported %s to %s', bdir, to))
+  io.fmt:styled('notify', sfmt('exported %s to %s', bdir, to))
   return to
 end
 
@@ -781,11 +847,11 @@ M.main.prune = function(args)
       push(undo, sfmt('mv %s %s', to, from))
     end
     pth.write(back..'UNDO', table.concat(undo, '\n'))
-    io.user:styled('notify', sfmt('pruned [%s -> %s]. Undo with %s',
+    io.fmt:styled('notify', sfmt('pruned [%s -> %s]. Undo with %s',
       id, tip, back..'UNDO'))
   else
     ix.mv(bdir, back)
-    io.user:styled('notify', sfmt('moved %s -> %s', bdir, back))
+    io.fmt:styled('notify', sfmt('moved %s -> %s', bdir, back))
   end
 end
 
@@ -793,7 +859,7 @@ getmetatable(M.main).__call = function(_, args)
   trace('pvc%q', args)
   local cmd = table.remove(args, 1)
   local fn = rawget(M.main, cmd); if not fn then
-    io.user:styled('error', cmd..' is not recognized', '\n')
+    io.fmt:styled('error', cmd..' is not recognized', '\n')
     M.main.help()
   end
   return fn(args)

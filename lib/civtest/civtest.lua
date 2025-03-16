@@ -58,8 +58,10 @@ end
 M.Test.pathEq = function(a, b)
   local at, bt = pth.read(a), pth.read(b)
   if at == bt then return end
-  io.fmt:styled('error', sfmt('!! Path %s != %s', a, b), '\n')
-  showDiff(at, bt); fail'Test.pathEq'
+  showDiff(at, bt);
+  io.fmt:styled('error', sfmt('Path expected: %s\n       result: %s',
+    a, b), '\n')
+  fail'Test.pathEq'
 end
 
 --- Assert that path matches expect. Expect can be of type:
