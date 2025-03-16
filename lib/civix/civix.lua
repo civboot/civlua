@@ -301,18 +301,6 @@ M.cpRecursive = function(from, to, except)
   end
 end
 
---- A very simple ls (list paths) implementation
---- Returns (files, dirs) tables. Anything that is not a directory
---- is treated as a file.
-M.ls = function(paths, maxDepth)
-  local files, dirs = {}, {}
-  M.walk(paths, {
-    dir     = function(p) push(dirs,  pc{p, '/'}) end,
-    default = function(p) push(files, p)          end,
-  }, maxDepth or 1)
-  return files, dirs
-end
-
 local RM_FNS = {dir = ds.noop, default = M.rm, dirDone = M.rmdir }
 M.rmRecursive = function(path)
   if not M.exists(path) then return end

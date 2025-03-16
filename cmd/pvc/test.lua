@@ -47,6 +47,7 @@ T.workflow = function()
   ix.rmRecursive(D);
   -- initialize PVC
   pvc.init(D)
+  T.eq({'main'}, pvc.branches(D))
   T.path(D, {
     ['.pvcpaths'] = '.pvcpaths\n',
     ['.pvc'] = {
@@ -154,6 +155,7 @@ T.workflow = function()
     EXPECT3d['story.txt'] = STORY3d
 
   pvc.branch(D, 'dev', 'main'); pvc.at(D, 'dev')
+  T.eq({'dev', 'main'}, pvc.branches(D))
   local Bd = D..'.pvc/dev/'
   T.path(D, EXPECT2);
   T.eq(Bm..'patch/00/2.snap/', pvc.snapshot(D, 'dev', 2))
