@@ -662,7 +662,7 @@ M.grow = function(P, to, from) --!!>
     sfmt('deleting %s (mv %s -> %s)', fbr, fdir, back), '\n')
   ix.mv(fdir, back)
   io.fmt:styled('notify', sfmt('grew %s tip to %s', tbr, ftip), '\n')
-  if not to then ix.at(to, ftip) end
+  if not to then M.at(to, ftip) end
 end
 
 local popdir = function(args)
