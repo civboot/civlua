@@ -68,22 +68,53 @@ but has not yet been started.</blockquote>
 <p>
 <h2><a id="Installation" href="#Installation">Installation</h2></a>
 Install Lua with <code>apt-get install lua</code>, <code>brew lua</code> or however you normally
-install software, or follow directions at <a href="https://lua.org/start.html">https://lua.org/start.html</a>.
+install software, or follow directions at <a href="https://lua.org/start.html">https://lua.org/start.html</a>. You
+also need standard build tools (i.e. <code>make</code>, <code>gcc</code>).
 <p>
-Follow <a href="#Package_pkg">#Package_pkg</a> to be able to <code>require</code> civlua packages and write your
-own packages.
+Then run the following (or equivalent):
+<p>
+
+# build lua
+cd path/to/civlua/
+make build LUA_VERSION=lua5.3  # or your lua version
+
+# add these lines to .bashrc
+cat >> ~/.bashrc << EOF
+LUA_PATH="$PWD/lib/pkg/?.lua"
+LUA_PKGS="$PWD/"
+
+alias civ="$PWD/civ.lua"
+EOF
+
+<p>
+You can now run any civlua script with, i.e. <code>civ help ff</code>.
+<p>
+<blockquote>See <h3>Installation</h3> for more details regarding <code>PKG.lua</code> dependencies.</blockquote>
+<p>
+<h3><a id="Testing" href="#Testing">Testing</h3></a>
+After installation, it's a good idea to run the tests to make sure civlua is
+appropriate for your platform. You can use the command below, which also
+enables logging:
+
+LOGLEVEL=INFO make test LUA_VERSION=lua5.3
+
 <p>
 <h2><a id="why" href="#why">Why?</h2></a>
-The main motivation for me to write this repository is so I have a simple tech
-stack that I can hack for my shell, editor, blog, documentation host, etc --
-and so I can use that simple tech stack to teach my kids programming and
-technology through small games and scripts. Eventually, this will be the core
-user software of <a href="https://civboot.org">https://civboot.org</a>.
+Civlua is an entire "Developer Tech Stack" from scratch, written in 100% Lua (or
+small C-extensions). First of all, what is a "Developer Tech Stack"?
+<p>
+Besides the compiler and build system, a software developer only truly depends
+on a few terminal-based tools for development. These are their text editor,
+shell (and/or repl), version control, a means to query documentation, and a few
+other situational tools (i.e. find/replace text). These encompase the
+"Developer Tech Stack". civlua aims to provide this tech stack in a "small"
+amount of code that is well documented and easy for a single developer to
+understand and modify within a few months.
 <p>
 Software is complex. Some of the complexity is to serve goals like performance
-and scaleability; which can be good for goals like large-scale collaboration.
-However, the core tools of a developer such as their editor, shell, utilities
-and documentation should should be completely <i>knowable</i> and <i>hackable</i>.
+and scaleability; which can be good for large-scale collaboration. However,
+the core tools of a developer such as their editor, shell, utilities and
+documentation should should be completely <i>knowable</i> and <i>hackable</i>.
 How can our tech stack be knowable when all the core tools are so bloated?
 The <code>Python/</code> directory in  <a href="https://github.com/python/cpython">CPython</a> is
 124k lines (and <code>Lib</code> is 790k). <a href="code.commonmark.org">CommonMark</a>, which just
@@ -92,7 +123,9 @@ renders markdown files, is 20 thousand lines alone!
 The <a href="https://lua.org">Lua</a> language is only 20k lines of code and this library
 (~15k lines) will soonish implement an entire tech stack that a small team of
 developers or students could use to cooperate and hack. Technology is much more
-joyful when it is at this size and complexity.
+joyful when it is at this size and complexity. That is the goal of this
+project, and that is the goal of <a href="https://civboot.org">https://civboot.org</a>, which this project is
+a part of.
 <p>
 <h2><a id="Packages" href="#Packages">Packages</h2></a>
 The following are packaged directly in this repository as subdirectories.
@@ -100,6 +133,7 @@ The following are packaged directly in this repository as subdirectories.
 <h3>Commands</h3>
 These can all be called directly in bash with <code>./civ.lua &lt;cmd&gt; ...</code>. You can view
 their command documentation with <code>./civ.lua help &lt;cmd&gt;</code>. <ul>
+<li><a href="#Package_pvc"><b>pvc</b></a>: patch version control -- like git but in ~1k LoC.</li>
 <li><a href="#Package_ele"><b>Ele</b></a>: Extendable Lua Editor and Lua-first shell --
 still in development.</li>
 <li><a href="#Package_doc"><b>doc</b></a>: get help on any package or lua object as cxt or rendered
@@ -2309,7 +2343,7 @@ pod: plain old data
 <h3>Table <a id="pod.int" href="#pod.int">pod.int</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.nil" href="#pod.nil">pod.nil</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.number" href="#pod.number">pod.number</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
-<h3>Table <a id="pod.string" href="#pod.string">pod.string</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
+<h3>Table <a id="pod.str" href="#pod.str">pod.str</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.table" href="#pod.table">pod.table</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
 <h3>Record <a id="pod.List" href="#pod.List">pod.List</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L129"><i>src</i></a>)</h3>
 Poder for a list of items with a type.
@@ -7978,9 +8012,16 @@ Use at your own risk and always back up work that you are using pvc
 to track (aka use git and pvc together).
 </blockquote>
 <p>
-A simple version control system where branches are simply a series of unix
-patches, each containing a series of <code>diff -u</code> entries for all changed
-files in the project directory.
+<h3><a id="pvc-install" href="#pvc-install">Installation</h3></a>
+<p>
+Simply follow civlua's <h2>Installation</h2> and then run
+<p>
+<p>
+pvc is a git or mercurial like (in usage) but extremely simple version control
+system where branches are simply a series of unix patches, each containing a
+series of <code>diff -u</code> entries. The only fundamental disadvantage (or advantage)
+of using pvc instead of git is that pvc supports only fast-forward merges,
+which are the cleanest and simplest to understand.
 <p>
 Builtin cmds:<ul>
 <li><code>init dir</code>: initialize the <code>dir</code> (default=CWD) for PVC.</li>
