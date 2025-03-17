@@ -2339,7 +2339,7 @@ pod: plain old data
 <h3>Table <a id="pod.integer" href="#pod.integer">pod.integer</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.nil" href="#pod.nil">pod.nil</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.number" href="#pod.number">pod.number</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
-<h3>Table <a id="pod.string" href="#pod.string">pod.string</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
+<h3>Table <a id="pod.str" href="#pod.str">pod.str</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.table" href="#pod.table">pod.table</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
 <h3>Record <a id="pod.List" href="#pod.List">pod.List</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L129"><i>src</i></a>)</h3>
 Poder for a list of items with a type.
@@ -8032,7 +8032,7 @@ either a branch name or a directory which contains a <code>.pvcpaths</code> file
 <blockquote>See <b>Usage</b> for how this can be used for the first commit.</blockquote></li>
 <li><code>commit</code>: add changes to the current branch as a patch and move <code>at</code>
 forward. The commit message can be written to the COMMIT file or be
-specified after the <code>--</code> argument.</li>
+specified after the <code>--</code> argument (multiple are space-separated).</li>
 <li><code>at [branch]</code>: if <code>branch</code> is empty then return the active
 <code>branch#id</code>.
 <p>
@@ -8084,7 +8084,9 @@ backup directory. If an id is given then instead move ids from <code>[id,tip]</c
 (inclusive) to a backup.</li>
 </ul>
 <p>
-<h2>Usage</h2>
+<h2><a id="pvc-init" href="#pvc-init">Initiaize your pvc repo</h2></a>
+<blockquote>You may also want to see <a href="#pvc-git">#pvc-git</a> to use git for backups</blockquote>
+<p>
 First install Package civ, then run pvc in bash with <code>civ.lua pvc &lt;cmd&gt;</code>.
 <p>
 To track an existing directory:<ul>
@@ -8116,6 +8118,50 @@ whole directories. A common pvc ignore file might look like:
 
 # specific files
 %./path/to/some_file</code>
+<p>
+<h3><a id="pvc-git" href="#pvc-git">Use with git</h3></a>
+pvc is still in early development, so there is no hosting service which
+ergonomically supports backing-up development. The following is how pvc
+(and civlua) itself is developed and seems to work well.
+<p>
+Basically, we are going to have two git repositories. I will use
+civlua as the example:<ul>
+<li><a href="https://github.com/civboot/civlua">https://github.com/civboot/civlua</a>: your "main" one that hosts your released
+versions and documentation. This should NOT contain any <code>.pvc/</code> files (but
+should contain i.e.  <code>.pvcpaths</code>).</li>
+<li><a href="https://github.com/vitiral/civlua.pvc/commits/main/">https://github.com/vitiral/civlua.pvc/commits/main/</a>: is literally the git
+repository for your <code>.pvc/</code> directory. While developing we can push
+patches/branches/whatever here.</li>
+</ul>
+<p>
+<b>First</b>, put <code>.pvc/</code> in your main repo's <code>.gitignore</code>
+<code class="block">echo .pvc &gt;&gt; .gitignore</code>
+<p>
+<b>Second</b>, follow the <a href="#pvc-init">#pvc-init</a> section above. This should include adding
+all your files to pvc and making your first pvc commit.
+<p>
+<b>Third</b>, <code>cd .pvc/</code> and create your git repository <i>inside the .pvc/
+directory</i>. This will literally track your patch files themselves. Use the
+following as your <code>.pvc/.gitignore</code>. You may also want to add a <code>README.md</code>
+directing folks to your main git repo.
+<code class="block">**/*.snap/
+backup/</code>
+<p>
+Finally, add the following to your <code>.bashrc</code>
+<code class="block"># Note: you must also have pvc aliased
+function pvcp() {
+  desc="$(pvc at): $(pvc desc --full)"
+  (cd .pvc/ &&
+    git add ./ &&
+    git commit -am "$desc" &&
+    git push origin main)
+}</code>
+<p>
+Now you can hack using <code>pvc commit</code> etc and push to your <code>repo.pvc</code> by
+simply calling <code>pvcp</code>. Your git commit log will be your current <code>at</code>
+location followed by the commit message. When you want to push your
+documentation or releases to git, simply do so -- your main commit log
+won't be polluted by commiting pvc files.
 <p>
 <h2>Basic Architecture</h2>
 <p>
@@ -8226,7 +8272,7 @@ return a backup directory (uses the timestamp)
 <h3>Function <a id="pvc2.backupId" href="#pvc2.backupId">pvc2.backupId</a><code>() -&gt; tostring(ix.epoch():asSeconds())</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L43"><i>src</i></a>)</h3>
 this exists for tests to override
 <h3>Function <a id="pvc2.branch" href="#pvc2.branch">pvc2.branch</a><code>(pdir, name, fbr,fid) -&gt; bpath, id</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L552"><i>src</i></a>)</h3>
-<h3>Function <a id="pvc2.branchPath" href="#pvc2.branchPath">pvc2.branchPath</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L252"><i>src</i></a>)</h3>
+<h3>Function <a id="pvc2.branchDir" href="#pvc2.branchDir">pvc2.branchDir</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L252"><i>src</i></a>)</h3>
 return the branch path in project regardless of whether it exists
 <h3>Function <a id="pvc2.branches" href="#pvc2.branches">pvc2.branches</a><code>(pdir) -&gt; list</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L568"><i>src</i></a>)</h3>
 get all branches
@@ -8312,7 +8358,7 @@ contributors.
 <h3>Function <a id="pvc.main.commit" href="#pvc.main.commit">pvc.main.commit</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L840"><i>src</i></a>)</h3>
 <code>commit</code>: add changes to the current branch as a patch and move <code>at</code>
 forward. The commit message can be written to the COMMIT file or be
-specified after the <code>--</code> argument, where multiple arguments are newline
+specified after the <code>--</code> argument, where multiple arguments are space
 separated.
 <h3>Function <a id="pvc.main.desc" href="#pvc.main.desc">pvc.main.desc</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pvc/pvc.lua#L956"><i>src</i></a>)</h3>
 <code>pvc desc branch [$path/to/new]</code>

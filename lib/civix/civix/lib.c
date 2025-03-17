@@ -182,7 +182,6 @@ static int l_stat_modified(LS *L) {
 // stat -> (size)
 static int l_stat_size(LS *L) {
   STAT* st = *tolstat(L);
-  printf("!! stat_size %i\n", st->st_size);
   lua_pushinteger(L, st->st_size); return 1;
 }
 

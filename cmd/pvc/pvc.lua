@@ -245,7 +245,7 @@ end
 -- Branch
 
 --- return the branch path in project regardless of whether it exists
-M.branchPath = function(pdir, branch, dot)
+M.branchDir = function(pdir, branch, dot)
   assert(branch, 'branch is nil')
   assert(not M.RESERVED_NAMES[branch], 'branch name is reserved')
   return pth.concat{pdir, dot or '.pvc', branch, '/'}
@@ -298,7 +298,7 @@ end
 M.snapshot = function(pdir, br,id) --> .../id.snap/
   trace('snapshot %s#%s', br,id)
   -- f=from, t=to
-  local bpath = M.branchPath(pdir, br)
+  local bpath = M.branchDir(pdir, br)
   local snap = M.snapDir(bpath, id)
   if ix.exists(snap) then return snap, id end
   local bbr,bid = M.getbase(bpath, br)
@@ -371,7 +371,7 @@ end
 M.at = function(pdir, nbr,nid) --!!> branch?, id?
   -- c=current, n=next
   local cbr, cid = M.rawat(pdir); if not nbr then return cbr, cid end
-  local npath = M.branchPath(pdir, nbr)
+  local npath = M.branchDir(pdir, nbr)
 
   nid = nid or M.rawtip(npath)
   trace('at %s#%i -> %s#%i', cbr, cid, nbr, nid)
@@ -453,7 +453,7 @@ M.resolve = function(P, branch) --> br, id, bpath
   if not br then error('unknown branch: '..branch) end
   if br == 'local' then error('local not valid here') end
   if br == 'at'  then br, id = M.rawat(P) end
-  return br, id, M.branchPath(P, br)
+  return br, id, M.branchDir(P, br)
 end
 
 --- resolve and take snapshot, permits local
@@ -482,7 +482,7 @@ M.init = function(pdir, branch)
   local dot = pdir..'.pvc/';
   if ix.exists(dot) then error(dot..' already exists') end
   ix.mkTree(dot, {backup = {}}, true)
-  initBranch(M.branchPath(pdir, branch), 0)
+  initBranch(M.branchDir(pdir, branch), 0)
   pth.write(pdir..M.PVCPATHS, M.INIT_PVCPATHS)
   pth.write(pdir..'.pvcignore', '')
   M.rawat(pdir, branch, 0)
@@ -509,7 +509,7 @@ M.commit = function(pdir, desc) --> snap/, id
   end
 
   local br, id = M.rawat(pdir)
-  local bp, cid = M.branchPath(pdir, br), id+1
+  local bp, cid = M.branchDir(pdir, br), id+1
   trace('start commit %s/%s', br, cid)
   if id ~= M.rawtip(bp) then error(s[[
     ERROR: working id is not at tip. Solutions:
@@ -538,14 +538,14 @@ end
 M.nameId = function(pdir, branch,id) --> br,id
   local br,bid; if not branch then br,bid = M.at(pdir)
   else                             br,bid = M.parseBranch(branch) end
-  return br, id or bid or M.rawtip(M.branchPath(pdir, br))
+  return br, id or bid or M.rawtip(M.branchDir(pdir, br))
 end
 
 M.branch = function(pdir, name, fbr,fid) --> bpath, id
-  local fpath = M.branchPath(pdir, fbr)
+  local fpath = M.branchDir(pdir, fbr)
   if not ix.exists(fpath) then error(fpath..' does not exist') end
   fid = fid or M.rawtip(fpath)
-  local npath = M.branchPath(pdir, name)
+  local npath = M.branchDir(pdir, name)
   initBranch(npath, fid)
   pth.write(npath..'base', sfmt('%s#%s', fbr,fid))
   return npath, fid
@@ -576,7 +576,7 @@ M.checkBranch = function(pdir, name, checks, dir)
 
   if checks.base and not bbr then error(from..' does not have base') end
   if bbr then
-    local bt = M.rawtip(M.branchPath(pdir, bbr))
+    local bt = M.rawtip(M.branchDir(pdir, bbr))
     if bid > bt then error(sfmt(
       '%s base.id %s > %s tip of %i', from, bid, bbr, bt
     ))end
@@ -634,20 +634,20 @@ M.rebase = function(pdir, branch, id)
 
   --- process: repeatedly use merge on the (new) branch__rebase branch.
   --- the final result will be in to's last snapshot id
-  local cpath = M.branchPath(pdir, cbr)
+  local cpath = M.branchDir(pdir, cbr)
   local bbr, bid = M.getbase(cpath, cbr)
   M.at(pdir, bbr,bid) -- checkout base to ensure cleaner checkout at end
 
   if bbr == cbr then error('the base of '..cbr..' is itself') end
   if id == bid then return end
-  local bpath = M.branchPath(pdir, bbr)
+  local bpath = M.branchDir(pdir, bbr)
   local btip  = M.rawtip(bpath)
   if id > btip then error(id..' is > tip of '..btip) end
 
-  local cpath, cid = M.branchPath(pdir, cbr), bid + 1
+  local cpath, cid = M.branchDir(pdir, cbr), bid + 1
   local ctip       = M.rawtip(cpath)
   local tbr        = cbr..'__rebase'
-  local tpath      = M.branchPath(pdir, tbr)
+  local tpath      = M.branchDir(pdir, tbr)
   local ttip       = id + M.rawtip(cpath) - bid
 
   local op = sfmt('rebase %s %s', cbr, bid)
@@ -693,14 +693,14 @@ end
 
 --- Grow [$to] by copying patches [$from]
 M.grow = function(P, to, from) --!!>
-  local fbr, fdir = assert(from, 'must set from'), M.branchPath(P, from)
+  local fbr, fdir = assert(from, 'must set from'), M.branchDir(P, from)
   local ftip = M.rawtip(fdir)
   local bbr, bid = M.getbase(fdir)
   local tbr = to or M.rawat(P)
   if bbr ~= tbr then error(sfmt(
     'the base of %s is %s, not %s', from, bbr, tbr
   ))end
-  local tdir = M.branchPath(P, tbr)
+  local tdir = M.branchDir(P, tbr)
   local ttip = M.rawtip(tdir)
   if bid ~= ttip then error(sfmt(
     'rebase required (%s tip=%s, %s base id=%s)', tbr, ttip, bbr, bid
@@ -747,7 +747,7 @@ M.squash = function(P, br, bot,top)
     io.fmt:notify('error', 'squashing ids [%s - %s] is a noop', bot, top)
     return
   end
-  local bdir = M.branchPath(P, br)
+  local bdir = M.branchDir(P, br)
   local tip, bbr, bid = M.rawtip(bdir), M.getbase(P, br)
   if bot <= bid  then error(sfmt('bottom %i <= base id %s', top, bid)) end
   if top  >  tip then error(sfmt('top %i > tip %i', top, tip)) end
@@ -829,12 +829,12 @@ end
 
 --- [$commit]: add changes to the current branch as a patch and move [$at]
 --- forward. The commit message can be written to the COMMIT file or be
---- specified after the [$--] argument, where multiple arguments are newline
+--- specified after the [$--] argument, where multiple arguments are space
 --- separated.
 M.main.commit = function(args)
   local P = popdir(args)
   local desc = shim.popRaw(args)
-  if desc then desc = concat(desc, '\n')
+  if desc then desc = concat(desc, ' ')
   else         desc = pth.read(P..'COMMIT') end
   M.commit(P, desc)
 end
@@ -856,7 +856,7 @@ end
 M.main.tip = function(args) --> string
   local P = popdir(args)
   local out = sfmt('%s#%s',
-    M.rawtip(M.branchPath(P, args[1] or M.rawat(P))))
+    M.rawtip(M.branchDir(P, args[1] or M.rawat(P))))
   print(out); return out
 end
 
@@ -894,7 +894,7 @@ M.main.show = function(args)
   if not args[1] then -- just show all branches
     for _, br in ipairs(M.branches(D)) do
       if full then
-        local bdir = M.branchPath(D, br)
+        local bdir = M.branchDir(D, br)
         local tip, base,bid = M.rawtip(bdir), M.getbase(bdir, nil)
         io.user:styled('notify', sfmt('%s\ttip=%s%s',
           br, tip, base and sfmt('\tbase=%s#%s', base,bid) or ''), '\n')
@@ -905,13 +905,13 @@ M.main.show = function(args)
   local br, id = M.parseBranch(args[1])
   if not br or br == 'at' then br, id = M.rawat(D) end
 
-  local num, dir = toint(args.num or 10), M.branchPath(D, br)
+  local num, dir = toint(args.num or 10), M.branchDir(D, br)
   if not id then id = M.rawtip(dir) end
   local bbr, bid = M.getbase(dir)
   for i=id,id-num+1,-1 do
     if i <= 0 then break end
     if i == bid then
-      br, dir = bbr, M.branchPath(D, bbr)
+      br, dir = bbr, M.branchDir(D, bbr)
       bbr, bid = M.getbase(dir)
     end
     local ppath = M.patchPath(dir, i, '.p')
@@ -982,7 +982,7 @@ end
 M.main.rebase = function(args) --> string
   local P = popdir(args)
   local br = args[1] ~= '' and args[1] or M.rawat(P)
-  local base = M.getbase(M.branchPath(P,br))
+  local base = M.getbase(M.branchDir(P,br))
   M.rebase(br, M.rawtip(M.branchpath(P, base)))
 end
 
@@ -996,7 +996,7 @@ end
 M.main.prune = function(args)
   local D = popdir(args)
   local br = assert(args[1], 'must specify branch')
-  local bdir = M.branchPath(D, br)
+  local bdir = M.branchDir(D, br)
   assert(ix.exists(bdir), bdir..' does not exist')
   local back = M.backupDir(D, br); ix.mkDir(back)
   local id = args[2]
@@ -1030,7 +1030,7 @@ M.main.export = function(args) --> to
   local to = pth.toDir(assert(args[2], 'must specify to/ directory'))
   if ix.exists(to) then error('to/ directory already exists: '..to) end
 
-  local bdir = M.branchPath(D, br)
+  local bdir = M.branchDir(D, br)
   local tip, bbr,bid = M.rawtip(bdir), M.getbase(bdir,nil)
 
   ix.mkDirs(to..'patch/')
