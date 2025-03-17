@@ -21,14 +21,30 @@ T.patchPath = function()
   T.eq('foo/patch/00/1.p', pvc.patchPath('foo', 1, '.p', 2))
 end
 
+local initPvc = function(d)
+  d = d or D
+  ix.rmRecursive(d);
+  pvc.init(d)
+  return d
+end
+
 --- test empty files
 T.empty = function()
-  ix.rmRecursive(D);
-  pvc.init(D)
-  pth.write(D..'empty.txt', '')
-  pth.append(D..'.pvcpaths', 'empty.txt')
+  local d = initPvc()
+  pth.write(d..'empty.txt', '')
+  pth.append(d..'.pvcpaths', 'empty.txt')
   T.throws('has a size of 0', function()
-    pvc.commit(D, 'commit empty.txt')
+    pvc.commit(d, 'commit empty.txt')
+  end)
+end
+
+T.binary = function()
+  local P = initPvc()
+  local bpath, BIN = P..'bin', '\x00\xFF'
+  pth.write(bpath, BIN)
+  pth.append(P..'.pvcpaths', 'bin')
+  T.throws('Binary files /dev/null and bin differ', function()
+    pvc.commit(P, 'commit binary file')
   end)
 end
 

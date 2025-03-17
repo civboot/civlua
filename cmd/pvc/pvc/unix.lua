@@ -9,6 +9,7 @@ local ix = require'civix'
 local pth = require'ds.path'
 
 local push = table.insert
+local sfmt = string.format
 local trace = require'ds.log'.trace
 local NULL = '/dev/null'
 
@@ -39,14 +40,19 @@ M.diff = function(a,al, b,bl) --> string?
     unified='0', stderr=io.stderr, rc=true}
   trace('diff rc=%i', sh:rc())
   if sh:rc() > 1 then error('diff failed:\n'..e) end
-  if sh:rc() == 1 then
+  if o then
+    if sh:rc() ~= 1 then error('unknown return code: '..sh:rc()) end
+    if o:sub(1,3) ~= '---' then
+      error(sfmt('non-diff output from diff %q %q:\n%s\n%s',
+                                            al,bl,  o,  e))
+    end
     return o
   end
   error((a or b)..' is empty (https://stackoverflow.com/questions/44427545)')
 end
 
 local patchArgs = function(cwd, path)
-  return {'patch', '-p0', '-fu', input=pth.abs(path), CWD=cwd}
+  return {'patch', '-p0', '--binary', '-fu', input=pth.abs(path), CWD=cwd}
 end
 
 --- forward patch
