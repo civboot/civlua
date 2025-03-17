@@ -5,9 +5,16 @@
   to track (aka use git and pvc together).
 ]
 
-A simple version control system where branches are simply a series of unix
-patches, each containing a series of [$diff -u] entries for all changed
-files in the project directory.
+[{:h3 name=pvc-install}Installation]
+
+Simply follow civlua's [@Installation] and then run
+
+
+pvc is a git or mercurial like (in usage) but extremely simple version control
+system where branches are simply a series of unix patches, each containing a
+series of [$diff -u] entries. The only fundamental disadvantage (or advantage)
+of using pvc instead of git is that pvc supports only fast-forward merges,
+which are the cleanest and simplest to understand.
 
 Builtin cmds:[+
 * [$init dir]: initialize the [$dir] (default=CWD) for PVC.
