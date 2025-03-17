@@ -173,7 +173,6 @@ lib/smol/README.cxt
 lib/smol/po2prime.lua
 lib/smol/smol.c
 lib/smol/smol.lua
-lib/smol/smol_test.c
 lib/smol/test.lua
 lib/vcds/PKG.lua
 lib/vcds/test.lua

@@ -1,5 +1,4 @@
-.pvc/**/*.snap/
-.pvc/backup/
+.pvc/
 .out/
 bin/
 API.html

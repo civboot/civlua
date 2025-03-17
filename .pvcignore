@@ -15,3 +15,4 @@ cmd/pvc/testdata/0.snap/
 
 # binaries
 lib/smol/smol_test
+
