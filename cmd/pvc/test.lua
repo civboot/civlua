@@ -21,6 +21,17 @@ T.patchPath = function()
   T.eq('foo/patch/00/1.p', pvc.patchPath('foo', 1, '.p', 2))
 end
 
+--- test empty files
+T.empty = function()
+  ix.rmRecursive(D);
+  pvc.init(D)
+  pth.write(D..'empty.txt', '')
+  pth.append(D..'.pvcpaths', 'empty.txt')
+  T.throws('has a size of 0', function()
+    pvc.commit(D, 'commit empty.txt')
+  end)
+end
+
 local HELLO_PATCH1 = [[
 --- /dev/null
 +++ hello/hello.lua
@@ -226,3 +237,4 @@ T.workflow = function()
   pvc.at(D, 'main',3); T.path(D, EXPECT4)
   pvc.at(D, 'main',4); T.path(D, EXPECT5)
 end
+

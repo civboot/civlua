@@ -15,16 +15,25 @@ local NULL = '/dev/null'
 local EMPTY_DIFF = [[
 --- %s
 +++ %s
-@@ -0,0 +0,0 @@
+@@ -0,0 +0,1 @@
++
 ]]
+
+local diffCheckPath = function(p, pl) --> p, pl
+  if not p then return NULL, NULL end
+  if ix.stat(p):size() == 0 then error(
+    p..' has a size of 0, which patch cannot handle'
+  )end
+  return p, pl
+end
 
 --- Get the unified diff using unix [$diff --unified=1],
 --- properly handling file creation/deleting
 --- the [$l] variables are the "label" to use.
 --- when the coresponding value is nil then the label is [$/dev/null]
 M.diff = function(a,al, b,bl) --> string?
-  if not a then a, al = NULL, NULL end
-  if not b then b, bl = NULL, NULL end
+  a, al = diffCheckPath(a, al)
+  b, bl = diffCheckPath(b, bl)
   local o, e, sh = ix.sh{
     'diff', '-N', a, '--label='..al, b, '--label='..bl,
     unified='0', stderr=io.stderr, rc=true}
@@ -33,7 +42,7 @@ M.diff = function(a,al, b,bl) --> string?
   if sh:rc() == 1 then
     return o
   end
-  return EMPTY_DIFF:format(al, bl)
+  error((a or b)..' is empty (https://stackoverflow.com/questions/44427545)')
 end
 
 local patchArgs = function(cwd, path)

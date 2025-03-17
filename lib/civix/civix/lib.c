@@ -179,6 +179,13 @@ static int l_stat_modified(LS *L) {
   return 2;
 }
 
+// stat -> (size)
+static int l_stat_size(LS *L) {
+  STAT* st = *tolstat(L);
+  printf("!! stat_size %i\n", st->st_size);
+  lua_pushinteger(L, st->st_size); return 1;
+}
+
 // (fd, modified_s, modified_ns) --> error?
 static int l_setmodified(LS* L) {
   int fno = luaL_checkinteger(L, 1);
@@ -330,6 +337,7 @@ int luaopen_civix_lib(LS *L) {
     lua_createtable(L, 0, 3); // __index table
       L_setmethod(L, "mode",     l_stat_mode);
       L_setmethod(L, "modified", l_stat_modified);
+      L_setmethod(L, "size",     l_stat_size);
     lua_setfield(L, -2, "__index");
   lua_setfield(L, -2, "Stat");
 

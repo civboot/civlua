@@ -170,3 +170,9 @@ T.cpTree = function()
   M.cpRecursive(d, d2, {['b/b2.txt']=true})
   assert(not M.exists(d2..'b/b2.txt'))
 end
+
+T.stat = function()
+  local path = O..'stat.txt'
+  pth.write(path, 'hello\n')
+  T.eq(6, M.stat(path):size())
+end
