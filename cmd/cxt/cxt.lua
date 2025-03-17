@@ -272,17 +272,16 @@ local function incLine(p, node, l1, c1)
   return p.l, p.c
 end
 
+local CONTENT_SPEC = {kind='cxt'}
+
 --- parse normal content, adding to node
 M.content = function(p, node, isRoot, altEnd)
   local l, c = p.l, p.c
+  p:dbgEnter(CONTENT_SPEC)
   ::loop::
   if p.line == nil then
-    if not isRoot then error(
-      "! ERROR on input:\n\n"
-       ..table.concat(p.dat, '\n')
-       .."\n\n! Error: Expected ']' but reached end of file"
-    )
-    end
+    if not isRoot then p:error"Expected ']' but reached end of file" end
+    p:dbgLeave()
     return addToken(p, node, l, c, p.l - 1, #p.dat[p.l - 1]) --> nil
   elseif #p.line == 0 and p.dat[l+1] then
     add(node, {pos={l}, br=true})
@@ -290,7 +289,10 @@ M.content = function(p, node, isRoot, altEnd)
     goto loop
   elseif p.c > #p.line then l, c = incLine(p, node, l, c); goto loop end
   if altEnd then
-    local e = altEnd(p, node, l, c); if e then return e end
+    local e = altEnd(p, node, l, c); if e then
+      p:dbgLeave()
+      return e
+    end
   end
   ::refind::
   local c1, c2 = p.line:find('\\?[%[%]\\]', p.c); if not c2 then
@@ -306,7 +308,7 @@ M.content = function(p, node, isRoot, altEnd)
   if p.line:sub(c2,c2) == '\\' then goto refind end -- '\*' --> '\*'
   addToken(p, node, l, c, p.l, c2-1)
   local posL, posC = p.l, p.c
-  if p.line:sub(c1,c2) == ']' then return end -- end of this content
+  if p.line:sub(c1,c2) == ']' then p:dbgLeave(); return end
   local raw, ctrl = nil, p.line:sub(p.c, p.c)
   if ctrl == '' then
     p:error("expected control char after '['")

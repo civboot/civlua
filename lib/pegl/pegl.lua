@@ -107,6 +107,7 @@ M.Parser = mty'Parser'{
   'stackLast [{item, l, c}]',
   'commentLC [table]: table of {line={col=CommentToken}}',
   'dbgLevel [number]', dbgLevel = 0,
+  'path [string]',
 }
 
 M.fmtSpec = function(s, f)
@@ -624,7 +625,8 @@ M.Parser.checkPin=function(p, pin, expect)
 end
 M.Parser.error=function(p, msg)
   local lmsg = sfmt('[LINE %s.%s]', p.l, p.c)
-  fmt.errorf("ERROR\n%s%s\n%s\nCause: %s\nParse stack: %s",
+  fmt.errorf("ERROR %s\n%s%s\n%s\nCause: %s\nParse stack: %s",
+    rawget(p.dat, 'path') or '(rawdata)',
     lmsg, p.line, srep(' ', #lmsg + p.c - 2)..'^',
     msg, fmtStack(p))
 end

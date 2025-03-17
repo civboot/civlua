@@ -20,7 +20,7 @@ Why: [+
    rockspec using [$./civ.lua pkgrock --help]]
 
 
-[{h3 name=pkg-install}Installation]
+[{:h3 name=pkg-install}Installation]
 In your [$~/.bashrc] or equiavalent add: [{## lang=sh}
 LUA_PATH="path/to/civlua/lib/pkg/?.lua;..."
 LUA_PKGS="path/to/civlua;path/to/other/pkg;..."

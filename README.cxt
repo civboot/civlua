@@ -12,7 +12,7 @@ also need standard build tools (i.e. [$make], [$gcc]).
 
 Then run the following (or equivalent):
 
-[{## sh}
+[{## lang=sh}
 # build lua
 cd path/to/civlua/
 make build LUA_VERSION=lua5.3  # or your lua version
@@ -28,7 +28,7 @@ EOF
 
 You can now run any civlua script with, i.e. [$civ help ff].
 
-["See [@pkg-install] for more details regarding [$PKG.lua] dependencies.]
+["See [<#pkg-install>] for more details regarding [$PKG.lua] dependencies.]
 
 [{:h3}Testing]
 After installation, it's a good idea to run the tests to make sure civlua is
