@@ -2,7 +2,7 @@
 
 ["NOTICE: pvc now works but will have bugs and the API is subject to change.
   Use at your own risk and always back up work that you are using pvc
-  to track (aka use git and pvc together).
+  to track (aka use [<#pvc-git>git and pvc together]).
 ]
 
 [{:h3 name=pvc-install}Installation]
