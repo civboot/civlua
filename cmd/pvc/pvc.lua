@@ -519,12 +519,16 @@ M.commit = function(pdir, desc) --> snap/, id
   M.pathsUpdate(pdir) -- sort unique
 
   -- b=base c=change
-  if M.calcPatchDepth(cid) > M.depth(bp) then M.deepen(bp) end
   local bsnap = M.snapshot(pdir, br,id)
   -- TODO(commit): add description
   local patchf = M.patchPath(bp, cid, '.p')
+  local diff = M.Diff:of(bsnap, pdir)
+  if not diff:hasDiff() then
+    error('invalid commit: no differences detected')
+  end
+  if M.calcPatchDepth(cid) > M.depth(bp) then M.deepen(bp) end
   ix.forceWrite(patchf,
-    sconcat('\n', desc, M.Diff:of(bsnap, pdir):patch()))
+    sconcat('\n', desc, diff:patch()))
   local csnap = M.snapshot(pdir, br,cid)
   for path in io.lines(pdir..M.PVCPATHS) do
     T.pathEq(pdir..path, csnap..path)

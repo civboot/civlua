@@ -31,6 +31,9 @@ end
 --- test empty files
 T.empty = function()
   local d = initPvc()
+  T.throws('no differences detected', function()
+    pvc.commit(d, 'empty repo')
+  end)
   pth.write(d..'empty.txt', '')
   pth.append(d..'.pvcpaths', 'empty.txt')
   T.throws('has a size of 0', function()
