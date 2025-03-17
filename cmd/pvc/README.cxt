@@ -155,6 +155,7 @@ directory]. This will literally track your patch files themselves. Use the
 following as your [$.pvc/.gitignore]. You may also want to add a [$README.md]
 directing folks to your main git repo.
 [##
+# .pvc/.gitignore
 **/*.snap/
 backup/
 ]##

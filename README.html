@@ -2336,10 +2336,10 @@ pod: plain old data
 </table>
 <h4>Value <a id="pod.__name" href="#pod.__name">pod.__name</a></h4>
 <h3>Table <a id="pod.boolean" href="#pod.boolean">pod.boolean</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
-<h3>Table <a id="pod.integer" href="#pod.integer">pod.integer</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
+<h3>Table <a id="pod.int" href="#pod.int">pod.int</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.nil" href="#pod.nil">pod.nil</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.number" href="#pod.number">pod.number</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
-<h3>Table <a id="pod.str" href="#pod.str">pod.str</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
+<h3>Table <a id="pod.string" href="#pod.string">pod.string</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.table" href="#pod.table">pod.table</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
 <h3>Record <a id="pod.List" href="#pod.List">pod.List</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L129"><i>src</i></a>)</h3>
 Poder for a list of items with a type.
@@ -8144,7 +8144,8 @@ all your files to pvc and making your first pvc commit.
 directory</i>. This will literally track your patch files themselves. Use the
 following as your <code>.pvc/.gitignore</code>. You may also want to add a <code>README.md</code>
 directing folks to your main git repo.
-<code class="block">**/*.snap/
+<code class="block"># .pvc/.gitignore
+**/*.snap/
 backup/</code>
 <p>
 Finally, add the following to your <code>.bashrc</code>
