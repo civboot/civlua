@@ -34,7 +34,7 @@ You can now run any civlua script with, i.e. [$civ help ff].
 After installation, it's a good idea to run the tests to make sure civlua is
 appropriate for your platform. You can use the command below, which also
 enables logging:
-[{## sh}
+[{## lang=sh}
 LOGLEVEL=INFO make test LUA_VERSION=lua5.3
 ]##
 
