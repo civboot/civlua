@@ -2339,7 +2339,7 @@ pod: plain old data
 <h3>Table <a id="pod.integer" href="#pod.integer">pod.integer</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.nil" href="#pod.nil">pod.nil</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.number" href="#pod.number">pod.number</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
-<h3>Table <a id="pod.string" href="#pod.string">pod.string</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
+<h3>Table <a id="pod.str" href="#pod.str">pod.str</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.table" href="#pod.table">pod.table</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L97"><i>src</i></a>)</h3>
 <h3>Record <a id="pod.List" href="#pod.List">pod.List</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L129"><i>src</i></a>)</h3>
 Poder for a list of items with a type.
@@ -8014,14 +8014,15 @@ to track (aka use <a href="#pvc-git">git and pvc together</a>).
 <p>
 <h3><a id="pvc-install" href="#pvc-install">Installation</h3></a>
 <p>
-Simply follow civlua's <h2>Installation</h2> and then run
+Simply follow civlua's <a href="#Installation">#Installation</a> and add the following to your <code>.bashrc</code>
+<code class="block">alias pvc="civlua pvc"</code>
 <p>
-<p>
-pvc is a git or mercurial like (in usage) but extremely simple version control
-system where branches are simply a series of unix patches, each containing a
-series of <code>diff -u</code> entries. The only fundamental disadvantage (or advantage)
-of using pvc instead of git is that pvc supports only fast-forward merges,
-which are the cleanest and simplest to understand.
+<h2><a id="pvc-about" href="#pvc-about">About</h2></a>
+<b>pvc</b> is a version control system similar to git or mercurial, but is ultra
+simple: branches are simply a <code>base</code> followed by a set of unix patches with
+incrementing id. The only fundamental disadvantage (or advantage) of using pvc
+instead of git is that pvc supports only fast-forward merges, which are the
+cleanest and simplest to understand.
 <p>
 Builtin cmds:<ul>
 <li><code>init dir</code>: initialize the <code>dir</code> (default=CWD) for PVC.</li>
@@ -8087,14 +8088,14 @@ backup directory. If an id is given then instead move ids from <code>[id,tip]</c
 <h2><a id="pvc-init" href="#pvc-init">Initiaize your pvc repo</h2></a>
 <blockquote>You may also want to see <a href="#pvc-git">#pvc-git</a> to use git for backups</blockquote>
 <p>
-First install Package civ, then run pvc in bash with <code>civ.lua pvc &lt;cmd&gt;</code>.
+First install <a href="#Package_civ">#Package_civ</a>, then run pvc in bash with <code>civ.lua pvc &lt;cmd&gt;</code>.
 <p>
 To track an existing directory:<ul>
 <li><code>cd path/to/dir</code> to navigate to the directory</li>
 <li><code>pvc init</code> to initialize pvc</li>
 <li><code>pvc diff</code> prints the diff of local changes to stderr and untracked files
 (that are not matched in <code>.pvcignore</code> to stdout. Edit <code>.pvcignore</code>
-with appropriate entries (see <h3>pvcignore</h3>) to ignore paths you don't
+with appropriate entries (see <a href="#pvcignore">#pvcignore</a>) to ignore paths you don't
 want tracked until <code>pvc diff</code> shows only files you want tracked.
 <p>
 When ready, running <code>pvc diff &gt;&gt; .pvcpaths</code> in bash will track all untracked
@@ -8105,9 +8106,9 @@ files.
 </ul>
 <p>
 <h3><a id="pvcignore" href="#pvcignore">pvcignore</h3></a>
-The <code>.pvcignore</code> file should contain a line-separated list of lua patterns
-(lua.find) that should be ignored. Items ending in <code>/</code> will apply to
-whole directories. A common pvc ignore file might look like:
+The <code>.pvcignore</code> file should contain a line-separated list of <a href="#string.find">#string.find</a>
+patterns that should be ignored. Items ending in <code>/</code> will apply to whole
+directories. A common pvc ignore file might look like:
 <p>
 <code class="block"># directories
 %.git/
@@ -8116,8 +8117,8 @@ whole directories. A common pvc ignore file might look like:
 # extensions
 %.so$
 
-# specific files
-%./path/to/some_file</code>
+# binary files
+%./path/to/some_binary</code>
 <p>
 <h3><a id="pvc-git" href="#pvc-git">Use with git</h3></a>
 pvc is still in early development, so there is no hosting service which

@@ -7,14 +7,17 @@
 
 [{:h3 name=pvc-install}Installation]
 
-Simply follow civlua's [@Installation] and then run
+Simply follow civlua's [<#Installation>] and add the following to your [$.bashrc]
+[##
+alias pvc="civlua pvc"
+]##
 
-
-pvc is a git or mercurial like (in usage) but extremely simple version control
-system where branches are simply a series of unix patches, each containing a
-series of [$diff -u] entries. The only fundamental disadvantage (or advantage)
-of using pvc instead of git is that pvc supports only fast-forward merges,
-which are the cleanest and simplest to understand.
+[{:h2 name=pvc-about}About]
+[*pvc] is a version control system similar to git or mercurial, but is ultra
+simple: branches are simply a [$base] followed by a set of unix patches with
+incrementing id. The only fundamental disadvantage (or advantage) of using pvc
+instead of git is that pvc supports only fast-forward merges, which are the
+cleanest and simplest to understand.
 
 Builtin cmds:[+
 * [$init dir]: initialize the [$dir] (default=CWD) for PVC.
@@ -92,14 +95,14 @@ Builtin cmds:[+
 [{h2 name=pvc-init}Initiaize your pvc repo]
 ["You may also want to see [<#pvc-git>] to use git for backups]
 
-First install [@Package_civ], then run pvc in bash with [$civ.lua pvc <cmd>].
+First install [<#Package_civ>], then run pvc in bash with [$civ.lua pvc <cmd>].
 
 To track an existing directory:[+
 * [$cd path/to/dir] to navigate to the directory
 * [$pvc init] to initialize pvc
 * [$pvc diff] prints the diff of local changes to stderr and untracked files
   (that are not matched in [$.pvcignore] to stdout. Edit [$.pvcignore]
-  with appropriate entries (see [@pvcignore]) to ignore paths you don't
+  with appropriate entries (see [<#pvcignore>]) to ignore paths you don't
   want tracked until [$pvc diff] shows only files you want tracked.
 
   When ready, running [$pvc diff >> .pvcpaths] in bash will track all untracked
@@ -110,9 +113,9 @@ To track an existing directory:[+
 ]
 
 [{:h3}pvcignore]
-The [$.pvcignore] file should contain a line-separated list of lua patterns
-([@lua.find]) that should be ignored. Items ending in [$/] will apply to
-whole directories. A common pvc ignore file might look like:
+The [$.pvcignore] file should contain a line-separated list of [<#string.find>]
+patterns that should be ignored. Items ending in [$/] will apply to whole
+directories. A common pvc ignore file might look like:
 
 [##
 # directories
@@ -122,8 +125,8 @@ whole directories. A common pvc ignore file might look like:
 # extensions
 %.so$
 
-# specific files
-%./path/to/some_file
+# binary files
+%./path/to/some_binary
 ]##
 
 [{h3 name=pvc-git}Use with git]
