@@ -93,6 +93,37 @@ local mapPvcPaths = function(dir1, dir2, fn)
   end
 end
 
+local untracked = function(P) --> list[string]
+  trace('untracked %s', P)
+  local out, paths, ignore = {}, ds.Set(loadPaths(P)), loadIgnore(P)
+  local w = ix.Walk{P}
+  for path, fty in w do
+    path = path:sub(#P+1)
+    if path == '' then goto cont end
+    local mpath = './'..path -- path for matching
+    trace('ut path %q', mpath)
+    if paths[path] then goto cont end
+    if fty == 'dir' then
+      for _, pat in ipairs(ignore) do
+        if pat:sub(-1,-1) == '/' and mpath:find(pat) then
+          w:skip(); goto cont
+        end
+      end
+    else
+      for _, pat in ipairs(ignore) do
+        if pat:sub(-1,-1) ~= '/' and mpath:find(pat) then
+          goto cont
+        end
+      end
+      push(out, path)
+    end
+    ::cont::
+  end
+  table.sort(out)
+  return out
+end
+
+
 -----------------------------------
 -- Patch Logic
 
@@ -778,72 +809,6 @@ M.main.init = function(args) --> nil
   M.init(popdir(args), args[1] or 'main')
 end
 
---- [$tip [branch]]: get the highest branch#id for branch (default=at).
-M.main.tip = function(args) --> string
-  local P = popdir(args)
-  local out = sfmt('%s#%s',
-    M.rawtip(M.branchPath(P, args[1] or M.rawat(P))))
-  print(out); return out
-end
-
---- [$grow from --to=at]: grow [$to] (default=[$at]) using branch from.
-M.main.grow = function(args)
-  local P = popdir(args)
-  return M.grow(P, args.to, args[1])
-end
-
---- [$rebase [branch [id]]]: change the base of branch to id.
---- (default branch=current, id=branch base's tip)
-M.main.rebase = function(args) --> string
-  local P = popdir(args)
-  local br = args[1] ~= '' and args[1] or M.rawat(P)
-  local base = M.getbase(M.branchPath(P,br))
-  M.rebase(br, M.rawtip(M.branchpath(P, base)))
-end
-
---- [$at [branch]]: if [$branch] is empty then return the active
---- [$branch#id].
----
---- If [$branch] is set then this sets the active [$branch#id], causing the
---- local directory to be updated (default id=tip).
---- ["git equivalent: [$checkout]]
-M.main.at = function(args) --> string
-  local D, branch = popdir(args), args[1]
-  if branch then return M.at(D, M.parseBranch(branch)) end
-  branch = sfmt('%s#%s', M.rawat(D))
-  print(branch); return branch
-end
-
-local untracked = function(P) --> list[string]
-  trace('untracked %s', P)
-  local out, paths, ignore = {}, ds.Set(loadPaths(P)), loadIgnore(P)
-  local w = ix.Walk{P}
-  for path, fty in w do
-    path = path:sub(#P+1)
-    if path == '' then goto cont end
-    local mpath = './'..path -- path for matching
-    trace('ut path %q', mpath)
-    if paths[path] then goto cont end
-    if fty == 'dir' then
-      for _, pat in ipairs(ignore) do
-        if pat:sub(-1,-1) == '/' and mpath:find(pat) then
-          w:skip(); goto cont
-        end
-      end
-    else
-      for _, pat in ipairs(ignore) do
-        if pat:sub(-1,-1) ~= '/' and mpath:find(pat) then
-          goto cont
-        end
-      end
-      push(out, path)
-    end
-    ::cont::
-  end
-  table.sort(out)
-  return out
-end
-
 --- [$diff branch1 branch2 --full]: get the difference (aka the patch) between
 --- [$branch1] (default=[$at]) and [$branch2] (default=local). Each value can be
 --- either a branch name or a directory which contains a [$.pvcpaths] file.
@@ -874,6 +839,27 @@ M.main.commit = function(args)
   M.commit(P, desc)
 end
 
+--- [$at [branch]]: if [$branch] is empty then return the active
+--- [$branch#id].
+---
+--- If [$branch] is set then this sets the active [$branch#id], causing the
+--- local directory to be updated (default id=tip).
+--- ["git equivalent: [$checkout]]
+M.main.at = function(args) --> string
+  local D, branch = popdir(args), args[1]
+  if branch then return M.at(D, M.parseBranch(branch)) end
+  branch = sfmt('%s#%s', M.rawat(D))
+  print(branch); return branch
+end
+
+--- [$tip [branch]]: get the highest branch#id for branch (default=at).
+M.main.tip = function(args) --> string
+  local P = popdir(args)
+  local out = sfmt('%s#%s',
+    M.rawtip(M.branchPath(P, args[1] or M.rawat(P))))
+  print(out); return out
+end
+
 --- [$branch name [from]]: start a new branch of name [$name]. The optional
 --- [$from] (default=[$at]) argument can specify a local [$branch#id] or an
 --- (external) [$path/to/dir] to graft onto the pvc tree.
@@ -892,59 +878,6 @@ M.main.branch = function(args)
   else        fbr, fid = M.rawat(D) end
   local bpath, id = M.branch(D, name, fbr,fid)
   M.at(D, name)
-end
-
---- [$export branch to/]: copy all patch files in the branch to [$to/].
----
---- ["the resulting directory is commonly sent to [$tar -zcvf branch.tar.gz path/]
----   and then [$branch.tar.gz] sent to a maintainer to be merged
---- ]
-M.main.export = function(args) --> to
-  local D = popdir(args)
-  local br = assert(args[1], 'must specify branch')
-  local to = pth.toDir(assert(args[2], 'must specify to/ directory'))
-  if ix.exists(to) then error('to/ directory already exists: '..to) end
-
-  local bdir = M.branchPath(D, br)
-  local tip, bbr,bid = M.rawtip(bdir), M.getbase(bdir,nil)
-
-  ix.mkDirs(to..'patch/')
-  pth.write(bdir..'tip', tip)
-  ix.cp(bdir..'patch/depth', to..'patch/depth')
-  if bbr then pth.write(bdir..'base', sfmt('%s#%s', bbr,bid)) end
-  -- Note: if base then first id isn't there
-  for id=bbr and (bid+1) or bid, tip do
-    ix.forceCp(M.patchPath(bdir,id, '.p', M.patchPath(to,id, '.p')))
-  end
-  io.fmt:styled('notify', sfmt('exported %s to %s', bdir, to))
-  return to
-end
-
---- [$prune branch [id]] delete branch by moving it to backup directory.
-M.main.prune = function(args)
-  local D = popdir(args)
-  local br = assert(args[1], 'must specify branch')
-  local bdir = M.branchPath(D, br)
-  assert(ix.exists(bdir), bdir..' does not exist')
-  local back = M.backupDir(D, br); ix.mkDir(back)
-  local id = args[2]
-  if id then
-    id = toint(id); local tip = M.rawtip(bdir)
-    local d = M.depth(bdir)
-    local undo = {}
-    for i=id,tip do
-      local from = M.patchPath(bdir,id, '.p', d)
-      local to   = sfmt('%s%s.p', back, id)
-      ix.mv(from, to)
-      push(undo, sfmt('mv %s %s', to, from))
-    end
-    pth.write(back..'UNDO', table.concat(undo, '\n'))
-    io.fmt:styled('notify', sfmt('pruned [%s -> %s]. Undo with %s',
-      id, tip, back..'UNDO'))
-  else
-    ix.mv(bdir, back)
-    io.fmt:styled('notify', sfmt('moved %s -> %s', bdir, back))
-  end
 end
 
 --- [$pvc show [branch#id] --num=10 --full]
@@ -990,7 +923,6 @@ M.main.show = function(args)
     io.user:write'\n'
   end
 end
-
 
 --- [$pvc desc branch [$path/to/new]]
 --- get or set the description for a single branch id.
@@ -1044,6 +976,75 @@ getmetatable(M.main).__call = function(_, args)
   end
   return fn(args)
 end
+
+--- [$rebase [branch [id]]]: change the base of branch to id.
+--- (default branch=current, id=branch base's tip)
+M.main.rebase = function(args) --> string
+  local P = popdir(args)
+  local br = args[1] ~= '' and args[1] or M.rawat(P)
+  local base = M.getbase(M.branchPath(P,br))
+  M.rebase(br, M.rawtip(M.branchpath(P, base)))
+end
+
+--- [$grow from --to=at]: grow [$to] (default=[$at]) using branch from.
+M.main.grow = function(args)
+  local P = popdir(args)
+  return M.grow(P, args.to, args[1])
+end
+
+--- [$prune branch [id]] delete branch by moving it to backup directory.
+M.main.prune = function(args)
+  local D = popdir(args)
+  local br = assert(args[1], 'must specify branch')
+  local bdir = M.branchPath(D, br)
+  assert(ix.exists(bdir), bdir..' does not exist')
+  local back = M.backupDir(D, br); ix.mkDir(back)
+  local id = args[2]
+  if id then
+    id = toint(id); local tip = M.rawtip(bdir)
+    local d = M.depth(bdir)
+    local undo = {}
+    for i=id,tip do
+      local from = M.patchPath(bdir,id, '.p', d)
+      local to   = sfmt('%s%s.p', back, id)
+      ix.mv(from, to)
+      push(undo, sfmt('mv %s %s', to, from))
+    end
+    pth.write(back..'UNDO', table.concat(undo, '\n'))
+    io.fmt:styled('notify', sfmt('pruned [%s -> %s]. Undo with %s',
+      id, tip, back..'UNDO'))
+  else
+    ix.mv(bdir, back)
+    io.fmt:styled('notify', sfmt('moved %s -> %s', bdir, back))
+  end
+end
+
+--- [$export branch to/]: copy all patch files in the branch to [$to/].
+---
+--- ["the resulting directory is commonly sent to [$tar -zcvf branch.tar.gz path/]
+---   and then [$branch.tar.gz] sent to a maintainer to be merged
+--- ]
+M.main.export = function(args) --> to
+  local D = popdir(args)
+  local br = assert(args[1], 'must specify branch')
+  local to = pth.toDir(assert(args[2], 'must specify to/ directory'))
+  if ix.exists(to) then error('to/ directory already exists: '..to) end
+
+  local bdir = M.branchPath(D, br)
+  local tip, bbr,bid = M.rawtip(bdir), M.getbase(bdir,nil)
+
+  ix.mkDirs(to..'patch/')
+  pth.write(bdir..'tip', tip)
+  ix.cp(bdir..'patch/depth', to..'patch/depth')
+  if bbr then pth.write(bdir..'base', sfmt('%s#%s', bbr,bid)) end
+  -- Note: if base then first id isn't there
+  for id=bbr and (bid+1) or bid, tip do
+    ix.forceCp(M.patchPath(bdir,id, '.p', M.patchPath(to,id, '.p')))
+  end
+  io.fmt:styled('notify', sfmt('exported %s to %s', bdir, to))
+  return to
+end
+
 
 getmetatable(M).__call = getmetatable(M.main).__call
 

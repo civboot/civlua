@@ -1,6 +1,9 @@
 [$pvc <cmd>]: patch version control command line utility.
 
-["WARNING: pvc is being implemented and is not yet functional]
+["NOTICE: pvc now works but will have bugs and the API is subject to change.
+  Use at your own risk and always back up work that you are using pvc
+  to track (aka use git and pvc together).
+]
 
 A simple version control system where branches are simply a series of unix
 patches, each containing a series of [$diff -u] entries for all changed
@@ -9,7 +12,15 @@ files in the project directory.
 Builtin cmds:[+
 * [$init dir]: initialize the [$dir] (default=CWD) for PVC.
 
-* [$tip [branch]]: get the highest id for branch (default=current).
+* [$diff branch1 branch2]: get the difference (aka the patch) between
+  [$branch1] (default=[$at]) and [$branch2] (default=local). Each value can be
+  either a branch name or a directory which contains a [$.pvcpaths] file.
+
+  ["See [*Usage] for how this can be used for the first commit.]
+
+* [$commit]: add changes to the current branch as a patch and move [$at]
+  forward. The commit message can be written to the COMMIT file or be
+  specified after the [$--] argument.
 
 * [$at [branch]]: if [$branch] is empty then return the active
   [$branch#id].
@@ -18,13 +29,7 @@ Builtin cmds:[+
   local directory to be updated (default id=tip).
   ["git equivalent: [$checkout]]
 
-* [$diff branch1 branch2]: get the difference (aka the patch) between
-  [$branch1] (default=[$at]) and [$branch2] (default=local). Each value can be
-  either a branch name or a directory which contains a [$.pvcpaths] file.
-
-* [$commit]: add changes to the current branch as a patch and move [$at]
-  forward. The commit message can be written to the COMMIT file or be
-  specified after the [$--] argument.
+* [$tip [branch]]: get the highest id for branch (default=current).
 
 * [$branch name [from]]: start a new branch of name [$name]. The optional
   [$from] (default=[$at]) argument can specify a local [$branch#id] or an
@@ -42,7 +47,29 @@ Builtin cmds:[+
   Then move the branch to backup.
   ["in git this is a "fast forward" merge]
 
-* [$export path/ [branch]]: copy all patch files in the branch directory to
+* [$pvc show [branch#id] --num=10 --full]
+
+  If no branch is specified: show branches. [$full] also displays
+  the base and tip.
+
+  Else show branch#id and the previous [$num] commit messages.
+  With [$full] show the full commit message, else show only
+  the first line.
+
+* [$pvc desc branch [$path/to/new]]
+  get or set the description for a single branch id.
+  The default branch is [$at].
+
+  The new description can be passed via [$path/to/new] or
+  after [$--] (like commit).
+
+* [$pvc squash [branch#id endId]]
+  squash branch id -> endId (inclusive) into a single patch at [$id].
+
+  You can then edit the description by using [$pvc desc branch#id].
+
+* [$export path/ [branch]]: (warning: untested)
+  copy all patch files in the branch directory to
   [$path/]. If an [$#id] is specified then it is used as the maximum id
   (defaults: branch=current, id=tip)
 
@@ -50,9 +77,9 @@ Builtin cmds:[+
     and then [$branch.tar.gz] sent to a maintainer to be merged
   ]
 
-* [$prune branch id]: remove a branch by moving it to a backup
-    directory. If an id is given then instead move ids from [$[id,tip]]
-    (inclusive) to a backup.
+* [$prune branch id]: (warning: untested) remove a branch by moving it to a
+  backup directory. If an id is given then instead move ids from [$[id,tip]]
+  (inclusive) to a backup.
 ]
 
 [{h2}Usage]
