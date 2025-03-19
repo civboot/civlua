@@ -6,8 +6,9 @@ FILES = $(NAME).c $(NAME).h
 OUT   = $(NAME)
 LUA_VERSION = lua
 
-UNAME := $(shell uname)
+UNAME != uname
 build:  $(UNAME)
+NetBSD: $(OUT).so
 Linux:  $(OUT).so
 Darwin: $(OUT).so
 # Windows: $(OUT).dll
@@ -16,6 +17,9 @@ WNO = -Wno-incompatible-function-pointer-types
 	
 $(OUT).so: $(FILES)
 	make Build$(UNAME)
+
+BuildNetBSD:
+	$(CC) $(FILES) -fPIC -l$(LUA_VERSION) -lpthread -I/usr/include/$(LUA_VERSION) -shared -o $(OUT).so
 
 BuildLinux: $(FILES)
 	$(CC) $(FILES) -fPIC -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -shared -o $(OUT).so

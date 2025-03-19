@@ -16,6 +16,13 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 
+#ifdef BSD
+extern char** environ;
+void clearEnv() { *environ = NULL; }
+#else
+#define clearEnv clearenv
+#endif
+
 // ---------------------
 // -- Utilities
 typedef lua_State LS;
@@ -290,7 +297,7 @@ static int l_sh(LS *L) {
     if(ch_l != STDERR_FILENO) { dup2(ch_l,  STDERR_FILENO); close(ch_l); }
     else if (ch_l < 0) close(STDERR_FILENO);
     if(env) {
-      clearenv(); while(*env) { putenv(*env); env += 1; }
+      clearEnv(); while(*env) { putenv(*env); env += 1; }
     }
     if(cwd) chdir(cwd);
     return execvp(command, argv);

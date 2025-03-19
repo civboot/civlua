@@ -9,14 +9,18 @@ FILES = $(NAME)/lib.c
 OUT   = $(NAME)/lib
 LUA_VERSION = lua
 
-UNAME := $(shell uname)
+UNAME != uname
 build:  $(UNAME)
+NetBSD: $(OUT).so
 Linux:  $(OUT).so
 Darwin: $(OUT).so
 # Windows: $(OUT).dll
 
 $(OUT).so: $(FILES)
 	make Build$(UNAME)
+
+BuildNetBSD:
+	$(CC) -DBSD $(FILES) -fPIC -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -shared -o $(OUT).so
 
 BuildLinux: $(FILES)
 	# vcmd:       $(_VCMD)

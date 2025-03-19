@@ -216,7 +216,7 @@ void deserLuaB(LS* L, uint8_t const** b, uint8_t const* be) {
     case B_OTHER: switch(v) {
       case B_OTHER_FALSE: lua_pushboolean(L, false); return;
       case B_OTHER_TRUE:  lua_pushboolean(L, true);  return;
-      default: // fallthrough
+      // default: // fallthrough
     }
     default: luaL_error(L, "deserLuaB: unreachable");
   }

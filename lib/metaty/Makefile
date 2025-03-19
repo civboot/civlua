@@ -6,21 +6,23 @@ FILES = $(NAME).c
 OUT   = $(NAME)
 LUA_VERSION = lua
 
-UNAME := $(shell uname)
+UNAME != uname
 build:  $(UNAME)
+NetBSD: $(OUT).so
 Linux:  $(OUT).so
 Darwin: $(OUT).so
 # Windows: $(OUT).dll
 
 WNO = -Wno-incompatible-function-pointer-types
 
+debug:
+	echo uname=$(UNAME)
+	echo out=$(OUT)
+
 $(OUT).so: $(FILES)
 	make Build$(UNAME)
 
-# test: $(FILES)
-# 	$(CC) ds_test.c -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -o smol_test
-# 	./ds_test
-
+BuildNetBSD: BuildLinux
 BuildLinux: $(FILES)
 	$(CC) $(FILES) -fPIC -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -shared -o $(OUT).so
 

@@ -15,6 +15,8 @@ local push, icopy = table.insert, ds.icopy
 local TXT, IDX = '.out/lines.txt', '.out/lines.idx'
 local SMALL = ds.srcdir()..'testdata/small.txt'
 
+-- require'fd'.ioSync()
+
 local loadu3s = function(f)
   local pos, t = f:seek'cur', {}
   assert(pos)
@@ -257,3 +259,5 @@ end)
 test('EdFile.linesRemove', function()
   testing.testLinesRemove(newEdFile, edEq, ds.noop)
 end)
+
+-- require'fd'.ioStd()

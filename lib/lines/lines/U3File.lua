@@ -28,6 +28,7 @@ end
 
 U3File.__newindex = function(u3, k, v)
   if type(k) == 'string' then return newindex(u3, k, v) end
+  print('!! U3File.newindex ', k, v)
   return setbytes(u3, k, pack('>I3', v))
 end
 
