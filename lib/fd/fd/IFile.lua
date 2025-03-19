@@ -10,13 +10,16 @@ local IFile = mty'fd.IFile' {
 local mtype = math.type
 local pack, unpack = string.pack, string.unpack
 local sfmt = string.format
+local trace = require'ds.log'.trace
 
 local index, newindex = mty.index, mty.newindex
 
 --- seek to index. Invariant: [$i <= len+1]
 local function iseek(fi, i, sz) --!!> nil
-  if fi._i == i then return end
+  -- if fi._i == i then return end
   local to = (i-1) * sz
+  -- print(sfmt('!! iseek %s i=%i sz=%i ==> %i',
+  --   io.type(fi.f) or 'notIo', i, sz, to))
   local pos = assert(fi.f:seek('set', to))
   assert(pos % sz == 0, 'pos incorrect')
 end
@@ -78,6 +81,7 @@ IFile.setbytes = function(fi, i, v)
   local len = fi.len; assert(i <= len + 1, 'newindex OOB')
   local sz = fi.sz
   if #v ~= sz then error(sfmt('failed to write %i bytes', #v)) end
+  print(sfmt('!! IFile.setbytes i=%i _i=%i sz=%i', i, fi._i, sz))
   iseek(fi, i, sz); assert(fi.f:write(v))
   if i > len then fi.len = i end
   fi._i = i + 1

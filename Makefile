@@ -31,8 +31,8 @@ civix: lib/civix/civix/lib.c
 	cd lib/civix && make build LUA_VERSION=$(LUA_VERSION)
 
 smol: lib/smol/smol.c
-	cd lib/smol && make test  LUA_VERSION=$(LUA_VERSION)
 	cd lib/smol && make build LUA_VERSION=$(LUA_VERSION)
+	cd lib/smol && make test  LUA_VERSION=$(LUA_VERSION)
 
 ele: build
 	$(LUA) cmd/ele/ele.lua
