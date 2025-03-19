@@ -17,8 +17,8 @@ local index, newindex = mty.index, mty.newindex
 --- seek to index. Invariant: [$i <= len+1]
 local function iseek(fi, i, sz) --!!> nil
   if fi._i == i then
-    -- local cur = fi.f:seek'cur'
-    -- assert(cur == (i-1) * sz, tostring(cur))
+    local cur = fi.f:seek'cur'
+    assert(cur == (i-1) * sz, tostring(cur))
     return
   end
   local to = (i-1) * sz
