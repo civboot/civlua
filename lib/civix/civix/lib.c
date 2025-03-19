@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <assert.h>
 
 #include <lua.h>
 #include <lualib.h>
@@ -15,6 +16,11 @@
 #include <signal.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+
+#ifdef BSD
+extern char** environ;
+static void clearenv() { *environ = NULL; }
+#endif
 
 // ---------------------
 // -- Utilities
@@ -203,7 +209,7 @@ const char* SH_META  = "civix.Sh";
 
 struct sh {
   pid_t pid; char** env; // note: env only set if needs freeing
-  int rc;
+  int rc; // return code of wait
 };
 
 struct sh* sh_wait(struct sh* sh, int flags) {
@@ -255,8 +261,10 @@ static int l_sh(LS *L) {
   if(!lua_isnoneornil(L, 3)) { env = checkstringarray(L, 3, &_unused); }
   bool createdChR = false, createdChW = false, createdChL = false;
 
+  int topi = lua_gettop(L); // FIXME: remove
   struct sh* sh = (struct sh*)lua_newuserdata(L, sizeof(struct sh));
-  sh->pid = 0; sh->env = env;
+  assert(!lua_isnil(L, -1));
+  *sh = (struct sh) { .env = env };
   luaL_setmetatable(L, SH_META);
 
   // ch_r=child-read, pr_w=parent-write, etc
@@ -293,7 +301,8 @@ static int l_sh(LS *L) {
       clearenv(); while(*env) { putenv(*env); env += 1; }
     }
     if(cwd) chdir(cwd);
-    return execvp(command, argv);
+    execvp(command, argv);
+    return 1;
   } // else parent
   sh->pid = pid;
   // only return if we created the fileno. Also, close child-side pipes

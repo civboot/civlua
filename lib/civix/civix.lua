@@ -418,7 +418,7 @@ M.Sh.start = function(sh)
     _fnomaybe(sh.stderr, fd.sys.STDERR_FILENO),
     sh.cwd
   )
-  sh._sh = ex
+  sh._sh = assert(ex, 'INTERNAL: lib.sh returned nil')
   if _r then r:_setfileno(_r); r:toNonblock() else r = nil end
   if _w then w:_setfileno(_w); w:toNonblock() else w = nil end
   if _l then l:_setfileno(_l); l:toNonblock() else l = nil end

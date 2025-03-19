@@ -47,7 +47,6 @@ print'[[libs]]'
   dofile(dir..'lib/pegl/tests/test_lua.lua')
   dofile(dir..'lib/luck/test.lua')
   dofile(dir..'lib/civix/test.lua')
-  dofile(dir..'lib/civdb/test.lua')
   dofile(dir..'lib/smol/test.lua')
 
 print'[[apps]]'
@@ -62,3 +61,4 @@ print'[[ele]]'
   dofile(dir..'cmd/ele/tests/test_actions.lua')
   dofile(dir..'cmd/ele/tests/test_session.lua')
 
+io.fmt:styled('notify', '\nSuccess! All tests passed', '\n')

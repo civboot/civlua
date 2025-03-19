@@ -279,6 +279,7 @@ M.tmpfileFn = function(sysFn)
 end
 M._sync.tmpfile  = function() return M.tmpfileFn(S.tmpFD)  end
 M._async.tmpfile = function() return M.tmpfileFn(S.tmpFDT) end
+M.tmpfile = M._sync.tmpfile
 
 M.read    = function(...)
   local inp = M.input()
@@ -344,20 +345,24 @@ push(LAP_FNS_SYNC, function()
   for k, v in pairs(M._sync)  do M[k] = v end
 end)
 
-local IO_KEYS = [[
+local IO_KEYS = {}; for k in ([[
 open   close  tmpfile
 read   lines  write
 stdout stdin
 input  output flush
 type
-]]
+]]):gmatch'%w+' do push(IO_KEYS, k) end
+
 local function copyKeysM(keys, from, to)
-  for k in keys:gmatch'%w+' do
+  for _, k in ipairs(keys) do
     to[k] = assert(rawget(from, k) or M[k])
   end
 end
 copyKeysM(IO_KEYS, io, M.io)
 
+M.ioStd = function()
+  assert(not LAP_ASYNC); copyKeysM(IO_KEYS, M.io,    io)
+end
 M.ioSync = function()
   assert(not LAP_ASYNC); copyKeysM(IO_KEYS, M._sync, io)
 end

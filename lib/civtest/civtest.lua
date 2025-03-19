@@ -129,7 +129,6 @@ getmetatable(M.Test).__newindex = function(s, name, fn)
   fn(s)
 end
 
-
 -----------------------
 -- DEPRECATED
 
@@ -162,26 +161,27 @@ M.assertMatch = function(expectPat, result)
   end
 end
 
-M.test = function(name, fn)
-  print('# Test', name)
+M.test = function(name, fn, path)
+  print('# Test', name, pth.nice(path or ds.srcloc(1)))
   fn()
   collectgarbage()
 end
 
 --- Runs until yields non-truthy. See lib/lap/README.md
-M.asyncTest = function(name, fn)
+M.asyncTest = function(name, fn, path)
   local lap = require'lap'
   local civix = require'civix'
   local Lap = civix.Lap()
-  print('# Test', name, "(async)")
+  print('# Test', name, "(async)", pth.nice(path or ds.srcloc(1)))
   local _, errors = Lap:run{fn}
   collectgarbage()
   if errors then error(fmt(errors)) end
 end
 
 M.lapTest = function(name, fn)
-  M.test(name, fn)
-  M.asyncTest(name, fn)
+  local path = ds.srcloc(1)
+  M.test(name, fn, path)
+  M.asyncTest(name, fn, path)
 end
 
 return M

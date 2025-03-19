@@ -25,7 +25,6 @@ pkgs = {
   -- data storage / vcs
   'lib/luck',    -- user configuration
   'lib/smol',    -- binary diffs and compression
-  'lib/civdb',   -- minimalist CRUD database
   'lib/vcds',
 
   -- Interacting with the user

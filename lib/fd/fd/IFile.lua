@@ -10,12 +10,14 @@ local IFile = mty'fd.IFile' {
 local mtype = math.type
 local pack, unpack = string.pack, string.unpack
 local sfmt = string.format
+local trace = require'ds.log'.trace
 
 local index, newindex = mty.index, mty.newindex
 
 --- seek to index. Invariant: [$i <= len+1]
+-- FIXME: only seek when pos is different OR switching between reading / writing
 local function iseek(fi, i, sz) --!!> nil
-  if fi._i == i then return end
+  -- if fi._i == i then return end
   local to = (i-1) * sz
   local pos = assert(fi.f:seek('set', to))
   assert(pos % sz == 0, 'pos incorrect')

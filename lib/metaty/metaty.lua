@@ -2,7 +2,9 @@ local G = G or _G
 
 --- metaty: simple but effective Lua type system using metatable
 local M = G.mod and G.mod'metaty' or setmetatable({}, {})
+local concat = table.concat
 
+-- FIXME(netbsd): metaty isn't loading .so
 do
   local treq = function(n) --> try to require n from metaty.native
     local ok, o = pcall(function() return require'metaty.native'[n] end)
@@ -20,7 +22,6 @@ do
   or function(t, v) local i = #t + 1; t[i] = v; return i end
 end
 
-local concat = table.concat
 local srep = string.rep
 local sfmt = string.format
 

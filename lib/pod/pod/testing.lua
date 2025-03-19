@@ -11,7 +11,6 @@ local pod = require'pod'
 --- If expectEncoding is provided then test [$eq(expectEncoding, encFn(v)]
 M.round = function(v, encFn, decFn, expectEncoding) --> (enc, dec)
   local P = mty.ty(v); if type(P) == 'string' then P = nil end
-  print('!! round', fmt(P))
   local enc = encFn(v, P)
   if expectEncoding ~= nil then
     T.binEq(expectEncoding, enc)
@@ -24,7 +23,7 @@ M.roundList = function(values, encFn, decFn)
   for _, v in ipairs(values) do
     local ok, err = ds.try(M.round, v, encFn, decFn)
     if not ok then
-      fmt.errorf('for value:\n%q\ngot: %s', v, err)
+      fmt.errorf('for value:\n%q\n  got: %s', v, err)
     end
   end
 end

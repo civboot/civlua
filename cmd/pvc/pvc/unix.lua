@@ -39,7 +39,9 @@ M.diff = function(a,al, b,bl) --> string?
     'diff', '-N', a, '--label='..al, b, '--label='..bl,
     unified='0', stderr=io.stderr, rc=true}
   trace('diff rc=%i', sh:rc())
-  if sh:rc() > 1 then error('diff failed:\n'..e) end
+  if sh:rc() > 1 then
+    error('diff failed:\n'..(e or o or '(no std err or out)'))
+  end
   if o then
     if sh:rc() ~= 1 then error('unknown return code: '..sh:rc()) end
     if o:sub(1,3) ~= '---' then
@@ -52,7 +54,7 @@ M.diff = function(a,al, b,bl) --> string?
 end
 
 local patchArgs = function(cwd, path)
-  return {'patch', '-p0', '--binary', '-fu', input=pth.abs(path), CWD=cwd}
+  return {'patch', '-p0', '-fu', input=pth.abs(path), CWD=cwd}
 end
 
 --- forward patch

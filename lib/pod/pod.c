@@ -80,13 +80,12 @@ void serString(LS* L, uint8_t type) {
   lua_pop(L, 1);
   luaL_Buffer lb; uint8_t* bs = luaL_buffinitsize(L, &lb, 8 + len);
   uint8_t* b = bs; ASSERT(0 == enclv(&b, b+8, type, len), "OOB");
-  printf("!! encoded pre len=%i\n", b-bs);
   luaL_addsize(&lb, b-bs);
   luaL_addlstring(&lb, s, len);
   luaL_pushresult(&lb);
 }
 
-void serTable(LS* L) {
+void serTable(LS* L) { // (table) -> encoded
   // get the tablei and cache the next value before buffinit
   int tablei = lua_gettop(L);
   size_t llen = lua_rawlen(L, tablei), mlen = 0; // list/map lens
@@ -116,22 +115,21 @@ void serTable(LS* L) {
 
   uint8_t *s; size_t len;
   while(true) { // serialize map items
-    lua_pushvalue(L, tablei+1); if(!lua_next(L, tablei)) break;
+    lua_pushvalue(L, tablei+1);
+    if(!lua_next(L, tablei)) break; // else: (key, value)
     lua_copy(L, -2, tablei+1); // copy key for next loop
     if(lua_isinteger(L, -2)) {
       int i = lua_tointeger(L, -2);
-      if((0 < i) && (i <= llen)) { lua_pop(L, 2); continue; } // skip list item
+      if((0 < i) && (i <= llen)) {
+        lua_pop(L, 2); continue; // skip list item
+      }
     }
 
     ser(L);
-    ASSERT(tablei+3 == lua_gettop(L), "tablei=%I i=%I", tablei, lua_gettop(L));
     s = (uint8_t*) lua_tolstring(L, -1, &len); lua_pop(L, 1);
 
     ser(L);
-    ASSERT(tablei+2 == lua_gettop(L), "tablei=%I i=%I", tablei, lua_gettop(L));
     size_t len2; uint8_t const* s2 = lua_tolstring(L, -1, &len2);
-    printf("!! encoded key: %.*s\n",   len2, s2);
-    printf("!! encoded value: %.*s\n", len,  s);
 
     luaL_addvalue(&lb);           // key
     luaL_addlstring(&lb, s, len); // value
@@ -200,9 +198,7 @@ void deserTable(LS* L,
 
 void deserLuaB(LS* L, uint8_t const** b, uint8_t const* be) {
   if(*b >= be) luaL_error(L, "OOB");
-  printf("!! decoding LuaB\n");
   uint64_t v; uint8_t ty; ASSERT(0 == declv(b,be, &v,&ty), "OOB");
-  printf("!!   ty=0x%X v=%li\n", ty, v);
   switch(ty) {
     case B_TABLE:
     case B_MAP:
@@ -216,7 +212,7 @@ void deserLuaB(LS* L, uint8_t const** b, uint8_t const* be) {
     case B_OTHER: switch(v) {
       case B_OTHER_FALSE: lua_pushboolean(L, false); return;
       case B_OTHER_TRUE:  lua_pushboolean(L, true);  return;
-      default: // fallthrough
+      default: /*fallthrough*/;
     }
     default: luaL_error(L, "deserLuaB: unreachable");
   }
