@@ -22,6 +22,7 @@ U3File.__index = function(u3, k)
     local mt = getmetatable(u3)
     return rawget(mt, k) or index(mt, k)
   end
+  print('!! U3File index', k)
   local str = getbytes(u3, k)
   return str and unpack('>I3', str) or nil
 end
