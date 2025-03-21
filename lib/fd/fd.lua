@@ -279,6 +279,7 @@ M.tmpfileFn = function(sysFn)
 end
 M._sync.tmpfile  = function() return M.tmpfileFn(S.tmpFD)  end
 M._async.tmpfile = function() return M.tmpfileFn(S.tmpFDT) end
+M.tmpfile = M._sync.tmpfile
 
 M.read    = function(...)
   local inp = M.input()

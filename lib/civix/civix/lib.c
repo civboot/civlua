@@ -211,7 +211,7 @@ const char* SH_META  = "civix.Sh";
 
 struct sh {
   pid_t pid; char** env; // note: env only set if needs freeing
-  int rc;
+  int rc; // return code of wait
 };
 
 struct sh* sh_wait(struct sh* sh, int flags) {
@@ -267,7 +267,7 @@ static int l_sh(LS *L) {
   printf("!! starting l_sh topi=%i\n", topi);
   struct sh* sh = (struct sh*)lua_newuserdata(L, sizeof(struct sh));
   assert(!lua_isnil(L, -1));
-  sh->pid = 0; sh->env = env;
+  *sh = (struct sh) { .env = env };
   luaL_setmetatable(L, SH_META);
 
   // ch_r=child-read, pr_w=parent-write, etc
@@ -304,9 +304,10 @@ static int l_sh(LS *L) {
       clearEnv(); while(*env) { putenv(*env); env += 1; }
     }
     if(cwd) chdir(cwd);
-    int out = execvp(command, argv);
-    printf("!! WHAT after execvp\n");
-    return out;
+    execvp(command, argv);
+    // fprintf(stderr, "CRITICAL execvp(%s): %s (%i)\n",
+    //   command, SERR, errno);
+    return 1;
   } // else parent
   sh->pid = pid;
   // only return if we created the fileno. Also, close child-side pipes
