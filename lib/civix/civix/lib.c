@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <assert.h>
 
 #include <lua.h>
 #include <lualib.h>
@@ -262,7 +263,10 @@ static int l_sh(LS *L) {
   if(!lua_isnoneornil(L, 3)) { env = checkstringarray(L, 3, &_unused); }
   bool createdChR = false, createdChW = false, createdChL = false;
 
+  int topi = lua_gettop(L); // FIXME: remove
+  printf("!! starting l_sh topi=%i\n", topi);
   struct sh* sh = (struct sh*)lua_newuserdata(L, sizeof(struct sh));
+  assert(!lua_isnil(L, -1));
   sh->pid = 0; sh->env = env;
   luaL_setmetatable(L, SH_META);
 
@@ -300,15 +304,20 @@ static int l_sh(LS *L) {
       clearEnv(); while(*env) { putenv(*env); env += 1; }
     }
     if(cwd) chdir(cwd);
-    return execvp(command, argv);
+    int out = execvp(command, argv);
+    printf("!! WHAT after execvp\n");
+    return out;
   } // else parent
   sh->pid = pid;
   // only return if we created the fileno. Also, close child-side pipes
   if(createdChW) { close(ch_w); lua_pushinteger(L, pr_r); } else lua_pushnil(L);
   if(createdChR) { close(ch_r); lua_pushinteger(L, pr_w); } else lua_pushnil(L);
   if(createdChL) { close(ch_l); lua_pushinteger(L, pr_l); } else lua_pushnil(L);
+  printf("!! l_sh top before=%i end=%i\n", topi, lua_gettop(L));
+  ASSERT(L, !lua_isnil(L, topi+1), "not nil");
   return 4;
   error:
+    printf("!! l_sh in error block\n");
     if(createdChW) CLOSE(ch_w); if(createdChR) CLOSE(ch_r);
     if(createdChL) CLOSE(ch_l);
     if(pr_r) close(pr_r);    if(pr_w) close(pr_w); if(pr_l) close(pr_l);
