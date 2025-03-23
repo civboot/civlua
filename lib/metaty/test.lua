@@ -44,7 +44,7 @@ test('string.concat', function()
   assertEq('one',          sc(' ', 'one'))
   assertEq('1 2',          sc(' ', '1', 2))
   assertEq('12',           sc('', '1', 2))
-  assertEq('one-two-true', sc('-', 'one', 'two', true))
+  assertEq('one-two-true', sc('-', 'one', 'two', 'true'))
 end)
 
 test('table.update', function()

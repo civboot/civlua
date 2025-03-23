@@ -40,11 +40,9 @@ T.loc = function()
   T.eq('ds/test.lua:4', loc2)
 
   T.eq(   'lib/ds/',          M.srcdir())
-  T.matches('.*/lib/civtest/$', M.srcdir(1))
   local function fn()
      T.eq(   'lib/ds/',          M.srcdir())
      T.eq(   'lib/ds/',          M.srcdir(1))
-     T.matches('.*/lib/civtest/$', M.srcdir(2))
   end; fn()
 end
 

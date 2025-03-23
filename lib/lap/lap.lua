@@ -27,6 +27,12 @@ G.LAP_TRACE     = G.LAP_TRACE or {}
 G.LAP_CORS      = G.LAP_CORS or ds.WeakKV{}
 G.LAP_ASYNC     = G.LAP_ASYNC or false
 
+M.reset = function()
+  assert(not LAP_ASYNC, "don't clear while still running")
+  G.LAP_READY, G.LAP_TRACE = {}, {}
+  G.LAP_CORS = ds.WeakKV{}
+end
+
 M.formatCorErrors = function(corErrors)
   local f = fmt.Fmt{}
   for i, ce in ipairs(corErrors) do
