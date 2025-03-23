@@ -1,7 +1,7 @@
 --- testing helpers for ds related data structures
 local M = mod and mod'lines.testing' or {}
 
-local T = require'civtest'.Test
+local T = require'civtest'.Test()
 local mty = require'metaty'
 local fmt = require'fmt'
 local ds, lines = require'ds', require'lines'

@@ -9,7 +9,7 @@ local pth   = require'ds.path'
 local kev   = require'ds.kev'
 local ix    = require'civix'
 local lines = require'lines'
-local T = require'civtest'.Test
+local T = require'civtest'.Test()
 
 local pu = require'pvc.unix'
 

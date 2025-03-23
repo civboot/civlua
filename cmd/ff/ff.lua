@@ -86,7 +86,6 @@ M.replace = function(path, to, pats, sub)
     log.trace('!! finding %q: %s', pats, line)
     ms, me, pi, pat = find(line, pats)
     if ms then
-      ds.yeet'found'
       print('!! replacing:', line)
     end
     to:write(ms and gsub(line, pat, sub) or line)
@@ -154,7 +153,6 @@ M.iter = function(args) --> Iter
         print('!! writing sub:', subPath)
         replace(p, to, pat, sub)
         to:flush(); to:close();
-        ds.yeet'sub'
         civix.mv(subPath, p)
       end
       return p, pty

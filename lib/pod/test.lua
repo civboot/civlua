@@ -4,7 +4,7 @@ local ds  = require'ds'
 local pod = require'pod'
 local testing = require'pod.testing'
 
-local T = require'civtest'.Test
+local T = require'civtest'.Test()
 
 local podRound = function(P, v)
   local t = P(ds.deepcopy(v))

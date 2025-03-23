@@ -2,7 +2,7 @@
 local mty = require'metaty'
 local ds  = require'ds'
 local CT = require'civtest'
-local T = CT.Test
+local T = CT.Test()
 
 T.civtest = function()
   T.eq(1, 1)

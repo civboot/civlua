@@ -2,7 +2,7 @@ METATY_CHECK = true
 
 local mty = require'metaty'
 local fmt = require'fmt'
-local T = require'civtest'.Test
+local T = require'civtest'.Test()
 
 local buffer = require'lines.buffer'
 

@@ -1,5 +1,5 @@
 
-local T = require'civtest'.Test
+local T = require'civtest'.Test()
 local M = require'lson'
 local mty = require'metaty'
 local ds  = require'ds'

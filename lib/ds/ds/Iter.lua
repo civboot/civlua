@@ -288,7 +288,7 @@ end
 Iter.assertEq = function(it1, it2)
   assert(mty.ty(it1) == Iter, 'it1 is not Iter')
   assert(mty.ty(it2) == Iter, 'it2 is not Iter')
-  local i, T = 0, require'civtest'.Test
+  local i, T = 0, require'civtest'.Test()
   while true do
     i = i + 1
     local r1 = {it1()}

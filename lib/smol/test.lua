@@ -1,5 +1,5 @@
 
-local T = require'civtest'.Test
+local T = require'civtest'.Test()
 local smol = require'smol'
 local S = require'smol.sys'
 local fbin = require'fmt.binary'

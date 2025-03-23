@@ -1,6 +1,6 @@
 -- Test display functionality (not mutation)
 
-local T = require'civtest'.Test
+local T = require'civtest'.Test()
 local fmt = require'fmt'
 local ds, lines = require'ds', require'lines'
 local et   = require'ele.testing'

@@ -15,7 +15,7 @@ local Writer = require'lines.Writer'
 local M = require'cxt'
 local term = require'cxt.term'
 local html = require'cxt.html'
-local T = require'civtest'.Test
+local T = require'civtest'.Test()
 
 local RootSpec, Token
 local testing, EMPTY, EOF

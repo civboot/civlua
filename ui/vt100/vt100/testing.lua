@@ -1,7 +1,7 @@
 --- helpers for testing/demoing vt100
 local M = mod and mod'vt100.testing' or {}
 
-local T = require'civtest'.Test
+local T = require'civtest'.Test()
 local mty = require'metaty'
 local ds = require'ds'
 local log = require'ds.log'
