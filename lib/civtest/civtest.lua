@@ -42,23 +42,21 @@ M.showDiff = function(f, a, b)
 end
 local showDiff = M.showDiff
 
-M.Test = (mty'Test'{})
-getmetatable(M.Test).__call = function(T, t)
-  return mty.construct(T, t or {})
-end
-M.Test.eq = function(a, b)
+--- Assert that [$a] equals [$b] (according to [<#metaty.eq>].
+M.assertEq = function(a, b)
   if mty.eq(a, b) then return end
   showDiff(io.fmt, a, b); fail'Test.eq'
 end
 
-M.Test.exists = function(p)
-  if not require'civix'.exists(p) then error(
-    'does not exist: '..p
+--- Assert that the path exists.
+M.assertExists = function(path)
+  if not require'civix'.exists(path) then error(
+    'does not exist: '..path
   )end
 end
 
 --- Assert the contents at the two paths are equal
-M.Test.pathEq = function(a, b)
+M.assertPathEq = function(a, b)
   local at, bt = pth.read(a), pth.read(b)
   if at == bt then return end
   showDiff(io.fmt, at, bt);
@@ -70,8 +68,8 @@ end
 --- Assert that path matches expect. Expect can be of type:
 --- * string: asserts the file contents match.
 --- * table: recursively assert the subtree contents exist.
-M.Test.path = function(path, expect)
-  M.Test.exists(path)
+M.assertPath = function(path, expect)
+  M.assertExists(path)
   if type(expect) == 'string' then
     local txt = pth.read(path)
     if expect == txt then return end
@@ -79,8 +77,20 @@ M.Test.path = function(path, expect)
     showDiff(io.fmt, expect, txt); fail'Test.tree'
   end
   if ix.pathtype(path) ~= ix.DIR then error(path..' is not a dir') end
-  for k, v in pairs(expect) do M.Test.path(pth.concat{path, k}, v) end
+  for k, v in pairs(expect) do M.assertPath(pth.concat{path, k}, v) end
 end
+
+--- Test instance
+--- This is typically the API for developing lua tests
+--- (in civboot and elsewhere).
+M.Test = (mty'Test'{})
+getmetatable(M.Test).__call = function(T, t)
+  return mty.construct(T, t or {})
+end
+M.Test.eq     = M.assertEq
+M.Test.exists = M.assertExists
+M.Test.pathEq = M.assertPathEq
+M.Test.path   = M.assertPath
 
 -- binary equal
 M.Test.binEq = function(e, r)
