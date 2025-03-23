@@ -125,7 +125,8 @@ M.Test.throws = function(contains, fn) --> ds.Error
   showDiff(io.fmt, contains, err.msg)
   fail'Test.throws (not expected)'
 end
-getmetatable(M.Test).__newindex = function(s, name, fn)
+getmetatable(M.Test).__newindex = function() error'FIXME: remove me' end
+M.Test.__newindex = function(s, name, fn)
   assert(not rawget(M.Test, name), name..' is a Test method')
   io.fmt:styled('h2', sfmt('## Test %-32s', name), ' ')
   io.fmt:styled('path', pth.nice(ds.srcloc(1)), '\n')
