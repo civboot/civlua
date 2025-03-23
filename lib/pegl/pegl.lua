@@ -500,7 +500,7 @@ M.assertParse = function (t) --> nil
 end
 
 M.assertParseError=function(t)
-  civtest.assertErrorPat(
+  civtest.Test.throws(
     t.errPat,
     function() M.parse(assert(t.dat), assert(t.spec)) end,
     t.plain)

@@ -1,7 +1,6 @@
 METATY_CHECK = true
 local mty = require'metaty'
 local ds = require'ds'
-local assertErrorPat; ds.auto'civtest'
 local T = require'civtest'.Test
 local LFile = require'lines.File'
 local M = require'luck'

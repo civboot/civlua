@@ -15,7 +15,6 @@ local ds = require'ds'; local M = ds
 local lines = require'lines'
 local testing = require'lines.testing'
 
-local assertMatch, assertErrorPat; M.auto'civtest'
 local T = require'civtest'.Test
 
 local bound, isWithin, sort2, decAbs
@@ -41,11 +40,11 @@ T.loc = function()
   T.eq('ds/test.lua:4', loc2)
 
   T.eq(   'lib/ds/',          M.srcdir())
-  assertMatch('.*/lib/civtest/$', M.srcdir(1))
+  T.matches('.*/lib/civtest/$', M.srcdir(1))
   local function fn()
      T.eq(   'lib/ds/',          M.srcdir())
      T.eq(   'lib/ds/',          M.srcdir(1))
-     assertMatch('.*/lib/civtest/$', M.srcdir(2))
+     T.matches('.*/lib/civtest/$', M.srcdir(2))
   end; fn()
 end
 
@@ -88,8 +87,8 @@ T.bool_and_none = function()
   T.eq('none', mty.ty(none))
   T.eq('none', fmt(none))
   local err = 'invalid operation on sentinel'
-  assertErrorPat(err, function() none.foo = 3 end)
-  assertErrorPat(err, function() return #none end)
+  T.throws(err, function() none.foo = 3 end)
+  T.throws(err, function() return #none end)
 end
 
 T.imm = function()
@@ -104,8 +103,8 @@ T.imm = function()
   T.eq('table', getmetatable(t))
   assert('table', debug.getmetatable(t).__metatable)
   T.eq('table', mty.ty(t))
-  assertErrorPat('cannot modify Imm', function() t.b = 8 end)
-  assertErrorPat('cannot modify Imm', function() t.v = 8 end)
+  T.throws('cannot modify Imm', function() t.b = 8 end)
+  T.throws('cannot modify Imm', function() t.v = 8 end)
   T.eq('<!imm data!>', next(t))
   local j = {1, 2, v=3}
   local k = M.Imm{1, 2, v=4}
@@ -415,11 +414,11 @@ T.ds_path = function()
   T.eq({'/', 'a', 'd/'}, pr('../../d/', '/a/b/c/'))
   T.eq({'/'},            pr('/a/..'))
   T.eq({},               pr('a/..'))
-  assertErrorPat('before root', function() pr('/..')    end)
-  assertErrorPat('before root', function() pr('/../..') end)
-  assertErrorPat('before root', function() pr('/../../a') end)
-  assertErrorPat('before root', function() pr('/a/../..') end)
-  assertErrorPat('before root', function() pr('/a/../../') end)
+  T.throws('before root', function() pr('/..')    end)
+  T.throws('before root', function() pr('/../..') end)
+  T.throws('before root', function() pr('/../../a') end)
+  T.throws('before root', function() pr('/a/../..') end)
+  T.throws('before root', function() pr('/a/../../') end)
 
   local pn = path.nice
   T.eq('./',        pn('a/..'))
@@ -735,7 +734,7 @@ T.log = function()
   local assertLog = function(lvl, expect, fn, ...)
     f:seek'set'; fn(...); f:seek'set'
     local res = f:read'a'
-    local m = lvl..cxt; assertMatch(m, res)
+    local m = lvl..cxt; T.matches(m, res)
     T.eq(expect, res:sub(#res:match(m) + 1))
   end
   assertLog('I', 'test 42\n', L.info, 'test %s', 42)
