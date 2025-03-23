@@ -135,15 +135,6 @@ end
 -----------------------
 -- DEPRECATED
 
---- simplest assertEq
-M.assertEq = function(expect, result)
-  if mty.eq(expect, result) then return end
-  io.stderr:write('\n!! EXPECTED:\n', fmt(expect), '\n')
-  io.stderr:write('\n!! RESULT:\n',   fmt(result), '\n')
-  io.stderr:write('!! Failed assertEq: '..pth.nice(ds.srcloc(1)), '\n')
-  exit(1)
-end
-
 M.assertErrorPat = function(errPat, fn, plain)
   local ok, err = pcall(fn)
   if ok then error(sfmt(
