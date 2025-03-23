@@ -26,6 +26,18 @@ local function fail(name)
   error(sfmt('Failed %s', name), 2)
 end
 
+
+--- A direct runner, can be used by permutations
+M.directRunner = function(s, name, testFn) testFn(s) end
+
+--- Format (print to io.fmt) and run the testFn
+M.formattingRunner = function(s, name, testFn)
+  io.fmt:styled('h2', sfmt('## Test %-32s', name), ' ')
+  io.fmt:styled('path',
+    pth.nice(select(2, mty.fninfo(testFn))), '\n')
+  testFn(s)
+end
+
 M.showDiff = function(f, a, b)
   f:styled('error', '\n!! RESULT:', '\n');   f(b)
   if mty.ty(a) ~= mty.ty(b) then
@@ -46,6 +58,55 @@ local showDiff = M.showDiff
 M.assertEq = function(a, b)
   if mty.eq(a, b) then return end
   showDiff(io.fmt, a, b); fail'Test.eq'
+end
+
+-- binary equal
+M.assertBinEq = function(e, r)
+  assert(type(e) == 'string', 'expect must be string')
+  assert(type(r) == 'string', 'result must be string')
+  if e == r then return end
+  if #e ~= #r then io.fmt:styled(
+    'notify', sfmt('binary lengths: %s ~= %s\b', #e, #r)
+  )end
+  errordiff(fbin(e), fbin(r))
+  fail'Test.binEq'
+end
+
+--- assert [$subj:find(pat)]
+M.assertMatches = function(pat, subj) --> !?error
+  if subj:find(pat) then return end
+  f:styled('error', '\n!! RESULT:', '\n');   f(b)
+  f:styled('error', '\n!! Did not match:', sfmt('%q\n', pat))
+  f:styled('error', '!! Failed Test.matches:', ' ')
+  f:styled('path', pth.nice(ds.srcloc(1)), '\n')
+  fail'assertMatches'
+end
+
+--- assert [$subj:find(pat, 1, true)] (plain find)
+M.assertContains = function(plain, subj) --> !?error
+  if subj:find(plain, 1, true) then return end
+  io.fmt:styled('error', '\n!! RESULT:', '\n');   f(b)
+  io.fmt:styled('error', '\n!! Did not contain:', sfmt('%q\n', plain))
+  io.fmt:styled('error', '!! Failed Test.contains:', ' ')
+  io.fmt:styled('path', pth.nice(ds.srcloc(1)), '\n')
+  fail'assertContains'
+end
+
+--- assert [$fn()] fails and the [$contains] is in the message.
+M.assertThrows = function(contains, fn) --> ds.Error
+  local ok, err = ds.try(fn)
+  if ok then
+    f:styled('error', '!! Unexpected: did not receive an error')
+    fail'Test.throws (no error)'
+  end
+  if err.msg:find(contains, 1, true) then return err end
+  local f = io.fmt
+  f:styled('error', '\n!! Unexpected Result:', '\n');
+  f:styled('error', 'Actual error:', '\n')
+  f:write(err.msg)
+  f:styled('error', '\n# end actual error', '\n')
+  showDiff(io.fmt, contains, err.msg)
+  fail'Test.throws (not expected)'
 end
 
 --- Assert that the path exists.
@@ -83,68 +144,28 @@ end
 --- Test instance
 --- This is typically the API for developing lua tests
 --- (in civboot and elsewhere).
-M.Test = (mty'Test'{})
+M.Test = (mty'Test'{
+  'runner [fn]: the test runner', runner = M.formattingRunner,
+})
 getmetatable(M.Test).__call = function(T, t)
   return mty.construct(T, t or {})
 end
-M.Test.eq     = M.assertEq
-M.Test.exists = M.assertExists
-M.Test.pathEq = M.assertPathEq
-M.Test.path   = M.assertPath
+M.Test.eq       = M.assertEq
+M.Test.binEq    = M.assertBinEq
+M.Test.exists   = M.assertExists
+M.Test.pathEq   = M.assertPathEq
+M.Test.path     = M.assertPath
+M.Test.matches  = M.assertMatches
+M.Test.contains = M.assertContains
+M.Test.throws   = M.assertThrows
 
--- binary equal
-M.Test.binEq = function(e, r)
-  assert(type(e) == 'string', 'expect must be string')
-  assert(type(r) == 'string', 'result must be string')
-  if e == r then return end
-  if #e ~= #r then io.fmt:styled(
-    'notify', sfmt('binary lengths: %s ~= %s\b', #e, #r)
-  )end
-  errordiff(fbin(e), fbin(r))
-  fail'Test.binEq'
-end
-
---- assert [$subj:find(pat)]
-M.Test.matches = function(pat, subj) --> !?error
-  if subj:find(pat) then return end
-  f:styled('error', '\n!! RESULT:', '\n');   f(b)
-  f:styled('error', '\n!! Did not match:', sfmt('%q\n', pat))
-  f:styled('error', '!! Failed Test.matches:', ' ')
-  f:styled('path', pth.nice(ds.srcloc(1)), '\n')
-  exit(1)
-end
---- assert [$subj:find(pat, 1, true)] (plain find)
-M.Test.contains = function(plain, subj) --> !?error
-  if subj:find(plain, 1, true) then return end
-  io.fmt:styled('error', '\n!! RESULT:', '\n');   f(b)
-  io.fmt:styled('error', '\n!! Did not contain:', sfmt('%q\n', plain))
-  io.fmt:styled('error', '!! Failed Test.contains:', ' ')
-  io.fmt:styled('path', pth.nice(ds.srcloc(1)), '\n')
-  exit(1)
-end
---- assert [$fn()] fails and the [$contains] is in the message.
-M.Test.throws = function(contains, fn) --> ds.Error
-  local ok, err = ds.try(fn)
-  if ok then
-    f:styled('error', '!! Unexpected: did not receive an error')
-    fail'Test.throws (no error)'
-  end
-  if err.msg:find(contains, 1, true) then return err end
-  local f = io.fmt
-  f:styled('error', '\n!! Unexpected Result:', '\n');
-  f:styled('error', 'Actual error:', '\n')
-  f:write(err.msg)
-  f:styled('error', '\n# end actual error', '\n')
-  showDiff(io.fmt, contains, err.msg)
-  fail'Test.throws (not expected)'
-end
 M.Test.__newindex = function(s, name, fn)
   assert(not rawget(M.Test, name), name..' is a Test method')
-  io.fmt:styled('h2', sfmt('## Test %-32s', name), ' ')
-  io.fmt:styled('path', pth.nice(ds.srcloc(1)), '\n')
-  fn(s)
+  s.runner(s, name, fn)
 end
-getmetatable(M.Test).__newindex = function() error'FIXME: remove me' end
+getmetatable(M.Test).__newindex = function()
+  error'FIXME: remove me'
+end
 
 -----------------------
 -- DEPRECATED

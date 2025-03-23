@@ -9,6 +9,24 @@ local M  = require'lap'
 local push, yield = table.insert, coroutine.yield
 local co = coroutine
 
+T.execute = function()
+  local l = M.Lap{}
+  local v = 0
+  local res = l:execute(co.create(
+    function() v = 3; yield'forget' end
+  ))
+  T.eq(3, v)
+  T.eq(nil, res)
+  local res = l:execute(co.create(
+    function() yield'foo' end
+  ))
+  T.eq('unknown kind: foo', res)
+
+  local errFn = function() error'bar' end
+  local res = l:execute(co.create(errFn))
+  T.matches(': bar', res)
+end
+
 CT.asyncTest('schedule', function()
   local i = 0
   local cor = M.schedule(function()
@@ -45,20 +63,3 @@ CT.asyncTest('ch', function()
   yield(true); T.eq({}, t)
 end)
 
-T.execute = function()
-  local l = M.Lap{}
-  local v = 0
-  local res = l:execute(co.create(
-    function() v = 3; yield'forget' end
-  ))
-  T.eq(3, v)
-  T.eq(nil, res)
-  local res = l:execute(co.create(
-    function() yield'foo' end
-  ))
-  T.eq('unknown kind: foo', res)
-
-  local errFn = function() error'bar' end
-  local res = l:execute(co.create(errFn))
-  T.matches(': bar', res)
-end
