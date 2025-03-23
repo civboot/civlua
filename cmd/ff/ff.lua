@@ -61,7 +61,7 @@ M.Main = mty'Main' {
 M.find = function(path, pats, sub) --> boolean
   local found, l, find, ms, me, pi, pat = false, 0, ds.find
   local f, sf = io.fmt, acs.Fmt{to=io.stdout}
-  for line in io.lines(path) do
+  for line in io.lines(path, 'L') do
     l, ms, me, pi, pat = l + 1, find(line, pats)
     if ms then
       if not found then
@@ -80,9 +80,14 @@ end
 
 --- perform replacement of [$pats] with [$sub], writing to [$to]
 M.replace = function(path, to, pats, sub)
+  log.trace('!! replace %s %q %q', path, pats, sub)
   local find, ms, me, pi, pat = ds.find
   for line in io.lines(path, 'L') do
+    log.trace('!! finding %q: %s', pats, line)
     ms, me, pi, pat = find(line, pats)
+    if ms then
+      print('!! replacing:', line)
+    end
     to:write(ms and gsub(line, pat, sub) or line)
   end
 end
@@ -136,6 +141,7 @@ M.iter = function(args) --> Iter
 
   -- perform actual replacement mutation
   if sub and args.mut then
+    print'!! performing replacements'
     local replace = M.replace
     it:map(function(p, pty)
       if pty == 'file' then
@@ -144,8 +150,10 @@ M.iter = function(args) --> Iter
         if to:seek'end' ~= 0 then error(sfmt(
           '%s already exists', subPath
         ))end
+        print('!! writing sub:', subPath)
         replace(p, to, pat, sub)
-        to:flush(); to:close(); civix.mv(subPath, p)
+        to:flush(); to:close();
+        civix.mv(subPath, p)
       end
       return p, pty
     end)
@@ -190,23 +198,36 @@ end
 local linenum = function(l) return sfmt('% 6i ', l) end
 local AFTER = '   --> '
 
+
+local splitMatch = function(str, ms, me) --> beg, mat, end_
+  local beg, mat = str:sub(1,ms-1), str:sub(ms,me)
+  local end_     = str:sub(me+1)
+  local hasNL = str:sub(-1) == '\n'
+  if hasNL then
+    if end_ == '' then mat = mat:sub(1,-2)
+    else end_ = end_:sub(1,-2) end
+  else end_ = end_..'[EOL]' end
+  return beg, mat, end_
+end
+
 M.fmtMatch = function(f, l, str, ms, me)
+  local beg, mat, end_ = splitMatch(str, ms, me)
   f:styled('line',  linenum(l))
-  f:styled(nil,     str:sub(1, ms-1))
-  f:styled('match', str:sub(ms, me))
-  f:styled(nil,     str:sub(me+1), '\n')
+  f:styled(nil,     beg)
+  f:styled('match', mat)
+  f:styled(nil,     end_, '\n')
 end
 M.fmtSub = function(f, before, after)
   local si, ei = 1, -1
   while before:sub(si,si) == after:sub(si,si) do si = si + 1 end
   while before:sub(ei,ei) == after:sub(ei,ei) do ei = ei - 1 end
   ei = #after + ei + 1
-  if ei ~= 0 then
-    f:styled('meta', AFTER)
-    f:styled('meta', after:sub(1, si-1))
-    f:styled(nil,    after:sub(si, ei))
-    f:styled('meta', after:sub(ei+1), '\n')
-  end
+  if ei == 0 then return end
+  local beg, mat, end_ = splitMatch(after, si, ei)
+  f:styled('meta', AFTER)
+  f:styled('meta', beg)
+  f:styled(nil,    mat)
+  f:styled('meta', end_, '\n')
 end
 fmtMatch, fmtSub = M.fmtMatch, M.fmtSub
 

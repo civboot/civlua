@@ -15,7 +15,7 @@ local ds = require'ds'; local M = ds
 local lines = require'lines'
 local testing = require'lines.testing'
 
-local T = require'civtest'.Test
+local T = require'civtest'.Test()
 
 local bound, isWithin, sort2, decAbs
 local indexOf, copy, deepcopy

@@ -1,7 +1,7 @@
 METATY_CHECK = true
 
 local CT = require'civtest'
-local T = CT.Test
+local T = CT.Test()
 local mty = require'metaty'
 local ds = require'ds'
 local M  = require'lap'

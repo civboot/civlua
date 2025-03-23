@@ -1,6 +1,6 @@
 METATY_CHECK = true
 
-local T = require'civtest'.Test
+local T = require'civtest'.Test()
 local mty = require'metaty'
 local fmt = require'fmt'
 local ds = require'ds'

@@ -5,7 +5,7 @@ local ds = require'ds'
 local pth = require'ds.path'
 local Iter = require'ds.Iter'
 local Tm = require'civtest'
-local T = Tm.Test
+local T = Tm.Test()
 local fd = require'fd'
 
 local M  = require'civix'
