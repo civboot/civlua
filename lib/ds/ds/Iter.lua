@@ -4,7 +4,7 @@ local mty = require'metaty'
 --- [{## lang=lua}
 --- isNumber = function(v) return type(v) == 'number' end
 --- t = {4, 5, 'six', 7}
---- assertEq(
+--- T.eq(
 ---   {'4', '5', '7'},
 ---   Iter:ofList(t)       -- iterate over ipairs(t)
 ---     :filterV(isNumber) -- only numbers
@@ -295,7 +295,7 @@ Iter.assertEq = function(it1, it2)
     local r2 = {it2()}
     if not mty.eq(r1, r2) then
       io.fmt:styled('error', 'Result differs at index '..i, '\n')
-      T.eq(r1, r2); error'unreachable'
+      assertEq(r1, r2); error'unreachable'
     end
     if rawequal(r1[1], nil) then return end
   end

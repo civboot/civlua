@@ -12,13 +12,13 @@ local V = require'smol.verify'
 local civix = require'civix'
 
 local push = table.insert
-local test, assertEq = T.test, T.assertEq
+local test, T.eq = T.test, T.T.eq
 local b = string.byte
 
 test('util', function()
-  assertEq(0xFF,   M.bitsmax(8))
-  assertEq(0xFFF,  M.bitsmax(12))
-  assertEq(0xFFFF, M.bitsmax(16))
+  T.eq(0xFF,   M.bitsmax(8))
+  T.eq(0xFFF,  M.bitsmax(12))
+  T.eq(0xFFFF, M.bitsmax(16))
 end)
 
 local TF = '.out/test.bits'
@@ -33,7 +33,7 @@ local function testbits(exp, str, bits)
     else                       wb(v, bits) end
   end
   wb:finish(); wb.file:close()
-  if str then assertEq(str, rb.file:read'a') end
+  if str then T.eq(str, rb.file:read'a') end
   rb.file:seek'set'
   local res, v = {}
   for i, e in ipairs(exp) do
@@ -41,7 +41,7 @@ local function testbits(exp, str, bits)
     else                       v = rb(bits) end
     push(res, assert(v))
   end
-  assertEq(exp, res)
+  T.eq(exp, res)
   rb.file:close()
 end
 

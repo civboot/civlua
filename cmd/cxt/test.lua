@@ -15,8 +15,7 @@ local Writer = require'lines.Writer'
 local M = require'cxt'
 local term = require'cxt.term'
 local html = require'cxt.html'
-
-local test, assertEq; ds.auto'civtest'
+local T = require'civtest'.Test
 
 local RootSpec, Token
 local testing, EMPTY, EOF
@@ -24,27 +23,27 @@ local pegl = ds.auto'pegl'
 
 local KW, N, NUM, HEX; ds.auto(testing)
 
-test('escape', function()
-  assertEq('foo \\[bar\\] \\\\ baz', M.escape'foo [bar] \\ baz')
-end)
+T.escape = function()
+  T.eq('foo \\[bar\\] \\\\ baz', M.escape'foo [bar] \\ baz')
+end
 
-test('code', function()
+T.code = function()
   local hub = M._hasUnbalancedBrackets
-  assertEq(false, hub'abc')
-  assertEq(false, hub'[[a]b]')
-  assertEq(true, hub'['); assertEq(true, hub']')
-  assertEq(true, hub'[]]')
+  T.eq(false, hub'abc')
+  T.eq(false, hub'[[a]b]')
+  T.eq(true, hub'['); T.eq(true, hub']')
+  T.eq(true, hub'[]]')
 
   local hashes = M._codeHashes
-  assertEq(nil, hashes'foo bar')
-  assertEq(0,   hashes'foo]bar')
-  assertEq(1,   hashes'[###foo]#bar')
+  T.eq(nil, hashes'foo bar')
+  T.eq(0,   hashes'foo]bar')
+  T.eq(1,   hashes'[###foo]#bar')
 
-  assertEq('[$some [code]]', M.code'some [code]')
-  assertEq('[#some [code]#', M.code'some [code')
-end)
+  T.eq('[$some [code]]', M.code'some [code]')
+  T.eq('[#some [code]#', M.code'some [code')
+end
 
-test('simple', function()
+T.simple = function()
   M.assertParse('hi there', {'hi there'})
   M.assertParse('hi there [*bob]', {
     'hi there ', {'bob', b=true},
@@ -77,9 +76,9 @@ test('simple', function()
   })
 
   M.assertParse('empty [{}block works].', {'empty ', {'block works'}, '.'})
-end)
+end
 
-test('block', function()
+T.block = function()
   M.assertParse([[
 Some code:
 [##
@@ -92,9 +91,9 @@ This is a bit
     '\n',
   })
 
-end)
+end
 
-test('attrs', function()
+T.attrs = function()
   pegl.assertParse{dat='i', spec=M.attr, expect={
       'i', pegl.EMPTY, kind='keyval',
     },
@@ -113,9 +112,9 @@ test('attrs', function()
     {'the/right', path='the/right'},
     ' path',
   })
-end)
+end
 
-test('quote', function()
+T.quote = function()
   M.assertParse([[
 A quote:
 ["We work with being,
@@ -133,9 +132,9 @@ A quote:
     },
     '\n',
   }, true)
-end)
+end
 
-test('list', function()
+T.list = function()
   M.assertParse([[
 A list:[+
 * first item
@@ -161,9 +160,9 @@ A list:[+
   },
   true)
 
-end)
+end
 
-test('nested', function()
+T.nested = function()
   M.assertParse([[
 [+
 * list item
@@ -185,10 +184,10 @@ test('nested', function()
     }, "\n"
   }, true)
 
-end)
+end
 
 
-test('table', function()
+T.table = function()
   local doc = [[
 [{table}
 # [*h]1     | h2   | h3
@@ -225,9 +224,9 @@ test('table', function()
 ]
 ]]
   M.assertParse(docIndent, noIndent)
-end)
+end
 
-test('named', function()
+T.named = function()
   M.assertParse([[
 [{n=n1 href=hi.com}N1]
 [@n1]
@@ -250,9 +249,9 @@ see [@N_2], I like [<@N_2>links]
     {'links', href='hi.com'},
     '\n',
   })
-end)
+end
 
-test('html', function()
+T.html = function()
   html.assertHtml('hi [*there] bob', {'hi <b>there</b> bob'})
   html.assertHtml('hi [*there]\n  newline', {
     'hi <b>there</b>', 'newline'
@@ -312,15 +311,15 @@ next line.
   "code 2</code>",
   "next line."
 })
-end)
+end
 
-test('term', function()
+T.term = function()
   local W = Writer; local w = W{}
   local sty = term{
     '[$code] not code',
     out=fmt.Fmt{to=w}
   }
-  assertEq(W{'code not code', ''}, w)
+  T.eq(W{'code not code', ''}, w)
 
   ds.clear(w)
   local _, node, p = term.convert([[
@@ -354,7 +353,7 @@ bold italic path/to/thing \
   * item 2 with code\
 the end\
 "
-  assertEq(expect, table.concat(w, '\n'))
+  T.eq(expect, table.concat(w, '\n'))
 
   ds.clear(w)
 local _, node, p = term.convert(
@@ -372,11 +371,11 @@ local _, node, p = term.convert(
   + Methods, Etc\
   + Example      Ty<Example>\9lib/doc/test.lua:11\
   + __name       string\9 "
-  assertEq(expect, table.concat(w, '\n'))
-end)
+  T.eq(expect, table.concat(w, '\n'))
+end
 
 
-test('doc', function()
+T.doc = function()
   -- local d = require'doc'.docstr(Mt.A)
   -- M.parse(d)
-end)
+end

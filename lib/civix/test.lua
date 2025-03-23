@@ -6,7 +6,7 @@ local pth = require'ds.path'
 local Iter = require'ds.Iter'
 local Tm = require'civtest'
 local T = Tm.Test
-local assertEq, assertErrorPat; ds.auto'civtest'
+local assertErrorPat; ds.auto'civtest'
 local fd = require'fd'
 
 local M  = require'civix'

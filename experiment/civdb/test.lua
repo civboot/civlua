@@ -56,14 +56,14 @@ T.queryScan = function()
   local db = assert(M.DB:new{path=DBF, schema=V})
   local rows = {V{i=11}, V{i=22}, V{i=33, s='third'}, V{i=-1}, V{s='last'}}
   ds.extend(db, ds.deepcopy(rows))
-  It:ofList(rows):assertEq(It:ofList(db))
+  It:ofList(rows):T.eq(It:ofList(db))
 
   It:ofUnpacked{ {2, V{i=22}}, }
-    :assertEq(It{db:query{key='i', 22}})
+    :T.eq(It{db:query{key='i', 22}})
 
   It:ofUnpacked{ {5, V{s='last'}}, }
-    :assertEq(It{db:query{key='i', nil}})
+    :T.eq(It{db:query{key='i', nil}})
 
   It:ofUnpacked{ {1, V{i=11}}, {2, V{i=22}}, {4, V{i=-1}}, }
-    :assertEq(It{db:query{key='s', nil}})
+    :T.eq(It{db:query{key='s', nil}})
 end

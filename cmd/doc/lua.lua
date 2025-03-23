@@ -124,8 +124,8 @@ M['string.concat'] = string.concat--(sep, ...) --> string
 --- returns the si (start index), ei (end index) and match groups
 ---
 --- [{## lang=lua}
---- assertEq({2, 4},       {find('%w+', ' bob is nice')})
---- assertEq({2, 7, 'is'}, {find(' bob is nice', '%w+ (%w+)')})
+--- T.eq({2, 4},       {find('%w+', ' bob is nice')})
+--- T.eq({2, 7, 'is'}, {find(' bob is nice', '%w+ (%w+)')})
 --- ]##
 ---
 --- Character classes for matching specific sets: [##
@@ -214,16 +214,16 @@ M['string.gsub'] = string.gsub--(subj, pat, repl, index=1) --> string
 ---
 --- Examples: [{## lang=lua}
 ---   sfmt = string.format
----   assertEq('age: 42',    sfmt('%s: %i',   'age', 42))
----   assertEq('age:    42', sfmt('%s: %5i',  'age', 42))
----   assertEq('age: 42,     sfmt('%s: %-5i', 'age', 42))
----   assertEq('age: 00042', sfmt('%s: %05i', 'age', 42)
+---   T.eq('age: 42',    sfmt('%s: %i',   'age', 42))
+---   T.eq('age:    42', sfmt('%s: %5i',  'age', 42))
+---   T.eq('age: 42,     sfmt('%s: %-5i', 'age', 42))
+---   T.eq('age: 00042', sfmt('%s: %05i', 'age', 42)
 --- ]##
 M['string.format'] = string.format--(fmt: str, ...) --> str
 
 --- Get ASCII (integer) codes for [$s[si:ei]]
 ---
---- Example: [$assertEq({98, 99}, {string.byte('abcd', 2, 3)})]
+--- Example: [$T.eq({98, 99}, {string.byte('abcd', 2, 3)})]
 M['string.byte'] = string.byte--(str, si=1, ei=si) --> ...ints
 
 -- convert character codes to string and concatenate
@@ -251,7 +251,7 @@ M['string.rep'] = string.rep-- rep(str, n, sep) -> string
 --- ]
 ---
 --- Example: [{## lang=lua}
---- assertEq(string.pack('>i2i2', 0x1234, 0x5678) == '\x12\x34\x56\x78')]
+--- T.eq(string.pack('>i2i2', 0x1234, 0x5678) == '\x12\x34\x56\x78')]
 --- ]##
 M['string.pack'] = string.pack--(strtys, ...values) -> string
 
@@ -276,10 +276,10 @@ for k, v in pairs(undocumented'io') do M[k] = v end
 ---
 --- Examples: [{## lang=lua}
 --- t = {'first', 'second', 'third', key='hi'}
---- assertEq('first', t[1])
---- assertEq('third', t[3])
---- assertEq('hi',    t.key)
---- assertEq(#t, 3) -- the length of the "list" part
+--- T.eq('first', t[1])
+--- T.eq('third', t[3])
+--- T.eq('hi',    t.key)
+--- T.eq(#t, 3) -- the length of the "list" part
 --- ]##
 ---
 --- [" WARNING: A table's length is defined as ANY index who's next value
@@ -297,8 +297,8 @@ M['table.update'] = table.update--(to, from) --> to
 ---
 --- Examples: [{## lang=lua}
 --- concat = table.concat
---- assertEq(1..' = '..3, concat{1, ' = ', 3})
---- assertEq('1, 2, 3',   concat({1, 2, 3}, ', ')
+--- T.eq(1..' = '..3, concat{1, ' = ', 3})
+--- T.eq('1, 2, 3',   concat({1, 2, 3}, ', ')
 --- ]##
 M['table.concat'] = table.concat--(t, sep='') --> string
 
@@ -323,7 +323,7 @@ M['table.sort'] = table.sort--(list, cmp=lt) --> nil
 ---   -- insert behavior
 ---   table.insert(t, 'b', 1) -- {'b', 'd', 'e'}
 ---   table.insert(t, 'c', 2) -- {'b', 'c', 'd', 'e'}
----   assertEq({'b', 'c', 'd', 'e'}, t)
+---   T.eq({'b', 'c', 'd', 'e'}, t)
 --- ]##
 M['table.insert'] = table.insert
 
