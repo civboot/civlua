@@ -61,7 +61,7 @@ M.Main = mty'Main' {
 M.find = function(path, pats, sub) --> boolean
   local found, l, find, ms, me, pi, pat = false, 0, ds.find
   local f, sf = io.fmt, acs.Fmt{to=io.stdout}
-  for line in io.lines(path) do
+  for line in io.lines(path, 'L') do
     l, ms, me, pi, pat = l + 1, find(line, pats)
     if ms then
       if not found then
@@ -80,9 +80,15 @@ end
 
 --- perform replacement of [$pats] with [$sub], writing to [$to]
 M.replace = function(path, to, pats, sub)
+  log.trace('!! replace %s %q %q', path, pats, sub)
   local find, ms, me, pi, pat = ds.find
   for line in io.lines(path, 'L') do
+    log.trace('!! finding %q: %s', pats, line)
     ms, me, pi, pat = find(line, pats)
+    if ms then
+      ds.yeet'found'
+      print('!! replacing:', line)
+    end
     to:write(ms and gsub(line, pat, sub) or line)
   end
 end
@@ -145,8 +151,11 @@ M.iter = function(args) --> Iter
         if to:seek'end' ~= 0 then error(sfmt(
           '%s already exists', subPath
         ))end
+        print('!! writing sub:', subPath)
         replace(p, to, pat, sub)
-        to:flush(); to:close(); civix.mv(subPath, p)
+        to:flush(); to:close();
+        ds.yeet'sub'
+        civix.mv(subPath, p)
       end
       return p, pty
     end)
