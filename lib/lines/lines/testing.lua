@@ -1,10 +1,9 @@
 --- testing helpers for ds related data structures
 local M = mod and mod'lines.testing' or {}
 
-local T = require'civtest'
+local T = require'civtest'.Test
 local mty = require'metaty'
 local fmt = require'fmt'
-local assertEq = T.assertEq
 local ds, lines = require'ds', require'lines'
 local log = require'ds.log'
 M.DATA = {}
@@ -12,9 +11,9 @@ M.DATA = {}
 --- test round-trip offset
 local function offsetRound(t, l, c, off, expect, expectOff)
   local l2, c2 = lines.offset(t, off, l, c)
-  T.assertEq(expect, {l2, c2})
+  T.eq(expect, {l2, c2})
   local res = lines.offsetOf(t, l, c, l2, c2)
-  T.assertEq(expectOff or off, res)
+  T.eq(expectOff or off, res)
 end
 M.DATA.offset = '12345\n6789\n'
 M.testOffset = function(t)
@@ -23,7 +22,7 @@ M.testOffset = function(t)
   offsetRound(t, 1, 2, 1,   {1, 3})
   offsetRound(t, 1, 3, -1,  {1, 2})
   offsetRound(t, 1, 2, -1,  {1, 1})
-  T.assertEq({1, 1}, {lines.offset(t, -1, 1, 1)})
+  T.eq({1, 1}, {lines.offset(t, -1, 1, 1)})
 
   -- here
   offsetRound(t, 1, 1, 3,   {1, 4})
@@ -57,8 +56,8 @@ end
 --- lines to create a new object (does NOT need to be copied)
 --- called for various data structures which implement lines
 M.testLinesRemove = function(new, assertEq, assertEqRemove)
-  local assertEqR = assertEqRemove or T.assertEq
-  local assertEq = assertEq or T.assertEq
+  local assertEqR = assertEqRemove or T.eq
+  local assertEq = assertEq or T.eq
   local t = new''
   lines.inset(t, 'foo bar', 1, 0)
   assertEqR({'o b'}, lines.remove(t, 1, 3, 1, 5))

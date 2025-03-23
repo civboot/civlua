@@ -10,8 +10,8 @@ local Tm = mod'Tm'
 
 local assertBackslashes = function(encoded, num)
   local decoded = rep('\\', num)
-  T.assertEq(encoded, M.encodeBackslashes(decoded))
-  T.assertEq(decoded, M.decodeCell(encoded))
+  T.T.eq(encoded, M.encodeBackslashes(decoded))
+  T.T.eq(decoded, M.decodeCell(encoded))
 end
 T.test('backslashes', function()
   assertBackslashes([[\\]],     1)
@@ -24,14 +24,14 @@ end)
 
 local assertCell = function(v, encoded, serde)
   encoded = encoded or v
-  T.assertEq(encoded, M.encodeCell(v,       serde and serde.en))
-  T.assertEq(v,       M.decodeCell(encoded, serde and serde.de))
+  T.T.eq(encoded, M.encodeCell(v,       serde and serde.en))
+  T.T.eq(v,       M.decodeCell(encoded, serde and serde.de))
 end
 T.test('cell', function()
   local SM = M.SerdeMap
-  T.assertEq(nil,  M.decodeCell('', SM.bool.de))
-  T.assertEq(true, M.decodeCell('t', SM.bool.de))
-  T.assertEq(true, M.decodeCell('true', SM.bool.de))
+  T.T.eq(nil,  M.decodeCell('', SM.bool.de))
+  T.T.eq(true, M.decodeCell('t', SM.bool.de))
+  T.T.eq(true, M.decodeCell('true', SM.bool.de))
 
   assertCell(nil,    '')
   assertCell(9,      '9',      SM.integer)
@@ -53,17 +53,17 @@ local assertFull = function(encoded, t, names, types, smap)
   local f = io.tmpfile();
   f:write"' testfile\n"
   local enc = M.store(f, t, names, types, smap)
-  T.assertEq(names, enc._names)
-  T.assertEq(types, enc._types)
+  T.T.eq(names, enc._names)
+  T.T.eq(types, enc._types)
   f:flush(); f:seek'set'
   if encoded then
-    T.assertEq(encoded, f:read'a'); f:seek'set'
+    T.T.eq(encoded, f:read'a'); f:seek'set'
   end
   local res, de = M.load(f, smap)
   f:close()
-  T.assertEq(names, de._names)
-  T.assertEq(types, de._types)
-  T.assertEq(t, res)
+  T.T.eq(names, de._names)
+  T.T.eq(types, de._types)
+  T.T.eq(t, res)
 end
 
 T.test('full', function()

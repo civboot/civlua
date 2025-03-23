@@ -8,7 +8,7 @@ local fmt  = require'fmt'
 local pegl = require'pegl'
 local cxt  = require'cxt'
 local shim = require'shim'
-local civtest = require'civtest'
+local T = require'civtest'.Test
 local push, sfmt = table.insert, string.format
 local ds    = require'ds'
 local lines = require'lines'
@@ -223,7 +223,7 @@ M.assertHtml = function(cxtDat, expectedHtml, dbg)
   local node, p = cxt.parse(cxtDat, dbg)
   local w = cxt.Writer:fromParser(p)
   M.serialize(w, node)
-  civtest.assertEq(expectedHtml, w.to)
+  T.eq(expectedHtml, w.to)
 end
 
 M.main = function(args)

@@ -7,7 +7,7 @@ local mty = require'metaty'
 local fmt = require'fmt'
 local ds  = require'ds'
 local lines = require'lines'
-local civtest = require'civtest'
+local T = require'civtest'.Test
 local add, sfmt, srep = table.insert, string.format, string.rep
 local pop = table.remove
 local max = math.max
@@ -436,7 +436,7 @@ end
 M.assertParse = function(dat, expected, dbg) --> node
   local node, p = M.parse(dat, dbg)
   node = M.parsedStrings(p, node)
-  civtest.assertEq(expected, node)
+  T.eq(expected, node)
   return node
 end
 

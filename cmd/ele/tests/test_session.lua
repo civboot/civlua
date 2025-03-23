@@ -1,6 +1,7 @@
 -- Test display functionality (not mutation)
 
-local T = require'civtest'
+local T = require'civtest'.Test
+local CT = require'civtest'
 local mty = require'metaty'
 local fmt = require'fmt'
 local ds, lines = require'ds', require'lines'
@@ -12,8 +13,6 @@ local Session = require'ele.Session'
 local Buffer = require'lines.buffer'.Buffer
 local Fake = require'vt100.testing'.Fake
 local path = require'ds.path'
-
-local aeq = T.assertEq
 
 local _CWD = CWD
 CWD = path.abs(ds.srcdir()) -- override global
@@ -42,13 +41,13 @@ getmetatable(Test).__call = function(Ty, t)
   ed.display = Fake{h=t.th, w=t.tw}
   local name = assert(t[1], 'need name')
   print('## test_session.Test', name)
-  T.asyncTest(name, function()
+  CT.asyncTest(name, function()
     if t.dat then
       lines.inset(ed.edit.buf.dat, t.dat, 1)
     elseif t.open then ed:open(t.open) end
     t.s:handleEvents()
     assert(t[2], 'need [2]=fn')(t)
-    aeq(log.LogTable{}, ed.error)
+    T.eq(log.LogTable{}, ed.error)
     ed.run = false
   end)
 end
@@ -56,82 +55,82 @@ end
 Test{'session', dat='', function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
   local b, t = ed.edit.buf, ed.display
-  aeq('command', ed.mode)
-  aeq('\n\n', fmt(t))
+  T.eq('command', ed.mode)
+  T.eq('\n\n', fmt(t))
 
   s:play'Z' -- unknown
-    aeq(1, #ed.error)
-    T.assertMatch('unbound chord: Z', fmt(ed.error[1]))
+    T.eq(1, #ed.error)
+    T.matches('unbound chord: Z', fmt(ed.error[1]))
   ds.clear(ed.error)
 
   s:play'i'
-    aeq('insert', ed.mode) -- next mode
-    aeq(nil, ed.ext.keys.next) -- selected in keyinput
-  aeq(log.LogTable{}, ed.error)
+    T.eq('insert', ed.mode) -- next mode
+    T.eq(nil, ed.ext.keys.next) -- selected in keyinput
+  T.eq(log.LogTable{}, ed.error)
 
   s:play'9 space 8'; ed:draw()
-    aeq('9 8', b.dat[1])
-    aeq('9 8\n\n', fmt(t))
-  aeq(log.LogTable{}, ed.error)
+    T.eq('9 8', b.dat[1])
+    T.eq('9 8\n\n', fmt(t))
+  T.eq(log.LogTable{}, ed.error)
 
   s:play'space 7 return 6'
-    aeq('9 8 7\n6\n', fmt(t))
+    T.eq('9 8 7\n6\n', fmt(t))
 end}
 
 Test{'move', dat=LINES3, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
-  aeq(3, #e.buf)
-  aeq('command', ed.mode)
-  aeq('\n\n', fmt(ed.display))
+  T.eq(3, #e.buf)
+  T.eq('command', ed.mode)
+  T.eq('\n\n', fmt(ed.display))
 
   s:play'' -- draw
-    aeq('1 3 5 7 9\n 2 4 6\n', fmt(ed.display))
+    T.eq('1 3 5 7 9\n 2 4 6\n', fmt(ed.display))
 
-  s:play'j';   aeq({2, 1}, {e.l, e.c})
-    aeq(LINES3, fmt(ed.display))
-  s:play'2 k'; aeq({1, 1}, {e.l, e.c})
-  s:play'$';   aeq({1, 9}, {e.l, e.c})
-  s:play'j';   aeq({2, 7}, {e.l, e.c})
-    aeq(LINES3, fmt(ed.display))
+  s:play'j';   T.eq({2, 1}, {e.l, e.c})
+    T.eq(LINES3, fmt(ed.display))
+  s:play'2 k'; T.eq({1, 1}, {e.l, e.c})
+  s:play'$';   T.eq({1, 9}, {e.l, e.c})
+  s:play'j';   T.eq({2, 7}, {e.l, e.c})
+    T.eq(LINES3, fmt(ed.display))
 
-  s:play'0';   aeq({2, 1}, {e.l, e.c})
-  s:play'2 w'; aeq({2, 4}, {e.l, e.c})
-  s:play'b';   aeq({2, 2}, {e.l, e.c})
-  s:play'l ^'; aeq({2, 2}, {e.l, e.c})
+  s:play'0';   T.eq({2, 1}, {e.l, e.c})
+  s:play'2 w'; T.eq({2, 4}, {e.l, e.c})
+  s:play'b';   T.eq({2, 2}, {e.l, e.c})
+  s:play'l ^'; T.eq({2, 2}, {e.l, e.c})
 end}
 
 Test{'backspace', dat=LINES3, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
   local b = e.buf
-  s:play'l l';    aeq({1, 3}, {e.l, e.c})
-  s:play'i back'; aeq({1, 2}, {e.l, e.c})
-    aeq('13 5 7 9', b[1])
-  aeq('13 5 7 9\n 2 4 6\n', fmt(ed.display))
+  s:play'l l';    T.eq({1, 3}, {e.l, e.c})
+  s:play'i back'; T.eq({1, 2}, {e.l, e.c})
+    T.eq('13 5 7 9', b[1])
+  T.eq('13 5 7 9\n 2 4 6\n', fmt(ed.display))
 end}
 
 -- FIXME: fails on NetBSD
 -- Test{'open', open=SMALL, th=9, tw=30, function(tst)
 --   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
 --   local b, BID = e.buf, 2
---   aeq(b.id, BID)
---   aeq(0, #ed.buffers[1].tmp) -- was temporary and was closed
---   aeq(SMALL, b.dat.path)
+--   T.eq(b.id, BID)
+--   T.eq(0, #ed.buffers[1].tmp) -- was temporary and was closed
+--   T.eq(SMALL, b.dat.path)
 --   s:play'' -- draws
---     aeq('-- a small lua file for tests', b[1])
---     aeq(pth.read(SMALL), fmt(ed.display))
+--     T.eq('-- a small lua file for tests', b[1])
+--     T.eq(pth.read(SMALL), fmt(ed.display))
 --   s:play'd f space'
---     aeq('a small lua file for tests', b[1])
+--     T.eq('a small lua file for tests', b[1])
 --   e = ed:open(SMALL)
---     aeq(b.id, BID)
+--     T.eq(b.id, BID)
 --     assert(rawequal(b, e.buf), 'buf is new')
---     aeq('a small lua file for tests', b[1]) -- no change to contents
+--     T.eq('a small lua file for tests', b[1]) -- no change to contents
 -- end}
 
 Test{'nav', dat='', function(tst)
   -- local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
   -- local b, BID = e.buf, 2
   -- s:play'space f space' -- listCWD
-  --   aeq(BID, b.id) -- opened new buffer
+  --   T.eq(BID, b.id) -- opened new buffer
 end}
 
 CWD = _CWD

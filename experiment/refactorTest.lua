@@ -18,6 +18,6 @@ for i, path in ipairs(arg) do
   local text = rd(path)
   text = text:gsub('\nT?%.?test%([\'"]([^\n]*)[\'"],[^\n]*', sub)
   text = text:gsub('\nend%)', '\nend')
-  text = text:gsub('T?%.?assertEq', 'T.eq')
+  text = text:gsub('T?%.?T.eq', 'T.eq')
   wr(path, text)
 end

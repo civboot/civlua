@@ -1,5 +1,5 @@
 
-local T = require'civtest'
+local T = require'civtest'.Test
 local M = require'lson'
 local mty = require'metaty'
 local ds  = require'ds'
@@ -10,49 +10,49 @@ local Tm = mod'Tm'
 
 local function testString(encoded, decoded)
   local de = mty.construct(M.De, {l=1, c=1, line=encoded})
-  T.assertEq(decoded, M.deString(de))
+  T.eq(decoded, M.deString(de))
 end
-T.test('string', function()
+T.string = function()
   testString([["example string"]],     [[example string]])
   testString([["example \"string\""]], [[example "string"]])
-end)
+end
 
-T.test('skipWs', function()
+T.skipWs = function()
   local de = M.De(lines'  a\n  b')
-  de:skipWs(); T.assertEq('a', de.line:sub(de.c,de.c))
+  de:skipWs(); T.eq('a', de.line:sub(de.c,de.c))
   de.c = de.c + 1
-  de:skipWs(); T.assertEq('b', de.line:sub(de.c,de.c))
-end)
+  de:skipWs(); T.eq('b', de.line:sub(de.c,de.c))
+end
 
 local function ltest(t, enc, expectEncoding, P)
   enc = enc or M.Json{}
   enc(t, P)
   local encoded = table.concat(enc)
   if expectEncoding then
-    T.assertEq(expectEncoding, encoded)
+    T.eq(expectEncoding, encoded)
   end
   local de = M.De(lines(encoded))
   print(encoded)
   local decoded = de(P)
-  T.assertEq(t, decoded)
+  T.eq(t, decoded)
   return enc, de
 end
 
-T.test('lax', function()
-  T.assertEq({1, 2},   M.decode'[1 2]')
-  T.assertEq({a=2, 1}, M.decode'{1:1 "a":2}')
-  T.assertErrorPat('1%.4: missing pattern ":"',
+T.lax = function()
+  T.eq({1, 2},   M.decode'[1 2]')
+  T.eq({a=2, 1}, M.decode'{1:1 "a":2}')
+  T.throws('1.4: missing pattern ":"',
     function() M.decode'{1 "a":2}' end)
-end)
+end
 
-T.test('bytes', function()
-  T.assertEq('abc',     M.decode '|abc|')
-  T.assertEq('a\nc',    M.decode '|a\\nc|')
-  T.assertEq('a\\nc',   M.decode[[|a\\nc|]])
-  T.assertEq('a\\nc |', M.decode[[|a\\nc \||  ]])
-end)
+T.bytes = function()
+  T.eq('abc',     M.decode '|abc|')
+  T.eq('a\nc',    M.decode '|a\\nc|')
+  T.eq('a\\nc',   M.decode[[|a\\nc|]])
+  T.eq('a\\nc |', M.decode[[|a\\nc \||  ]])
+end
 
-T.test('round', function()
+T.round = function()
   local L = M.Lson
   ltest({1, 2, 3},      nil,  '[1,2,3]')
   ltest({1, 2, 3},      L{},  '[1 2 3]')
@@ -82,9 +82,9 @@ T.test('round', function()
   ltest(true,              nil,  'true')
   ltest(ds.none,           nil,  'null')
   ltest({[ds.none]=false}, nil, '{null:false}')
-end)
+end
 
-T.test('lson.pod', function()
+T.lson_pod = function()
   Tm.A = mty'A' { 'a1 [builtin]', 'a2 [Tm.A]' }
   pod(Tm.A)
   local a = Tm.A{ a1='hi'}
@@ -96,12 +96,12 @@ T.test('lson.pod', function()
     }, nil,
     [[{"a":{"a1":"a1value"}}]],
     pod.Map{K=pod.str, V=Tm.A})
-end)
+end
 
-T.test('lson run testing_pod', function()
+T.lson_run_testing_pod = function()
   local tp = require'pod.testing'
   local encLson = function(v, P) return table.concat(Lson{}(v, P)) end
   local encJson = function(v, P) return table.concat(Json{}(v, P)) end
   tp.testAll(M.lson, M.decode)
   tp.testAll(M.json, M.decode)
-end)
+end

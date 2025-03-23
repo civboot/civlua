@@ -9,7 +9,6 @@ local fmt = require'fmt'
 local ds, lines = require'ds', require'lines'
 local civix  = require'civix'
 local T = require'civtest'.Test
-local test, assertEq; ds.auto'civtest'
 local ff = require'ff'
 
 local push, sfmt = table.insert, string.format
@@ -48,7 +47,7 @@ local function simpleSub(fmt, subfmt)
   return table.concat(t, '\n')..'\n'
 end
 
-test('ff.Main', function()
+T.ff_Main = function()
   local m = ff.Main{'a', 'p:b/c', '-b', '-p:%.ef', 'r:r1/', '--', 'r2/'}
   T.eq(mty.construct(ff.Main, {
     root={'r2/', 'r1/'},
@@ -64,7 +63,7 @@ test('ff.Main', function()
     path={'dir/'}, nopath=NOPATH,
     sub = 'b',
   }), m)
-end)
+end
 
 local function runFF(args) --> ok, paths, stdout, stderr
   local ll = LOGLEVEL; LOGLEVEL = 0
@@ -92,7 +91,7 @@ local function testA()
   T.eq({}, res); T.eq('', stdout); T.eq('', stderr)
 end
 
-test('ff_find', function()
+T.ff_find = function()
   testA()
 
   local bArgs = {'-p:', 'b %d1', '--', dir}
@@ -106,9 +105,9 @@ test('ff_find', function()
   local ok, res, stdout, stderr = runFF{'-p:', 'b %d1', 'p:/b/', 'r:'..dir}
   assert(ok, res);
   T.eq({dir..'b/b1.txt'}, res)
-end)
+end
 
-test('ff_sub', function()
+T.ff_sub = function()
   local subArgs = {'-p:', 'a (%d1)', sub='s %1', '--', dir}
   local ok, res, stdout, stderr = runFF(ds.copy(subArgs))
   assert(ok, res)
@@ -133,4 +132,4 @@ test('ff_sub', function()
   assert(ok, res)
   T.eq({dir..'a.txt'}, res)
   T.eq(expectSimple'    %i1 s %i1', stderr)
-end)
+end

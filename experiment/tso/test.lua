@@ -5,7 +5,7 @@ local mty = require'metaty'
 local ds = require'ds'
 local lines = require'lines'
 
-local test, assertEq; ds.auto'civtest'
+local test, T.eq; ds.auto'civtest'
 
 local M = require'tso'
 
@@ -15,12 +15,12 @@ end
 local function assertRow(expected, row)
   local ser = M.Ser{}; ser:row(row);
   push(ser.dat, '')
-  assertEq(expected, l2str(ser.dat))
+  T.eq(expected, l2str(ser.dat))
 
   local de = M.De{ser.dat}
   local resRow = de()
-  assertEq(row, resRow)
-  assertEq(nil, de())
+  T.eq(row, resRow)
+  T.eq(nil, de())
 end
 local function assertRows(expected, rows, specs, only)
   local ser, de
@@ -30,12 +30,12 @@ local function assertRows(expected, rows, specs, only)
       ser:define(spec)
     end end
     ser:rows(rows); push(ser.dat, '')
-    assertEq(expected, l2str(ser.dat))
+    T.eq(expected, l2str(ser.dat))
   end
 
   if not only or only == 'de' then
     de = M.De{lines(expected), specs=specs}
-    assertEq(rows, de:all())
+    T.eq(rows, de:all())
   end
   return ser, de
 end
@@ -45,7 +45,7 @@ test('step_by_step', function()
   local expected = '2\t3\t"hi there\t5'
   ser:any(2); ser:any(3); ser:any'hi there'; ser:any(5)
   ser:_finishLine()
-  assertEq(expected, l2str(ser.dat))
+  T.eq(expected, l2str(ser.dat))
   assertRow(expected..'\n', {2, 3, 'hi there', 5})
 
   local expected = [[
@@ -54,7 +54,7 @@ test('step_by_step', function()
   local ser = M.Ser{dat=out or {}}
   ser:any'table'; ser:table{1, 2}
   ser:_finishLine(); push(ser.dat, '')
-  assertEq(expected, l2str(ser.dat))
+  T.eq(expected, l2str(ser.dat))
   assertRow(expected, {'table', {1, 2}})
 
 local comments = '; some line\n; comments\n'
@@ -69,7 +69,7 @@ local comments = '; some line\n; comments\n'
   local row = {'nested', {{1, 2}, {3, 4}}, 5, 6}
   ser:_tableRow(row)
   ser:_finishLine(); push(ser.dat, '')
-  assertEq(comments..expected, l2str(ser.dat))
+  T.eq(comments..expected, l2str(ser.dat))
   assertRow(expected, row)
 end)
 
@@ -276,9 +276,9 @@ test('autospec', function()
   local res = de:all()
   local t0 = assert(de.specs['0'])
   local t1 = assert(de.specs['1'])
-  assertEq('!0', t0.__name)
-  assertEq({'a', 'b', a=true, b=true}, t0.__fields)
-  assertEq({
+  T.eq('!0', t0.__name)
+  T.eq({'a', 'b', a=true, b=true}, t0.__fields)
+  T.eq({
     t0{a=1, b=2, 3, 4},
     t0{a='five', b = t1{
       c='six', d='seven',
@@ -305,10 +305,10 @@ $10	$20	$30
   ser:attr('ibase', 16)
   ser:row(Abc{a=0x10, b=0x20, c=0x30})
   push(ser.dat, '')
-  assertEq(expect, l2str(ser.dat))
+  T.eq(expect, l2str(ser.dat))
 
   local de = M.De{lines(expect), specs={Abc=Abc}}
-  assertEq({
+  T.eq({
     Abc{a=10,   b=20,   c=30},
     Abc{a=0x10, b=0x20, c=0x30},
   }, de:all())

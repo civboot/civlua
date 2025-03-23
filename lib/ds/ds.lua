@@ -215,7 +215,7 @@ end
 ---   this is
 ---     a string.
 --- ]]
---- assertEq('this is\n  a string.', mystr)
+--- T.eq('this is\n  a string.', mystr)
 --- ]##
 M.simplestr = function(s)
   local i, out, iden, spcs = 1, {}, nil

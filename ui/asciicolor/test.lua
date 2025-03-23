@@ -1,6 +1,5 @@
 METATY_CHECK = true
 
-local CT = require'civtest'
 local T = require'civtest'.Test
 local mty = require'metaty'
 local fmt = require'fmt'
@@ -40,5 +39,5 @@ T.code = function()
   aeq('z',  c'z')
   aeq('z',  c' ')
   aeq('z',  c'')
-  CT.assertErrorPat('invalid ascii color: "O"', function() c'O' end)
+  T.throws('invalid ascii color: "O"', function() c'O' end)
 end

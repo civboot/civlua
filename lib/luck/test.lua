@@ -1,22 +1,22 @@
 METATY_CHECK = true
 local mty = require'metaty'
 local ds = require'ds'
-local test, assertEq, assertErrorPat; ds.auto'civtest'
+local T = require'civtest'.Test
 local LFile = require'lines.File'
 local M = require'luck'
 local D = 'lib/luck/'
 
-test("meta", function()
+T.meta = function()
   local path = D..'testdata/small.luck'
   local f = assert(LFile{path=path}); f.cache = ds.Forget{}
   local meta = M.loadMeta(f, path)
-  assertEq({'small'}, meta)
+  T.eq({'small'}, meta)
   f:close()
 
   local path = D..'testdata/withdeps.luck'
   local f = assert(LFile{path=path}); f.cache = ds.Forget{}
   local meta = M.loadMeta(f, path)
-  assertEq({
+  T.eq({
     'test.withdeps',
     deps = {
       vals = 'test.vals',
@@ -24,27 +24,27 @@ test("meta", function()
     }
   }, meta)
   f:close()
-end)
+end
 
-test("load", function()
+T.load = function()
   local smallPath = D..'testdata/small.luck'
   local valsPath  = D..'testdata/vals.luck'
   local res = M.load(smallPath)
   local small = {i=8, s="hello", t={1, 2, v=3}}
-  assertEq(small, res)
+  T.eq(small, res)
 
   local res = M.loadall{D..'testdata/small.luck'}
-  assertEq({small=small}, res)
+  T.eq({small=small}, res)
 
   local resVals = M.load(valsPath)
   local vals = {val1 = 'first val', val2 = 222, val3 = 7}
-  assertEq(vals, resVals)
+  T.eq(vals, resVals)
 
   local withDeps = M.loadall{
     D..'testdata/withdeps.luck',
     smallPath, valsPath,
   }
-  assertEq({
+  T.eq({
     small=small,
     ['test.vals'] = vals,
     ['test.withdeps'] = {
@@ -54,5 +54,5 @@ test("load", function()
       val2Plus3 = 229,
     }
   }, withDeps)
-end)
+end
 

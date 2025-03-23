@@ -1,38 +1,38 @@
 local mty = require'metaty'
 local ds  = require'ds'
 local lines = require'lines'
-local test, assertEq; ds.auto'civtest'
+local T = require'civtest'.Test
 local Diff, Keep, Change; local M = ds.auto'vcds'
 local push = table.insert
 
-test('create anchor', function()
+T.create_anchor = function()
   local base = {'1', '1', ' ', '2', '3', '3', ' ', '1', '2'}
-  assertEq({}, M.createAnchorTop(base, 0, 2))
-  assertEq({Diff(1, '@', '1')}, M.createAnchorTop(base, 1, 2))
-  assertEq({
+  T.eq({}, M.createAnchorTop(base, 0, 2))
+  T.eq({Diff(1, '@', '1')}, M.createAnchorTop(base, 1, 2))
+  T.eq({
     Diff(1, '@', '1'),
     Diff(2, '@', '1'),
   }, M.createAnchorTop(base, 2, 2))
-  assertEq({
+  T.eq({
     Diff(2, '@', '1'),
     Diff(3, '@', ' '),
     Diff(4, '@', '2'),
   }, M.createAnchorTop(base, 4, 2))
 
-  assertEq({},  M.createAnchorBot(base, 10, 2))
-  assertEq({Diff(9, '@', '2')}, M.createAnchorBot(base, 9, 2))
-  assertEq({
+  T.eq({},  M.createAnchorBot(base, 10, 2))
+  T.eq({Diff(9, '@', '2')}, M.createAnchorBot(base, 9, 2))
+  T.eq({
     Diff(8, '@', '1'),
     Diff(9, '@', '2'),
   }, M.createAnchorBot(base, 8, 2))
-  assertEq({
+  T.eq({
     Diff(7, '@', ' '),
     Diff(8, '@', '1'),
     Diff(9, '@', '2'),
   }, M.createAnchorBot(base, 7, 2))
-end)
+end
 
-test('patch', function()
+T.patch = function()
   local base = {'2', '2', '2', '5', '5_', '7_', '9'}
 
   local diffs = {
@@ -57,7 +57,7 @@ test('patch', function()
   push(diffs, Diff(7,  12, '9'))  -- 12 keep
 
   local changes = M.toChanges(diffs)
-  assertEq({
+  T.eq({
     Change{rem=0, add={'1'}},                -- 1
     Keep{num=3},                             -- 2,2,2
     Change{rem=0, add={'3', '4'}},           -- 3
@@ -65,10 +65,10 @@ test('patch', function()
     Change{rem=2, add={'6', '7', '8', '9'}}, -- 5
     Keep{num=1},
   }, changes)
-  assertEq(diffs, M.toDiffs(base, changes))
+  T.eq(diffs, M.toDiffs(base, changes))
 
   local changesB = M.toChanges(diffs, true)
-  assertEq({
+  T.eq({
     Change{rem={}, add={'1'}},
     Keep{'2', '2', '2'},
     Change{rem={}, add={'3', '4'}},
@@ -79,12 +79,12 @@ test('patch', function()
     },
     Keep{'9'},
   }, changesB)
-  assertEq(diffs, M.toDiffs(base, changesB))
+  T.eq(diffs, M.toDiffs(base, changesB))
 
   local p = M.Picks(base, changes, {anchorLen=2})
-  assertEq({1, 1}, {p:groupChanges(1)})
-  assertEq({3, 5}, {p:groupChanges(2)})
-  assertEq({
+  T.eq({1, 1}, {p:groupChanges(1)})
+  T.eq({3, 5}, {p:groupChanges(2)})
+  T.eq({
     Diff('+',   1, '1'),
     Diff(  1, '@', '2'),
     Diff(  2, '@', '2'),
@@ -96,18 +96,18 @@ test('patch', function()
   }
   ds.extend(patch, change2)
   push(patch, Diff(7, '@', '9'))
-  assertEq(patch, p())
-end)
+  T.eq(patch, p())
+end
 
 local function findAnchorTest(expectBl, expectLines, base, anchors, above)
   local baseMap = lines.map(base)
   local aDiffs = {}; for _, a in ipairs(anchors) do
     push(aDiffs, Diff(-1, '@', a))
   end
-  assertEq({expectBl, expectLines}, {M.findAnchor(base, baseMap, aDiffs, above)})
+  T.eq({expectBl, expectLines}, {M.findAnchor(base, baseMap, aDiffs, above)})
 end
 
-test('find anchor', function()
+T.find_anchor = function()
   local tl = {'a', 'b', 'b', 'c', '', 'd', 'b', 'a'}
   -- above
   findAnchorTest(1, 2, tl, {'a', 'b'},      true)
@@ -127,14 +127,14 @@ test('find anchor', function()
 
   findAnchorTest(nil, nil, tl, {'a'},       false)
   findAnchorTest(nil, nil, tl, {'b'},       false)
-end)
+end
 
-test('create patch', function()
+T.create_patch = function()
   local base = {'1', '2', '3', '4', '5', '6', '7'}
   local baseMap = lines.map(base)
-   assertEq(M.Patch{bl=0,
+   T.eq(M.Patch{bl=0,
      '0.a',
    }, M.createPatch(base, baseMap,
      { Diff('+', 1, '0.a') }
    ))
-end)
+end

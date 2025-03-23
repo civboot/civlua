@@ -472,12 +472,11 @@ M.Parser.assertNode = function(p, expect, node, root)
       print('\n#### EXPECT:'); print(eStr)
       print('\n#### RESULT:'); print(rStr)
       print()
-      local b = {}; civtest.diffFmt(b, eStr, rStr)
-      print(table.concat(b))
+      civtest.showDiff(io.fmt, eStr, rStr)
     else
       print('\n#### FORMATTED:'); print(eStr)
       print('## Note: They format the same but they differ')
-      civtest.assertEq(t.expect, result)
+      civtest.Test.eq(t.expect, result)
     end
     error'failed parse test'
   end
@@ -501,7 +500,7 @@ M.assertParse = function (t) --> nil
 end
 
 M.assertParseError=function(t)
-  civtest.assertErrorPat(
+  civtest.Test.throws(
     t.errPat,
     function() M.parse(assert(t.dat), assert(t.spec)) end,
     t.plain)
@@ -612,7 +611,7 @@ local function fmtStack(p)
     end
   end
   pushfmt(b, '%s(%s.%s)', table.unpack(p.stackLast))
-  return table.concat(b, ' -> ')
+  return table.concat(b, '\n  ')
 end
 M.Parser.checkPin=function(p, pin, expect)
   if not pin then return end
@@ -625,7 +624,7 @@ M.Parser.checkPin=function(p, pin, expect)
 end
 M.Parser.error=function(p, msg)
   local lmsg = sfmt('[LINE %s.%s]', p.l, p.c)
-  fmt.errorf("ERROR %s\n%s%s\n%s\nCause: %s\nParse stack: %s",
+  fmt.errorf("ERROR %s\n%s%s\n%s\nCause: %s\nParse stack:\n  %s",
     rawget(p.dat, 'path') or '(rawdata)',
     lmsg, p.line, srep(' ', #lmsg + p.c - 2)..'^',
     msg, fmtStack(p))

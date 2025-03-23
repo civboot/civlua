@@ -6,7 +6,6 @@ local pth = require'ds.path'
 local Iter = require'ds.Iter'
 local Tm = require'civtest'
 local T = Tm.Test
-local assertEq, assertErrorPat; ds.auto'civtest'
 local fd = require'fd'
 
 local M  = require'civix'
@@ -59,10 +58,10 @@ end)
 
 -- FIXME: this  actually FAILED but test doesn't fail...
 -- Tm.asyncTest('sh-fail', function()
---   assertErrorPat('Command failed with rc=1', function()
+--   t.throws('Command failed with rc=1', function()
 --     sh'false'
 --   end)
---   assertErrorPat('Command failed with rc=', function()
+--   t.throws('Command failed with rc=', function()
 --     sh{'commandNotExist', 'blah'}
 --   end)
 --   ds.yeet'never reached'
