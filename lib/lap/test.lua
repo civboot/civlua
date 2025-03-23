@@ -60,5 +60,5 @@ T.execute = function()
 
   local errFn = function() error'bar' end
   local res = l:execute(co.create(errFn))
-  CT.assertMatch(': bar', res)
+  T.matches(': bar', res)
 end

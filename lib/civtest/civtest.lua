@@ -135,26 +135,6 @@ end
 -----------------------
 -- DEPRECATED
 
-M.assertErrorPat = function(errPat, fn, plain)
-  local ok, err = pcall(fn)
-  if ok then error(sfmt(
-    'Did not recieve expected error.\n'
-  ..'! Expected errPat %q\n! Got result[1]: %s',
-    errPat, fmt(err)
-  ))end
-  if not err:find(errPat, 1, plain) then error(sfmt(
-    '! Did not recieve expected error.\n'
-  ..'! Expected errPat %q\n!### Got error:\n%q', errPat, err
-  ))end
-end
-
-M.assertMatch = function(expectPat, result)
-  if not result:match(expectPat) then
-    fmt.errorf('Does not match pattern:\nPattern: %q\n Result:  %s',
-           expectPat, result)
-  end
-end
-
 M.test = function(name, fn, path)
   print('# Test', name, pth.nice(path or ds.srcloc(1)))
   fn()
