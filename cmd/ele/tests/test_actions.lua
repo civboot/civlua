@@ -1,7 +1,7 @@
 -- Test event handling actions
 
 local fmt = require'fmt'
-local T = require'civtest'
+local T = require'civtest'.Test
 local ds = require'ds'
 local M = require'ele.actions'
 local edit = require'ele.edit'
@@ -19,14 +19,14 @@ local lines3 =
 ..'  3 5\n'
 ..'1 3 5 7 9\n'
 
-T.test('move', function()
+T.move = function()
   local d = newEd(lines3); local e = d.edit
   local function assertMove(mv, ev, l, c)
     ev.move = mv; M.move(d, ev)
-    T.assertEq({l, c}, {e.l, e.c})
+    T.eq({l, c}, {e.l, e.c})
   end
 
-  T.assertEq({1, 1}, {e.l, e.c})
+  T.eq({1, 1}, {e.l, e.c})
 
   -- move some cols
   assertMove(nil, {cols=1}, 1, 2)
@@ -47,39 +47,39 @@ T.test('move', function()
   assertMove('find',     {find='3'},     1, 3)
   assertMove('find',     {find='9'},     1, 9)
   assertMove('findback', {findback='1'}, 1, 1)
-end)
+end
 
-T.test('remove', function()
+T.remove = function()
   local d = newEd(lines3); local e, b = d.edit, d.edit.buf
   local function assertRemove(mv, ev, l, c)
     ev.move = mv; M.remove(d, ev)
-    T.assertEq({l, c}, {e.l, e.c})
+    T.eq({l, c}, {e.l, e.c})
   end
 
-  T.assertEq({1, 1}, {e.l, e.c})
+  T.eq({1, 1}, {e.l, e.c})
   assertRemove('forword', {}, 1, 1) -- remove word (end at 1.1)
-    T.assertEq('3 5 7 9', b[1])
-    T.assertEq('  3 5', b[2])
+    T.eq('3 5 7 9', b[1])
+    T.eq('  3 5', b[2])
   assertRemove('find', {find='7', cols=-1}, 1, 1) -- remove before 7
-    T.assertEq('7 9', b[1])
+    T.eq('7 9', b[1])
   assertRemove('lines', {lines=0, times=2}, 1, 1) -- remove two lines
-    T.assertEq('1 3 5 7 9\n', fmt(b.dat))
+    T.eq('1 3 5 7 9\n', fmt(b.dat))
   e.c = 4; assertRemove(nil, {off=-1, cols1=-1}, 1, 3) -- backspace delete '3'
-    T.assertEq('1  5 7 9\n', fmt(b.dat))
+    T.eq('1  5 7 9\n', fmt(b.dat))
   e.c = 4; assertRemove(nil, {off=-1}, 1, 3) -- backspace delete ' 5'
-    T.assertEq('1  7 9\n', fmt(b.dat))
-end)
+    T.eq('1  7 9\n', fmt(b.dat))
+end
 
-T.test('insert', function()
+T.insert = function()
   local d = newEd'1 2 3\n4 5 6'; local e, b = d.edit, d.edit.buf
   local function assertInsert(txt, ev, l, c)
     ev[1] = txt; M.insert(d, ev)
-    T.assertEq({l, c}, {e.l, e.c})
+    T.eq({l, c}, {e.l, e.c})
   end
-  T.assertEq({1, 1}, {e.l, e.c})
+  T.eq({1, 1}, {e.l, e.c})
   assertInsert('4 5 ', {}, 1, 5)
-    T.assertEq('4 5 1 2 3', b[1])
-    T.assertEq('4 5 6',     b[2])
+    T.eq('4 5 1 2 3', b[1])
+    T.eq('4 5 6',     b[2])
   assertInsert('6 7\n', {}, 2, 1)
-    T.assertEq('4 5 6 7\n1 2 3\n4 5 6', fmt(b.dat))
-end)
+    T.eq('4 5 6 7\n1 2 3\n4 5 6', fmt(b.dat))
+end

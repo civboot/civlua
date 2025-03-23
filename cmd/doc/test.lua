@@ -17,17 +17,17 @@ local pkglib = require'pkglib'
 local mty = require'metaty'
 local fmt = require'fmt'
 local pth = require'ds.path'
-local T = require'civtest'
+local T = require'civtest'.Test
 local doc = require'doc'
 
-T.assertEq(mod.__newindex, getmetatable(M.Example).__newindex)
-T.assertEq('doc_test.Example',    PKG_NAMES[M.Example])
-T.assertEq('cmd/doc/test.lua:11', PKG_LOC[M.Example])
+T.eq(mod.__newindex, getmetatable(M.Example).__newindex)
+T.eq('doc_test.Example',    PKG_NAMES[M.Example])
+T.eq('cmd/doc/test.lua:11', PKG_LOC[M.Example])
 
 local rmPaths = function(str) return str:gsub('(/.-):%d+', '%1:000') end
-T.assertEq('blah blah foo/bar.baz:000 blah blah',
+T.eq('blah blah foo/bar.baz:000 blah blah',
   rmPaths('blah blah foo/bar.baz:100 blah blah'))
-T.assertEq('a b c/cmd/doc/test.lua:000 def',
+T.eq('a b c/cmd/doc/test.lua:000 def',
   rmPaths('a b c/cmd/doc/test.lua:11 def'))
 
 local doFmt = function(fn, obj)
@@ -38,7 +38,7 @@ end
 
 
 -- This was used to craft the for documentation
-T.test('pairs', function()
+T.pairs = function()
   local function rawipairs(t, i)
     i = i + 1
     if i > #t then return nil end
@@ -59,46 +59,46 @@ T.test('pairs', function()
   assert(#r == 3)
   assert(r[1] == 1); assert(r[2] == 2); assert(r[3] == 10);
   assert(r.a == 8);  assert(r.hello == 'hi')
-end)
+end
 
-T.test('findcode', function()
+T.findcode = function()
   local com, code = doc.findcode(M.exampleFn)
-  T.assertEq({"--- document a fn", "--- another line"}, com)
-  T.assertEq({"M.exampleFn = function() return end"}, code)
+  T.eq({"--- document a fn", "--- another line"}, com)
+  T.eq({"M.exampleFn = function() return end"}, code)
 
   com, code = doc.findcode(M.Example)
-  T.assertEq('--- document a metaty', com[1])
-  T.assertEq('--- another line',      com[2])
-  T.assertEq([[M.Example  = require'metaty''Example'{]], code[1])
-  T.assertEq([[  'a [int]', a=4,]], code[2])
-  T.assertEq('}', code[3])
-end)
+  T.eq('--- document a metaty', com[1])
+  T.eq('--- another line',      com[2])
+  T.eq([[M.Example  = require'metaty''Example'{]], code[1])
+  T.eq([[  'a [int]', a=4,]], code[2])
+  T.eq('}', code[3])
+end
 
 
-T.test('doc fn', function()
+T.doc_fn = function()
   local res = doc.construct(M.exampleFn, nil, 0)
-  T.assertEq(
+  T.eq(
     "[$doc_test.exampleFn] | \\[[$() -> nil]\\] ([{path=cmd/doc/test.lua:000}src])",
     doFmt(doc.fmtDocItem, res))
 
   local res = doc.construct(M.exampleFn, nil, 1)
-  T.assertEq('Function', res.docTy)
-  T.assertEq(
+  T.eq('Function', res.docTy)
+  T.eq(
 "[{h3}Function [:doc_test.exampleFn][$() -> nil] ([{i path=cmd/doc/test.lua:000}src])]\
 document a fn\
 another line",
     doFmt(doc.fmtDoc, res))
-end)
+end
 
 
-T.test('doc ty', function()
+T.doc_ty = function()
   local res = doc.construct(M.Example, nil, 0)
-  T.assertEq(
+  T.eq(
     "[$doc_test.Example] | \\[Ty<Example>\\] ([{path=cmd/doc/test.lua:000}src])",
     doFmt(doc.fmtDocItem, res))
 
   local res = doc.construct(M.Example, nil, 1)
-  T.assertEq(
+  T.eq(
 "[{h3}Record [:doc_test.Example] ([{i path=cmd/doc/test.lua:000}src])]\
 document a metaty\
 another line\
@@ -120,14 +120,14 @@ another line\
 + [$doc_test.Example.method] | \\[function\\] ([{path=cmd/doc/test.lua:000}src])\
 ]",
     doFmt(doc.fmtDoc, res))
-end)
+end
 
-T.test('doc module', function()
+T.doc_module = function()
   local dir = 'cmd/doc/test/'
   local fm = dofile(dir..'docfake.lua')
 
   local comments, code = doc.findcode(fm)
-  T.assertEq({
+  T.eq({
     "--- fake lua module for testing doc.",
     "---",
     "--- module documentation.",
@@ -137,5 +137,5 @@ T.test('doc module', function()
   res = res..'\n'
   pth.write(dir..'docfake.cxt', res) -- uncomment to update, then check diff!
   local cxt = pth.read(dir..'docfake.cxt')
-  T.assertEq(cxt, res)
-end)
+  T.eq(cxt, res)
+end

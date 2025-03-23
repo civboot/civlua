@@ -26,8 +26,7 @@ local function fail(name)
   error(sfmt('Failed %s', name), 2)
 end
 
-local showDiff = function(a, b)
-  local f = io.fmt
+M.showDiff = function(f, a, b)
   f:styled('error', '\n!! RESULT:', '\n');   f(b)
   if mty.ty(a) ~= mty.ty(b) then
     f:styled('error', '\n!! TYPES:', ' ',
@@ -41,11 +40,12 @@ local showDiff = function(a, b)
     errordiff(a, b)
   end
 end
+local showDiff = M.showDiff
 
 M.Test = (mty'Test'{})
 M.Test.eq = function(a, b)
   if mty.eq(a, b) then return end
-  showDiff(a, b); fail("Test.eq")
+  showDiff(io.fmt, a, b); fail'Test.eq'
 end
 
 M.Test.exists = function(p)
@@ -58,7 +58,7 @@ end
 M.Test.pathEq = function(a, b)
   local at, bt = pth.read(a), pth.read(b)
   if at == bt then return end
-  showDiff(at, bt);
+  showDiff(io.fmt, at, bt);
   io.fmt:styled('error', sfmt('Path expected: %s\n       result: %s',
     a, b), '\n')
   fail'Test.pathEq'
@@ -73,7 +73,7 @@ M.Test.path = function(path, expect)
     local txt = pth.read(path)
     if expect == txt then return end
     io.fmt:styled('error', '!! Path '..path, '\n')
-    showDiff(expect, txt); fail'Test.tree'
+    showDiff(io.fmt, expect, txt); fail'Test.tree'
   end
   if ix.pathtype(path) ~= ix.DIR then error(path..' is not a dir') end
   for k, v in pairs(expect) do M.Test.path(pth.concat{path, k}, v) end
@@ -88,7 +88,7 @@ M.Test.binEq = function(e, r)
     'notify', sfmt('binary lengths: %s ~= %s\b', #e, #r)
   )end
   errordiff(fbin(e), fbin(r))
-  fail("Test.binEq")
+  fail'Test.binEq'
 end
 
 --- assert [$subj:find(pat)]
@@ -112,15 +112,18 @@ end
 --- assert [$fn()] fails and the [$contains] is in the message.
 M.Test.throws = function(contains, fn) --> ds.Error
   local ok, err = ds.try(fn)
-  if not ok and err.msg:find(contains, 1, true) then return err end
+  if ok then
+    f:styled('error', '!! Unexpected: did not receive an error')
+    fail'Test.throws (no error)'
+  end
+  if err.msg:find(contains, 1, true) then return err end
   local f = io.fmt
   f:styled('error', '\n!! Unexpected Result:', '\n');
-  if ok then f:styled('notice', '<no error>') else f(err) end
-  f:styled('error', '\n!! Expected error to contain:',
-           sfmt(' %q\n', contains))
-  f:styled('error', '!! Failed Test.throws:', ' ')
-  f:styled('path', pth.nice(ds.srcloc(1)), '\n')
-  exit(1)
+  f:styled('error', 'Actual error:', '\n')
+  f:write(err.msg)
+  f:styled('error', '\n# end actual error', '\n')
+  showDiff(io.fmt, contains, err.msg)
+  fail'Test.throws (not expected)'
 end
 getmetatable(M.Test).__newindex = function(s, name, fn)
   assert(not rawget(M.Test, name), name..' is a Test method')

@@ -1,7 +1,7 @@
 --- helpers for testing/demoing vt100
 local M = mod and mod'vt100.testing' or {}
 
-local T = require'civtest'
+local T = require'civtest'.Test
 local mty = require'metaty'
 local ds = require'ds'
 local log = require'ds.log'
@@ -46,16 +46,16 @@ function M.run(fn)
     fd.stdin:toNonblock()
 
     -- send size request and wait until it is recieved
-    T.assertEq({true, 'forget'}, {ds.resume(szTh)})
-    T.assertEq(szTh, t._waiting)
+    T.eq({true, 'forget'}, {ds.resume(szTh)})
+    T.eq(szTh, t._waiting)
 
     while t._waiting do
-      T.assertEq({true, 'poll', 0, fd.sys.POLLIN}, {ds.resume(inTh)})
+      T.eq({true, 'poll', 0, fd.sys.POLLIN}, {ds.resume(inTh)})
     end
-    T.assertEq(nil, t._waiting)
-    T.assertEq(nil, r())
-    T.assertEq({true}, {ds.resume(szTh)})
-    T.assertEq('dead', coroutine.status(szTh))
+    T.eq(nil, t._waiting)
+    T.eq(nil, r())
+    T.eq({true}, {ds.resume(szTh)})
+    T.eq('dead', coroutine.status(szTh))
 
     log.info('term size: %s %s', t.h, t.w)
     fn(t)
