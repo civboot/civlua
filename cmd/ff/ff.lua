@@ -136,6 +136,7 @@ M.iter = function(args) --> Iter
 
   -- perform actual replacement mutation
   if sub and args.mut then
+    print'!! performing replacements'
     local replace = M.replace
     it:map(function(p, pty)
       if pty == 'file' then
