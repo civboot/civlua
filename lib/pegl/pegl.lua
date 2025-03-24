@@ -7,7 +7,7 @@ local mty     = require'metaty'
 local fmt     = require'fmt'
 local ds      = require'ds'
 local lines   = require'lines'
-local civtest = require'civtest'
+local T       = require'civtest'
 local extend  = ds.extend
 local push, pop = table.insert, table.remove
 local sfmt    = string.format
@@ -476,7 +476,7 @@ M.Parser.assertNode = function(p, expect, node, root)
     else
       print('\n#### FORMATTED:'); print(eStr)
       print('## Note: They format the same but they differ')
-      civtest.Test.eq(t.expect, result)
+      T.eq(t.expect, result)
     end
     error'failed parse test'
   end
@@ -500,7 +500,7 @@ M.assertParse = function (t) --> nil
 end
 
 M.assertParseError=function(t)
-  civtest.Test.throws(
+  T.throws(
     t.errPat,
     function() M.parse(assert(t.dat), assert(t.spec)) end,
     t.plain)
@@ -524,8 +524,8 @@ end
 --- Parses the spec, returning the node, which is a table of nodes that are
 --- eventually tokens.
 M.Parser.parse = function(p, spec) --> node
-  local T = ty(spec)
-  local specFn = SPEC_TY[T]
+  local Ty = ty(spec)
+  local specFn = SPEC_TY[Ty]
   if specFn then return specFn(p, spec)
   else           return spec:parse(p) end
 end

@@ -1,7 +1,8 @@
 local G = G or _G
 
 --- module for writing simple tests
-local M = G.mod and G.mod'civtest' or {}
+local M = G.mod and G.mod'civtest' or setmetatable({}, {})
+M.SUBNAME = ''
 
 local mty = require'metaty'
 local fmt = require'fmt'
@@ -25,6 +26,24 @@ local function errordiff(e, r)
 end
 local function fail(name)
   error(sfmt('Failed %s', name), 2)
+end
+
+--- Run the test, printing information to the terminal.
+---
+--- This function computes name=[$name..civtest.SUBNAME]
+--- and sets civtest.NAME to the new name, which can be
+--- used in the test.
+---
+--- ["Note: normally this is called when the user sets
+---   a key to the civtest module, which has __newindex()
+---   overriden to call this function.
+--- ]
+M.runTest = function(name, fn)
+  name = name..M.SUBNAME
+  rawset(M, 'NAME', name);
+  io.fmt:styled('h2', sfmt('## Test %-32s', name), ' ')
+  io.fmt:styled('path', pth.nice(select(2, mty.fninfo(fn))), '\n')
+  return fn()
 end
 
 M.showDiff = function(f, a, b)
@@ -203,6 +222,10 @@ M.lapTest = function(name, fn)
   local path = ds.srcloc(1)
   M.test(name, fn, path)
   M.asyncTest(name, fn, path)
+end
+
+getmetatable(M).__newindex = function(m, name, fn)
+  return m.runTest(name, fn)
 end
 
 return M

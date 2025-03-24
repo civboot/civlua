@@ -17,8 +17,8 @@ local hencode, hdecode        = S.hencode, S.hdecode
 local encv, decv              = S.encv, S.decv
 
 local sfmt = string.format
-local assertEq = require'civtest'.Test.eq
-local assertBinEq = require'civtest'.Test.binEq
+local assertEq = require'civtest'.eq
+local assertBinEq = require'civtest'.binEq
 local fbin = require'fmt.binary'
 
 local RDELTA, HUFF_CMDS, HUFF_RAW = 0x80, 0x40, 0x20

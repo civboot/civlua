@@ -4,8 +4,7 @@ local mty = require'metaty'
 local ds = require'ds'
 local pth = require'ds.path'
 local Iter = require'ds.Iter'
-local Tm = require'civtest'
-local T = Tm.Test()
+local T = require'civtest'
 local fd = require'fd'
 
 local M  = require'civix'
@@ -29,7 +28,7 @@ end
 -- TODO: this behaves slighlty differently for the different file
 --       descriptor libraries!
 -- FIXME: re-enable async test
-Tm.test('sh', function()
+T.runTest('sh', function()
   local sh, o = M.sh
 
   T.eq('',           sh'true')
@@ -57,7 +56,7 @@ Tm.test('sh', function()
 end)
 
 -- FIXME: this  actually FAILED but test doesn't fail...
--- Tm.asyncTest('sh-fail', function()
+-- T.asyncTest('sh-fail', function()
 --   t.throws('Command failed with rc=1', function()
 --     sh'false'
 --   end)
@@ -67,7 +66,7 @@ end)
 --   ds.yeet'never reached'
 -- end)
 
-Tm.lapTest('time', function()
+T.lapTest('time', function()
   local period, e1 = ds.Duration(0.001), M.epoch()
   for i=1,10 do
     M.sleep(period)

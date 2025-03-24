@@ -1,8 +1,7 @@
 
 local mty = require'metaty'
 local ds  = require'ds'
-local CT = require'civtest'
-local T = CT.Test()
+local T = require'civtest'
 
 T.civtest = function()
   T.eq(1, 1)
@@ -20,6 +19,6 @@ T.global = function()
   assert(G.someGlobal == nil)
 end
 
-CT.asyncTest('foo', function()
+T.asyncTest('foo', function()
   assert(true)
 end)
