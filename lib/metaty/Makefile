@@ -22,9 +22,11 @@ debug:
 $(OUT).so: $(FILES)
 	make Build$(UNAME)
 
-BuildNetBSD: BuildLinux
-BuildLinux: $(FILES)
-	$(CC) $(FILES) -fPIC -l$(LUA_VERSION) -I/usr/pkg/include/$(LUA_VERSION) -shared -o $(OUT).so
+BuildNetBSD:
+	$(CC) $(FILES) -fPIC -llua -I/usr/pkg/include/$(LUA_VERSION) -shared -o $(OUT).so
+
+BuildLinux:
+	$(CC) $(FILES) -fPIC -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -shared -o $(OUT).so
 
 BuildDarwin:
 	$(CC) $(FILES) $(shell pkg-config lua --cflags) -c -O2 -fPIC $(WNO)

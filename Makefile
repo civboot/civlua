@@ -1,6 +1,6 @@
 
 LUA_VERSION = lua
-LUA_EX = lua
+LUA_EX = $(LUA_VERSION)
 LUA = $(LUA_EX) -e "require'pkglib'()"
 
 .PHONY: ele
