@@ -42,8 +42,7 @@ M.runTest = function(name, fn, path)
   name = name..M.SUBNAME
   rawset(M, 'NAME', name);
   io.fmt:styled('h2', sfmt('## Test %-32s', name), ' ')
-  io.fmt:styled('path',
-    pth.nice(path or select(2, mty.fninfo(fn))), '\n')
+  io.fmt:styled('path', pth.nice(path), '\n')
   return fn()
 end
 
@@ -150,27 +149,8 @@ M.path = function(path, expect)
   if ix.pathtype(path) ~= ix.DIR then error(path..' is not a dir') end
   for k, v in pairs(expect) do M.path(pth.concat{path, k}, v) end
 end
------------------------
--- DEPRECATED
-
---- Runs until yields non-truthy. See lib/lap/README.md
-M.asyncTest = function(name, fn, path)
-  local lap = require'lap'
-  local civix = require'civix'
-  local Lap = civix.Lap()
-  print('# Test', name, "(async)", pth.nice(path or ds.srcloc(1)))
-  local _, errors = Lap:run{fn}
-  collectgarbage()
-  if errors then error(fmt(errors)) end
-end
-
-M.lapTest = function(name, fn)
-  local path = ds.srcloc(1)
-  M.runTest(name, fn, path)
-  M.asyncTest(name, fn, path)
-end
 
 getmetatable(M).__newindex = function(m, name, fn)
-  return m.runTest(name, fn)
+  return m.runTest(name, fn, select(2, mty.fninfo(fn)))
 end
 return M

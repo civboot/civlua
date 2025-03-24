@@ -542,7 +542,11 @@ M.TypoSafe.__newindex = nil
 -- Untyped Functions
 
 --- Copy list-elements only
-M.icopy = function(t) return move(t, 1, #t, 1, {}) end --> list
+M.icopy = function(t) --> list
+  local meth = getmethod(t, '__icopy')
+  if meth then return meth(t) end
+  return move(t, 1, #t, 1, {})
+end
 
 --- Copy and update full table
 M.copy = function(t, update) --> new t
