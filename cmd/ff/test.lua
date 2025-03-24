@@ -8,7 +8,7 @@ local mty = require'metaty'
 local fmt = require'fmt'
 local ds, lines = require'ds', require'lines'
 local civix  = require'civix'
-local T = require'civtest'.Test()
+local T = require'civtest'
 local ff = require'ff'
 
 local push, sfmt = table.insert, string.format

@@ -1,6 +1,6 @@
 local iotype = io.type
 
-local T   = require'civtest'.Test()
+local T   = require'civtest'
 local CT = require'civtest'
 local M   = require'fd'
 local ds = require'ds'

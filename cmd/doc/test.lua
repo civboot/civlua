@@ -17,7 +17,7 @@ local pkglib = require'pkglib'
 local mty = require'metaty'
 local fmt = require'fmt'
 local pth = require'ds.path'
-local T = require'civtest'.Test()
+local T = require'civtest'
 local doc = require'doc'
 
 T.eq(mod.__newindex, getmetatable(M.Example).__newindex)

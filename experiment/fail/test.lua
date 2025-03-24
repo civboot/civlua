@@ -1,4 +1,4 @@
-local T = require'civtest'.Test()
+local T = require'civtest'
 local fail = require'fail'
 
 local failed = fail.failed

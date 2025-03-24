@@ -1,6 +1,6 @@
 
 local mty = require'metaty'
-local T = require'civtest'.Test()
+local T = require'civtest'
 local M = require'civdb'
 local ds = require'ds'
 local It = require'ds.Iter'

@@ -3,7 +3,7 @@ METATY_CHECK = true
 local mty = require'metaty'
 local ds = require'ds'
 local pth = require'ds.path'
-local T = require'civtest'.Test()
+local T = require'civtest'
 
 local RootSpec, Token
 local testing, EMPTY, EOF, assertParse, assertParseError

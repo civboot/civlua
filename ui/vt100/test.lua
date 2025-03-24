@@ -1,7 +1,7 @@
 METATY_CHECK = true
 
 local M = require'vt100'
-local T = require'civtest'.Test()
+local T = require'civtest'
 local mty = require'metaty'
 local fmt = require'fmt'
 local ac = require'asciicolor'

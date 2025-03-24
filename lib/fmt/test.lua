@@ -1,5 +1,5 @@
 
-local T = require'civtest'.Test()
+local T = require'civtest'
 local mty = require'metaty'
 local M = require'fmt'
 local fmt = M

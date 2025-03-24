@@ -1,7 +1,7 @@
 local G = G or _G
 local M = G.mod and mod'pod.testing' or {}
 
-local T  = require'civtest'.Test()
+local T  = require'civtest'
 local mty = require'metaty'
 local ds  = require'ds'
 local fmt = require'fmt'
