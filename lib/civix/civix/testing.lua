@@ -16,7 +16,7 @@ local ix  = require'civix'
 --- ]
 M.runAsyncTest = function(fn)
   local lr = ix.Lap()
-  local _, errors = lr:run{test}
+  local _, errors = lr:run{fn}
   if errors then error(
     'testLapEnv found errors:\n'..fmt(errors)
   )end

@@ -1,123 +1,66 @@
 local iotype = io.type
 
 local T   = require'civtest'
-local CT = require'civtest'
 local M   = require'fd'
 local ds = require'ds'
+local ixt = require'civix.testing'
+local info = require'ds.log'.info
+
 local S   = M.sys
-local aeq = T.eq
+
+local io_open = io.open
+T.eq(M.io.open, io_open)
+
 M.ioSync()
+assert(io.open ~= io_open)
 
 local p = '.out/fd.text'
 
+---------------------
+-- non-general tests
+
 T.bitops = function()
-  aeq(0xFF00, 0xFFFF & (~0x00FF))
-  aeq(0xF0F0, 0xFFFF & (~0x0F0F))
+  T.eq(0xFF00, 0xFFFF & (~0x00FF))
+  T.eq(0xF0F0, 0xFFFF & (~0x0F0F))
 end
 
 T['open -> _write -> _read'] = function()
-  local f = M.open(p, 'w'); aeq(0, f:code())
+  local f = M.open(p, 'w'); T.eq(0, f:code())
   print'opened'
-  aeq(0, f:_write'line 1\nline 2\n'); print'wrote lines'
+  T.eq(0, f:_write'line 1\nline 2\n'); print'wrote lines'
   f:close(); print'closed'
-  f = M.open(p, 'r'); aeq(0, f:code()) print'opened'
-  aeq(S.FD_EOF, f:_read()) print'read EOF'
-  aeq('line 1\nline 2\n', f:_pop())
-  aeq('file', M.type(f)); print'got type'
+  f = M.open(p, 'r'); T.eq(0, f:code()) print'opened'
+  T.eq(S.FD_EOF, f:_read()) print'read EOF'
+  T.eq('line 1\nline 2\n', f:_pop())
+  T.eq('file', M.type(f)); print'got type'
   f:flush();              print'flushed'
-  f:close(); aeq('closed file', M.type(f))
+  f:close(); T.eq('closed file', M.type(f))
 end
 
--- FIXME
--- CT.lapTest('read', function()
---   local f = M.open(p, 'r'); aeq(0, f:code())
---   aeq('line 1\nline 2\n', f:read'a'); aeq(14, f:pos())
---   f:close()
--- end)
--- 
--- 
--- CT.lapTest('read line', function()
---   local f = M.open(p, 'r')
---   aeq('line 1',   f:read'l')
---   aeq('line 2\n', f:read'L')
---   aeq(nil,        f:read'l')
---   f:close()
--- end)
--- 
+--------------------
+-- General tests (sync or async with any io impl)
+local fin = false
+
+local generalTest = function()
+T.openWriteRead = function()
+  local f = assert(io.open(p, 'w'))
+  assert(f:write'line 1\nline 2\n'); f:close()
+
+  f = assert(io.open(p, 'r'))
+  T.eq('line 1\nline 2\n', f:read'a')
+  T.eq('file', M.type(f))
+  f:close(); T.eq('closed file', M.type(f))
+end
+
 T.append = function()
-  local f = M.open(p, 'a'); aeq(0, f:code())
-  aeq(14, f:pos())
-  f:write'line 3\n'; aeq(21, f:pos())
-end
-
--- FIXME
--- CT.asyncTest('append', function()
---   local f = M.open(p, 'a'); aeq(0, f:code())
---   aeq(21, f:pos())
---   f:write'line 4\n'; aeq(28, f:pos())
--- end)
--- 
--- local text = 'line 1\nline 2\nline 3\nline 4\n'
--- CT.asyncTest('openFDT -> _read', function()
---   local f = M.openFDT(p); aeq(M.FDT, getmetatable(f))
---   aeq(0, f:code())
---   f:_read(); while f:code() == S.FD_RUNNING do end
---   aeq(S.FD_EOF, f:code())
---   aeq(text, f:_pop())
---   f:close()
--- end)
--- 
--- CT.asyncTest('FDT:read', function()
---   local f = M.openFDT(p); aeq(text, f:read'a'); f:close()
--- end)
--- 
--- CT.asyncTest('FDT:lines', function()
---   local f = M.openFDT(p)
---   aeq('line 1',   f:read'l')
---   aeq('line 2\n', f:read'L')
---   aeq('line 3\n', f:read'L')
---   aeq('line 4\n', f:read'L')
---   aeq(nil,        f:read'l')
--- end)
-
-T['fileno and friends'] = function()
-  aeq(type(io.stderr), 'userdata')
-  assert(iotype(io.stderr))
-  aeq(0, M.fileno(io.stdin))
-  aeq(2, M.fileno(io.stderr))
-  aeq(false, M.isatty(io.tmpfile()))
-  aeq(false, M.isatty(M.tmpfile()))
-  aeq(true,  M.isatty(io.stderr))
-  aeq(true,  M.isatty(2))
-
-  aeq('chr', M.ftype(io.stdin))
-  aeq('chr', M.ftype(io.stdout))
-  aeq('file', M.ftype(io.tmpfile()))
-  aeq('file', M.ftype( M.tmpfile()))
-end
-
-local pipeTest = function(r, w)
-  w:write'hi there'
-  aeq('hi', r:read(2)); aeq(' there', r:read(6))
-end
-T.pip = function() pipeTest(S.pipe()) end
-CT.asyncTest('pipe', function()
-  local r, w = S.pipe()
-  pipeTest(r:toNonblock(), w:toNonblock())
-  aeq(S.EWOULDBLOCK, r:_read(1))
-  w:write'bye'
-  aeq('b', r:read(1)); aeq('ye', r:read(2))
-end)
-
---- testFn(openFn) is called with both file types.
-local allFileTest = function(testFn)
-  testFn(M.io.open)
-  testFn(M.open)
+  local f = assert(io.open(p, 'a'))
+  T.eq(14, f:seek'cur')
+  f:write'line 3\n'; T.eq(21, f:seek'cur')
 end
 
 --- check that both files behave the same
-T.checkBoth = function() allFileTest(function(open)
-  local f = open(p, 'w+')
+T.generalFile = function()
+  local f = io.open(p, 'w+')
   f:write'hello!'
     -- TODO: try read'a' here for odd results
     T.eq(nil, f:read());
@@ -138,8 +81,22 @@ T.checkBoth = function() allFileTest(function(open)
     T.eq('lo!', f:read(3)); T.eq(6, f:seek'cur')
     T.eq('',  f:read'a')
     T.eq(nil, f:read())
-end) end
+end
 
+T.fileno_and_friends = function()
+  T.eq(type(io.stderr), 'userdata')
+  assert(iotype(io.stderr))
+  T.eq(0, M.fileno(io.stdin))
+  T.eq(2, M.fileno(io.stderr))
+  T.eq(false, M.isatty(io.tmpfile()))
+  T.eq(false, M.isatty(M.tmpfile()))
+  T.eq(true,  M.isatty(io.stderr))
+  T.eq(true,  M.isatty(2))
+
+  T.eq('chr', M.ftype(io.stdin))
+  T.eq('chr', M.ftype(io.stdout))
+  T.eq('file', M.ftype(io.tmpfile()))
+end
 
 -- Note: most test coverage is in things that
 -- use IFile (i.e. U3File).
@@ -156,3 +113,86 @@ T.IFile = function()
   T.eq({'aa', 'bb', 'cc'}, ds.icopy(fi))
 end
 
+fin = true
+end ----------------- end generalTest
+
+T.SUBNAME = '[ioStd]'; M.ioStd()
+fin=false; generalTest(); assert(fin)
+
+T.SUBNAME = '[ioSync]'; M.ioSync()
+fin=false; generalTest(); assert(fin)
+
+T.SUBNAME = ''
+
+-- FIXME
+-- T.lapTest('read', function()
+--   local f = M.open(p, 'r'); T.eq(0, f:code())
+--   T.eq('line 1\nline 2\n', f:read'a'); T.eq(14, f:pos())
+--   f:close()
+-- end)
+-- 
+-- 
+-- T.lapTest('read line', function()
+--   local f = M.open(p, 'r')
+--   T.eq('line 1',   f:read'l')
+--   T.eq('line 2\n', f:read'L')
+--   T.eq(nil,        f:read'l')
+--   f:close()
+-- end)
+-- 
+
+---------------------
+-- Targeted tests (async)
+local pipeTest = function(r, w)
+  w:write'hi there'
+  T.eq('hi', r:read(2)); T.eq(' there', r:read(6))
+end
+
+T.pipe = function() pipeTest(S.pipe()) end
+
+fin = 0
+ixt.runAsyncTest(function()
+T.pipe_async = function()
+  local r, w = S.pipe()
+  pipeTest(r:toNonblock(), w:toNonblock())
+  T.eq(S.EWOULDBLOCK, r:_read(1))
+  w:write'bye'
+  T.eq('b', r:read(1)); T.eq('ye', r:read(2))
+  fin = fin + 1
+end
+
+local text = 'line 1\nline 2\nline 3\nline 4\n'
+T.FDT_read = function()
+  info'started test'
+  local f = assert(M.openFDT(p)); info'opened'
+  T.eq(M.FDT, getmetatable(f))
+  T.eq(0, f:code())
+  f:_read(); info'started read'
+  while f:code() == S.FD_RUNNING do end
+  T.eq(S.FD_EOF, f:code())
+  T.eq(text, f:_pop())
+  f:close()
+  fin = fin + 1
+end
+
+-------------- runAsyncTest end
+end)
+T.eq(2, fin)
+
+
+-- 
+-- T.asyncTest('FDT:read', function()
+--   local f = M.openFDT(p); T.eq(text, f:read'a'); f:close()
+-- end)
+-- 
+-- T.asyncTest('FDT:lines', function()
+--   local f = M.openFDT(p)
+--   T.eq('line 1',   f:read'l')
+--   T.eq('line 2\n', f:read'L')
+--   T.eq('line 3\n', f:read'L')
+--   T.eq('line 4\n', f:read'L')
+--   T.eq(nil,        f:read'l')
+-- end)
+
+
+T.SUBNAME = ''
