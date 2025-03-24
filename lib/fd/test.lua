@@ -162,6 +162,15 @@ T.pipe_async = function()
 end
 
 local text = 'line 1\nline 2\nline 3\nline 4\n'
+T.FDT_write = function()
+  local f = assert(M.openFDT(p, 'w')); info'opened'
+  T.eq(M.FDT, getmetatable(f))
+  T.eq(0, f:code())
+  assert(f:write(text))
+  f:close()
+  fin = fin + 1
+end
+
 T.FDT_read = function()
   info'started test'
   local f = assert(M.openFDT(p)); info'opened'
@@ -177,7 +186,7 @@ end
 
 -------------- runAsyncTest end
 end)
-T.eq(2, fin)
+T.eq(3, fin)
 
 
 -- 
