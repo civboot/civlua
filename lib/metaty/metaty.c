@@ -15,23 +15,16 @@ static inline int l_concat(LS* L) {
   size_t slen; uint8_t const* sep = luaL_checklstring(L, 1, &slen);
   int lasti = lua_gettop(L);
   if(lasti == 1) { lua_pushstring(L, ""); return 1; }
+
   // require space for all arguments to be converted to strings + result.
   ASSERT(L, lua_checkstack(L, (lasti - 1) * 2 + 1), "string.concat stack overflow");
-
-  int size = slen * (lasti - 2);  // size of all separators
-  for(int i=2; i <= lasti; i++) { // convert tostring and calc bufsize
-    luaL_tolstring(L, i, NULL); size += lua_rawlen(L, -1);
+  luaL_Buffer lb; luaL_buffinit(L, &lb);
+  luaL_tolstring(L, 2, NULL); luaL_addvalue(&lb);
+  for(int i = 3; i <= lasti; i++) {
+    luaL_addlstring(&lb, sep, slen);
+    luaL_tolstring(L, i, NULL); luaL_addvalue(&lb);
   }
-  luaL_Buffer lb;
-  uint8_t* b = luaL_buffinitsize(L, &lb, size); ASSERT(L, b, "OOM");
-  size_t alen; uint8_t const* arg = lua_tolstring(L, lasti+1, &alen);
-  memcpy(b, arg, alen); b += alen;
-  for(int i = lasti+2; i <= lasti + (lasti - 1); i++) {
-    arg = lua_tolstring(L, i, &alen);
-    memcpy(b, sep, slen);
-    memcpy(b+slen, arg, alen); b += slen + alen;
-  }
-  luaL_pushresultsize(&lb, size);
+  luaL_pushresult(&lb);
   return 1;
 }
 
