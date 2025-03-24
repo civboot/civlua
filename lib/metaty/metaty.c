@@ -15,9 +15,6 @@ static inline int l_concat(LS* L) {
   size_t slen; uint8_t const* sep = luaL_checklstring(L, 1, &slen);
   int lasti = lua_gettop(L);
   if(lasti == 1) { lua_pushstring(L, ""); return 1; }
-
-  // require space for all arguments to be converted to strings + result.
-  ASSERT(L, lua_checkstack(L, (lasti - 1) * 2 + 1), "string.concat stack overflow");
   luaL_Buffer lb; luaL_buffinit(L, &lb);
   luaL_tolstring(L, 2, NULL); luaL_addvalue(&lb);
   for(int i = 3; i <= lasti; i++) {

@@ -4,12 +4,10 @@ local G = G or _G
 local M = G.mod and G.mod'metaty' or setmetatable({}, {})
 local concat = table.concat
 
--- FIXME(netbsd): metaty isn't loading .so
 do
   local treq = function(n) --> try to require n from metaty.native
-    -- local ok, o = pcall(function() return require'metaty.native'[n] end)
-    -- if ok then return o end
-    return require'metaty.native'[n]
+    local ok, o = pcall(function() return require'metaty.native'[n] end)
+    if ok then return o end
   end
   string.concat = treq'concat'
   or function(sep, ...) return concat({...}, sep) end
