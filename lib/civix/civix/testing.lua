@@ -6,6 +6,7 @@ local M = G.mod and G.mod'civix.testing' or {}
 local fmt = require'fmt'
 local lap = require'lap'
 local ix  = require'civix'
+local fd  = require'fd'
 
 --- Typically an entire test file is wrapped in a function,
 --- then passed to this -- which runs all tests sequentially
@@ -15,15 +16,17 @@ local ix  = require'civix'
 ---   equivalent for that.
 --- ]
 M.runAsyncTest = function(fn)
+  assert(not G.LAP_ASYNC, 'already in async mode')
   local lr = ix.Lap()
-  local _, errors = lr:run{fn}
+  local _, errors = lr:run{fd.ioAsync, fn}
+  lap.reset()
+  fd.ioStd()
   if errors then error(
     'testLapEnv found errors:\n'..fmt(errors)
   )end
   if not lr:isDone() then
     error'testLapEnv had no errors but is not done!'
   end
-  lap.reset()
 end
 
 return M
