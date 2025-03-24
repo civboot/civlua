@@ -11,7 +11,7 @@ local fmt = require'fmt'
 ---   , rock lib/pkg --create --gitops='add commit tag' \
 ---     --gitpush='origin main --tags' --upload=$ROCKAPI
 --- ]##
-M.Args = mty'pkgrock' {
+M.Main = mty'pkgrock' {
   [[create [bool]   creates the rocks from PKG.lua files]],
   [[gitops [string] one or more: add,commit,tag]],
   [[gitpush[string] where to push, i.e: 'origin main']],
@@ -81,7 +81,7 @@ local function execute(styler, ...)
 end
 
 M.main = function(t)
-  t = M.Args(shim.parseStr(t))
+  t = M.Main(shim.parseStr(t))
   require'civ'.setupFmt()
   local to = io.fmt
   local styled = function(...)

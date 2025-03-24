@@ -92,6 +92,7 @@ void FD_close(FD* fd) {
 // ----------------------
 // -- FDT CREATE / CLOSE
 static void* FDT_run(void* d) {
+  fprintf(stderr, "!! FDT_run called\n");
   FDT* fdt = (FDT*) d;
   uint64_t unused;
   while(true) {
@@ -107,14 +108,19 @@ FDT* FDT_create(LS* L) {
   FDT* fdt = (FDT*)lua_newuserdata(L, sizeof(FDT));
   FD_init(&fdt->fd); fdt->meth = NULL; fdt->stopped = false;
   EV_INIT(fdt);
-  fprintf(stderr, "!! called EV_INIT\n");
   luaL_setmetatable(L, LUA_FDT);
+  fprintf(stderr, "!! called EV_INIT, calling EV_OPEN\n");
   if(EV_OPEN(fdt) < 0) goto error;
-  else if (pthread_create(&fdt->th, NULL, FDT_run, (void*)fdt)) {
+  fprintf(stderr, "!! calling pthread_create\n");
+  if (pthread_create(
+        &fdt->th, /*attr=*/ NULL,
+      /*start_routine=*/FDT_run, /*arg=*/(void*)fdt)) {
     goto error;
   }
+  fprintf(stderr, "!! FDT_create success\n");
   return fdt;
 error:
+  fprintf(stderr, "!! FDT_create error\n");
   fdt->stopped = 3; fdt->fd.code = errno;
   EV_DESTROY(fdt);
   return fdt;
