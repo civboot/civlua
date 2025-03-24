@@ -20,13 +20,13 @@ $(OUT).so: $(FILES)
 	make Build$(UNAME)
 
 BuildNetBSD:
-	$(CC) -DBSD $(FILES) -fPIC -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -shared -o $(OUT).so
+	$(CC) -DBSD $(FILES) -fPIC -l$(LUA_VERSION) -I/usr/pkg/include/$(LUA_VERSION) -shared -o $(OUT).so
 
 BuildLinux: $(FILES)
 	# vcmd:       $(_VCMD)
 	# vcmd2:      $(_VCMD2)
 	# lua version $(LUA_VERSION)
-	$(CC) $(FILES) -fPIC -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -shared -o $(OUT).so
+	$(CC) $(FILES) -fPIC -l$(LUA_VERSION) -I/usr/pkg/include/$(LUA_VERSION) -shared -o $(OUT).so
 
 BuildDarwin:
 	$(CC) $(FILES) $(shell pkg-config lua --cflags) -c -O2 -fPIC   -o $(OUT).o

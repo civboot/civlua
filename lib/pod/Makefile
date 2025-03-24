@@ -19,12 +19,12 @@ $(OUT).so: $(FILES)
 	make Build$(UNAME)
 
 # test: $(FILES)
-# 	$(CC) ds_test.c -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -o smol_test
+# 	$(CC) ds_test.c -l$(LUA_VERSION) -I/usr/pkg/include/$(LUA_VERSION) -o smol_test
 # 	./ds_test
 
 BuildNetBSD: BuildLinux
 BuildLinux: $(FILES)
-	$(CC) $(FILES) -fPIC -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -shared -o $(OUT).so
+	$(CC) $(FILES) -fPIC -l$(LUA_VERSION) -I/usr/pkg/include/$(LUA_VERSION) -shared -o $(OUT).so
 
 BuildDarwin:
 	$(CC) $(FILES) $(shell pkg-config lua --cflags) -c -O2 -fPIC $(WNO)
