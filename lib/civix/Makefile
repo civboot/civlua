@@ -20,7 +20,7 @@ $(OUT).so: $(FILES)
 	make Build$(UNAME)
 
 BuildNetBSD:
-	$(CC) -DBSD $(FILES) -fPIC -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -shared -o $(OUT).so
+	$(CC) -DBSD $(FILES) -fPIC -llua -I/usr/pkg/include/$(LUA_VERSION) -shared -o $(OUT).so
 
 BuildLinux: $(FILES)
 	# vcmd:       $(_VCMD)

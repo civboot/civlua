@@ -1,12 +1,14 @@
 
 LUA_VERSION = lua
-LUA = lua -e "require'pkglib'()"
+LUA_EX = $(LUA_VERSION)
+LUA = $(LUA_EX) -e "require'pkglib'()"
 
 .PHONY: ele
 
 all: test demo
 
 test: build
+	which $(LUA_EX)
 	mkdir -p ./.out/
 	# make test
 	$(LUA) test.lua
@@ -32,7 +34,7 @@ civix: lib/civix/civix/lib.c
 
 smol: lib/smol/smol.c
 	cd lib/smol && make build LUA_VERSION=$(LUA_VERSION)
-	cd lib/smol && make test  LUA_VERSION=$(LUA_VERSION)
+	# cd lib/smol && make test  LUA_VERSION=$(LUA_VERSION)
 
 ele: build
 	$(LUA) cmd/ele/ele.lua

@@ -26,7 +26,16 @@ T.execute = function()
   T.matches(': bar', res)
 end
 
-T.asyncTest('schedule', function()
+local finished = 0
+local slept, mono = 0, 0
+local l = M.Lap {
+  sleepFn=function() slept = slept + 1 end,
+  monoFn=function() mono = mono + 1; return mono end,
+  pollList=ds.nosupport,
+}
+
+local _, errors = l:run{function()
+T.schedule =  function()
   local i = 0
   local cor = M.schedule(function()
     for _=1,3 do i = i + 1; yield(true) end
@@ -39,9 +48,10 @@ T.asyncTest('schedule', function()
   end
   T.eq(nil, LAP_READY[cor])
   T.eq(99, i)
-end)
+  finished = finished + 1
+end
 
-T.asyncTest('ch', function()
+T.ch = function()
   local r = M.Recv(); local s = r:sender()
 
   local t = {}
@@ -60,5 +70,14 @@ T.asyncTest('ch', function()
   ds.clear(t)
   s(13); T.eq({13}, r:drain())
   yield(true); T.eq({}, t)
-end)
+  finished = finished + 1
+end
+end} -- end l:run
 
+if errors then error('lap found errors:\n'..fmt(errors)) end
+assert(l:isDone())
+T.eq(2, finished)
+M.reset()
+
+-- note: update when necessary. These just prove determinism
+T.eq(9, slept); T.eq(9, mono)

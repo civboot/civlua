@@ -13,6 +13,5 @@ deps = {
 }
 srcs = {
   'lap.lua',
-  'lap/testing.lua',
 }
 

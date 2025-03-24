@@ -15,7 +15,8 @@ Then run the following (or equivalent):
 [{## lang=sh}
 # build lua
 cd path/to/civlua/
-make build LUA_VERSION=lua5.3  # or your lua version
+
+make build LUA_VERSION=lua5.3
 
 # add these lines to .bashrc
 cat >> ~/.bashrc << EOF

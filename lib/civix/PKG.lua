@@ -8,6 +8,7 @@ doc      = 'README.cxt'
 srcs = {
   'civix.lua',
   ['civix.lib'] = 'civix/lib.c',
+  'civix/testing.lua',
 }
 libs = {
   ['civix.lib'] = 'civix/lib.so',

@@ -92,6 +92,7 @@ void FD_close(FD* fd) {
 // ----------------------
 // -- FDT CREATE / CLOSE
 static void* FDT_run(void* d) {
+  fprintf(stderr, "!! FDT_run called\n");
   FDT* fdt = (FDT*) d;
   uint64_t unused;
   while(true) {
@@ -108,12 +109,18 @@ FDT* FDT_create(LS* L) {
   FD_init(&fdt->fd); fdt->meth = NULL; fdt->stopped = false;
   EV_INIT(fdt);
   luaL_setmetatable(L, LUA_FDT);
+  fprintf(stderr, "!! called EV_INIT, calling EV_OPEN\n");
   if(EV_OPEN(fdt) < 0) goto error;
-  else if (pthread_create(&fdt->th, NULL, FDT_run, (void*)fdt)) {
+  fprintf(stderr, "!! calling pthread_create\n");
+  if (pthread_create(
+        &fdt->th, /*attr=*/ NULL,
+      /*start_routine=*/FDT_run, /*arg=*/(void*)fdt)) {
     goto error;
   }
+  fprintf(stderr, "!! FDT_create success\n");
   return fdt;
 error:
+  fprintf(stderr, "!! FDT_create error\n");
   fdt->stopped = 3; fdt->fd.code = errno;
   EV_DESTROY(fdt);
   return fdt;
@@ -145,6 +152,7 @@ static void FD_open(FD* fd) {
   if(fd->fileno >= 0) {
     if(fd->ctrl & O_APPEND) {
       pos = lseek(fd->fileno, 0, SEEK_END);
+      printf("!! FD_open append seek=%i\n", pos);
       if(pos < 0) { pos = 0; code = errno; }
     }
   } else code = errno;
@@ -439,7 +447,9 @@ static int l_FD_open(LS* L) {
 static int l_FDT_open(LS* L) {
   const char* path = luaL_checkstring(L, 1);
   const int flags = luaL_checkinteger(L, 2);
+  fprintf(stderr, "!! FDT_open %s\n", path);
   FDT* fdt = FDT_create(L); FD* fd = &fdt->fd;
+  fprintf(stderr, "!! FDT_open created %p\n", fdt);
   fd->buf = (char*)path; fd->ctrl = flags;
   fd->code = FD_RUNNING;
   fdt->meth = FD_open; EV_POST(fdt);

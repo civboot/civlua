@@ -19,11 +19,13 @@ $(OUT).so: $(FILES)
 	make Build$(UNAME)
 
 test: $(FILES)
-	$(CC) smol_test.c -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -o smol_test
+	$(CC) smol_test.c -l$(LUA_VERSION) -I/usr/pkg/include/$(LUA_VERSION) -o smol_test
 	./smol_test
 
-BuildNetBSD: BuildLinux
-BuildLinux: $(FILES)
+BuildNetBSD:
+	$(CC) $(FILES) -fPIC -llua -I/usr/pkg/include/$(LUA_VERSION) -shared -o $(OUT).so
+
+BuildLinux:
 	$(CC) $(FILES) -fPIC -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -shared -o $(OUT).so
 
 BuildDarwin:
