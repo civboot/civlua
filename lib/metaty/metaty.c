@@ -1,9 +1,13 @@
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
+#include <string.h>
 #include <assert.h>
 
 typedef lua_State LS;
+
+#define ASSERT(L, OK, ...) \
+  if(!(OK)) { luaL_error(L, __VA_ARGS__); }
 
 // concat(sep, ...) --> string
 // concatenate all values (calling tostring on them) separated by sep.
@@ -12,21 +16,22 @@ static inline int l_concat(LS* L) {
   int lasti = lua_gettop(L);
   if(lasti == 1) { lua_pushstring(L, ""); return 1; }
   // require space for all arguments to be converted to strings + result.
-  if (!lua_checkstack(L, (lasti - 1) * 2 + 1)) {
-    luaL_error(L, "string.concat stack overflow");
-  }
+  ASSERT(L, lua_checkstack(L, (lasti - 1) * 2 + 1), "string.concat stack overflow");
+
   int size = slen * (lasti - 2);  // size of all separators
   for(int i=2; i <= lasti; i++) { // convert tostring and calc bufsize
     luaL_tolstring(L, i, NULL); size += lua_rawlen(L, -1);
   }
-  luaL_Buffer lb; luaL_buffinitsize(L, &lb, size);
-  size_t alen; uint8_t const* arg;
-  arg = lua_tolstring(L, lasti+1, &alen); luaL_addlstring(&lb, arg, alen);
+  luaL_Buffer lb;
+  uint8_t* b = luaL_buffinitsize(L, &lb, size); ASSERT(L, b, "OOM");
+  size_t alen; uint8_t const* arg = lua_tolstring(L, lasti+1, &alen);
+  memcpy(b, arg, alen); b += alen;
   for(int i = lasti+2; i <= lasti + (lasti - 1); i++) {
-    luaL_addlstring(&lb, sep, slen);
-    arg = lua_tolstring(L, i, &alen); luaL_addlstring(&lb, arg, alen);
+    arg = lua_tolstring(L, i, &alen);
+    memcpy(b, sep, slen);
+    memcpy(b+slen, arg, alen); b += slen + alen;
   }
-  luaL_pushresult(&lb);
+  luaL_pushresultsize(&lb, size);
   return 1;
 }
 

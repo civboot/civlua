@@ -11,6 +11,7 @@ local pth = require'ds.path'
 local lines = require'lines'
 local ix = require'civix'
 
+local getmt = getmetatable
 local push, sfmt = table.insert, string.format
 local function exit(rc) io.stderr:flush(); os.exit(rc) end
 
@@ -24,18 +25,6 @@ local function errordiff(e, r)
 end
 local function fail(name)
   error(sfmt('Failed %s', name), 2)
-end
-
-
---- A direct runner, can be used by permutations
-M.directRunner = function(s, name, testFn) testFn(s) end
-
---- Format (print to io.fmt) and run the testFn
-M.formattingRunner = function(s, name, testFn)
-  io.fmt:styled('h2', sfmt('## Test %-32s', name), ' ')
-  io.fmt:styled('path',
-    pth.nice(select(2, mty.fninfo(testFn))), '\n')
-  testFn(s)
 end
 
 M.showDiff = function(f, a, b)
@@ -75,7 +64,8 @@ end
 --- assert [$subj:find(pat)]
 M.assertMatches = function(pat, subj) --> !?error
   if subj:find(pat) then return end
-  f:styled('error', '\n!! RESULT:', '\n');   f(b)
+  local f = io.fmt
+  f:styled('error', '\n!! RESULT:', '\n');   f(subj)
   f:styled('error', '\n!! Did not match:', sfmt('%q\n', pat))
   f:styled('error', '!! Failed Test.matches:', ' ')
   f:styled('path', pth.nice(ds.srcloc(1)), '\n')
@@ -145,7 +135,11 @@ end
 --- This is typically the API for developing lua tests
 --- (in civboot and elsewhere).
 M.Test = (mty'Test'{
-  'runner [fn]: the test runner', runner = M.formattingRunner,
+  'name [string]: the name of the test being run',
+  'info [string]: additional test info to display per test',
+  'runner [fn(testFn, Test)]: the test runner',
+  'setup [list[fn]]: setup functions',
+  'teardown [list[fn]]: teardown functions',
 })
 getmetatable(M.Test).__call = function(T, t)
   return mty.construct(T, t or {})
@@ -160,8 +154,26 @@ M.Test.contains = M.assertContains
 M.Test.throws   = M.assertThrows
 
 M.Test.__newindex = function(s, name, fn)
-  assert(not rawget(M.Test, name), name..' is a Test method')
-  s.runner(s, name, fn)
+  local mt = getmt(s)
+  assert(not rawget(mt, name), name..' is a Test method')
+  if rawget(mt.__fields, name) then
+    return rawset(s, name, fn)
+  end
+  rawset(s, 'name', name)
+  io.fmt:styled('h2', sfmt('## Test %-32s', name), ' ')
+  if s.info then
+    io.fmt:write'['
+    io.fmt:styled('notify', s.info, '] ')
+  end
+  io.fmt:styled('path', pth.nice(select(2, mty.fninfo(fn))), '\n')
+  if s.setup then
+    for _, sfn in ipairs(s.setup) do sfn(s) end
+  end
+  if s.runner then s.runner(fn, s)
+  else             fn(s) end
+  if s.teardown then
+    for _, tfn in ipairs(s.teardown) do tfn(s) end
+  end
 end
 getmetatable(M.Test).__newindex = function()
   error'FIXME: remove me'
