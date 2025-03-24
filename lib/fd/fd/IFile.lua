@@ -1,4 +1,6 @@
 local mty = require'metaty'
+local ds = require'ds'
+
 --- Indexed File: supports setting and getting fixed-length values (bytes) by
 --- index, implementing the API of a list-like table.
 local IFile = mty'fd.IFile' {
@@ -6,6 +8,7 @@ local IFile = mty'fd.IFile' {
   'len [int]', '_i [int]',
   'sz [int]: the size of each value',
 }
+
 
 local mtype = math.type
 local pack, unpack = string.pack, string.unpack
@@ -84,6 +87,7 @@ IFile.setbytes = function(fi, i, v)
   if i > len then fi.len = i end
   fi._i = i + 1
 end
+
 IFile.__newindex = function(fi, i, v)
   if type(i) == 'string' then return newindex(fi, i, v) end
   return fi:setbytes(i, v)

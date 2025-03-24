@@ -123,10 +123,7 @@ end
 -- Note: most test coverage is in things that
 -- use IFile (i.e. U3File).
 T.IFile = function()
-  if G.LAP_ASYNC then
-    print'FIXME: not supported in async, yeild across C-boundaries'
-    return
-  end
+  if G.LAP_ASYNC then return 'FIXME: IFile async' end
   local IFile = require'fd.IFile'
   local fi = IFile:create(1)
   ds.extend(fi, {'a', 'b', 'c'})
