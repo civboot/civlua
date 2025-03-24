@@ -15,13 +15,23 @@ static inline int l_concat(LS* L) {
   size_t slen; uint8_t const* sep = luaL_checklstring(L, 1, &slen);
   int lasti = lua_gettop(L);
   if(lasti == 1) { lua_pushstring(L, ""); return 1; }
-  luaL_Buffer lb; luaL_buffinit(L, &lb);
-  luaL_tolstring(L, 2, NULL); luaL_addvalue(&lb);
-  for(int i = 3; i <= lasti; i++) {
-    luaL_addlstring(&lb, sep, slen);
-    luaL_tolstring(L, i, NULL); luaL_addvalue(&lb);
+  size_t vlen;
+  // First compute the size and allocate the exact space we need
+  size_t size = slen * (lasti - 2);  // size of all separators
+  for(int i=2; i <= lasti; i++) {
+    ASSERT(L, lua_tolstring(L, i, &vlen), "arg[%I] is not a string or number", i)
+    size += vlen;
   }
-  luaL_pushresult(&lb);
+  luaL_Buffer lb;
+  char* b = luaL_buffinitsize(L, &lb, size); ASSERT(L, b, "OOM");
+  const char* v = lua_tolstring(L, 2, &vlen);
+  memcpy(b, v, vlen); b += vlen;
+  for(int i = 3; i <= lasti; i++) {
+    memcpy(b, sep, slen); b += slen;
+    v = lua_tolstring(L, i, &vlen);
+    memcpy(b, v, vlen); b += vlen;
+  }
+  luaL_pushresultsize(&lb, size);
   return 1;
 }
 

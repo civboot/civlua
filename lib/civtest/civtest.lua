@@ -44,13 +44,13 @@ end
 local showDiff = M.showDiff
 
 --- Assert that [$a] equals [$b] (according to [<#metaty.eq>].
-M.assertEq = function(a, b)
+M.eq = function(a, b)
   if mty.eq(a, b) then return end
   showDiff(io.fmt, a, b); fail'Test.eq'
 end
 
 -- binary equal
-M.assertBinEq = function(e, r)
+M.binEq = function(e, r)
   assert(type(e) == 'string', 'expect must be string')
   assert(type(r) == 'string', 'result must be string')
   if e == r then return end
@@ -62,28 +62,28 @@ M.assertBinEq = function(e, r)
 end
 
 --- assert [$subj:find(pat)]
-M.assertMatches = function(pat, subj) --> !?error
+M.matches = function(pat, subj) --> !?error
   if subj:find(pat) then return end
   local f = io.fmt
   f:styled('error', '\n!! RESULT:', '\n');   f(subj)
   f:styled('error', '\n!! Did not match:', sfmt('%q\n', pat))
   f:styled('error', '!! Failed Test.matches:', ' ')
   f:styled('path', pth.nice(ds.srcloc(1)), '\n')
-  fail'assertMatches'
+  fail'matches'
 end
 
 --- assert [$subj:find(pat, 1, true)] (plain find)
-M.assertContains = function(plain, subj) --> !?error
+M.contains = function(plain, subj) --> !?error
   if subj:find(plain, 1, true) then return end
   io.fmt:styled('error', '\n!! RESULT:', '\n');   f(b)
   io.fmt:styled('error', '\n!! Did not contain:', sfmt('%q\n', plain))
   io.fmt:styled('error', '!! Failed Test.contains:', ' ')
   io.fmt:styled('path', pth.nice(ds.srcloc(1)), '\n')
-  fail'assertContains'
+  fail'contains'
 end
 
 --- assert [$fn()] fails and the [$contains] is in the message.
-M.assertThrows = function(contains, fn) --> ds.Error
+M.throws = function(contains, fn) --> ds.Error
   local ok, err = ds.try(fn)
   if ok then
     f:styled('error', '!! Unexpected: did not receive an error')
@@ -100,14 +100,14 @@ M.assertThrows = function(contains, fn) --> ds.Error
 end
 
 --- Assert that the path exists.
-M.assertExists = function(path)
+M.exists = function(path)
   if not require'civix'.exists(path) then error(
     'does not exist: '..path
   )end
 end
 
 --- Assert the contents at the two paths are equal
-M.assertPathEq = function(a, b)
+M.pathEq = function(a, b)
   local at, bt = pth.read(a), pth.read(b)
   if at == bt then return end
   showDiff(io.fmt, at, bt);
@@ -119,8 +119,8 @@ end
 --- Assert that path matches expect. Expect can be of type:
 --- * string: asserts the file contents match.
 --- * table: recursively assert the subtree contents exist.
-M.assertPath = function(path, expect)
-  M.assertExists(path)
+M.path = function(path, expect)
+  M.exists(path)
   if type(expect) == 'string' then
     local txt = pth.read(path)
     if expect == txt then return end
@@ -128,7 +128,7 @@ M.assertPath = function(path, expect)
     showDiff(io.fmt, expect, txt); fail'Test.tree'
   end
   if ix.pathtype(path) ~= ix.DIR then error(path..' is not a dir') end
-  for k, v in pairs(expect) do M.assertPath(pth.concat{path, k}, v) end
+  for k, v in pairs(expect) do M.path(pth.concat{path, k}, v) end
 end
 
 --- Test instance
@@ -144,14 +144,14 @@ M.Test = (mty'Test'{
 getmetatable(M.Test).__call = function(T, t)
   return mty.construct(T, t or {})
 end
-M.Test.eq       = M.assertEq
-M.Test.binEq    = M.assertBinEq
-M.Test.exists   = M.assertExists
-M.Test.pathEq   = M.assertPathEq
-M.Test.path     = M.assertPath
-M.Test.matches  = M.assertMatches
-M.Test.contains = M.assertContains
-M.Test.throws   = M.assertThrows
+M.Test.eq       = M.eq
+M.Test.binEq    = M.binEq
+M.Test.exists   = M.exists
+M.Test.pathEq   = M.pathEq
+M.Test.path     = M.path
+M.Test.matches  = M.matches
+M.Test.contains = M.contains
+M.Test.throws   = M.throws
 
 M.Test.__newindex = function(s, name, fn)
   local mt = getmt(s)
