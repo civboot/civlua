@@ -4,7 +4,7 @@ local lines = require'lines'
 local ds = require'ds'
 local testing = require'lines.testing'
 local Gap = require'lines.Gap'
-local T = require'civtest'.Test()
+local T = require'civtest'
 
 T.new = function()
   T.eq({'one', 'two 2', ''}, lines'one\ntwo 2\n')

@@ -1,7 +1,8 @@
 local G = G or _G
 
 --- module for writing simple tests
-local M = G.mod and G.mod'civtest' or {}
+local M = G.mod and G.mod'civtest' or setmetatable({}, {})
+M.SUBNAME = ''
 
 local mty = require'metaty'
 local fmt = require'fmt'
@@ -25,6 +26,25 @@ local function errordiff(e, r)
 end
 local function fail(name)
   error(sfmt('Failed %s', name), 2)
+end
+
+--- Run the test, printing information to the terminal.
+---
+--- This function computes name=[$name..civtest.SUBNAME]
+--- and sets civtest.NAME to the new name, which can be
+--- used in the test.
+---
+--- ["Note: normally this is called when the user sets
+---   a key to the civtest module, which has __newindex()
+---   overriden to call this function.
+--- ]
+M.runTest = function(name, fn, path)
+  name = name..M.SUBNAME
+  rawset(M, 'NAME', name);
+  io.fmt:styled('h2', sfmt('## Test %-32s', name), ' ')
+  io.fmt:styled('path',
+    pth.nice(path or select(2, mty.fninfo(fn))), '\n')
+  return fn()
 end
 
 M.showDiff = function(f, a, b)
@@ -130,63 +150,8 @@ M.path = function(path, expect)
   if ix.pathtype(path) ~= ix.DIR then error(path..' is not a dir') end
   for k, v in pairs(expect) do M.path(pth.concat{path, k}, v) end
 end
-
---- Test instance
---- This is typically the API for developing lua tests
---- (in civboot and elsewhere).
-M.Test = (mty'Test'{
-  'name [string]: the name of the test being run',
-  'info [string]: additional test info to display per test',
-  'runner [fn(testFn, Test)]: the test runner',
-  'setup [list[fn]]: setup functions',
-  'teardown [list[fn]]: teardown functions',
-})
-getmetatable(M.Test).__call = function(T, t)
-  return mty.construct(T, t or {})
-end
-M.Test.eq       = M.eq
-M.Test.binEq    = M.binEq
-M.Test.exists   = M.exists
-M.Test.pathEq   = M.pathEq
-M.Test.path     = M.path
-M.Test.matches  = M.matches
-M.Test.contains = M.contains
-M.Test.throws   = M.throws
-
-M.Test.__newindex = function(s, name, fn)
-  local mt = getmt(s)
-  assert(not rawget(mt, name), name..' is a Test method')
-  if rawget(mt.__fields, name) then
-    return rawset(s, name, fn)
-  end
-  rawset(s, 'name', name)
-  io.fmt:styled('h2', sfmt('## Test %-32s', name), ' ')
-  if s.info then
-    io.fmt:write'['
-    io.fmt:styled('notify', s.info, '] ')
-  end
-  io.fmt:styled('path', pth.nice(select(2, mty.fninfo(fn))), '\n')
-  if s.setup then
-    for _, sfn in ipairs(s.setup) do sfn(s) end
-  end
-  if s.runner then s.runner(fn, s)
-  else             fn(s) end
-  if s.teardown then
-    for _, tfn in ipairs(s.teardown) do tfn(s) end
-  end
-end
-getmetatable(M.Test).__newindex = function()
-  error'FIXME: remove me'
-end
-
 -----------------------
 -- DEPRECATED
-
-M.test = function(name, fn, path)
-  print('# Test', name, pth.nice(path or ds.srcloc(1)))
-  fn()
-  collectgarbage()
-end
 
 --- Runs until yields non-truthy. See lib/lap/README.md
 M.asyncTest = function(name, fn, path)
@@ -201,8 +166,11 @@ end
 
 M.lapTest = function(name, fn)
   local path = ds.srcloc(1)
-  M.test(name, fn, path)
+  M.runTest(name, fn, path)
   M.asyncTest(name, fn, path)
 end
 
+getmetatable(M).__newindex = function(m, name, fn)
+  return m.runTest(name, fn)
+end
 return M

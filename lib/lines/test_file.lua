@@ -3,7 +3,7 @@ local fmt = require'fmt'
 local ds = require'ds'
 local pth = require'ds.path'
 
-local T = require'civtest'.Test()
+local T = require'civtest'
 local lines = require'lines'
 local testing = require'lines.testing'
 local U3File  = require'lines.U3File'

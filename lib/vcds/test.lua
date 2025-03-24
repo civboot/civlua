@@ -1,7 +1,7 @@
 local mty = require'metaty'
 local ds  = require'ds'
 local lines = require'lines'
-local T = require'civtest'.Test()
+local T = require'civtest'
 local Diff, Keep, Change; local M = ds.auto'vcds'
 local push = table.insert
 

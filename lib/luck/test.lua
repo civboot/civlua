@@ -1,7 +1,7 @@
 METATY_CHECK = true
 local mty = require'metaty'
 local ds = require'ds'
-local T = require'civtest'.Test()
+local T = require'civtest'
 local LFile = require'lines.File'
 local M = require'luck'
 local D = 'lib/luck/'

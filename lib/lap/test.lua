@@ -1,7 +1,6 @@
 METATY_CHECK = true
 
-local CT = require'civtest'
-local T = CT.Test()
+local T = require'civtest'
 local mty = require'metaty'
 local ds = require'ds'
 local M  = require'lap'
@@ -27,7 +26,7 @@ T.execute = function()
   T.matches(': bar', res)
 end
 
-CT.asyncTest('schedule', function()
+T.asyncTest('schedule', function()
   local i = 0
   local cor = M.schedule(function()
     for _=1,3 do i = i + 1; yield(true) end
@@ -42,7 +41,7 @@ CT.asyncTest('schedule', function()
   T.eq(99, i)
 end)
 
-CT.asyncTest('ch', function()
+T.asyncTest('ch', function()
   local r = M.Recv(); local s = r:sender()
 
   local t = {}

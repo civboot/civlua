@@ -1,7 +1,7 @@
 -- Test event handling actions
 
 local fmt = require'fmt'
-local T = require'civtest'.Test()
+local T = require'civtest'
 local ds = require'ds'
 local M = require'ele.actions'
 local edit = require'ele.edit'

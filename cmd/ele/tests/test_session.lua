@@ -1,6 +1,6 @@
 -- Test display functionality (not mutation)
 
-local T = require'civtest'.Test()
+local T = require'civtest'
 local CT = require'civtest'
 local mty = require'metaty'
 local fmt = require'fmt'

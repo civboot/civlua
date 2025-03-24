@@ -1,5 +1,5 @@
 
-local T = require'civtest'.Test()
+local T = require'civtest'
 
 local pvc = require'pvc'
 local ds = require'ds'
