@@ -122,22 +122,24 @@ end
 
 -- Note: most test coverage is in things that
 -- use IFile (i.e. U3File).
--- FIXME:
--- T.IFile = function()
---   local IFile = require'fd.IFile'
---   local fi = IFile:create(1)
---   ds.extend(fi, {'a', 'b', 'c'})
---   T.eq({'a', 'b', 'c'}, ds.icopy(fi))
---   fi[2] = 'B'
---   T.eq({'a', 'B', 'c'}, ds.icopy(fi))
--- 
---   local fi = IFile:create(2)
---   ds.extend(fi, {'aa', 'bb', 'cc'})
---   T.eq({'aa', 'bb', 'cc'}, ds.icopy(fi))
--- end
+T.IFile = function()
+  if G.LAP_ASYNC then
+    print'FIXME: not supported in async, yeild across C-boundaries'
+    return
+  end
+  local IFile = require'fd.IFile'
+  local fi = IFile:create(1)
+  ds.extend(fi, {'a', 'b', 'c'})
+  T.eq({'a', 'b', 'c'}, ds.icopy(fi))
+  fi[2] = 'B'
+  T.eq({'a', 'B', 'c'}, ds.icopy(fi))
 
-fin = true
-end ----------------- end generalTest
+  local fi = IFile:create(2)
+  ds.extend(fi, {'aa', 'bb', 'cc'})
+  T.eq({'aa', 'bb', 'cc'}, ds.icopy(fi))
+end
+
+fin=true; end ----------------- end generalTest
 
 T.SUBNAME = '[ioStd]'; M.ioStd()
 fin=false; generalTest(); assert(fin)
@@ -189,26 +191,10 @@ T.FDT_read = function()
   f:close()
   fin = fin + 1
 end
-
--------------- runAsyncTest end
-end)
+end) -------------- runAsyncTest
 T.eq(3, fin)
 
-
--- 
--- T.asyncTest('FDT:read', function()
---   local f = M.openFDT(p); T.eq(text, f:read'a'); f:close()
--- end)
--- 
--- T.asyncTest('FDT:lines', function()
---   local f = M.openFDT(p)
---   T.eq('line 1',   f:read'l')
---   T.eq('line 2\n', f:read'L')
---   T.eq('line 3\n', f:read'L')
---   T.eq('line 4\n', f:read'L')
---   T.eq(nil,        f:read'l')
--- end)
-
+--- Now run the general test in async mode
 T.SUBNAME = '[ioAsync]'
 fin=false
 ixt.runAsyncTest(generalTest)
