@@ -13,6 +13,7 @@ local Session = require'ele.Session'
 local Buffer = require'lines.buffer'.Buffer
 local Fake = require'vt100.testing'.Fake
 local path = require'ds.path'
+local ixt = require'civix.testing'
 
 local _CWD = CWD
 CWD = path.abs(ds.srcdir()) -- override global
@@ -36,12 +37,13 @@ local Test = mty.record'session.Test' {
   's [Session]',
 }
 getmetatable(Test).__call = function(Ty, t)
+  local path = ds.srcloc(1)
   t = mty.construct(Ty, t)
   t.s = t.s or Session:test(); local ed = t.s.ed
   ed.display = Fake{h=t.th, w=t.tw}
   local name = assert(t[1], 'need name')
   print('## test_session.Test', name)
-  CT.asyncTest(name, function()
+  local testFn = function()
     if t.dat then
       lines.inset(ed.edit.buf.dat, t.dat, 1)
     elseif t.open then ed:open(t.open) end
@@ -49,7 +51,8 @@ getmetatable(Test).__call = function(Ty, t)
     assert(t[2], 'need [2]=fn')(t)
     T.eq(log.LogTable{}, ed.error)
     ed.run = false
-  end)
+  end
+  ixt.runAsyncTest(function() T.runTest(name, testFn, path) end)
 end
 
 Test{'session', dat='', function(tst)
@@ -108,29 +111,28 @@ Test{'backspace', dat=LINES3, function(tst)
   T.eq('13 5 7 9\n 2 4 6\n', fmt(ed.display))
 end}
 
--- FIXME: fails on NetBSD
--- Test{'open', open=SMALL, th=9, tw=30, function(tst)
+Test{'open', open=SMALL, th=9, tw=30, function(tst)
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
+  local b, BID = e.buf, 2
+  T.eq(b.id, BID)
+  T.eq(0, #ed.buffers[1].tmp) -- was temporary and was closed
+  T.eq(SMALL, b.dat.path)
+  s:play'' -- draws
+    T.eq('-- a small lua file for tests', b[1])
+    T.eq(pth.read(SMALL), fmt(ed.display))
+  s:play'd f space'
+    T.eq('a small lua file for tests', b[1])
+  e = ed:open(SMALL)
+    T.eq(b.id, BID)
+    assert(rawequal(b, e.buf), 'buf is new')
+    T.eq('a small lua file for tests', b[1]) -- no change to contents
+end}
+
+-- Test{'nav', dat='', function(tst)
 --   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
 --   local b, BID = e.buf, 2
---   T.eq(b.id, BID)
---   T.eq(0, #ed.buffers[1].tmp) -- was temporary and was closed
---   T.eq(SMALL, b.dat.path)
---   s:play'' -- draws
---     T.eq('-- a small lua file for tests', b[1])
---     T.eq(pth.read(SMALL), fmt(ed.display))
---   s:play'd f space'
---     T.eq('a small lua file for tests', b[1])
---   e = ed:open(SMALL)
---     T.eq(b.id, BID)
---     assert(rawequal(b, e.buf), 'buf is new')
---     T.eq('a small lua file for tests', b[1]) -- no change to contents
+--   s:play'space f space' -- listCWD
+--     T.eq(BID, b.id) -- opened new buffer
 -- end}
-
-Test{'nav', dat='', function(tst)
-  -- local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
-  -- local b, BID = e.buf, 2
-  -- s:play'space f space' -- listCWD
-  --   T.eq(BID, b.id) -- opened new buffer
-end}
 
 CWD = _CWD

@@ -302,6 +302,8 @@ static int l_sh(LS *L) {
     }
     if(cwd) chdir(cwd);
     execvp(command, argv);
+    if(errno) fprintf(stderr, "execvp\"%s\"(%s [%i])\n",
+          command, SERR, errno);
     return 1;
   } // else parent
   sh->pid = pid;

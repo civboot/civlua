@@ -18,7 +18,3 @@ T.global = function()
   end)
   assert(G.someGlobal == nil)
 end
-
-T.asyncTest('foo', function()
-  assert(true)
-end)

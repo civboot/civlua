@@ -16,7 +16,7 @@ test: build
 
 demo: build
 	$(PRETEST) $(LUA) ui/vt100/demo.lua
-	# $(PRETEST) $(LUA) cmd/ele/demo_term.lua
+	# $(PRETEST) $(LUA) cmd/ele/tests/test_term.lua
 
 build: metaty fd pod civix smol
 

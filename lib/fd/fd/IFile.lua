@@ -1,3 +1,8 @@
+-- FIXME: __index / etc cannot be support for async operations
+--   since they can cause yielding across a C-boundary for
+--   things like table.move. Therefore, don't do them for
+--   these types. Instead, manually support the methods or figure
+--   somethinge else out.
 local mty = require'metaty'
 local ds = require'ds'
 

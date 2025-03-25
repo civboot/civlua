@@ -198,4 +198,4 @@ ixt.runAsyncTest(generalTest)
 assert(fin)
 
 T.SUBNAME = ''
-M.ioSync() -- FIXME: pvc depends on this!
+M.ioStd()

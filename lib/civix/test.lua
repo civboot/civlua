@@ -6,6 +6,7 @@ local pth = require'ds.path'
 local Iter = require'ds.Iter'
 local T = require'civtest'
 local fd = require'fd'
+local ixt = require'civix.testing'
 
 local M  = require'civix'
 local lib = require'civix.lib'
@@ -13,6 +14,8 @@ local D = 'lib/civix/'
 local O = '.out/'
 local push = table.insert
 
+local fin
+local tests = function()
 T.simple = function()
   local sh, o = M.sh
   T.eq('/tmp\n', sh{'pwd', CWD='/tmp'})
@@ -28,7 +31,7 @@ end
 -- TODO: this behaves slighlty differently for the different file
 --       descriptor libraries!
 -- FIXME: re-enable async test
-T.runTest('sh', function()
+T.testSh = function()
   local sh, o = M.sh
 
   T.eq('',           sh'true')
@@ -53,20 +56,19 @@ T.runTest('sh', function()
   out, err, s = sh{'sh', '-c', "echo 'on STDERR' >&2 ", stdout=false, stderr=true}
   T.eq(nil, out); T.eq('on STDERR\n', err)
   collectgarbage()
-end)
+end
 
--- FIXME: this  actually FAILED but test doesn't fail...
--- T.asyncTest('sh-fail', function()
---   t.throws('Command failed with rc=1', function()
---     sh'false'
---   end)
---   t.throws('Command failed with rc=', function()
---     sh{'commandNotExist', 'blah'}
---   end)
---   ds.yeet'never reached'
--- end)
 
-T.lapTest('time', function()
+T.sh_fail = function()
+  T.throws('Command failed with rc=1', function()
+    M.sh'false'
+  end)
+  T.throws('Command failed with rc=1', function()
+    M.sh{'commandNotExist', 'blah'}
+  end)
+end
+
+T.time = function()
   local period, e1 = ds.Duration(0.001), M.epoch()
   for i=1,10 do
     M.sleep(period)
@@ -76,7 +78,7 @@ T.lapTest('time', function()
   end
   M.sleep(-2.3)
   local m = M.mono(); M.sleep(0.001); assert(m < M.mono())
-end)
+end
 
 local TEST_TREE = {
   ['a.txt'] = 'for civix a test',
@@ -97,32 +99,6 @@ T.cp = function()
   pth.write(O..'cp.txt', 'copy this\ndata')
   M.cp(O..'cp.txt', O..'cp.2.txt')
   T.eq(pth.read(O..'cp.txt'), pth.read(O..'cp.2.txt'))
-end
-
-T.fd_perf = function()
-  print'FIXME: re-enable when lap is done'
-  -- local Kib = string.rep('123456789ABCDEF\n', 64)
-  -- local data = string.rep(Kib, 500)
-  -- local count, run = 0, true
-  -- local res
-  -- local O = '.out/'
-  -- M.Lap{
-  --   -- make sleep insta-ready instead (open/close use it)
-  --   sleepFn = function(cor) LAP_READY[cor] = 'sleep' end,
-  -- }:run{
-  --   function() while run do
-  --     count = count + 1; coroutine.yield(true)
-  --   end end,
-  --   function()
-  --     local f = fd.openFDT(O..'perf.bin', 'w+')
-  --     f:write(data); f:seek'set'; res = f:read'a'
-  --     f:close()
-  --     run = false
-  --   end,
-  -- }
-
-  -- assert(data == res)
-  -- -- assert(count > 50, tostring(count))
 end
 
 T.walk = function()
@@ -181,3 +157,40 @@ T.stat = function()
   pth.write(path, 'hello\n')
   T.eq(6, M.stat(path):size())
 end
+fin = true; end ---------------- end tests()
+
+fd.ioSync();
+fin = false; tests(); assert(fin)
+
+T.SUBNAME = '[ioAsync]'
+fin=false; ixt.runAsyncTest(tests); assert(fin)
+
+T.SUBNAME = ''
+
+-- FIXME: consider re-working and enabling
+-- T.fd_perf = function()
+--   local Kib = string.rep('123456789ABCDEF\n', 64)
+--   local data = string.rep(Kib, 500)
+--   local count, run = 0, true
+--   local res
+--   local O = '.out/'
+--   M.Lap{
+--     -- make sleep insta-ready instead (open/close use it)
+--     sleepFn = function(cor) LAP_READY[cor] = 'sleep' end,
+--   }:run{
+--     function() while run do
+--       count = count + 1; coroutine.yield(true)
+--     end end,
+--     function()
+--       local f = fd.openFDT(O..'perf.bin', 'w+')
+--       f:write(data); f:seek'set'; res = f:read'a'
+--       f:close()
+--       run = false
+--     end,
+--   }
+-- 
+--   assert(data == res)
+--   -- assert(count > 50, tostring(count))
+-- end
+
+fd.ioStd()
