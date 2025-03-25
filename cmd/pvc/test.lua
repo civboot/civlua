@@ -4,11 +4,14 @@ local T = require'civtest'
 local pvc = require'pvc'
 local ds = require'ds'
 local pth = require'ds.path'
+local fd = require'fd'
 local ix = require'civix'
 
 local TD, D = 'cmd/pvc/testdata/', '.out/pvc/'
 local pc = pth.concat
 local s = ds.simplestr
+
+fd.ioStd()
 
 --- test some basic internal functions
 T.internal = function()
@@ -41,6 +44,7 @@ T.empty = function()
   end)
 end
 
+-- binary not supported
 T.binary = function()
   local P = initPvc()
   local bpath, BIN = P..'bin', '\x00\xFF'
@@ -48,6 +52,15 @@ T.binary = function()
   pth.append(P..'.pvcpaths', 'bin')
   T.throws('Binary files /dev/null and bin differ', function()
     pvc.commit(P, 'commit binary file')
+  end)
+end
+
+-- missing path is an error
+T.missingPath = function()
+  local P = initPvc()
+  pth.append(P..'.pvcpaths', 'file.dne')
+  T.throws('but does not exist', function()
+    pvc.commit(P, 'commit path dne')
   end)
 end
 

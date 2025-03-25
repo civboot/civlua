@@ -54,8 +54,8 @@ local loadLineSet = function(path) --> set
 end
 
 local loadPaths = function(P) --> list
-  local paths = lines.load(P..M.PVCPATHS)
-  push(paths, '.pvcpaths')
+  local paths = ds.BiMap(lines.load(P..M.PVCPATHS))
+  if not paths[M.PVCPATHS] then push(paths, M.PVCPATHS) end
   return paths
 end
 
@@ -84,11 +84,9 @@ local readInt = function(path) return toint(pth.read(path)) end
 ---
 --- Note: the passed in paths are still relative.
 local mapPvcPaths = function(dir1, dir2, fn)
-  local paths1, paths2 = {}, {}
-  for p in io.lines(dir1..M.PVCPATHS) do paths1[p] = 1 end
-  for p in io.lines(dir2..M.PVCPATHS) do paths2[p] = 1 end
-  for p1 in pairs(paths1) do fn(p1, paths2[p1] and p1 or nil) end
-  for p2 in pairs(paths2) do
+  local paths1, paths2 = loadPaths(dir1), loadPaths(dir2)
+  for _, p1 in ipairs(paths1) do fn(p1, paths2[p1] and p1 or nil) end
+  for _, p2 in ipairs(paths2) do
     if not paths1[p2] then fn(nil, p2) end
   end
 end
@@ -279,6 +277,11 @@ M.snapDir = function(bpath, id) --> string?
   return M.patchPath(bpath, id, '.snap/')
 end
 
+local function initSnap0(snap)
+  ix.forceWrite(snap..M.PVCPATHS, M.INIT_PVCPATHS)
+  ix.forceWrite(snap..'PVC_DONE', '')
+end
+
 local function initBranch(bpath, id)
   assert(id >= 0)
   assertf(not ix.exists(bpath), '%s already exists', bpath)
@@ -289,8 +292,7 @@ local function initBranch(bpath, id)
   }, true)
   if id ~= 0 then return bpath end
   local ppath = M.patchPath(bpath, id, '', depth)
-  ix.forceWrite(ppath..'.snap/.pvcpaths', M.INIT_PVCPATHS)
-  ix.forceWrite(ppath..'.snap/PVC_DONE', '')
+  initSnap0(ppath..'.snap/')
 end
 
 --- Snapshot the branch#id by applying patches.
@@ -301,6 +303,7 @@ M.snapshot = function(pdir, br,id) --> .../id.snap/
   local bpath = M.branchDir(pdir, br)
   local snap = M.snapDir(bpath, id)
   if ix.exists(snap) then return snap, id end
+  if id == 0 then return initSnap0(snap) end
   local bbr,bid = M.getbase(bpath, br)
   if id == bid then return M.snapshot(pdir, bbr,bid) end
   trace('findSnap %s id=%s with base %s#%s', bpath, id, bbr,bid)
@@ -379,10 +382,10 @@ M.at = function(pdir, nbr,nid) --!!> branch?, id?
   local nsnap  = M.snapshot(pdir, nbr,nid)
   trace('at snaps %s -> %s', csnap, nsnap)
 
-  local npaths = loadLineSet(nsnap..M.PVCPATHS)
+  local npaths = loadPaths(nsnap)
 
   local ok, cpPaths, rmPaths = true, {}, {}
-  for path in pairs(npaths) do
+  for _, path in ipairs(npaths) do
     if ix.pathEq(pdir..path, nsnap..path) then goto cont end -- local==next
     if ix.pathEq(pdir..path, csnap..path) then -- local didn't change
       if not ix.pathEq(csnap..path, nsnap..path) then -- next did change
@@ -733,8 +736,10 @@ end
 
 --- return the description of ppath
 M.desc = function(ppath, num) --> {string}
+  print('!! getting desc', ppath)
   local desc = {}
   for line in io.lines(ppath) do
+    print('!! line', line)
     if line:sub(1,2) == '!!' or line:sub(1,3) == '---'
       then break end
     push(desc, line); if num and #desc >= num then break end
@@ -773,7 +778,7 @@ M.squash = function(P, br, bot,top)
   end
   local f = io.open(M.patchPath(bdir, top, '.p'), 'w')
   for _, line in ipairs(desc) do f:write(line, '\n') end
-  f:write(patch); f:flush(); f:close()
+  f:write(patch); f:close()
 
   ix.rmRecursive(M.snapDir(bdir, bot))
   local bi = bot + 1
@@ -943,14 +948,16 @@ M.main.desc = function(args)
   if not desc then
     return print(concat(M.desc(oldp), '\n'))
   end
+  -- Write new description
   local newp = sconcat('', bdir, tostring(id), '.p')
   local n = io.open(newp, 'w')
-  for _, line in ipairs(desc) do n:write(line, '\n') end
+  for _, line in ipairs(desc) do n:write(line, '\n') end -- new desc
   local o = io.open(oldp, 'r')
-  for line in o:lines() do
+  for line in o:lines() do -- skip old desc
     if isPatchLike(line) then n:write(line, '\n'); break end
   end
   for line in o:lines() do n:write(line, '\n') end
+  n:close(); o:close()
   local back = M.backupDir(P, sfmt('%s#%s', br, id)); ix.mkDir(back)
   back = back..id..'.p'
   ix.mv(oldp, back)
