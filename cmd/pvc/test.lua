@@ -4,11 +4,14 @@ local T = require'civtest'
 local pvc = require'pvc'
 local ds = require'ds'
 local pth = require'ds.path'
+local fd = require'fd'
 local ix = require'civix'
 
 local TD, D = 'cmd/pvc/testdata/', '.out/pvc/'
 local pc = pth.concat
 local s = ds.simplestr
+
+fd.ioStd()
 
 --- test some basic internal functions
 T.internal = function()

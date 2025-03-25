@@ -733,8 +733,10 @@ end
 
 --- return the description of ppath
 M.desc = function(ppath, num) --> {string}
+  print('!! getting desc', ppath)
   local desc = {}
   for line in io.lines(ppath) do
+    print('!! line', line)
     if line:sub(1,2) == '!!' or line:sub(1,3) == '---'
       then break end
     push(desc, line); if num and #desc >= num then break end
@@ -773,7 +775,7 @@ M.squash = function(P, br, bot,top)
   end
   local f = io.open(M.patchPath(bdir, top, '.p'), 'w')
   for _, line in ipairs(desc) do f:write(line, '\n') end
-  f:write(patch); f:flush(); f:close()
+  f:write(patch); f:close()
 
   ix.rmRecursive(M.snapDir(bdir, bot))
   local bi = bot + 1
@@ -943,14 +945,16 @@ M.main.desc = function(args)
   if not desc then
     return print(concat(M.desc(oldp), '\n'))
   end
+  -- Write new description
   local newp = sconcat('', bdir, tostring(id), '.p')
   local n = io.open(newp, 'w')
-  for _, line in ipairs(desc) do n:write(line, '\n') end
+  for _, line in ipairs(desc) do n:write(line, '\n') end -- new desc
   local o = io.open(oldp, 'r')
-  for line in o:lines() do
+  for line in o:lines() do -- skip old desc
     if isPatchLike(line) then n:write(line, '\n'); break end
   end
   for line in o:lines() do n:write(line, '\n') end
+  n:close(); o:close()
   local back = M.backupDir(P, sfmt('%s#%s', br, id)); ix.mkDir(back)
   back = back..id..'.p'
   ix.mv(oldp, back)
