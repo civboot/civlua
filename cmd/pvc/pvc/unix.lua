@@ -22,6 +22,7 @@ local EMPTY_DIFF = [[
 
 local diffCheckPath = function(p, pl) --> p, pl
   if not p then return NULL, NULL end
+  print('!! diffCheckPath', p)
   if ix.stat(p):size() == 0 then error(
     p..' has a size of 0, which patch cannot handle'
   )end

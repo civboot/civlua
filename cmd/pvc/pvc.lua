@@ -279,6 +279,11 @@ M.snapDir = function(bpath, id) --> string?
   return M.patchPath(bpath, id, '.snap/')
 end
 
+local function initSnap0(snap)
+  ix.forceWrite(snap..'.pvcpaths', M.INIT_PVCPATHS)
+  ix.forceWrite(snap..'PVC_DONE', '')
+end
+
 local function initBranch(bpath, id)
   assert(id >= 0)
   assertf(not ix.exists(bpath), '%s already exists', bpath)
@@ -289,8 +294,7 @@ local function initBranch(bpath, id)
   }, true)
   if id ~= 0 then return bpath end
   local ppath = M.patchPath(bpath, id, '', depth)
-  ix.forceWrite(ppath..'.snap/.pvcpaths', M.INIT_PVCPATHS)
-  ix.forceWrite(ppath..'.snap/PVC_DONE', '')
+  initSnap0(ppath..'.snap/')
 end
 
 --- Snapshot the branch#id by applying patches.
@@ -301,6 +305,7 @@ M.snapshot = function(pdir, br,id) --> .../id.snap/
   local bpath = M.branchDir(pdir, br)
   local snap = M.snapDir(bpath, id)
   if ix.exists(snap) then return snap, id end
+  if id == 0 then return initSnap0(snap) end
   local bbr,bid = M.getbase(bpath, br)
   if id == bid then return M.snapshot(pdir, bbr,bid) end
   trace('findSnap %s id=%s with base %s#%s', bpath, id, bbr,bid)
