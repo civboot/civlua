@@ -80,13 +80,10 @@ end
 
 --- perform replacement of [$pats] with [$sub], writing to [$to]
 M.replace = function(path, to, pats, sub)
-  log.trace('!! replace %s %q %q', path, pats, sub)
   local find, ms, me, pi, pat = ds.find
   for line in io.lines(path, 'L') do
-    log.trace('!! finding %q: %s', pats, line)
     ms, me, pi, pat = find(line, pats)
     if ms then
-      print('!! replacing:', line)
     end
     to:write(ms and gsub(line, pat, sub) or line)
   end
@@ -141,7 +138,6 @@ M.iter = function(args) --> Iter
 
   -- perform actual replacement mutation
   if sub and args.mut then
-    print'!! performing replacements'
     local replace = M.replace
     it:map(function(p, pty)
       if pty == 'file' then
@@ -150,7 +146,6 @@ M.iter = function(args) --> Iter
         if to:seek'end' ~= 0 then error(sfmt(
           '%s already exists', subPath
         ))end
-        print('!! writing sub:', subPath)
         replace(p, to, pat, sub)
         to:flush(); to:close();
         civix.mv(subPath, p)

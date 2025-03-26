@@ -1,4 +1,3 @@
-print('!! loading pod')
 local G = G or _G
 --- pod: plain old data
 local M = G.mod and mod'pod' or setmetatable({}, {})
@@ -270,7 +269,6 @@ end
 
 --- dump ser(...) to f, which can be a path or file.
 M.dump = function(f, ...)
-  print('!! dumping to '..f)
   local close
   if type(f) == 'string' then
     f = assert(io.open(f, 'w')); close = true
@@ -286,10 +284,8 @@ M.load = function(f, ...)
     f = assert(io.open(f)); close = true
   end
   local str, err = f:read'a'; if close then f:close() end
-  print('!! read', str, err)
   assert(str, err); return M.deser(str, ...)
 end
 
 getmetatable(M).__call = function(M, ...) return M.implPod(...) end
-print('!! loaded pod')
 return M

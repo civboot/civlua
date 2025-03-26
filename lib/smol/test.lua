@@ -11,14 +11,14 @@ local civix = require'civix'
 local sfmt, char = string.format, string.char
 
 local function rtest(base, change, expCmd, expText)
-  print(('!! ### rtest (%q)  (%q)  ->  %q %q'):format(
+  print(('### rtest (%q)  (%q)  ->  %q %q'):format(
     base, change, expCmd, expText))
   local x = S.createX{fp4po2=14}
   local cmds, text = S.rdelta(change, x, base)
-  print('!! cmds, text:', cmds, text)
-  io.fmt:write('!! cmds\n')
+  print('cmds, text:', cmds, text)
+  io.fmt:write('cmds\n')
   fbin.columns(io.fmt, cmds); io.fmt:write'\n'
-  io.fmt:write('!! text\n')
+  io.fmt:write('text\n')
   fbin.columns(io.fmt, text); io.fmt:write'\n'
   T.eq(change, S.rpatch(cmds, text, x, base))
   if expCmd then

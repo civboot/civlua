@@ -629,7 +629,6 @@ end
 M.backupDir = function(P, name) --> string
   for _=1,10 do
     local b = sfmt('%s.pvc/backup/%s-%s/', P, name, M.backupId())
-    print('!! backupDir', b)
     if ix.exists(b) then ix.sleep(0.01) else return b end
   end
   error('could not find empty backup')
@@ -736,10 +735,8 @@ end
 
 --- return the description of ppath
 M.desc = function(ppath, num) --> {string}
-  print('!! getting desc', ppath)
   local desc = {}
   for line in io.lines(ppath) do
-    print('!! line', line)
     if line:sub(1,2) == '!!' or line:sub(1,3) == '---'
       then break end
     push(desc, line); if num and #desc >= num then break end

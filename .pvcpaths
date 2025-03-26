@@ -62,11 +62,6 @@ cmd/pvc/testdata/story.txt.3
 cmd/pvc/testdata/story.txt.3d
 cmd/pvc/testdata/story.txt.4d
 cmd/pvc/testdata/story.txt.5
-lib/civdb/PKG.lua
-lib/civdb/README.cxt
-lib/civdb/civdb.lua
-lib/civdb/civdb/HashIdx.lua
-lib/civdb/test.lua
 lib/civix/.gitignore
 lib/civix/Makefile
 lib/civix/PKG.lua
