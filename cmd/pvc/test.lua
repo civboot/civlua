@@ -132,8 +132,6 @@ T.workflow = function()
   ..HELLO_PATCH1
   ..'\n'
   ..STORY_PATCH1;
-  print('!! DIFF1')
-  print(DIFF1)
 
   local br, id = pvc.commit(D, 'desc1')
   local p1 = pvc.patchPath(Bm, id, '.p')

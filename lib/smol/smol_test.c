@@ -162,7 +162,6 @@ void test_BIO() {
   BIOwrite(&io,8, 0x75);   // [0]:0101.0111  [1]: 0101.0000
   assert(0x57 == dat[0]); assert(0x50 == dat[1]);
   BIOwrite(&io,1, 0); BIOwrite(&io,1, 0); BIOwrite(&io,1, 1); BIOwrite(&io,1, 1);
-  printf("!! dat[1]==0x%x\n", dat[1]);
   assert(0x53 == dat[1]);
   assert(8 == io.used);
 
@@ -197,8 +196,6 @@ void test_BIO() {
   BIOwrite(&io,2, 1); BIOwrite(&io,2, 1); // '  ' 0101=5
   BIOwrite(&io,2, 1); BIOwrite(&io,2, 3); // ' z' 0111=7
   assert(8 == io.used); assert(dat+1 == io.bp);
-  printf("!! io.bp[1]: 0x%x\n", dat[1]);
-  printf("!! bp=%p\n", io.bp);
   assert(0x57 == dat[1]);
 
   // now test "abcdefg" test case in test.lua
@@ -207,7 +204,6 @@ void test_BIO() {
   BIOwrite(&io,3, 0x3); assert(dat[0] == 0x8C); // 011 -> 1000 11..
   BIOwrite(&io,3, 0x7); assert(dat[0] == 0x8F); // 111 -> 1000 1111  1... ....
   BIOwrite(&io,2, 0x0); assert(dat[1] == 0x80); //  00 -> 1000 1111  100. ....
-
 
 // !! HN_read1 out: 0x61 'a'                       
 // !!   HN_read1(0:left)

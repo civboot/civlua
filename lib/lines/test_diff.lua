@@ -45,8 +45,6 @@ T.example = function()
   local linesB = ds.splitList'slits gil david    a   electric faust sonics sonics'
 
   local res = diff.Diff(linesA, linesB)
-  fmt.print('!! Formatted'); fmt.print(res)
-
   local matches = {uniqueMatches(linesA, linesB)}
   T.eq({
     {1, 2, 3, 4, 5, 6},

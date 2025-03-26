@@ -10,7 +10,7 @@ local ds = require'ds'
 --- index, implementing the API of a list-like table.
 local IFile = mty'fd.IFile' {
   'f [file]', 'path [str]',
-  'len [int]', '_i [int]',
+  'len [int]', '_i [int]', '_m [str]: r/w mode',
   'sz [int]: the size of each value',
 }
 
@@ -22,10 +22,10 @@ local trace = require'ds.log'.trace
 
 local index, newindex = mty.index, mty.newindex
 
---- seek to index. Invariant: [$i <= len+1]
--- FIXME: only seek when pos is different OR switching between reading / writing
-local function iseek(fi, i, sz) --!!> nil
-  -- if fi._i == i then return end
+--- seek to index in the "mode" m. Invariant: [$i <= len+1]
+local function iseek(fi, i, m, sz) --!!> nil
+  if fi._i == i and fi._m == m then return end
+  fi._m = m
   local to = (i-1) * sz
   local pos = assert(fi.f:seek('set', to))
   assert(pos % sz == 0, 'pos incorrect')
@@ -70,7 +70,7 @@ end
 --- Panic if there are read errors.
 IFile.getbytes = function(fi, i) --!!> str?
   if i > fi.len then return end
-  local sz = fi.sz; iseek(fi, i, sz)
+  local sz = fi.sz; iseek(fi, i, 'r', sz)
   local v = assert(fi.f:read(sz))
   assert(#v == sz, 'did not read sz bytes')
   fi._i = i + 1
@@ -88,7 +88,7 @@ IFile.setbytes = function(fi, i, v)
   local len = fi.len; assert(i <= len + 1, 'newindex OOB')
   local sz = fi.sz
   if #v ~= sz then error(sfmt('failed to write %i bytes', #v)) end
-  iseek(fi, i, sz); assert(fi.f:write(v))
+  iseek(fi, i, 'w', sz); assert(fi.f:write(v))
   if i > len then fi.len = i end
   fi._i = i + 1
 end
