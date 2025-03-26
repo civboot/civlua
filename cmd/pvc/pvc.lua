@@ -54,8 +54,8 @@ local loadLineSet = function(path) --> set
 end
 
 local loadPaths = function(P) --> list
-  local paths = lines.load(P..M.PVCPATHS)
-  push(paths, '.pvcpaths')
+  local paths = ds.BiMap(lines.load(P..M.PVCPATHS))
+  if not paths[M.PVCPATHS] then push(paths, M.PVCPATHS) end
   return paths
 end
 
@@ -84,11 +84,9 @@ local readInt = function(path) return toint(pth.read(path)) end
 ---
 --- Note: the passed in paths are still relative.
 local mapPvcPaths = function(dir1, dir2, fn)
-  local paths1, paths2 = {}, {}
-  for p in io.lines(dir1..M.PVCPATHS) do paths1[p] = 1 end
-  for p in io.lines(dir2..M.PVCPATHS) do paths2[p] = 1 end
-  for p1 in pairs(paths1) do fn(p1, paths2[p1] and p1 or nil) end
-  for p2 in pairs(paths2) do
+  local paths1, paths2 = loadPaths(dir1), loadPaths(dir2)
+  for _, p1 in ipairs(paths1) do fn(p1, paths2[p1] and p1 or nil) end
+  for _, p2 in ipairs(paths2) do
     if not paths1[p2] then fn(nil, p2) end
   end
 end
@@ -280,7 +278,7 @@ M.snapDir = function(bpath, id) --> string?
 end
 
 local function initSnap0(snap)
-  ix.forceWrite(snap..'.pvcpaths', M.INIT_PVCPATHS)
+  ix.forceWrite(snap..M.PVCPATHS, M.INIT_PVCPATHS)
   ix.forceWrite(snap..'PVC_DONE', '')
 end
 
@@ -384,10 +382,10 @@ M.at = function(pdir, nbr,nid) --!!> branch?, id?
   local nsnap  = M.snapshot(pdir, nbr,nid)
   trace('at snaps %s -> %s', csnap, nsnap)
 
-  local npaths = loadLineSet(nsnap..M.PVCPATHS)
+  local npaths = loadPaths(nsnap)
 
   local ok, cpPaths, rmPaths = true, {}, {}
-  for path in pairs(npaths) do
+  for _, path in ipairs(npaths) do
     if ix.pathEq(pdir..path, nsnap..path) then goto cont end -- local==next
     if ix.pathEq(pdir..path, csnap..path) then -- local didn't change
       if not ix.pathEq(csnap..path, nsnap..path) then -- next did change

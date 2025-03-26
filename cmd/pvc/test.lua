@@ -44,6 +44,7 @@ T.empty = function()
   end)
 end
 
+-- binary not supported
 T.binary = function()
   local P = initPvc()
   local bpath, BIN = P..'bin', '\x00\xFF'
@@ -51,6 +52,15 @@ T.binary = function()
   pth.append(P..'.pvcpaths', 'bin')
   T.throws('Binary files /dev/null and bin differ', function()
     pvc.commit(P, 'commit binary file')
+  end)
+end
+
+-- missing path is an error
+T.missingPath = function()
+  local P = initPvc()
+  pth.append(P..'.pvcpaths', 'file.dne')
+  T.throws('but does not exist', function()
+    pvc.commit(P, 'commit path dne')
   end)
 end
 
