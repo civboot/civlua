@@ -523,7 +523,6 @@ M.commit = function(pdir, desc) --> snap/, id
 
   -- b=base c=change
   local bsnap = M.snapshot(pdir, br,id)
-  -- TODO(commit): add description
   local patchf = M.patchPath(bp, cid, '.p')
   local diff = M.Diff:of(bsnap, pdir)
   if not diff:hasDiff() then
@@ -676,12 +675,13 @@ M.rebase = function(pdir, branch, id)
     assert(tid <= ttip)
     local bsnap = M.snapshot(pdir, cbr,bid)
     pth.write(tpath..'rebase', tostring(cid))
+    local desc = M.desc(M.patchPath(cpath, cid, '.p'))
     M.merge(tsnap, bsnap, M.snapshot(pdir, cbr,cid))
-    -- TODO(commit): preserve description
     tprev = tprev or M.snapshot(pdir, tbr,tid-1)
     local tpatch = M.patchPath(tpath,tid, '.p')
     trace('writing patch %s', tpatch)
-    ix.forceWrite(tpatch, M.Diff:of(tprev, tsnap):patch())
+    ix.forceWrite(tpatch,
+      concat(desc, '\n')..'\n'..M.Diff:of(tprev, tsnap):patch())
     tprev = nil
     bid, cid, tid = bid + 1, cid + 1, tid + 1
   end

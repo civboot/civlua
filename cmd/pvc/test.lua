@@ -238,6 +238,7 @@ T.workflow = function()
   T.eq({'dev', 5}, {pvc.rawat(D)})
   T.eq(3, pvc.rawtip(Bm))
   T.eq(5, pvc.rawtip(Bd))
+  T.eq({'desc4d'}, pvc.desc(Bd..'patch/00/5.p'))
 
   local EXPECT5 = ds.copy(EXPECT2, {
     ['story.txt'] = pth.read(TD..'story.txt.5')
