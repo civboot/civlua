@@ -8,7 +8,12 @@ civlua: a minimalist, self-documenting and public domain tech stack.
 [{:h2}Installation]
 Install Lua with [$apt-get install lua], [$brew lua] or however you normally
 install software, or follow directions at [<https://lua.org/start.html>]. You
-also need standard build tools (i.e. [$make], [$gcc]).
+also need standard build tools (i.e. [$make], [$gcc]) and [$rcs] (for [$merge]
+etc, required for [<#pvc>]).
+
+["on NetBSD you must have Lua installed via pkgsrc
+ (aka [$pkgin install lua5.4]) as base Lua doesn't link pthread.
+]
 
 Then run the following (or equivalent):
 
