@@ -7854,41 +7854,77 @@ location followed by the commit message. When you want to push your
 documentation or releases to git, simply do so -- your main commit log
 won't be polluted by commiting pvc files.
 <p>
-<h2>Basic Architecture</h2>
+<h1>Architecture</h1>
 <p>
-The below architecture is given to allow a user to debug or fix problems that
-occur while using pvc regardless of whether the cause is user, software or
-operating system related.
+This architecture is given both so users can debug or fix any errors as well as
+to make it easier to create other implementations of pvc (i.e. in bash).
 <p>
-pvc uses only two files in the local directory: <code>.pvcpaths</code> which track
-which paths are included and <code>COMMIT</code> which is the default commit message.
-<p>
-All other pvc data is stored in a local <code>.pvc/</code> directory. This contains
-branch directories as well as the <code>at</code> file containing the current working
-<code>branch#id</code>.
-<p>
-The branch directories (i.e. <code>.pvc/main/</code>, <code>.pvc/dev/</code>) contain the
-following structure: <ul>
-<li>a <code>branch</code> text file (if this is not the root) which contains the <code>name#id</code> where
-this was branched from.</li>
-<li>an <code>uri</code> text file if this is a remote branch containing where to download
-updates.</li>
-<li>a <code>tip</code> file containing the tip id of the branch.</li>
-<li>a <code>patch/</code> directory with a directory structure nested by two digits
-containing files with extensions ending in either <code>.p</code> (patch file) or
-<code>.snap/</code> (snapshot directory).  For example <code>patch/01/23/12345.p</code> is a
-patch file in a directory structure with <code>patch/depth</code> of <code>4</code>.
-<p>
-<blockquote>The <code>.snap/</code> directories contain the complete project at that id.</blockquote></li>
+pvc is composed of the following components: <ul>
+<li><b>repo</b>: the pvc repo (repository) is stored in the <code>.pvc/</code> directory inside of
+a <b>project</b>. It contains directories (which are the branches) and the plaintext file
+<code>at</code> which defines the "current commit" as a <b>commit reference</b> (i.e. <code>branch#123</code>).
+Additionally it contains: <ul>
+<li><code>backup/</code> directory, which contain <code>name-&lt;epochsec&gt;/</code> directories for backups. In
+general, pvc should not delete things but should instead move things to a backup
+directory, reporting these operations to the user (and possibly a log file as well).</li>
+</ul></li>
+<li><b>pvcpaths</b> a list if newline-separated project-relative paths in the file
+<code>.pvcpaths</code>.  This is used by pvc to determine which paths are tracked. It's
+contents are tracked as a normal file (it is included in the patch diff).</li>
+<li><b>branch</b>: a branch is a directory inside the repo (i.e. <code>.pvc/main/</code>). It
+contains the <code>patch/</code> directory (described in <b>commit</b>) and the plain-text files:
+<ul>
+<li><b>base</b>: contains <code>branch#123</code>, missing if the branch is the trunk</li>
+<li><b>tip</b>: contains an ascii decimal number, representing the last patch id.</li>
+</ul></li>
+<li><b>branch (action)</b>: to "create a branch" means to create a new directory
+inside <code>.pvc/</code> and initialize it with the proper <code>base</code> and <code>tip</code> files. The base
+branch must already exist.</li>
+<li><b>commit (noun)</b>: refers to a single patch file inside of <code>.pvc/branch/patch/.../123.p</code>. <ul>
+<li>The length of <code>patch/.../</code> is stored in <code>patch/depth</code> which is an ascii decimal number,
+always divisible by 2. Each sub-directory has exactly two digits. For instance, a depth
+of 4 would store <code>12.p</code> in <code>patch/00/00/12.p</code> and store <code>123456.p</code> in
+<code>12/34/123456.p</code>.</li>
+<li><b>description</b>: the top of the patch file (before the first unidiff)
+contains a plain-text description of the commit.</li>
+<li><b>diffs</b>: the rest of the patch file contains a series of file differences from the previous patch
+version in the <a href="https://en.wikipedia.org/wiki/Diff#Unified_format">unidiff</a> (aka <code>diff -u</code>) format.</li>
+<li><b>commit</b> is often shorthand for the <code>commit reference</code> (i.e. <code>branch#123</code>).</li>
+</ul></li>
+<li><b>commit (action)</b>: "making a commit" means to take the difference of the current directory
+and store it as a patch file in the <code>patch/</code> directory.</li>
+<li><b>snapshot</b>: a snapshot is the local directory state at a specific commit. It
+is a directory which uses the extension <code>.snap/</code>
+inside of the patch directory, i.e. <code>patch/00/123.snap/</code>.</li>
+<li><b>checkout (action)</b>: to "checkout a commit" means to make the local project
+directory the same as the commit. This is performed by finding the closest
+<b>snapshot</b> and applying commit patches (either forwards or backwards) in
+order to make the snapshot reflect the commits state.</li>
+<li><b>rebase (action)</b>: to "rebase a branch" means to increase the id of it's <b>base</b>,
+typically to it's base-branch's tip. This is accomplished by making a copy of the
+new id's snapshot and repeatedly applying the <code>merge</code> command (or
+equivalent) on each change, using the copied snapshot as <code>to</code> and incrementing
+the <code>base</code> along the change patches. Each new <code>patch</code> file should be stored. <ul>
+<li>the software should detect if conflicts are unresolveable and exit, telling the
+user how to fix. The software should be able to resume the rebase once the
+conflicts are resolved.</li>
+<li>For example, the reference implementation creates a new branch called
+<code>branch__rebase</code> to perform this action. When calling rebase, it first
+checks for this branch and attempts to resume from it.</li>
+</ul></li>
+<li><b>merge</b>: merges a branch onto another one. The branch must already be
+rebased to the tip (also called a "fast forward merge").</li>
+<li><b>squash</b>: combines multiple commits into one, moving larger commits down. The descriptions
+should be concatenated, and can be edited separately by the user.</li>
+<li><b>export</b>: simply copies a <b>branch</b> without it's snapshot directories to a
+separate directory, which can be sent to a maintainer to be merged.</li>
 </ul>
 <p>
-When pvc commands are run, these directories are modified. For example:<ul>
-<li><code>at main#123</code> walks patch files to create a new
-<code>.pvc/main/patch/01/123.snap/</code> directory and updates the local directory to
-match.</li>
-<li><code>commit</code> creates a new <code>patch/01/123.p</code> file and corresponding
-<code>patch/01/123.snap/</code> directory which is identical to the local directory.</li>
-</ul>
+<h2>Other Operations</h2>
+Other operations, such as showing commit messages or ammending a commit, are
+not defined explicitly, but you can see the reference implementation for
+details. Typically their implementation is either straightforward or can be
+performed by variations of the above operations.
 <p>
 
 
