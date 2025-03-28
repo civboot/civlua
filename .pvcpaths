@@ -68,6 +68,7 @@ lib/civix/PKG.lua
 lib/civix/README.cxt
 lib/civix/civix.lua
 lib/civix/civix/lib.c
+lib/civix/civix/testing.lua
 lib/civix/test.lua
 lib/civtest/PKG.lua
 lib/civtest/README.cxt

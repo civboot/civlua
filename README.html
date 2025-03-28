@@ -2336,10 +2336,10 @@ pod: plain old data
 </table>
 <h4>Value <a id="pod.__name" href="#pod.__name">pod.__name</a></h4>
 <h3>Table <a id="pod.boolean" href="#pod.boolean">pod.boolean</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
-<h3>Table <a id="pod.int" href="#pod.int">pod.int</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
+<h3>Table <a id="pod.integer" href="#pod.integer">pod.integer</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.nil" href="#pod.nil">pod.nil</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.number" href="#pod.number">pod.number</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
-<h3>Table <a id="pod.str" href="#pod.str">pod.str</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
+<h3>Table <a id="pod.string" href="#pod.string">pod.string</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.table" href="#pod.table">pod.table</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
 <h3>Record <a id="pod.List" href="#pod.List">pod.List</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L128"><i>src</i></a>)</h3>
 Poder for a list of items with a type.
@@ -7854,7 +7854,7 @@ location followed by the commit message. When you want to push your
 documentation or releases to git, simply do so -- your main commit log
 won't be polluted by commiting pvc files.
 <p>
-<h1>Architecture</h1>
+<h1><a id="pvc-arch" href="#pvc-arch">Architecture</h1></a>
 <p>
 This architecture is given both so users can debug or fix any errors as well as
 to make it easier to create other implementations of pvc (i.e. in bash).
@@ -7868,54 +7868,66 @@ Additionally it contains: <ul>
 general, pvc should not delete things but should instead move things to a backup
 directory, reporting these operations to the user (and possibly a log file as well).</li>
 </ul></li>
-<li><b>pvcpaths</b> a list if newline-separated project-relative paths in the file
-<code>.pvcpaths</code>.  This is used by pvc to determine which paths are tracked. It's
-contents are tracked as a normal file (it is included in the patch diff).</li>
+<li><b>pvcpaths</b> is the project-local <code>.pvcpaths</code> file which contains a
+newline-separated list of project-relative paths.  This is used by pvc to
+determine which paths are tracked. It's contents are tracked as a normal file
+(it is included in the patch diff).</li>
 <li><b>branch</b>: a branch is a directory inside the repo (i.e. <code>.pvc/main/</code>). It
 contains the <code>patch/</code> directory (described in <b>commit</b>) and the plain-text files:
 <ul>
-<li><b>base</b>: contains <code>branch#123</code>, missing if the branch is the trunk</li>
+<li><b>base</b>: contains <code>branch#123</code>. This file is not present if the branch is
+the trunk.</li>
 <li><b>tip</b>: contains an ascii decimal number, representing the last patch id.</li>
 </ul></li>
 <li><b>branch (action)</b>: to "create a branch" means to create a new directory
-inside <code>.pvc/</code> and initialize it with the proper <code>base</code> and <code>tip</code> files. The base
-branch must already exist.</li>
+inside <code>.pvc/</code> and initialize it with the proper <code>base</code> and <code>tip</code> files.
+The base branch must already exist.</li>
 <li><b>commit (noun)</b>: refers to a single patch file inside of <code>.pvc/branch/patch/.../123.p</code>. <ul>
-<li>The length of <code>patch/.../</code> is stored in <code>patch/depth</code> which is an ascii decimal number,
-always divisible by 2. Each sub-directory has exactly two digits. For instance, a depth
-of 4 would store <code>12.p</code> in <code>patch/00/00/12.p</code> and store <code>123456.p</code> in
-<code>12/34/123456.p</code>.</li>
+<li>The length of <code>patch/.../</code> is stored in <code>patch/depth</code> which is an ascii
+decimal number, always divisible by 2. Each sub-directory has exactly two
+digits. For instance, a depth of 4 would store <code>12.p</code> in
+<code>patch/00/00/12.p</code> and store <code>123456.p</code> in <code>12/34/123456.p</code>.</li>
 <li><b>description</b>: the top of the patch file (before the first unidiff)
 contains a plain-text description of the commit.</li>
-<li><b>diffs</b>: the rest of the patch file contains a series of file differences from the previous patch
-version in the <a href="https://en.wikipedia.org/wiki/Diff#Unified_format">unidiff</a> (aka <code>diff -u</code>) format.</li>
-<li><b>commit</b> is often shorthand for the <code>commit reference</code> (i.e. <code>branch#123</code>).</li>
+<li><b>diffs</b>: the rest of the patch file contains a series of file differences
+from the previous patch version in the <a href="https://en.wikipedia.org/wiki/Diff#Unified_format">unidiff</a> (aka <code>diff -u</code>) format.</li>
+<li><b>commit</b> is often shorthand for the <code>commit reference</code> (i.e.
+<code>branch#123</code>), which refers uniquely to a specific branch and patch file
+or snapshot directory.</li>
 </ul></li>
-<li><b>commit (action)</b>: "making a commit" means to take the difference of the current directory
-and store it as a patch file in the <code>patch/</code> directory.</li>
+<li><b>commit (action)</b>: "making a commit" means to take the difference of the
+current directory and store it as a patch file in the branch's <code>patch/</code>
+directory.</li>
 <li><b>snapshot</b>: a snapshot is the local directory state at a specific commit. It
-is a directory which uses the extension <code>.snap/</code>
-inside of the patch directory, i.e. <code>patch/00/123.snap/</code>.</li>
+is a directory which uses the extension <code>.snap/</code> inside of the patch
+directory, i.e. <code>patch/00/123.snap/</code>.</li>
 <li><b>checkout (action)</b>: to "checkout a commit" means to make the local project
 directory the same as the commit. This is performed by finding the closest
 <b>snapshot</b> and applying commit patches (either forwards or backwards) in
 order to make the snapshot reflect the commits state.</li>
-<li><b>rebase (action)</b>: to "rebase a branch" means to increase the id of it's <b>base</b>,
-typically to it's base-branch's tip. This is accomplished by making a copy of the
-new id's snapshot and repeatedly applying the <code>merge</code> command (or
-equivalent) on each change, using the copied snapshot as <code>to</code> and incrementing
-the <code>base</code> along the change patches. Each new <code>patch</code> file should be stored. <ul>
+<li><b>rebase (action)</b>: to "rebase a branch" means to increase the id of it's
+<b>base</b>. This is accomplished by making a copy of the new id's snapshot and
+repeatedly applying the unix <code>merge</code> command (or equivalent) on each change,
+using the copied snapshot as <code>to</code> and incrementing the <code>base</code> along the
+change patches. Each new <code>patch</code> file should be stored, incrementing from
+the base. <ul>
 <li>the software should detect if conflicts are unresolveable and exit, telling the
-user how to fix. The software should be able to resume the rebase once the
-conflicts are resolved.</li>
+user how to fix them. The software should be able to resume the rebase once
+the conflicts are resolved.</li>
 <li>For example, the reference implementation creates a new branch called
 <code>branch__rebase</code> to perform this action. When calling rebase, it first
-checks for this branch and attempts to resume from it.</li>
+checks for this branch and attempts to resume from it. On failure,
+it tells the user where the failing files that need to be fixed are
+located.</li>
+<li>when the rebase is complete, the old branch should be moved to <code>.pvc/backup</code>
+then replaced with the rebased version.</li>
 </ul></li>
 <li><b>merge</b>: merges a branch onto another one. The branch must already be
-rebased to the tip (also called a "fast forward merge").</li>
-<li><b>squash</b>: combines multiple commits into one, moving larger commits down. The descriptions
-should be concatenated, and can be edited separately by the user.</li>
+rebased to the tip (also called a "fast forward merge"), so this is literally
+just copying the patch files and incrementing the <b>tip</b>.</li>
+<li><b>squash</b>: combines multiple commits into one, moving larger commits down.
+The descriptions should be concatenated, and can be edited separately by the
+user.</li>
 <li><b>export</b>: simply copies a <b>branch</b> without it's snapshot directories to a
 separate directory, which can be sent to a maintainer to be merged.</li>
 </ul>
@@ -7925,6 +7937,10 @@ Other operations, such as showing commit messages or ammending a commit, are
 not defined explicitly, but you can see the reference implementation for
 details. Typically their implementation is either straightforward or can be
 performed by variations of the above operations.
+<p>
+Also, operations which mutate the meaning of a commit (such as squash or
+rebase) should check to make sure that no branches depend on the branch being
+mutated.
 <p>
 
 

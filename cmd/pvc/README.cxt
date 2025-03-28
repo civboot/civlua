@@ -181,7 +181,7 @@ location followed by the commit message. When you want to push your
 documentation or releases to git, simply do so -- your main commit log
 won't be polluted by commiting pvc files.
 
-[{h1}Architecture]
+[{h1 name=pvc-arch}Architecture]
 
 This architecture is given both so users can debug or fix any errors as well as
 to make it easier to create other implementations of pvc (i.e. in bash).
@@ -196,64 +196,81 @@ pvc is composed of the following components: [+
     directory, reporting these operations to the user (and possibly a log file as well).
   ]
 
-* [*pvcpaths] a list if newline-separated project-relative paths in the file
-  [$.pvcpaths].  This is used by pvc to determine which paths are tracked. It's
-  contents are tracked as a normal file (it is included in the patch diff).
+* [*pvcpaths] is the project-local [$.pvcpaths] file which contains a
+  newline-separated list of project-relative paths.  This is used by pvc to
+  determine which paths are tracked. It's contents are tracked as a normal file
+  (it is included in the patch diff).
 
 * [*branch]: a branch is a directory inside the repo (i.e. [$.pvc/main/]). It
   contains the [$patch/] directory (described in [*commit]) and the plain-text files:
   [+
-  * [*base]: contains [$branch#123], missing if the branch is the trunk
+  * [*base]: contains [$branch#123]. This file is not present if the branch is
+    the trunk.
   * [*tip]: contains an ascii decimal number, representing the last patch id.
   ]
 
 * [*branch (action)]: to "create a branch" means to create a new directory
-  inside [$.pvc/] and initialize it with the proper [$base] and [$tip] files. The base
-  branch must already exist.
+  inside [$.pvc/] and initialize it with the proper [$base] and [$tip] files.
+  The base branch must already exist.
 
 * [*commit (noun)]: refers to a single patch file inside of [$.pvc/branch/patch/.../123.p]. [+
-  * The length of [$patch/.../] is stored in [$patch/depth] which is an ascii decimal number,
-    always divisible by 2. Each sub-directory has exactly two digits. For instance, a depth
-    of 4 would store [$12.p] in [$patch/00/00/12.p] and store [$123456.p] in
-    [$12/34/123456.p].
+  * The length of [$patch/.../] is stored in [$patch/depth] which is an ascii
+    decimal number, always divisible by 2. Each sub-directory has exactly two
+    digits. For instance, a depth of 4 would store [$12.p] in
+    [$patch/00/00/12.p] and store [$123456.p] in [$12/34/123456.p].
+
   * [*description]: the top of the patch file (before the first unidiff)
     contains a plain-text description of the commit.
-  * [*diffs]: the rest of the patch file contains a series of file differences from the previous patch
-    version in the [@unidiff] (aka [$diff -u]) format.
-  * [*commit] is often shorthand for the [$commit reference] (i.e. [$branch#123]).
+
+  * [*diffs]: the rest of the patch file contains a series of file differences
+    from the previous patch version in the [@unidiff] (aka [$diff -u]) format.
+
+  * [*commit] is often shorthand for the [$commit reference] (i.e.
+    [$branch#123]), which refers uniquely to a specific branch and patch file
+    or snapshot directory.
   ]
 
-* [*commit (action)]: "making a commit" means to take the difference of the current directory
-  and store it as a patch file in the [$patch/] directory.
+* [*commit (action)]: "making a commit" means to take the difference of the
+   current directory and store it as a patch file in the branch's [$patch/]
+   directory.
 
 * [*snapshot]: a snapshot is the local directory state at a specific commit. It
-  is a directory which uses the extension [$.snap/]
-  inside of the patch directory, i.e. [$patch/00/123.snap/].
+  is a directory which uses the extension [$.snap/] inside of the patch
+  directory, i.e. [$patch/00/123.snap/].
 
 * [*checkout (action)]: to "checkout a commit" means to make the local project
   directory the same as the commit. This is performed by finding the closest
   [*snapshot] and applying commit patches (either forwards or backwards) in
   order to make the snapshot reflect the commits state.
 
-* [*rebase (action)]: to "rebase a branch" means to increase the id of it's [*base],
-  typically to it's base-branch's tip. This is accomplished by making a copy of the
-  new id's snapshot and repeatedly applying the [$merge] command (or
-  equivalent) on each change, using the copied snapshot as [$to] and incrementing
-  the [$base] along the change patches. Each new [$patch] file should be stored. [+
+* [*rebase (action)]: to "rebase a branch" means to increase the id of it's
+  [*base]. This is accomplished by making a copy of the new id's snapshot and
+  repeatedly applying the unix [$merge] command (or equivalent) on each change,
+  using the copied snapshot as [$to] and incrementing the [$base] along the
+  change patches. Each new [$patch] file should be stored, incrementing from
+  the base. [+
+
   * the software should detect if conflicts are unresolveable and exit, telling the
-    user how to fix. The software should be able to resume the rebase once the
-    conflicts are resolved.
+    user how to fix them. The software should be able to resume the rebase once
+    the conflicts are resolved.
 
   * For example, the reference implementation creates a new branch called
     [$branch__rebase] to perform this action. When calling rebase, it first
-    checks for this branch and attempts to resume from it.
+    checks for this branch and attempts to resume from it. On failure,
+    it tells the user where the failing files that need to be fixed are
+    located.
+
+  * when the rebase is complete, the old branch should be moved to [$.pvc/backup]
+    then replaced with the rebased version.
   ]
 
 * [*merge]: merges a branch onto another one. The branch must already be
-  rebased to the tip (also called a "fast forward merge").
+  rebased to the tip (also called a "fast forward merge"), so this is literally
+  just copying the patch files and incrementing the [*tip].
 
-* [*squash]: combines multiple commits into one, moving larger commits down. The descriptions
-  should be concatenated, and can be edited separately by the user.
+* [*squash]: combines multiple commits into one, moving larger commits down.
+  The descriptions should be concatenated, and can be edited separately by the
+  user.
 
 * [*export]: simply copies a [*branch] without it's snapshot directories to a
   separate directory, which can be sent to a maintainer to be merged.
@@ -264,6 +281,10 @@ Other operations, such as showing commit messages or ammending a commit, are
 not defined explicitly, but you can see the reference implementation for
 details. Typically their implementation is either straightforward or can be
 performed by variations of the above operations.
+
+Also, operations which mutate the meaning of a commit (such as squash or
+rebase) should check to make sure that no branches depend on the branch being
+mutated.
 
 [{! :href=https://en.wikipedia.org/wiki/Diff#Unified_format}unidiff]
 [{! :href=https://en.wikipedia.org/wiki/Tar_(computing)}tarball]
