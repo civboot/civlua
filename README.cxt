@@ -25,8 +25,8 @@ make build LUA_VERSION=lua5.3
 
 # add these lines to .bashrc
 cat >> ~/.bashrc << EOF
-LUA_PATH="$PWD/lib/pkg/?.lua"
-LUA_PKGS="$PWD/"
+export LUA_PATH="$PWD/lib/pkg/?.lua"
+export LUA_PKGS="$PWD/"
 
 alias civ="$PWD/civ.lua"
 EOF
