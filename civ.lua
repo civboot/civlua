@@ -1,7 +1,7 @@
-require'pkglib'()
-local G = assert(G)
+#!/usr/bin/env -S lua
+require'pkglib'(); local G = assert(G)
 
--- civ module: packaged dev environment
+-- civ.lua: convieience command runner and environment config.
 local M = G.mod'civ'; G.MAIN = G.MAIN or M
 G.METATY_CHECK = true
 

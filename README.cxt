@@ -27,12 +27,19 @@ cat >> ~/.bashrc << EOF
 export LUA_PATH="$PWD/lib/pkg/?.lua"
 export LUA_PKGS="$PWD/"
 
+# use your lua version (or even full path)
 alias civ="lua5.3 $PWD/civ.lua"
 EOF
+
+source ~/.bashrc     # reload your config
 ]##
 
-After [$source ~/.bashrc] you should be able to run any civlua script with
-[$civ <cmd>], i.e. [$civ doc string.find].
+You should now be able to run any civlua script with [$civ <cmd>], i.e.
+[$civ doc string.find].
+
+I also add [$alias ,=civ] to my bashrc, allowing for i.e. [$, help ff]. Note
+that [$civ.lua] can load and run ANY lua module in your [$LUA_PKGS] (not just
+civlua ones), so this is a nice shortcut for your personal scripts.
 
 ["See [<#pkg-install>] for more details regarding [$PKG.lua] dependencies,
   especially if you are not calling the [$civ.lua] loader.
@@ -144,6 +151,22 @@ scripting, asynchronous file access and other goodies. [+
 * [{*href=#Package_lson}lson]: implements de/serialization of arbitrary
   concrete data (including tables) to/from JSON and an extension called LSON.
 ]
+
+[{h3 name=civ-runner}Writing (and running) your own commands]
+After following [<#Installation>] you can run your own commands.
+This is because [$civ.lua] (after some minor setup) simply runs the
+following:
+
+[{## lang=lua}
+require(cmd).main(shim.parse(arg))
+]##
+
+So it directly calls your module/package's [$main] function.
+See [<#Package_shim>] for full documentation on writing your own
+scripts.
+
+You can then run your package's main function (with arguments pre-parsed into a
+table) by adding it to [$LUA_PKGS] and calling [$civ mypackage].
 
 [{h3}Styling]
 The following define an interface to enable color output across any device,

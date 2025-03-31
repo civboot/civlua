@@ -87,11 +87,18 @@ cat &gt;&gt; ~/.bashrc &lt;&lt; EOF
 export LUA_PATH="$PWD/lib/pkg/?.lua"
 export LUA_PKGS="$PWD/"
 
+# use your lua version (or even full path)
 alias civ="lua5.3 $PWD/civ.lua"
-EOF</code>
+EOF
+
+source ~/.bashrc     # reload your config</code>
 <p>
-After <code>source ~/.bashrc</code> you should be able to run any civlua script with
-<code>civ &lt;cmd&gt;</code>, i.e. <code>civ doc string.find</code>.
+You should now be able to run any civlua script with <code>civ &lt;cmd&gt;</code>, i.e.
+<code>civ doc string.find</code>.
+<p>
+I also add <code>alias ,=civ</code> to my bashrc, allowing for i.e. <code>, help ff</code>. Note
+that <code>civ.lua</code> can load and run ANY lua module in your <code>LUA_PKGS</code> (not just
+civlua ones), so this is a nice shortcut for your personal scripts.
 <p>
 <blockquote>See <a href="#pkg-install">#pkg-install</a> for more details regarding <code>PKG.lua</code> dependencies,
 especially if you are not calling the <code>civ.lua</code> loader.
@@ -186,6 +193,20 @@ for <a href="#Package_cxt">cxt</a> and will help provide syntax-highlighting in 
 <li><a href="#Package_lson"><b>lson</b></a>: implements de/serialization of arbitrary
 concrete data (including tables) to/from JSON and an extension called LSON.</li>
 </ul>
+<p>
+<h3><a id="civ-runner" href="#civ-runner">Writing (and running) your own commands</h3></a>
+After following <a href="#Installation">#Installation</a> you can run your own commands.
+This is because <code>civ.lua</code> (after some minor setup) simply runs the
+following:
+<p>
+<code class="block">require(cmd).main(shim.parse(arg))</code>
+<p>
+So it directly calls your module/package's <code>main</code> function.
+See <a href="#Package_shim">#Package_shim</a> for full documentation on writing your own
+scripts.
+<p>
+You can then run your package's main function (with arguments pre-parsed into a
+table) by adding it to <code>LUA_PKGS</code> and calling <code>civ mypackage</code>.
 <p>
 <h3>Styling</h3>
 The following define an interface to enable color output across any device,
@@ -2338,7 +2359,7 @@ pod: plain old data
 </table>
 <h4>Value <a id="pod.__name" href="#pod.__name">pod.__name</a></h4>
 <h3>Table <a id="pod.boolean" href="#pod.boolean">pod.boolean</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
-<h3>Table <a id="pod.integer" href="#pod.integer">pod.integer</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
+<h3>Table <a id="pod.int" href="#pod.int">pod.int</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.nil" href="#pod.nil">pod.nil</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.number" href="#pod.number">pod.number</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.str" href="#pod.str">pod.str</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
