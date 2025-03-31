@@ -458,6 +458,7 @@ end
 M.main = function(args)
   args = M.Args(shim.parseStr(args))
   if args.help then return M.styleHelp(io.fmt, M.Args) end
+  require'doc.lua' -- ensure it is loaded
   local obj, expand = args[1], args.expand == true and 10 or args.expand
   assert(obj, 'arg[1] must be the item to find')
   local to = args.to and shim.file(args.to) or nil

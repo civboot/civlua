@@ -1,5 +1,5 @@
-#!/usr/bin/env -S lua -e "require'pkglib'()"
-local G = G or _G
+require'pkglib'()
+local G = assert(G)
 
 -- civ module: packaged dev environment
 local M = G.mod'civ'; G.MAIN = G.MAIN or M

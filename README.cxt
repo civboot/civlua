@@ -20,21 +20,23 @@ Then run the following (or equivalent):
 [{## lang=sh}
 # build lua
 cd path/to/civlua/
-
-make build LUA_VERSION=lua5.3
+make build LUA_VERSION=lua5.3  # or your lua version
 
 # add these lines to .bashrc
 cat >> ~/.bashrc << EOF
 export LUA_PATH="$PWD/lib/pkg/?.lua"
 export LUA_PKGS="$PWD/"
 
-alias civ="$PWD/civ.lua"
+alias civ="lua5.3 $PWD/civ.lua"
 EOF
 ]##
 
-You can now run any civlua script with, i.e. [$civ help ff].
+After [$source ~/.bashrc] you should be able to run any civlua script with
+[$civ <cmd>], i.e. [$civ doc string.find].
 
-["See [<#pkg-install>] for more details regarding [$PKG.lua] dependencies.]
+["See [<#pkg-install>] for more details regarding [$PKG.lua] dependencies,
+  especially if you are not calling the [$civ.lua] loader.
+]
 
 [{:h3}Testing]
 After installation, it's a good idea to run the tests to make sure civlua is

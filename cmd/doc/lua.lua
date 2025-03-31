@@ -122,6 +122,7 @@ M['string.concat'] = string.concat--(sep, ...) --> string
 
 --- Find the pattern in the subj (subject) string, starting at the index.
 --- returns the si (start index), ei (end index) and match groups
+--- (see [<#string.match>]).
 ---
 --- [{## lang=lua}
 --- T.eq({2, 4},       {find('%w+', ' bob is nice')})
@@ -538,13 +539,18 @@ PKG_LOOKUP['local'] = M['local']
 
 -- boolean [$true] value
 M['true'] = M.keyword()
+PKG_LOOKUP['true'] = M['true']
+
 -- boolean [$false] value
 M['false'] = M.keyword()
+PKG_LOOKUP['false'] = M['false']
+
 --- [$nil] value, the the absense of a value. Used for: [+
 ---   * a variable is not set or has been set to [$nil]
 ---   * a table key is not set or has been set to [$nil]
 --- ]
 M['nil'] = M.keyword()
+PKG_LOOKUP['nil'] = M['nil']
 
 -- store items in this module in PKG_* variables
 for k, obj in pairs(M) do

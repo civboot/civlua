@@ -112,7 +112,16 @@ M.serialize = function(w, node)
   end
 
   w.style = M.STYLES[kind] or node.style or prevSty
-  for _, n in ipairs(node) do M.serialize(w, n) end
+  if #node == 0 then
+    local ps = w.style;
+    if node.path then
+      w.style = 'path'; M.serialize(w, node.path); w.style = ps
+    elseif node.href then
+      w.style = 'ref'; M.serialize(w, node.href);  w.style = ps
+    end
+  else
+    for _, n in ipairs(node) do M.serialize(w, n) end
+  end
   w.style = prevSty
 end
 

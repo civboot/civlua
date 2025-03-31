@@ -268,12 +268,13 @@ M.safeGlobal = function()
   setmetatable(_G, {__name='_G(globals)', __index=noG, __newindex=noG})
 end
 
---- call pkglib to "install" it, making [$require] use [$pkglib.get]
+--- call pkglib directly to "install" it, making [$require] use [$pkglib.get]
 --- and adding [$G] and [$mod] globals.
 getmetatable(M).__call = function()
+  if require == M.get then return end
   M.safeGlobal()
-  G.require = M.get
   G.mod     = G.mod or M.mod
+  G.require = M.get
 end
 
 getmetatable(M).__newindex = function() error'do not modify pkg' end
