@@ -5,16 +5,20 @@ local M = G.mod and G.mod'fmt' or setmetatable({}, {})
 
 local mty = require'metaty'
 
+local getmt = getmetatable
 local sfmt, srep = string.format, string.rep
-local add, concat = table.insert, table.concat
+local push, concat = table.insert, table.concat
 local sort = table.sort
 local mathtype = math.type
 local sconcat = string.concat
+local split = mty.split
+
 
 local DEPTH_ERROR = '{!max depth reached!}'
 
---- for comparing two (possibly) different types
---- [$nil < bool < number < string < table]
+--- Compares two values of any type.
+---
+--- Note: [$nil < bool < number < string < table]
 M.cmpDuck = function(a, b)
   local aTy, bTy = type(a), type(b)
   if aTy ~= bTy then return aTy < bTy end
@@ -31,20 +35,25 @@ then      true      until     while
 ]], '%w+') do M.KEYWORD[kw] = true end
 local KEYWORD = M.KEYWORD
 
-
--- TODO: move this over here
-local split = mty.split
-
-M.sortKeys = function(t)
+--- Return a list of the table's keys sorted using [$cmpDuck]
+M.sortKeys = function(t) --> list
   local len, keys = #t, {}
   for k, v in pairs(t) do
     if not (mathtype(k) == 'integer' and (1 <= k) and (k <= len)) then
-      add(keys, k)
+      push(keys, k)
     end
   end; sort(keys, cmpDuck)
   return keys
 end
 
+--- The Fmt formatter object.
+---
+--- This is the main API of this module. It enables formatting any
+--- type by simply calling it's instance, appending the result to [$f] (i.e.
+--- self) or (if present) writing the result to [$f.to].
+---
+--- If [$f.to] is not provided, you can get the resulting string by calling
+--- [$tostring(f)]
 M.Fmt = mty'Fmt' {
   'style     [bool]: enable styling. If true, set [$to=Styler]',
   "to        [file?]: if set calls write",
@@ -67,6 +76,8 @@ M.Fmt = mty'Fmt' {
 }
 local Fmt = M.Fmt
 
+--- Create a new Formatter object with default "pretty" settings.
+--- Generally, this means line-separated and indented tables.
 Fmt.pretty = function(F, t)
   t.tableStart = t.tableStart or '{\n'
   t.tableEnd   = t.tableEnd   or '\n}'
@@ -76,7 +87,7 @@ Fmt.pretty = function(F, t)
   return F(t)
 end
 
---- add to the indent level and get the new value
+--- Add to the indent level and get the new value
 --- call with [$add=nil] to just get the current level
 Fmt.level = function(f, add) --> int: current level
   local l = f._level
@@ -91,6 +102,7 @@ Fmt.flush = function(f) if f.to then f.to:flush() end end
 Fmt._write = function(f, str)
   if f.to then f.to:write(str) else rawset(f, #f + 1, str) end
 end
+--- Same as [$file:write].
 Fmt.write = function(f, ...)
   local str = sconcat('', ...)
   local doIndent = false
@@ -99,6 +111,10 @@ Fmt.write = function(f, ...)
     f:_write(line); doIndent = true
   end
 end
+
+--- Call [$to:styled(...)] if it is enabled, else simply [$f:write(text, ...)].
+--- This allows for configurable styling of output, both for objects as well
+--- as command-line utilities/etc.
 Fmt.styled = function(f, style, text, ...)
   if not f.style then f:write(text, ...); return end
   local to, doIndent = f.to, false
@@ -120,41 +136,50 @@ Fmt.__newindex = function(f, i, v)
   f:write(v)
 end
 
+--- Format like a table key. This can be overriden by type extensions to
+--- provide other behavior.
 Fmt.tableKey = function(f, k)
   if type(k) ~= 'string' or KEYWORD[k]
      or tonumber(k) or k:find'[^_%w]' then
-    add(f, '[');
-    if type(k) == 'string' then add(f, sfmt('%q', k)) else f(k) end
-    add(f, ']')
-  else add(f, k) end
+    f:write'['
+    if type(k) == 'string' then f:write(sfmt('%q', k)) else f(k) end
+    f:write']'
+  else f:write(k) end
 end
 
-Fmt['nil']      = function(f)     add(f, 'nil')             end
-Fmt.boolean     = function(f, b)  add(f, tostring(b))       end
-Fmt.number      = function(f, n)  add(f, sfmt(f.numfmt, n)) end
-Fmt.string      = function(f, s)  add(f, sfmt(f.strfmt, s)) end
-Fmt.thread      = function(f, th) add(f, tostring(th))      end
-Fmt.userdata    = function(f, ud) add(f, tostring(ud))      end
-Fmt['function'] = function(f, fn) add(f, sfmt('fn%q[%s]', mty.fninfo(fn))) end
+--- format a nil value.
+Fmt['nil']      = function(f)     f:write'nil'              end
+--- format a boolean value.
+Fmt.boolean     = function(f, b)  f:write(tostring(b))      end
+--- format a number value.
+Fmt.number      = function(f, n)  f:write(sfmt(f.numfmt, n)) end
+--- format a string value.
+Fmt.string      = function(f, s)  f:write(sfmt(f.strfmt, s)) end
+--- format a thread value.
+Fmt.thread      = function(f, th) f:write(tostring(th))      end
+--- format a userdata value.
+Fmt.userdata    = function(f, ud) f:write(tostring(ud))      end
+--- format a function value.
+Fmt['function'] = function(f, fn) f:write(sfmt('fn%q[%s]', mty.fninfo(fn))) end
 
 --- format items in table "list"
 Fmt.items = function(f, t, hasKeys, listEnd)
   local len = #t; for i=1,len do
     f(t[i])
-    if (i < len) or hasKeys then add(f, f.indexEnd) end
+    if (i < len) or hasKeys then f:write(f.indexEnd) end
   end
-  if listEnd then add(f, listEnd) end
+  if listEnd then f:write(listEnd) end
 end
 
 --- format key/vals in table "map"
 Fmt.keyvals = function(f, t, keys)
   local klen, kset, kend = #keys, f.keySet, f.keyEnd
   for i, k in ipairs(keys) do
-    f:tableKey(k); add(f, kset);
+    f:tableKey(k); f:write(kset);
     local v = t[k]
-    if rawequal(t, v) then add(f, 'self')
+    if rawequal(t, v) then f:write'self'
     else                   f(v) end
-    if i < klen then add(f, kend) end
+    if i < klen then f:write(kend) end
   end
 end
 
@@ -162,25 +187,24 @@ end
 --- Yes this is complicated. No, there is no way to really improve
 --- this while preserving the features.
 Fmt.table = function(f, t)
-  if f._level >= f.maxIndent then return add(f, DEPTH_ERROR) end
-  local mt, keys = getmetatable(t), nil
+  if f._level >= f.maxIndent then return f:write(DEPTH_ERROR) end
+  local mt = getmt(t)
   if (mt ~= 'table') and (type(mt) == 'string') then
-    return add(f, tostring(t))
+    return f:write(tostring(t))
   end
   if type(mt) == 'table' then
     local fn = rawget(mt, '__fmt'); if fn then return fn(t, f) end
-    fn = rawget(mt, '__tostring');  if fn then return add(f, fn(t)) end
-    local n = rawget(mt, '__name'); if n  then add(f, n)       end
-    keys = rawget(mt, '__fields')
+    fn = rawget(mt, '__tostring');  if fn then return f:write(fn(t)) end
+    local name = rawget(mt, '__name'); if name then f:write(name) end
   end
-  keys = keys or M.sortKeys(t)
+  local keys = M.sortKeys(t)
   local multi = #t + #keys > 1 -- use multiple lines
   f:level(1)
-  if multi then add(f, f.tableStart) else add(f, '{') end
+  f:write(multi and f.tableStart or '{')
   f:items(t, next(keys), multi and (#t>0) and (#keys>0) and f.listEnd)
   f:keyvals(t, keys)
   f:level(-1)
-  if multi then add(f, f.tableEnd) else add(f, '}') end
+  f:write(multi and f.tableEnd or '}')
 end
 Fmt.__call = function(f, v) f[type(v)](f, v); return f end
 
@@ -204,7 +228,7 @@ end
 Fmt.concat = function(f, sep, ...) --> f
   f(select(1, ...))
   for i=2,select('#', ...) do
-    add(f, sep); f(select(i, ...))
+    f:write(sep); f(select(i, ...))
   end
   return f
 end
@@ -256,5 +280,5 @@ M.print  = function(...) return fprint(io.fmt, ...) end
 M.pretty = function(v) return concat(Fmt:pretty{}(v)) end --> string
 
 --- directly call fmt for better [$tostring]
-getmetatable(M).__call = function(_, v) return concat(Fmt{}(v)) end
+getmt(M).__call = function(_, v) return concat(Fmt{}(v)) end
 return M

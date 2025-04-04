@@ -521,7 +521,7 @@ T.bimap = function()
   bm.b = 'B'
   T.eq(bm.b, 'B'); T.eq(bm.B, 'b')
   T.eq('BiMap{A="a", B="b", a="A", b="B"}'
-         , fmt(bm))
+       , fmt(bm))
 end
 
 T.deq = function()

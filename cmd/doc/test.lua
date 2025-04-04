@@ -116,7 +116,9 @@ another line\
 + [$doc_test.Example.__index] | \\[Ty<Example>\\] ([{path=cmd/doc/test.lua:000}src])\
 ]\
 [*Methods: ] [{table}\
++ [$doc_test.Example.__fmt] | \\[function\\] ([{path=lib/metaty/metaty.lua:000}src])\
 + [$doc_test.Example.__newindex] | \\[function\\] ([{path=lib/metaty/metaty.lua:000}src])\
++ [$doc_test.Example.__tostring] | \\[function\\] ([{path=lib/metaty/metaty.lua:000}src])\
 + [$doc_test.Example.method] | \\[function\\] ([{path=cmd/doc/test.lua:000}src])\
 ]",
     doFmt(doc.fmtDoc, res))

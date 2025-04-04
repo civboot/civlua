@@ -656,8 +656,8 @@ M.Slc.merge  = function(a, b) --> first, second?
   return Slc{si=a.si, ei=max(a.ei, b.ei)}
 end
 
-M.Slc.__tostring = function(s) --> string
-  return sfmt('Slc[%s:%s]', s.si, s.ei)
+M.Slc.__fmt = function(s, fmt) --> string
+  fmt:write(sfmt('Slc[%s:%s]', s.si, s.ei))
 end
 
 ---------------------
@@ -959,18 +959,19 @@ end
 ---
 --- Note that [$pairs()] will return BOTH directions (in an unspecified order)
 M.BiMap = mty'BiMap'{}
+M.BiMap.__fields   = nil
+M.BiMap.__fmt      = nil
+M.BiMap.__tostring = nil
 
 getmetatable(M.BiMap).__call = function(ty_, t)
   local rev = {}; for k, v in pairs(t) do rev[v] = k end
   for k, v in pairs(rev) do t[k] = v end
   return setmetatable(t, ty_)
 end
-M.BiMap.__fields = nil
 M.BiMap.__newindex = function(t, k, v)
   rawset(t, k, v); rawset(t, v, k)
 end
 getmetatable(M.BiMap).__index = nil
-M.BiMap.__fmt = nil
 M.BiMap.remove = function(t, k) --> v
   local v = t[k]; t[k] = nil; t[v] = nil; return v
 end

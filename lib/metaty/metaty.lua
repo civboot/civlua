@@ -3,6 +3,7 @@ local G = G or _G
 --- metaty: simple but effective Lua type system using metatable
 local M = G.mod and G.mod'metaty' or setmetatable({}, {})
 local concat = table.concat
+local getmt = getmetatable
 
 do
   local treq = function(n) --> try to require n from metaty.native
@@ -47,7 +48,7 @@ M.getCheck = function() return CHECK end
 --- This first looks for the item directly on the table, then the item
 --- in the table's metatable. It does NOT use the table's normal [$__index].
 M.getmethod = function(t, method)
-  return rawget(t, method) or rawget(getmetatable(t) or EMPTY, method)
+  return rawget(t, method) or rawget(getmt(t) or EMPTY, method)
 end
 
 ---------------
@@ -56,7 +57,7 @@ M.DEPTH_ERROR = '{!max depth reached!}'
 
 M.ty = function(o) --> Type: string or metatable
   local t = type(o)
-  return t == 'table' and getmetatable(o) or t
+  return t == 'table' and getmt(o) or t
 end
 
 --- Given a type return it's name
@@ -73,16 +74,16 @@ M.name = function(o)
   local ty = type(o)
   return ty == 'function' and M.fninfo(o)
       or ty == 'table'    and M.tyName(M.ty(o))
-      or ty == 'userdata' and M.tyName(getmetatable(o), 'userdata')
+      or ty == 'userdata' and M.tyName(getmt(o), 'userdata')
       or ty
 end
 
 M.callable = function(obj) --> bool: return if obj is callable
   if type(obj) == 'function' then return true end
-  local m = getmetatable(obj)
+  local m = getmt(obj)
   return m and rawget(m, '__call') and true
 end
-M.metaget = function(t, k)   return rawget(getmetatable(t), k) end
+M.metaget = function(t, k)   return rawget(getmt(t), k) end
 
 --- keywords https://www.lua.org/manual/5.4/manual.html
 M.KEYWORD = {}; for kw in string.gmatch([[
@@ -138,6 +139,23 @@ M.split = function(subj, pat--[[%s+]], index--[[1]]) --> (cxt, str) iter
   return M.rawsplit, subj, {pat or '%s+', index or 1}
 end
 
+--- The default __fmt method.
+M.fmt = function(self, f)
+  local mt = getmt(self)
+  local fields = rawget(mt, '__fields')
+  local multi = #fields > 1 -- use multiple lines
+  f:write(rawget(mt, '__name'));
+  f:level(1);  f:write(multi and f.tableStart or '{')
+  f:keyvals(self, fields)
+  f:level(-1); f:write(multi and f.tableEnd or '}')
+end
+
+--- The default __tostring method.
+M.tostring = function(self)
+  local mt = getmt(self)
+  return sfmt('%s@%p', rawget(mt, '__name'), self)
+end
+
 -----------------------------
 -- Equality
 M.nativeEq = function(a, b) return a == b end
@@ -147,7 +165,7 @@ local NATIVE_TY_EQ = {
   ['nil']  = rawequal,   ['function'] = rawequal,
   ['table'] = function(a, b)
     if a == b then return true end
-    local mt = getmetatable(a)
+    local mt = getmt(a)
     if type(mt) == 'table' and rawget(mt, '__eq') then
       return false -- true equality already tested
     end
@@ -184,7 +202,7 @@ M.index = function(R, k) -- Note: R is record's metatable
 end
 M.newindex = function(r, k, v)
   if type(k) == 'string' and not M.metaget(r, '__fields')[k] then
-    M.indexError(getmetatable(r), k, 3)
+    M.indexError(getmt(r), k, 3)
   end
   rawset(r, k, v)
 end
@@ -240,11 +258,13 @@ M.namedRecord = function(name, R, loc)
     fieldIds[id] = id
   end; R.reserved = nil
   R.__fields, R.__fieldIds, R.__docs = M.extendFields({}, fieldIds, {}, R)
-  R.__index  = rawget(R, '__index') or R
+  R.__fmt      = rawget(R, '__fmt')      or M.fmt
+  R.__tostring = rawget(R, '__tostring') or M.tostring
+  R.__index    = rawget(R, '__index')    or R
   local mt = {
-    __name='Ty<'..R.__name..'>',
-    __newindex=mod and mod.__newindex,
-    __tostring=function() return R.__name end,
+    __name     = 'Ty<'..R.__name..'>',
+    __newindex = mod and mod.__newindex,
+    __tostring = function() return R.__name end,
   }
   local R = setmetatable(R, mt)
   if G.METATY_CHECK then
@@ -265,15 +285,14 @@ end
 
 M.isRecord = function(t)
   if type(t) ~= 'table' then return false end
-  local mt = getmetatable(t)
+  local mt = getmt(t)
   return mt and mt.__name and mt.__name:find'^Ty<'
 end
-
 
 --- Extend the Type with (optional) new name and (optional) additional fields.
 M.extend = function(Type, name, fields)
   name, fields = name or Type.__name, fields or {}
-  local E, mt = update({}, Type), update({}, getmetatable(Type))
+  local E, mt = update({}, Type), update({}, getmt(Type))
   E.__name, mt.__name = name, 'Ty<'..name..'>'
   E.__index = E
   E.__fields   = update({}, E.__fields);
@@ -404,5 +423,5 @@ M.enum = function(name)
   return function(nameIds) return M.namedEnum(name, nameIds) end
 end
 
-getmetatable(M).__call = function(T, name) return M.record(name) end
+getmt(M).__call = function(T, name) return M.record(name) end
 return M

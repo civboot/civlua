@@ -1,7 +1,7 @@
 name     = 'fmt'
 version  = '0.1-0'
 url      = 'git+http://github.com/civboot/civlua'
-summary  = "format lua types"
+summary  = "format and style anything"
 homepage = "https://lua.civboot.org#Package_fmt"
 license  = "UNLICENSE"
 deps = {
