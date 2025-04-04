@@ -139,26 +139,41 @@ end
 Fmt.tableKey = function(f, k)
   if type(k) ~= 'string' or KEYWORD[k]
      or tonumber(k) or k:find'[^_%w]' then
-    f:write'['
-    if type(k) == 'string' then f:write(sfmt('%q', k)) else f(k) end
-    f:write']'
-  else f:write(k) end
+    f:styled('meta', '[')
+    if type(k) == 'string' then f:styled('string', sfmt('%q', k))
+    else                        f(k) end
+    f:styled('meta', ']', '')
+  else f:styled('key', k, '') end
 end
 
 --- format a nil value.
-Fmt['nil']      = function(f)     f:write'nil'              end
+Fmt['nil']      = function(f)
+  f:styled('literal', 'nil', '')
+end
 --- format a boolean value.
-Fmt.boolean     = function(f, b)  f:write(tostring(b))      end
+Fmt.boolean     = function(f, b)
+  f:styled('literal', tostring(b), '')
+end
 --- format a number value.
-Fmt.number      = function(f, n)  f:write(sfmt(f.numfmt, n)) end
+Fmt.number      = function(f, n)
+  f:styled('number', sfmt(f.numfmt, n), '')
+end
 --- format a string value.
-Fmt.string      = function(f, s)  f:write(sfmt(f.strfmt, s)) end
+Fmt.string      = function(f, s)
+  f:styled('string', sfmt(f.strfmt, s), '')
+end
 --- format a thread value.
-Fmt.thread      = function(f, th) f:write(tostring(th))      end
+Fmt.thread      = function(f, th)
+  f:styled('literal', tostring(th), '')
+end
 --- format a userdata value.
-Fmt.userdata    = function(f, ud) f:write(tostring(ud))      end
+Fmt.userdata    = function(f, ud)
+  f:styled('literal', tostring(ud), '')
+end
 --- format a function value.
-Fmt['function'] = function(f, fn) f:write(sfmt('fn%q[%s]', mty.fninfo(fn))) end
+Fmt['function'] = function(f, fn)
+  f:styled('path', sfmt('fn%q[%s]', mty.fninfo(fn)), '')
+end
 
 --- format items in table "list"
 Fmt.items = function(f, t, hasKeys, listEnd)
@@ -173,11 +188,11 @@ end
 Fmt.keyvals = function(f, t, keys)
   local klen, kset, kend = #keys, f.keySet, f.keyEnd
   for i, k in ipairs(keys) do
-    f:tableKey(k); f:write(kset);
+    f:tableKey(k); f:write(kset)
     local v = t[k]
-    if rawequal(t, v) then f:write'self'
+    if rawequal(t, v) then f:styled('keyword', 'self', '')
     else                   f(v) end
-    if i < klen then f:write(kend) end
+    if i < klen then f:styled('meta', kend, '') end
   end
 end
 

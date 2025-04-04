@@ -100,6 +100,7 @@ lib/fmt/PKG.lua
 lib/fmt/README.cxt
 lib/fmt/binary.lua
 lib/fmt/fmt.lua
+lib/fmt/show.lua
 lib/fmt/test.lua
 lib/lap/PKG.lua
 lib/lap/README.cxt

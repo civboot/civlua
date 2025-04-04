@@ -40,19 +40,20 @@ M.dark = {
   -- Code Syntax
   api           = 'G', -- api, i.e. public function/class name
   type          = 'h', -- type signature
-  var           = 'g', -- variable name
+  var           = 'G', -- variable name
   keyword       = 'R', -- for while do etc
-  symbol        = 'r', -- = + . etc
+  symbol        = 't', -- = + . { } etc
   builtin       = 'p', -- builtin fns/mods/names: io sys self etc
   commentbox    = 'bw', -- start/end of comment: -- // /**/ etc
   comment       = 'zb', -- content of comment:  /*content*/
   stringbox     = 'd', -- start/end of string: '' "" [[]] etc
-  string        = 'm', -- content of string inside quotes
-  char          = 'm', -- single character: 'c'
-  number        = 'm', -- float or integer: 0 1.0 0xFF etc
-  literal       = 'm', -- other literal: null, bool, date, regex, etc
+  string        = 'g', -- content of string inside quotes
+  key           = 'T', -- key in map/struct/etc
+  char          = 'g', -- single character: 'c'
+  number        = 'N', -- float or integer: 0 1.0 0xFF etc
+  literal       = 'h', -- other literal: null, bool, date, regex, etc
   call          = 'c', -- function call: foo()
-  dispatch      = 'c', -- object.method called: obj.foo(), obj:foo()
+  dispatch      = 'C', -- object.method called: obj.foo(), obj:foo()
 }
 -- TODO: light
 
