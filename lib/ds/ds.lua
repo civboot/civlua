@@ -237,12 +237,6 @@ end
 -- Table Functions
 M.isEmpty = function(t) return t == nil or next(t) == nil end
 
---- push the [$fmt:format(...)] to the table
----
---- Example: [$pushfmt(t, 'a=%s b=%s', a, b)]
-M.pushfmt = function(t, fmt, ...) push(t, sfmt(fmt, ...)) end
-local pushfmt = M.pushfmt
-
 --- the full length of all pairs
 --- ["WARNING: very slow, requires iterating the whole table]
 M.pairlen = function(t) --> int
@@ -822,16 +816,16 @@ getmetatable(M.Set).__call = function(T, t)
 end
 
 M.Set.__fmt = function(self, f) --> nil
-  push(f, 'Set'); push(f, f.tableStart);
+  f:write('Set', f.tableStart)
   local keys = {}; for k in ipairs(self) do push(keys, k) end
   sort(keys)
   if #keys > 1 then f:level(1) end
   for i, k in ipairs(keys) do
-    f:fmt(k)
-    if i < #keys then push(f, f.indexEnd) end
+    f(k)
+    if i < #keys then f:write(f.indexEnd) end
   end
   if #keys > 1 then f:level(-1) end
-  push(f, f.tableEnd)
+  f:write(f.tableEnd)
 end
 
 M.Set.__eq = function(self, t) --> bool
@@ -1075,17 +1069,17 @@ end
 M.Error = mty'Error' {
   'msg [string]', 'traceback [table]', 'cause [Error]',
 }
-M.Error.__fmt = function(e, fmt)
-  push(fmt, 'ERROR: '); push(fmt, e.msg)
+M.Error.__fmt = function(e, f)
+  f:write('ERROR: ', e.msg)
   if e.traceback then
-    push(fmt, '\ntraceback:\n')
+    f:write'\ntraceback:\n'
     for _, l in ipairs(e.traceback) do
-      push(fmt, '  '); push(fmt, l); push(fmt, '\n')
+      f:write('  ', l, '\n')
     end
   end
   if e.cause then
-    push(fmt, '\nCaused by: ');
-    fmt(e.cause); push(fmt, '\n')
+    f:write'\nCaused by: '
+    f(e.cause); f:write'\n'
   end
 end
 M.Error.__tostring = function(e) return fmt(e) end

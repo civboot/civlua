@@ -148,10 +148,10 @@ File.__newindex = function(lf, i, v)
   idx[i], cache[i] = pos, v
 end
 
-File.__fmt = function(lf, fmt)
-  push(fmt, 'lines.File(')
-  if lf.path then push(fmt, lf.path) end
-  push(fmt, ')')
+File.__fmt = function(lf, f)
+  f:write'lines.File('
+  if lf.path then f:write(lf.path) end
+  f:write')'
 end
 
 File.reader = function(lf) --> lines.File (readonly)

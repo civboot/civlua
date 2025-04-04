@@ -55,10 +55,10 @@ M.setLevel(G.LOGLEVEL)
 function M.logFn(lvl, loc, fmt, ...)
   if LOGLEVEL < lvl then return end
   local f, lasti, i, args, nargs = io.fmt, 1, 0, {...}, select('#', ...)
-  push(f, sfmt('%s %s %s: ', SHORT[lvl], M.time(), loc)); f:flush()
+  f:write(sfmt('%s %s %s: ', SHORT[lvl], M.time(), loc)); f:flush()
   f:level(1)
   local nargs, i = select('#', ...), f:format(fmt, ...)
-  if i == (nargs - 1) then push(f, ' '); f(args[i + 1]) -- data
+  if i == (nargs - 1) then f:write' '; f(args[i + 1]) -- data
   elseif i ~= nargs then error('invalid #args: '..nargs..' %fmts='..i) end
   f:level(-1); f:write'\n'; f:flush()
 end

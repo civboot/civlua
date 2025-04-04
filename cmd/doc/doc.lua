@@ -30,7 +30,7 @@ local sfmt, srep = string.format, string.rep
 local push, concat = table.insert, table.concat
 local update = table.update
 
-local sfmt, pushfmt = string.format, ds.pushfmt
+local sfmt = string.format
 
 local INTERNAL = '(internal)'
 local COMMAND_NAME = 'when executed directly'
@@ -327,10 +327,10 @@ M.fmtDocItem = function(f, di)
   path, default = path or '', default or ''
   if path:sub(1,1) == '\n' or (di.doc and di.doc ~= '') then
     f:level(1)
-    pushfmt(f, '%-16s | %s %s%s\n%s', name, ty, default, path, di.doc)
+    f:write(sfmt('%-16s | %s %s%s\n%s', name, ty, default, path, di.doc))
     f:level(-1)
   else
-    pushfmt(f, '%-16s | %s %s%s', name, ty, default, path)
+    f:write(sfmt('%-16s | %s %s%s', name, ty, default, path))
   end
 end
 
@@ -342,18 +342,18 @@ M.fmtAttr = function(f, name, attr)
     else push(dis, k) end -- DocItem and values
   end
   if #dis > 0 then
-    pushfmt(f, '\n[*%s: ] [{table}', name)
+    f:write(sfmt('\n[*%s: ] [{table}', name))
     for i, k in ipairs(dis) do
       local v = attr[k]
-      push(f, '\n+ ')
+      f:write'\n+ '
       if mty.ty(v) == M.DocItem then M.fmtDocItem(f, v)
-      else pushfmt(f, '[*%s] | %s', k, cxt.code(fmt(v))) end
+      else f:write(sfmt('[*%s] | %s', k, cxt.code(fmt(v)))) end
     end
-    push(f, '\n]')
+    f:write'\n]'
   end
   if #docs > 0 then
     for i, k in ipairs(docs) do
-      push(f, '\n'); M.fmtDoc(f, attr[k])
+      f:write'\n'; M.fmtDoc(f, attr[k])
     end
   end
 end
@@ -365,12 +365,12 @@ M.docHeader = function(docTy, lvl)
 end
 
 M.fmtMeta = function(f, m)
-  pushfmt(f, '[{table}')
-  if m.summary then pushfmt(f, '\n+ [*summary] | %s', m.summary) end
-  pushfmt(f, '\n+ [*version] | [$%s]', m.version or '(no version)')
-  if m.homepage then pushfmt(f, '\n+ [*homepage] | [<%s>]', m.homepage) end
-  if m.repo     then pushfmt(f, '\n+ [*repo] | [<%s>]', m.repo) end
-  pushfmt(f, '\n]')
+  f:write'[{table}'
+  if m.summary then f:write(sfmt('\n+ [*summary] | %s', m.summary)) end
+  f:write(sfmt('\n+ [*version] | [$%s]', m.version or '(no version)'))
+  if m.homepage then f:write(sfmt('\n+ [*homepage] | [<%s>]', m.homepage)) end
+  if m.repo     then f:write(sfmt('\n+ [*repo] | [<%s>]', m.repo)) end
+  f:write'\n]'
 end
 
 M.fmtDoc = function(f, d)
@@ -378,29 +378,27 @@ M.fmtDoc = function(f, d)
   local name = d.pkgname or d.name
   local hname = name and sfmt('[:%s]', name) or '(unnamed)'
   if d.fnsig then hname = hname..cxt.code(d.fnsig) end
-  pushfmt(f, '[{h%s}%s%s%s]',
+  f:write(sfmt('[{h%s}%s%s%s]',
           M.docHeader(d.docTy, d.lvl),
           d.docTy == 'Package' and '' or (assert(d.docTy)..' '),
           (d.docTy == 'Command') and COMMAND_NAME or hname,
-          path)
+          path))
   if d.meta then M.fmtMeta(f, d.meta) end
   if d.comments then
-    for i, l in ipairs(d.comments) do
-      push(f, '\n'); push(f, l)
-    end
+    for i, l in ipairs(d.comments) do f:write('\n', l) end
   end
   if d.main then
     M.fmtDoc(f, d.main)
   end
   if d.docTy == 'Table' or d.docTy == 'Value' then
     if d.code and #d.code > 1 then
-      push(f, cxt.codeblock('\n'..concat(d.code, '\n')..'\n', 'lua'))
+      f:write(cxt.codeblock('\n'..concat(d.code, '\n')..'\n', 'lua'))
     end
     return
   end
 
   local any = d.fields or d.values or d.tys or d.fns
-  if any or d.mods then push(f, '\n') end
+  if any or d.mods then f:write'\n' end
   if d.fields then
     M.fmtAttr(f, d.docTy == 'Command' and 'Named Args' or 'Fields', d.fields)
   end
@@ -411,9 +409,9 @@ M.fmtDoc = function(f, d)
     M.fmtAttr(f, name, d.fns)
   end
   if d.mods then
-    if any then push(f, '\n') end
+    if any then f:write'\n' end
     for _, m in ipairs(d.mods) do
-      push(f, '\n'); M.fmt(f, d.mods[m])
+      f:write'\n'; M.fmt(f, d.mods[m])
     end
   end
 end

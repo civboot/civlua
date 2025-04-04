@@ -10,9 +10,9 @@ local lines   = require'lines'
 local T       = require'civtest'
 local extend  = ds.extend
 local push, pop = table.insert, table.remove
+local concat, unpack = table.concat, table.unpack
 local sfmt    = string.format
 local srep = string.rep
-local pushfmt = ds.pushfmt
 local ty = mty.ty
 
 local function zero() return 0 end
@@ -35,8 +35,8 @@ M.Token.encode=function(ty_, p, l, c, l2, c2, kind)
 end
 M.Token.decode = function(t, dat) return lines.sub(dat, M.decodeSpan(t[1])) end
 M.Token.__fmt = function(t, f)
-  push(f, 'Tkn'); if t.kind then pushfmt(f, '<%s>', t.kind) end
-  pushfmt(f, '(%s.%s %s.%s)', t:span())
+  f:write'Tkn'; if t.kind then f:write(sfmt('<%s>', t.kind)) end
+  f:write(sfmt('(%s.%s %s.%s)', t:span()))
 end
 
 local TOKEN_TY = {string=true, [M.Token]=true}
@@ -111,24 +111,23 @@ M.Parser = mty'Parser'{
 }
 
 M.fmtSpec = function(s, f)
-  if type(s) == 'string'   then return pushfmt(f, "%q", s) end
-  if type(s) == 'function' then return push(f, fmt(s)) end
+  if type(s) == 'string'   then return f(s) end
+  if type(s) == 'function' then return f(s) end
   if s.name or s.kind then
-    push(f, '<'); push(f, s.name or s.kind); push(f, '>')
-    return
+    return f:write('<', s.name or s.kind, '>')
   end
-  if ty(s) ~= 'table' then push(f, mty.tyName(ty(s))) end
+  if ty(s) ~= 'table' then f:write(mty.tyName(ty(s))) end
 
-  f:level(1); push(f, f.tableStart)
+  f:level(1); f:write(f.tableStart)
   for i, sub in ipairs(s) do
-    f(sub); if i < #s then push(f, ' ') end
+    f(sub); if i < #s then f:write' ' end
   end
-  f:level(-1); push(f, f.tableEnd)
+  f:level(-1); f:write(f.tableEnd)
 end
 M.specToStr = function(s, fmt)
   local fmt = fmt or fmt.Fmt:pretty()
   M.fmtSpec(s, fmt)
-  return table.concat(fmt)
+  return concat(fmt)
 end
 
 --- Create a parser spec record. These have the fields [$kind] and [$name]
@@ -466,8 +465,8 @@ end
 M.Parser.assertNode = function(p, expect, node, root)
   local result = p:toStrTokens(node)
   if not mty.eq(expect, result) then
-    local eStr = table.concat(p.root.newFmt()(expect))
-    local rStr = table.concat(p.root.newFmt()(result))
+    local eStr = concat(p.root.newFmt()(expect))
+    local rStr = concat(p.root.newFmt()(result))
     if eStr ~= rStr then
       print('\n#### EXPECT:'); print(eStr)
       print('\n#### RESULT:'); print(rStr)
@@ -610,8 +609,8 @@ local function fmtStack(p)
       push(b, sfmt('%s(%s.%s)', v, p.stackL[i], p.stackC[i]))
     end
   end
-  pushfmt(b, '%s(%s.%s)', table.unpack(p.stackLast))
-  return table.concat(b, '\n  ')
+  push(b, sfmt('%s(%s.%s)', unpack(p.stackLast)))
+  return concat(b, '\n  ')
 end
 M.Parser.checkPin=function(p, pin, expect)
   if not pin then return end
@@ -698,14 +697,15 @@ M.testing.KW = KW
 
 -- formatting parsed so it can be copy/pasted
 local fmtKindNum = function(name, f, t)
-  push(f, name..sfmt('{%s%s%s}',
+  f:write(name..sfmt('{%s%s%s}',
     mty.eq(t[1],M.EMPTY) and '' or 'neg=1 ', t[2],
     (mty.eq(t[3],M.EMPTY) and '') or (','..t[4])
-))end
+  ))
+end
 M.fmtKinds = {
-  EOF   = function(f, t) push(f, 'EOF')   end,
-  EMPTY = function(f, t) push(f, 'EMPTY') end,
-  name  = function(f, t) pushfmt(f, 'N%q', t[1]) end,
+  EOF   = function(f, t) f:write'EOF'   end,
+  EMPTY = function(f, t) f:write'EMPTY' end,
+  name  = function(f, t) f:write(sfmt('N%q', t[1])) end,
   n10   = function(...) fmtKindNum('NUM', ...) end,
   n16   = function(...) fmtKindNum('HEX', ...) end,
 }
@@ -714,7 +714,7 @@ M.FmtPegl = mty'FmtPegl' {
   'kinds [table]: kind -> fmtFn', kinds=M.fmtKinds,
 }
 M.FmtPegl.__call = function(ft, f, t)
-  if M.isKeyword(t) then pushfmt(f, 'KW%q', t[1]); return end
+  if M.isKeyword(t) then f:write(sfmt('KW%q', t[1])); return end
   local fmtK = t.kind and ft.kinds and ft.kinds[t.kind]
   if fmtK then fmtK(f, t) else fmt.Fmt.table(f, t) end
 end

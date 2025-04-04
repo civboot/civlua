@@ -36,8 +36,8 @@ end
 M.formatCorErrors = function(corErrors)
   local f = fmt.Fmt{}
   for i, ce in ipairs(corErrors) do
-    push(f, sfmt('Coroutine Error #%s:\n', i))
-    f(ce); push(f, '\n')
+    f:write(sfmt('Coroutine Error #%s:\n', i))
+    f(ce); f:write'\n'
   end
   return table.concat(f)
 end
@@ -135,8 +135,8 @@ M.Recv.recv = function(r) r:wait() return r.deq() end
 M.Recv.__call = M.Recv.recv
 --- drain the recv. This does NOT wait for new items.
 M.Recv.drain = function(r) return r.deq:drain() end
-M.Recv.__fmt = function(r, fmt)
-  push(fmt, ('Recv{%s len=%s hasSender=%s}'):format(
+M.Recv.__fmt = function(r, f)
+  f:write(sfmt('Recv{%s len=%s hasSender=%s}',
     r:isClosed() and 'closed' or 'active',
     #r.deq, r:hasSender() and 'yes' or 'no'))
 end
@@ -186,7 +186,7 @@ M.Send.__len = function(send)
   local r = send._recv; return r and #r or 0
 end
 M.Send.__fmt = function(send, f)
-  push(f, ('Send{active=%s}'):format(send:isClosed() and 'no' or 'yes'))
+  f:write('Send{active=%s}', send:isClosed() and 'no' or 'yes')
 end
 
 ----------------------------------

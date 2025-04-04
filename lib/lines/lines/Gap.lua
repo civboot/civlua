@@ -48,12 +48,10 @@ end
 Gap.__fmt = function(g, f)
   local len = #g
   for i, l in ipairs(g.bot) do
-    push(f, l);
-    if i < len then push(f, '\n') end
+    f:write(l); if i < len then f:write'\n' end
   end
   for i=#g.top,1,-1 do
-    push(f, g.top[i]);
-    if i > 1 then push(f, '\n') end
+    f:write(g.top[i]); if i > 1 then f:write'\n' end
   end
 end
 Gap.__pairs = ipairs

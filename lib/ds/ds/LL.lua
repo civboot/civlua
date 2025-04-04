@@ -113,13 +113,13 @@ end
 LL.__call = function(ll) return ll.r end --> ll.r (use with `for`)
 LL.__pairs  = ds.nosupport
 LL.__ipairs = ds.nosupport
-LL.__fmt = function(ll, fmt)
-  push(fmt, 'LL{')
+LL.__fmt = function(ll, f)
+  f:write'LL{'
   while true do
-    fmt(ll.v); ll = ll.r
-    if ll then push(fmt, ' -> ') else break end
+    f(ll.v); ll = ll.r
+    if ll then f:write' -> ' else break end
   end
-  push(fmt, '}')
+  f:write'}'
 end
 
 return LL

@@ -128,12 +128,10 @@ Fmt.styled = function(f, style, text, ...)
     to:write(line); doIndent = true
   end
 end
-Fmt.__newindex = function(f, i, v)
-  if type(i) ~= 'number' then; assert(f.__fields[i], i)
-    return rawset(f, i, v)
-  end
-  assert(i == #f + 1, 'can only append to Fmt')
-  f:write(v)
+
+Fmt.__newindex = function(f, k, v)
+  assert(type(k) == 'string', 'cannot set Fmt index')
+  return rawset(f, k, v)
 end
 
 --- Format like a table key. This can be overriden by type extensions to

@@ -49,11 +49,9 @@ G.insert = function(g, l, c, str)
   end
 end
 
-G.__fmt = function(g, fmt)
-  local h = g.h; for l=1,h-1 do
-    push(fmt, concat(g[l])); push(fmt, '\n')
-  end
-  push(fmt, concat(g[h]))
+G.__fmt = function(g, f)
+  local h = g.h; for l=1,h-1 do f:write(concat(g[l]), '\n') end
+  f:write(concat(g[h]))
 end
 
 return G

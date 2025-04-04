@@ -471,10 +471,12 @@ M.Writer.__index = function(w, l)
   if type(l) ~= 'number' then return end
   fmt.errorf('index cxt.Writer: %s', l)
 end
+-- TODO: remove this
 M.Writer.__newindex = function(w, l, line)
   if type(l) ~= 'number' then return rawset(w, l, line) end
-  if w.style then w.to:styled(w.style, line)
-  else            w.to[l] = line end
+  if w.style        then w.to:styled(w.style, line)
+  elseif w.to.write then w.to:write(line)
+  else                   w.to[l] = line end
 end
 M.Writer.__len = function(w) return #w.to end
 M.Writer.level = function(w, add) return w.to:level(add) end

@@ -64,22 +64,22 @@ local CTRL_SUB = {
   ['\n'] = true, -- "invalid replacement value" but unreachable
 }
 M.Json.string = function(enc, s)
-  push(enc, (sfmt('%q', s):gsub('\\?[\n9]', CTRL_SUB)))
+  enc:write( (sfmt('%q', s):gsub('\\?[\n9]', CTRL_SUB)) )
 end
 M.Json.table = function(f, t)
-  if rawequal(t, f.null) then return push(f, 'null') end
+  if rawequal(t, f.null) then return f:write'null' end
   if f._level >= f.maxIndent then error'max depth reached (recursion?)' end
   local keys = sortKeys(t)
   f:level(1)
   if #keys == 0 then
-    if #t > 1 then push(f, f.listStart) else push(f, '[') end
+    f:write((#t > 1) and f.listStart or '[')
     f:items(t, next(keys)); f:level(-1)
-    if #t > 1 then push(f, f.listEnd)   else push(f, ']') end
+    f:write((#t > 1) and f.listEnd   or ']')
   else -- has non-list keys
     for i in ipairs(t) do push(keys, i) end
-    if #keys > 1 then push(f, f.tableStart) else push(f, '{') end
+    f:write((#keys > 1) and f.tableStart or '{')
     f:keyvals(t, keys); f:level(-1)
-    if #keys > 1 then push(f, f.tableEnd)   else push(f, '}') end
+    f:write((#keys > 1) and f.tableEnd or '}')
   end
 end
 M.Json.__call = function(f, v, podder, pod)
@@ -107,7 +107,7 @@ end
 -- encode as |bytes| instead of "string" for lson
 -- You can set Enc.string = lson.bytes for this behavior
 M.bytes = function(f, s)
-  push(f, '|'); push(f, (s:gsub('(\\*)([\\\n|n])', mbytes))); push(f, '|')
+  f:write('|', s:gsub('(\\*)([\\\n|n])', mbytes), '|')
 end
 
 --- Similar to JSON but no commas and strings are encoded as [$|bytes|]
