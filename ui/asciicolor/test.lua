@@ -6,7 +6,6 @@ local fmt = require'fmt'
 local ds = require'ds'
 local Writer = require'lines.Writer'
 local M = require'asciicolor'
-local S = require'asciicolor.style'
 
 local aeq = T.eq
 

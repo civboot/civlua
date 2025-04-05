@@ -686,7 +686,7 @@ M.rebase = function(pdir, branch, id)
     bid, cid, tid = bid + 1, cid + 1, tid + 1
   end
 
-  local backup = M.backupDir(pdir, cbr); ix.mkDir(backup)
+  local backup = M.backupDir(pdir, cbr); ix.mkDirs(backup)
   ix.mv(cpath, backup)
   io.fmt:styled('notify',
     sfmt('pvc: rebase %s to %s#%s done. Backup at %s', cbr, bbr, id, backup),
@@ -728,7 +728,7 @@ M.grow = function(P, to, from) --!!>
   local back = M.backupDir(P, fbr)
   io.fmt:styled('notify',
     sfmt('deleting %s (mv %s -> %s)', fbr, fdir, back), '\n')
-  ix.mv(fdir, back)
+  ix.mkDirs(pth.last(back)); ix.mv(fdir, back)
   io.fmt:styled('notify', sfmt('grew %s tip to %s', tbr, ftip), '\n')
   M.at(P, to,ftip)
 end
@@ -758,7 +758,7 @@ M.squash = function(P, br, bot,top)
   if bot <= bid  then error(sfmt('bottom %i <= base id %s', top, bid)) end
   if top  >  tip then error(sfmt('top %i > tip %i', top, tip)) end
   M.at(P, br,top)
-  local back = M.backupDir(P, br..'-squash'); ix.mkDir(back)
+  local back = M.backupDir(P, br..'-squash'); ix.mkDirs(back)
   local desc = {}
   local last = M.patchPath(bdir, tip, '.p')
   if not ix.exists(last) then error(last..' does not exist') end
@@ -955,7 +955,7 @@ M.main.desc = function(args)
   end
   for line in o:lines() do n:write(line, '\n') end
   n:close(); o:close()
-  local back = M.backupDir(P, sfmt('%s#%s', br, id)); ix.mkDir(back)
+  local back = M.backupDir(P, sfmt('%s#%s', br, id)); ix.mkDirs(back)
   back = back..id..'.p'
   ix.mv(oldp, back)
   io.fmt:styled('notify', sfmt('moved %s -> %s', oldp, back), '\n')
@@ -1007,7 +1007,7 @@ M.main.prune = function(args)
   local br = assert(args[1], 'must specify branch')
   local bdir = M.branchDir(D, br)
   assert(ix.exists(bdir), bdir..' does not exist')
-  local back = M.backupDir(D, br); ix.mkDir(back)
+  local back = M.backupDir(D, br); ix.mkDirs(back)
   local id = args[2]
   if id then
     id = toint(id); local tip = M.rawtip(bdir)

@@ -11,7 +11,6 @@ deps = {
 }
 srcs = {
   'asciicolor.lua',
-  'asciicolor/style.lua',
 }
 
 

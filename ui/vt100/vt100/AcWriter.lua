@@ -4,7 +4,7 @@ local acwrite = require'vt100'.acwrite
 local colorFB = require'vt100'.colorFB
 
 --- A file-like writer which keeps track of fg and bg colors,
---- typically used with [<#asciicolor.style.Styler>]
+--- typically used with [<#asciicolor.Styler>]
 local AcWriter = mty'vt100.AcWriter' {
   'f  [file]',
   'fg [string]: current foreground ac letter', fg='z',

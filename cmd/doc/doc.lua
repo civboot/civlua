@@ -22,7 +22,6 @@ local pod = require'pod'
 local pth = require'ds.path'
 local Iter = require'ds.Iter'
 local lines = require'lines'
-local style = require'asciicolor.style'
 local cxt = require'cxt'
 
 local escape = cxt.escape

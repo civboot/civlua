@@ -457,7 +457,7 @@ M.Config = mty'Config' {
 M.Writer = mty'Writer' {
   'src', 'to',
   'indent[int]',
-  'style [string]: see asciicolor.style',
+  'style [string]: see asciicolor.Style',
   'config [Config]', config=M.Config{}
 }
 M.Writer.fromParser = function(ty_, p, to)

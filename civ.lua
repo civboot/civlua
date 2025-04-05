@@ -8,14 +8,13 @@ G.METATY_CHECK = true
 local fmt = require'fmt'
 local fd  = require'fd'
 local ac  = require'asciicolor'
-local acs = require'asciicolor.style'
 local shim = require'shim'
 
 --- create a Fmt with sensible defaults for scripts
 --- Typically [$t.to] is unset (default=stderr) or set to stdout.
 M.Fmt = function(t)
   t.to = t.to or io.stderr
-  return acs.Fmt(t)
+  return ac.Fmt(t)
 end
 
 M.setupFmt = function(to, user)

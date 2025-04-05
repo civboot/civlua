@@ -169,7 +169,7 @@ end
 M.setup = function(Args, args) --> args, styler
   args = Args(M.parseStr(args))
   local to = M.file(args.to, io.stdout)
-  local styler = require'asciicolor.style'.Styler{
+  local styler = require'asciicolor'.Styler{
     f = to, color = M.color(args.color, require'fd'.isatty(to)),
   }
   if args.help then M.styleHelp(styler, Args) end

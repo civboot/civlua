@@ -11,7 +11,7 @@ local log  = require'ds.log'
 local pth  = require'ds.path'
 local Iter = require'ds.Iter'
 local civix = require'civix'
-local acs = require'asciicolor.style'
+local ac = require'asciicolor'
 
 local sfmt, gsub = string.format, string.gsub
 local push = table.insert
@@ -60,7 +60,7 @@ M.Main = mty'Main' {
 --- to [$io.fmt].
 M.find = function(path, pats, sub) --> boolean
   local found, l, find, ms, me, pi, pat = false, 0, ds.find
-  local f, sf = io.fmt, acs.Fmt{to=io.stdout}
+  local f, sf = io.fmt, ac.Fmt{to=io.stdout}
   for line in io.lines(path, 'L') do
     l, ms, me, pi, pat = l + 1, find(line, pats)
     if ms then
@@ -96,7 +96,7 @@ M.iter = function(args) --> Iter
   args = M.Main(args)
   if #args.root == 0 then args.root[1] = pth.cwd() end
   log.info('ff %q', args)
-  local sf = acs.Fmt{to=io.stdout}
+  local sf = ac.Fmt{to=io.stdout}
 
   local w = civix.Walk(args.root)
   local it, ffind, finds = Iter{w}, M.find, ds.find

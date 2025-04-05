@@ -180,7 +180,6 @@ ui/README
 ui/asciicolor/PKG.lua
 ui/asciicolor/README.cxt
 ui/asciicolor/asciicolor.lua
-ui/asciicolor/asciicolor/style.lua
 ui/asciicolor/test.lua
 ui/vt100/PKG.lua
 ui/vt100/README.cxt
