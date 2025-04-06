@@ -109,7 +109,7 @@ To track an existing directory:[+
   files.
   ["Alternatively, manually add files to [$.pvcpaths]]
 * [$pvc commit -- initial pvc commit] will commit your changes to
-  [$.pvc/main/patch/.../1.p].
+  [$.pvc/main/commit/.../1.p].
 ]
 
 [{:h3}pvcignore]
@@ -142,7 +142,7 @@ civlua as the example:[+
 
 * [<https://github.com/vitiral/civlua.pvc/commits/main/>]: is literally the git
   repository for your [$.pvc/] directory. While developing we can push
-  patches/branches/whatever here.
+  commits/branches/whatever here.
 ]
 
 [*First], put [$.pvc/] in your main repo's [$.gitignore]
@@ -202,22 +202,22 @@ pvc is composed of the following components: [+
   (it is included in the patch diff).
 
 * [*branch]: a branch is a directory inside the repo (i.e. [$.pvc/main/]). It
-  contains the [$patch/] directory (described in [*commit]) and the plain-text files:
+  contains the [$commit/] directory (described in [*commit]) and the plain-text files:
   [+
   * [*base]: contains [$branch#123]. This file is not present if the branch is
     the trunk.
-  * [*tip]: contains an ascii decimal number, representing the last patch id.
+  * [*tip]: contains an ascii decimal number, representing the last commit id.
   ]
 
 * [*branch (action)]: to "create a branch" means to create a new directory
   inside [$.pvc/] and initialize it with the proper [$base] and [$tip] files.
   The base branch must already exist.
 
-* [*commit (noun)]: refers to a single patch file inside of [$.pvc/branch/patch/.../123.p]. [+
-  * The length of [$patch/.../] is stored in [$patch/depth] which is an ascii
+* [*commit (noun)]: refers to a single patch file (i.e. [$.pvc/branch/commit/.../123.p]). [+
+  * The length of [$commit/.../] is stored in [$commit/depth] which is an ascii
     decimal number, always divisible by 2. Each sub-directory has exactly two
     digits. For instance, a depth of 4 would store [$12.p] in
-    [$patch/00/00/12.p] and store [$123456.p] in [$12/34/123456.p].
+    [$commit/00/00/12.p] and store [$123456.p] in [$12/34/123456.p].
 
   * [*description]: the top of the patch file (before the first unidiff)
     contains a plain-text description of the commit.
@@ -231,12 +231,12 @@ pvc is composed of the following components: [+
   ]
 
 * [*commit (action)]: "making a commit" means to take the difference of the
-   current directory and store it as a patch file in the branch's [$patch/]
+   current directory and store it as a patch file in the branch's [$commit/]
    directory.
 
 * [*snapshot]: a snapshot is the local directory state at a specific commit. It
-  is a directory which uses the extension [$.snap/] inside of the patch
-  directory, i.e. [$patch/00/123.snap/].
+  is a directory which uses the extension [$.snap/] inside of the [$commit/]
+  directory, i.e. [$commit/00/123.snap/].
 
 * [*checkout (action)]: to "checkout a commit" means to make the local project
   directory the same as the commit. This is performed by finding the closest
