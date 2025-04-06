@@ -258,14 +258,14 @@ M.rawtip = function(bdir, id)
   if id then pth.write(toDir(bdir)..'tip', tostring(id))
   else return readInt(toDir(bdir)..'tip') end
 end
-M.depth = function(bdir) return readInt(toDir(bdir)..'patch/depth') end
+M.depth = function(bdir) return readInt(toDir(bdir)..'commit/depth') end
 
 M.patchPath = function(bdir, id, last, depth) --> string?
   depth = depth or M.depth(bdir)
   if M.calcPatchDepth(id) > depth then return end
   local dirstr = tostring(id):sub(1,-3)
   dirstr = srep('0', depth - #dirstr)..dirstr -- zero padded
-  local path = {bdir, 'patch'}; for i=1,#dirstr,2 do
+  local path = {bdir, 'commit'}; for i=1,#dirstr,2 do
     push(path, dirstr:sub(i,i+1)) -- i.e. 00/12.p
   end
   push(path, tostring(id)..(last or '.p'))
@@ -288,7 +288,7 @@ local function initBranch(bdir, id)
   local depth = M.calcPatchDepth(id + 1000)
   trace('initbranch %s', bdir)
   ix.mkTree(bdir, {
-    tip=tostring(id), patch = {depth=tostring(depth)},
+    tip=tostring(id), commit = {depth=tostring(depth)},
   }, true)
   if id ~= 0 then return bdir end
   local ppath = M.patchPath(bdir, id, '', depth)
@@ -348,7 +348,7 @@ end
 
 --- increase the depth of branch by 2, adding a [$00/] directory.
 M.deepen = function(bdir)
-  local depth, pp, zz = M.depth(bdir), bdir..'patch/', bdir..'00/'
+  local depth, pp, zz = M.depth(bdir), bdir..'commit/', bdir..'00/'
   ix.mv(pp, zz); ix.mkDir(pp) ix.mv(zz, pp)
   pth.write(pp..'depth', tostring(depth + 2))
 end
@@ -1057,9 +1057,9 @@ M.main.export = function(args) --> to
   local bdir = M.branchDir(D, br)
   local tip, bbr,bid = M.rawtip(bdir), M.getbase(bdir,nil)
 
-  ix.mkDirs(to..'patch/')
+  ix.mkDirs(to..'commit/')
   pth.write(bdir..'tip', tip)
-  ix.cp(bdir..'patch/depth', to..'patch/depth')
+  ix.cp(bdir..'commit/depth', to..'commit/depth')
   if bbr then pth.write(bdir..'base', sfmt('%s#%s', bbr,bid)) end
   -- Note: if base then first id isn't there
   for id=bbr and (bid+1) or bid, tip do

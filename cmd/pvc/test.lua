@@ -21,7 +21,7 @@ T.internal = function()
 end
 
 T.patchPath = function()
-  T.eq('foo/patch/00/1.p', pvc.patchPath('foo', 1, '.p', 2))
+  T.eq('foo/commit/00/1.p', pvc.patchPath('foo', 1, '.p', 2))
 end
 
 local initPvc = function(d) --> projDir
@@ -98,7 +98,7 @@ T.workflow = function()
     },
   })
   local Bm = D..'.pvc/main/'
-  T.path(Bm..'patch/', {
+  T.path(Bm..'commit/', {
     depth = '2',
     ['00'] = {
       ['0.snap'] = {
@@ -115,7 +115,7 @@ T.workflow = function()
   pth.append(D..'.pvcpaths', 'hello/hello.lua')
   T.path(D..'.pvcpaths', '.pvcpaths\nstory.txt\nhello/hello.lua\n')
   T.eq(pvc.Diff{
-    dir1=D..'.pvc/main/patch/00/0.snap/', dir2=D,
+    dir1=D..'.pvc/main/commit/00/0.snap/', dir2=D,
     equal={}, deleted={},
     changed={'.pvcpaths'}, created={'hello/hello.lua', 'story.txt'},
   }, pvc.diff(D))
@@ -151,7 +151,7 @@ T.workflow = function()
   T.path(Bm, { tip = '1' })
   T.eq({'main', 1}, {pvc.at(D)})
   T.eq(pvc.Diff{
-    dir1=D..'.pvc/main/patch/00/1.snap/', dir2=D,
+    dir1=D..'.pvc/main/commit/00/1.snap/', dir2=D,
     equal={'.pvcpaths', 'hello/hello.lua', 'story.txt'},
     deleted={}, changed={}, created={},
   }, pvc.diff(D))
@@ -162,7 +162,7 @@ T.workflow = function()
   assert(not ix.exists(D..'hello/hello.lua'))
   T.path(D..'.pvcpaths', '.pvcpaths\n')
   T.eq(pvc.Diff{
-    dir1=D..'.pvc/main/patch/00/1.snap/', dir2=D,
+    dir1=D..'.pvc/main/commit/00/1.snap/', dir2=D,
     equal={},
     deleted={'hello/hello.lua', 'story.txt'},
     changed={'.pvcpaths'},
@@ -192,7 +192,7 @@ T.workflow = function()
 
   pvc.commit(D, 'desc2')
   T.path(Bm, { tip = '2' }); T.eq({'main', 2}, {pvc.at(D)})
-  T.path(D, EXPECT2); T.path(Bm..'patch/00/2.snap/', EXPECT2)
+  T.path(D, EXPECT2); T.path(Bm..'commit/00/2.snap/', EXPECT2)
 
   -- Create divergent branch which both modify story.txt
   local STORY3d = pth.read(TD..'story.txt.3d')
@@ -203,7 +203,7 @@ T.workflow = function()
   T.eq({'dev', 'main'}, pvc.branches(D))
   local Bd = D..'.pvc/dev/'
   T.path(D, EXPECT2);
-  T.eq(Bm..'patch/00/2.snap/', pvc.snapshot(D, 'dev', 2))
+  T.eq(Bm..'commit/00/2.snap/', pvc.snapshot(D, 'dev', 2))
   pth.write(D..'story.txt', STORY3d); T.path(D, EXPECT3d)
   pvc.commit(D, 'desc3d')
   T.path(Bd, { tip = '3' }); T.eq({'dev', 3}, {pvc.at(D)})
@@ -238,12 +238,12 @@ T.workflow = function()
   T.eq({'dev', 5}, {pvc.rawat(D)})
   T.eq(3, pvc.rawtip(Bm))
   T.eq(5, pvc.rawtip(Bd))
-  T.eq({'desc4d'}, pvc.desc(Bd..'patch/00/5.p'))
+  T.eq({'desc4d'}, pvc.desc(Bd..'commit/00/5.p'))
 
   local EXPECT5 = ds.copy(EXPECT2, {
     ['story.txt'] = pth.read(TD..'story.txt.5')
   })
-  T.path(Bd..'patch/00/5.snap/', EXPECT5)
+  T.path(Bd..'commit/00/5.snap/', EXPECT5)
   pvc.at(D, 'main',3); T.path(D, EXPECT3m)
   pvc.at(D, 'dev',4);
 
