@@ -634,7 +634,7 @@ M.backupDir = function(P, name) --> string
 end
 
 --- rebase the branch (current branch) to make it's baseid=id
-M.rebase = function(pdir, branch, id)
+M.rebase = function(pdir, branch, id) --> backup/dir/
   local cbr = branch
 
   --- process: repeatedly use merge on the (new) branch__rebase branch.
@@ -695,6 +695,7 @@ M.rebase = function(pdir, branch, id)
   ix.rm(tpath..'op'); ix.rm(tpath..'rebase')
   ix.mv(tpath, cpath)
   M.at(pdir, cbr,ttip)
+  return backup
 end
 
 --- Grow [$to] by copying patches [$from]
@@ -750,13 +751,13 @@ M.squash = function(P, br, bot,top)
   assert(br and bot and top, 'must set all args')
   assert(top > 0)
   if top - bot <= 0 then
-    io.fmt:notify('error', 'squashing ids [%s - %s] is a noop', bot, top)
+    io.fmt:styled('error', sfmt('squashing ids [%s - %s] is a noop', bot, top), '\n')
     return
   end
   local bdir = M.branchDir(P, br)
   local tip, bbr, bid = M.rawtip(bdir), M.getbase(P, br)
-  if bot <= bid  then error(sfmt('bottom %i <= base id %s', top, bid)) end
-  if top  >  tip then error(sfmt('top %i > tip %i', top, tip)) end
+  if bot <= bid then error(sfmt('bottom %i <= base id %s', top, bid)) end
+  if top >  tip then error(sfmt('top %i > tip %i', top, tip)) end
   M.at(P, br,top)
   local back = M.backupDir(P, br..'-squash'); ix.mkDirs(back)
   local desc = {}
@@ -765,6 +766,7 @@ M.squash = function(P, br, bot,top)
 
   local patch = M.Diff:of(M.snapshot(P, br,bot-1), M.snapshot(P, br,top))
     :patch()
+  -- move [bot,top] commits to backup/ and remove their .snap/ directories.
   for i=bot,top do
     local path = M.patchPath(bdir, i, '.p')
     ds.extend(desc, M.desc(path))
@@ -773,25 +775,26 @@ M.squash = function(P, br, bot,top)
     io.fmt:styled('notify', sfmt('mv %s %s', path, bpatch), '\n')
     ix.rmRecursive(M.snapDir(bdir, i))
   end
-  local f = io.open(M.patchPath(bdir, top, '.p'), 'w')
+  -- write the squashed patch file
+  local f = io.open(M.patchPath(bdir, bot, '.p'), 'w')
   for _, line in ipairs(desc) do f:write(line, '\n') end
   f:write(patch); f:close()
 
-  ix.rmRecursive(M.snapDir(bdir, bot))
-  local bi = bot + 1
-  for i=top+1, tip do
+  ix.rmRecursive(M.snapDir(bdir, bot)) -- TODO: remove this I think
+
+  -- move the patch files above top down to be above squashed bot
+  local bi = bot
+  for i=top+1, tip do; bi = bi + 1
     ix.rmRecursive(M.snapDir(bdir, i))
-    local bpat = M.patchPath(bdir, bi, '.p')
-    local tpat = M.patchPath(bdir, i, '.p')
-    io.fmt:styled('notify', sfmt('mv %s %s', tpat, bpat), '\n')
-    ix.mv(tpat, bpat)
-    bi = bi + 1
+    local botPat = M.patchPath(bdir, bi, '.p')
+    local topPat = M.patchPath(bdir, i, '.p')
+    io.fmt:styled('notify', sfmt('mv %s %s', topPat, botPat), '\n')
+    ix.mv(topPat, botPat)
   end
-  local ppath = M.patchPath(bdir, bot, '.p')
-  pth.write(ppath, patch)
-  M.rawat(P, br,bot)
+
+  M.rawat(P, br,bot); M.rawtip(bdir,bi)
   io.fmt:styled('notify',
-    sfmt('squashed [%s - %s] into %s', bot, top, ppath), '\n')
+    sfmt('squashed [%s - %s] into %s. New tip=%i', bot, top, bot, bi), '\n')
 end
 
 local popdir = function(args)
@@ -940,16 +943,17 @@ M.main.desc = function(args)
   local P = popdir(args)
   local br, id, bdir = M.resolve(P,
     args[1] == '--' and 'at' or args[1] or 'at')
-  local desc = shim.popRaw(args) or lines.load(args[2])
+  local desc = shim.popRaw(args)
+  if desc        then desc = concat(desc, ' ')
+  elseif args[2] then desc = pth.read(args[2]) end
   local oldp = M.patchPath(bdir, id, '.p')
-  if not desc then
-    return print(concat(M.desc(oldp), '\n'))
-  end
+  local olddesc = concat(M.desc(oldp), '\n')
+  if not desc then return print(olddesc) end
   -- Write new description
   local newp = sconcat('', bdir, tostring(id), '.p')
-  local n = io.open(newp, 'w')
-  for _, line in ipairs(desc) do n:write(line, '\n') end -- new desc
-  local o = io.open(oldp, 'r')
+  local n = assert(io.open(newp, 'w'))
+  n:write(desc, '\n')
+  local o = assert(io.open(oldp, 'r'))
   for line in o:lines() do -- skip old desc
     if isPatchLike(line) then n:write(line, '\n'); break end
   end
@@ -959,6 +963,7 @@ M.main.desc = function(args)
   back = back..id..'.p'
   ix.mv(oldp, back)
   io.fmt:styled('notify', sfmt('moved %s -> %s', oldp, back), '\n')
+  io.fmt:styled('notify', 'Old description (deleted):', '\n', olddesc, '\n')
   ix.mv(newp, oldp)
   io.fmt:styled('notify', 'updated desc of '..oldp, '\n')
 end
@@ -970,8 +975,14 @@ end
 M.main.squash = function(args)
   trace('squash%q', args)
   local P = popdir(args)
-  local br,bot = M.resolve(P, assert(args[1], 'must set branch#id (aka "at")'))
-  local top = toint(assert(args[2], 'must set endId'))
+  local br, bot,top
+  if args[1] then
+    br, bot = M.resolve(P, args[1])
+    top     = toint(assert(args[2], 'must set endId'))
+  else -- local commits
+    br, bot = M.at(P); top = bot + 1
+    M.commit(P, '')
+  end
   M.squash(P, br, bot,top)
 end
 
@@ -992,10 +1003,14 @@ M.main.rebase = function(args) --> string
   local P = popdir(args)
   local br = args[1] ~= '' and args[1] or M.rawat(P)
   local base = M.getbase(M.branchDir(P,br))
-  M.rebase(br, M.rawtip(M.branchpath(P, base)))
+  M.rebase(P, br, M.rawtip(M.branchDir(P, base)))
 end
 
 --- [$grow from --to=at]: grow [$to] (default=[$at]) using branch from.
+---
+--- ["In other version control systems this is called a
+---   "fast forward merge"
+--- ]
 M.main.grow = function(args)
   local P = popdir(args)
   return M.grow(P, args.to, args[1])
@@ -1053,7 +1068,6 @@ M.main.export = function(args) --> to
   io.fmt:styled('notify', sfmt('exported %s to %s', bdir, to))
   return to
 end
-
 
 getmetatable(M).__call = getmetatable(M.main).__call
 

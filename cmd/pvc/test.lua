@@ -24,7 +24,7 @@ T.patchPath = function()
   T.eq('foo/patch/00/1.p', pvc.patchPath('foo', 1, '.p', 2))
 end
 
-local initPvc = function(d)
+local initPvc = function(d) --> projDir
   d = d or D
   ix.rmRecursive(d);
   pvc.init(d)
@@ -137,7 +137,7 @@ T.workflow = function()
   local p1 = pvc.patchPath(Bm, id, '.p')
   T.path(p1, DIFF1)
   T.eq({'desc1'}, pvc.desc(p1))
-  pvc.main.desc{'--', 'desc1 - edited', dir=D}
+  pvc.main.desc{'--', 'desc1', '-', 'edited', dir=D}
   T.eq({'desc1 - edited'}, pvc.desc(p1))
 
   local STORY1 = pth.read(TD..'story.txt.1')
@@ -262,10 +262,10 @@ T.workflow = function()
 
   -- Squash main commit and first dev commit
   pvc.squash(D, 'main', 3,4)
+  T.eq(4, pvc.rawtip(Bm))
   T.path(pvc.snapshot(D, 'main', 2), EXPECT2)
   T.path(pvc.snapshot(D, 'main', 3), EXPECT4)
   pvc.at(D, 'main',2); T.path(D, EXPECT2)
   pvc.at(D, 'main',3); T.path(D, EXPECT4)
   pvc.at(D, 'main',4); T.path(D, EXPECT5)
 end
-
