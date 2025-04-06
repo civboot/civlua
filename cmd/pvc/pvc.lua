@@ -243,38 +243,38 @@ end
 -- Branch
 
 --- return the branch path in project regardless of whether it exists
-M.branchDir = function(pdir, branch, dot)
+M.branchDir = function(P, branch, dot)
   assert(branch, 'branch is nil')
   assert(not M.RESERVED_NAMES[branch], 'branch name is reserved')
-  return pth.concat{pdir, dot or '.pvc', branch, '/'}
+  return pth.concat{P, dot or '.pvc', branch, '/'}
 end
 
-M.getbase = function(bpath, br) --> br, id
-  bpath = bpath..'base'
+M.getbase = function(bdir, br) --> br, id
+  local bpath = bdir..'base'
   if ix.exists(bpath) then return M.parseBranch(pth.read(bpath))
   else return br, 0 end
 end
-M.rawtip = function(bpath, id)
-  if id then pth.write(toDir(bpath)..'tip', tostring(id))
-  else return readInt(toDir(bpath)..'tip') end
+M.rawtip = function(bdir, id)
+  if id then pth.write(toDir(bdir)..'tip', tostring(id))
+  else return readInt(toDir(bdir)..'tip') end
 end
-M.depth = function(bpath) return readInt(toDir(bpath)..'patch/depth') end
+M.depth = function(bdir) return readInt(toDir(bdir)..'patch/depth') end
 
-M.patchPath = function(bpath, id, last, depth) --> string?
-  depth = depth or M.depth(bpath)
+M.patchPath = function(bdir, id, last, depth) --> string?
+  depth = depth or M.depth(bdir)
   if M.calcPatchDepth(id) > depth then return end
   local dirstr = tostring(id):sub(1,-3)
   dirstr = srep('0', depth - #dirstr)..dirstr -- zero padded
-  local path = {bpath, 'patch'}; for i=1,#dirstr,2 do
+  local path = {bdir, 'patch'}; for i=1,#dirstr,2 do
     push(path, dirstr:sub(i,i+1)) -- i.e. 00/12.p
   end
-  push(path, tostring(id)..(last or ''))
+  push(path, tostring(id)..(last or '.p'))
   return pconcat(path)
 end
 
 --- Get the snap/ path regardless of whether it exists
-M.snapDir = function(bpath, id) --> string?
-  return M.patchPath(bpath, id, '.snap/')
+M.snapDir = function(bdir, id) --> string?
+  return M.patchPath(bdir, id, '.snap/')
 end
 
 local function initSnap0(snap)
@@ -282,51 +282,51 @@ local function initSnap0(snap)
   ix.forceWrite(snap..'PVC_DONE', '')
 end
 
-local function initBranch(bpath, id)
+local function initBranch(bdir, id)
   assert(id >= 0)
-  assertf(not ix.exists(bpath), '%s already exists', bpath)
+  assertf(not ix.exists(bdir), '%s already exists', bdir)
   local depth = M.calcPatchDepth(id + 1000)
-  trace('initbranch %s', bpath)
-  ix.mkTree(bpath, {
+  trace('initbranch %s', bdir)
+  ix.mkTree(bdir, {
     tip=tostring(id), patch = {depth=tostring(depth)},
   }, true)
-  if id ~= 0 then return bpath end
-  local ppath = M.patchPath(bpath, id, '', depth)
+  if id ~= 0 then return bdir end
+  local ppath = M.patchPath(bdir, id, '', depth)
   initSnap0(ppath..'.snap/')
 end
 
 --- Snapshot the branch#id by applying patches.
 --- Return the snapshot directory
-M.snapshot = function(pdir, br,id) --> .../id.snap/
+M.snapshot = function(P, br,id) --> .../id.snap/
   trace('snapshot %s#%s', br,id)
   -- f=from, t=to
-  local bpath = M.branchDir(pdir, br)
-  local snap = M.snapDir(bpath, id)
+  local bdir = M.branchDir(P, br)
+  local snap = M.snapDir(bdir, id)
   if ix.exists(snap) then return snap, id end
   if id == 0 then return initSnap0(snap) end
-  local bbr,bid = M.getbase(bpath, br)
-  if id == bid then return M.snapshot(pdir, bbr,bid) end
-  trace('findSnap %s id=%s with base %s#%s', bpath, id, bbr,bid)
+  local bbr,bid = M.getbase(bdir, br)
+  if id == bid then return M.snapshot(P, bbr,bid) end
+  trace('findSnap %s id=%s with base %s#%s', bdir, id, bbr,bid)
 
-  local tip      = M.rawtip(bpath)
+  local tip      = M.rawtip(bdir)
   local fsnap, fid -- find the snap/id to patch from
   local idl, idr = id-1, id+1
   while (bid <= idl) or (idr <= tip) do
-    snap = M.patchPath(bpath, idl, '.snap/PVC_DONE')
+    snap = M.patchPath(bdir, idl, '.snap/PVC_DONE')
     if ix.exists(snap) then
-      fsnap, fid = M.snapDir(bpath,idl), idl; break
+      fsnap, fid = M.snapDir(bdir,idl), idl; break
     end
     if bid == idl then
-      fsnap, fid = M.snapshot(pdir, bbr,bid), idl; break
+      fsnap, fid = M.snapshot(P, bbr,bid), idl; break
     end
-    snap = M.patchPath(bpath, idr, '.snap/PVC_DONE')
+    snap = M.patchPath(bdir, idr, '.snap/PVC_DONE')
     if ix.exists(snap) then
-      fsnap, fid = M.snapDir(bpath,idr), idr; break
+      fsnap, fid = M.snapDir(bdir,idr), idr; break
     end
     idl, idr = idl-1, idr+1
   end
-  if not fsnap then error(bpath..' does not have snapshot '..id) end
-  local tsnap = M.snapDir(bpath, id)
+  if not fsnap then error(bdir..' does not have snapshot '..id) end
+  local tsnap = M.snapDir(bdir, id)
   trace('creating snapshot %s from %s', tsnap, fsnap)
   if ix.exists(tsnap) then ix.rmRecursive(tsnap) end
   ix.mkDir(tsnap)
@@ -335,7 +335,7 @@ M.snapshot = function(pdir, br,id) --> .../id.snap/
   local inc   = (fid <= id) and 1       or -1
   fid = fid + inc
   while true do
-    local ppath = M.patchPath(bpath, fid, '.p')
+    local ppath = M.patchPath(bdir, fid)
     trace('patching %s with %s', tsnap, ppath)
     patch(tsnap, ppath)
     if fid == id then break end
@@ -347,8 +347,8 @@ M.snapshot = function(pdir, br,id) --> .../id.snap/
 end
 
 --- increase the depth of branch by 2, adding a [$00/] directory.
-M.deepen = function(bpath)
-  local depth, pp, zz = M.depth(bpath), bpath..'patch/', bpath..'00/'
+M.deepen = function(bdir)
+  local depth, pp, zz = M.depth(bdir), bdir..'patch/', bdir..'00/'
   ix.mv(pp, zz); ix.mkDir(pp) ix.mv(zz, pp)
   pth.write(pp..'depth', tostring(depth + 2))
 end
@@ -364,30 +364,30 @@ M.parseBranch = function(str, bdefault, idefault) --> branch, id
 end
 
 --- get or hard set the current branch/id
-M.rawat = function(pdir, branch, id)
-  local apath = pth.concat{pdir, '.pvc/at'}
+M.rawat = function(P, branch, id)
+  local apath = pth.concat{P, '.pvc/at'}
   if branch then pth.write(apath, sfmt('%s#%s', branch, id))
   else    return M.parseBranch(pth.read(apath)) end
 end
 
 --- get or set where the working id is at.
-M.at = function(pdir, nbr,nid) --!!> branch?, id?
+M.at = function(P, nbr,nid) --!!> branch?, id?
   -- c=current, n=next
-  local cbr, cid = M.rawat(pdir); if not nbr then return cbr, cid end
-  local npath = M.branchDir(pdir, nbr)
+  local cbr, cid = M.rawat(P); if not nbr then return cbr, cid end
+  local npath = M.branchDir(P, nbr)
 
   nid = nid or M.rawtip(npath)
   trace('at %s#%i -> %s#%i', cbr, cid, nbr, nid)
-  local csnap  = M.snapshot(pdir, cbr,cid)
-  local nsnap  = M.snapshot(pdir, nbr,nid)
+  local csnap  = M.snapshot(P, cbr,cid)
+  local nsnap  = M.snapshot(P, nbr,nid)
   trace('at snaps %s -> %s', csnap, nsnap)
 
   local npaths = loadPaths(nsnap)
 
   local ok, cpPaths, rmPaths = true, {}, {}
   for _, path in ipairs(npaths) do
-    if ix.pathEq(pdir..path, nsnap..path) then goto cont end -- local==next
-    if ix.pathEq(pdir..path, csnap..path) then -- local didn't change
+    if ix.pathEq(P..path, nsnap..path) then goto cont end -- local==next
+    if ix.pathEq(P..path, csnap..path) then -- local didn't change
       if not ix.pathEq(csnap..path, nsnap..path) then -- next did change
         push(cpPaths, path)
       end
@@ -405,8 +405,8 @@ M.at = function(pdir, nbr,nid) --!!> branch?, id?
   -- look at paths in current but not next
   for path in io.lines(csnap..M.PVCPATHS) do
     if npaths[path]              then goto cont end
-    if not ix.exists(pdir..path) then goto cont end -- already deleted
-    if ix.pathEq(pdir..path, csnap..path) then push(rmPaths, path)
+    if not ix.exists(P..path) then goto cont end -- already deleted
+    if ix.pathEq(P..path, csnap..path) then push(rmPaths, path)
     else
       f:styled('error',
         sfmt('path %s changed but would be removed', path), '\n')
@@ -423,19 +423,19 @@ M.at = function(pdir, nbr,nid) --!!> branch?, id?
   ]], cbr,cid, nbr,nid)) end
   for _, path in ipairs(cpPaths) do
     trace('checkout cp: %s', path)
-    ix.forceCp(nsnap..path, pdir..path)
+    ix.forceCp(nsnap..path, P..path)
   end
   for _, path in ipairs(rmPaths) do
     trace('checkout rm: %s', path)
-    ix.rmRecursive(pdir..path)
+    ix.rmRecursive(P..path)
   end
-  M.rawat(pdir, nbr,nid)
+  M.rawat(P, nbr,nid)
   io.fmt:styled('notify', sfmt('pvc: at %s#%s', nbr,nid), '\n')
 end
 
 --- update paths file (path) with the added and removed items
-M.pathsUpdate = function(pdir, add, rm)
-  local pfile = pth.concat{pdir, M.PVCPATHS}
+M.pathsUpdate = function(P, add, rm)
+  local pfile = pth.concat{P, M.PVCPATHS}
   local paths = assert(lines.load(pfile), pfile)
   if add then ds.extend(paths, add) end
   if rm and rm[1] then rm = ds.Set(rm) end
@@ -451,7 +451,7 @@ end
 --- * [$branch] or [$branch#id]
 --- * Special: at
 --- ]
-M.resolve = function(P, branch) --> br, id, bpath
+M.resolve = function(P, branch) --> br, id, bdir
   local br, id = M.parseBranch(branch)
   if not br then error('unknown branch: '..branch) end
   if br == 'local' then error('local not valid here') end
@@ -460,41 +460,41 @@ M.resolve = function(P, branch) --> br, id, bpath
 end
 
 --- resolve and take snapshot, permits local
-M.resolveSnap = function(pdir, branch) --> snap/, br, id, bpath
+M.resolveSnap = function(P, branch) --> snap/, br, id, bdir
   if branch:find'/' then return branch end -- directory
-  if branch == 'local' then return pdir end
-  local br, id, bdir = M.resolve(pdir, branch)
-  return M.snapshot(pdir, br, id or M.rawtip(bdir)), br, id, bdir
+  if branch == 'local' then return P end
+  local br, id, bdir = M.resolve(P, branch)
+  return M.snapshot(P, br, id or M.rawtip(bdir)), br, id, bdir
 end
 
 --- resolve two branches into their branch directories. Defaults:[+
 --- * br1 = 'at'
 --- * br2 = 'local'
 --- ]
-M.resolve2 = function(pdir, br1, br2) --> branch1/ branch2/
-  return  M.resolveSnap(pdir, br1 or 'at'),
-          M.resolveSnap(pdir, br2 or 'local')
+M.resolve2 = function(P, br1, br2) --> branch1/ branch2/
+  return  M.resolveSnap(P, br1 or 'at'),
+          M.resolveSnap(P, br2 or 'local')
 end
 
-M.diff = function(pdir, branch1, branch2) --> Diff
-  return M.Diff:of(M.resolve2(pdir, branch1, branch2))
+M.diff = function(P, branch1, branch2) --> Diff
+  return M.Diff:of(M.resolve2(P, branch1, branch2))
 end
 
-M.init = function(pdir, branch)
-  pdir, branch = toDir(pdir), branch or 'main'
-  local dot = pdir..'.pvc/';
+M.init = function(P, branch)
+  P, branch = toDir(P), branch or 'main'
+  local dot = P..'.pvc/';
   if ix.exists(dot) then error(dot..' already exists') end
   ix.mkTree(dot, {backup = {}}, true)
-  initBranch(M.branchDir(pdir, branch), 0)
-  pth.write(pdir..M.PVCPATHS, M.INIT_PVCPATHS)
-  pth.write(pdir..'.pvcignore', '')
-  M.rawat(pdir, branch, 0)
+  initBranch(M.branchDir(P, branch), 0)
+  pth.write(P..M.PVCPATHS, M.INIT_PVCPATHS)
+  pth.write(P..'.pvcignore', '')
+  M.rawat(P, branch, 0)
   io.fmt:styled('notice', 'initialized pvc repo '..dot, '\n')
 end
 
 --- Create a patch file from two branch arguments (see resolve2).
-M.patch = function(pdir, br1, br2) --> string, s1, s2
-  return M.Diff:of(M.resolve2(pdir, br1, br2)):patch()
+M.patch = function(P, br1, br2) --> string, s1, s2
+  return M.Diff:of(M.resolve2(P, br1, br2)):patch()
 end
 
 
@@ -503,7 +503,7 @@ local isPatchLike = function(line)
       or line:sub(1,3) == '+++'
       or line:sub(1,2) == '!!'
 end
-M.commit = function(pdir, desc) --> snap/, id
+M.commit = function(P, desc) --> snap/, id
   assert(desc, 'commit must provide description')
   for _, line in ds.split(desc, '\n') do
     assert(not isPatchLike(line),
@@ -511,47 +511,47 @@ M.commit = function(pdir, desc) --> snap/, id
     .." at the start of a line: +++, ---, !!")
   end
 
-  local br, id = M.rawat(pdir)
-  local bp, cid = M.branchDir(pdir, br), id+1
+  local br, id = M.rawat(P)
+  local bp, cid = M.branchDir(P, br), id+1
   trace('start commit %s/%s', br, cid)
   if id ~= M.rawtip(bp) then error(s[[
     ERROR: working id is not at tip. Solutions:
     * stash -> at tip -> unstash -> commit
     * prune: move or delete downstream changes.
   ]])end
-  M.pathsUpdate(pdir) -- sort unique
+  M.pathsUpdate(P) -- sort unique
 
   -- b=base c=change
-  local bsnap = M.snapshot(pdir, br,id)
-  local patchf = M.patchPath(bp, cid, '.p')
-  local diff = M.Diff:of(bsnap, pdir)
+  local bsnap = M.snapshot(P, br,id)
+  local patchf = M.patchPath(bp, cid)
+  local diff = M.Diff:of(bsnap, P)
   if not diff:hasDiff() then
     error('invalid commit: no differences detected')
   end
   if M.calcPatchDepth(cid) > M.depth(bp) then M.deepen(bp) end
   ix.forceWrite(patchf,
     sconcat('\n', desc, diff:patch()))
-  local csnap = M.snapshot(pdir, br,cid)
-  for path in io.lines(pdir..M.PVCPATHS) do
-    T.pathEq(pdir..path, csnap..path)
+  local csnap = M.snapshot(P, br,cid)
+  for path in io.lines(P..M.PVCPATHS) do
+    T.pathEq(P..path, csnap..path)
   end
-  M.rawtip(bp, cid); M.rawat(pdir, br, cid)
+  M.rawtip(bp, cid); M.rawat(P, br, cid)
   io.fmt:styled('notify', sfmt('commited %s#%s to %s', br, cid, patchf), '\n')
   return csnap, cid
 end
 
 --- get the conventional brName, id for a branch,id pair
-M.nameId = function(pdir, branch,id) --> br,id
-  local br,bid; if not branch then br,bid = M.at(pdir)
+M.nameId = function(P, branch,id) --> br,id
+  local br,bid; if not branch then br,bid = M.at(P)
   else                             br,bid = M.parseBranch(branch) end
-  return br, id or bid or M.rawtip(M.branchDir(pdir, br))
+  return br, id or bid or M.rawtip(M.branchDir(P, br))
 end
 
-M.branch = function(pdir, name, fbr,fid) --> bpath, id
-  local fpath = M.branchDir(pdir, fbr)
+M.branch = function(P, name, fbr,fid) --> bdir, id
+  local fpath = M.branchDir(P, fbr)
   if not ix.exists(fpath) then error(fpath..' does not exist') end
   fid = fid or M.rawtip(fpath)
-  local npath = M.branchDir(pdir, name)
+  local npath = M.branchDir(P, name)
   initBranch(npath, fid)
   pth.write(npath..'base', sfmt('%s#%s', fbr,fid))
   return npath, fid
@@ -561,9 +561,9 @@ local NOT_BRANCH = { backup = 1, at = 1}
 local branchesRm = function(a, b) return NOT_BRANCH[a] end
 
 --- get all branches
-M.branches = function(pdir) --> list
+M.branches = function(P) --> list
   local entries = {}
-  local d = pdir..'.pvc/'
+  local d = P..'.pvc/'
   for e in ix.dir(d) do
     if not NOT_BRANCH[e] and ix.pathtype(d..e) == 'dir' then
       push(entries, pth.toNonDir(e))
@@ -573,8 +573,8 @@ M.branches = function(pdir) --> list
   return entries
 end
 
-M.checkBranch = function(pdir, name, checks, dir)
-  dir = dir or pdir..name
+M.checkBranch = function(P, name, checks, dir)
+  dir = dir or P..name
   local bbr,bid = M.getbase(dir, nil)
   local tip     = M.rawtip(dir)
   if tip <= bid then error(sfmt('tip %i <= baseid %i'..tip, bid)) end
@@ -582,7 +582,7 @@ M.checkBranch = function(pdir, name, checks, dir)
 
   if checks.base and not bbr then error(from..' does not have base') end
   if bbr then
-    local bt = M.rawtip(M.branchDir(pdir, bbr))
+    local bt = M.rawtip(M.branchDir(P, bbr))
     if bid > bt then error(sfmt(
       '%s base.id %s > %s tip of %i', from, bid, bbr, bt
     ))end
@@ -593,10 +593,10 @@ M.checkBranch = function(pdir, name, checks, dir)
   end
 end
 
-M.graft = function(pdir, name, from)
-  local ndir = pdir..name
+M.graft = function(P, name, from)
+  local ndir = P..name
   if ix.exists(ndir) then error(ndir..' already exists') end
-  M.checkBranch(pdir, name, {base=1}, from)
+  M.checkBranch(P, name, {base=1}, from)
   ix.cpRecursive(from, ndir)
 end
 
@@ -634,51 +634,51 @@ M.backupDir = function(P, name) --> string
 end
 
 --- rebase the branch (current branch) to make it's baseid=id
-M.rebase = function(pdir, branch, id) --> backup/dir/
+M.rebase = function(P, branch, id) --> backup/dir/
   local cbr = branch
 
   --- process: repeatedly use merge on the (new) branch__rebase branch.
   --- the final result will be in to's last snapshot id
-  local cpath = M.branchDir(pdir, cbr)
+  local cpath = M.branchDir(P, cbr)
   local bbr, bid = M.getbase(cpath, cbr)
-  M.at(pdir, bbr,bid) -- checkout base to ensure cleaner checkout at end
+  M.at(P, bbr,bid) -- checkout base to ensure cleaner checkout at end
 
   if bbr == cbr then error('the base of '..cbr..' is itself') end
   if id == bid then return end
-  local bpath = M.branchDir(pdir, bbr)
-  local btip  = M.rawtip(bpath)
+  local bdir = M.branchDir(P, bbr)
+  local btip  = M.rawtip(bdir)
   if id > btip then error(id..' is > tip of '..btip) end
 
-  local cpath, cid = M.branchDir(pdir, cbr), bid + 1
-  local ctip       = M.rawtip(cpath)
+  local cdir, cid = M.branchDir(P, cbr), bid + 1
+  local ctip       = M.rawtip(cdir)
   local tbr        = cbr..'__rebase'
-  local tpath      = M.branchDir(pdir, tbr)
-  local ttip       = id + M.rawtip(cpath) - bid
+  local tdir      = M.branchDir(P, tbr)
+  local ttip       = id + M.rawtip(cdir) - bid
 
   local op = sfmt('rebase %s %s', cbr, bid)
-  local tsnap; if ix.exists(tpath) then
+  local tsnap; if ix.exists(tdir) then
     assert(ix.exists(tsnap))
-    T.pathEq(tpath..'op', op)
-    T.eq({bbr,bid}, M.getbase(tpath))
-    cid   = toint(pth.read(tpath..'rebase'))
-    tsnap = M.snapDir(tpath, ttip)
+    T.pathEq(tdir..'op', op)
+    T.eq({bbr,bid}, M.getbase(tdir))
+    cid   = toint(pth.read(tdir..'rebase'))
+    tsnap = M.snapDir(tdir, ttip)
   else
-    M.branch(pdir, tbr, bbr,id)
-    pth.write(tpath..'op', op)
-    tsnap = M.snapDir(tpath, ttip); ix.mkDirs(tsnap)
-    cpPaths(M.snapshot(pdir, bbr,id), tsnap)
+    M.branch(P, tbr, bbr,id)
+    pth.write(tdir..'op', op)
+    tsnap = M.snapDir(tdir, ttip); ix.mkDirs(tsnap)
+    cpPaths(M.snapshot(P, bbr,id), tsnap)
   end
   local tid = id + 1
-  local tprev = M.snapshot(pdir, bbr,id) -- hard-code first prev
+  local tprev = M.snapshot(P, bbr,id) -- hard-code first prev
 
   while cid <= ctip do
     assert(tid <= ttip)
-    local bsnap = M.snapshot(pdir, cbr,bid)
-    pth.write(tpath..'rebase', tostring(cid))
-    local desc = M.desc(M.patchPath(cpath, cid, '.p'))
-    M.merge(tsnap, bsnap, M.snapshot(pdir, cbr,cid))
-    tprev = tprev or M.snapshot(pdir, tbr,tid-1)
-    local tpatch = M.patchPath(tpath,tid, '.p')
+    local bsnap = M.snapshot(P, cbr,bid)
+    pth.write(tdir..'rebase', tostring(cid))
+    local desc = M.desc(M.patchPath(cdir, cid))
+    M.merge(tsnap, bsnap, M.snapshot(P, cbr,cid))
+    tprev = tprev or M.snapshot(P, tbr,tid-1)
+    local tpatch = M.patchPath(tdir,tid)
     trace('writing patch %s', tpatch)
     ix.forceWrite(tpatch,
       concat(desc, '\n')..'\n'..M.Diff:of(tprev, tsnap):patch())
@@ -686,15 +686,15 @@ M.rebase = function(pdir, branch, id) --> backup/dir/
     bid, cid, tid = bid + 1, cid + 1, tid + 1
   end
 
-  local backup = M.backupDir(pdir, cbr); ix.mkDirs(backup)
-  ix.mv(cpath, backup)
+  local backup = M.backupDir(P, cbr); ix.mkDirs(backup)
+  ix.mv(cdir, backup)
   io.fmt:styled('notify',
     sfmt('pvc: rebase %s to %s#%s done. Backup at %s', cbr, bbr, id, backup),
     '\n')
-  M.rawtip(tpath, ttip)
-  ix.rm(tpath..'op'); ix.rm(tpath..'rebase')
-  ix.mv(tpath, cpath)
-  M.at(pdir, cbr,ttip)
+  M.rawtip(tdir, ttip)
+  ix.rm(tdir..'op'); ix.rm(tdir..'rebase')
+  ix.mv(tdir, cdir)
+  M.at(P, cbr,ttip)
   return backup
 end
 
@@ -719,9 +719,9 @@ M.grow = function(P, to, from) --!!>
   if M.diff(P):hasDiff() then error'local changes detected' end
   -- TODO(sig): check signature
   for id=bid+1, M.rawtip(fdir) do
-    local tpath = M.patchPath(tdir, id, '.p')
+    local tpath = M.patchPath(tdir, id)
     assert(not ix.exists(tpath))
-    local fpath = M.patchPath(fdir, id, '.p')
+    local fpath = M.patchPath(fdir, id)
     info('copying: %s -> %s', fpath, tpath)
     ix.forceCp(fpath, tpath)
   end
@@ -761,14 +761,14 @@ M.squash = function(P, br, bot,top)
   M.at(P, br,top)
   local back = M.backupDir(P, br..'-squash'); ix.mkDirs(back)
   local desc = {}
-  local last = M.patchPath(bdir, tip, '.p')
+  local last = M.patchPath(bdir, tip)
   if not ix.exists(last) then error(last..' does not exist') end
 
   local patch = M.Diff:of(M.snapshot(P, br,bot-1), M.snapshot(P, br,top))
     :patch()
   -- move [bot,top] commits to backup/ and remove their .snap/ directories.
   for i=bot,top do
-    local path = M.patchPath(bdir, i, '.p')
+    local path = M.patchPath(bdir, i)
     ds.extend(desc, M.desc(path))
     local bpatch = back..i..'.p'
     ix.mv(path, bpatch)
@@ -776,7 +776,7 @@ M.squash = function(P, br, bot,top)
     ix.rmRecursive(M.snapDir(bdir, i))
   end
   -- write the squashed patch file
-  local f = io.open(M.patchPath(bdir, bot, '.p'), 'w')
+  local f = io.open(M.patchPath(bdir, bot), 'w')
   for _, line in ipairs(desc) do f:write(line, '\n') end
   f:write(patch); f:close()
 
@@ -786,8 +786,8 @@ M.squash = function(P, br, bot,top)
   local bi = bot
   for i=top+1, tip do; bi = bi + 1
     ix.rmRecursive(M.snapDir(bdir, i))
-    local botPat = M.patchPath(bdir, bi, '.p')
-    local topPat = M.patchPath(bdir, i, '.p')
+    local botPat = M.patchPath(bdir, bi)
+    local topPat = M.patchPath(bdir, i)
     io.fmt:styled('notify', sfmt('mv %s %s', topPat, botPat), '\n')
     ix.mv(topPat, botPat)
   end
@@ -923,7 +923,7 @@ M.main.show = function(args)
       br, dir = bbr, M.branchDir(D, bbr)
       bbr, bid = M.getbase(dir)
     end
-    local ppath = M.patchPath(dir, i, '.p')
+    local ppath = M.patchPath(dir, i)
     local desc = M.desc(ppath, not full and 1 or nil)
     io.user:styled('notify', sfmt('%s#%s:', br,i), '')
     io.user:level(1)
@@ -946,11 +946,11 @@ M.main.desc = function(args)
   local desc = shim.popRaw(args)
   if desc        then desc = concat(desc, ' ')
   elseif args[2] then desc = pth.read(args[2]) end
-  local oldp = M.patchPath(bdir, id, '.p')
+  local oldp = M.patchPath(bdir, id)
   local olddesc = concat(M.desc(oldp), '\n')
   if not desc then return print(olddesc) end
   -- Write new description
-  local newp = sconcat('', bdir, tostring(id), '.p')
+  local newp = sconcat('', bdir, tostring(id))
   local n = assert(io.open(newp, 'w'))
   n:write(desc, '\n')
   local o = assert(io.open(oldp, 'r'))
@@ -1029,7 +1029,7 @@ M.main.prune = function(args)
     local d = M.depth(bdir)
     local undo = {}
     for i=id,tip do
-      local from = M.patchPath(bdir,id, '.p', d)
+      local from = M.patchPath(bdir,id, d)
       local to   = sfmt('%s%s.p', back, id)
       ix.mv(from, to)
       push(undo, sfmt('mv %s %s', to, from))
@@ -1063,7 +1063,7 @@ M.main.export = function(args) --> to
   if bbr then pth.write(bdir..'base', sfmt('%s#%s', bbr,bid)) end
   -- Note: if base then first id isn't there
   for id=bbr and (bid+1) or bid, tip do
-    ix.forceCp(M.patchPath(bdir,id, '.p', M.patchPath(to,id, '.p')))
+    ix.forceCp(M.patchPath(bdir,id, M.patchPath(to,id)))
   end
   io.fmt:styled('notify', sfmt('exported %s to %s', bdir, to))
   return to
