@@ -333,9 +333,11 @@ T.term = function()
     '[$code] not code',
     out=fmt.Fmt{to=w}
   }
-  T.eq(W{'code not code', ''}, w)
+  T.eq(
+    setmetatable(W{'code not code', '', ''}, nil),
+    setmetatable(w, nil))
 
-  ds.clear(w)
+  local w = W{}
   local _, node, p = term.convert([[
 [{h1}Heading 1]
 Some text
