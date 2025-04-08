@@ -311,6 +311,20 @@ next line.
   "code 2</code>",
   "next line."
 })
+
+  html.assertHtml([[
+Code block: [{## lang=sh}
+echo "foo bar"  # does baz
+echo "blah blah"
+]##
+end of code block.
+]],
+  {
+    "Code block: <code class=\"block\">echo \"foo bar\"  # does baz",
+    "echo \"blah blah\"</code>",
+    "end of code block."
+  }
+)
 end
 
 T.term = function()

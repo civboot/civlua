@@ -475,7 +475,7 @@ end
 M.Writer.__newindex = function(w, l, line)
   if type(l) ~= 'number' then return rawset(w, l, line) end
   if w.style        then w.to:styled(w.style, line)
-  elseif w.to.write then w.to:write(line)
+  elseif w.to.write then w.to:write(line, '\n')
   else                   w.to[l] = line end
 end
 M.Writer.__len = function(w) return #w.to end
