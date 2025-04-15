@@ -14,6 +14,9 @@ local ds    = require'ds'
 local lines = require'lines'
 local LFile = require'lines.File'
 
+local concat = table.concat
+local split = ds.split
+
 M.htmlHead = [[<style>
 body {
   font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
@@ -78,8 +81,8 @@ end
 
 local noPKind = ds.Set{'ul', 'blockquote'}
 
-local function addLine(w, line)
-  ds.extend(w, lines(table.concat(line)))
+local function addLine(w, line, noNl)
+  w:write(concat(line), noNl and '' or '\n')
 end
 
 local function startFmt(w, n, kind, line)
@@ -151,31 +154,32 @@ local function _serialize(w, line, node) --> line
   startFmt(w, node, kind, line)
   startNode(node, kind, line)
   if kind == 'table' then
-    addLine(w, line); w.indent = w.indent + 2
+    w.to:level(1); addLine(w, line)
     for ri, row in ipairs(node) do
-      addLine(w, {'<tr>'})
-      for _, col in ipairs(row) do
+      w.to:level(1); addLine(w, {'<tr>'})
+      for ci, col in ipairs(row) do
         local el = row.header and 'th' or 'td'
         line = {'<'..el..'>'}
         line = _serialize(w, line, col)
         push(line, '</'..el..'>')
-        addLine(w, line)
+        addLine(w, line, ci == #row)
       end
-      addLine(w, {'</tr>'})
+      w.to:level(-1)
+      w.to:write('\n</tr>', ri == #node and '' or '\n')
     end
-    line = {}; w.indent = w.indent - 2
+    line = {}; w.to:level(-1); w.to:write'\n'
   elseif kind == 'ul' then
-    addLine(w, line); w.indent = w.indent + 2
-    for _, item in ipairs(node) do
+    w.to:level(1); addLine(w, line)
+    for i, item in ipairs(node) do
       line = {'<li>'}
       line = _serialize(w, line, item)
       push(line, '</li>')
-      addLine(w, line)
+      addLine(w, line, i == #node)
     end
-    line = {}; w.indent = w.indent - 2
+    line = {}; w.to:level(-1); w.to:write'\n'
   elseif node.code then
     local s = {}; for _, n in ipairs(node) do push(s, w:tokenStr(n)) end
-    s = table.concat(s)
+    s = concat(s)
     if s:sub(1, 1) == '\n' then s = s:sub(2)    end
     if s:sub(-1)   == '\n' then s = s:sub(1,-2) end
     s = s:gsub('[&<>]', CODE_REPL)
@@ -219,11 +223,12 @@ M.convert = function(dat, to, config)
   return w.to, p, w
 end
 
-M.assertHtml = function(cxtDat, expectedHtml, dbg)
+M.assertHtml = function(expectedHtml, cxtDat, dbg)
   local node, p = cxt.parse(cxtDat, dbg)
   local w = cxt.Writer:fromParser(p)
   M.serialize(w, node)
-  T.eq(expectedHtml, w.to)
+  require'ds.log'.trace('!! w.to:', setmetatable(w.to, nil))
+  T.eq(expectedHtml, concat(w.to))
 end
 
 M.main = function(args)
@@ -234,7 +239,7 @@ M.main = function(args)
   end
   print('cxt.html', args[1], '-->', args[2])
   local inp = LFile{path=args[1]}
-  local to  = LFile{path=args[2], mode='w+'}
+  local to  = fmt.Fmt{to=assert(io.open(args[2], 'w'))}
   if args.config then
     args.config = cxt.Config(pkglib.load('CxtConfig', args.config).html)
   end

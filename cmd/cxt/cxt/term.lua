@@ -52,10 +52,10 @@ local function nodeKind(n)
 end
 
 local function serializeRow(w, row, nl)
-  w:level(1); if nl then push(w, '\n') end
+  w:level(1); if nl then w:write'\n' end
   w:level(1);
   for i, col in ipairs(row) do
-    if i ~= 1 then push(w, '\t') end
+    if i ~= 1 then w:write'\t' end
     M.serialize(w, col)
   end
   w:level(-1); w:level(-1)
@@ -63,16 +63,16 @@ end
 
 local SER_KIND = {
   hidden = ds.noop,
-  token = function(w, node) push(w, w:tokenStr(node)) end,
-  br    = function(w, node) return push(w, '\n')      end,
+  token = function(w, node) w:write(w:tokenStr(node)) end,
+  br    = function(w, node) w:write'\n'               end,
   table = function(w, node)
     if #node == 0 then return end
     w:level(1)
     for r, row in ipairs(node) do
-      push(w, '\n+ ')
-      -- if r == 1 then push(w, '  + ') else push(w, '\n+ ') end
+      w:write'\n+ '
+      -- if r == 1 then w:write'  + ' else w:write'\n+ ' end
       for c, col in ipairs(row) do
-        if c ~= 1 then push(w, '\t') end
+        if c ~= 1 then w:write'\t' end
         w:level(1); M.serialize(w, col); w:level(-1)
       end
     end
@@ -81,7 +81,7 @@ local SER_KIND = {
   list = function(w, node)
     w:level(1)
     for _, item in ipairs(node) do
-      push(w, '\n* ');
+      w:write'\n* '
       w:level(1); M.serialize(w, item); w:level(-1)
     end
     w:level(-1)
@@ -93,7 +93,7 @@ local SER_KIND = {
     if node.block and s:sub(-1) == '\n' then
       s = s:sub(1, -2) -- strip extra newline
     end
-    w.style = 'code'; push(w, s); w.style = prevSty
+    w.to:styled('code', s, '')
   end,
 }
 SER_KIND.block = SER_KIND.code
@@ -106,8 +106,10 @@ M.serialize = function(w, node)
   local header = M.HEADER[kind]
   local prevSty = w.style
   if header then
-    w.style = 'meta'; push(w, string.rep('#', header))
-    if header > 4 then push(w, '\n# ') else push(w, ' ') end
+    w.to:styled('meta', string.rep('#', header))
+    if header > 4 then
+      w.to:styled('meta', '\n#', ' ')
+    else w:write' ' end
   end
 
   w.style = M.STYLES[kind] or node.style or prevSty

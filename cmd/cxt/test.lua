@@ -252,11 +252,22 @@ see [@N_2], I like [<@N_2>links]
 end
 
 T.html = function()
-  html.assertHtml('hi [*there] bob', {'hi <b>there</b> bob'})
-  html.assertHtml('hi [*there]\n  newline', {
-    'hi <b>there</b>', 'newline'
-  })
-  html.assertHtml([[
+  html.assertHtml('hi <b>there</b> bob\n', 'hi [*there] bob')
+  html.assertHtml(
+    'hi <b>there</b>\n'
+  ..'newline\n',
+    'hi [*there]\n  newline')
+  html.assertHtml(
+[[
+listing:<ul>
+  <li>one</li>
+  <li>two<ul>
+    <li>three</li>
+    <li>four</li>
+  </ul></li>
+</ul>
+]],
+[[
 listing:[+
 * one
 * two[+
@@ -264,80 +275,72 @@ listing:[+
   * four
   ]
 ]
-]],{
-    "listing:<ul>",
-      "<li>one</li>",
-      "<li>two<ul>",
-        "<li>three</li>",
-        "<li>four</li>",
-      "</ul></li>",
-    "</ul>",
-  })
+]]
+)
 
-  html.assertHtml([[
+  html.assertHtml(
+[[
+<table>
+  <tr>
+    <th><b>h</b>1</th>
+    <th>h2</th>
+    <th>h3</th>
+  </tr>
+  <tr>
+    <td>r1.1</td>
+    <td>r1.2</td>
+    <td>r1.3</td>
+  </tr>
+  <tr>
+    <td>r2.1</td>
+    <td>r2.2</td>
+    <td>r2.3</td>
+  </tr>
+</table>
+]],
+[[
 [{table}
 # [*h]1 | h2   | h3
 + r1.1  | r1.2 | r1.3
 + r2.1  | r2.2 | r2.3
 ]
-]], {
-  "<table>",
-    "<tr>",
-      "<th><b>h</b>1</th>",
-      "<th>h2</th>",
-      "<th>h3</th>",
-    "</tr>",
-    "<tr>",
-      "<td>r1.1</td>",
-      "<td>r1.2</td>",
-      "<td>r1.3</td>",
-    "</tr>",
-    "<tr>",
-      "<td>r2.1</td>",
-      "<td>r2.2</td>",
-      "<td>r2.3</td>",
-    "</tr>",
-  "</table>",
-  })
+]])
 
-  html.assertHtml([[
+  html.assertHtml(
+[[
+Some <code>inline code</code> and: <code class="block">code 1
+code 2</code>
+next line.
+]],
+[[
 Some [$inline code] and: [##
 code 1
 code 2
 ]##
 next line.
-]], {
-  "Some <code>inline code</code> and: <code class=\"block\">code 1",
-  "code 2</code>",
-  "next line."
-})
+]])
 
-  html.assertHtml([[
+  html.assertHtml(
+[[
+Code block: <code class="block">echo "foo bar"  # does baz
+echo "blah blah"</code>
+end of code block.
+]],
+[[
 Code block: [{## lang=sh}
 echo "foo bar"  # does baz
 echo "blah blah"
 ]##
 end of code block.
-]],
-  {
-    "Code block: <code class=\"block\">echo \"foo bar\"  # does baz",
-    "echo \"blah blah\"</code>",
-    "end of code block."
-  }
-)
+]])
 end
 
 T.term = function()
-  local W = Writer; local w = W{}
-  local sty = term{
-    '[$code] not code',
-    out=fmt.Fmt{to=w}
-  }
-  T.eq(
-    setmetatable(W{'code not code', '', ''}, nil),
-    setmetatable(w, nil))
+  local f = fmt.Fmt{}
+  term{'[$code] not code', out=f}
+  T.eq('code not code\n', tostring(f))
 
-  local w = W{}
+  f = fmt.Fmt{}
   local _, node, p = term.convert([[
 [{h1}Heading 1]
 Some text
@@ -353,8 +356,8 @@ function foo() return 'hello world' end
   * item 2 [$with code]
 ]
 the end
-]], sty)
-local expect =
+]], f)
+  T.eq(
 "########################################\
 # Heading 1\
 Some text\
@@ -368,10 +371,9 @@ bold italic path/to/thing \
   * item 1\
   * item 2 with code\
 the end\
-"
-  T.eq(expect, table.concat(w, '\n'))
+", tostring(f))
 
-  ds.clear(w)
+  f = fmt.Fmt{}
 local _, node, p = term.convert(
 --"[{h1}[:doc_test] [/lib/doc/test.lua:1] [@Ty<doc_test>]]\
 "[{h1}[:doc_test] [/lib/doc/test.lua:1] [@Ty<doc_test>] ]\
@@ -379,7 +381,7 @@ local _, node, p = term.convert(
 + [*Methods, Etc]\
 + [:Example]      [@Ty<Example>]       | [/lib/doc/test.lua:11]\
 + [:__name]       [@string]            | \
-]", sty)
+]", f)
   local expect =
 "########################################\
 # doc_test lib/doc/test.lua:1 Ty<doc_test> \
@@ -387,7 +389,7 @@ local _, node, p = term.convert(
   + Methods, Etc\
   + Example      Ty<Example>\9lib/doc/test.lua:11\
   + __name       string\9 "
-  T.eq(expect, table.concat(w, '\n'))
+  T.eq(expect, tostring(f))
 end
 
 
