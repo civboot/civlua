@@ -8,10 +8,11 @@ local fmt = require'fmt'
 local ds  = require'ds'
 local lines = require'lines'
 local T = require'civtest'
-local add, sfmt, srep = table.insert, string.format, string.rep
-local pop = table.remove
-local max = math.max
-local update = table.update
+
+local sconcat, sfmt, srep = string.concat, string.format, string.rep
+local add, pop = table.insert, table.remove
+local update   = table.update
+local max      = math.max
 
 local Key
 local Pat, Or, Not, Many, Maybe
@@ -461,7 +462,7 @@ M.Writer = mty'Writer' {
   'config [Config]', config=M.Config{}
 }
 M.Writer.fromParser = function(ty_, p, to)
-  return ty_{src=p.dat, to=to or {}, indent=0}
+  return ty_{src=p.dat, to=to or fmt.Fmt{}, indent=0}
 end
 M.Writer.tokenStr = function(w, t)
   return (type(t) == 'string') and t or t:decode(w.src)
@@ -471,14 +472,15 @@ M.Writer.__index = function(w, l)
   if type(l) ~= 'number' then return end
   fmt.errorf('index cxt.Writer: %s', l)
 end
--- TODO: remove this, it's awful
-M.Writer.__newindex = function(w, l, line)
-  if type(l) ~= 'number' then return rawset(w, l, line) end
-  if w.style        then w.to:styled(w.style, line)
-  elseif w.to.write then w.to:write(line, '\n')
-  else                   w.to[l] = line end
+M.Writer.write = function(w, ...)
+  if w.style then w.to:styled(w.style, sconcat('', ...))
+  else            w.to:write(...) end
 end
-M.Writer.__len = function(w) return #w.to end
+M.Writer.__newindex = function(w, l, line)
+  if type(l) == 'string' then return rawset(w, l, line) end
+  error"don't set index"
+end
+M.Writer.__len = function(w) error'Writer.len not supported' end
 M.Writer.level = function(w, add) return w.to:level(add) end
 
 return M

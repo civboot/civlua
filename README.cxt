@@ -54,8 +54,8 @@ LOGLEVEL=INFO make test LUA_VERSION=lua5.3
 ]##
 
 [{:h2 name=why}Why?]
-Civlua is an entire "Developer Tech Stack" from scratch, written in 100% Lua (or
-small C-extensions). First of all, what is a "Developer Tech Stack"?
+Civlua is an entire "Developer Tech Stack" from scratch, written in Lua
+(and a few small C-extensions). First of all, what is a "Developer Tech Stack"?
 
 Besides the compiler and build system, a software developer only truly depends
 on a few terminal-based tools for development. These are their text editor,

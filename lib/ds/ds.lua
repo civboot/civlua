@@ -344,7 +344,9 @@ M.extend = function(t, l) --> t: move vals to end of t
 end
 local extend = M.extend
 
--- clear(t, startindex=1, len=#t) -> t: set t[si:si+len-1] = nil
+-- Clear list-like elements of table.
+-- default is all of it, but you can also specify a specific
+-- start index and length.
 M.clear = function(t, si, len) --> t
   -- TODO: (len or #t) - si + 1
   return move(EMPTY, 1, len or #t, si or 1, t)
@@ -1029,6 +1031,15 @@ M.Deq.drain = function(deq) --> table: get all items and clear deq
   deq:clear(); return t
 end
 
+---------------------
+-- TWriter: table writer
+-- This is a table pretending to be a write-only file.
+
+M.TWriter = mty'TWriter' {}
+M.TWriter.write = function(tw, ...) push(tw, sconcat('', ...)) end
+M.TWriter.flush = M.noop
+M.TWriter.close = M.noop
+
 -----------------------
 -- Handling Errors
 
@@ -1133,6 +1144,12 @@ M.auto = function(mod, i) --> (mod, i)
     i = i + 1
   end
   return mod, i
+end
+
+--- like require but returns nil
+M.want = function(mod) --> module?
+  local ok, m = pcall(function() return require(mod) end)
+  if ok then return m end
 end
 
 --- indexrequire: [$R.foo] is same as [$require'foo']

@@ -99,6 +99,7 @@ Fmt.level = function(f, add) --> int: current level
 end
 
 Fmt.flush = function(f) if f.to then f.to:flush() end end
+Fmt.close = function(f) if f.to then f.to:close() end end
 Fmt._write = function(f, str)
   if f.to then f.to:write(str) else rawset(f, #f + 1, str) end
 end
