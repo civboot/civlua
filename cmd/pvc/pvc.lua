@@ -732,7 +732,7 @@ M.grow = function(P, to, from) --!!>
     sfmt('deleting %s (mv %s -> %s)', fbr, fdir, back), '\n')
   ix.mkDirs(pth.last(back)); ix.mv(fdir, back)
   io.fmt:styled('notify', sfmt('grew %s tip to %s', tbr, ftip), '\n')
-  M.at(P, to,ftip)
+  M.at(P, tbr,ftip)
 end
 
 --- return the description of ppath
