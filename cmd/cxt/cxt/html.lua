@@ -82,7 +82,7 @@ end
 local noPKind = ds.Set{'ul', 'blockquote'}
 
 local function addLine(w, line, noNl)
-  w:write(concat(line), noNl and '' or '\n')
+  w.to:write(concat(line), noNl and '' or '\n')
 end
 
 local function startFmt(w, n, kind, line)

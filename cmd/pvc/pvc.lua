@@ -386,15 +386,16 @@ M.at = function(P, nbr,nid) --!!> branch?, id?
 
   local ok, cpPaths, rmPaths = true, {}, {}
   for _, path in ipairs(npaths) do
-    if ix.pathEq(P..path, nsnap..path) then goto cont end -- local==next
-    if ix.pathEq(P..path, csnap..path) then -- local didn't change
-      if not ix.pathEq(csnap..path, nsnap..path) then -- next did change
+    local lpath, npath = P..path, nsnap..path
+    if ix.pathEq(lpath, npath) then goto cont end -- local==next
+    if ix.pathEq(lpath, csnap..path) then -- local didn't change
+      if not ix.pathEq(csnap..path, npath) then -- next did change
         push(cpPaths, path)
       end
       goto cont
     end
     -- else local path changed
-    if ix.pathEq(csnap..path, nsnap..path) then
+    if ix.pathEq(csnap..path, npath) then
       io.fmt:styled('meta',  sfmt('keeping changed %s', path), '\n')
     else
       io.fmt:styled('error', sfmt('path %s changed',    path), '\n')
@@ -1067,6 +1068,19 @@ M.main.export = function(args) --> to
   end
   io.fmt:styled('notify', sfmt('exported %s to %s', bdir, to))
   return to
+end
+
+--- [$snap [branch#id]] get the snapshot directory of branch#id
+--- (default=at).
+--- 
+--- The snapshot contains a copy of files at that commit and
+--- should not be modified.
+M.main.snap = function(args) --> snap/
+  local P = popdir(args)
+  local br, id = M.resolve(P, args[1] or 'at')
+  local snap = M.snapshot(P, br, id)
+  io.stdout:write(snap, '\n')
+  return pth.nice(snap)
 end
 
 getmetatable(M).__call = getmetatable(M.main).__call

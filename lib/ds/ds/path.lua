@@ -11,7 +11,7 @@ local sfmt = string.format
 local update = table.update
 
 local extend, splitList = ds.extend, ds.splitList
-local clear, ds_rmleft  = ds.clear, ds.rmleft
+local clear             = ds.clear
 
 --- read file at path or throw error
 M.read = function(path) --!!> string
@@ -143,7 +143,7 @@ end
 
 --- ds.rmleft for path components
 M.rmleft = function(path, rm)
-  return ds_rmleft(path, rm, M.itemeq)
+  return ds.rmleft(path, rm, M.itemeq)
 end
 
 --- return a nice path (string) that is resolved and readable.

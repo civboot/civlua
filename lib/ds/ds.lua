@@ -426,14 +426,14 @@ M.emptyTable = function() return {} end
 --- remove (mutate) the left side of the table (list).
 --- noop if rm is not exactly equal to the left side.
 M.rmleft = function(t, rm, eq--[[ds.eq]]) --> t (mutated)
-  eq = eq or ds.eq
+  eq = eq or M.eq
   for i, v in ipairs(rm) do
     if not t[i] or not eq(v, t[i]) then
       return
     end
   end
   local l, rl = #t, #rm
-  move(t,     rl + 1, l,  1) -- move to start
+  move(t,     rl + 1, l,  1, t) -- move to start
   move(EMPTY, 1,      rl, l - rl + 1, t) -- clear end
   return t
 end
