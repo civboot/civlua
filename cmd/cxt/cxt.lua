@@ -457,25 +457,24 @@ M.Config = mty'Config' {
 --- ]
 M.Writer = mty'Writer' {
   'src', 'to',
-  'indent[int]',
-  'style [string]: see asciicolor.Style',
   'config [Config]', config=M.Config{}
 }
 M.Writer.fromParser = function(ty_, p, to)
-  return ty_{src=p.dat, to=to or fmt.Fmt{}, indent=0}
+  return ty_{src=p.dat, to=to or fmt.Fmt{}}
 end
 M.Writer.tokenStr = function(w, t)
   return (type(t) == 'string') and t or t:decode(w.src)
+end
+M.Writer.eqStr = function(w, t, str)
+  if type(t) == 'string' then return t == str end
+  return (mty.ty(t) == Token) and (w:tokenStr(t) == str)
 end
 M.Writer.__index = function(w, l)
   local m = getmetatable(w)[l]; if m then return m end
   if type(l) ~= 'number' then return end
   fmt.errorf('index cxt.Writer: %s', l)
 end
-M.Writer.write = function(w, ...)
-  if w.style then w.to:styled(w.style, sconcat('', ...))
-  else            w.to:write(...) end
-end
+
 M.Writer.__newindex = function(w, l, line)
   if type(l) == 'string' then return rawset(w, l, line) end
   error"don't set index"

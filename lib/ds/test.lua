@@ -192,6 +192,8 @@ T.table = function()
   T.eq(7,   get({a={b=7}}, {'a', 'b'}))
   T.eq(nil, get({}, {'a', 'b'}))
 
+  T.eq({'d', 'e'},
+    M.rmleft({'a', 'b', 'c', 'd', 'e'}, {'a', 'b', 'c'}))
   local t = {}
   set(t, dp'a.b',   4);   T.eq(4, t.a.b)
   set(t, dp'a.a.a', 5);   T.eq(5, t.a.a.a)
