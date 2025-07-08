@@ -38,6 +38,9 @@ pkgs = {
   'cmd/pkgrock', -- interface with luarocks
   'cmd/pvc',     -- patch version control
   'cmd/ele',     -- Extendable Lua Editor (and shell)
+
+  -- os
+  'os/iA',       -- intermediate Assembly
 }
 
 local FILE = 'https://github.com/civboot/civlua/blob/main/'

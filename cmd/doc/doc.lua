@@ -143,7 +143,7 @@ local setFields = function(d, t)
 end
 
 M._Construct.__call = function(c, obj, key, expand, lvl) --> Doc | DocItem
-  assert(obj ~= nil)
+  assert(obj ~= nil, key)
   expand = expand or 0
   local docTy = assert(M.type(obj))
   if docTy == 'Package' then return c:pkg(obj, expand) end
@@ -232,7 +232,10 @@ M._Construct.pkg = function(c, pkg, expand) --> Doc
   d.mods = pkglib.modules(pkg.srcs)
   ds.pushSortedKeys(d.mods, modcmp)
   for i, mname in ipairs(d.mods) do
-    d.mods[mname] = c(M.find(mname), mname, expand - 1)
+    local mod = M.find(mname); if not mod then error(
+      'module '..mname..' not found'
+    )end
+    d.mods[mname] = c(mod, mname, expand - 1)
   end
   return d
 end
