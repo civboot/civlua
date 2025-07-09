@@ -2536,10 +2536,10 @@ pod: plain old data
 </table>
 <h4>Value <a id="pod.__name" href="#pod.__name">pod.__name</a></h4>
 <h3>Table <a id="pod.boolean" href="#pod.boolean">pod.boolean</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
-<h3>Table <a id="pod.integer" href="#pod.integer">pod.integer</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
+<h3>Table <a id="pod.int" href="#pod.int">pod.int</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.nil" href="#pod.nil">pod.nil</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.number" href="#pod.number">pod.number</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
-<h3>Table <a id="pod.string" href="#pod.string">pod.string</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
+<h3>Table <a id="pod.str" href="#pod.str">pod.str</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.table" href="#pod.table">pod.table</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
 <h3>Record <a id="pod.List" href="#pod.List">pod.List</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L128"><i>src</i></a>)</h3>
 Poder for a list of items with a type.
@@ -9352,8 +9352,8 @@ There are 3 types of what are called "single expressions" (expr1): <ul>
   <li><b>eq1</b> single-assignment <code>expr1 = expr1</code>, i.e. <code>A val1: Int = 4</code>. The
   register and type are optional if <code>val1</code> is already defined.
   i.e. <code>$A val1: Int = 41</code> declares it in register A and of type Int.<ul>
-    <li>For single-argument operations like ~ (bitwise not), the right-hand
-    expression can be _ (an underscore).</li>
+    <li>the right-hand expression can be _ (an underscore), which does the
+    operation with itself.</li>
     <li><code>expr1 += expr1</code> where an operation is after = is also eq1.</li>
   </ul></li>
   <li><b>fn1</b>: <code>fn foo(...) -&gt; Int</code>, calls to functions which return a single
@@ -9374,12 +9374,17 @@ modifies the A register twice, which would be an error. Therefore it needs
 to be changed to:
 <p>
 <code class="block">$A a:Int
-B b = bar($A a = 6);  \ Note: bar returns C, the move is implicit.
+B b:Int = bar($A a = 6);  \ Note: bar returns C, the move is implicit.
 (a=10) += (C c:Int = foo(a=5, b));</code>
 <p>
 The above statement results in <code>a = [$10 + foo(5, 6)]</code>. Perhaps most
 importantly, no temporaries are created to store intermediate values
 and the compiler makes sure registers are not corrupted during function calls.
+<p>
+The function above was written with all the registers being very explicit. It
+can be reduced to
+<code class="block">B b:Int = bar(6);
+($A a:Int=10) += foo(5, b);</code>
 <p>
 <h3>Types</h3>
 iA supports the following native types: <ul>
@@ -9388,41 +9393,45 @@ iA supports the following native types: <ul>
   <li>I1 I2 I4 I8: signed integer of a specific byte-width.</li>
   <li>U1 U2 U4 U8: unsigned integer of a specific byte-width.</li>
   <li><code>&Type</code>: pointer to Type. <code>&&Type</code> is a double-pointer, etc.</li>
-  <li><code>[Type, 16]</code>: array of Type with a declared maximum capacity of 16,
-  used for declaring array variables.</li>
-  <li><code>[Type]</code>: array of Type, which is len and capacity uints directly followed
-  by the data. Used for function arguments or when allocating on the heap.</li>
+  <li><code>[Type]</code>: array of Type, which is len and capacity U4 values directly
+  followed by the data (the data itself, NOT a pointer). Used for function
+  arguments or when allocating on the heap.</li>
+  <li><code>[Type, 16]</code>: array of Type with a declared maximum capacity of 16 (the
+  capacity is still stored in a slot though), used for declaring array
+  variables on the local stack.</li>
   <li>CStr: counted string. A byte length and byte capacity followed by 0-254 bytes
   of binary data and a 0 byte. Commonly used for efficient storage of names and
   many cases where long strings are not necessary.</li>
 </ul>
 <p>
-<blockquote>Note that a conventional Str is aliased as just <code>[U1]</code>.</blockquote>
+<blockquote>Note that a conventional Str is just <code>[U1]</code>.</blockquote>
 <p>
 In addition, users can define enums (named integer values) and structs composed
 of known-size typed fields.
 <p>
 <h2>Lua Metaprogramming</h2>
-iA is implemented in, and can be extended by, the programming language Lua.
+iA is implemented as a Lua library and it can be extended by other Lua
+libraries.
 <p>
 iA code can be defined in one of two types of files: <ul>
   <li>If ending in <code>.iA</code> it is straightforward iA syntax. It should define
   the modules it requires and use iA syntax to define functions,
-  globals, etc.</li>
+  globals, etc. It can call to Lua code via $macros</li>
   <li>If ending in <code>.lua</code> it is a Lua file which can directly compile
   iA code, but also extend the iA compiler with macros or inspect
-  previously compiled code to perform other operations.</li>
+  previously compiled code to perform other operations (such as converting
+  it into a target platforms actual assembly).</li>
 </ul>
 <p>
-Symbols prefixed with # such as <code>#auto</code> are considered "macros". They
-are defined in Lua and are passed a single expression. They are executed
-from right -> left, so <code>#mymacro #auto fn myFn()</code> would first execute
-#auto and then execute #mymacro.
+Symbols prefixed with # such as #auto are considered "macros". They are defined
+in Lua and are passed a single expression (which can be (inside, parens)). They
+are executed from right -> left, so <code>#mymacro #auto fn myFn()</code> would first
+execute #auto and then execute #mymacro.
 <p>
 Macros modify the AST directly, including: adding flags or debugigng info,
 reorganizing nodes, changing operations, re-organizing registers, etc. A
-common use for macros is to inline code, which is provided directly.
-Macro expansion happens before type or corruption checking.
+common use for macros is to inline code.  Macro expansion happens before type
+or corruption checking, but all macros must be valid code.
 <p>
 <h3>iA package API</h3>
 Use <code>local iA = require"iA"</code> to get the iA Lua package. It has the following
@@ -9440,12 +9449,12 @@ methods and values: <ul>
 </ul>
 <p>
 It also has the following types: <ul>
-  <li>Var encapsulates a variable (register, local, etc).</li>
-  <li>Expr1 encapsulates a single-assignment expression.</li>
-  <li>Multi encapsulates a multi-assignment function call expression.</li>
-  <li>Fn encapsulates a function (inputs, outputs, body, etc).</li>
-  <li>Mod encapsulates a module.</li>
-  <li>State encapsulates the total compilation state.</li>
+  <li><b>Var</b> encapsulates a variable (register, local, etc).</li>
+  <li><b>Expr1</b> encapsulates a single-assignment expression.</li>
+  <li><b>Multi</b> encapsulates a multi-assignment function call expression.</li>
+  <li><b>Fn</b> encapsulates a function (inputs, outputs, body, etc).</li>
+  <li><b>Mod</b> encapsulates a module.</li>
+  <li><b>State</b> encapsulates the total compilation state.</li>
 </ul>
 <p>
 <h3>Building</h3>
@@ -9460,7 +9469,7 @@ the architecture is roughly thus: <ul>
   <code>require"somePkg"</code>, which will automatically call <code>:iA()</code> as well.</li>
 </ul>
 <p>
-Basically, iA is built by calling the top-most <code>pkg.iA()</code>, which recursively
+Basically, iA is built by calling the top-most <code>pkg:iA()</code>, which recursively
 calls the rest. This is handed to the build-script, which converts the
 intermediate assembly to actual machine bytecode and packages it into a binary
 depending on the configuration.
@@ -9471,22 +9480,66 @@ depending on the configuration.
 iA supports the following builtin assignment operations which
 modify only val. All names are expr1. <ul>
   <li><code>val = v</code> direct assignment</li>
-  <li><code>val += add</code> addition, val will be the result of <code>val + expr</code></li>
-  <li><code>val -= sub</code> subtraction, val will be result of <code>val - expr</code></li>
-  <li><code>val *= mul</code> multiplication, <code>val * mod</code></li>
+  <li><code>val += add</code> addition, val will be the result of <code>val + add</code></li>
+  <li><code>val -= sub</code> subtraction, val will be result of <code>val - sub</code></li>
   <li><code>val %= mod</code> modulo (remainder), <code>val % mod</code></li>
-  <li><code>val //= idiv</code> integer division, remainder is thrown away.</li>
-  <li><code>val /= fdiv</code> floating point division.</li>
+  <li><code>val ~= not</code> bitwise NOT.</li>
+  <li><code>val |= or</code> bitwise OR.</li>
+  <li><code>val &= and</code> bitwise AND.</li>
+  <li><code>val &lt;&lt;= shl</code> shift left.</li>
+  <li><code>val &gt;&gt;= shr</code> shift right</li>
   <li>... to be continued</li>
 </ul>
 <p>
-Builtin multi assignment operators: <ul>
-  <li><code>a, b = div(a, b)</code> integer division <code>a / b</code>. a is set to the quotient
-  and b is set to the remainder.</li>
+<blockquote>See also iA-reg-common for the integer multiply and division
+operations.</blockquote>
+<p>
+iA supports the following compare operations, which evaluate
+as a boolean: <ul>
+  <li><code>a == b</code> equal.</li>
+  <li><code>a ~= b</code> not equal.</li>
+  <li><code>a &lt; b</code>, <code>a &lt;= b</code> less than, less than equal.</li>
+  <li><code>a &gt; b</code>, <code>a &gt;= b</code> greater than, greater than equal.</li>
+  <li><code>not a</code> <code>a or b</code> <code>a and b</code>: logical operations</li>
 </ul>
 <p>
 <h3>Control Flow</h3>
-TODO: labels, goto, if/elif/else, while, etc.
+<p>
+These are used in control flow structures. For each, the last statement is
+evaluated for a non-zero value to determine when to jump.
+<code class="block">if   a == 4 do
+  ...
+elif B b = foo(1, 2); c == bar(b) do
+  ...
+end
+
+\ Similar to a C++ for loop, loops from 0 - 9
+\    init,  op before end,  loop condition
+loop $I i=0 then i+=1       until i&lt;10 do
+  ...
+end
+
+\ Similar to C++ while loop.
+until i&lt;10 do ... end
+
+\ infinite loop
+loop do ... end
+
+::my_location:: \ define a location
+  ...
+  goto my_location; \\ goto that location
+
+\ similar to C switch-case.
+switch i
+case 0..15 do
+  ...
+  goto next; // explicit fallthrough
+case 16    do
+  ...
+else
+  ...
+end</code>
+<p>
 <p>
 <p>
 <h2><a id="Register_Common_Practice" href="#Register_Common_Practice">Register Common Practice</h2></a>

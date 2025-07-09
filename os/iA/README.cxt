@@ -96,8 +96,8 @@ There are 3 types of what are called "single expressions" (expr1): [+
 * [*eq1] single-assignment [$expr1 = expr1], i.e. [$A val1: Int = 4]. The
   register and type are optional if [$val1] is already defined.
   i.e. [$$A val1: Int = 41] declares it in register A and of type Int.[+
-  * For single-argument operations like ~ (bitwise not), the right-hand
-    expression can be _ (an underscore).
+  * the right-hand expression can be _ (an underscore), which does the
+    operation with itself.
   * [$expr1 += expr1] where an operation is after = is also eq1.
 ]
 
@@ -122,13 +122,20 @@ to be changed to:
 
 [{## lang=iA}
 $A a:Int
-B b = bar($A a = 6);  \ Note: bar returns C, the move is implicit.
+B b:Int = bar($A a = 6);  \ Note: bar returns C, the move is implicit.
 (a=10) += (C c:Int = foo(a=5, b));
 ]##
 
 The above statement results in [$a = [$10 + foo(5, 6)]]. Perhaps most
 importantly, no temporaries are created to store intermediate values
 and the compiler makes sure registers are not corrupted during function calls.
+
+The function above was written with all the registers being very explicit. It
+can be reduced to
+[{## lang=iA}
+B b:Int = bar(6);
+($A a:Int=10) += foo(5, b);
+]##
 
 [{h3}Types]
 iA supports the following native types: [+
@@ -142,43 +149,47 @@ iA supports the following native types: [+
 
 * [$&Type]: pointer to Type. [$&&Type] is a double-pointer, etc.
 
-* [$[Type, 16]]: array of Type with a declared maximum capacity of 16,
-  used for declaring array variables.
+* [$[Type]]: array of Type, which is len and capacity U4 values directly
+  followed by the data (the data itself, NOT a pointer). Used for function
+  arguments or when allocating on the heap.
 
-* [$[Type]]: array of Type, which is len and capacity uints directly followed
-  by the data. Used for function arguments or when allocating on the heap.
+* [$[Type, 16]]: array of Type with a declared maximum capacity of 16 (the
+  capacity is still stored in a slot though), used for declaring array
+  variables on the local stack.
 
 * CStr: counted string. A byte length and byte capacity followed by 0-254 bytes
   of binary data and a 0 byte. Commonly used for efficient storage of names and
   many cases where long strings are not necessary.
 ]
 
-["Note that a conventional Str is aliased as just [$[U1]].]
+["Note that a conventional Str is just [$[U1]].]
 
 In addition, users can define enums (named integer values) and structs composed
 of known-size typed fields.
 
 [{h2}Lua Metaprogramming]
-iA is implemented in, and can be extended by, the programming language Lua.
+iA is implemented as a Lua library and it can be extended by other Lua
+libraries.
 
 iA code can be defined in one of two types of files: [+
 * If ending in [$.iA] it is straightforward iA syntax. It should define
   the modules it requires and use iA syntax to define functions,
-  globals, etc.
+  globals, etc. It can call to Lua code via $macros
 * If ending in [$.lua] it is a Lua file which can directly compile
   iA code, but also extend the iA compiler with macros or inspect
-  previously compiled code to perform other operations.
+  previously compiled code to perform other operations (such as converting
+  it into a target platforms actual assembly).
 ]
 
-Symbols prefixed with # such as [$#auto] are considered "macros". They
-are defined in Lua and are passed a single expression. They are executed
-from right -> left, so [$#mymacro #auto fn myFn()] would first execute
-#auto and then execute #mymacro.
+Symbols prefixed with # such as #auto are considered "macros". They are defined
+in Lua and are passed a single expression (which can be (inside, parens)). They
+are executed from right -> left, so [$#mymacro #auto fn myFn()] would first
+execute #auto and then execute #mymacro.
 
 Macros modify the AST directly, including: adding flags or debugigng info,
 reorganizing nodes, changing operations, re-organizing registers, etc. A
-common use for macros is to inline code, which is provided directly.
-Macro expansion happens before type or corruption checking.
+common use for macros is to inline code.  Macro expansion happens before type
+or corruption checking, but all macros must be valid code.
 
 [{h3}iA package API]
 Use [$local iA = require"iA"] to get the iA Lua package. It has the following
@@ -196,12 +207,12 @@ methods and values: [+
 ]
 
 It also has the following types: [+
-* [@Var] encapsulates a variable (register, local, etc).
-* [@Expr1] encapsulates a single-assignment expression.
-* [@Multi] encapsulates a multi-assignment function call expression.
-* [@Fn] encapsulates a function (inputs, outputs, body, etc).
-* [@Mod] encapsulates a module.
-* [@State] encapsulates the total compilation state.
+* [*Var] encapsulates a variable (register, local, etc).
+* [*Expr1] encapsulates a single-assignment expression.
+* [*Multi] encapsulates a multi-assignment function call expression.
+* [*Fn] encapsulates a function (inputs, outputs, body, etc).
+* [*Mod] encapsulates a module.
+* [*State] encapsulates the total compilation state.
 ]
 
 [{h3}Building]
@@ -216,7 +227,7 @@ the architecture is roughly thus: [+
   [$require"somePkg"], which will automatically call [$:iA()] as well.
 ]
 
-Basically, iA is built by calling the top-most [$pkg.iA()], which recursively
+Basically, iA is built by calling the top-most [$pkg:iA()], which recursively
 calls the rest. This is handed to the build-script, which converts the
 intermediate assembly to actual machine bytecode and packages it into a binary
 depending on the configuration.
@@ -227,22 +238,68 @@ depending on the configuration.
 iA supports the following builtin assignment operations which
 modify only val. All names are expr1. [+
 * [$val = v] direct assignment
-* [$val += add] addition, val will be the result of [$val + expr]
-* [$val -= sub] subtraction, val will be result of [$val - expr]
-* [$val *= mul] multiplication, [$val * mod]
+* [$val += add] addition, val will be the result of [$val + add]
+* [$val -= sub] subtraction, val will be result of [$val - sub]
 * [$val %= mod] modulo (remainder), [$val % mod]
-* [$val //= idiv] integer division, remainder is thrown away.
-* [$val /= fdiv] floating point division.
+* [$val ~= not] bitwise NOT.
+* [$val |= or] bitwise OR.
+* [$val &= and] bitwise AND.
+* [$val <<= shl] shift left.
+* [$val >>= shr] shift right
 * ... to be continued
 ]
 
-Builtin multi assignment operators: [+
-* [$a, b = div(a, b)] integer division [$a / b]. a is set to the quotient
-  and b is set to the remainder.
+["See also [@iA-reg-common] for the integer multiply and division
+  operations.]
+
+iA supports the following compare operations, which evaluate
+as a boolean: [+
+* [$a == b] equal.
+* [$a ~= b] not equal.
+* [$a < b], [$a <= b] less than, less than equal.
+* [$a > b], [$a >= b] greater than, greater than equal.
+* [$not a] [$a or b] [$a and b]: logical operations
 ]
 
 [{h3}Control Flow]
-TODO: labels, goto, if/elif/else, while, etc.
+
+These are used in control flow structures. For each, the last statement is
+evaluated for a non-zero value to determine when to jump.
+[{## lang=iA}
+if   a == 4 do
+  ...
+elif B b = foo(1, 2); c == bar(b) do
+  ...
+end
+
+\ Similar to a C++ for loop, loops from 0 - 9
+\    init,  op before end,  loop condition
+loop $I i=0 then i+=1       until i<10 do
+  ...
+end
+
+\ Similar to C++ while loop.
+until i<10 do ... end
+
+\ infinite loop
+loop do ... end
+
+::my_location:: \ define a location
+  ...
+  goto my_location; \\ goto that location
+
+\ similar to C switch-case.
+switch i
+case 0..15 do
+  ...
+  goto next; // explicit fallthrough
+case 16    do
+  ...
+else
+  ...
+end
+]##
+
 
 
 [{h2 :iA-reg-common}Register Common Practice]
