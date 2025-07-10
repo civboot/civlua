@@ -1,9 +1,11 @@
--- ds: data structures and algorithms
+local G = G or _G
 
-local M = mod and mod'ds' or {}
+-- ds: data structures and algorithms
+local M = G.mod and G.mod'ds' or {}
 
 local mty = require'metaty'
 local fmt = require'fmt'
+
 local push, pop, sfmt    = table.insert, table.remove, string.format
 local sfind = string.find
 local move, sort, unpack = table.move, table.sort, table.unpack

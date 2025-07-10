@@ -106,36 +106,36 @@ There are 3 types of what are called "single expressions" (expr1): [+
 ]
 
 expr1's effectively "return" their leftmost value, so you can write something
-like below. Note that you don't need to be as explicit about the return
-registers (they can be infered).
+like below. Note that you can be explicit about the registers like below,
+or they can be inferred.
+
+All expressions are evaluate from right to left. Once a variable is assigned
+as a function input it is considered "locked" and attempts to mutate it will
+result in a corruption error.
 
 [{## lang=iA}
-(a=10) += (C c: Int = foo($A a = 5, $B b = bar($A a = 6)))
+(a=10) += (C c: Int = foo($A a=5, $B b = bar($A a=6)))
 ]##
 
-eq1 expressions are evaluated on the right side of the equal sign first.
-Otherwise, expressions are evaluated from left to right. Additionally,
-once a variable is assigned in a function call it is considered "locked",
-and mutating it again will result in a corruption error. The example above
-modifies the A register twice, which would be an error. Therefore it needs
-to be changed to:
+In the example above the A register is modified twice but is not locked until
+[$a=5], so the above code compiles. The above code is very explicit with
+what registers are modified and could be rewritten as:
 
 [{## lang=iA}
-$A a:Int
-B b:Int = bar($A a = 6);  \ Note: bar returns C, the move is implicit.
-(a=10) += (C c:Int = foo(a=5, b));
+(a=10) += foo(5, bar(a))
 ]##
 
-The above statement results in [$a = [$10 + foo(5, 6)]]. Perhaps most
-importantly, no temporaries are created to store intermediate values
-and the compiler makes sure registers are not corrupted during function calls.
+An example of a corruption error is below. Register B is locked with
+[$b=3] (remember, right-to-left evaluation) and then is corrupted
+by [$bar(a=1, b=2)].
 
-The function above was written with all the registers being very explicit. It
-can be reduced to
 [{## lang=iA}
-B b:Int = bar(6);
-($A a:Int=10) += foo(5, b);
+foo(a=bar(a=1, b=2), b=3)
 ]##
+
+From the above you can see the general rule when calling functions in iA:
+the functions called must be progressively simpler as they go from right to
+left, since more registers will be locked.
 
 [{h3}Types]
 iA supports the following native types: [+
@@ -253,7 +253,8 @@ modify only val. All names are expr1. [+
   operations.]
 
 iA supports the following compare operations, which evaluate
-as a boolean: [+
+two expressions as a boolean, which can be assigned to
+a register or used for control flow: [+
 * [$a == b] equal.
 * [$a ~= b] not equal.
 * [$a < b], [$a <= b] less than, less than equal.
@@ -300,8 +301,6 @@ else
 end
 ]##
 
-
-
 [{h2 :iA-reg-common}Register Common Practice]
 
 Below are the registers and their common usage. Note that although iA allows
@@ -313,10 +312,10 @@ cleanly.
 registers are used for both inputs and outputs of functions,
 and will therefore be corrupted.
 
-A B C D: inputs should use these registers, in this order, then
- non-corruptable registers or local values.
+A B D: inputs should use these registers, in this order, then non-corruptable
+registers or local values.
 
-Outputs should use C D A B (in that order). These are the only registers that
+Outputs should use C A B D (in that order). These are the only registers that
 can be function outputs (unless the platform is constrained), additional
 outputs must be represented as mutable pointer inputs.
 
@@ -342,17 +341,16 @@ Additionally, these registers should be chosen to work with the following: [+
 ["Note: On some supported architectures like the Z80 there are only 4 general
   purpose registers, so the rest of these will be converted to V]
 
-E F G H: non-corruptable registers, commonly used as additional function
-inputs after A B C D. When these are used, they should be put before
-A B C D, i.e. [$fn(E, F, A, B, C, D)].
+E F G H: corruptable registers, commonly used as additional function
+inputs after A B D.
 
-I J K L M N: non-corruptable registers for general use, very common for
-loop values.
+I J K L M N O P: non-corruptable registers for general use. I J K are
+very common for loop registers.
 
-O P Q R S T: corruptable temporary values.
+Q R S T: corruptable registers, typically used for temporary values.
 
-[*Other registers]: the following are considered special registers and
-cannot be assigned to a variable name. However, they can be accessed directly.
+[*Other registers]: the following are special registers and cannot be assigned
+to a variable name. However, they can be accessed directly.
 [+
 * sp: holds the "top" of the stack (at low memory). Local variables are
   referenced by offseting from this value and the return address is stored
@@ -364,5 +362,3 @@ cannot be assigned to a variable name. However, they can be accessed directly.
   you should call the relevant function-like macros instead of using this
   directly.
 ]
-
-
