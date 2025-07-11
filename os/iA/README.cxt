@@ -320,7 +320,7 @@ can be function outputs (unless the platform is constrained), additional
 outputs must be represented as mutable pointer inputs.
 
 Additionally, these registers should be chosen to work with the following: [+
-* [$A low: int, D high: int *= mul($A a: int, V b: int)] defines
+* [$A low: int, D high: int = mul($A a: int, V b: int)] defines
   cross-platform multiplication.
 
 * [$A quot: int, D rem: int = div($D high: int, $A low: int, V div: int)]

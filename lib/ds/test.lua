@@ -66,6 +66,13 @@ a]])
   ]])
 end
 
+T.binString = function()
+  T.eq('0000_1000', M.bin(8))
+  T.eq('1100_1010', M.bin(0xCA))
+  T.eq('1000',      M.bin(8, 4))
+  T.eq('0_1000',    M.bin(8, 5))
+end
+
 T.bool_and_none = function()
   local none = assert(M.none)
   T.eq(false, M.bool())

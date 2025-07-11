@@ -2539,7 +2539,7 @@ pod: plain old data
 <h3>Table <a id="pod.int" href="#pod.int">pod.int</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.nil" href="#pod.nil">pod.nil</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.number" href="#pod.number">pod.number</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
-<h3>Table <a id="pod.str" href="#pod.str">pod.str</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
+<h3>Table <a id="pod.string" href="#pod.string">pod.string</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.table" href="#pod.table">pod.table</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
 <h3>Record <a id="pod.List" href="#pod.List">pod.List</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L128"><i>src</i></a>)</h3>
 Poder for a list of items with a type.
@@ -9560,7 +9560,7 @@ can be function outputs (unless the platform is constrained), additional
 outputs must be represented as mutable pointer inputs.
 <p>
 Additionally, these registers should be chosen to work with the following: <ul>
-  <li><code>A low: int, D high: int *= mul($A a: int, V b: int)</code> defines
+  <li><code>A low: int, D high: int = mul($A a: int, V b: int)</code> defines
   cross-platform multiplication.</li>
   <li><code>A quot: int, D rem: int = div($D high: int, $A low: int, V div: int)</code>
   defines cross-platform division.</li>
@@ -9601,12 +9601,71 @@ to a variable name. However, they can be accessed directly.
 <h2>Module <a id="iA" href="#iA">iA</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L4"><i>src</i></a>)</h2>
 intermediate Assembly
 <p>
-<h3>Table <a id="iA.Reg" href="#iA.Reg">iA.Reg</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L41"><i>src</i></a>)</h3><code class="block">M.Reg = mty.enum'Reg' {
-  -- Input / Output registers.
-  A = 1, -- Accumulator. First input, second output
-  B = 2, -- Second input, third output
-  C = 3, -- Count/branch. First output, not an input.
-  D = 4, -- Fourth output.
+<h3>Table <a id="iA.Expr1Kind" href="#iA.Expr1Kind">iA.Expr1Kind</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L158"><i>src</i></a>)</h3><code class="block">M.Expr1Kind = mty.enum'Expr1Kind' {
+  --- Named variable or literal
+  VAL = 1,
+  --- single-assignment with optional operator.
+  EQ1 = 2,
+  --- function call which returns one register.
+  FN1 = 3,
+}</code>
+<h3>Table <a id="iA.Op" href="#iA.Op">iA.Op</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L204"><i>src</i></a>)</h3><code class="block">M.Op = mty.enum'Op' {
+  INT = 0, -- CPU interrupt. Used for errors and kernel stuff.
+
+  -- stack and jump operations
+  SP   = 1, -- sp(l): increment/decrement sp by literal
+  PUSH = 2, -- push(l,r): push value/s to stack
+  POP  = 3, -- pop(l,r): pop value/s from stack into register/s
+  CALL = 4, -- call(l): call procedure at l
+  RET  = 5, -- return from procedure
+  CMP  = 6, -- cmp(l,r): compare and set flags register
+  JMP  = 7, -- jmpif imm == (l&imm): l can be 0 (flags) or a reg.
+
+  -- l @= r: fetch value of size at address r
+  FT1=16, FT2=17, FT4=18, FT8=19,
+
+  -- store(l, r): store value r of size at address l
+  ST1=20, ST2=21, ST4=22, ST8=23,
+
+  -- l = r: set l to value r
+  MOV = 24,
+
+  -- Unsigned bitwise operations
+  INV = 25,  -- l ~= r: inversion
+  OR  = 26,  -- l |= r: or
+  AND = 27,  -- l |= r: and
+  XOR = 28,  -- l = xor(l, r): exclusive or
+  SHL = 29,  -- l &lt;&lt;= r: unsigned shift left
+  SHR = 30,  -- l &gt;&gt;= r: unsigned shift right
+  ROL = 31,  -- l = rotl(l, imm): rotate l left by imm
+  ROR = 32,  -- l = rotr(l, imm): rotate l left by imm
+
+  -- int multiplication: A low, D high = mul(A, r)
+  MUL = 40, IMUL = 41,
+
+  -- int division: A quot, D rem = div(D high, A low, r div)]
+  DIV = 42, IDIV = 43,
+
+  -- arithmetic
+  NEG = 44,  -- l = -r: 2's compliment negation
+  ADD = 45,  -- l += r
+  SUB = 46,  -- l -= r
+  MOD = 47,  -- l %= r
+
+  PRINT = 63, -- used in reference impl
+}</code>
+<h3>Table <a id="iA.Reg" href="#iA.Reg">iA.Reg</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L64"><i>src</i></a>)</h3><code class="block">M.Reg = mty.enum'Reg' {
+  NONE = 0, -- no register selected
+
+  -- Corruptable input/output registers
+  -- Input order:  A B D E F G H  (note: no C)
+  -- Output order: C A B D
+  --- Accumulator register.
+  A = 1,
+  B = 2,
+  --- Count register, used in branch-if-zero
+  C = 3,
+  D = 4,
 
   -- Corruptable registers, additional inputs.
   E = 5, F = 6, G = 7, H = 8,
@@ -9614,31 +9673,245 @@ intermediate Assembly
   -- non-corruptable registers for general use.
   I = 9, J = 10, K = 11, L = 12, M = 13, N = 14, O = 15, P = 16,
 
-  -- corruptable regiseters used as temporaries.
-  -- S and T are used for memory instructions like memcpy.
-  Q = 17, R = 18, S = 19, T = 20,
+  -- corruptable registers used as temporaries.
+  Q = 17, R = 18,
+
+  --- corruptable "source" or temporary
+  S = 19,
+  --- corruptable "to" (aka destination) or temporary
+  T = 20,
 
   U = 21, -- "universal" value stored on the heap
   V = 22, -- "value", aka a local value stored on the stack
   W = 23, -- reserved for "world" value, aka thread-global.
 
-  -- reserved: 24 - 32
+  -- reserved and unused
   X = 24, Y = 25, Z = 26,
 
-  -- stack pointer holding the "top" of stack at the lowest
-  -- memory address.
-  sp = 32,
-
-  fs = 33, -- floating point stack
+  -- lowest memory address of return stack
+  sp = 27,
+}</code>
+<h3>Table <a id="iA.TyKind" href="#iA.TyKind">iA.TyKind</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L73"><i>src</i></a>)</h3><code class="block">M.TyKind = mty.enum'TyKind' {
+  UNKNOWN = 0, -- an unknown type.
+  NATIVE  = 1, -- a native type such as an integer.
+  CSTR    = 2, -- a counted string.
+  ARRAY   = 3, -- an array with a U4 len, U4 cap, then the data.
+  ENUM    = 4, -- a user-defined enum.
+  STRUCT  = 5, -- a user-defined struct.
 }</code>
 <h4>Value <a id="iA.__name" href="#iA.__name">iA.__name</a></h4>
-<h3>Record <a id="iA.Var" href="#iA.Var">iA.Var</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L45"><i>src</i></a>)</h3>
+<h3>Record <a id="iA.Expr1" href="#iA.Expr1">iA.Expr1</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L216"><i>src</i></a>)</h3>
+An expression which returns a single value or register. The number
+of items in the list will depend on the kind: <ul>
+  <li>VAL: will contain one item, the Var or Literal.</li>
+  <li>EQ1: will contain two items on both sides of equal.
+  Will optionally have an <code>op</code>.</li>
+  <li>FN1: will contain the function arguments.</li>
+</ul>
+<p>
+<b>Fields: </b> <table>
+  <tr>
+    <td><code>iA.Expr1.kind</code></td>
+    <td>[iA.Expr1Kind] </td>
+  </tr>
+  <tr>
+    <td><code>iA.Expr1.op</code></td>
+    <td>[iA.Op] 
+    the operation being performed for EQ1</td>
+  </tr>
+</table>
+<h3>Table <a id="iA.Expr1.__docs" href="#iA.Expr1.__docs">iA.Expr1.__docs</a></h3>
+<h3>Table <a id="iA.Expr1.__fieldIds" href="#iA.Expr1.__fieldIds">iA.Expr1.__fieldIds</a></h3>
+<h3>Table <a id="iA.Expr1.__fields" href="#iA.Expr1.__fields">iA.Expr1.__fields</a></h3>
+<h4>Value <a id="iA.Expr1.__name" href="#iA.Expr1.__name">iA.Expr1.__name</a></h4>
+<b>Records: </b> <table>
+  <tr>
+    <td><code>iA.Expr1.__index</code></td>
+    <td>[Ty<Expr1>] (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L216">src</a>)</td>
+  </tr>
+</table>
+<b>Methods: </b> <table>
+  <tr>
+    <td><code>iA.Expr1.__fmt</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L151">src</a>)</td>
+  </tr>
+  <tr>
+    <td><code>iA.Expr1.__newindex</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L208">src</a>)</td>
+  </tr>
+  <tr>
+    <td><code>iA.Expr1.__tostring</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L157">src</a>)</td>
+  </tr>
+</table>
+<h3>Record <a id="iA.Literal" href="#iA.Literal">iA.Literal</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L149"><i>src</i></a>)</h3>
+A literal value.
+<p>
+<b>Fields: </b> <table>
+  <tr>
+    <td><code>iA.Literal.ty</code></td>
+    <td>[iA.Ty] </td>
+  </tr>
+  <tr>
+    <td><code>iA.Literal.value</code></td>
+    <td>  </td>
+  </tr>
+</table>
+<h3>Table <a id="iA.Literal.__docs" href="#iA.Literal.__docs">iA.Literal.__docs</a></h3>
+<h3>Table <a id="iA.Literal.__fieldIds" href="#iA.Literal.__fieldIds">iA.Literal.__fieldIds</a></h3>
+<h3>Table <a id="iA.Literal.__fields" href="#iA.Literal.__fields">iA.Literal.__fields</a></h3>
+<h4>Value <a id="iA.Literal.__name" href="#iA.Literal.__name">iA.Literal.__name</a></h4>
+<b>Records: </b> <table>
+  <tr>
+    <td><code>iA.Literal.__index</code></td>
+    <td>[Ty<Literal>] (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L149">src</a>)</td>
+  </tr>
+</table>
+<b>Methods: </b> <table>
+  <tr>
+    <td><code>iA.Literal.__fmt</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L151">src</a>)</td>
+  </tr>
+  <tr>
+    <td><code>iA.Literal.__newindex</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L208">src</a>)</td>
+  </tr>
+  <tr>
+    <td><code>iA.Literal.__tostring</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L157">src</a>)</td>
+  </tr>
+</table>
+<h3>Record <a id="iA.StmtKind" href="#iA.StmtKind">iA.StmtKind</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L229"><i>src</i></a>)</h3>
+<p>
+<b>Values: </b> <table>
+  <tr>
+    <td><code>iA.StmtKind.EXPR1</code></td>
+    <td>[number] </td>
+  </tr>
+  <tr>
+    <td><code>iA.StmtKind.IF</code></td>
+    <td>[number] </td>
+  </tr>
+  <tr>
+    <td><code>iA.StmtKind.LOOP</code></td>
+    <td>[number] </td>
+  </tr>
+  <tr>
+    <td><code>iA.StmtKind.MULTI</code></td>
+    <td>[number] </td>
+  </tr>
+  <tr>
+    <td><code>iA.StmtKind.SWITCH</code></td>
+    <td>[number] </td>
+  </tr>
+</table>
+<h3>Table <a id="iA.StmtKind.__docs" href="#iA.StmtKind.__docs">iA.StmtKind.__docs</a></h3>
+<h3>Table <a id="iA.StmtKind.__fieldIds" href="#iA.StmtKind.__fieldIds">iA.StmtKind.__fieldIds</a></h3>
+<h3>Table <a id="iA.StmtKind.__fields" href="#iA.StmtKind.__fields">iA.StmtKind.__fields</a></h3>
+<h4>Value <a id="iA.StmtKind.__name" href="#iA.StmtKind.__name">iA.StmtKind.__name</a></h4>
+<b>Records: </b> <table>
+  <tr>
+    <td><code>iA.StmtKind.__index</code></td>
+    <td>[Ty<StmtKind>] (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L229">src</a>)</td>
+  </tr>
+</table>
+<b>Methods: </b> <table>
+  <tr>
+    <td><code>iA.StmtKind.__fmt</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L151">src</a>)</td>
+  </tr>
+  <tr>
+    <td><code>iA.StmtKind.__newindex</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L208">src</a>)</td>
+  </tr>
+  <tr>
+    <td><code>iA.StmtKind.__tostring</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L157">src</a>)</td>
+  </tr>
+</table>
+<h3>Record <a id="iA.Ty" href="#iA.Ty">iA.Ty</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L83"><i>src</i></a>)</h3>
+iA Type, either user-defined (i.e. struct, enum) or native.
+<p>
+<b>Fields: </b> <table>
+  <tr>
+    <td><code>iA.Ty.mod</code></td>
+    <td>[iA.Mod] 
+    the module the type is defined in.</td>
+  </tr>
+  <tr>
+    <td><code>iA.Ty.name</code></td>
+    <td>[str] 
+    the name of the type.</td>
+  </tr>
+  <tr>
+    <td><code>iA.Ty.sz</code></td>
+    <td>[int?] 
+    the size of the type in bytes, or nil if unknown.</td>
+  </tr>
+  <tr>
+    <td><code>iA.Ty.ref</code></td>
+    <td>[int] = <code>0</code>
+    the number of & reference levels of the type</td>
+  </tr>
+  <tr>
+    <td><code>iA.Ty.kind</code></td>
+    <td>[iA.TyKind] 
+    the kind of type</td>
+  </tr>
+  <tr>
+    <td><code>iA.Ty.field</code></td>
+    <td>[table[string, int]] 
+    STRUCT/ENUM only, map of name -> idx.</td>
+  </tr>
+</table>
+<h3>Table <a id="iA.Ty.__docs" href="#iA.Ty.__docs">iA.Ty.__docs</a></h3>
+<h3>Table <a id="iA.Ty.__fieldIds" href="#iA.Ty.__fieldIds">iA.Ty.__fieldIds</a></h3>
+<h3>Table <a id="iA.Ty.__fields" href="#iA.Ty.__fields">iA.Ty.__fields</a></h3>
+<h4>Value <a id="iA.Ty.__name" href="#iA.Ty.__name">iA.Ty.__name</a></h4>
+<b>Records: </b> <table>
+  <tr>
+    <td><code>iA.Ty.__index</code></td>
+    <td>[Ty<Ty>] (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L83">src</a>)</td>
+  </tr>
+</table>
+<b>Methods: </b> <table>
+  <tr>
+    <td><code>iA.Ty.__fmt</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L151">src</a>)</td>
+  </tr>
+  <tr>
+    <td><code>iA.Ty.__newindex</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L208">src</a>)</td>
+  </tr>
+  <tr>
+    <td><code>iA.Ty.__tostring</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L157">src</a>)</td>
+  </tr>
+</table>
+<h3>Record <a id="iA.Var" href="#iA.Var">iA.Var</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L146"><i>src</i></a>)</h3>
+Named register or memory location and its type.
 <p>
 <b>Fields: </b> <table>
   <tr>
     <td><code>iA.Var.reg</code></td>
     <td>[iA.Reg] 
     register type (or V/U/etc)</td>
+  </tr>
+  <tr>
+    <td><code>iA.Var.ty</code></td>
+    <td>[iA.Ty] 
+    the type of the variable.</td>
+  </tr>
+  <tr>
+    <td><code>iA.Var.scope</code></td>
+    <td>  
+    the scope where the variable is active for
+    (Mod, Fn, Block, etc)</td>
+  </tr>
+  <tr>
+    <td><code>iA.Var.cap</code></td>
+    <td>[int] 
+    the max capacity of a non-ref array type, or nil</td>
   </tr>
 </table>
 <h3>Table <a id="iA.Var.__docs" href="#iA.Var.__docs">iA.Var.__docs</a></h3>
@@ -9648,7 +9921,7 @@ intermediate Assembly
 <b>Records: </b> <table>
   <tr>
     <td><code>iA.Var.__index</code></td>
-    <td>[Ty<Var>] (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L45">src</a>)</td>
+    <td>[Ty<Var>] (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L146">src</a>)</td>
   </tr>
 </table>
 <b>Methods: </b> <table>
@@ -9665,6 +9938,44 @@ intermediate Assembly
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L157">src</a>)</td>
   </tr>
 </table>
+<h3>Function <a id="iA.struct" href="#iA.struct">iA.struct</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L129"><i>src</i></a>)</h3>
+Create a new struct type
+<p>
+<h2>Module <a id="iA.array" href="#iA.array">iA.array</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L17"><i>src</i></a>)</h2>
+iA array module, containing all array types used in code.
+Get or fetch an array type by calling it with the inner type.
+<p>
+<h4>Value <a id="iA.array.__name" href="#iA.array.__name">iA.array.__name</a></h4>
+<h3>Function <a id="iA.array.__call" href="#iA.array.__call">iA.array.__call</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L121"><i>src</i></a>)</h3>
+Create or fetch an array with inner-type.
+<h2>Module <a id="iA.core" href="#iA.core">iA.core</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L13"><i>src</i></a>)</h2>
+iA default core module, containing core types and functions.
+<p>
+<h3>Table <a id="iA.core.I1" href="#iA.core.I1">iA.core.I1</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L92"><i>src</i></a>)</h3>
+<h3>Table <a id="iA.core.I2" href="#iA.core.I2">iA.core.I2</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L92"><i>src</i></a>)</h3>
+<h3>Table <a id="iA.core.I4" href="#iA.core.I4">iA.core.I4</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L93"><i>src</i></a>)</h3>
+<h3>Table <a id="iA.core.I8" href="#iA.core.I8">iA.core.I8</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L93"><i>src</i></a>)</h3>
+<h3>Table <a id="iA.core.Int" href="#iA.core.Int">iA.core.Int</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L96"><i>src</i></a>)</h3>
+Note: platforms may mutate this size
+<h3>Table <a id="iA.core.U1" href="#iA.core.U1">iA.core.U1</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L89"><i>src</i></a>)</h3>
+<h3>Table <a id="iA.core.U2" href="#iA.core.U2">iA.core.U2</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L89"><i>src</i></a>)</h3>
+<h3>Table <a id="iA.core.U4" href="#iA.core.U4">iA.core.U4</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L90"><i>src</i></a>)</h3>
+<h3>Table <a id="iA.core.U8" href="#iA.core.U8">iA.core.U8</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L90"><i>src</i></a>)</h3>
+<h3>Table <a id="iA.core.UInt" href="#iA.core.UInt">iA.core.UInt</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L99"><i>src</i></a>)</h3>
+Note: platforms may mutate this size
+<h4>Value <a id="iA.core.__name" href="#iA.core.__name">iA.core.__name</a></h4>
+<h3>Function <a id="iA.core.enum" href="#iA.core.enum">iA.core.enum</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L137"><i>src</i></a>)</h3>
+Create a new enum type
+<h2>Module <a id="iA.mod" href="#iA.mod">iA.mod</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L10"><i>src</i></a>)</h2>
+iA submodule containing all modules
+(both user-defined and native).
+<p>
+Modules contain their own types.
+<p>
+<h4>Value <a id="iA.mod.__name" href="#iA.mod.__name">iA.mod.__name</a></h4>
+<p>
+<code>iA.mod.array</code>  | [Mod<iA.array>] (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L17">src</a>)
+<code>iA.mod.core</code>   | [Mod<iA.core>] (<a href="https://github.com/civboot/civlua/blob/main/os/iA/iA.lua#L13">src</a>)
 <h1><a id="Package_pkg" href="#Package_pkg">Package pkg</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pkg"><i>src</i></a>)</h1><table>
   <tr>
     <td><b>summary</b></td>

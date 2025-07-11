@@ -143,7 +143,6 @@ end
 ---------------------
 -- String Functions
 
-
 -- Concatenate all values in ..., calling tostring on them
 -- if necessary.
 -- This has several differences than table.concat:[+
@@ -233,6 +232,25 @@ M.simplestr = function(s)
     i = i + 1
   end
   return concat(out, '\n')
+end
+
+--- Convert integer to binary representation (0's and 1's) [+
+--- * width will be the number of bits.
+--- * sep4 will be used to separate every 4 bits, set to
+---   nil to disable.
+--- ]
+M.bin = function(uint, width--[[8]], sep4--[['_']]) --> str
+  width = width or 8
+  if sep4 == nil then sep4 = '_' end
+  local str = {}
+  for w=0,width-2 do
+    push(str, tostring(1 & uint))
+    uint = uint >> 1
+    if sep4 and w % 4 == 3 then push(str, sep4) end
+  end
+  push(str, tostring(1 & uint))
+  M.reverse(str)
+  return concat(str, '')
 end
 
 ---------------------
