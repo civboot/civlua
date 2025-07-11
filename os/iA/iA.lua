@@ -171,18 +171,19 @@ M.Expr1Kind = mty.enum'Expr1Kind' {
 --- [#
 ---   5b left  5b right  6b op
 ---   lllll    rrrrr     oooooo
+---   0xF800   0x07C0    0x003F  (mask)
 --- ]#
 --- Where: [+
---- * [*o] operation (iA.Op) is low bits 0-5          (6 bits, 0x003F)
---- * [*l] left register (iA.Reg) is middle bits 6-10 (5 bits, 0x07C0)
---- * [*r] right register (iA.Reg) is high bits 11-15 (5 bits, 0xF800)
+--- * [*o] operation (iA.Op) is low bits 0-5          (6 bits)
+--- * [*l] left register (iA.Reg) is middle bits 6-10 (5 bits)
+--- * [*r] right register (iA.Reg) is high bits 11-15 (5 bits)
 --- ]
 ---
 --- For some iA.Reg values, the instruction will be followed with
 --- one or more 16bit immediate values. [+
 --- * [*V]: an immediate offset of the stack pointer.
 --- * [*L2, L4, L8]: immediate of the given bytes.
---- * [*OFS]: 16bit immediate, 5 bit iA.Reg followed by an 11bit offset.
+--- * [*OFS]: 16bit immediate of 5 bit iA.Reg followed by an 11bit offset.
 --- ]
 M.Op = mty.enum'Op' {
   INT  = 0,  -- CPU interrupt. Used for errors and kernel stuff.
