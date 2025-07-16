@@ -79,7 +79,7 @@ M.dark = {
   type          = 'h', -- type signature
   var           = 'G', -- variable name
   keyword       = 'R', -- for while do etc
-  symbol        = 't', -- = + . { } etc
+  symbol        = 'A', -- = + . { } etc
   builtin       = 'p', -- builtin fns/mods/names: io sys self etc
   commentbox    = 'bw', -- start/end of comment: -- // /**/ etc
   comment       = 'zb', -- content of comment:  /*content*/

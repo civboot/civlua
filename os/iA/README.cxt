@@ -267,9 +267,21 @@ a register or used for control flow: [+
 These are used in control flow structures. For each, the last statement is
 evaluated for a non-zero value to determine when to jump.
 [{## lang=iA}
+
+::my_location:: \ define a location
+
+\ jump to my_location
+goto my_location; 
+
+\ jump to my_location if a < b
+if a < b goto my_location;
+
+\ if-elif-else blocks
 if   a == 4 do
   ...
-elif B b = foo(1, 2); c == bar(b) do
+elif B b = foo(1, 2); c <= bar(b) do
+  ...
+else
   ...
 end
 
@@ -285,9 +297,6 @@ until i<10 do ... end
 \ infinite loop
 loop do ... end
 
-::my_location:: \ define a location
-  ...
-  goto my_location; \\ goto that location
 
 \ similar to C switch-case.
 switch i

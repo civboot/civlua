@@ -55,10 +55,14 @@ print'[[apps]]'
   dofile(dir..'cmd/ff/test.lua')
   dofile(dir..'cmd/pvc/test.lua')
 
+print'[[os]]'
+  dofile(dir..'os/iA/test.lua')
+
 print'[[ele]]'
   dofile(dir..'cmd/ele/tests/test_term.lua')
   dofile(dir..'cmd/ele/tests/test_bindings.lua')
   dofile(dir..'cmd/ele/tests/test_actions.lua')
   dofile(dir..'cmd/ele/tests/test_session.lua')
+
 
 io.fmt:styled('notify', '\nSuccess! All tests passed', '\n')

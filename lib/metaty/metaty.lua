@@ -142,10 +142,12 @@ end
 --- The default __fmt method.
 M.fmt = function(self, f)
   local mt = getmt(self)
-  local fields = rawget(mt, '__fields')
-  local multi = #fields > 1 -- use multiple lines
+  local len, fields = #self, rawget(mt, '__fields')
+  local multi = len + #fields > 1 -- use multiple lines
   f:write(rawget(mt, '__name'));
   f:level(1);  f:write(multi and f.tableStart or '{')
+  f:items(self, #fields > 0,
+          multi and (len>0) and (#fields>0) and f.listEnd)
   f:keyvals(self, fields)
   f:level(-1); f:write(multi and f.tableEnd or '}')
 end

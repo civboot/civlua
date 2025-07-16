@@ -12,5 +12,6 @@ deps = {
 }
 srcs = {
   'iA.lua',
+  'iA/parse.lua',
 }
 

@@ -76,16 +76,18 @@ M.Fmt = mty'Fmt' {
 }
 local Fmt = M.Fmt
 
+Fmt.toPretty = function(f)
+  f.tableStart = rawget(f, 'tableStart') or '{\n'
+  f.tableEnd   = rawget(f, 'tableEnd')   or '\n}'
+  f.listEnd    = rawget(f, 'listEnd')    or '\n'
+  f.keyEnd     = rawget(f, 'keyEnd')     or ',\n'
+  f.indent     = rawget(f, 'indent')     or '  '
+  return f
+end
+
 --- Create a new Formatter object with default "pretty" settings.
 --- Generally, this means line-separated and indented tables.
-Fmt.pretty = function(F, t)
-  t.tableStart = t.tableStart or '{\n'
-  t.tableEnd   = t.tableEnd   or '\n}'
-  t.listEnd    = t.listEnd    or '\n'
-  t.keyEnd     = t.keyEnd     or ',\n'
-  t.indent     = t.indent     or '  '
-  return F(t)
-end
+Fmt.pretty = function(F, t) return F(t):toPretty() end
 
 --- Add to the indent level and get the new value
 --- call with [$add=nil] to just get the current level
@@ -180,9 +182,9 @@ end
 Fmt.items = function(f, t, hasKeys, listEnd)
   local len = #t; for i=1,len do
     f(t[i])
-    if (i < len) or hasKeys then f:write(f.indexEnd) end
+    if (i < len) or hasKeys then f:styled('meta', f.indexEnd, '') end
   end
-  if listEnd then f:write(listEnd) end
+  if listEnd then f:styled('meta', listEnd, '') end
 end
 
 --- format key/vals in table "map"
@@ -214,11 +216,11 @@ Fmt.table = function(f, t)
   local keys = M.sortKeys(t)
   local multi = #t + #keys > 1 -- use multiple lines
   f:level(1)
-  f:write(multi and f.tableStart or '{')
+  f:styled('symbol', multi and f.tableStart or '{', '')
   f:items(t, next(keys), multi and (#t>0) and (#keys>0) and f.listEnd)
   f:keyvals(t, keys)
   f:level(-1)
-  f:write(multi and f.tableEnd or '}')
+  f:styled('symbol', multi and f.tableEnd or '}', '')
 end
 Fmt.__call = function(f, v) f[type(v)](f, v); return f end
 
@@ -258,7 +260,6 @@ Fmt.__tostring = function(f)
 end
 Fmt.tostring = Fmt.__tostring
 
-
 M.tostring = function(v, fmt)
   fmt = fmt or Fmt{}; assert(#fmt == 0, 'non-empty Fmt')
   return concat(fmt(v))
@@ -289,6 +290,17 @@ local fprint = M.fprint
 
 --- [$print(...)] but using [$io.fmt]
 M.print  = function(...) return fprint(io.fmt, ...) end
+
+--- pretty print
+M.pprint = function(...)
+  local f; if io.fmt then
+    f = {}
+    for k,v in pairs(io.fmt) do f[k] = v end
+    setmetatable(f, getmetatable(io.fmt))
+    f:toPretty()
+  end
+  return M.fprint(f, ...)
+end
 
 --- pretty format the value
 M.pretty = function(v) return concat(Fmt:pretty{}(v)) end --> string

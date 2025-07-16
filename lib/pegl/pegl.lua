@@ -253,6 +253,9 @@ M.UNPIN = ds.sentinel('UNPIN', {name='UNPIN', kind=false})
 M.EMPTY = ds.sentinel('EMPTY', {kind='EMPTY', __len=zero})
 M.Empty = ds.sentinel('Empty', {parse = function() return M.EMPTY end})
 
+M.isEmpty  = function(t) return mty.eq(M.EMPTY, t) end
+M.notEmpty = function(t) return not mty.eq(M.EMPTY, t) end
+
 -- Denotes the end of the file
 M.EOF = ds.sentinel('EOF', {kind='EOF', __len=zero})
 M.Eof = ds.sentinel('Eof', {
@@ -488,7 +491,7 @@ end
 --- the input is a table of the form: [{# lang=lua}
 ---   {dat, spec, expect, dbg=nil, root=default} --> nil
 --- ]#
-M.assertParse = function (t) --> nil
+M.assertParse = function (t) --> result, node, parser
   assert(t.dat, 'dat'); assert(t.spec, 'spec')
   local root = (t.root and ds.copy(t.root)) or M.RootSpec{}
   root.dbg   = t.dbg or root.dbg
@@ -668,16 +671,34 @@ M.Parser.dbg=function(p, fmtstr, ...)
     string.rep('* ', p.dbgLevel), msg, p.l, p.c))
 end
 
-local _n10, _hpat = M.Pat'[0-9]+', '[a-fA-F0-9]+'
-local n10 = {kind='n10', -- base 10 number
-  M.UNPIN, M.Maybe'-',  _n10, M.Maybe{'.', _n10}
+local _10pat = M.Pat'[0-9]+'
+local _16pat = '[a-fA-F0-9]+'
+M.common = G.mod and G.mod'pegl.common' or {}
+
+M.common.nameStr = '[%a_][%w_]*'
+
+--- Most common programatic name: a non-decimal word
+--- character followed by word characters.
+M.common.name = M.Pat{M.common.nameStr, kind='name'}
+
+--- Most common programatic ty name, with same rules
+--- as normal name (but different context)
+M.common.ty   = M.Pat{M.common.nameStr, kind='ty'}
+
+--- base 2 number
+--- Note: does not support negatives or decimals.
+M.common.base2 = M.Pat{'0b[01]+', kind='base2'}
+
+--- base 10 number, supporting negatives and decimals.
+M.common.base10 = {kind='base10',
+  M.UNPIN, M.Maybe'-', _10pat, M.Maybe{'.', _10pat}
 }
-local n16 = {kind='n16', -- base 16 number
-  M.UNPIN, M.Maybe'-',  M.Pat('0x'.._hpat),
-  M.Maybe{'.', M.Pat(_hpat)},
+
+--- base 16 number, supporting negatives and decimals.
+M.common.base16 = {kind='base16',
+  M.UNPIN, M.Maybe'-',  M.Pat('0x'.._16pat),
+  M.Maybe{'.', M.Pat(_16pat)},
 }
-local num = M.Or{name='num', n16, n10}
-M.common = {num=num, n10=n10, n16=n16}
 
 M.isKeyword = function(t) return #t == 1 and t.kind == t[1] end
 
@@ -690,9 +711,10 @@ local function NumT(kind, t)
   return ds.extend({kind=kind, (t.neg and neg) or M.EMPTY, tostring(t[1])},
     t[2] and {dot, tostring(t[2])} or {M.EMPTY})
 end
-M.testing.N = function(name) return {name, kind='name'} end -- name
-M.testing.NUM = function(t)  return NumT('n10', t) end
-M.testing.HEX = function(t)  return NumT('n16', t) end
+M.testing.N  = function(name) return {name, kind='name'} end -- name
+M.testing.TY = function(ty)   return {ty,   kind='ty'} end -- ty
+M.testing.NUM = function(t)   return NumT('base10', t) end
+M.testing.HEX = function(t)   return NumT('base16', t) end
 M.testing.KW = KW
 
 -- formatting parsed so it can be copy/pasted
@@ -705,9 +727,10 @@ end
 M.fmtKinds = {
   EOF   = function(f, t) f:write'EOF'   end,
   EMPTY = function(f, t) f:write'EMPTY' end,
-  name  = function(f, t) f:write(sfmt('N%q', t[1])) end,
-  n10   = function(...) fmtKindNum('NUM', ...) end,
-  n16   = function(...) fmtKindNum('HEX', ...) end,
+  name  = function(f, t) f:write(sfmt('N%q',  t[1])) end,
+  ty    = function(f, t) f:write(sfmt('TY%q', t[1])) end,
+  base10 = function(...) fmtKindNum('NUM', ...) end,
+  base16 = function(...) fmtKindNum('HEX', ...) end,
 }
 -- Override Fmt.table with an instance of this for copy/paste debugging
 M.FmtPegl = mty'FmtPegl' {

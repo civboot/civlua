@@ -178,6 +178,8 @@ os/README.md
 os/iA/PKG.lua
 os/iA/README.cxt
 os/iA/iA.lua
+os/iA/iA/parse.lua
+os/iA/test.lua
 test.lua
 testdata/small.txt
 ui/README

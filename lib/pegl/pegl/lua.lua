@@ -15,7 +15,7 @@ local Pat, Or, Not, Many, Maybe
 local Token, Empty, Eof, PIN, UNPIN
 local EMPTY, common
 local pegl = ds.auto'pegl'
-local num = common.num
+local num = Or{name='num', common.base16, common.base10}
 
 local stmt = Or{name='stmt'}
 
@@ -23,7 +23,7 @@ local keyW = Key{name='keyw', {
   'end', 'if', 'else', 'elseif', 'while', 'do', 'repeat', 'local', 'until',
   'then', 'function', 'return',
 }}
-local name = {UNPIN, Not{keyW}, Pat{'[%a_][%w_]*', kind='name'}}
+local name = {UNPIN, Not{keyW}, common.name}
 
 -- uniary and binary operations
 local op1 = Key{name='op1', {'-', 'not', '#'}}
@@ -126,7 +126,7 @@ local bracketStr     = function(p)
   p:skipEmpty()
   return bracketStrImpl(p)
 end
-local str     = Or{name='str', singleStr, doubleStr, bracketStr}
+local str = Or{name='str', singleStr, doubleStr, bracketStr}
 add(exp1, str)
 
 

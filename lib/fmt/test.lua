@@ -3,6 +3,7 @@ local T = require'civtest'
 local mty = require'metaty'
 local M = require'fmt'
 local fmt = M
+local sfmt = string.format
 
 T.tostring = function()
   T.eq('"a123"',    fmt("a123"))
@@ -69,4 +70,15 @@ T.binary = function()
   , bin('hi there bob!', 4))
   T.eq(
 "     0: 68 69        | hi", bin('hi', 4))
+end
+
+T.metaty = function()
+  local A = mty'A'{'a1', 'a2'}
+  T.eq('A{a1=42, a2=nil}', M(A{a1=42}))
+  local a = A{a1=1, a2=2, 3, 4, 5}
+  local aFmt = 'A{3, 4, 5, a1=1, a2=2}'
+  T.eq(aFmt, M(a))
+  local B = mty'B'{'b1'}
+  local b = B{a, b1=a}
+  T.eq(sfmt('B{%s, b1=%s}', aFmt, aFmt), M(b))
 end

@@ -3,6 +3,13 @@ local G = G or _G
 --- intermediate Assembly
 local M = G.mod and G.mod'iA' or {}
 
+local mty = require'metaty'
+local ds = require'ds'
+local fmt = require'fmt'
+local info = require'ds.log'.info
+
+local push, pop, sfmt    = table.insert, table.remove, string.format
+
 --- iA submodule containing all modules
 --- (both user-defined and native).
 ---
@@ -19,11 +26,6 @@ M.array = G.mod and G.mod'iA.array' or setmetatable({}, {})
 local C = M.core
 M.mod.core, M.mod.array = C, M.array
 
-local mty = require'metaty'
-local ds = require'ds'
-local fmt = require'fmt'
-
-local push, pop, sfmt    = table.insert, table.remove, string.format
 
 M.Reg = mty.enum'Reg' {
   NONE = 0, -- no register selected
@@ -82,6 +84,9 @@ M.Ty = mty'Ty' {
   'kind [iA.TyKind]: the kind of type',
   'field [table[string, int]]: STRUCT/ENUM only, map of name -> idx.',
 }
+M.Ty.__fmt = function(ty, f)
+  f:write(sfmt('Ty(%s.%s)', mod.name, ty.name))
+end
 
 local native = function(name, sz)
   return M.Ty{mod=C, name=name, sz=sz, ref=0, kind=M.TyKind.NATIVE}
@@ -139,7 +144,9 @@ end
 
 --- Named register or memory location and its type.
 M.Var = mty'Var' {
+  'imm [bool]: whether this is immutable',
   'reg [iA.Reg]: register type (or V/U/etc)',
+  'name [str]: name',
   'ty  [iA.Ty]: the type of the variable.',
  [[scope: the scope where the variable is active for
           (Mod, Fn, Block, etc)]],
@@ -147,7 +154,25 @@ M.Var = mty'Var' {
 }
 
 --- A literal value.
-M.Literal = mty'Literal' { 'ty [iA.Ty]', 'value' }
+M.Literal = mty'Literal' { 'ty [iA.Ty]' }
+
+--- Create a Literal
+M.literal = function(v)
+  info('!! literal %q', v)
+  if not v then error('invalid literal: '..tostring(v)) end
+  if type(v) == 'string' then
+    error'strings not yet impl'
+  elseif math.type(v) == 'float' then
+    error'floats not yet impl'
+  elseif v < 0 then
+    error'negative not yet impl'
+  else
+    if     v <= 0xFF       then return M.Literal{v, ty=C.U1}
+    elseif v <= 0xFFFF     then return M.Literal{v, ty=C.U2}
+    elseif v <= 0xFFFFFFFF then return M.Literal{v, ty=C.U4}
+    else                        return M.Literal{v, ty=C.U8} end
+  end
+end
 
 M.Expr1Kind = mty.enum'Expr1Kind' {
   --- Named variable or literal
@@ -158,8 +183,8 @@ M.Expr1Kind = mty.enum'Expr1Kind' {
   FN1 = 3,
 }
 
---- Cross-platofrm operations. Operations work on an l and r values which are
---- an iA.Reg.
+--- Cross-platform operations. Operations work on an l and r values
+--- which are an iA.Reg.
 ---
 --- [{h1}CivCPU]
 --- This enum is intended to be used with a 16bit virtual CPU,
@@ -186,7 +211,7 @@ M.Expr1Kind = mty.enum'Expr1Kind' {
 --- * [*OFS]: 16bit immediate of 5 bit iA.Reg followed by an 11bit offset.
 --- ]
 M.Op = mty.enum'Op' {
-  INT  = 0,  -- CPU interrupt. Used for errors and kernel stuff.
+  INT  = 0, -- CPU interrupt. Used for errors and kernel stuff.
   REGL = 1, -- l = reg(r): load from a system register
   REGS = 2, -- reg(l) = r: store to a system register
 
@@ -209,14 +234,14 @@ M.Op = mty.enum'Op' {
   ST1=21, ST2=22, ST4=23, ST8=24,
 
   -- Unsigned bitwise operations
-  INV = 25,  -- l ~= r: inversion
-  OR  = 26,  -- l |= r: or
-  AND = 27,  -- l |= r: and
-  XOR = 28,  -- l = xor(l, r): exclusive or
-  SHL = 29,  -- l <<= r: shift left
-  SHR = 30,  -- l >>= r: shift right
-  ROL = 31,  -- l = rotl(l, imm): rotate l left by imm
-  ROR = 32,  -- l = rotr(l, imm): rotate l left by imm
+  INV  = 25,  -- l ~= r: inversion
+  BOR  = 26,  -- l |= r: or
+  BAND = 27,  -- l &= r: and
+  XOR  = 28,  -- l = xor(l, r): exclusive or
+  SHL  = 29,  -- l <<= r: shift left
+  SHR  = 30,  -- l >>= r: shift right
+  ROL  = 31,  -- l = rotl(l, imm): rotate l left by imm
+  ROR  = 32,  -- l = rotr(l, imm): rotate l left by imm
 
   -- int multiplication.
   -- guaranteed optimized: A low, D high = mul(A, r)

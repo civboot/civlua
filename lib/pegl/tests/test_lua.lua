@@ -58,7 +58,6 @@ T.decimal = function()
   , root=root}
 end
 
-
 T.field = function()
   assertParse{dat=' 44 ',     spec={field},
     expect={kind='field', NUM'44'}}
