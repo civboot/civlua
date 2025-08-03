@@ -92,7 +92,6 @@ M.tableToIa.var = function(r)
   }
 end
 
---- An expr1 value
 M.val = Or{M.var, M.literal}
 
 --- Operation token lookup.
@@ -106,6 +105,16 @@ M.eqOpToken = {
   ['<<='] = 'SHL', ['>>='] = 'SHR',
 }
 
+M.cmpOp = pegl.Key{{
+  ['='] = {['=']=true}, ['~'] = {['='] = true}, -- == and ~=
+  ['<']={true, ['=']=true},                     -- <  and <=
+  ['>']={true, ['=']=true},                     -- >  and >=
+}}
+M.cmp = {kind='cmp', UNPIN, M.rvalue, M.cmpOp, PIN, M.rvalue}
+M.tableToIa.eq = function(tok)
+  return iA.Cmp{l=M.toIa(tok[1]), op=tok[2][1], r=M.toIa(tok[3])}
+end
+
 local _eq = {['=']=true} -- tokens end in =
 M.eqOp = {
   ['='] = true,
@@ -118,7 +127,10 @@ M.eqOp = {
 }
 M.eqOp = pegl.Key{M.eqOp, kind='eqOp'}
 
-M.eq = {kind='eq', M.lvalue, M.eqOp, M.rvalue}
+M.eq = {kind='eq',
+  UNPIN, M.lvalue, Not{M.cmpOp},
+  M.eqOp, PIN, M.rvalue
+}
 M.tableToIa.eq = function(tok)
   return iA.Expr1{
     kind=iA.Expr1Kind.EQ1,
@@ -130,14 +142,14 @@ end
 M.fnArgs    = {UNPIN, '(', PIN,
   M.rvalue, Many{',', M.rvalue}, Maybe',',
 ')'}
---- eXecute a function, using only first return value.
-M.fn1    = {UNPIN, M.name, M.fnArgs}
+--- eXecute a function
+M.fncall    = {UNPIN, M.name, M.fnArgs}
 --- eXecute a macro.
 M.macrox = {UNPIN, '#', PIN, M.name, Or{M.fnArgs, M.lvalue}}
 
 ds.extend(M.rvalue, {
   M.macrox, M.fnArgs, M.literal,
-  M.fn1, M.eq,
+  M.fncall, M.eq,
   M.reg, M.name,
 })
 
@@ -148,34 +160,52 @@ ds.extend(M.lvalue, {
 
 M.stmt = Or{name = 'stmt'} -- (to be extended)
 M.block = {kind='block', Many{M.stmt}}
+M.tableToIa['block'] = function(t)
+  local b = {}
+  for i, stmt in ipairs(t) do b[i] = M.toIa(stmt) end
+  return b
+end
 
-M.cmpOp = pegl.Key{{
-  '==', '~=',
-  '<',  '<=',
-  '>',  '>=',
-}}
-M.cmp = {M.lvalue, M.cmpOp, PIN, M.lvalue}
+M.assign = {kind='assign',
+  UNPIN, M.lvalue, Not{M.cmpOp}, Many{',', M.lvalue},
+  '=', PIN, M.rvalue,
+}
+M.tableToIa['assign'] = function(t)
+  local a = iA.Assign{eq=M.toIa(t[#t])}
+  a[1] = M.toIa(t[1])
+  for i=2,#t-2 do a[i] = M.toIa(t[i][2]) end
+  return a
+end
 
-M.fnMulti = {M.lvalue, Many{min=1, ',', PIN, M.lvalue}, '=', M.fn1}
+M.goto_  = {kind='goto', UNPIN, 'goto', PIN, M.name}
+M.tableToIa['goto'] = function(t)
+  return iA.Goto{to=assert(t[2][1])}
+end
 
-M.loc    = Pat{common.nameStr, kind='loc'}
-M.setloc = {'::', PIN, M.loc, '::'}
-M.goto_  = {'goto', PIN, M.loc}
-M.if_ = {
-  'if', PIN, M.block,
-  Or{
-    M.goto_, {
-    Many {'elif', PIN, M.block},
-    Maybe{'else', PIN, M.block},
-    'end',
-    }
-  },
+M.if_ = {kind='if',
+  UNPIN,       'if',   PIN, M.block, 'do', M.block,
+  Many {UNPIN, 'elif', PIN, M.block, 'do', M.block},
+  Maybe{UNPIN, 'else', PIN, M.block},
+  'end',
 }
 
-ds.extend(M.stmt, {
-  M.loc, M.goto_, M.if_,
-  M.fnMulti, M.lvalue,
-})
+local condBlockToIa = function(t)
+  local cond = iA.CondBlock{cond=M.toIa(t[2])}
+  for i, stmt in ipairs(t[4]) do cond[i] = M.toIa(stmt) end
+  return cond
+end
+M.tableToIa['if'] = function(t)
+  local if_ = iA.If{condBlockToIa(t)}
+  for i=5,#t-2 do push(if_, condBlockToIa(t[i])) end
+  local elseTok = t[#t-1]
+  if notEmpty(elseTok) then if_.else_ = M.toIa(elseTok) end
+  return if_
+end
 
+ds.extend(M.stmt, {
+  M.goto_, M.if_,
+  M.cmp, M.assign, M.eq,
+  M.lvalue,
+})
 
 return M

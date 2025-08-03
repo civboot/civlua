@@ -1,4 +1,4 @@
-Ele: Extendable Lua Editor
+[{h1}Ele: Extendable Lua Editor]
 
 Ele is an (**In Development**) extendable lua editor. This is the second
 rewrite, with the original code being in [/experiment/ele].
@@ -6,15 +6,18 @@ rewrite, with the original code being in [/experiment/ele].
 Ele's primary goals are: [+
 * Implemented in a minimal amount of understandable code. It is the main editor
   for [@Civboot]
-* Enjoyable and extendable for developers to fit their workflow
+* Enjoyable and extendable for developers to fit their workflow [+
   * undo/redo, syntax highlighting, plugins, user-configurable bindings
     (supports vim/emacs style), etc.
+]
 * Implements a lua shell (zsh competitor)
 * Can handle any size text file
 ]
 
 Non-goals of Ele are: [+
-* focusing on performance against the other goals
+* Focusing on performance against the other goals. It should be fast enough
+  to be an editor and should not choke on large files -- otherwise performance
+  is not important.
 ]
 
-See [/ARCH.md] for the current architecture.
+[{h1}Architecture]
