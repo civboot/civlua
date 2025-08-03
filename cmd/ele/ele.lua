@@ -3,9 +3,10 @@ local M = mod'ele'
 MAIN = MAIN or M
 CWD = CWD or os.getenv'PWD' or os.getenv'CD'
 
+local shim = require'shim'
 local lap = require'lap'
-local log = require'ds.log'
 local fd = require'fd'
+local log = require'ds.log'
 local ioopen = io.open
 
 -- shim exe function

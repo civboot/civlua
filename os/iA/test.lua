@@ -13,7 +13,7 @@ local pegl = ds.auto'pegl'
 
 local KW, N, TY, NUM, HEX; ds.auto(testing)
 
-T.parseSmall = function()
+T.expr1 = function()
   -- literal 42
   local tok = assertParse{dat='42', spec=pegl.common.base10,
     expect=NUM{42},
@@ -41,3 +41,53 @@ T.parseSmall = function()
     }, piA.toIa(tok))
 end
 
+T.Cmp = function()
+  local tok = assertParse{dat='a==3', spec=piA.stmt,
+    expect={kind='cmp', N'a', KW'==', NUM{3},
+    },
+  }
+end
+
+T.Block = function()
+  local tok = assertParse{dat='true false a=2',
+    spec=piA.block, expect={kind='block',
+      KW'true', KW'false', {kind='assign',
+        N'a', KW'=', NUM{2}
+      }
+    },
+  }
+  T.eq({
+    iA.literal(1),
+    iA.literal(0),
+    iA.Assign{iA.Var{name='a'}, eq=iA.literal(2)},
+  }, piA.toIa(tok))
+end
+
+T.If = function()
+  local tok = assertParse{dat='goto loc', spec=piA.stmt,
+    expect={kind='goto',
+      KW'goto', N'loc',
+    },
+  }
+  T.eq(iA.Goto{to='loc'}, piA.toIa(tok))
+
+  tok = assertParse{dat='if true do goto loc end', spec=piA.stmt,
+    expect={kind='if',
+      KW'if', {kind='block', KW'true'}, KW'do',
+      {kind='block',
+        {kind='goto', KW'goto', N'loc'},
+      }, EMPTY, KW'end'
+    },
+  }
+  T.eq(iA.If{
+    iA.CondBlock{cond={iA.literal(1)}, iA.Goto{to="loc"}},
+  }, piA.toIa(tok))
+
+  -- tok = assertParse{parseOnly=true, spec=piA.stmt,
+  --   dat=[[
+  --     if false    do goto loc
+  --     elif a == 3 do a += 3
+  --     else           a = 0  end
+  --   ]]
+  -- }
+end

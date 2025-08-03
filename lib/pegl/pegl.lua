@@ -474,7 +474,7 @@ M.Parser.assertNode = function(p, expect, node, root)
       print('\n#### EXPECT:'); print(eStr)
       print('\n#### RESULT:'); print(rStr)
       print()
-      civtest.showDiff(io.fmt, eStr, rStr)
+      T.showDiff(io.fmt, eStr, rStr)
     else
       print('\n#### FORMATTED:'); print(eStr)
       print('## Note: They format the same but they differ')

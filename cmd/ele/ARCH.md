@@ -44,7 +44,8 @@ function action([self,] data, ev, evsend)
 
 The action body is free to mutate both `data` and `ev` as well as call
 `evsend(newEvent)`. It is also free to call `lap.schedule(...)` to
-schedule coroutines which call `evsend(newEvent)` asynchronously.
+schedule coroutines which themselves call `evsend(newEvent)` asynchronously
+in order ot update the main loop.
 
 Any events scheduled directly by the action will be handled immediately (the LAP
 executor will not be run). The actual implementation of `model()` is:
