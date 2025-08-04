@@ -126,14 +126,12 @@ T.IFile = function()
   if G.LAP_ASYNC then return 'FIXME: IFile async' end
   local IFile = require'fd.IFile'
   local fi = IFile:create(1)
-  ds.extend(fi, {'a', 'b', 'c'})
-  T.eq({'a', 'b', 'c'}, ds.icopy(fi))
-  fi[2] = 'B'
-  T.eq({'a', 'B', 'c'}, ds.icopy(fi))
-
-  local fi = IFile:create(2)
-  ds.extend(fi, {'a1', 'b2', 'c3'})
-  T.eq({'a1', 'b2', 'c3'}, ds.icopy(fi))
+  fi:set(1, 'a'); fi:set(2, 'b'); fi:set(3, 'c')
+  T.eq(3, #fi)
+  T.eq('a', fi:get(1))
+  T.eq('b', fi:get(2))
+  T.eq('c', fi:get(3))
+  T.eq(nil, fi:get(4))
 end
 
 fin=true

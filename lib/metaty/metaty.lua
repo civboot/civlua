@@ -3,7 +3,7 @@ local G = G or _G
 --- metaty: simple but effective Lua type system using metatable
 local M = G.mod and G.mod'metaty' or setmetatable({}, {})
 local concat = table.concat
-local getmt = getmetatable
+local getmt, type, rawget = getmetatable, type, rawget
 
 do
   local treq = function(n) --> try to require n from metaty.native
@@ -197,13 +197,25 @@ M.eq = function(a, b) return NATIVE_TY_EQ[type(a)](a, b) end --> bool
 M.indexError = function(R, k, lvl) -- note: can use directly as mt.__index
   error(R.__name..' does not have field '..k, lvl or 2)
 end
+
 M.index = function(R, k) -- Note: R is record's metatable
   if type(k) == 'string' and not rawget(R, '__fields')[k] then
     M.indexError(R, k, 3)
   end
 end
+M.hardIndex = function(R, k)
+  if type(k) ~= 'string' or not rawget(R, '__fields')[k] then
+    M.indexError(R, k, 3)
+  end
+end
 M.newindex = function(r, k, v)
   if type(k) == 'string' and not M.metaget(r, '__fields')[k] then
+    M.indexError(getmt(r), k, 3)
+  end
+  rawset(r, k, v)
+end
+M.hardNewindex = function(r, k, v)
+  if type(k) ~= 'string' or not M.metaget(r, '__fields')[k] then
     M.indexError(getmt(r), k, 3)
   end
   rawset(r, k, v)

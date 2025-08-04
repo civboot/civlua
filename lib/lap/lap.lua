@@ -380,13 +380,17 @@ M.Lap.isDone = function(lap)
   return not (next(LAP_READY) or (#lap.monoHeap > 0) or next(lap.pollMap))
 end
 M.Lap.run = function(lap, fns, async, sync)
-  local errors; async, sync = async or M.async, sync or M.sync
+  async, sync = async or M.async, sync or M.sync
+  local errors
   assert(lap:isDone(), "cannot run non-done Lap")
   assert(not LAP_ASYNC, 'already in async mode')
-  if type(fns) == 'function' then LAP_READY[coroutine.create(fns)] = 'run'
-  else; for i, fn in ipairs(fns) do
-    LAP_READY[coroutine.create(fn)] = 'run'
-  end ; end
+  if type(fns) == 'function' then
+    LAP_READY[coroutine.create(fns)] = 'run'
+  else
+    for i, fn in ipairs(fns) do
+      LAP_READY[coroutine.create(fn)] = 'run'
+    end
+  end
   async()
   while not lap:isDone() do
     errors = lap(); if errors then break end

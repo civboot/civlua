@@ -5,7 +5,7 @@ local ds     = require'ds'
 M.term       = require'vt100'
 local sfmt = string.format
 local push, pop, concat = table.insert, table.remove, table.concat
-local get = ds.get
+local getp = ds.getp
 
 M.ID = 1
 M.uniqueId = function()
@@ -50,7 +50,7 @@ M.checkMode = function(data, mode) --> errstring
 end
 
 M.checkAction = function(data, action) --> errstring
-  if not mty.callable(get(data, {'actions', action})) then
+  if not mty.callable(getp(data, {'actions', action})) then
     return sfmt('actions.%s is not a callable', action)
   end
 end

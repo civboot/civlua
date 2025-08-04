@@ -13,7 +13,8 @@ local concat    = table.concat
 local max, min, bound = math.max, math.min, ds.bound
 local sort2 = ds.sort2
 local rawsplit = mty.rawsplit
-local inset = ds.inset
+
+local set, get, inset = ds.set, ds.get, ds.inset
 
 M.CMAX = 999
 M.CHUNK = 0x4000 -- 16KiB
@@ -46,7 +47,7 @@ local sinsert = function (s, i, v) return s:sub(1, i-1)..v..s:sub(i) end
 --- Note: this is NOT performant (O(N)) for large tables.
 --- See: lib/rebuf/gap.lua (or similar) for handling real-world workloads.
 M.inset = function(t, s, l, c) --> nil
-  inset(t, l, M(sinsert(t[l] or '', c or 1, s)), 1)
+  inset(t, l, M(sinsert(get(t, l) or '', c or 1, s)), 1)
 end
 
 --- Address lines span via either (l,l2) or (l,c, l2,c2)
@@ -76,7 +77,7 @@ local function _lsub(sub, slen, t, ...)
   if lb2 < l2 then c2 = nil end -- EoL
   l, l2 = lb, lb2
   local s = {} -- s is sub
-  for i=l,l2 do push(s, t[i]) end
+  for i=l,l2 do push(s, get(t, i)) end
   if    nil == c then -- skip, only lines
   elseif #s == 0 then s = '' -- empty
   elseif l == l2 then
@@ -108,26 +109,26 @@ M.bound = function(t, l, c, len, line) --> l, c
   len = len or #t
   l = bound(l, 1, len)
   if not c then return l end
-  return l, bound(c, 1, #(line or t[l]) + 1)
+  return l, bound(c, 1, #(line or get(t, l)) + 1)
 end
 
 --- Get the [$l, c] with the +/- offset applied
 M.offset=function(t, off, l, c) --> l, c
   local len, m, llen, line = #t
   -- 0 based index for column
-  l = bound(l, 1, len); c = bound(c - 1, 0, #t[l])
+  l = bound(l, 1, len); c = bound(c - 1, 0, #get(t,l))
   while off > 0 do
-    line = t[l]
-    if nil == line then return len, #t[len] + 1 end
+    line = get(t, l)
+    if nil == line then return len, #get(t,len) + 1 end
     llen = #line + 1 -- +1 is for the newline
     c = bound(c, 0, llen); m = llen - c
     if m > off then c = c + off; off = 0;
     else l, c, off = l + 1, 0, off - m
     end
-    if l > len then return len, #t[len] + 1 end
+    if l > len then return len, #get(t,len) + 1 end
   end
   while off < 0 do
-    line = t[l]
+    line = get(t,l)
     if nil == line then return 1, 1 end
     llen = #line
     c = bound(c, 0, llen); m = -c - 1
@@ -137,7 +138,7 @@ M.offset=function(t, off, l, c) --> l, c
     if l <= 0 then return 1, 1 end
   end
   l = bound(l, 1, len)
-  return l, bound(c, 0, #t[l]) + 1
+  return l, bound(c, 0, #get(t,l)) + 1
 end
 
 --- get the byte offset 
@@ -146,18 +147,18 @@ M.offsetOf=function(t, l, c, l2, c2) --> int
   l, c = M.bound(t, l, c, len);  l2, c2 = M.bound(t, l2, c2, len)
   c, c2 = c - 1, c2 - 1 -- column math is 0-indexed
   while l < l2 do
-    llen = #t[l] + 1
+    llen = #get(t,l) + 1
     c = bound(c, 0, llen)
     off = off + (llen - c)
     l, c = l + 1, 0
   end
   while l > l2 do
-    llen = #t[l] + ((l==len and 0) or 1)
+    llen = #get(t,l) + ((l==len and 0) or 1)
     c = bound(c, 0, llen)
     off = off - c
     l, c = l - 1, M.CMAX
   end
-  llen = #t[l] + ((l==len and 0) or 1)
+  llen = #get(t,l) + ((l==len and 0) or 1)
   c, c2 = bound(c, 0, llen), bound(c2, 0, llen)
   off = off + (c2 - c)
   return off
@@ -168,7 +169,7 @@ end
 M.find = function(t, pat, l, c) --> (l, c)
   l, c = l or 1, c or 1
   while true do
-    local s = t[l]
+    local s = get(t,l)
     if not s then return nil end
     c = s:find(pat, c); if c then return l, c end
     l, c = l + 1, 1
@@ -190,7 +191,7 @@ end
 --- find the pattern (backwards) starting at l/c
 M.findBack = function(t, pat, l, c)
   while true do
-    local s = t[l]
+    local s = get(t,l)
     if not s then return nil end
     c = findBack(s, pat, c)
     if c then return l, c end
@@ -202,36 +203,36 @@ end
 M.remove = function(t, ...) --> string|table
   local l, c, l2, c2 = span(...);
   local len = #t
-  if l2 > len then l2, c2 = len, #t[len] + 1 end
+  if l2 > len then l2, c2 = len, #get(t,len) + 1 end
   local rem, new = {}, {}
   if l > l2 then -- empty span
   elseif c then -- includes column info
     if l == l2 then -- same line
       if c <= c2 then
-        if c2 <= #t[l] then -- no newline
-          new[1] = t[l]:sub(1, c-1)..t[l]:sub(c2+1)
-          rem[1]  = t[l]:sub(c, c2)
+        if c2 <= #get(t,l) then -- no newline
+          new[1] = get(t,l):sub(1, c-1)..get(t,l):sub(c2+1)
+          rem[1]  = get(t,l):sub(c, c2)
         else -- include newline in removal
           l2 = l2 + 1 -- inset removes additional line
-          new[1]         = t[l]:sub(1, c-1)..(t[l2] or '')
-          rem[1], rem[2] = t[l]:sub(c, c2), ''
+          new[1]         = get(t,l):sub(1, c-1)..(get(t,l2) or '')
+          rem[1], rem[2] = get(t,l):sub(c, c2), ''
         end
       end
     else -- spans multiple lines
       local l1 = l
-      if c <= #t[l] then new[1] = t[l]:sub(1, c - 1)
-      else l1 = l+1;     new[1] = t[l]..(t[l1] or '') end
-      rem[1] = t[l]:sub(c)
-      for i=l1+1,l2-1 do push(rem, t[i]) end
+      if c <= #get(t,l) then new[1] = get(t,l):sub(1, c - 1)
+      else l1 = l+1;     new[1] = get(t,l)..(get(t,l1) or '') end
+      rem[1] = get(t,l):sub(c)
+      for i=l1+1,l2-1 do push(rem, get(t,i)) end
       if l1 < l2 then
-        if c2 > #t[l2] then push(rem, t[l2]) -- include newline
+        if c2 > #get(t,l2) then push(rem, get(t,l2)) -- include newline
         else
-          push(rem, t[l2]:sub(1, c2)); push(new, t[l2]:sub(c2 + 1))
+          push(rem, get(t,l2):sub(1, c2)); push(new, get(t,l2):sub(c2 + 1))
         end
       end
     end
   else -- only lines, no col info
-    for i=l,l2 do push(rem, t[i]) end
+    for i=l,l2 do push(rem, get(t,i)) end
   end
   ds.inset(t, l, new, l2 - l + 1)
   return rem
@@ -240,7 +241,7 @@ end
 -- return the box bounded top-left(l1,c1) and bot-right(l2,c2)
 M.box = function(t, l1, c1, l2, c2) --> lines
   local b = {}; for l=l1,l2 do
-    local line = t[l]
+    local line = get(t,l)
     push(b, line and line:sub(c1, c2) or '')
   end
   return b
@@ -255,7 +256,7 @@ M.load = function(f, close) --> (table?, errstr?)
   if type(f) == 'string' then close, f, err = true, io.open(f, 'r') end
   if f == nil then return nil, err or 'load(f=nil)' end
   local i, t = 1, {}
-  for line in f:lines() do t[i] = line; i = i + 1 end
+  for line in f:lines() do set(t,i, line); i = i + 1 end
   if close then f:close() end
   return t
 end
@@ -284,10 +285,10 @@ M.write = function(t, ...) --> true
   local w = args(...); if #w == 0 then return true end
   local len, first = #t, w[1]
   if first ~= '' then
-    if len == 0 then t[1] = first
-    else             t[len] = t[len]..first end
+    if len == 0 then set(t,1, first)
+    else             set(t,len, get(t,len)..first) end
   end
-  for i=2,#w do t[len + i - 1] = w[i] end
+  for i=2,#w do set(t, len + i - 1, w[i]) end
   return true
 end
 

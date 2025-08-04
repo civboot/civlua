@@ -17,6 +17,8 @@ local push, icopy = table.insert, ds.icopy
 local TXT, IDX = '.out/lines.txt', '.out/lines.idx'
 local SMALL = ds.srcdir()..'testdata/small.txt'
 
+local get, set = ds.get, ds.set
+
 local info = require'ds.log'.info
 
 local loadu3s = function(f)
@@ -32,31 +34,31 @@ local fin = false
 local tests = function()
 T.U3File = function()
   local u = U3File:create()
-  u[1] = 11; u[2] = 22; u[3] = 33
-  T.eq(11, u[1])
-  T.eq(22, u[2])
-  T.eq(33, u[3]); T.eq(nil, rawget(u, 3))
+  u:set(1, 11); u:set(2, 22); u:set(3, 33)
+  T.eq(11, u:get(1))
+  T.eq(22, u:get(2))
+  T.eq(33, u:get(3)); T.eq(nil, rawget(u, 3))
   T.eq({11, 22, 33}, loadu3s(u.f))
-  T.eq(11, u[1]) -- testing loadu3s
+  T.eq(11, u:get(1)) -- testing loadu3s
   T.eq(3, #u)
 
-  u[2] = 20; T.eq(3, #u)
+  u:set(2, 20); T.eq(3, #u)
     T.eq({11, 20, 33}, loadu3s(u.f))
-    T.eq(11, u[1]); T.eq(20, u[2]); T.eq(33, u[3])
+    T.eq(11, u:get(1)); T.eq(20, u:get(2)); T.eq(33, u:get(3))
 
-  u[1] = 10; u[4] = 44; u[5] = 55
+  u:set(1, 10); u:set(4, 44); u:set(5, 55)
   T.eq({10, 20, 33, 44, 55}, loadu3s(u.f))
-  T.eq(10, u[1])
-  T.eq(55, u[5])
+  T.eq(10, u:get(1))
+  T.eq(55, u:get(5))
 
-  local l = {}; for i, v in ipairs(u) do l[i] = v end
+  local l = {}; for i=1,#u do l[i] = u:get(i) end
   T.eq({10, 20, 33, 44, 55}, l)
   T.eq(5, #u)
 
   u = U3File:create(IDX)
   ds.extend(u, {0, 3, 5, 7})
-  T.eq(0, u[1])
-  T.eq(7, u[4])
+  T.eq(0, u:get(1))
+  T.eq(7, u:get(4))
 end
 
 T.reindex = function()
@@ -85,30 +87,29 @@ T.File = function()
   local dat = {'one', 'two', 'three'}
   ds.extend(f, dat)
     T.eq({0, 4, 8}, ds.icopy(f.idx))
-    T.eq('one',   f[1])
-    T.eq('three', f[3])
+    T.eq('one',   f:get(1))
+    T.eq('three', f:get(3))
     T.eq(dat, ds.icopy(f))
 
-  T.eq('one', f[1])
-  push(f, 'four'); push(dat, 'four')
+  T.eq('one', f:get(1))
+  f:set(4, 'four'); push(dat, 'four')
     T.eq(dat, ds.icopy(f))
-  T.eq(4, #f); T.eq('four', f[#f])
+  T.eq(4, #f); T.eq('four', f:get(#f))
 
   f:write': still in line four'; f:flush()
-  T.eq('four: still in line four',          f[4])
-  f:write' and this'
-  T.eq('four: still in line four and this', f[4])
+  T.eq('four: still in line four',          f:get(4))
+  f:write' and this'; f:flush()
+  T.eq('four: still in line four and this', f:get(4))
 
   T.eq('one\ntwo\nthree\n', pth.read(SMALL))
   f = assert(File{path=SMALL}); f.cache = ds.Forget{}
   T.eq({'one', 'two', 'three', ''}, ds.icopy(f))
-  T.eq('two', f[2])
+  T.eq('two', f:get(2))
 
   f = File{path=TXT, mode='w+'}
-  f:write'line 1\nline 2\nline 3'
+  f:write'line 1\nline 2\nline 3'; f:flush()
   T.eq({0, 7, 14}, ds.icopy(f.idx))
   T.eq({'line 1', 'line 2', 'line 3'}, ds.icopy(f))
-  f:flush()
 
   local r = f:reader()
   T.eq({'line 1', 'line 2', 'line 3'}, ds.icopy(r))
@@ -147,9 +148,9 @@ T.EdFile_index = function()
     {'three', 'four', 'five', 'six'},
   }
   ef.lens = {}
-  T.eq('one',   ef[1]); T.eq({2},    ef.lens)
-  T.eq('three', ef[3]); T.eq({2, 6}, ef.lens)
-  T.eq('six',   ef[6])
+  T.eq('one',   ef:get(1)); T.eq({2},    ef.lens)
+  T.eq('three', ef:get(3)); T.eq({2, 6}, ef.lens)
+  T.eq('six',   ef:get(6))
   T.eq(6, #ef)
 end
 
@@ -159,18 +160,18 @@ T.EdFile_newindex = function()
   T.eq(0, #ef)
   T.eq({S(1, 0)},    ef.dats)
 
-  push(ef, 'one')
+  ef:set(1, 'one')
   T.eq({S(1,1)}, ef.dats)
   T.eq({1},      ef.lens)
-  T.eq('one', ef[1])
+  T.eq('one', ef:get(1))
 
-  push(ef, 'two')
+  ef:set(2, 'two')
   T.eq({S(1,2)}, ef.dats)
   T.eq({2}, ef.lens)
-  T.eq('one', ef[1])
-  T.eq('two', ef[2])
+  T.eq('one', ef:get(1))
+  T.eq('two', ef:get(2))
 
-  ef[1] = 'one 1'
+  ef:set(1, 'one 1')
   T.eq({Gap'one 1', S(2,2)}, ef.dats)
   T.eq({}, ef.lens)
   T.eq({'one 1', 'two'}, icopy(ef))
@@ -185,7 +186,7 @@ T.EdFile_write = function()
   T.eq('one\nthree\nfive', pth.read(TXT))
   T.eq({ds.Slc{si=1, ei=3}}, ed.dats)
   ed:write' 5'
-  T.eq('five 5', ed[3])
+  T.eq('five 5', ed:get(3))
 
   ds.inset(ed, 2, {'two'})
   local expect = {'one', 'two', 'three', 'five 5'}
@@ -212,32 +213,32 @@ T.EdFile_write = function()
     ds.Slc{si=2, ei=3}, -- three\nfive 5
   }, ed.dats)
   T.eq(5, #ed)
-  ed[1] = 'zero 0' -- same
+  ed:set(1, 'zero 0') -- same
   T.eq(expect, ds.icopy(ed))
 end
 
 T.EdFile_big = function()
   local ed = EdFile(TXT, 'w+')
-  for i=1,100 do push(ed, 'line '..i) end
+  for i=1,100 do ed:set(#ed+1, 'line '..i) end
   T.eq(100, #ed)
 
-  T.eq(ed[3], 'line 3')
+  T.eq(ed:get(3), 'line 3')
   T.eq({ds.Slc{si=1, ei=100}}, ed.dats)
 
-  ed[3] = 'line 3.0'
-  T.eq(ed[2], 'line 2')
-  T.eq(ed[3], 'line 3.0')
-  T.eq(ed[4], 'line 4')
+  ed:set(3, 'line 3.0')
+  T.eq(ed:get(2), 'line 2')
+  T.eq(ed:get(3), 'line 3.0')
+  T.eq(ed:get(4), 'line 4')
 
   ds.inset(ed, 7, {'line 7.0', 'line 7.1', 'line 7.2'}, 1)
-  T.eq(ed[6], 'line 6')
-  T.eq(ed[7], 'line 7.0')
-  T.eq(ed[10], 'line 8')
+  T.eq(ed:get(6), 'line 6')
+  T.eq(ed:get(7), 'line 7.0')
+  T.eq(ed:get(10), 'line 8')
   T.eq(102, #ed)
 end
 
 local function newEdFile(text, ...)
-  local ed = EdFile()
+  local ed = assert(EdFile())
   if type(text) == 'string' then ed:write(text)
   else ds.extend(ed, text) end
   ed:flush()
@@ -260,9 +261,7 @@ fin = false; tests(); assert(fin)
 fd.ioSync(); T.SUBNAME = '[ioSync]'
 fin = false; tests(); assert(fin)
 
--- FIXME: __index doesn't work for async operations!
 T.SUBNAME = '[ioAsync]'
 fin=false; ixt.runAsyncTest(tests); assert(fin)
 
 fd.ioStd(); T.SUBNAME = ''
-

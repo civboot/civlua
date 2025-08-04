@@ -6,6 +6,7 @@ local M = G.mod and G.mod'ds' or {}
 local mty = require'metaty'
 local fmt = require'fmt'
 
+local getmt = getmetatable
 local push, pop, sfmt    = table.insert, table.remove, string.format
 local sfind = string.find
 local move, sort, unpack = table.move, table.sort, table.unpack
@@ -29,7 +30,7 @@ M.PlainStyler = mty'PlainStyler' {}
 --- if t is a table returns t.__name or '?'
 M.name = function(t) --> string
   if not type(t) == 'table' then return end
-  local mt = getmetatable(t)
+  local mt = getmt(t)
 end
 
 --- insert values into list at i.
@@ -68,7 +69,7 @@ local CONCRETE_TYPES = {
 local isPod; isPod = function(v, mtFn)
   local ty = type(v)
   if ty == 'table' then
-    local mt = getmetatable(v)
+    local mt = getmt(v)
     if mt then return mtFn(v, mt) end
     for k, v in pairs(v) do
       if not (isPod(k, mtFn) and isPod(v, mtFn)) then
@@ -255,6 +256,24 @@ end
 
 ---------------------
 -- Table Functions
+
+--- [$t[k]] if t is a raw table, else [$getmetatable(t).get(t, k)]
+---
+--- This lets many types be substitutable for raw-tables in some APIs (i.e. lines).
+M.get = function(t, k) --> value
+  if getmt(t) then return t:get(k) end
+  return t[k]
+end
+local get = M.get
+
+--- [$t[k] = v] if t is a raw table, else [$getmetatable(t).set(t, k, v)]
+---
+--- This lets many types be substitutable for raw-tables in some APIs (i.e. lines).
+M.set = function(t, k, v)
+  if getmt(t) then return t:set(k, v) end
+  t[k] = v
+end
+
 M.isEmpty = function(t) return t == nil or next(t) == nil end
 
 --- the full length of all pairs
@@ -358,11 +377,17 @@ M.reverse = function(t) --> t (reversed)
 end
 
 M.extend = function(t, l) --> t: move vals to end of t
-  local meth = getmethod(t, '__extend')
-  if meth then return meth(t, l) end
+  if getmt(t) then return t:extend(l) end
   return move(l, 1, #l, #t + 1, t)
 end
 local extend = M.extend
+M.defaultExtend = function(r, l) --> r
+  local rset = getmt(r) and assert(r.set) or rawset
+  local lget = getmt(l) and assert(l.get) or rawget
+  local i = #r + 1
+  for k=1,#l do rset(r,i, lget(l,k)); i = i + 1 end
+  return r
+end
 
 -- Clear list-like elements of table.
 -- default is all of it, but you can also specify a specific
@@ -458,9 +483,9 @@ M.rmleft = function(t, rm, eq--[[ds.eq]]) --> t (mutated)
   return t
 end
 
---- used with ds.get and ds.set. Example [{## lang=lua}
+--- used with ds.getp and ds.setp. Example [{## lang=lua}
 ---   local dp = require'ds'.dotpath
----   ds.get(t, dp'a.b.c')
+---   ds.getp(t, dp'a.b.c')
 --- ]##
 M.dotpath = function(dots) --> list split by '.'
   local p = {}; for v in dots:gmatch'[^%.]+' do push(p, v) end
@@ -473,15 +498,15 @@ end
 ---   get(t, {'a', 2, 'c'})  -> t.a?[2]?.c?
 ---   get(t, dotpath'a.b.c') -> t.a?.b?.c?
 --- ]##
-M.get = function(t, path) --> value? at path
+M.getp = function(t, path) --> value? at path
   for _, k in ipairs(path) do
     t = t[k]; if t == nil then return nil end
   end
   return t
 end
 
---- same as ds.get but uses [$rawget]
-M.rawget = function(t, path) --> value? at path
+--- same as ds.getp but uses [$rawget]
+M.rawgetp = function(t, path) --> value? at path
   for _, k in ipairs(path) do
     t = rawget(t, k); if t == nil then return nil end
   end
@@ -493,7 +518,7 @@ end
 --- [{## lang=lua}
 --- set(t, dotpath'a.b.c', 2) -- t.a?.b?.c = 2
 --- ]##
-M.set = function(d, path, value, newFn) --> nil
+M.setp = function(d, path, value, newFn) --> nil
   newFn = newFn or M.emptyTable
   local len = #path; assert(len > 0, 'empty path')
   for i=1,len-1 do d = M.getOrSet(d, path[i], newFn) end
@@ -549,8 +574,8 @@ end
 ---
 --- Adding keys is always allowed but getting non-existant keys is an error.
 M.TypoSafe = mty'TypoSafe'{}
-getmetatable(M.TypoSafe).__call = mty.constructUnchecked
-getmetatable(M.TypoSafe).__index = mty.index
+getmt(M.TypoSafe).__call = mty.constructUnchecked
+getmt(M.TypoSafe).__index = mty.index
 M.TypoSafe.__newindex = nil
 
 
@@ -559,9 +584,13 @@ M.TypoSafe.__newindex = nil
 
 --- Copy list-elements only
 M.icopy = function(t) --> list
-  local meth = getmethod(t, '__icopy')
-  if meth then return meth(t) end
+  if getmt(t) then return t:icopy() end
   return move(t, 1, #t, 1, {})
+end
+
+M.defaultICopy = function(r)
+  local t = {}; for i=1,#r do t[i] = r:get(i) end
+  return t
 end
 
 --- Copy and update full table
@@ -569,7 +598,7 @@ M.copy = function(t, update) --> new t
   return setmetatable(
     update and tupdate(tupdate({}, t), update) -- copy+update
             or tupdate({}, t)                  -- copy
-    , getmetatable(t))
+    , getmt(t))
 end
 
 M.deepcopy = function(t) --> table
@@ -577,7 +606,7 @@ M.deepcopy = function(t) --> table
     if 'table' == type(v) then v = M.deepcopy(v) end
     out[k] = v
   end
-  return setmetatable(out, getmetatable(t))
+  return setmetatable(out, getmt(t))
 end
 
 ---------------------
@@ -601,7 +630,7 @@ M.lineschunk = function(dat) --> iter()
   local i = 1
   return function() -- alternates between next line and newline
     local o = '\n'; if i < 0 then i = 1 - i
-    else  o = dat[i];             i =   - i end
+    else  o = get(dat,i);         i =   - i end
     if o == '' then assert(i < 0); o = '\n'; i = 1 - i end
     return o
   end
@@ -725,7 +754,7 @@ M.empty = setmetatable({}, {
 --- Immutable table
 M.Imm = mty'Imm' {}
 local IMM_DATA = '<!imm data!>'
-getmetatable(M.Imm).__call = function(T, t)
+getmt(M.Imm).__call = function(T, t)
   return setmetatable({[IMM_DATA]=(next(t) ~= nil) and t or nil}, T)
 end
 M.Imm.__metatable = 'table'
@@ -775,7 +804,7 @@ local asSeconds = function(time) return time.s + (time.ns / NANO) end
 M.Duration = mty'Duration' {
   's[int]: seconds', 'ns[int]: nanoseconds',
 }
-getmetatable(M.Duration).__call = timeNew
+getmt(M.Duration).__call = timeNew
 
 M.Duration.NANO = NANO
 M.Duration.fromSeconds = fromSeconds
@@ -805,7 +834,7 @@ M.DURATION_ZERO = M.Duration(0, 0)
 M.Epoch = mty'Epoch' {
   's[int]: seconds', 'ns[int]: nanoseconds',
 }
-getmetatable(M.Epoch).__call = timeNew
+getmt(M.Epoch).__call = timeNew
 
 M.Epoch.fromSeconds = fromSeconds
 M.Epoch.asSeconds = asSeconds
@@ -830,8 +859,8 @@ end
 -- Set
 M.Set = mty'Set'{}
 M.Set.__newindex = nil
-getmetatable(M.Set).__index = nil
-getmetatable(M.Set).__call = function(T, t)
+getmt(M.Set).__index = nil
+getmt(M.Set).__call = function(T, t)
   local s = {}
   for _, k in ipairs(t) do s[k] = true end
   return mty.constructUnchecked(T, s)
@@ -979,7 +1008,7 @@ M.BiMap.__fields   = nil
 M.BiMap.__fmt      = nil
 M.BiMap.__tostring = nil
 
-getmetatable(M.BiMap).__call = function(ty_, t)
+getmt(M.BiMap).__call = function(ty_, t)
   local rev = {}; for k, v in pairs(t) do rev[v] = k end
   for k, v in pairs(rev) do t[k] = v end
   return setmetatable(t, ty_)
@@ -987,7 +1016,7 @@ end
 M.BiMap.__newindex = function(t, k, v)
   rawset(t, k, v); rawset(t, v, k)
 end
-getmetatable(M.BiMap).__index = nil
+getmt(M.BiMap).__index = nil
 M.BiMap.remove = function(t, k) --> v
   local v = t[k]; t[k] = nil; t[v] = nil; return v
 end
@@ -1007,7 +1036,7 @@ M.Deq = mty'Deq'{
   'right [number]',
   'left  [number]'
 }
-getmetatable(M.Deq).__call = function(T)
+getmt(M.Deq).__call = function(T)
   return mty.construct(T, {right=0, left=1})
 end
 M.Deq.pushRight = function(deq, val)

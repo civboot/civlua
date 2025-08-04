@@ -38,11 +38,14 @@ Gap.load = function(T, f, close) --> Gap?, err?
 end
 
 Gap.__len = function(g) return #g.bot + #g.top end
-Gap.__index = function(g, l)
-  if type(l) ~= 'number' then return getmetatable(g)[l] end
+Gap.get = function(g, l)
   local bl = #g.bot
   if l <= bl then return g.bot[l]
   else            return g.top[#g.top - (l - bl) + 1] end
+end
+Gap.__index = function(g, l)
+  if type(l) ~= 'number' then return getmetatable(g)[l] end
+  return g:get(l)
 end
 
 Gap.__fmt = function(g, f)
@@ -59,10 +62,11 @@ Gap.__pairs = ipairs
 --------------------------
 -- Mutations
 
-Gap.__newindex = function(g, i, v)
+Gap.set = function(g, i, v)
   assert(i == #g + 1, 'can only set at len+1')
   g:setGap(i); g.bot[i] = v
 end
+Gap.__newindex = Gap.set
 
 --- see lines.inset
 --- This has much better performance than lines.inset when operations
@@ -74,7 +78,7 @@ Gap.__inset = function(g, i, values, rmlen)
   return g
 end
 
-Gap.__extend = function(g, l)
+Gap.extend = function(g, l)
   g:setGap(#g); local bot = g.bot
   move(l, 1, #l, #bot + 1, bot)
   return g

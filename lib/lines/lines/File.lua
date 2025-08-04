@@ -29,7 +29,10 @@ local getmt = getmetatable
 local split, construct = mty.split, mty.construct
 local index, newindex = mty.index, mty.newindex
 local check, WeakV = ds.check, ds.WeakV
+local get, set = ds.get, ds.set
 
+getmetatable(File).__index = mty.hardIndex
+File.__newindex            = mty.hardNewindex
 
 File.IDX_DIR = pth.concat{pth.home(), '.data/lines'}
 
@@ -41,13 +44,13 @@ File._reindex = function(f, idx, l, pos) --!!> nil
   local lines = f:lines'L'
   local prev = lines()
   while true do
-    idx[l] = pos; l = l + 1
+    set(idx, l, pos); l = l + 1
     local line = lines(); if not line then break end
     pos, prev = pos + #prev, line
   end
   pos = pos + #prev
   if prev:sub(-1) == '\n' then
-    idx[l] = pos
+    set(idx, l, pos)
   end
   return pos
 end
@@ -61,10 +64,11 @@ getmetatable(File).__call = function(T, t) --> File?, errmsg?
     idx, err = U3File:create(); if not idx then return nil, err end
     T._initnew(f, idx)
   elseif type(t.path) == 'string' then
-    trace('reloading path %s', t.path)
     t.mode = t.mode or 'r'
+    trace('reloading path %s %s', t.path, t.mode)
     f, err = io.open(t.path, t.mode); if not f then return nil, err end
-    idx, err = loadIdx(f, pth.concat{T.IDX_DIR, t.path}, t.mode, T._reindex)
+    local ipath = pth.concat{T.IDX_DIR, t.path}
+    idx, err = loadIdx(f, ipath, t.mode, T._reindex)
     if not idx then return nil, err end
   else error'invalid path' end
   t.f, t.idx, t.cache = f, idx, WeakV{}
@@ -97,12 +101,12 @@ File.write = function(lf, ...) --> ok, errmsg?
   o,e = f:write(t[1]); if not o then return o,e end
   pos = pos + #t[1]
   local len = #idx -- start length
-  if len == 0 then len = 1; idx[1] = 0 end
+  if len == 0 then len = 1; idx:set(1, 0) end
   cache[len] = nil
   for l=2,tlen do
     local line = t[l];
     o,e = f:write('\n', line); if not o then return o,e end
-    len = len + 1; idx[len] = pos + 1
+    len = len + 1; idx:set(len, pos + 1)
     pos = pos + 1 + #line
   end
   lf._pos = pos
@@ -110,18 +114,14 @@ end
 
 File.__len = function(lf) return #lf.idx end
 
-getmetatable(File).__index = nil
-File.__index = function(lf, i) --!!> string
-  if type(i) == 'string' then
-    local mt = getmt(lf)
-    return rawget(mt, i) or index(mt, i)
-  end
+--- Get line at index
+File.get = function(lf, i) --> line
   local cache = lf.cache
   local line = cache[i]; if line then return line end
   local f, idx, pos, err = lf.f, lf.idx, lf._pos
   if i > #idx then return end -- line num OOB
   if not pos or i ~= lf._ln then -- update file pos
-    pos = assert(lf.idx[i])
+    pos = assert(lf.idx:get(i))
     assert(f:seek('set', pos))
   end
   line = check(2, f:read'L') or ''
@@ -131,8 +131,8 @@ File.__index = function(lf, i) --!!> string
   return line
 end
 
-File.__newindex = function(lf, i, v)
-  if type(i) == 'string' then return newindex(lf, i, v) end
+--- Set line at index
+File.set = function(lf, i, v)
   local f, idx, cache, pos = lf.f, lf.idx, lf.cache, lf._pos
   local len = #idx; assert(i == len + 1, 'only append allowed')
   if not pos or lf._ln then pos = assert(f:seek'end') end
@@ -145,7 +145,7 @@ File.__newindex = function(lf, i, v)
     lf._pos = pos + #v + 1
     pos = pos + 1
   end
-  idx[i], cache[i] = pos, v
+  idx:set(i, pos); cache[i] = v
 end
 
 File.__fmt = function(lf, f)
@@ -162,5 +162,8 @@ File.reader = function(lf) --> lines.File (readonly)
     f=assert(io.open(path, 'r')), path=path, cache=lf.cache, idx=idx,
   })
 end
+
+File.extend = ds.defaultExtend
+File.icopy  = ds.defaultICopy
 
 return File

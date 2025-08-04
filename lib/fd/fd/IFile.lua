@@ -1,8 +1,3 @@
--- FIXME: __index / etc cannot be supported for async operations
---   since they can cause yielding across a C-boundary for
---   things like table.move. Therefore, don't do them for
---   these types. Instead, manually support the methods or figure
---   something else out.
 local mty = require'metaty'
 local ds = require'ds'
 
@@ -14,20 +9,19 @@ local IFile = mty'fd.IFile' {
   'sz [int]: the size of each value',
 }
 
-
 local mtype = math.type
 local pack, unpack = string.pack, string.unpack
 local sfmt = string.format
 local info = require'ds.log'.info
 
-local index, newindex = mty.index, mty.newindex
+getmetatable(IFile).__index = mty.hardIndex
+IFile.__newindex            = mty.hardNewindex
 
 --- seek to index in the "mode" m. Invariant: [$i <= len+1]
 local function iseek(fi, i, m, sz) --!!> nil
   if fi._i == i and fi._m == m then return end
   fi._m = m
   local to = (i-1) * sz
-  info('!! iseek i=%s (pos=%i)', i, to)
   local pos = assert(fi.f:seek('set', to))
   assert(pos % sz == 0, 'pos incorrect')
 end
@@ -77,16 +71,9 @@ IFile.getbytes = function(fi, i) --!!> str?
   fi._i = i + 1
   return v
 end
-IFile.__index = function(fi, i)
-  if type(i) == 'string' then
-    local mt = getmetatable(fi)
-    return rawget(mt, i) or index(mt, i)
-  end
-  return fi:getbytes(i)
-end
+IFile.get = IFile.getbytes
 
 IFile.setbytes = function(fi, i, v)
-  info('!! setbytes[%s]=%q', i, v)
   local len = fi.len; assert(i <= len + 1, 'newindex OOB')
   local sz = fi.sz
   if #v ~= sz then error(sfmt('failed to write %i bytes', #v)) end
@@ -94,11 +81,7 @@ IFile.setbytes = function(fi, i, v)
   if i > len then fi.len = i end
   fi._i = i + 1
 end
-
-IFile.__newindex = function(fi, i, v)
-  if type(i) == 'string' then return newindex(fi, i, v) end
-  return fi:setbytes(i, v)
-end
+IFile.set = IFile.setbytes
 
 IFile.__fmt = function(fi, fmt)
   fmt:write('IFile(sz=', tostring(fi.sz), ' ')

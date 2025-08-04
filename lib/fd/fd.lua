@@ -95,7 +95,7 @@ S.FD.__index.write = function(fd, ...)
 end
 M.FDT.__index.write = function(fd, ...)
   local s = sconcat('', ...)
-  fd:_write(s)
+  while fd:_write(s) do end
   M.finishRunning(fd, 'poll', fd:_evfileno(), S.POLLIN)
   if fd:code() > 0 then return nil, fd:codestr() end
   return fd
@@ -104,7 +104,7 @@ end
 local WHENCE = { set=S.SEEK_SET, cur=S.SEEK_CUR, ['end']=S.SEEK_END }
 S.FD.__index.seek = function(fd, whence, offset)
   whence = assert(WHENCE[whence or 'cur'], 'unrecognized whence')
-  fd:_seek(offset or 0, whence)
+  while fd:_seek(offset or 0, whence) do end
   M.finishRunning(fd, 'poll', fd:getpoll(S.POLLIN | S.POLLOUT))
   if(fd:code() > 0) then return nil, fd:codestr() end
   return fd:pos()
@@ -262,7 +262,7 @@ __index = {
 M.openWith = function(openFn, path, mode)
   mode = mode or 'r'
   local flags = mflagsInt(mode:gsub('b', ''))
-  local f = openFn(path, flags); M.finishRunning(f, 'sleep', 0.005)
+  local f = openFn(path, flags); M.finishRunning(f, 'sleep', 0.001)
   if f:code() ~= 0 then return nil, f:codestr() end
   return f
 end

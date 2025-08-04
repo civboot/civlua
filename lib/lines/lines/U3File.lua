@@ -1,4 +1,5 @@
 local mty = require'metaty'
+local ds  = require'ds'
 local IFile = require'fd.IFile'
 
 --- A file that holds 3 byte (24 bit) integers. These are commonly
@@ -15,20 +16,21 @@ local index, newindex = mty.index, mty.newindex
 local icreate, ireload, iload = IFile.create, IFile.reload, IFile.load
 local getbytes, setbytes = IFile.getbytes, IFile.setbytes
 
+getmetatable(U3File).__index = mty.hardIndex
+U3File.__newindex            = mty.hardNewindex
+
 U3File.create = function(T, ...) return icreate(T, 3, ...)  end
 U3File.load   = function(T, ...) return iload(T, 3, ...)    end
-U3File.__index = function(u3, k)
-  if type(k) == 'string' then
-    local mt = getmetatable(u3)
-    return rawget(mt, k) or index(mt, k)
-  end
-  local str = getbytes(u3, k)
+
+--- get value at index
+U3File.get = function(u3, i)
+  local str = getbytes(u3, i)
   return str and unpack('>I3', str) or nil
 end
 
-U3File.__newindex = function(u3, k, v)
-  if type(k) == 'string' then return newindex(u3, k, v) end
-  return setbytes(u3, k, pack('>I3', v))
+--- set value at index
+U3File.set = function(u3, i, v)
+  return setbytes(u3, i, pack('>I3', v))
 end
 
 U3File.__fmt = function(u3, fmt)
@@ -36,5 +38,8 @@ U3File.__fmt = function(u3, fmt)
   if u3.path then push(fmt, u3.path) end
   push(fmt, ')')
 end
+
+U3File.extend = ds.defaultExtend
+U3File.icopy  = ds.defaultICopy
 
 return U3File

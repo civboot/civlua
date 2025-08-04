@@ -174,22 +174,6 @@ M.get = function(name, fallback)
   error(sfmt('PKG %q found but not sub-module %q', pkgname, name))
 end
 
---- get any path separated by '.' including both [$require'some'.thing] and
---- [$require'some.thing']
-M.getpath = function(dotpath) --> obj
-  if type(dotpath) == 'string' then -- split by '.'
-    local t = {}; for m in dotpath:gmatch'[^.]+' do push(t, m) end
-  end
-  local obj
-  for i=1,#dotpath do
-    local v = obj and ds.get(obj, ds.slice(dotpath, i))
-    if v then return v end
-    obj = pget(table.concat(dotpath, '.', 1, i))
-  end
-  return obj
-end
-
-
 -----------------------
 -- MOD
 local CONCRETE_TYPE = {

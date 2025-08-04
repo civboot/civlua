@@ -9,6 +9,7 @@ local M = G.mod and G.mod'pegl.lua' or {}
 local mty = require'metaty'
 local ds  = require'ds'
 local add, sfmt = table.insert, string.format
+local get = ds.get
 
 local Key
 local Pat, Or, Not, Many, Maybe
@@ -240,7 +241,7 @@ local function skipComment(p)
   end
   if t then t.c = c; return t
   else
-    p.l, p.line = l, p.dat[l]
+    p.l, p.line = l, get(p.dat,l)
     local _, c2 = p.line:find('^.*', c2+1)
     return Token:encode(p, l, c, l, c2)
   end
@@ -250,7 +251,6 @@ local src = {name='src', block, Eof}
 M.root = pegl.RootSpec{skipComment=skipComment}
 local parse = function(dat, spec, root)
   root = root or M.root
-  -- FIXME: this is mutating the global!
   if not root.skipComment then root.skipComment = skipComment end
   return pegl.parse(dat, spec, root)
 end

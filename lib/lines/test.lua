@@ -186,12 +186,12 @@ end
 T.Writer = function()
   local W = require'lines.Writer'; local w = W{}
   w:write'hi there'
-  T.eq(W{'hi there'}, w)
+  T.eq({'hi there'}, ds.icopy(w))
   w:write' bob'
-  T.eq(W{'hi there bob'}, w)
+  T.eq({'hi there bob'}, ds.icopy(w))
   w:write'\nand jane'
-  T.eq(W{'hi there bob', 'and jane'}, w)
+  T.eq({'hi there bob', 'and jane'}, ds.icopy(w))
   w:write' and sue\nand zebe\n'
-  T.eq(W{'hi there bob', 'and jane and sue',
-             'and zebe', ''}, w)
+  T.eq({'hi there bob', 'and jane and sue',
+             'and zebe', ''}, ds.icopy(w))
 end

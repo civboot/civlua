@@ -21,7 +21,7 @@ local bound, isWithin, sort2, decAbs
 local indexOf, copy, deepcopy
 local trim
 local extend, clear, replace, merge
-local getOrSet, get, set
+local getOrSet, getp, setp
 local drain, reverse
 local eval
 local Set, Duration, Epoch
@@ -196,16 +196,16 @@ T.table = function()
 
   T.eq(5,   getOrSet({a=5}, 'a', function() return 7 end))
   T.eq(7,   getOrSet({b=5}, 'a', function() return 7 end))
-  T.eq(7,   get({a={b=7}}, {'a', 'b'}))
-  T.eq(nil, get({}, {'a', 'b'}))
+  T.eq(7,   getp({a={b=7}}, {'a', 'b'}))
+  T.eq(nil, getp({}, {'a', 'b'}))
 
   T.eq({'d', 'e'},
     M.rmleft({'a', 'b', 'c', 'd', 'e'}, {'a', 'b', 'c'}))
   local t = {}
-  set(t, dp'a.b',   4);   T.eq(4, t.a.b)
-  set(t, dp'a.a.a', 5);   T.eq(5, t.a.a.a)
-  set(t, dp'a.a.a', nil); T.eq(nil, t.a.a.a)
-  set(t, dp'a.b',   4);   T.eq(4, t.a.b)
+  setp(t, dp'a.b',   4);   T.eq(4, t.a.b)
+  setp(t, dp'a.a.a', 5);   T.eq(5, t.a.a.a)
+  setp(t, dp'a.a.a', nil); T.eq(nil, t.a.a.a)
+  setp(t, dp'a.b',   4);   T.eq(4, t.a.b)
 
   t = {}; for i, v in M.inext, {4, 5, 8}, 0 do t[i] = v end
   T.eq({4, 5, 8}, t)

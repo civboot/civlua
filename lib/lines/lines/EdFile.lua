@@ -25,10 +25,12 @@ local Slc = ds.Slc
 local extend, inset, clear = ds.extend, ds.inset, ds.clear
 local move, EMPTY = table.move, {}
 
+getmetatable(EdFile).__index = mty.hardIndex
+EdFile.__newindex            = mty.hardNewindex
+
 getmetatable(EdFile).__call = function(T, v, mode)
   local lf, err = File{path=v, mode=mode or 'a+'}
   if not lf then return nil, err end
-
   return construct(T, {
     lf=lf, dats={Slc{si=1, ei=#lf}}, lens={},
   })
@@ -58,15 +60,12 @@ EdFile._datindex = function(ef, i) --> di
   return binsearch(lens, i, gt) + 1
 end
 
-EdFile.__index = function(ef, i) --!!> string
-  if type(i) == 'string' then
-    local mt = getmt(ef)
-    return rawget(mt, i) or index(mt, i)
-  end
+--- Get line at index
+EdFile.get = function(ef, i) --> line
   local di = ef:_datindex(i); if not di then return end
   local dat = ef.dats[di]
   i = i - (ef.lens[di-1] or 0) -- i is now index into dat
-  return (getmt(dat) == Slc) and ef.lf[dat.si + i - 1]
+  return (getmt(dat) == Slc) and ef.lf:get(dat.si + i - 1)
       or dat[i]
 end
 
@@ -83,8 +82,8 @@ EdFile.write = function(ef, ...) --> self?, errmsg?
   return ok and self or nil, errmsg
 end
 
-EdFile.__newindex = function(ef, i, v) --!!> nil
-  if type(i) == 'string' then return newindex(ef, i, v) end
+--- Set line at index.
+EdFile.set = function(ef, i, v)
   ef:__inset(i, {v}, 1)
 end
 
@@ -106,7 +105,7 @@ EdFile.dumpf = function(ef, f)
   local ef, efx = ef.lf.f, ef.lf.idx
   for i, d in ipairs(ef.dats) do
     if getmt(d) == Slc then
-      local sp, ep = efx[d.si], efx[d.si + 1]
+      local sp, ep = efx:get(d.si), efx:get(d.si + 1)
       assert(sp == ef:seek('set', sp))
       assert(f:write(ef:read(ep and (ep - sp + 1) or nil)))
     else
@@ -117,7 +116,7 @@ EdFile.dumpf = function(ef, f)
 end
 
 --- appends to lf for extend when possible.
-EdFile.__extend = function(ef, values)
+EdFile.extend = function(ef, values)
   if #values == 0 then return end
   local dlen = #ef.dats
   local last = ef.dats[dlen]
@@ -172,7 +171,7 @@ EdFile.__inset = function(ef, i, values, rmlen)
   if not df then
     -- special case: extend. This is special because it writes to the file.
     assert(i == #ef + 1, 'i > len+1')
-    return ef:__extend(values)
+    return ef:extend(values)
   end
 
   if rmlen > 0 then -- find last dat to remove (and in-between)
@@ -224,7 +223,7 @@ EdFile.__inset = function(ef, i, values, rmlen)
   end
 
   if last then
-    if first then first:__extend(last) -- join first+last
+    if first then first:extend(last) -- join first+last
     else          first, fi = last, 1 end
   end
   if values and #values > 0 then
@@ -237,14 +236,16 @@ EdFile.__inset = function(ef, i, values, rmlen)
   -- consolodate Gap objects
   first = dats[df-1]
   if (getmt(first) == Gap) and (getmt(rdats[1]) == Gap) then
-    first:__extend(rdats[1]); rdats[1], df = first, df - 1
+    first:extend(rdats[1]); rdats[1], df = first, df - 1
   end
   local last = rdats[#rdats]
   if dl and (getmt(last) == Gap) and (getmt(dats[dl+1]) == Gap) then
-    last:__extend(dats[dl+1]); dl = dl + 1
+    last:extend(dats[dl+1]); dl = dl + 1
   end
   move(EMPTY, df, #lens, df, lens) -- clear end lens
   inset(dats, df, rdats, (dl or df) - df + 1)
 end
+
+EdFile.icopy = ds.defaultICopy
 
 return EdFile

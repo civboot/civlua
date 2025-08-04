@@ -28,9 +28,6 @@ T.simple = function()
   T.eq(1, sh:rc())
 end
 
--- TODO: this behaves slighlty differently for the different file
---       descriptor libraries!
--- FIXME: re-enable async test
 T.testSh = function()
   local sh, o = M.sh
 
@@ -57,7 +54,6 @@ T.testSh = function()
   T.eq(nil, out); T.eq('on STDERR\n', err)
   collectgarbage()
 end
-
 
 T.sh_fail = function()
   T.throws('Command failed with rc=1', function()

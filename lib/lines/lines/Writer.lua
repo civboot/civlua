@@ -10,7 +10,13 @@ local Writer = mty'lines.Writer' {}
 local ds = require'ds'
 local lines = require'lines'
 
+getmetatable(Writer).__index = mty.hardIndex
+Writer.__newindex            = mty.hardNewindex
+Writer.set = rawset
+Writer.get = rawget
 Writer.write = lines.write
 Writer.flush = ds.noop
+Writer.extend = ds.defaultExtend
+Writer.icopy  = ds.defaultICopy
 
 return Writer

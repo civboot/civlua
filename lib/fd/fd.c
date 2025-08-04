@@ -35,7 +35,10 @@ static void EV_WAIT(FDT* fdt) {
 }
 #define EV_FILENO(FDT) (FDT)->socks[0]
 #define EV_DESTROY(FDT) if((FDT)->socks[0] >= 0) { \
-  int* s = (FDT)->socks; close(s[0]); close(s[1]); s[0] = -1; s[1] = -1; }
+  int* s = (FDT)->socks; \
+  close(s[0]); s[0] = -1; \
+  close(s[1]); s[1] = -1; \
+}
 
 //***********************
 //* Linux / BSD
@@ -106,7 +109,7 @@ static void* FDT_run(void* d) {
 
 FDT* FDT_create(LS* L) {
   FDT* fdt = (FDT*)lua_newuserdata(L, sizeof(FDT));
-  FD_init(&fdt->fd); fdt->meth = NULL; fdt->stopped = false;
+  FD_init(&fdt->fd); fdt->meth = NULL; fdt->stopped = 0;
   EV_INIT(fdt);
   luaL_setmetatable(L, LUA_FDT);
   if(EV_OPEN(fdt) < 0) goto error;
@@ -143,8 +146,8 @@ static void FD_realloc(FD* fd, int size) {
 
 // open buf, flags=ctrl
 static void FD_open(FD* fd) {
-  fd->fileno = open((char*)fd->buf, fd->ctrl, 0666);
   int code = 0, pos = 0;
+  fd->fileno = open((char*)fd->buf, fd->ctrl, 0666);
   if(fd->fileno >= 0) {
     if(fd->ctrl & O_APPEND) {
       pos = lseek(fd->fileno, 0, SEEK_END);
@@ -215,25 +218,28 @@ static void FD_read(FD* fd) {
 static void FD_write(FD* fd) {
   if(fd->pos != fd->fpos) {
     off_t pos = lseek(fd->fileno, fd->pos, SEEK_SET);
-    if(pos < 0) { fd->code = errno; return; }
+    if(pos < 0) {
+      fd->code = errno; return;
+    }
     fd->pos = pos; fd->fpos = pos;
   }
   int c = write(fd->fileno, (char*)fd->buf + fd->si, LEN(fd));
-  if(c >= 0) { fd->si += c; fd->pos += c; fd->fpos = fd->pos; fd->code = 0; }
-  else         fd->code = errno;
+  if(c >= 0) {
+    fd->pos += c; fd->fpos = fd->pos;
+    fd->si += c;  fd->code = 0;
+  } else {
+  }
 }
 
 // attempt to seek using only buffer, else update FD.
 // return true if complete (no syscall needed)
 static bool FD_seekpre(FD* fd, off_t offset, int whence) {
-  fprintf(stderr, "!! FD_seekpre %i %i\n", offset, whence);
   if((whence == SEEK_SET) && (offset == 0)) goto hard;
   off_t want = offset; switch(whence) {
     case SEEK_CUR /*1*/: want += fd->pos; // make absolute, fallthrough
     case SEEK_SET /*0*/:
       if((fd->pos <= want) && (want <= fd->pos + LEN(fd))) {
         fd->si += want - fd->pos; fd->pos = want;
-        fprintf(stderr, "!! buff-only pos=%i si=%i\n", want, fd->si);
         return true;
       } // fallthrough
   }
@@ -243,7 +249,6 @@ hard:
 }
 
 static void FD_seek(FD* fd) {
-  fprintf(stderr, "!! FD_seek %i %i\n", fd->off, fd->ctrl);
   off_t pos = lseek(fd->fileno, fd->off, fd->ctrl);
   if(pos == -1) { fd->code = errno; return; }
   fd->pos = pos; fd->fpos = pos;
@@ -252,7 +257,6 @@ static void FD_seek(FD* fd) {
 }
 
 static int _FD_flush(FD* fd) {
-  fprintf(stderr, "!! flushing\n");
   struct stat sbuf = {0};
   if(fstat(fd->fileno, &sbuf))             return errno;
   if(sbuf.st_mode != S_IFREG)              return 0;
@@ -317,15 +321,17 @@ static int l_FD_pop(LS* L) {
 }
 
 static int l_FD_codestr(LS* L) {
+  FD* fd = asfd(L);
   int code = lua_isnoneornil(L, 2)
-      ? asfd(L)->code : lua_tointeger(L, 2);
+      ? fd->code : lua_tointeger(L, 2);
   char* str; switch(code) {
     case  0: str = "FD_READY";   break;
     case -1: str = "FD_EOF";     break;
     case -2: str = "FD_RUNNING"; break;
     default: str = strerror(code);
   }
-  lua_pushstring(L, str); return 1;
+  lua_pushfstring(L, "%s [%I fd#%I]", str, code, fd->fileno);
+  return 1;
 }
 
 #define FD_intfield(FIELD) \
@@ -352,8 +358,9 @@ static int l_FD_setfileno(LS* L) {
     lua_pushboolean(L, true); return 1; \
   }
 #define FDT_START(FDT, METH) \
+  (FDT)->meth = METH; \
   (FDT)->fd.code = FD_RUNNING; \
-  fdt->meth = METH; EV_POST(fdt); \
+  EV_POST(fdt); \
   return 0;
 
 // FD_read(fd, till=0) -> (code)
@@ -376,7 +383,6 @@ static int l_FDT_read(LS* L) {
   FDT* fdt = toFDT(L); FDT_READY(fdt);
   fdt->fd.ctrl = luaL_optnumber(L, 2, 0);
   FDT_START(fdt, FD_read);
-
 }
 #undef PRE_READ
 
@@ -399,6 +405,7 @@ done:
 static int l_FDT_write(LS* L) {
   FDT* fdt = toFDT(L); FDT_READY(fdt);
   size_t len; const char* s = luaL_checklstring(L, 2, &len);
+  if(len == 0) return 0;
   int si = luaL_optinteger(L, 3, 0);
   int ei = luaL_optinteger(L, 3, len);
   FD* fd = &fdt->fd;
@@ -452,9 +459,9 @@ static int l_FDT_open(LS* L) {
   const int flags = luaL_checkinteger(L, 2);
   FDT* fdt = FDT_create(L); FD* fd = &fdt->fd;
   fd->buf = (char*)path; fd->ctrl = flags;
-  fd->code = FD_RUNNING;
-  fdt->meth = FD_open; EV_POST(fdt);
-  return 1;
+  fdt->meth = FD_open; fd->code = FD_RUNNING;
+  EV_POST(fdt);
+  return 1; // return fd
 }
 
 static int l_FD_tmp(LS* L) {
@@ -464,10 +471,10 @@ static int l_FD_tmp(LS* L) {
 }
 static int l_FDT_tmp(LS* L) {
   FDT* fdt = FDT_create(L); FD* fd = &fdt->fd;
-  fdt->meth = FD_tmp; EV_POST(fdt);
+  fdt->meth = FD_tmp; fd->code = FD_RUNNING;
+  EV_POST(fdt);
   return 1;
 }
-#undef FD_TMP
 
 static int l_FD_close(LS* L) {
   FD_close(toFD(L));
@@ -475,16 +482,16 @@ static int l_FD_close(LS* L) {
 }
 static int l_FDT_close(LS* L) {
   FDT* fdt = toFDT(L); assertReady(L, &fdt->fd, "close");
-  fdt->fd.code = FD_RUNNING;
-  fdt->meth = FD_close; EV_POST(fdt);
+  fdt->meth = FD_close; fdt->fd.code = FD_RUNNING;
+  EV_POST(fdt);
   return 0;
 }
 void FDT_destroy(FDT* fdt) {
   if(!fdt->stopped) {
     fdt->stopped = 1;
     EV_POST(fdt); pthread_join(fdt->th, NULL);
-    EV_DESTROY(fdt);
   }
+  EV_DESTROY(fdt);
   FD_close(&fdt->fd);
 }
 static int l_FDT_destroy(LS* L) { FDT_destroy(toFDT(L)); return 0; }

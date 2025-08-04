@@ -36,7 +36,7 @@ M.keyinput = function(ed, ev, evsend)
     nxt = callable(K.next) and K.next
           or rawget(K.next, ki)
   else
-    local emode = ds.get(ed, {'edit', 'modes', ed.mode, ki})
+    local emode = ds.getp(ed, {'edit', 'modes', ed.mode, ki})
     nxt = emode and rawget(emode, ki)
        or rawget(mode, ki)
        or emode and rawget(emode, 'fallback')

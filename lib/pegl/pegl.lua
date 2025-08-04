@@ -14,6 +14,7 @@ local concat, unpack = table.concat, table.unpack
 local sfmt    = string.format
 local srep = string.rep
 local ty = mty.ty
+local get, set = ds.get, ds.set
 
 local function zero() return 0 end
 
@@ -100,7 +101,7 @@ M.Parser = mty'Parser'{
 ..'Must look like a table of lines',
   'l [int]: line, incremented when [$c] is exhausted',
   'c [int]: column in [$line]',
-  'line [string]: the current line ([$dat[l]])',
+  'line [string]: the current line ([$dat:get(l)])',
   'lines',
   'root [RootSpec]',
   'stack [list]', 'stackL [list]', 'stackC [list]',
@@ -133,7 +134,10 @@ end
 --- Create a parser spec record. These have the fields [$kind] and [$name]
 --- and must define the [$parse] method.
 M.specTy = function(name)
-  return mty(name){'kind [string]', 'name [string]', __fmt=M.fmtSpec}
+  local s = mty(name){'kind [string]', 'name [string]', __fmt=M.fmtSpec}
+  s.get, s.set = rawget, rawset
+  s.extend = ds.defaultExtend
+  return s
 end
 
 --- [$Pat{'%w+', kind='word'}] will create a Token with the span matching the
@@ -515,7 +519,7 @@ M.Parser.__tostring=function() return 'Parser()' end
 M.Parser.new = function(T, dat, root)
   dat = (type(dat)=='string') and lines(dat) or dat
   return mty.construct(T, {
-    dat=dat, l=1, c=1, line=dat[1], lines=#dat,
+    dat=dat, l=1, c=1, line=get(dat,1), lines=#dat,
     root=root or M.RootSpec{},
     stack={}, stackL={}, stackC={}, stackLast={},
     commentLC={},
@@ -550,7 +554,7 @@ M.Parser.sub =function(p, t) -- t=token
 end
 M.Parser.incLine=function(p)
   p.l, p.c = p.l + 1, 1
-  p.line = p.dat[p.l]
+  p.line = get(p.dat,p.l)
 end
 M.Parser.isEof=function(p) return not p.line end --> isAtEndOfFile
 M.Parser.skipEmpty=function(p)
@@ -586,7 +590,7 @@ M.Parser.trimTokenStart = function(p, list)
   local t, list = M.firstToken(list); assert(list)
   if type(t) == 'string' then return end
   local l1, c1, l2, c2 = t:span()
-  local line = p.dat[l1]
+  local line = get(p.dat,l1)
   local s = p:tokenStr(t); c1 = line:find('[^ ]', c1) or c1
   list[1] = M.Token:encode(p, l1, c1, l2, c2)
 end
@@ -596,10 +600,10 @@ M.Parser.trimTokenLast = function(p, list, trimNl)
   local t, list = M.lastToken(list); assert(list)
   if not t or type(t) == 'string' then return end
   local l1, c1, l2, c2 = t:span()
-  local line = p.dat[l2]
+  local line = get(p.dat,l2)
   while line:sub(c2,c2) == ' ' do c2 = c2 - 1 end
   if trimNl and l2 > l1 and c2 == 0 then
-    l2 = l2 - 1; c2 = #p.dat[l2]
+    l2 = l2 - 1; c2 = #get(p.dat,l2)
   end
   list[#list] = M.Token:encode(p, l1, c1, l2, c2)
 end

@@ -12,7 +12,7 @@ local log = require'ds.log'
 
 local sfmt = string.format
 local push, pop, concat = table.insert, table.remove, table.concat
-local get, set, dp = ds.get, ds.set, ds.dotpath
+local getp, dp = ds.getp, ds.dotpath
 local add = ds.add
 
 ---------------------------
@@ -28,7 +28,7 @@ M.Keys = mty'Keys' {
 M.Keys.check = function(k, ele) --> errstring?
   if k.next == nil then return end
   return (type(k.next) ~= 'table') and et.checkBinding(k.next)
-    or get(k, {'event', 'action'})
+    or getp(k, {'event', 'action'})
        and et.checkAction(ele, k.event.action)
 end
 
