@@ -157,15 +157,19 @@ T.stat = function()
   pth.write(path, 'hello\n')
   T.eq(6, M.stat(path):size())
 end
-fin = true; end ---------------- end tests()
+fin = true;
+end ---------------- end tests()
 
-fd.ioSync();
+fd.ioStd(); T.SUBNAME = '[ioStd]'
+fin = false; tests(); assert(fin)
+
+fd.ioSync(); T.SUBNAME = '[ioSync]'
 fin = false; tests(); assert(fin)
 
 T.SUBNAME = '[ioAsync]'
 fin=false; ixt.runAsyncTest(tests); assert(fin)
 
-T.SUBNAME = ''
+fd.ioSync(); T.SUBNAME = ''
 
 -- FIXME: consider re-working and enabling
 -- T.fd_perf = function()

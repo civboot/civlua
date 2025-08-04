@@ -1,8 +1,8 @@
--- FIXME: __index / etc cannot be support for async operations
+-- FIXME: __index / etc cannot be supported for async operations
 --   since they can cause yielding across a C-boundary for
 --   things like table.move. Therefore, don't do them for
 --   these types. Instead, manually support the methods or figure
---   somethinge else out.
+--   something else out.
 local mty = require'metaty'
 local ds = require'ds'
 
@@ -18,7 +18,7 @@ local IFile = mty'fd.IFile' {
 local mtype = math.type
 local pack, unpack = string.pack, string.unpack
 local sfmt = string.format
-local trace = require'ds.log'.trace
+local info = require'ds.log'.info
 
 local index, newindex = mty.index, mty.newindex
 
@@ -27,6 +27,7 @@ local function iseek(fi, i, m, sz) --!!> nil
   if fi._i == i and fi._m == m then return end
   fi._m = m
   local to = (i-1) * sz
+  info('!! iseek i=%s (pos=%i)', i, to)
   local pos = assert(fi.f:seek('set', to))
   assert(pos % sz == 0, 'pos incorrect')
 end
@@ -85,6 +86,7 @@ IFile.__index = function(fi, i)
 end
 
 IFile.setbytes = function(fi, i, v)
+  info('!! setbytes[%s]=%q', i, v)
   local len = fi.len; assert(i <= len + 1, 'newindex OOB')
   local sz = fi.sz
   if #v ~= sz then error(sfmt('failed to write %i bytes', #v)) end

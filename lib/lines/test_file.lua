@@ -1,8 +1,8 @@
 local mty = require'metaty'
 local fmt = require'fmt'
+local fd = require'fd'
 local ds = require'ds'
 local pth = require'ds.path'
-
 local T = require'civtest'
 local lines = require'lines'
 local testing = require'lines.testing'
@@ -10,25 +10,29 @@ local U3File  = require'lines.U3File'
 local File    = require'lines.File'
 local EdFile  = require'lines.EdFile'
 local Gap     = require'lines.Gap'
+local ixt     = require'civix.testing'
 
 local push, icopy = table.insert, ds.icopy
 
 local TXT, IDX = '.out/lines.txt', '.out/lines.idx'
 local SMALL = ds.srcdir()..'testdata/small.txt'
 
+local info = require'ds.log'.info
+
 local loadu3s = function(f)
-  local pos, t = f:seek'cur', {}
-  assert(pos)
+  local pos, t = f:seek'cur', {}; assert(pos)
+  info('end: %i', f:seek'end')
   f:seek'set'
   for u3 in f:lines(3) do push(t, (('>I3'):unpack(u3))) end
   f:seek('set', pos) -- reset
   return t
 end
 
+local fin = false
+local tests = function()
 T.U3File = function()
   local u = U3File:create()
-  u[1] = 11
-  u[2] = 22; u[3] = 33
+  u[1] = 11; u[2] = 22; u[3] = 33
   T.eq(11, u[1])
   T.eq(22, u[2])
   T.eq(33, u[3]); T.eq(nil, rawget(u, 3))
@@ -36,9 +40,9 @@ T.U3File = function()
   T.eq(11, u[1]) -- testing loadu3s
   T.eq(3, #u)
 
-  u[2] = 20; T.eq({11, 20, 33}, loadu3s(u.f))
-  T.eq(20, u[2])
-  T.eq(33, u[3])
+  u[2] = 20; T.eq(3, #u)
+    T.eq({11, 20, 33}, loadu3s(u.f))
+    T.eq(11, u[1]); T.eq(20, u[2]); T.eq(33, u[3])
 
   u[1] = 10; u[4] = 44; u[5] = 55
   T.eq({10, 20, 33, 44, 55}, loadu3s(u.f))
@@ -173,17 +177,6 @@ T.EdFile_newindex = function()
   T.eq({1, 2}, ef.lens); T.eq(2, #ef)
 end
 
-T.EdIter = function()
-  local ed = EdFile(SMALL)
-  local small = {'one', 'two', 'three', ''}
-  T.eq(small, ds.icopy(ed))
-
-  local ln, t = {}, {};
-  for i, line in ed:iter() do push(ln, i); push(t, line) end
-  T.eq({1, 2, 3, 4}, ln)
-  T.eq(small, t)
-end
-
 T.EdFile_write = function()
   local ed = EdFile(TXT, 'w+')
   ed:write'one\nthree\nfive'
@@ -258,3 +251,18 @@ end
 T.EdFile_linesRemove = function()
   testing.testLinesRemove(newEdFile, edEq, ds.noop)
 end
+fin = true
+end -- tests()
+
+fd.ioStd(); T.SUBNAME = '[ioStd]'
+fin = false; tests(); assert(fin)
+
+fd.ioSync(); T.SUBNAME = '[ioSync]'
+fin = false; tests(); assert(fin)
+
+-- FIXME: __index doesn't work for async operations!
+T.SUBNAME = '[ioAsync]'
+fin=false; ixt.runAsyncTest(tests); assert(fin)
+
+fd.ioStd(); T.SUBNAME = ''
+

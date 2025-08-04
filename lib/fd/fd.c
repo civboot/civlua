@@ -67,7 +67,8 @@ typedef lua_State LS;
 
 // Create a FD object
 static void FD_init(FD* fd) {
-  fd->code = 0; fd->fileno = -1; fd->pos = 0;
+  fd->code = 0; fd->fileno = -1;
+  fd->pos = 0;  fd->fpos = 0;
   fd->size = 0; fd->si = 0; fd->ei = 0;
   fd->buf = NULL;
 }
@@ -150,7 +151,7 @@ static void FD_open(FD* fd) {
       if(pos < 0) { pos = 0; code = errno; }
     }
   } else code = errno;
-  fd->pos  = pos; fd->code = code;
+  fd->pos = pos; fd->fpos = pos; fd->code = code;
 }
 
 static void FD_tmp(FD* fd) {
@@ -212,39 +213,46 @@ static void FD_read(FD* fd) {
 // Note: size is unused and is typically zero to indicate
 //   that buf is Lua owned.
 static void FD_write(FD* fd) {
+  if(fd->pos != fd->fpos) {
+    off_t pos = lseek(fd->fileno, fd->pos, SEEK_SET);
+    if(pos < 0) { fd->code = errno; return; }
+    fd->pos = pos; fd->fpos = pos;
+  }
   int c = write(fd->fileno, (char*)fd->buf + fd->si, LEN(fd));
-  if(c >= 0) { fd->si += c; fd->pos += c; fd->code = 0; }
+  if(c >= 0) { fd->si += c; fd->pos += c; fd->fpos = fd->pos; fd->code = 0; }
   else         fd->code = errno;
 }
 
 // attempt to seek using only buffer, else update FD.
 // return true if complete (no syscall needed)
 static bool FD_seekpre(FD* fd, off_t offset, int whence) {
+  fprintf(stderr, "!! FD_seekpre %i %i\n", offset, whence);
   if((whence == SEEK_SET) && (offset == 0)) goto hard;
   off_t want = offset; switch(whence) {
-    case SEEK_CUR: want += fd->pos; // make absolute
-    case SEEK_SET:
+    case SEEK_CUR /*1*/: want += fd->pos; // make absolute, fallthrough
+    case SEEK_SET /*0*/:
       if((fd->pos <= want) && (want <= fd->pos + LEN(fd))) {
         fd->si += want - fd->pos; fd->pos = want;
+        fprintf(stderr, "!! buff-only pos=%i si=%i\n", want, fd->si);
         return true;
       } // fallthrough
-    case SEEK_END: break; // rely on syscall
-    default: assert(false);
   }
 hard:
-  fd->pos = offset; fd->ctrl = whence;
+  fd->off = offset; fd->ctrl = whence;
   return false;
 }
 
 static void FD_seek(FD* fd) {
-  off_t pos = lseek(fd->fileno, fd->pos, fd->ctrl);
+  fprintf(stderr, "!! FD_seek %i %i\n", fd->off, fd->ctrl);
+  off_t pos = lseek(fd->fileno, fd->off, fd->ctrl);
   if(pos == -1) { fd->code = errno; return; }
-  fd->pos = pos;
+  fd->pos = pos; fd->fpos = pos;
   if(fd->size) { fd->si = 0; fd->ei = 0; } // read buffer only
   fd->code = 0;
 }
 
 static int _FD_flush(FD* fd) {
+  fprintf(stderr, "!! flushing\n");
   struct stat sbuf = {0};
   if(fstat(fd->fileno, &sbuf))             return errno;
   if(sbuf.st_mode != S_IFREG)              return 0;
@@ -253,7 +261,7 @@ static int _FD_flush(FD* fd) {
   // Discard unused data that was read
   if((fd->size == 0) || LEN(fd) == 0)      return 0;
   if(lseek(fd->fileno, fd->pos, SEEK_SET)) return errno;
-  fd->si = 0; fd->ei = 0;
+  fd->fpos = fd->pos; fd->si = 0; fd->ei = 0;
   return 0;
 }
 static void FD_flush(FD* fd) {
@@ -382,6 +390,7 @@ static int l_FD_write(LS* L) {
   if(!lua_isnoneornil(L, 3)) fd->si = luaL_checkinteger(L, 3);
   if(!lua_isnoneornil(L, 4)) fd->ei = luaL_checkinteger(L, 4);
   FD_write(fd);
+done:
   lua_pushinteger(L, fd->code); return 1;
 }
 

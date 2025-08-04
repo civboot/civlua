@@ -315,20 +315,20 @@ M.Loc = mty'Loc' {
   'name [string]',
 }
 
---- if cond goto to
+--- [$if cond goto to]
 M.Goto = mty'Goto' {
   'to   [str]',
 }
 
---- switch of do case 0 do ... default ... end
---- Type is map[int, list[stmt]]
+--- [$switch of do case 0 do ... default ... end]
+--- Type is [$ map[int, list[stmt]] ]
 --- 0 - highest MUST be filled out.
 M.Switch = mty'Switch' {
   'of [list[expr1]]: last expr1 is jmp',
-  'default list[stmt]',
+  'default [list[stmt]]',
 }
 
---- while cond [atend] do block end
+--- [$while cond [atend] do block end]
 --- The block is stored in the While list.
 M.While = mty'While' {
   'cond [list[expr1]]',

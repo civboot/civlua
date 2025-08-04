@@ -8,9 +8,12 @@
 #define LUA_FDT   "FDT"
 
 typedef struct _FD {
+  volatile int fileno;
   volatile int code; // 0==ready/done/ok, negative=started, positive=error
-  volatile int ctrl; // control input (function specific)
-  volatile int fileno; volatile off_t pos;
+  volatile int ctrl;   // control input (function specific)
+  volatile off_t off;  // offset (used for seek)
+  volatile off_t pos;  // position we report (in buffer)
+  volatile off_t fpos; // actual file position
   volatile size_t size, si, ei; // buffer: size, start index, end index
   volatile char* buf;
 } FD;

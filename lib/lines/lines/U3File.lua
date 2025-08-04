@@ -16,7 +16,7 @@ local icreate, ireload, iload = IFile.create, IFile.reload, IFile.load
 local getbytes, setbytes = IFile.getbytes, IFile.setbytes
 
 U3File.create = function(T, ...) return icreate(T, 3, ...)  end
-U3File.load = function(T, ...) return iload(T, 3, ...) end
+U3File.load   = function(T, ...) return iload(T, 3, ...)    end
 U3File.__index = function(u3, k)
   if type(k) == 'string' then
     local mt = getmetatable(u3)

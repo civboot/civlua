@@ -39,11 +39,11 @@ M.main = function(args)
     end)
     log.info'ele started'
   end,
-  function() lap.async() -- setup (async())
+  function() lap.async() -- setup: change to async()
     fd.ioAsync()
     fd.stdin:toNonblock()
   end,
-  function() lap.sync() -- teardown (sync())
+  function() lap.sync() -- teardown: change to sync()
     fd.stdin:toBlock()
     vt.stop()
     fd.ioSync()

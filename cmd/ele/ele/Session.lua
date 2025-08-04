@@ -1,7 +1,8 @@
 local mty = require'metaty'
--- Session: holds the main objects of an ed session.
---   This are not directly available to actions/etc
---   This also makes it easier to setup tests/etc.
+-- Session: the root object of Ele, holds the editor
+-- object and events.
+--
+-- This are not directly available to actions/etc
 local Session = mty'Session' {
   'ed [Ed]',
   'events [Recv]', 'evsend [Send]',
@@ -27,7 +28,7 @@ local FRAME = 0.05
 Session.init = function(T, s)
   s = s or {}
   s.ed = s.ed or Ed:init()
-  s.events = lap.Recv(); s.evsend = s.events:sender()
+  s.events = lap.Recv(); s.evsend  = s.events:sender()
   s.keys   = lap.Recv(); s.keysend = s.keys:sender()
   s.ed:focus(s.ed:buffer())
   return T(s)

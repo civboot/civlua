@@ -88,41 +88,14 @@ EdFile.__newindex = function(ef, i, v) --!!> nil
   ef:__inset(i, {v}, 1)
 end
 
-local EdIter = mty'EdIter' {
-  'dats',
-  'i [int]: (next) index into EdFile',
-  'dati [int]',
-  'di [int]: index of dat[dati]',
-  'lf [lines.File]: reader of file',
-}
-getmetatable(EdIter).__call = function(T, ef, si)
-  si = si or 1
-  local dati = ef:_datindex(si)
-  if not dati then return construct(T, {}) end -- empty
-  local di = si - (ef.lens[si-1] or 0)
-  return construct(T, {
-    dats=ef.dats, i=si, dati=dati, di=di, lf=ef.lf:reader(),
-  })
+--- Return a read-only view of the EdFile which shares the
+--- associated data structures.
+EdFile.reader = function(ef)
+  return EdFile {
+    lf=ef.lf:reader(),
+    dats=ef.dats, lens=ef.lens, readonly=true,
+  }
 end
-EdIter.close = function(ei)
-  ei.i, ei.di, ei.dati = false
-  if ei.lf then ei.lf:close(); ei.lf = nil end
-end
-EdIter.__call = function(ei) --> iterate
-  local i = ei.i; if not i then return end
-  local di, dati, dats = ei.di, ei.dati, ei.dats
-  local d = dats[dati]
-  local r = (getmt(d) == Slc) and ei.lf[d.si + di - 1]
-         or d[di]
-  assert(r)
-  if di < #d          then di       = di + 1
-  elseif dati < #dats then di, dati = 1     , dati + 1, 1
-  else ei:close(); return i, r end
-  ei.i, ei.dati, ei.di = i + 1, dati, di
-  return i, r
-end
-
-EdFile.iter = function(ef)   return EdIter(ef) end
 
 --- Flush the .lf member (which can only be extended).
 --- To write all data to disk use :dump()

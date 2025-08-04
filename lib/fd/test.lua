@@ -132,11 +132,12 @@ T.IFile = function()
   T.eq({'a', 'B', 'c'}, ds.icopy(fi))
 
   local fi = IFile:create(2)
-  ds.extend(fi, {'aa', 'bb', 'cc'})
-  T.eq({'aa', 'bb', 'cc'}, ds.icopy(fi))
+  ds.extend(fi, {'a1', 'b2', 'c3'})
+  T.eq({'a1', 'b2', 'c3'}, ds.icopy(fi))
 end
 
-fin=true; end ----------------- end generalTest
+fin=true
+end -- end generalTest
 
 T.SUBNAME = '[ioStd]'; M.ioStd()
 fin=false; generalTest(); assert(fin)
@@ -193,9 +194,6 @@ T.eq(3, fin)
 
 --- Now run the general test in async mode
 T.SUBNAME = '[ioAsync]'
-fin=false
-ixt.runAsyncTest(generalTest)
-assert(fin)
+fin=false; ixt.runAsyncTest(generalTest); assert(fin)
 
-T.SUBNAME = ''
-M.ioStd()
+M.ioStd(); T.SUBNAME = ''
