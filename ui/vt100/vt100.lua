@@ -6,7 +6,8 @@ local G = G or _G
 --- Originally written 2022 Phil Leblanc, modified 2023 Rett Berg (Civboot.org)
 --- Authorized for relicense in: http://github.com/philanc/plterm/issues/4
 --- ]##
-local M = G.mod and mod'vt100' or {}
+local M = G.mod and mod'vt100' or setmetatable({}, {})
+G.MAIN = G.MAIN or M
 
 local mty = require'metaty'
 local ds  = require'ds'
@@ -94,9 +95,9 @@ M.INP_SEQ = {
 --- valid input sequences following [#<esc>O]#
 M.INP_SEQO = {
   -- xterm
-  ['OP'] = 'f1', ['OQ'] = 'f2', ['OR'] = 'f3', ['OS'] = 'f4',
+  P = 'f1', Q = 'f2', R = 'f3', S = 'f4',
   -- vt
-  ['OH'] = 'home', ['OF'] = 'end',
+  H = 'home', F = 'end',
 }
 local INP_SEQ, INP_SEQO = M.INP_SEQ, M.INP_SEQO
 
@@ -350,11 +351,11 @@ M.Term.input = function(tm, send) --> infinite loop (run in coroutine)
     b = getb(); if b == ESC then send'esc' end
   end
   if b == LETO then -- <esc>[O, get up to 1 character
-    b = getb()
-    if INP_SEQO[b] then send(INP_SEQO[b]); goto continue
-    else goto restart end
+    b = nice(getb()); local s = INP_SEQO[b]
+    if s then send(s);            goto continue
+    else      send'esc'; send(b); goto restart end
   end
-  if b ~= LBR then goto restart end
+  if b ~= LBR then send'esc'; goto restart end
   -- get up to three characters and try to find in
   -- INP_SEQ. If c is not visible ASCII then bail early
   s = ''
@@ -378,9 +379,8 @@ M.Term.input = function(tm, send) --> infinite loop (run in coroutine)
       dat[i] = b; b = nil
     end
   end
-  for _, d in ipairs(dat) do
-    send(nice(dat[i]))
-  end
+  send'esc'; send'['
+  for _, d in ipairs(dat) do send(nice(d)) end
   if b then goto restart else goto continue end
   error'unreachable'
 end
@@ -424,6 +424,24 @@ M.start = function(stderr, ...); assert(select('#', ...) == 0)
   M.ATEXIT.stderr = io.stderr; io.stderr = stderr
   setrawmode()
   log.info'vt100.start() complete'
+end
+
+--- Listens to keyboard inputs and echoes them.
+M.main = function(args)
+  local epath = '/tmp/vt100.err'
+  print('vt100 echo, use ^c (cntrl+c) to quit. stderr at', epath)
+  M.start(assert(io.open(epath, 'a')))
+  local te = {
+    run=true,
+    _ready=function() print'term resized\r' end,
+  }
+  local send = function(b)
+    print(('received %q\r'):format(b))
+    if b == '^c' then te.run = false end
+  end
+  M.Term.input(te, send)
+  M.stop()
+  print'^c stopped, done'
 end
 
 return M

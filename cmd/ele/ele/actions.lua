@@ -27,14 +27,16 @@ local try = ds.try
 -- generating an event when all keys are gathered.
 M.keyinput = function(ed, ev, evsend)
   local mode = ed.modes[ed.mode]; local fallback = mode.fallback
+  -- note: ki=key-input
   local ki, K, err = assert(ev[1], 'missing key'), ed.ext.keys
   if K.keep then K.keep = nil
   else           K.chord, K.event, K.next = {}, nil, nil end
   push(K.chord, ki)
   log.info('keyinput %q mode=%s', K.chord, ed.mode)
-  local nxt; if K.next then
-    nxt = callable(K.next) and K.next
-          or rawget(K.next, ki)
+  local nxt = K.next
+  if nxt then
+    local getb = type(nxt) == 'table' and mty.getmethod(nxt, 'getBinding')
+    if getb then nxt = getb(nxt, ki) end
   else
     local emode = ds.getp(ed, {'edit', 'modes', ed.mode, ki})
     nxt = emode and rawget(emode, ki)
@@ -42,29 +44,32 @@ M.keyinput = function(ed, ev, evsend)
        or emode and rawget(emode, 'fallback')
   end
   nxt = nxt or fallback
-  if not callable(nxt) then
-    if not type(nxt) == 'table' then
-      K.keep = nil; fmt.errorf('%q is neither fn or table', K.chord)
+  local ok, ev
+  if type(nxt) == 'table' and not getmetatable(nxt) then
+    log.info(' + keyinput plain ev %q (%q)', K.chord, nxt)
+    ok, ev = true, ds.copy(nxt)
+  elseif callable(nxt) then
+    log.info(' + keyinput calling %q (%q)', K.chord, nxt)
+    ok, ev = try(nxt, K)
+    if not ok then
+      return ed.error('%q (%s) failed: %q',
+                      nxt, concat(K.chord, ' '), ev)
     end
+  elseif mty.getmethod(nxt, 'getBinding') then
     K.next, K.keep = nxt, true
-    return
+    return -- wait till next key
+  else
+    K.keep = nil
+    fmt.errorf('%q is neither callable, plain table or KeyBindings',
+      K.chord)
   end
-  log.info(' + keyinput calling %q (%q)', K.chord, nxt)
-  local ok, ev = try(nxt, K)
-  if not ok then ed.error('%q (%s) failed: %q', nxt, concat(K.chord, ' '), ev)
-  elseif ev then
-    log.info(' + keyinput %q -> %q', ki, ev)
+  if ev then
+    log.info(' --> %q', ev)
     evsend:pushLeft(ev)
-    if ev.mode then
-      err = et.checkMode(ed, ev.mode); if err then
-        ed.error('%s -> event has invalid mode: %s', n, ev.mode)
-      end
-      ed.mode = ev.mode
-    end
   end
   err = K:check(ed); if err then
     K.keep = nil
-    ed.error('bindings.%s(keys) -> invalid keys: %s', n, err)
+    ed.error('%s -> invalid keys: %s', ki, err)
   end
 end
 M.hotkey = M.keyinput
@@ -121,9 +126,10 @@ local DOMOVE = {
 }
 local domove = function(e, ev)
   local fn = ev.move and DOMOVE[ev.move]
-  if fn      then fn(e, e.buf[e.l], ev)       end
+  if fn      then fn(e, e.buf:get(e.l), ev)       end
   if ev.cols then e.c = e.c + ev.cols         end
   if ev.off  then e.l, e.c = e:offset(ev.off) end
+  if ev.rows then e.l = e.l + ev.rows         end
 end
 
 -- move action
@@ -143,6 +149,7 @@ M.move = function(ed, ev)
   log.trace('move %q [start %s.%s]', ev, e.l, e.c)
   for _=1,ev.times or 1 do domove(e, ev) end
   e.l, e.c = e:boundLC(e.l, e.c)
+  ed:handleStandard(ev)
 end
 
 ----------------------------------
@@ -154,6 +161,7 @@ end
 M.insert = function(ed, ev)
   local e = ed.edit; e:changeStart()
   e:insert(string.rep(assert(ev[1]), ev.times or 1))
+  ed:handleStandard(ev)
 end
 
 -- remove movement action
@@ -169,7 +177,8 @@ M.remove = function(ed, ev)
   if ev.lines == 0 then
     local t = ev.times; local l2 = (t and (t - 1)) or 0
     log.info('remove lines(0) %s:%s', e.l, e.l + l2)
-    return e:remove(e.l, e.l + l2)
+    e:remove(e.l, e.l + l2)
+    return ed:handleStandard(ev)
   end
   if ev.move == 'forword' then ev.cols = ev.cols or -1 end
   local l, c = e.l, e.c + (ev.cols1 or 0)
@@ -180,15 +189,24 @@ M.remove = function(ed, ev)
   else             e:remove(l, c, l2, c2) end
   l, c = motion.topLeft(l, c, l2, c2)
   e.l = math.min(#e.buf, l); e.c = e:boundCol(c)
+  ed:handleStandard(ev)
 end
 
 ----------------------------------
--- nav: navigation
+-- NAV
+
+M.expandDir = function(ed, ev, evsend)
+  local e = ed.edit
+  local line = 
+  log.trace('expandDir', ev, e.l, e.c)
+
+end
 
 M.nav = function(ed, ev, evsend)
   local to = assert(ev[1], 'nav: must provide index 1 for to')
   to = fmt.assertf(ed.ext.nav[to], 'nav: invalid to=%q', to)
   to(ed, ev, evsend)
+  ed:handleStandard(ev)
 end
 
 return M

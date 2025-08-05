@@ -34,6 +34,9 @@ M.Buffer = mty'Buffer' {
   'tmp[parents]: if set, delete when parents are empty',
 }
 
+getmetatable(M.Buffer).__index = mty.hardIndex
+M.Buffer.__newindex            = mty.hardNewindex
+
 getmetatable(M.Buffer).__call=function(T, t)
   assert(t.dat)
   if #t.dat == 0 then push(t.dat, '') end
@@ -59,7 +62,7 @@ end
 local CHANGE_REDO = { ins=redoIns, rm=redoRm, }
 local CHANGE_UNDO = { ins=redoRm, rm=redoIns, }
 
-Buffer.new=function(s)
+Buffer.new = function(s)
   return Buffer{ dat=Gap(s) }
 end
 
@@ -69,10 +72,7 @@ Buffer.__fmt = function(b, fmt)
     b.id, b.dat.path))
 end
 Buffer.__len = function(b) return #b.dat end
-Buffer.__index = function(b, i)
-  if type(i) == 'string' then return Buffer[i] end
-  return b.dat[i]
-end
+Buffer.get   = function(b, i) return b.dat:get(i) end
 
 Buffer.addChange=function(b, ch)
   b.changeI = b.changeI + 1; b.changeMax = b.changeI

@@ -6,6 +6,7 @@ local log    = require'ds.log'
 local Gap    = require'lines.Gap'
 local Buffer = require'lines.buffer'.Buffer
 local Edit   = require'ele.edit'.Edit
+local et     = require'ele.types'
 local push, pop, concat = table.insert, table.remove, table.concat
 
 -- Ed is the global editor state that actions have access to.
@@ -40,7 +41,6 @@ Ed.init = function(T, t)
     redraw = true,
   }, t or {})
   require'ele.bindings'.install(t)
-  require'ele.nav'.install(t)
   return Ed(t)
 end
 
@@ -87,6 +87,16 @@ Ed.draw = function(ed)
   v:draw(d)
   e:viewCursor()
   d.l, d.c = e.l, e.c
+end
+
+Ed.handleStandard = function(ed, ev)
+  if ev.mode then
+    local err = et.checkMode(ed, ev.mode); if err then
+      return ed.error('%s has invalid mode', ev, ev.mode)
+    end
+    log.info(' + mode %s -> %s', ed.mode, ev.mode)
+    ed.mode = ev.mode
+  end
 end
 
 return Ed

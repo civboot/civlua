@@ -107,7 +107,7 @@ Test{'backspace', dat=LINES3, function(tst)
   local b = e.buf
   s:play'l l';    T.eq({1, 3}, {e.l, e.c})
   s:play'i back'; T.eq({1, 2}, {e.l, e.c})
-    T.eq('13 5 7 9', b[1])
+    T.eq('13 5 7 9', b:get(1))
   T.eq('13 5 7 9\n 2 4 6\n', fmt(ed.display))
 end}
 
@@ -118,14 +118,14 @@ Test{'open', open=SMALL, th=9, tw=30, function(tst)
   T.eq(0, #ed.buffers[1].tmp) -- was temporary and was closed
   T.eq(SMALL, b.dat.path)
   s:play'' -- draws
-    T.eq('-- a small lua file for tests', b[1])
+    T.eq('-- a small lua file for tests', b:get(1))
     T.eq(pth.read(SMALL), fmt(ed.display))
   s:play'd f space'
-    T.eq('a small lua file for tests', b[1])
+    T.eq('a small lua file for tests', b:get(1))
   e = ed:open(SMALL)
     T.eq(b.id, BID)
     assert(rawequal(b, e.buf), 'buf is new')
-    T.eq('a small lua file for tests', b[1]) -- no change to contents
+    T.eq('a small lua file for tests', b:get(1)) -- no change to contents
 end}
 
 -- Test{'nav', dat='', function(tst)

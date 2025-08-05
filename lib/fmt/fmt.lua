@@ -199,6 +199,17 @@ Fmt.keyvals = function(f, t, keys)
   end
 end
 
+Fmt.rawtable = function(f, t)
+  local keys = M.sortKeys(t)
+  local multi = #t + #keys > 1 -- use multiple lines
+  f:level(1)
+  f:styled('symbol', multi and f.tableStart or '{', '')
+  f:items(t, next(keys), multi and (#t>0) and (#keys>0) and f.listEnd)
+  f:keyvals(t, keys)
+  f:level(-1)
+  f:styled('symbol', multi and f.tableEnd or '}', '')
+end
+
 --- Recursively format a table.
 --- Yes this is complicated. No, there is no way to really improve
 --- this while preserving the features.
@@ -213,14 +224,7 @@ Fmt.table = function(f, t)
     fn = rawget(mt, '__tostring');  if fn then return f:write(fn(t)) end
     local name = rawget(mt, '__name'); if name then f:write(name) end
   end
-  local keys = M.sortKeys(t)
-  local multi = #t + #keys > 1 -- use multiple lines
-  f:level(1)
-  f:styled('symbol', multi and f.tableStart or '{', '')
-  f:items(t, next(keys), multi and (#t>0) and (#keys>0) and f.listEnd)
-  f:keyvals(t, keys)
-  f:level(-1)
-  f:styled('symbol', multi and f.tableEnd or '}', '')
+  return f:rawtable(t)
 end
 Fmt.__call = function(f, v) f[type(v)](f, v); return f end
 

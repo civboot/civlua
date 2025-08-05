@@ -60,15 +60,15 @@ end
 M.Edit.boundLC = function(e, l, c)
   if l <= 1 then
     if #e == 0 then return 1, 1 end
-    return 1, ds.bound(c, 1, #e.buf[1] + 1)
+    return 1, ds.bound(c, 1, #e.buf:get(1) + 1)
   end
   l = ds.bound(l, 1, #e)
-  return l, ds.bound(c, 1, #e.buf[l] + 1)
+  return l, ds.bound(c, 1, #e.buf:get(l) + 1)
 end
 
 -- bound the column for the line
 M.Edit.boundCol= function(e, c, l)
-  return ds.bound(c, 1, #e.buf[l or e.l] + 1)
+  return ds.bound(c, 1, #e.buf:get(l or e.l) + 1)
 end
 
 -- update view to see cursor (if needed)

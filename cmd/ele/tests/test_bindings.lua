@@ -41,6 +41,7 @@ end
 
 local function assertKeys(keyinputs, mode, expectKeys, expectEvents)
   local data = newEd(mode)
+  data.error = require'fmt'.errorf
   local events = lap.Recv(); local evsend = events:sender()
   for _, ki in ipairs(M.chord(keyinputs)) do
     keyinput(data, {action='keyinput', ki}, evsend)
@@ -57,15 +58,10 @@ T.action = function()
   local mode = function(mode) return {mode=mode} end
   -- Switch between modes
   d = assertKeys('esc',   'insert', false, {mode'command'})
-    T.eq('command', d.mode)
     T.eq({'esc'},   d.ext.keys.chord)
   d = assertKeys('i',     'command', false, {mode'insert'})
-    T.eq('insert', d.mode)
     T.eq({'i'},    d.ext.keys.chord)
-  d = assertKeys('esc i', 'insert', false,
-    {mode'insert', mode'command'}) -- note: reverse order because pushLeft
-    T.eq('insert',  d.mode)
-    T.eq({'i'},     d.ext.keys.chord)
+  d = assertKeys('esc', 'insert', false, {mode'command'})
 
   -- Insert mode
   local ins = function(str) return {action='insert', str} end
@@ -87,11 +83,9 @@ T.action = function()
   assertKeys('5 d l', 'command', false, {rm{off=1,  times=5}})
   assertKeys('3 d d', 'command', false, {rm{lines=0, times=3}})
 
-  local ch = function(t) t.mode = 'insert'; return rm(t) end
+  local ch = function(t) t.mode='insert'; return rm(t) end
   d = assertKeys('3 c l', 'command', false, {ch{off=1, times=3}})
-    T.eq('insert', d.mode)
   d = assertKeys('c c',   'command', false, {ch{lines=0}})
-    T.eq('insert', d.mode)
 
   -- find
   assertKeys('f x',       'command', false,

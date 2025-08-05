@@ -16,23 +16,6 @@ local getp, dp = ds.getp, ds.dotpath
 local add = ds.add
 
 ---------------------------
--- TYPES
-
-M.Keys = mty'Keys' {
-  "chord [table]: list of keys which led to this binding, i.e. {'space', 'a'}",
-  "event [table]: table to use when returning (emitting) an event.",
-  "next [table|string]: the binding which will be used for the next key",
-  "keep [boolean]: if true the above fields will be preserved in next call",
-}
-
-M.Keys.check = function(k, ele) --> errstring?
-  if k.next == nil then return end
-  return (type(k.next) ~= 'table') and et.checkBinding(k.next)
-    or getp(k, {'event', 'action'})
-       and et.checkAction(ele, k.event.action)
-end
-
----------------------------
 -- Utility Functions and Callable Records
 
 -- space-separated keys to a list, asserting valid keys
@@ -54,48 +37,86 @@ M.chordstr = function(chord)
   return concat(s)
 end
 
-M.moveAction = function(event)
-  return function(keys)
-    local ev = keys.event or {}
-    ev.action = ev.action or 'move'
-    return ds.update(ev, event)
+---------------------------
+-- TYPES
+
+--- The state of the keyboard input (chord).
+--- Some bindings are a simple action to perform, whereas callable bindings
+--- can update the KeySt to affect future ones, such as decimals causing
+--- later actions to be repeated a [$num] of times.
+M.KeySt = mty'KeySt' {
+  "chord [table]: list of keys which led to this binding, i.e. {'space', 'a'}",
+  "event [table]: table to use when returning (emitting) an event.",
+  "next [table|string]: the binding which will be used for the next key",
+  "keep [boolean]: if true the above fields will be preserved in next call",
+}
+
+--- Check the current Key State.
+M.KeySt.check = function(k, ele) --> errstring?
+  if k.next == nil then return end
+  return (type(k.next) ~= 'table') and et.checkBinding(k.next)
+    or getp(k, {'event', 'action'})
+       and et.checkAction(ele, k.event.action)
+end
+
+--- A map of key -> binding.
+--- The name and doc can be provided for the user.
+--- 
+--- Other "fields" must be valid chords. They will be automatically
+--- split (by whitespace) to create sub-KeyBindings as-needed.
+---
+--- The value must be one of: [+
+--- * KeyBindings instance to explicitly create chorded bindings.
+--- * plain event table to fire off a simple event
+--- * callable [$event(ev, keySt)] for more complex bindings.
+--- ]
+-- TODO: actually use this
+M.KeyBindings = mty'KeyBindings' {
+  'name [string]: the name of the group for documentation',
+  'doc [string]: documentation to display to the user',
+}
+M.KeyBindings.getBinding = function(kb, k)
+  return getmetatable(kb).__index(kb, k)
+end
+getmetatable(M.KeyBindings).__call = function(T, t)
+  local b = {}
+  for k, v in pairs(t) do T.__newindex(b, k, v) end
+  return mty.constructUnchecked(T, b)
+end
+getmetatable(M.KeyBindings).__index = function(G, k)
+  assert(et.term.checkKey(k))
+end
+M.KeyBindings.__newindex = function(kb, k, v)
+  if M.KeyBindings.__fields[k] then
+    assert(type(v) == 'string', k)
+    rawset(kb, k, v)
+    return
   end
-end
-
--- Return an updated keys.event when called (typically for an action)
-M.Event = mty'Event'{}
-getmetatable(M.Event).__call = mty.constructUnchecked
-getmetatable(M.Event).__index = nil
-M.Event.__newindex = nil
-M.Event.__call = function(a, keys)
-  keys.event = keys.event or {}
-  return ds.update(keys.event, a)
-end
-
--- Chain of literal events
-M.Chain = mty'Chain'{}
-M.Chain.__call = function(acts, keys)
-  local ev = keys.event or {}; ev.action = 'chain'
-  for i, act in ipairs(acts) do ev[i] = ds.copy(act) end
-  return ev
-end
-
--- Runs a given key chord (series of keys)
---   example: command.T = hotkey'd t' -- delete till 
-M.Hotkey = mty'Hotkey' {}
-getmetatable(M.Hotkey).__call = function(T, chord)
-  return mty.construct(T, M.chord(chord))
-end
-M.Hotkey.__call = function(r, keys)
-  local ev = keys.event or {}; ev.action = 'chain'
-  for i, k in ipairs(r) do ev[i] = {action='hotkey', k} end
-  return ev
+  local mtv = getmetatable(v)
+  fmt.assertf(mty.callable(v)
+              or (mtv == M.KeyBindings)
+              or (not mtv and type(v) == 'table'),
+    '[%s] binding must be callable or plain table: %q', k, v)
+  if k == 'fallback' then return rawset(kb,k, v) end
+  k = M.chord(k); assert(#k > 0, 'empty chord')
+  for i=1,#k-1 do
+    local key = k[i]; assert(et.term.checkKey(key))
+    if not rawget(kb,key) then
+      rawset(kb,key, M.KeyBindings{
+        name=table.concat(ds.slice(k, 1,i), ' '),
+      })
+    end
+    kb = rawget(kb,key)
+  end
+  local key = k[#k]
+  assert(et.term.checkKey(key))
+  rawset(kb,key, v)
 end
 
 ---------------------------
 -- Default ed.bindings functions
 
-M.exit = M.Event{action='exit'}
+M.exit = {action='exit'}
 
 M.insertChord = function(keys)
   return ds.update(keys.event or {}, {
@@ -106,14 +127,29 @@ M.unboundChord = function(keys)
   error('unbound chord: '..concat(keys.chord, ' '))
 end
 
+M.close       = {action='close'} -- close current focus
+M.insertmode  = {mode='insert'}
+M.insertsot   = {mode='insert', action='move', move='sot'}
+M.inserteol   = {mode='insert', action='move', move='eol', cols=1}
+M.commandmode = {mode='command'}
 
-M.close       = M.Event{action='close'} -- close current focus
+M.insertBelow = {
+  action='chain', mode='insert',
+  {action='move', move='eol', cols=1}, {action='insert', '\n'},
+}
+M.insertAbove = {
+  action='chain', mode='insert',
+  {action='move', move='sol'},         {action='insert', '\n'},
+  {action='move', rows=-1},
+}
 
-M.insertmode  = M.Event{mode='insert'}
-M.insertsot   = M.Event{mode='insert', action='move', move='sot'}
-M.inserteol   = M.Event{mode='insert', action='move', move='eol', cols=1}
-M.commandmode = M.Event{mode='command'}
-
+M.moveAction = function(event)
+  return function(keys)
+    local ev = keys.event or {}
+    ev.action = ev.action or 'move'
+    return ds.update(ev, event)
+  end
+end
 do local MA = M.moveAction
   M.right,   M.left      = MA{off=1},          MA{off=-1}
   M.forword, M.backword  = MA{move='forword'}, MA{move='backword'}
@@ -155,26 +191,34 @@ M.tillback = function(keys)
   M.findback(keys); keys.event.cols = 1
 end
 
-M.backspace = M.Event{action='remove', off=-1, cols1=-1}
-M.delkey    = M.Event{action='remove', off=1}
+M.backspace = {action='remove', off=-1, cols1=-1}
+M.delkey    = {action='remove', off=1}
 
--- delete until a movement command (or similar)
+--- delete until a movement command (or similar)
 M.delete = function(keys)
   local ev = keys.event or {}; keys.event = ev
   if ev.action == 'remove' then
-    ev.lines = 0; return ev
+    ev.lines = 0
+    return ev
   end
   ev.action = 'remove'
   keys.keep = true
 end
 
-M.change = function(keys)
-  local ev = M.delete(keys); keys.event.mode = 'insert'
+M.change = function(keySt)
+  local ev = M.delete(keySt)
+  keySt.event.mode = 'insert'
+  return ev
+end
+M.changeEol = function(keySt, evsend)
+  M.delete(keySt)
+  local ev = ds.pop(keySt, 'event')
+  ev.move = 'eol'; ev.mode = 'insert'; ev.keep = false
   return ev
 end
 
--- used for setting the number of times to do an action.
--- 1 0 d t x: delete till the 10th x
+--- used for setting the number of times to do an action.
+--- 1 0 d t x: delete till the 10th x
 M.times = function(keys)
   local ev = keys.event or {}; keys.event = ev
   ev.times = (ev.times or 0) * 10 + tonumber(ds.last(keys.chord))
@@ -190,40 +234,18 @@ end
 ---------------------------
 -- KEYBOARD LAYOUT
 
--- bind chord to function
--- example: bind(B.insert, 'space a b', function(keys) ... end)
-M.bind = function(b, chord, fn)
-  assert(type(fn) == 'table' or mty.callable(fn),
-    'can only bind to table or callable')
-  chord = (type(chord) == 'string') and M.chord(chord) or chord
-  assert(#chord > 0, 'chord is empty')
-  local i, mpath = 1, {}
-  while i < #chord do
-    mpath[i] = mty.name(b)
-    local key = chord[i]; if not rawget(b, key) then
-      b[key] = mod and mod(concat(mpath)) or {}
-    end
-    b, i = b[key], i + 1
-  end
-  b[chord[i]] = fn
-end
-M.bindall = function(b, map)
-  for chord, fn in pairs(map) do M.bind(b, chord, fn) end
-end
-
 -- Modes
-M.insert  = {}
-M.command = {}
-
+M.insert  = M.KeyBindings{name='insert', doc='insert mode'}
+M.command = M.KeyBindings{name='command', doc='command mode'}
 
 -- Navigation
-M.goline  = M.Event{action='nav', 'line'}
-M.listCWD = M.Event{action='nav', 'listcwd'}
+M.goline  = {action='nav', 'line'}
+M.listCWD = {action='nav', 'listcwd'}
 
 -----
 -- INSERT
-M.insert.fallback = M.insertChord
-M.bindall(M.insert, {
+ds.update(M.insert, {
+  fallback = M.insertChord,
   ['^q ^q'] = M.exit,
   esc       = M.commandmode,
   right = M.right, left=M.left, up=M.up, down=M.down,
@@ -232,10 +254,13 @@ M.bindall(M.insert, {
 
 -----
 -- COMMAND
-M.command.fallback = M.unboundChord
-M.bindall(M.command, {
+ds.update(M.command, {
+  fallback = M.unboundChord,
   ['^q ^q'] = M.exit,
+
+  -- insert
   i = M.insertmode, I=M.insertsot, A=M.inserteol,
+  o = M.insertBelow, O = M.insertAbove,
 
   -- movement
   right = M.right, left=M.left, up=M.up, down=M.down,
@@ -248,7 +273,8 @@ M.bindall(M.command, {
   -- times (note: 1-9 defined below)
   ['0'] = M.zero, -- sol+0times
 
-  d = M.delete, c = M.change,
+  d = M.delete,
+  c = M.change, C = M.changeEol,
 
   -- Navigation
   -- ['g f']       = M.navFind,
@@ -258,7 +284,24 @@ M.bindall(M.command, {
   -- ['space f .']     = M.listFileDir,
 })
 -- times
-for b=('1'):byte(), ('9'):byte() do M.command[string.char(b)] = M.times end
+for b=('1'):byte(), ('9'):byte() do
+  M.command[string.char(b)] = M.times
+end
+
+---------------------------
+-- NAV Mode
+
+--- Nav mode
+--- Nav mode is for dealing with file paths in ANY buffer.
+--- It allows expanding/collapsing directory-like paths to their
+--- entries, as well as as creating/deleting/opening files
+--- or directories.
+M.nav = M.KeyBindings {
+  name = 'nav', doc = 'nav mode',
+}
+
+M.expandDir   = {action='expandDir'}
+M.collapseDir = {action='collapseDir'}
 
 ---------------------------
 -- INSTALL
@@ -267,8 +310,9 @@ for b=('1'):byte(), ('9'):byte() do M.command[string.char(b)] = M.times end
 --
 -- Note: this does NOT start the keyactions coroutine
 M.install = function(ed)
-  ed.ext.keys = M.Keys{}
-  ed.modes = ds.merge(ed.modes or {}, {
+  ed.ext.keys = M.KeySt{}
+  -- TODO: replace with merge but need shouldMerge closure.
+  ed.modes = ds.update(ed.modes or {}, {
       insert=M.insert, command=M.command,
   })
 end
@@ -280,7 +324,9 @@ M.keyactions = function(ed, keyrecv, evsend)
   log.info('keyactions keyrecv=%q', keyrecv)
   for key in keyrecv do
     log.info('key received: %q', key)
-    if key == '^q' then ed.run = false; log.warn('received ^q, exiting') end
+    if key == '^q' then
+      ed.run = false; log.warn('received ^q, exiting')
+    end
     if not ed.run then break end
     if key then
       if type(key) == 'string' then

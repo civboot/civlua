@@ -70,7 +70,7 @@ local isPod; isPod = function(v, mtFn)
   local ty = type(v)
   if ty == 'table' then
     local mt = getmt(v)
-    if mt then return mtFn(v, mt) end
+    if mt then return (mtFn or retTrue)(v, mt) end
     for k, v in pairs(v) do
       if not (isPod(k, mtFn) and isPod(v, mtFn)) then
         return false
@@ -93,6 +93,8 @@ M.retTrue   = function() return true  end
 M.retFalse  = function() return false end
 M.newTable  = function() return {}    end
 M.eq        = function(a, b) return a == b end
+
+local retTrue = M.retTrue
 
 M.srcloc = function(level) --> "/path/to/dir/file.lua:10"
   local info = debug.getinfo(2 + (level or 0), 'Sl')

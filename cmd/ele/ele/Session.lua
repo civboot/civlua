@@ -48,25 +48,33 @@ Session.user = function(T, ed)
   return s
 end
 
-
 -- run events until they are exhuasted
 Session.run = function(s)
   local actions = s.ed.actions
   while #s.events > 0 do
     local ev = s.events()
+    if type(ev) ~= 'table' or not ds.isPod(ev) then
+      s.ed.error('event is not POD table: %q', ev)
+      goto cont
+    end
     log.info('run event %q', ev)
-    if not ev or not ev.action then goto cont end
+    if not ev then goto cont end
     s.ed.redraw = true
-    local act = ev.action; if act == 'exit' then
+    local act = ev.action;
+    if not act then
+      s.ed:handleStandard(ev)
+      goto cont
+    end
+    if act == 'exit' then
       s.ed.error'exit action received'
       s.ed.run = false
       break
     end
-    act = actions[act]; if not act then
+    local actFn = actions[act]; if not actFn then
       s.ed.error('unknown action: %q', act)
       goto cont
     end
-    local ok, err = ds.try(act, s.ed, ev, s.evsend)
+    local ok, err = ds.try(actFn, s.ed, ev, s.evsend)
     if not ok then s.ed.error('failed event %q. %q', ev, err) end
     ::cont::
   end

@@ -23,6 +23,7 @@ M.main = function(args)
   function() -- setup terminal and kickoff ele coroutines
     local stderr = assert(ioopen('/tmp/ele.err', 'w'))
     vt.start(stderr)
+    io.fmt = require'civ'.Fmt{to=stderr}
 
     s.ed.display = vt.Term{}
     print'print after display start'

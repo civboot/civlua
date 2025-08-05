@@ -33,7 +33,6 @@ cmd/ele/ele/Session.lua
 cmd/ele/ele/actions.lua
 cmd/ele/ele/bindings.lua
 cmd/ele/ele/edit.lua
-cmd/ele/ele/nav.lua
 cmd/ele/ele/testing.lua
 cmd/ele/ele/types.lua
 cmd/ele/resources/Intro.txt
