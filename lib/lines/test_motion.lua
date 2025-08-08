@@ -6,7 +6,7 @@ local T = require'civtest'
 
 local decDistance, lcLe, lcGe, lcWithin
 local forword, backword, findBack
-local wordKind
+local wordKind, pathKind, getRange
 ds.auto'lines.motion'
 
 T.distance = function()
@@ -68,4 +68,35 @@ end
 T.findBack = function()
   T.eq({7, 8},   {findBack('12 45 12 ', '12')})
   T.eq({1, 2},   {findBack('12 45 12 ', '12', 6)})
+end
+
+T.pathKind = function()
+  T.eq('path', pathKind'a')
+  T.eq('path', pathKind'/')
+  T.eq('path', pathKind'-')
+  T.eq('()',   pathKind'(')
+  T.eq('()',   pathKind')')
+  T.eq('sym',  pathKind'+')
+end
+
+local function forpath(s, begin)
+  return forword(s, begin, pathKind)
+end
+local function backpath(s, end_)
+  return backword(s, end_, pathKind)
+end
+
+T.forpath = function()
+  T.eq(3, forpath('a bcd'))
+  T.eq(6, forpath('a/bcd"  '))
+  T.eq(8, forpath('a/b/c.d" '))
+end
+
+T.backpath = function()
+  T.eq(3, backpath('a b/c/d', 7))
+end
+
+local pathRange = function(s, i) return getRange(s, i, pathKind) end
+T.getRange = function()
+  T.eq({3, 5}, {pathRange(' "a/b is the path" ', 4)})
 end

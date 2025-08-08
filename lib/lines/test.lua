@@ -101,6 +101,12 @@ T['Gap.set'] = function()
 end
 
 T['Gap.inset'] = function()
+  -- FIXME: Gap actually passes testInset lol. Need to
+  --   assert inputs are strings.
+  require'ds.testing'.testInsetStr(Gap)
+end
+
+T['Gap lines.inset'] = function()
   T.eq(1, #Gap'')
   local g = Gap(); T.eq(0, #g)
   lines.inset(g, 'foo bar', 1, 0)

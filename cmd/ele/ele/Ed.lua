@@ -1,7 +1,7 @@
 -- defines ele.Ed
 local mty    = require'metaty'
 local ds     = require'ds'
-local path   = require'ds.path'
+local pth    = require'ds.path'
 local log    = require'ds.log'
 local Gap    = require'lines.Gap'
 local Buffer = require'lines.buffer'.Buffer
@@ -17,7 +17,7 @@ local Ed = mty'Ed' {
   'modes [table]: keyboard bindings per mode (see: bindings.lua)',
   'actions [table]: actions which events can trigger (see: actions.lua)',
   'resources [table]: resources to close when shutting down',
-  'buffers [List]: list of Buffer objects',
+  'buffers [list[Buffer]]', 'namedBuffers [map[string,Buffer]]',
   'edit [Buffer]: the current edit buffer',
   'view [RootView]: the root view',
   'display [Term|other]: display/terminal to write+paint text',
@@ -31,17 +31,44 @@ local Ed = mty'Ed' {
   'redraw [boolean]: set to true to force a redraw',
 }
 
-Ed.init = function(T, t)
+getmetatable(Ed).__call = function(T, t)
   t = ds.merge({
     mode='command', modes={},
     actions=ds.copy(require'ele.actions'),
-    buffers={},
+    buffers={}, namedBuffers=ds.WeakV{},
     resources={},
     ext={},
     redraw = true,
-  }, t or {})
-  require'ele.bindings'.install(t)
-  return Ed(t)
+  }, t)
+  return mty.construct(T, t)
+end
+
+Ed.__fmt = function(ed, f)
+  f:write'Ed{mode='; f:string(ed.mode); f:write'}'
+end
+
+--- list of named buffers (name -> buffer)
+
+Ed.init = function(ed)
+  require'ele.bindings'.install(ed)
+  return ed
+end
+
+--- Get an existing buffer if it exists
+Ed.getBuffer = function(ed, v) --> Buffer?
+  if type(v) == 'number' then
+    local b = ed.buffers[v]; if b then return b end
+  end
+  if type(v) == 'string' then
+    local id = v:match'b#(%d+)'; if id then
+      return ed.buffers[tonumber(id) or ed.BUFFER[id]]
+    end
+
+    v = pth.abs(v)
+    for _, b in pairs(ed.buffers) do
+      if v == b.dat.path then return b end
+    end
+  end
 end
 
 -- create new buffer from v (path or table of lines)
@@ -49,17 +76,21 @@ end
 --
 -- If v is a string this will first check if a buffer exists at the path.
 Ed.buffer = function(ed, v) --> Buffer
-  if type(v) == 'string' then
-    v = path.abs(v)
-    for _, b in pairs(ed.buffers) do
-      if v == b.dat.path then return b end
-    end
-  end
+  local b = ed:getBuffer(v); if b then return b end
   local id = #ed.buffers + 1
   ed.buffers[id] = Buffer{
     id=id, dat=ed.newDat(v), tmp=not v and {} or nil
   }
   return ed.buffers[id]
+end
+
+--- Switch to edit (default from current edit)
+Ed.editSwap = function(ed, to, from)
+  from = from or ed.edit
+  if mty.ty(to) ~= Edit then to = Edit(ed, to) end
+  if ed.view then ed.view:editSwap(to, from)
+  else from.container = nil; from:close() end
+  if rawequal(from, ed.edit) then ed.edit = to end
 end
 
 -- enter focus mode on a single edit view

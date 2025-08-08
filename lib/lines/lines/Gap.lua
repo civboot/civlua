@@ -68,14 +68,11 @@ Gap.set = function(g, i, v)
 end
 Gap.__newindex = Gap.set
 
---- see lines.inset
---- This has much better performance than lines.inset when operations
---- are performed close together.
-Gap.__inset = function(g, i, values, rmlen)
+--- See lines.inset for documentation.
+Gap.inset = function(g, i, values, rmlen) --> rm?
   values, rmlen = values or EMPTY, rmlen or 0
   g:setGap(max(0, i + rmlen - 1))
   move(values, 1, max(#values, rmlen), i, g.bot)
-  return g
 end
 
 Gap.extend = function(g, l)
@@ -84,7 +81,7 @@ Gap.extend = function(g, l)
   return g
 end
 
---- set the gap to the line
+--- set the gap to the line number, making [$l == #g.bot].
 Gap.setGap = function(g, l)
   local bot, top = g.bot, g.top
   local blen = #bot
@@ -93,14 +90,12 @@ Gap.setGap = function(g, l)
   if l == blen then return end -- do nothing
   if l < blen then
     while l < #bot do
-      local v = pop(bot)
-      if nil == v then break end
+      local v = pop(bot); if nil == v then break end
       push(top, v)
     end
   else -- l > #g.bot
     while l > #bot do
-      local v = pop(top)
-      if nil == v then break end
+      local v = pop(top); if nil == v then break end
       push(bot, v)
     end
   end

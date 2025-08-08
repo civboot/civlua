@@ -105,7 +105,8 @@ end
 M.throws = function(contains, fn) --> ds.Error
   local ok, err = ds.try(fn)
   if ok then
-    f:styled('error', '!! Unexpected: did not receive an error')
+    io.fmt:styled('error',
+      '!! Unexpected: did not receive an error')
     fail'Test.throws (no error)'
   end
   if err.msg:find(contains, 1, true) then return err end

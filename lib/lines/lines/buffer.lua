@@ -7,6 +7,7 @@ local log = require'ds.log'
 
 local M = {}
 local push, ty = table.insert, mty.ty
+local concat = table.concat
 
 M.ChangeId = 0
 M.nextChangeId = function() M.ChangeId = M.ChangeId + 1; return M.ChangeId end
@@ -37,7 +38,7 @@ M.Buffer = mty'Buffer' {
 getmetatable(M.Buffer).__index = mty.hardIndex
 M.Buffer.__newindex            = mty.hardNewindex
 
-getmetatable(M.Buffer).__call=function(T, t)
+getmetatable(M.Buffer).__call = function(T, t)
   assert(t.dat)
   if #t.dat == 0 then push(t.dat, '') end
   t.changes = t.changes or {}
@@ -67,19 +68,19 @@ Buffer.new = function(s)
 end
 
 Buffer.__fmt = function(b, fmt)
-  push(fmt, ('Buffer{%sid=%s, path=%q}'):format(
+  fmt:write(('Buffer{%s, id=%s, path=%q}'):format(
     b.tmp and (#b.tmp == 0) and '(closed) ',
     b.id, b.dat.path))
 end
 Buffer.__len = function(b) return #b.dat end
 Buffer.get   = function(b, i) return b.dat:get(i) end
 
-Buffer.addChange=function(b, ch)
+Buffer.addChange = function(b, ch)
   b.changeI = b.changeI + 1; b.changeMax = b.changeI
   b.changes[b.changeI] = ch
   return ch
 end
-Buffer.discardUnusedStart=function(b)
+Buffer.discardUnusedStart = function(b)
   if b.changeI ~= 0 and b.changeStartI == b.changeI then
     local ch = b.changes[b.changeI]
     assert(ty(ch) == ChangeStart)
@@ -88,42 +89,42 @@ Buffer.discardUnusedStart=function(b)
     b.changeStartI = 0
   end
 end
-Buffer.changeStart=function(b, l, c)
+Buffer.changeStart = function(b, l, c)
   local ch = ChangeStart{l1=l, c1=c}
   b:discardUnusedStart()
   b:addChange(ch); b.changeStartI = b.changeI
   return ch
 end
-Buffer.getStart=function(b)
+Buffer.getStart = function(b)
   if b.changeStartI <= b.changeMax then
     return b.changes[b.changeStartI]
   end
 end
-Buffer.printChanges=function(b)
+Buffer.printChanges = function(b)
   for i=1,b.changeMax do
     pnt(b.changes[i], (i == b.changeI) and "<-- changeI" or "")
   end
 end
 
-Buffer.changeIns=function(b, s, l, c)
+Buffer.changeIns = function(b, s, l, c)
   return b:addChange(Change{k='ins', s=s, l=l, c=c})
 end
-Buffer.changeRm=function(b, s, l, c)
+Buffer.changeRm = function(b, s, l, c)
   return b:addChange(Change{k='rm', s=s, l=l, c=c})
 end
 
-Buffer.canUndo=function(b) return b.changeI >= 1 end
+Buffer.canUndo = function(b) return b.changeI >= 1 end
 -- TODO: shouldn't it be '<=' ?
-Buffer.canRedo=function(b) return b.changeI < b.changeMax end
+Buffer.canRedo = function(b) return b.changeI < b.changeMax end
 
-Buffer.undoTop=function(b)
+Buffer.undoTop = function(b)
   if b:canUndo() then return b.changes[b.changeI] end
 end
-Buffer.redoTop=function(b)
+Buffer.redoTop = function(b)
   if b:canRedo() then return b.changes[b.changeI + 1] end
 end
 
-Buffer.undo=function(b)
+Buffer.undo = function(b)
   local ch = b:undoTop(); if not ch then return end
   b:discardUnusedStart(); b.changeStartI = 0
 
@@ -142,7 +143,7 @@ Buffer.undo=function(b)
   return o
 end
 
-Buffer.redo=function(b)
+Buffer.redo = function(b)
   local ch = b:redoTop(); if not ch then return end
   b:discardUnusedStart(); b.changeStartI = 0
   assert(ty(ch) == ChangeStart)
@@ -157,20 +158,32 @@ Buffer.redo=function(b)
   return done
 end
 
-Buffer.append=function(b, s)
+Buffer.append = function(b, s)
   local ch = b:changeIns(s, #b.dat + 1, 1)
   b.dat:append(s)
   return ch
 end
 
-Buffer.insert=function(b, s, l, c)
+Buffer.insetTracked = function(b, l, lines, rmlen) --> changes
+  local chs, rm = {}, b:inset(l, lines, rmlen)
+  log.info('!! rm %q', rm)
+  if rm then
+    push(chs, b:changeRm(concat(rm, '\n'), l,1))
+  end
+  if lines and #lines > 0 then
+    push(chs, b:changeIns(concat(lines, '\n'), l,1))
+  end
+  return chs
+end
+
+Buffer.insert = function(b, s, l, c)
   l, c = lines.bound(b.dat, l, c)
   local ch = b:changeIns(s, l, c)
   lines.inset(b.dat, s, l, c)
   return ch
 end
 
-Buffer.remove=function(b, ...)
+Buffer.remove = function(b, ...)
   local l, c, l2, c2 = lines.span(...)
   local lt, ct = motion.topLeft(l, c, l2, c2)
   local dat = b.dat

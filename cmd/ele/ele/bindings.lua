@@ -239,8 +239,24 @@ M.insert  = M.KeyBindings{name='insert', doc='insert mode'}
 M.command = M.KeyBindings{name='command', doc='command mode'}
 
 -- Navigation
-M.goline  = {action='nav', 'line'}
-M.listCWD = {action='nav', 'listcwd'}
+-- M.goPath      = {action='path', go=true}
+-- M.createPath  = {action='path', go='create'}
+
+-- Basic movement and times (used in multiple)
+M.movement = {
+  right = M.right, left=M.left, up=M.up, down=M.down,
+  l     = M.right, h   =M.left, k =M.up, j   =M.down,
+  w=M.forword, b=M.backword,
+  t=M.till, T=M.tillback,
+  ['^'] = M.sot, ['$'] = M.eol,
+
+  -- times (note: 1-9 defined below)
+  ['0'] = M.zero, -- sol+0times
+}
+-- times
+for b=('1'):byte(), ('9'):byte() do
+  M.movement[string.char(b)] = M.times
+end
 
 -----
 -- INSERT
@@ -252,8 +268,11 @@ ds.update(M.insert, {
   back = M.backspace, del=M.delkey,
 })
 
+
 -----
 -- COMMAND
+ds.update(M.command, M.movement)
+
 ds.update(M.command, {
   fallback = M.unboundChord,
   ['^q ^q'] = M.exit,
@@ -262,46 +281,44 @@ ds.update(M.command, {
   i = M.insertmode, I=M.insertsot, A=M.inserteol,
   o = M.insertBelow, O = M.insertAbove,
 
-  -- movement
-  right = M.right, left=M.left, up=M.up, down=M.down,
-  l     = M.right, h   =M.left, k =M.up, j   =M.down,
-  w=M.forword, b=M.backword,
-  f=M.find, F=M.findback,
-  t=M.till, T=M.tillback,
-  ['^'] = M.sot, ['$'] = M.eol,
-
-  -- times (note: 1-9 defined below)
-  ['0'] = M.zero, -- sol+0times
-
   d = M.delete,
   c = M.change, C = M.changeEol,
 
+  -- movement
+  f=M.find, F=M.findback,
+
   -- Navigation
-  -- ['g f']       = M.navFind,
-  ['g l']           = M.goline,
-  -- ['space f f']     = M.navInteractive,
-  ['space f space'] = M.listCWD,
-  -- ['space f .']     = M.listFileDir,
+  -- ['g f']           = M.goPath,
 })
--- times
-for b=('1'):byte(), ('9'):byte() do
-  M.command[string.char(b)] = M.times
-end
 
 ---------------------------
--- NAV Mode
+-- SYSTEM Mode
 
---- Nav mode
---- Nav mode is for dealing with file paths in ANY buffer.
---- It allows expanding/collapsing directory-like paths to their
---- entries, as well as as creating/deleting/opening files
---- or directories.
-M.nav = M.KeyBindings {
+--- System mode
+--- Mode for dealing with system-related resources such as
+--- files, directories and running single line or block
+--- commands directly in a buffer.
+M.sys = M.KeyBindings {
   name = 'nav', doc = 'nav mode',
 }
+ds.update(M.sys, M.movement)
 
-M.expandDir   = {action='expandDir'}
-M.collapseDir = {action='collapseDir'}
+M.pathFocus  = {action='path', entry='focus'}
+M.pathBack   = {action='path', entry='back'}
+M.pathExpand = {action='path', entry='expand'}
+M.pathFocusExpand = {action='chain', M.pathFocus, M.pathExpand}
+M.pathBackExpand = {action='chain',
+  M.pathFocus, M.pathBack, M.pathExpand,
+}
+
+ds.update(M.sys, {
+  h = M.pathBack,   H = M.pathBackExpand,
+  l = M.pathExpand, L = M.pathFocusExpand,
+
+  -- TODO: J/K: focus below/above
+})
+
+
 
 ---------------------------
 -- INSTALL
@@ -310,11 +327,15 @@ M.collapseDir = {action='collapseDir'}
 --
 -- Note: this does NOT start the keyactions coroutine
 M.install = function(ed)
+  log.info('!! install %q', ed)
   ed.ext.keys = M.KeySt{}
   -- TODO: replace with merge but need shouldMerge closure.
   ed.modes = ds.update(ed.modes or {}, {
       insert=M.insert, command=M.command,
   })
+  if not ed.namedBuffers.nav then
+    ed.namedBuffers.nav = ed:buffer()
+  end
 end
 
 -- keyactions coroutine.

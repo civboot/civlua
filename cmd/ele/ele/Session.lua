@@ -25,24 +25,24 @@ local yield = coroutine.yield
 -- local FRAME = 0.05
 local FRAME = 0.05
 
-Session.init = function(T, s)
-  s = s or {}
-  s.ed = s.ed or Ed:init()
+getmetatable(Session).__call = function(T, s)
+  s.ed = s.ed or Ed{}
+  s.ed:init()
   s.events = lap.Recv(); s.evsend  = s.events:sender()
   s.keys   = lap.Recv(); s.keysend = s.keys:sender()
   s.ed:focus(s.ed:buffer())
-  return T(s)
+  return mty.construct(T, s)
 end
 -- init test session
-Session.test = function(T, ed)
-  local s = T:init(ed)
+Session.test = function(T, s)
+  local s = T(s)
   s.ed.error = log.LogTable{}
   s.ed.warn  = log.warn
   return s
 end
 -- init (not run) real user session
-Session.user = function(T, ed)
-  local s = T:init(ed)
+Session.user = function(T, s)
+  local s = T(s)
   s.ed.error = log.err
   s.ed.warn  = log.warn
   return s

@@ -19,7 +19,7 @@ end
 T.literal = function()
   local l = M.literal
   T.eq('a',  l'a')
-  T.eq('\n', l'return')
+  T.eq('\n', l'enter')
   T.eq(nil,  l'invalid')
 end
 
@@ -39,7 +39,7 @@ T.keynice = function()
   T.eq('^a',     key(1))
   T.eq('tab',    key(9))
   T.eq('^j',     key(10))
-  T.eq('return', key(13))
+  T.eq('enter', key(13))
   T.eq('space',  key(32))
   T.eq('^z',     key(26))
 end

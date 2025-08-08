@@ -27,7 +27,8 @@ end
 
 local function newEd(mode)
   local ed = Ed{
-    mode=mode, modes={}, actions=actions, ext={}
+    mode=mode, modes={}, actions=actions, ext={},
+    buffers={}, namedBuffers={},
   }
   M.install(ed)
   return ed

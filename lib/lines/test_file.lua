@@ -252,6 +252,10 @@ end
 T.EdFile_linesRemove = function()
   testing.testLinesRemove(newEdFile, edEq, ds.noop)
 end
+
+T.EdFile_inset = function()
+  require'ds.testing'.testInsetStr(newEdFile, edEq)
+end
 fin = true
 end -- tests()
 

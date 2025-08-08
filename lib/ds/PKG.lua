@@ -20,4 +20,5 @@ srcs = {
   'ds/log.lua',
   'ds/Grid.lua',
   'ds/kev.lua',
+  'ds/testing.lua',
 }

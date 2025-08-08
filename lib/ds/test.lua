@@ -299,12 +299,8 @@ T.list = function()
   T.eq({2, 1},    reverse({1, 2}))
   T.eq({3, 2, 1}, reverse({1, 2, 3}))
 
-  T.eq({}, M.inset({}, 1, {}))
-  local t = M.inset({1}, 1, {}, 1)
-  T.eq({}, t) -- remove
-  T.eq({1, 2, 3}, M.inset({1, 3}, 2, {2}))
-  T.eq({1, 2, 3}, M.inset({1, 4, 3}, 2, {2}, 1))
-  T.eq({"ab", "d"}, M.inset({"ab", "c", "", "d"}, 2, {}, 2))
+  require'ds.testing'.testInset(ds.iden)
+  require'ds.testing'.testInsetStr(ds.iden)
 end
 
 T.eval = function()

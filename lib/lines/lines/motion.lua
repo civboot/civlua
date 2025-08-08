@@ -53,31 +53,41 @@ M.lcWithin = function(l, c, l1, c1, l2, c2) --> bool
   return false
 end
 
-local WordKind = {}; M.WordKind = WordKind -- ws, sym, let
+local WordKind = {}; M.WordKind = WordKind
 for c=0, 127 do
   local ch, kind = char(c), nil
   if 0 <= c and ch <= ' '        then kind = 'ws'
-  elseif '1' <= ch and ch <= '9' then -- let, leave
-  elseif 'a' <= ch and ch <= 'z' then -- let, leave
-  elseif 'A' <= ch and ch <= 'Z' then -- let, leave
-  elseif ch == '_'               then -- let, leave
+  elseif '1' <= ch and ch <= '9' then -- nil
+  elseif 'a' <= ch and ch <= 'z' then -- nil
+  elseif 'A' <= ch and ch <= 'Z' then -- nil
+  elseif ch == '_'               then -- nil
   else kind = 'sym' end
   WordKind[ch] = kind
 end
+
 WordKind['('] = '()'; WordKind[')'] = '()'
 WordKind['['] = '[]'; WordKind[']'] = '[]'
 WordKind['{'] = '{}'; WordKind['}'] = '{}'
 WordKind['"'] = '"'   WordKind["'"] = "'"
 
-local function wordKind(ch) return WordKind[ch] or 'let' end
-M.wordKind = wordKind --> string
+M.wordKind = function(ch) --> ws|sym|let
+  return WordKind[ch] or 'let' -- letter
+end
+
+M.PathKind = ds.copy(M.WordKind); local PathKind = M.PathKind
+for _, c in ipairs{'/', '.', '-', ':', '#'} do
+  M.PathKind[c] = nil
+end
+M.pathKind = function(ch) --> ws|sym|path
+  return PathKind[ch] or 'path'
+end
 
 --- Go forward to find the start of the next word
-M.forword = function(s, begin) --> int
-  begin = begin or 1
-  local i, kStart = begin+1, wordKind(s:sub(begin,begin))
+M.forword = function(s, begin, getKind) --> int
+  begin, getKind = begin or 1, getKind or M.wordKind
+  local i, kStart = begin+1, getKind(s:sub(begin,begin))
   for ch in string.gmatch(s:sub(begin+1), '.') do
-    local k = wordKind(ch)
+    local k = getKind(ch)
     if k ~= kStart then
       if kStart ~= 'ws' and k == 'ws' then
         kStart = 'ws' -- find first non-whitespace
@@ -88,17 +98,34 @@ M.forword = function(s, begin) --> int
 end
 
 --- Go backward to find the start of this (or previous) word
-M.backword = function(s, end_) --> int
+M.backword = function(s, end_, getKind) --> int
+  getKind = getKind or M.wordKind
   s = s:sub(1, end_-1):reverse()
-  local i, kStart = 2, wordKind(s:sub(1,1))
+  local i, kStart = 2, getKind(s:sub(1,1))
   for ch in string.gmatch(s:sub(2), '.') do
-    local k = wordKind(ch)
+    local k = getKind(ch)
     if k ~= kStart then
       if kStart == 'ws' then kStart = k
       else return #s - i + 2 end
     end
     i = i + 1
   end
+end
+
+--- get the range[si,ei] of whatever is at s[i].
+M.getRange = function(s, i, getKind) --> si,ei
+  getKind = getKind or M.wordKind
+  local si, ei = 1, #s; if ei < i then return nil end
+  local kind = getKind(s:sub(i,i))
+  for k = i-1, 1, -1 do
+    if kind == getKind(s:sub(k,k)) then si=k
+    else break end
+  end
+  for k = i+1, ei do
+    if kind == getKind(s:sub(k,k)) then ei=k
+    else break end
+  end
+  return si, ei
 end
 
 --- find backwards

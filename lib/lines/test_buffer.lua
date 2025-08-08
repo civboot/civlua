@@ -88,10 +88,10 @@ T.undoMulti = function() -- undo/redo across multi lines
   T.eq(START, fmt(g))
   local ch1 = C{k='rm', s='\n', l=1, c=4}
   local ch2 = C{k='rm', s='\n', l=1, c=7}
-  b:changeStart(0, 0)
+  b:changeStart(0,0)
   ch = b:remove(1, 4, 1, 4); T.eq(ch1, ch)
   T.eq('123456\n789\nabc', fmt(g))
-  b:changeStart(0, 0)
+  b:changeStart(0,0)
   ch = b:remove(1, 7, 1, 7); T.eq(ch2, ch)
   T.eq('123456789\nabc', fmt(g))
 

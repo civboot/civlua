@@ -48,7 +48,7 @@ end
 
 EdFile.__len = function(ef)
   ef:_updateLens()
-  local l = ef.lens; return l[#l]
+  local l = ef.lens; return l[#l] or 0
 end
 
 --- get the index into dats where [$ef[i]] is located
@@ -84,7 +84,7 @@ end
 
 --- Set line at index.
 EdFile.set = function(ef, i, v)
-  ef:__inset(i, {v}, 1)
+  ef:inset(i, {v}, 1)
 end
 
 --- Return a read-only view of the EdFile which shares the
@@ -132,7 +132,7 @@ EdFile.extend = function(ef, values)
 end
 
 ----------------------------
--- EdFile.__inset
+-- EdFile.inset
 -- This is the major logic for mutating an EdFile
 
 --- inset the dat, pushing to dats the values that have to be
@@ -158,7 +158,7 @@ local insetDat = function(dats, dat, i, values, rmlen)
 end
 
 --- insert into EdFile's dats.
-EdFile.__inset = function(ef, i, values, rmlen)
+EdFile.inset = function(ef, i, values, rmlen) --> rm?
   assert(not ef.readonly, 'attempt to modify readonly file')
   rmlen = rmlen or 0
 
@@ -171,7 +171,8 @@ EdFile.__inset = function(ef, i, values, rmlen)
   if not df then
     -- special case: extend. This is special because it writes to the file.
     assert(i == #ef + 1, 'i > len+1')
-    return ef:extend(values)
+    ef:extend(values)
+    return
   end
 
   if rmlen > 0 then -- find last dat to remove (and in-between)
@@ -182,29 +183,29 @@ EdFile.__inset = function(ef, i, values, rmlen)
     elseif df == dl then dl = nil end end
   end
 
-  local dats, rdats, ldat = ef.dats, {}, nil
-  local first, fi, ei = dats[df], i - (lens[df-1] or 0)
+  -- Note: rdats is replace dats (not rm), they
+  -- are inset into dats at the end.
+  local dats, rdats, ldat = ef.dats , {}                 , nil
+  local first,   fi, ei   = dats[df], i - (lens[df-1] or 0)
 
   -- We handle the first and last items separately. By the end of these
   -- blocks we want them to be of type Gap with the rmlen values removed.
   if getmt(first) == Slc then
     -- split up first slice
     if 1 < fi then
-      local slc = Slc{si=first.si, ei=first.si + fi - 2}
-      push(rdats, slc)
+      push(rdats, Slc{si=first.si, ei=first.si + fi - 2})
     end
     if dl then
-      rmlen = rmlen - (#first - fi)
-      assert(rmlen > 0, 'programmer error')
+      rmlen = rmlen - (#first - fi); assert(rmlen > 0, 'programmer error')
     elseif (fi + rmlen) <= first.ei then -- put Slc at end
       local slc = Slc{si=(first.si+fi-1) + rmlen, ei=first.ei}
       rmlen, ldat = 0, slc
     end
     fi, first = 1, nil
-  else
+  else -- Gap
     local rmfirst = min(rmlen, #first - fi + 1)
     if rmfirst > 0 then
-      first:__inset(fi, nil, rmfirst)
+      first:inset(fi, nil, rmfirst)
       rmlen = rmlen - rmfirst
     end
   end
@@ -218,7 +219,7 @@ EdFile.__inset = function(ef, i, values, rmlen)
       end
       last = nil
     elseif rmlen > 0 then
-      last:__inset(1, nil, rmlen); rmlen = 0
+      last:inset(1, nil, rmlen); rmlen = 0
     end
   end
 
@@ -228,13 +229,14 @@ EdFile.__inset = function(ef, i, values, rmlen)
   end
   if values and #values > 0 then
     first = first or Gap()
-    first:__inset(fi, values, 0)
+    first:inset(fi, values, 0)
   end
   if first then push(rdats, first) end
   if ldat  then push(rdats, ldat) end
 
   -- consolodate Gap objects
   first = dats[df-1]
+  -- TODO: I think the second check is implied?
   if (getmt(first) == Gap) and (getmt(rdats[1]) == Gap) then
     first:extend(rdats[1]); rdats[1], df = first, df - 1
   end

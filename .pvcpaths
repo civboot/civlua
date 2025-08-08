@@ -85,6 +85,7 @@ lib/ds/ds/heap.lua
 lib/ds/ds/kev.lua
 lib/ds/ds/log.lua
 lib/ds/ds/path.lua
+lib/ds/ds/testing.lua
 lib/ds/ds/utf8.lua
 lib/ds/test.lua
 lib/fd/Makefile

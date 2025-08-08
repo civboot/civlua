@@ -33,12 +33,14 @@ M.name = function(t) --> string
   local mt = getmt(t)
 end
 
---- insert values into list at i.
---- Uses [$__inset] metamethod if available.
+--- insert values into list at index i.
+--- Uses [$inset] method if available.
 --- rmlen, if provided, will cause [$t[i:i+rmlen]] to be removed first
-M.inset = function(t, i, values, rmlen) --> removed?
-  local meth = getmethod(t, '__inset')
-  if meth then return meth(t, i, values, rmlen) end
+---
+--- inset is like an extend but the items are insert at any place in the array.
+--- The rmlen will also remove a certain number of items.
+M.inset = function(t, i, values, rmlen) --> nil
+  if getmt(t) then return t:inset(i, values, rmlen) end
   -- impl notes, there are two modes:
   -- * we want to keep some values after i: we cache those values then shift in
   -- * we don't want to keep values after i: we shift in the values and clear
@@ -48,10 +50,10 @@ M.inset = function(t, i, values, rmlen) --> removed?
     local cache = move(t, i + rmlen, tlen, 1, {})
     move(values, 1, max(vlen, tlen - i + 1), i, t)
     move(cache, 1, #cache, i + vlen, t)
-    return t
+    return
   end
   -- not keeping values >= i
-  return move(values, 1, max(vlen, rmlen), max(1, i + 1 - rmlen), t)
+  move(values, 1, max(vlen, rmlen), max(1, i + 1 - rmlen), t)
 end
 
 ---------------------
@@ -386,8 +388,8 @@ local extend = M.extend
 M.defaultExtend = function(r, l) --> r
   local rset = getmt(r) and assert(r.set) or rawset
   local lget = getmt(l) and assert(l.get) or rawget
-  local i = #r + 1
-  for k=1,#l do rset(r,i, lget(l,k)); i = i + 1 end
+  local rlen = #r
+  for k=1,#l do rset(r, rlen+k, lget(l,k)) end
   return r
 end
 

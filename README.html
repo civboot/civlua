@@ -1437,7 +1437,7 @@ Example: <code>iend({1, 2, 3, 4, 5}, -3, -2) -&gt; 3, 4</code>
 next(t, key) but with indexes
 <h3>Function <a id="ds.inset" href="#ds.inset">ds.inset</a><code>(t, i, values, rmlen) -&gt; removed?</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L54"><i>src</i></a>)</h3>
 insert values into list at i.
-Uses <code>__inset</code> metamethod if available.
+Uses <code>inset</code> metamethod if available.
 rmlen, if provided, will cause <code>t[i:i+rmlen]</code> to be removed first
 <h3>Function <a id="ds.iprev" href="#ds.iprev">ds.iprev</a><code>(t, i) -&gt; (i-1, v)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L317"><i>src</i></a>)</h3>
 inext but reversed.
@@ -2108,7 +2108,7 @@ mechanisms to insert/remove/etc based on real-world workloads
 </table>
 <h4>Function <a id="EdFile.extend" href="#EdFile.extend">EdFile.extend</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/EdFile.lua#L160"><i>src</i></a>)</h4>
 appends to lf for extend when possible.
-<h4>Function <a id="EdFile.__inset" href="#EdFile.__inset">EdFile.__inset</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/EdFile.lua#L275"><i>src</i></a>)</h4>
+<h4>Function <a id="EdFile.inset" href="#EdFile.inset">EdFile.inset</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/EdFile.lua#L275"><i>src</i></a>)</h4>
 insert into EdFile's dats.
 <h4>Function <a id="EdFile.__len" href="#EdFile.__len">EdFile.__len</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/EdFile.lua#L50"><i>src</i></a>)</h4>
 <h4>Function <a id="EdFile._datindex" href="#EdFile._datindex">EdFile._datindex</a><code>(ef, i) -&gt; di</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/EdFile.lua#L59"><i>src</i></a>)</h4>
@@ -2207,7 +2207,7 @@ append to file
   </tr>
 </table>
 <h4>Function <a id="Gap.extend" href="#Gap.extend">Gap.extend</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/Gap.lua#L81"><i>src</i></a>)</h4>
-<h4>Function <a id="Gap.__inset" href="#Gap.__inset">Gap.__inset</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/Gap.lua#L75"><i>src</i></a>)</h4>
+<h4>Function <a id="Gap.inset" href="#Gap.inset">Gap.inset</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/Gap.lua#L75"><i>src</i></a>)</h4>
 see lines.inset
 This has much better performance than lines.inset when operations
 are performed close together.

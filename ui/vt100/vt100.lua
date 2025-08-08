@@ -104,7 +104,7 @@ local INP_SEQ, INP_SEQO = M.INP_SEQ, M.INP_SEQO
 -------------
 -- Byte -> Character/Command
 local CMD = { -- command characters (not sequences)
-  [  9] = 'tab',   [ 13] = 'return',  [ 32] = 'space',
+  [  9] = 'tab',   [ 13] = 'enter',  [ 32] = 'space',
   [127] = 'back',  [ESC] = 'esc',
 }
 M.CMD = CMD
@@ -122,7 +122,7 @@ M.ctrlChar, M.key = ctrlChar, nice
 --- special keys (return, space, etc) to their literal form.
 M.LITERALS = {
   ['tab']       = '\t',
-  ['return']    = '\n',
+  ['enter']     = '\n',
   ['space']     = ' ',
   ['slash']     = '/',
   ['backslash'] = '\\',
@@ -131,7 +131,7 @@ M.LITERALS = {
 
 --- Convert any key to it's literal form [#
 ---   literal'a'       -> 'a'
----   literal'return'  -> '\n'
+---   literal'enter'   -> '\n'
 ---   literal'invalid' -> nil
 --- ]#
 M.literal = function(key) --> literalstring?

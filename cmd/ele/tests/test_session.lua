@@ -39,7 +39,7 @@ local Test = mty.record'session.Test' {
 getmetatable(Test).__call = function(Ty, t)
   local path = ds.srcloc(1)
   t = mty.construct(Ty, t)
-  t.s = t.s or Session:test(); local ed = t.s.ed
+  t.s = t.s or Session:test{}; local ed = t.s.ed
   ed.display = Fake{h=t.th, w=t.tw}
   local name = assert(t[1], 'need name')
   print('## test_session.Test', name)
@@ -76,7 +76,7 @@ Test{'session', dat='', function(tst)
     T.eq('9 8\n\n', fmt(t))
   T.eq(log.LogTable{}, ed.error)
 
-  s:play'space 7 return 6'
+  s:play'space 7 enter 6'
     T.eq('9 8 7\n6\n', fmt(t))
 end}
 
@@ -113,7 +113,7 @@ end}
 
 Test{'open', open=SMALL, th=9, tw=30, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
-  local b, BID = e.buf, 2
+  local b, BID = e.buf, 3
   T.eq(b.id, BID)
   T.eq(0, #ed.buffers[1].tmp) -- was temporary and was closed
   T.eq(SMALL, b.dat.path)

@@ -69,7 +69,8 @@ ds.update(M, {
   DIR  = "dir",  CHR  = "chr",
   FIFO = "fifo",
 
-  dir = lib.dir, rm=lib.rm, rmdir = lib.rmdir,
+  dir = lib.dir, ls    = lib.dir,
+  rm  = lib.rm,  rmdir = lib.rmdir,
   exists = lib.exists,
 
   -- TODO: probably good to catch return code for cross-filesystem

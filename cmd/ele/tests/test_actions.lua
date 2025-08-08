@@ -8,6 +8,8 @@ local edit = require'ele.edit'
 local Ed = require'ele.Ed'
 local Buffer = require'lines.buffer'.Buffer
 
+local nav = M.nav
+
 local newEd = function(lines)
   return Ed{
     edit = edit.Edit(nil, Buffer.new(lines)),
@@ -82,4 +84,50 @@ T.insert = function()
     T.eq('4 5 6',     b:get(2))
   assertInsert('6 7\n', {}, 2, 1)
     T.eq('4 5 6 7\n1 2 3\n4 5 6', fmt(b.dat))
+end
+
+local NAV1 = [[
+/focus/path/
+  * f
+  * d/
+    * d/
+    * f
+]]
+T.nav = function()
+  local d = newEd(NAV1)
+  local e, b = d.edit, d.edit.buf
+
+
+  T.eq('./focus/path/', nav.getFocus'-./focus/path/\n')
+  T.eq(nil,             nav.getFocus'focus/path/\n')
+  T.eq({'  ', '*', 'f'}, {nav.getEntry'  * f'})
+  T.eq(1, nav.findFocus(b, 1))
+  T.eq(1, nav.findFocus(b, 2))
+  T.eq(1, nav.findFocus(b, 5))
+  T.eq(5, nav.findEnd(b, 1))
+  T.eq(5, nav.findEnd(b, 4))
+  T.eq(5, nav.findEnd(b, 5))
+
+  T.eq('/focus/path/',     nav.getPath(b, 1))
+  T.eq('/focus/path/f',    nav.getPath(b, 2))
+  T.eq('/focus/path/d/',   nav.getPath(b, 3))
+  T.eq('/focus/path/d/d/', nav.getPath(b, 4))
+  T.eq('/focus/path/d/f',  nav.getPath(b, 5))
+
+  T.eq(nil, nav.findEntryEnd(b, 1))
+  T.eq(2,   nav.findEntryEnd(b, 2))
+  T.eq(5,   nav.findEntryEnd(b, 3))
+  T.eq(4,   nav.findEntryEnd(b, 4))
+  T.eq(5,   nav.findEntryEnd(b, 5))
+
+  nav.backEntry(b, 4)
+  T.eq('/focus/path/\n  * f\n  * d/\n', fmt(b.dat))
+
+  nav.backEntry(b, 3)
+  T.eq('/focus/path/\n', fmt(b.dat))
+
+  local r, entries = nil, {'f', 'd/'}
+  nav.expandEntry(b, 1, function(p) r = p; return entries end)
+  T.eq('/focus/path/', r)
+  T.eq('/focus/path/\n  * f\n  * d/\n', fmt(b.dat))
 end
