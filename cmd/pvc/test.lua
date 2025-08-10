@@ -3,6 +3,7 @@ local T = require'civtest'
 
 local pvc = require'pvc'
 local ds = require'ds'
+local info = require'ds.log'.info
 local pth = require'ds.path'
 local fd = require'fd'
 local ix = require'civix'
@@ -34,6 +35,14 @@ end
 --- test empty files
 T.empty = function()
   local d = initPvc()
+  local diff = pvc.diff(D)
+  info('!! empty diff: %q', diff)
+  T.eq(pvc.Diff{
+    dir1=D..'.pvc/main/commit/00/0.snap/', dir2=D,
+    equal={".pvcpaths"}, deleted={},
+    changed={}, created={},
+  }, diff)
+  T.eq(false, diff:hasDiff())
   T.throws('no differences detected', function()
     pvc.commit(d, 'empty repo')
   end)

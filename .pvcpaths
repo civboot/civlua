@@ -28,7 +28,7 @@ cmd/ele/PKG.lua
 cmd/ele/README.cxt
 cmd/ele/design/navigation.md
 cmd/ele/ele.lua
-cmd/ele/ele/Ed.lua
+cmd/ele/ele/Editor.lua
 cmd/ele/ele/Session.lua
 cmd/ele/ele/actions.lua
 cmd/ele/ele/bindings.lua

@@ -6,8 +6,10 @@ local mty    = require'metaty'
 local ds     = require'ds'
 local log    = require'ds.log'
 local motion = require'lines.motion'
-local types = require'ele.types'
+local ix = require'civix'
 local lines = require'lines'
+local Gap   = require'lines.Gap'
+local types = require'ele.types'
 
 local push = table.insert
 local span, lsub = lines.span, lines.sub
@@ -44,6 +46,26 @@ M.Edit.close = function(e, ed)
     end
   end
 end
+
+M.Edit.save = function(e, ed)
+  local b = e.buf; local dat = b.dat
+  local ro = b.readonly; b.readonly = true
+  local path = assert(dat.path, 'must set path')
+  local tpath = path..'.__ELE__'
+  -- TODO: schedule the rest as coroutine to not block.
+  dat:flush()
+  local tmp = assert(io.open(tpath, 'w'))
+  dat:dumpf(tmp); tmp:flush()
+  dat:close();    tmp:close()
+  -- TODO: I should move with :move (need to implement)
+  ix.mv(tpath, path)
+  b.readonly = ro -- in case the below fails
+  dat = assert(ed.newDat(path),
+               'CRITICAL: failed to load saved path')
+  b.readonly = ro
+  b.dat = dat
+end
+
 M.Edit.__len       = function(e) return #e.buf end
 M.Edit.__tostring  = function(e) return string.format('Edit[id=%s]', e.id) end
 M.Edit.copy        = function(e) return ds.copy(e, {id=T.nextViewId()}) end

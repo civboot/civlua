@@ -10,7 +10,7 @@ srcs = {
   'ele/edit.lua',
   'ele/actions.lua',
   'ele/nav.lua',
-  'ele/Ed.lua',
+  'ele/Editor.lua',
   'ele/Session.lua',
   'ele/testing.lua',
 }

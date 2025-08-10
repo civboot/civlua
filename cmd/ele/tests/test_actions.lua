@@ -3,15 +3,19 @@
 local fmt = require'fmt'
 local T = require'civtest'
 local ds = require'ds'
+local pth = require'ds.path'
 local M = require'ele.actions'
 local edit = require'ele.edit'
-local Ed = require'ele.Ed'
+local Editor = require'ele.Editor'
 local Buffer = require'lines.buffer'.Buffer
+local ix = require'civix'
 
 local nav = M.nav
+local O = './.out/ele/'; if ix.exists(O) then ix.rmRecursive(O) end
+ix.mkDir(O)
 
-local newEd = function(lines)
-  return Ed{
+local newEditor = function(lines)
+  return Editor{
     edit = edit.Edit(nil, Buffer.new(lines)),
   }
 end
@@ -22,7 +26,7 @@ local lines3 =
 ..'1 3 5 7 9\n'
 
 T.move = function()
-  local d = newEd(lines3); local e = d.edit
+  local d = newEditor(lines3); local e = d.edit
   local function assertMove(mv, ev, l, c)
     ev.move = mv; M.move(d, ev)
     T.eq({l, c}, {e.l, e.c})
@@ -52,7 +56,7 @@ T.move = function()
 end
 
 T.remove = function()
-  local d = newEd(lines3); local e, b = d.edit, d.edit.buf
+  local d = newEditor(lines3); local e, b = d.edit, d.edit.buf
   local function assertRemove(mv, ev, l, c)
     ev.move = mv; M.remove(d, ev)
     T.eq({l, c}, {e.l, e.c})
@@ -73,7 +77,7 @@ T.remove = function()
 end
 
 T.insert = function()
-  local d = newEd'1 2 3\n4 5 6'; local e, b = d.edit, d.edit.buf
+  local d = newEditor'1 2 3\n4 5 6'; local e, b = d.edit, d.edit.buf
   local function assertInsert(txt, ev, l, c)
     ev[1] = txt; M.insert(d, ev)
     T.eq({l, c}, {e.l, e.c})
@@ -94,9 +98,8 @@ local NAV1 = [[
     * f
 ]]
 T.nav = function()
-  local d = newEd(NAV1)
+  local d = newEditor(NAV1)
   local e, b = d.edit, d.edit.buf
-
 
   T.eq('./focus/path/', nav.getFocus'-./focus/path/\n')
   T.eq(nil,             nav.getFocus'focus/path/\n')
@@ -130,4 +133,19 @@ T.nav = function()
   nav.expandEntry(b, 1, function(p) r = p; return entries end)
   T.eq('/focus/path/', r)
   T.eq('/focus/path/\n  * f\n  * d/\n', fmt(b.dat))
+
+  T.eq(0, #d.buffers)
+  local test_txt = O..'test.txt'
+  b:insert(test_txt..'\n', 2)
+  e.l, e.c = 2, 1
+  T.eq(test_txt, nav.getPath(b, 2,1))
+  nav.goPath(d, true)
+  T.eq(1, #d.buffers)
+  local e = d.edit
+  T.eq(pth.abs(pth.resolve(test_txt)), e.buf.dat.path)
+  T.eq({1,1}, {e.l, e.c})
+  e:changeStart()
+  local content = 'some text\ninserted from actions'
+  e:insert(content); e:save(d)
+  T.path(test_txt, content)
 end

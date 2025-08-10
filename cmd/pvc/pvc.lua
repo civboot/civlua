@@ -526,7 +526,9 @@ M.commit = function(P, desc) --> snap/, id
   local bsnap = M.snapshot(P, br,id)
   local patchf = M.patchPath(bp, cid)
   local diff = M.Diff:of(bsnap, P)
+  info('!! diff %q', diff)
   if not diff:hasDiff() then
+    info('!! no diff')
     error('invalid commit: no differences detected')
   end
   if M.calcPatchDepth(cid) > M.depth(bp) then M.deepen(bp) end

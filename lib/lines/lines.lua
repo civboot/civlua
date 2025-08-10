@@ -264,17 +264,25 @@ end
 --- write lines [$t] to file [$f] in chunks (default = 16KiB)
 --- if f is a string then it is opened as a file and closed when done
 M.dump = function(t, f, close, chunk)
-  local dat, len, chunk = {}, 0, chunk or M.CHUNK
   if type(f) == 'string' then
     f = assert(io.open(f, 'w')); close = true
   end
-  for i, line in ipairs(t) do
+  if #t == 0 then
+    if close then f:close() end
+    return
+  end
+  local dat, len, chunk = {}, 0, chunk or M.CHUNK
+  for i=1,#t-1 do; local line = t[i]
     push(dat, line); len = len + #line + 1
     if len >= chunk then
-      assert(f:write(concat(dat, '\n'))); ds.clear(dat); len = 0
+      push(dat, '\n')
+      assert(f:write(concat(dat, '\n')))
+      ds.clear(dat)
+      len = 0
     end
   end
-  if #dat > 0 then assert(f:write(concat(dat, '\n'))) end
+  push(dat, t[#t])
+  assert(f:write(concat(dat, '\n')))
   if close then f:close() end
 end
 

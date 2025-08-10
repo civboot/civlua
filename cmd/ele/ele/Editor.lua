@@ -1,4 +1,4 @@
--- defines ele.Ed
+-- defines ele.Editor
 local mty    = require'metaty'
 local ds     = require'ds'
 local pth    = require'ds.path'
@@ -9,10 +9,10 @@ local Edit   = require'ele.edit'.Edit
 local et     = require'ele.types'
 local push, pop, concat = table.insert, table.remove, table.concat
 
--- Ed is the global editor state that actions have access to.
+-- Editor is the global editor state that actions have access to.
 --
 -- action signature: function(data, event, evsend)
-local Ed = mty'Ed' {
+local Editor = mty'Editor' {
   'mode  [string]: current editor mode',
   'modes [table]: keyboard bindings per mode (see: bindings.lua)',
   'actions [table]: actions which events can trigger (see: actions.lua)',
@@ -27,11 +27,11 @@ local Ed = mty'Ed' {
   'error [callable]: error handler (ds.log.logfmt sig)',
   'warn  [callable]: warn handler',
   'newDat [callable(text)]: function to create new buffer',
-  newDat = function(f) return f and Gap:load(f) or Gap{path=f} end,
+  newDat = function(f) return f and Gap:load(f) or Gap({}, f) end,
   'redraw [boolean]: set to true to force a redraw',
 }
 
-getmetatable(Ed).__call = function(T, t)
+getmetatable(Editor).__call = function(T, t)
   t = ds.merge({
     mode='command', modes={},
     actions=ds.copy(require'ele.actions'),
@@ -43,19 +43,19 @@ getmetatable(Ed).__call = function(T, t)
   return mty.construct(T, t)
 end
 
-Ed.__fmt = function(ed, f)
-  f:write'Ed{mode='; f:string(ed.mode); f:write'}'
+Editor.__fmt = function(ed, f)
+  f:write'Editor{mode='; f:string(ed.mode); f:write'}'
 end
 
 --- list of named buffers (name -> buffer)
 
-Ed.init = function(ed)
+Editor.init = function(ed)
   require'ele.bindings'.install(ed)
   return ed
 end
 
 --- Get an existing buffer if it exists
-Ed.getBuffer = function(ed, v) --> Buffer?
+Editor.getBuffer = function(ed, v) --> Buffer?
   if type(v) == 'number' then
     local b = ed.buffers[v]; if b then return b end
   end
@@ -64,7 +64,7 @@ Ed.getBuffer = function(ed, v) --> Buffer?
       return ed.buffers[tonumber(id) or ed.BUFFER[id]]
     end
 
-    v = pth.abs(v)
+    v = pth.abs(pth.resolve(v))
     for _, b in pairs(ed.buffers) do
       if v == b.dat.path then return b end
     end
@@ -75,8 +75,9 @@ end
 -- if v is nil the buffer will be an empty tmp buffer
 --
 -- If v is a string this will first check if a buffer exists at the path.
-Ed.buffer = function(ed, v) --> Buffer
+Editor.buffer = function(ed, v) --> Buffer
   local b = ed:getBuffer(v); if b then return b end
+  log.info('creating buffer %q', v)
   local id = #ed.buffers + 1
   ed.buffers[id] = Buffer{
     id=id, dat=ed.newDat(v), tmp=not v and {} or nil
@@ -84,43 +85,32 @@ Ed.buffer = function(ed, v) --> Buffer
   return ed.buffers[id]
 end
 
---- Switch to edit (default from current edit)
-Ed.editSwap = function(ed, to, from)
-  from = from or ed.edit
-  if mty.ty(to) ~= Edit then to = Edit(ed, to) end
-  if ed.view then ed.view:editSwap(to, from)
-  else from.container = nil; from:close() end
-  if rawequal(from, ed.edit) then ed.edit = to end
-end
-
 -- enter focus mode on a single edit view
-Ed.focus = function(ed, e)
+Editor.focus = function(ed, e)
   if type(e) == 'number' then -- buffer index
     e = ed.buffers[e] or error('invalid buffer index: '..e)
   end
   if mty.ty(e) == Buffer then e = Edit(ed, e)
   else assert(mty.ty(e) == Edit) end
-  if ed.view then
-    ed.view.container = nil; ed.view:close(ed)
-  end
-  ed.edit, ed.view = e, e
+  assert(not ed.view, 'TODO')
+  ed.edit = e
   return e
 end
 
 -- open path and focus. If already open then use existing buffer.
-Ed.open = function(ed, path) --> edit
+Editor.open = function(ed, path) --> edit
   return ed:focus(ed:buffer(path))
 end
 
-Ed.draw = function(ed)
-  local v, d, e = ed.view, ed.display, ed.edit
+Editor.draw = function(ed)
+  local v, d, e = ed.view or ed.edit, ed.display, ed.edit
   v.tl, v.tc, v.th, v.tw = 1, 1, d.h, d.w
   v:draw(d)
   e:viewCursor()
   d.l, d.c = e.l, e.c
 end
 
-Ed.handleStandard = function(ed, ev)
+Editor.handleStandard = function(ed, ev)
   if ev.mode then
     local err = et.checkMode(ed, ev.mode); if err then
       return ed.error('%s has invalid mode', ev, ev.mode)
@@ -130,4 +120,4 @@ Ed.handleStandard = function(ed, ev)
   end
 end
 
-return Ed
+return Editor

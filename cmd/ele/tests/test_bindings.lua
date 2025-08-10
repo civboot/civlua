@@ -5,7 +5,7 @@ local ds = require'ds'
 local lap = require'lap'
 local M = require'ele.bindings'
 local et = require'ele.types'
-local Ed = require'ele.Ed'
+local Editor = require'ele.Editor'
 local keyinput = require'ele.actions'.keyinput
 
 local push = table.insert
@@ -25,8 +25,8 @@ T.chords = function()
   T.eq('x',   M.chordstr{'x'})
 end
 
-local function newEd(mode)
-  local ed = Ed{
+local function newEditor(mode)
+  local ed = Editor{
     mode=mode, modes={}, actions=actions, ext={},
     buffers={}, namedBuffers={},
   }
@@ -35,13 +35,13 @@ local function newEd(mode)
 end
 
 T.bindings = function()
-  local data = newEd'insert'
+  local data = newEditor'insert'
   et.checkBindings(M.insert)
   et.checkBindings(M.command)
 end
 
 local function assertKeys(keyinputs, mode, expectKeys, expectEvents)
-  local data = newEd(mode)
+  local data = newEditor(mode)
   data.error = require'fmt'.errorf
   local events = lap.Recv(); local evsend = events:sender()
   for _, ki in ipairs(M.chord(keyinputs)) do

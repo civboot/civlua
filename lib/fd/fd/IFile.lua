@@ -4,7 +4,7 @@ local ds = require'ds'
 --- Indexed File: supports setting and getting fixed-length values (bytes) by
 --- index, implementing the API of a list-like table.
 local IFile = mty'fd.IFile' {
-  'f [file]', 'path [str]',
+  'f [file]', 'path [str]', 'mode [str]',
   'len [int]', '_i [int]', '_m [str]: r/w mode',
   'sz [int]: the size of each value',
 }
@@ -33,12 +33,12 @@ IFile.create = function(T, sz, path) --> IFile?, errmsg?
   local f,e; if path then f,e = io.open(path, 'w+')
   else                    f,e = io.tmpfile() end
   if not f then return f,e end
-  return T{sz=sz, f=f, len=0, _i = 1, path=path}
+  return T{sz=sz, f=f, len=0, _i = 1, path=path, mode='w+'}
 end
 
---- reload from path
-IFile.reload = function(fi, mode) --> IFile?, errmsg?
-  local f, err = io.open(fi.path, mode or 'r+')
+--- Reload IFile from path.
+IFile.reload = function(fi) --> IFile?, errmsg?
+  local f, err = io.open(fi.path, fi.mode or 'r+')
   if not f then return nil, err end
   local sz, bytes = fi.sz, f:seek'end'
   f:seek('set', bytes - bytes % sz) -- truncate invalid bytes
@@ -50,7 +50,7 @@ end
 --- load an index file
 IFile.load = function(T, sz, path, mode) --> IFile?, errmsg?
   assert(sz, 'must provide sz')
-  return mty.construct(T, {sz=sz, path=path}):reload(mode)
+  return mty.construct(T, {sz=sz, path=path, mode=mode}):reload()
 end
 
 IFile.flush   = function(fi) return fi.f:flush() end
@@ -59,6 +59,9 @@ IFile.__pairs = ipairs
 
 IFile.close = function(fi)
   if fi.f then fi.f:close(); fi.f = false end
+end
+IFile.closed = function(fi) --> bool
+  return fi.f and true or false
 end
 
 --- get bytes. If index out of bounds return nil.
@@ -82,6 +85,24 @@ IFile.setbytes = function(fi, i, v)
   fi._i = i + 1
 end
 IFile.set = IFile.setbytes
+
+--- Move the IFile's path to [$to].
+---
+--- [$mv] must be of type [$fn(from, to)]. If not provided,
+--- [$civix.mv] will be used.
+---
+--- This can be done on both closed and opened files.
+---
+--- The IFile will re-open on the new file regardless of the
+--- previous state.
+IFile.move = function(fi, to, mvFn) --> fi
+  assert(fi.path, 'cannot move tmp file')
+  mvFn = mvFn or require'civix'.mv
+  if fi.f then fi:flush(); fi:close() end
+  mvFn(fi.path, to); fi.path = to
+  fi.mode = 'r+'
+  return fi:reload()
+end
 
 IFile.__fmt = function(fi, fmt)
   fmt:write('IFile(sz=', tostring(fi.sz), ' ')

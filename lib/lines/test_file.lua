@@ -10,6 +10,7 @@ local U3File  = require'lines.U3File'
 local File    = require'lines.File'
 local EdFile  = require'lines.EdFile'
 local Gap     = require'lines.Gap'
+local ix      = require'civix'
 local ixt     = require'civix.testing'
 
 local push, icopy = table.insert, ds.icopy
@@ -59,6 +60,15 @@ T.U3File = function()
   ds.extend(u, {0, 3, 5, 7})
   T.eq(0, u:get(1))
   T.eq(7, u:get(4))
+
+  -- Move the idx file
+  local to = IDX..'2'
+  assert(u:move(to));
+    T.exists(to)
+    assert(not ix.exists(IDX))
+  T.eq(to, u.path)
+  T.eq({0, 3, 5, 7}, ds.icopy(u))
+  T.eq({0, 3, 5, 7}, loadu3s(u.f))
 end
 
 T.reindex = function()

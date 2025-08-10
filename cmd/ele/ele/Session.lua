@@ -4,7 +4,7 @@ local mty = require'metaty'
 --
 -- This are not directly available to actions/etc
 local Session = mty'Session' {
-  'ed [Ed]',
+  'ed [Editor]',
   'events [Recv]', 'evsend [Send]',
   'keys [Recv]', 'keysend [Send]',
   'logf [File]',
@@ -15,7 +15,7 @@ local log = require'ds.log'
 local lap = require'lap'
 local civix = require'civix'
 local et = require'ele.types'
-local Ed = require'ele.Ed'
+local Editor = require'ele.Editor'
 local edit = require'ele.edit'
 local bindings = require'ele.bindings'
 local actions = require'ele.actions'
@@ -26,7 +26,7 @@ local yield = coroutine.yield
 local FRAME = 0.05
 
 getmetatable(Session).__call = function(T, s)
-  s.ed = s.ed or Ed{}
+  s.ed = s.ed or Editor{}
   s.ed:init()
   s.events = lap.Recv(); s.evsend  = s.events:sender()
   s.keys   = lap.Recv(); s.keysend = s.keys:sender()

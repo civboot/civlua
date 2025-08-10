@@ -339,12 +339,12 @@ nav.goPath = function(ed, create)
   local e = ed.edit
   local p = nav.getPath(e.buf, e.l,e.c)
   if p then
-    local b = ed:getBuffer(path)
+    local b = ed:getBuffer(p)
     if b then return ed:editSwap(b) end
   end
-  p = pth.abs(p)
-  if ev.create or ix.exists(path) then
-    return ed:editSwap(ed:buffer(path))
+  p = pth.abs(pth.resolve(p))
+  if create or ix.exists(p) then
+    return ed:focus(ed:buffer(p))
   end
   error'TODO: goto nav'
 end
@@ -368,6 +368,13 @@ M.path = function(ed, ev, evsend)
     nav.doEntry(ed, ev.entry, ev.times or 1, civix.dir)
   end
   if ev.go then nav.goPath(ed, 'create' == ev.go) end
+end
+
+--- Do something to the current buffer, depending on ev [+
+--- * save=true: save the current buffer
+--- ]
+M.buf = function(ed, ev)
+  if ev.save then ed.edit:save(ed) end
 end
 
 return M

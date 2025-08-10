@@ -7,7 +7,9 @@ local mty = require'metaty'
 ---    after "bot" (aka after curLine). If the cursor is
 ---    moved to a previous line then data is moved from top to bot
 --- ]
-local Gap = mty'Gap' { 'bot[table]', 'top[table]', 'path [string]' }
+local Gap = mty'Gap' {
+  'bot[table]', 'top[table]',
+  'path [string]', 'readonly [bool]' }
 
 local ds, lines  = require'ds', require'lines'
 local lload = lines.load
@@ -28,6 +30,9 @@ getmetatable(Gap).__call = function(T, t, path)
     top={}, path=path
   })
 end
+
+Gap.flush = ds.noop
+Gap.close = ds.noop
 
 --- Load gap from file, which can be a path.
 --- returns nil, err on error
@@ -63,6 +68,7 @@ Gap.__pairs = ipairs
 -- Mutations
 
 Gap.set = function(g, i, v)
+  assert(not g.readonly, 'attempt to write to readonly Gap')
   assert(i == #g + 1, 'can only set at len+1')
   g:setGap(i); g.bot[i] = v
 end
@@ -70,12 +76,14 @@ Gap.__newindex = Gap.set
 
 --- See lines.inset for documentation.
 Gap.inset = function(g, i, values, rmlen) --> rm?
+  assert(not g.readonly, 'attempt to write to readonly Gap')
   values, rmlen = values or EMPTY, rmlen or 0
   g:setGap(max(0, i + rmlen - 1))
   move(values, 1, max(#values, rmlen), i, g.bot)
 end
 
 Gap.extend = function(g, l)
+  assert(not g.readonly, 'attempt to write to readonly Gap')
   g:setGap(#g); local bot = g.bot
   move(l, 1, #l, #bot + 1, bot)
   return g
@@ -102,6 +110,7 @@ Gap.setGap = function(g, l)
 end
 
 Gap.write = function(g, ...)
+  assert(not g.readonly, 'attempt to write to readonly Gap')
   local t = largs(...)
   local len = #t; if len == 0 then return end
   g:setGap()
@@ -110,5 +119,7 @@ Gap.write = function(g, ...)
   else              bot[blen] = bot[blen]..t[1] end
   for i=2, #t do push(bot, t[i]) end
 end
+
+Gap.dumpf = lines.dump
 
 return Gap

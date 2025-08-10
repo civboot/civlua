@@ -85,7 +85,7 @@ M.ext = function(path) --> string. path: [str|list]
   return path:match'.*%.([^/]+)$'
 end
 
---- E-nsure the path is absolute, using the wd (default=cwd()) if necessary
+--- Ensure the path is absolute, using the wd (default=cwd()) if necessary
 ---
 --- This preserves the type of the input: str -> str; table -> table
 M.abs = function(path, wd) --> /absolute/path
@@ -96,13 +96,14 @@ M.abs = function(path, wd) --> /absolute/path
                                or  (wd..'/'..path)
   end
   if path[1]:sub(1,1) == '/' then return path end
-  assert(type(wd) == 'string')
+  wd = wd or M.cwd()
   return extend(M(wd), path)
 end
 
 --- resolve any `..` or `.` path components, making the path
 --- /absolute if necessary.
 M.resolve = function(path, wd) --> list
+  local outTy = type(path)
   if type(path) == 'table' then path = update({}, path)
   else path = M(path) end
 
@@ -134,6 +135,7 @@ M.resolve = function(path, wd) --> list
   if isdir and last and last:sub(-1) ~= '/' then
     path[len] = last..'/'
   end
+  if outTy == 'string' then path = M.concat(path) end
   return path
 end
 
@@ -152,7 +154,7 @@ end
 --- and has CWD stripped.
 M.nice = function(path, wd) --> string
   wd = wd or M.cwd()
-  path, wd = M.resolve(path, wd), M(wd)
+  path, wd = M.resolve(M(path), wd), M(wd)
   M.rmleft(path, wd)
   if #path == 0 or path[1] == '' then path[1] = './' end
   return M.concat(path)

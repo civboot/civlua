@@ -5,7 +5,6 @@ local EdFile = mty'EdFile' {
   'lf   [lines.File]: indexed file',
   'dats [list]: list of Slc | Gap',
   'lens [list]: rolling sum of dat lengths',
-  'readonly [bool]',
 }
 
 local ds = require'ds'
@@ -70,7 +69,6 @@ EdFile.get = function(ef, i) --> line
 end
 
 EdFile.write = function(ef, ...) --> self?, errmsg?
-  assert(not ef.readonly, 'attempt to modify readonly file')
   local dats = ef.dats
   local last = dats[#dats]
   ef.lens[#dats] = nil
@@ -92,13 +90,16 @@ end
 EdFile.reader = function(ef)
   return EdFile {
     lf=ef.lf:reader(),
-    dats=ef.dats, lens=ef.lens, readonly=true,
+    dats=ef.dats, lens=ef.lens
   }
 end
 
 --- Flush the .lf member (which can only be extended).
---- To write all data to disk use :dump()
+--- To write all data to disk use :dumpf()
 EdFile.flush = function(ef) return ef.lf:flush() end
+
+--- Note: this does NOT necessarily flush what you expect.
+EdFile.close = function(ef) return ef.lf:close() end
 
 --- Dump EdFile to file or path
 EdFile.dumpf = function(ef, f)
@@ -109,6 +110,7 @@ EdFile.dumpf = function(ef, f)
       assert(sp == ef:seek('set', sp))
       assert(f:write(ef:read(ep and (ep - sp + 1) or nil)))
     else
+      -- TODO: use lines.dump instead?
       assert(f:write(concat(d, '\n')))
       if i < #ef.dats then assert(f:write'\n') end
     end
@@ -159,7 +161,6 @@ end
 
 --- insert into EdFile's dats.
 EdFile.inset = function(ef, i, values, rmlen) --> rm?
-  assert(not ef.readonly, 'attempt to modify readonly file')
   rmlen = rmlen or 0
 
   -- General algorith:

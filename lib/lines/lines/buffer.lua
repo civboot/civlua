@@ -25,6 +25,7 @@ M.Change = mty'Change' {
 M.Buffer = mty'Buffer' {
   'id  [int]',
   'dat [Gap]',
+  'readonly [bool]', -- TODO: actually implement readonly
 
   -- recorded changes from update (for undo/redo)
   'changes',
