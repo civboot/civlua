@@ -278,6 +278,8 @@ local LAP_UPDATE = {
     lap.pollList:insert(fileno, events)
     lap.pollMap[fileno] = cor
   end,
+  -- Stop ALL coroutines.
+  STOP = function(l) ds.clear(M.LAP_READY); l:stop() end
 }; M.LAP_UPDATE = LAP_UPDATE
 
 --- A single lap of the executor loop
@@ -304,7 +306,8 @@ M.Lap = mty'Lap' {
   'monoFn  [function]',
   'monoHeap [Heap]',
   'defaultSleep [float]',
-  'pollMap [table]',
+  'pollMap [table[fileno,coroutine]]',
+
 [[pollList [PollList] Poll list data structure. Required methods:
 * __len                   to get length with `#`
 * insert(fileno, events)  insert the fileno+events into the poll list
@@ -319,6 +322,7 @@ getmetatable(M.Lap).__call = function(T, ex)
   ex.pollMap  = ex.pollMap  or {}
   return mty.construct(T, ex)
 end
+M.Lap.stop  = function(l) l.pollMap, l.pollList = nil, nil end
 M.Lap.sleep = M.LAP_UPDATE.sleep
 M.Lap.poll  = M.LAP_UPDATE.poll
 M.Lap.execute = function(lap, cor, note) --> errstr?

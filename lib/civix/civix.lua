@@ -433,7 +433,7 @@ M.Sh.rc     = function(sh) return sh._sh:rc()     end
 --- wait for shell to complete, returns return code
 M.Sh.wait = function(sh) --> int
   if LAP_ASYNC then
-    while not sh:isDone() do yield('sleep', 0.005) end
+    while not sh:isDone() do yield('sleep', 1e-4) end
   else sh._sh:wait() end
   return sh:rc()
 end

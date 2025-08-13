@@ -26,6 +26,7 @@ M.Buffer = mty'Buffer' {
   'id  [int]',
   'dat [Gap]',
   'readonly [bool]', -- TODO: actually implement readonly
+  'l [int]', 'c [int]', -- used by clients
 
   -- recorded changes from update (for undo/redo)
   'changes',
@@ -40,7 +41,7 @@ getmetatable(M.Buffer).__index = mty.hardIndex
 M.Buffer.__newindex            = mty.hardNewindex
 
 getmetatable(M.Buffer).__call = function(T, t)
-  assert(t.dat)
+  assert(t.dat, 'must set dat')
   if #t.dat == 0 then push(t.dat, '') end
   t.changes = t.changes or {}
   return mty.construct(T, t)
@@ -64,6 +65,7 @@ end
 local CHANGE_REDO = { ins=redoIns, rm=redoRm, }
 local CHANGE_UNDO = { ins=redoRm, rm=redoIns, }
 
+-- TODO: remove this
 Buffer.new = function(s)
   return Buffer{ dat=Gap(s) }
 end
@@ -73,7 +75,7 @@ Buffer.__fmt = function(b, fmt)
     b.tmp and (#b.tmp == 0) and '(closed) ',
     b.id, b.dat.path))
 end
-Buffer.__len = function(b) return #b.dat end
+Buffer.__len = function(b)    return #b.dat end
 Buffer.get   = function(b, i) return b.dat:get(i) end
 
 Buffer.addChange = function(b, ch)

@@ -52,7 +52,7 @@ T.openWriteRead = function()
   T.eq('file', M.type(f))
   f:close();
   for _=1,10 do
-    if M.type(f) ~= 'closed file' then ix.sleep(0.001) end
+    if M.type(f) ~= 'closed file' then ix.sleep(1e-4) end
   end
   T.eq('closed file', M.type(f))
 end

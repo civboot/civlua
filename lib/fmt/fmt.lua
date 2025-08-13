@@ -199,6 +199,16 @@ Fmt.keyvals = function(f, t, keys)
   end
 end
 
+--- Format only the list-elements of a table.
+Fmt.list = function(f, t)
+  local multi = #t > 1
+  f:level(1)
+  f:styled('symbol', multi and f.tableStart or '{', '')
+  f:items(t, false,  nil)
+  f:level(-1)
+  f:styled('symbol', multi and f.tableEnd or '}', '')
+end
+
 Fmt.rawtable = function(f, t)
   local keys = M.sortKeys(t)
   local multi = #t + #keys > 1 -- use multiple lines

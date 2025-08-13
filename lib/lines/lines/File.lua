@@ -154,13 +154,14 @@ File.__fmt = function(lf, f)
   f:write')'
 end
 
-File.reader = function(lf) --> lines.File (readonly)
-  local path = assert(lf.path, 'path not set')
-  local idx, err = assert(
-    getmt(lf.idx):load(assert(lf.idx.path, 'idx path not set'), 'r'))
-  return construct(getmt(lf), {
-    f=assert(io.open(path, 'r')), path=path, cache=lf.cache, idx=idx,
-  })
+--- Get a new read-only instance with an independent file-descriptor.
+File.reader = function(lf) --> lines.File?, err?
+  local path = assert(lf.path, 'reader only allowed on file with path')
+  local idx = lf.idx:reader()
+  local f,e = io.open(lf.path, 'r'); if not f then return nil, e end
+  local new = ds.copy(lf)
+  new.f, new.idx, new.mode = f, idx, 'r'
+  return new
 end
 
 File.extend = ds.defaultExtend

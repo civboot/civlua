@@ -372,6 +372,13 @@ M.ilast = function(t, starti, endi) --> iter[starti:endi]
   return M.rawislice, {t, endi}, min(len - 1, len + starti)
 end
 
+--- Return true if two list-like tables are equal.
+M.ieq = function(a, b)
+  if #a ~= #b then return false end
+  for i=1,#a do if a[i] ~= b[i] then return false end end
+  return true
+end
+
 --- reverse a list-like table in-place
 M.reverse = function(t) --> t (reversed)
   local l = #t; for i=1, l/2 do

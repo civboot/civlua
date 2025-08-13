@@ -36,7 +36,7 @@ end
 -- init test session
 Session.test = function(T, s)
   local s = T(s)
-  s.ed.error = log.LogTable{}
+  s.ed.error = log.LogTable{tee=log.err}
   s.ed.warn  = log.warn
   return s
 end
@@ -45,6 +45,9 @@ Session.user = function(T, s)
   local s = T(s)
   s.ed.error = log.err
   s.ed.warn  = log.warn
+  local e = s.ed.edit
+  e:insert(et.WELCOME)
+  e.l, e.c = 1, 1
   return s
 end
 
@@ -68,14 +71,16 @@ Session.run = function(s)
     if act == 'exit' then
       s.ed.error'exit action received'
       s.ed.run = false
-      break
+      yield'STOP'
     end
     local actFn = actions[act]; if not actFn then
       s.ed.error('unknown action: %q', act)
       goto cont
     end
     local ok, err = ds.try(actFn, s.ed, ev, s.evsend)
-    if not ok then s.ed.error('failed event %q. %q', ev, err) end
+    if not ok then
+      s.ed.error('failed event %q. %q', ev, err)
+    end
     ::cont::
   end
 end

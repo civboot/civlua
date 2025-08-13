@@ -104,6 +104,20 @@ IFile.move = function(fi, to, mvFn) --> fi
   return fi:reload()
 end
 
+--- Get a new read-only instance with an independent file-descriptor.
+---
+--- Warning: currently the reader's len will be static, so this should
+--- be mostly used for temporary cases. This might be changed in
+--- the future.
+IFile.reader = function(fi) --> IFile?, err?
+  assert(fi.path, 'reader only allowed on file with path')
+  fi:flush()
+  local f,e = io.open(fi.path, 'r'); if not f then return nil, e end
+  local r = ds.copy(fi)
+  r.f, r.mode = f, 'r'
+  return r
+end
+
 IFile.__fmt = function(fi, fmt)
   fmt:write('IFile(sz=', tostring(fi.sz), ' ')
   if fi.path then fmt:write(fi.path) end

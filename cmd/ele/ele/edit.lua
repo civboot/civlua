@@ -4,6 +4,7 @@ local M = mod'ele.edit'
 -- # Edit struct
 local mty    = require'metaty'
 local ds     = require'ds'
+local pth    = require'ds.path'
 local log    = require'ds.log'
 local motion = require'lines.motion'
 local ix = require'civix'
@@ -11,14 +12,14 @@ local lines = require'lines'
 local Gap   = require'lines.Gap'
 local types = require'ele.types'
 
-local push = table.insert
-local span, lsub = lines.span, lines.sub
+local push, concat = table.insert, table.concat
+local sfmt = string.format, string.concat
 local max = math.max
+local span, lsub = lines.span, lines.sub
 
 M.Edit = mty'Edit' {
   'id[int]',
-  'container', -- parent (Window/Model)
-  'canvas',
+  'container', -- parent (Editor/Split)
   'buf[Buffer]',
   'l[int]',  l=1,     'c[int]',  c=1,   -- cursor line, col
   'vl[int]', vl=1,    'vc[int]', vc=1,  -- view   line, col (top-left)
@@ -29,12 +30,17 @@ M.Edit = mty'Edit' {
 
   -- override specific keybindings for this buffer
   'modes [table]',
+  'drawBars [fn[Edit] -> botHeight,leftWidth]',
 }
 
-getmetatable(M.Edit).__call = function(T, container, buf)
-  return mty.construct(T, {
-    id=types.uniqueId(), container=container, buf=assert(buf),
-  })
+
+getmetatable(M.Edit).__call = function(T, t)
+  local b = assert(t.buf, 'must set buf')
+  t.l, t.c = t.l or b.l, t.c or b.c
+  t.id = types.uniqueId()
+  local e = mty.construct(T, t)
+  e:changeStart()
+  return e
 end
 
 M.Edit.close = function(e, ed)
@@ -93,17 +99,18 @@ M.Edit.boundCol= function(e, c, l)
   return ds.bound(c, 1, #e.buf:get(l or e.l) + 1)
 end
 
--- update view to see cursor (if needed)
+-- update view fields to see cursor (if needed)
 M.Edit.viewCursor = function(e)
   if e.l > 1 and e.l > #e then error(
     ('e.l OOB: %s > %s'):format(e.l, #e)
   )end
   local l, c = e:boundLC(e.l, e.c)
-  if e.vl > l            then e.vl = l end
-  if l < e.vl            then e.vl = l end
-  if l > e.vl + e.th - 1 then e.vl = l - e.th + 1 end
-  if c < e.vc            then e.vc = c end
-  if c > e.vc + e.tw - 1 then e.vc = c - e.tw + 1 end
+  local bh, bw = e:barDims()
+  local th, tw = e.th - bh, e.tw - bw
+  if e.vl > l          then e.vl = l end
+  if l > e.vl + th - 1 then e.vl = l - th + 1 end
+  if c < e.vc          then e.vc = c end
+  if c > e.vc + tw - 1 then e.vc = c - tw + 1 end
 end
 
 -----------------
@@ -170,20 +177,66 @@ M.Edit.redo = function(e)
 end
 
 -----------------
--- Draw to terminal
-M.Edit.draw = function(e, t, isRight)
-  assert(t); e:viewCursor()
+-- Draw to display
+M.Edit.draw = function(e, d, isRight)
+  local bh, bw = e:barDims()
+  e:viewCursor()
+  e:drawBars(d)
+  e.th = e.th - bh
+  e.tw = e.tw - bw
+  e.tc = e.tc + bw
   local b = lines.box(e.buf.dat,
     e.vl,            e.vc,
     e.vl + e.th - 1, e.vc + e.tw - 1)
-  t.text:insert(e.tl, e.tc, b)
+  d.text:insert(e.tl, e.tc, b)
+end
+
+M.Edit.barDims = function(e)
+  if e.tw <= 10 or e.th <= 3 then return 0, 0 end
+  return 1, 2
+end
+M.Edit.drawBars = function(e, d) --> botHeight, leftWidth
+  if e.tw <= 10 or e.th <= 3 then return end
+  local tl, tc, th, tw = e.tl, e.tc, e.th, e.tw
+  local cl, cc = e.l,e.c -- cursor line/col
+  local wl = tl -- write line
+  for l=e.vl, e.vl+e.th - 2 do
+    if l <= cl then d.text:insert(wl, tc, sfmt('% 2i', cl - l))
+    else            d.text:insert(wl, tc, sfmt('% 2i', l - cl)) end
+    wl = wl + 1
+  end
+
+  local id, info = assert(e.buf.id)
+  local p = e.buf.dat.path; if p then
+    info = sfmt('| %s:%i.%i (b#%i)', pth.nice(p), e.l, e.c, id)
+  else info = sfmt('| b#%i %i.%i', id, e.l, e.c) end
+  info = info:sub(1, e.tw - 1)..' '
+  d.text:insert(wl, tc, info)
+  for c=tc+#info, tc+tw-1 do d.text[wl][c] = '=' end
+  return 1, 2
 end
 
 -- Called by model for only the focused editor
 M.Edit.drawCursor = function(e, t)
-  e:viewCursor()
-  local c = ds.min(e.c, e:colEnd())
+  local c = math.min(e.c, e:colEnd())
   t.l, t.c = e.tl + (e.l - e.vl), e.tc + (c - e.vc)
+end
+
+M.Edit.copy = function(e)
+  e.tl,e.tc, e.tw,e.th = -1,-1, -1,-1
+  local e2 = ds.copy(e)
+  e2.id, e2.container = types.uniqueId(), nil
+  e2.modes = e.modes and ds.copy(e.modes) or nil
+  return e2
+end
+
+--- Split the edit by wrapping it and a copy into split type S.
+--- Return the resulting split.
+M.Edit.split = function(e, S) --> split
+  local c = e.container
+  local sp = S{};  c:replace(e, sp)
+  sp:insert(1, e); sp:insert(2, e:copy())
+  return sp
 end
 
 return M

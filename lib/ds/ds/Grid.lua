@@ -1,11 +1,13 @@
 -- text grid type
 local mty = require'metaty'
 local ds = require'ds'
+local fmt = require'fmt'
 
 local clear = ds.clear
 local max = math.max
 local push, concat = table.insert, table.concat
 local codes, char = utf8.codes, utf8.char
+local assertf = fmt.assertf
 
 --- ds.Grid: a text grid
 --- Grid is a table (rows/lines) of tables (cols). Each column should contain a
@@ -41,7 +43,8 @@ G.insert = function(g, l, c, str)
     local line = g[l]; if not line then return end
     for _, code in codes(lstr) do
       llen = llen + 1
-      local lc = c + llen - 1; assert(lc <= g.w, 'line+c too long')
+      local lc = c + llen - 1
+      assertf(lc <= g.w, 'line+c (%i) longer than width %i', lc, g.w)
       for i=#line+1,lc-1 do line[i] = ' ' end -- fill spaces
       line[lc] = char(code)
     end

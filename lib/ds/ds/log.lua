@@ -75,7 +75,16 @@ function M.info(...)  if LOGLEVEL >= 4 then _log(4, ...) end end
 function M.trace(...) if LOGLEVEL >= 5 then _log(5, ...) end end
 
 --- used in tests
-M.LogTable = mty.record'LogTable'{}
-M.LogTable.__call = function(lt, ...) push(lt, {...}) end
+M.LogTable = mty.record'LogTable'{
+  'tee [fn(...)] call calls will also call tee',
+}
+M.LogTable.__fmt = function(lt, f)
+  f:write'LogTable'; f:list(lt)
+end
+M.LogTable.__eq = ds.ieq
+M.LogTable.__call = function(lt, ...)
+  if lt.tee then lt.tee(...) end
+  push(lt, {...})
+end
 
 return M

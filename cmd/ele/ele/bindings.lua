@@ -75,9 +75,7 @@ M.KeyBindings = mty'KeyBindings' {
   'name [string]: the name of the group for documentation',
   'doc [string]: documentation to display to the user',
 }
-M.KeyBindings.getBinding = function(kb, k)
-  return getmetatable(kb).__index(kb, k)
-end
+M.KeyBindings.getBinding = rawget
 getmetatable(M.KeyBindings).__call = function(T, t)
   local b = {}
   for k, v in pairs(t) do T.__newindex(b, k, v) end
@@ -118,6 +116,18 @@ end
 
 M.exit = {action='exit'}
 
+M.splitVLeft  = {action='window', split='vertical'}
+M.splitVRight = {action='window', split='vertical',   moveH=1}
+M.splitHUp    = {action='window', split='horizontal'}
+M.splitHDown  = {action='window', split='horizontal', moveV=1}
+
+M.windowUp    = {action='window', moveV=-1}
+M.windowDown  = {action='window', moveV=1}
+M.windowLeft  = {action='window', moveH=-1}
+M.windowRight = {action='window', moveH=1}
+
+M.close  = {action='window', close=true}
+
 M.insertChord = function(keys)
   return ds.update(keys.event or {}, {
     M.chordstr(keys.chord), action='insert',
@@ -127,7 +137,6 @@ M.unboundChord = function(keys)
   error('unbound chord: '..concat(keys.chord, ' '))
 end
 
-M.close       = {action='close'} -- close current focus
 M.insertmode  = {mode='insert'}
 M.insertsot   = {mode='insert', action='move', move='sot'}
 M.inserteol   = {mode='insert', action='move', move='eol', cols=1}
@@ -239,8 +248,8 @@ M.insert  = M.KeyBindings{name='insert', doc='insert mode'}
 M.command = M.KeyBindings{name='command', doc='command mode'}
 
 -- Navigation
--- M.goPath      = {action='path', go=true}
--- M.createPath  = {action='path', go='create'}
+M.goPath      = {action='path', go=true}
+M.createPath  = {action='path', go='create'}
 
 -- Basic movement and times (used in multiple)
 M.movement = {
@@ -253,6 +262,7 @@ M.movement = {
   -- times (note: 1-9 defined below)
   ['0'] = M.zero, -- sol+0times
 }
+
 -- times
 for b=('1'):byte(), ('9'):byte() do
   M.movement[string.char(b)] = M.times
@@ -288,7 +298,13 @@ ds.update(M.command, {
   f=M.find, F=M.findback,
 
   -- Navigation
-  -- ['g f']           = M.goPath,
+  ['g f'] = M.goPath,
+
+  ['g h'] = M.windowLeft, ['g l'] = M.windowRight,
+  ['g j'] = M.windowDown, ['g k'] = M.windowUp,
+
+  ['g H'] = M.splitVLeft, ['g L'] = M.splitVRight,
+  ['g J'] = M.splitHDown, ['g K'] = M.splitHUp,
 })
 
 ---------------------------
@@ -319,7 +335,6 @@ ds.update(M.sys, {
 })
 
 
-
 ---------------------------
 -- INSTALL
 
@@ -327,14 +342,13 @@ ds.update(M.sys, {
 --
 -- Note: this does NOT start the keyactions coroutine
 M.install = function(ed)
-  log.info('!! install %q', ed)
   ed.ext.keys = M.KeySt{}
   -- TODO: replace with merge but need shouldMerge closure.
   ed.modes = ds.update(ed.modes or {}, {
       insert=M.insert, command=M.command,
   })
-  if not ed.namedBuffers.nav then
-    ed.namedBuffers.nav = ed:buffer()
+  if not ed.namedBuffer.nav then
+    ed.namedBuffer.nav = ed:buffer()
   end
 end
 
@@ -347,6 +361,7 @@ M.keyactions = function(ed, keyrecv, evsend)
     log.info('key received: %q', key)
     if key == '^q' then
       ed.run = false; log.warn('received ^q, exiting')
+      evsend{action='exit'}
     end
     if not ed.run then break end
     if key then

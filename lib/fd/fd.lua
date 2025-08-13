@@ -111,7 +111,7 @@ S.FD.__index.seek = function(fd, whence, offset)
 end
 
 S.FD.__index.flush = function(fd)
-  fd:_flush(); M.finishRunning(fd, 'sleep', 0.001)
+  fd:_flush(); M.finishRunning(fd, 'sleep', 1e-4)
   if fd:code() ~= 0 then return nil, fd:codestr() else return true end
 end
 
@@ -215,7 +215,7 @@ S.FDT.__index.toBlock    = function() error'invalid' end
 S.FDT.__index.isAsync    = function() return true end
 
 S.FDT.__index.close = function(fd)
-  M.finishRunning(fd, 'sleep', 0.001)
+  M.finishRunning(fd, 'sleep', 1e-4)
   fd:_close();
 end
 
@@ -262,7 +262,7 @@ __index = {
 M.openWith = function(openFn, path, mode)
   mode = mode or 'r'
   local flags = mflagsInt(mode:gsub('b', ''))
-  local f = openFn(path, flags); M.finishRunning(f, 'sleep', 0.001)
+  local f = openFn(path, flags); M.finishRunning(f, 'sleep', 1e-4)
   if f:code() ~= 0 then return nil, f:codestr() end
   return f
 end
@@ -273,7 +273,7 @@ M.open = function(...)
 end
 M.close   = function(fd) fd:close() end
 M.tmpfileFn = function(sysFn)
-  local f = sysFn(); M.finishRunning(f, 'sleep', 0.005)
+  local f = sysFn(); M.finishRunning(f, 'sleep', 1e-4)
   if f:code() ~= 0 then return nil, f:codestr() end
   return f
 end

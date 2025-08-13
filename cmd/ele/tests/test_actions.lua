@@ -5,9 +5,10 @@ local T = require'civtest'
 local ds = require'ds'
 local pth = require'ds.path'
 local M = require'ele.actions'
-local edit = require'ele.edit'
+local Edit = require'ele.edit'.Edit
 local Editor = require'ele.Editor'
 local Buffer = require'lines.buffer'.Buffer
+local Gap = require'lines.Gap'
 local ix = require'civix'
 
 local nav = M.nav
@@ -15,9 +16,10 @@ local O = './.out/ele/'; if ix.exists(O) then ix.rmRecursive(O) end
 ix.mkDir(O)
 
 local newEditor = function(lines)
-  return Editor{
-    edit = edit.Edit(nil, Buffer.new(lines)),
-  }
+  local ed = Editor{}
+  local e = ed:focus()
+  e.buf:insert(lines, 1)
+  return ed
 end
 
 local lines3 =
@@ -99,6 +101,7 @@ local NAV1 = [[
 ]]
 T.nav = function()
   local d = newEditor(NAV1)
+  assert(d.edit.container == d)
   local e, b = d.edit, d.edit.buf
 
   T.eq('./focus/path/', nav.getFocus'-./focus/path/\n')
@@ -134,13 +137,13 @@ T.nav = function()
   T.eq('/focus/path/', r)
   T.eq('/focus/path/\n  * f\n  * d/\n', fmt(b.dat))
 
-  T.eq(0, #d.buffers)
+  T.eq(1, #d.buffers)
   local test_txt = O..'test.txt'
   b:insert(test_txt..'\n', 2)
   e.l, e.c = 2, 1
   T.eq(test_txt, nav.getPath(b, 2,1))
   nav.goPath(d, true)
-  T.eq(1, #d.buffers)
+  T.eq(2, #d.buffers)
   local e = d.edit
   T.eq(pth.abs(pth.resolve(test_txt)), e.buf.dat.path)
   T.eq({1,1}, {e.l, e.c})

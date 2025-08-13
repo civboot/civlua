@@ -7,8 +7,9 @@ local pth = require'ds.path'
 local log = require'ds.log'
 local lines = require'lines'
 local motion = require'lines.motion'
-local ix     = require'civix'
+local ix = require'civix'
 local et = require'ele.types'
+local Edit = require'ele.edit'.Edit
 
 local push, pop = table.insert, table.remove
 local concat    = table.concat
@@ -35,7 +36,7 @@ M.keyinput = function(ed, ev, evsend)
   if K.keep then K.keep = nil
   else           K.chord, K.event, K.next = {}, nil, nil end
   push(K.chord, ki)
-  log.info('keyinput %q mode=%s', K.chord, ed.mode)
+  log.info('keyinput %q mode:%s %q', ki, ed.mode, K.chord)
   local nxt = K.next
   if nxt then
     local getb = type(nxt) == 'table' and mty.getmethod(nxt, 'getBinding')
@@ -91,16 +92,8 @@ end
 -- Note: supports times
 M.chain = function(ed, ev, evsend)
   for _=1,ev.times or 1 do evsend:extendLeft(ev) end
+  ed:handleStandard(ev)
 end
-
--- TODO: decide how I want to do replace mode
---   probably need an ed:switchMode() function and use
---   ed.ext.mode table which is cleared on each switch.
---   Then insert.default just checks ext.mode.replace
---   to decide to replace instead of insert.
--- M.replacemode = function(ed)
---   ed.mode = 'insert'; ed.replace = true
--- end
 
 ----------------------------------
 -- MOVE
@@ -343,10 +336,9 @@ nav.goPath = function(ed, create)
     if b then return ed:editSwap(b) end
   end
   p = pth.abs(pth.resolve(p))
-  if create or ix.exists(p) then
-    return ed:focus(ed:buffer(p))
-  end
-  error'TODO: goto nav'
+  if create or ed:getBuffer(p) or ix.exists(p) then
+    ed:focus(p)
+  else error'TODO: goto nav' end
 end
 
 local DO_ENTRY = {
@@ -375,6 +367,53 @@ end
 --- ]
 M.buf = function(ed, ev)
   if ev.save then ed.edit:save(ed) end
+end
+
+--- What a window.split translates to
+M.SPLIT = {
+  h = et.HSplit, horizontal=et.HSplit,
+  v = et.VSplit, vertical=et.VSplit,
+}
+--- Window operations like split and close
+M.window = function(ed, ev)
+  if ev.split then
+    local S = assert(M.SPLIT[ev.split], ev.split)
+    ed.edit:split(S)
+  end
+  if ev.moveV then
+    local v = ed.edit; local c = e.container
+    if mty.ty(c) == et.VSplit then
+      v, c = c, c.container
+    end
+    if mty.ty(c) == et.HSplit then
+      local i = assert(ds.indexOf(c, v)) + ev.moveV
+      if 1 <= i and i <= #c then
+        assert(mty.ty(c[i] == Edit))
+        ed.edit = c[i]
+      end
+    end
+  end
+  if ev.moveH then
+    local v = ed.edit; local c = v.container
+    if mty.ty(c) == et.HSplit then
+      v, c = c, c.container
+    end
+    if mty.ty(c) == et.VSplit then
+      local i = assert(ds.indexOf(c, v)) + ev.moveH
+      if 1 <= i and i <= #c then
+        assert(mty.ty(c[i] == Edit))
+        ed.edit = c[i]
+      end
+    end
+  end
+  if ev.close then
+    local e = ed.edit
+    e.container:remove(e)
+    e:close()
+    if not ed.view or not ed.edit then
+      ed:focus(ed:buffer'b#scratch')
+    end
+  end
 end
 
 return M

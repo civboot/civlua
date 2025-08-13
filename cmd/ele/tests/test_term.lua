@@ -23,7 +23,7 @@ local L_2l3c2h5w =
 .."    lin"
 
 T.edit = function()
-  local e = edit.Edit(nil, Buffer.new(lines3))
+  local e = edit.Edit{buf=Buffer.new(lines3)}
   T.eq(3, #e.buf.dat)
   T.eq(3, #e.buf)
   T.eq(3, #e)
