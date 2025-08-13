@@ -59,8 +59,12 @@ M.Main = mty'Main' {
 --- If there is a match then the path is logged to [$io.stdout] and the matches
 --- to [$io.fmt].
 M.find = function(path, pats, sub) --> boolean
-  local found, l, find, ms, me, pi, pat = false, 0, ds.find
   local f, sf = io.fmt, ac.Fmt{to=io.stdout}
+  if not civix.exists(path) then
+    sf:styled('error', 'Does not exist: '..path, '\n')
+    return false
+  end
+  local found, l, find, ms, me, pi, pat = false, 0, ds.find
   for line in io.lines(path, 'L') do
     l, ms, me, pi, pat = l + 1, find(line, pats)
     if ms then
