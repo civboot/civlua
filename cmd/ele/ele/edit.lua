@@ -14,7 +14,7 @@ local types = require'ele.types'
 
 local push, concat = table.insert, table.concat
 local sfmt = string.format, string.concat
-local max = math.max
+local min, max = math.min, math.max
 local span, lsub = lines.span, lines.sub
 
 M.Edit = mty'Edit' {
@@ -85,13 +85,16 @@ M.Edit.offset = function(e, off)
   return lines.offset(e.buf.dat, off, e.l, e.c)
 end
 
+M.Edit.boundC = function(e, l,c)
+  return ds.bound(c, 1, #e.buf:get(l) + 1)
+end
 M.Edit.boundLC = function(e, l, c)
   if l <= 1 then
     if #e == 0 then return 1, 1 end
     return 1, ds.bound(c, 1, #e.buf:get(1) + 1)
   end
   l = ds.bound(l, 1, #e)
-  return l, ds.bound(c, 1, #e.buf:get(l) + 1)
+  return l, e:boundC(l,c)
 end
 
 -- bound the column for the line
@@ -121,6 +124,7 @@ M.Edit.changeUpdate2 = function(e)
   local ch = assert(e.buf:getStart())
   ch.l2, ch.c2 = e.l, e.c
 end
+
 M.Edit.append = function(e, msg)
   local l2 = #e + 1
   e.buf:append(msg)
@@ -163,6 +167,13 @@ M.Edit.replace = function(e, s, ...)
   e:changeUpdate2()
 end
 
+--- Clear the buffer.
+M.Edit.clear = function(e)
+  e:remove(1,#e)
+  e.l,e.c = 1,1
+  e:changeUpdate2()
+end
+
 -----------------
 -- Undo / Redo
 M.Edit.undo = function(e)
@@ -198,11 +209,12 @@ end
 M.Edit.drawBars = function(e, d) --> botHeight, leftWidth
   if e.tw <= 10 or e.th <= 3 then return end
   local tl, tc, th, tw = e.tl, e.tc, e.th, e.tw
-  local cl, cc = e.l,e.c -- cursor line/col
+  local cl, cc, len = e.l,e.c, #e -- cursor line,col
   local wl = tl -- write line
   for l=e.vl, e.vl+e.th - 2 do
-    if l <= cl then d.text:insert(wl, tc, sfmt('% 2i', cl - l))
-    else            d.text:insert(wl, tc, sfmt('% 2i', l - cl)) end
+    if     l <= cl  then d.text:insert(wl, tc, sfmt('% 2i', cl - l))
+    elseif l <= len then d.text:insert(wl, tc, sfmt('% 2i', l - cl))
+    else                 d.text:insert(wl, tc, '  ') end
     wl = wl + 1
   end
 
@@ -237,6 +249,10 @@ M.Edit.split = function(e, S) --> split
   local sp = S{};  c:replace(e, sp)
   sp:insert(1, e); sp:insert(2, e:copy())
   return sp
+end
+
+M.Edit.path = function(e) --> path?
+  return e.buf.dat.path
 end
 
 return M

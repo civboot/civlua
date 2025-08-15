@@ -146,7 +146,7 @@ T.compress_files = function()
   rdelta_testpath(sm, 'cmd/cxt/test.lua')
   huff_testpath(sm,   'cmd/cxt/test.lua')
   smol_testpath(sm,   'cmd/cxt/test.lua')
-  smol_testpath(sm,   'cmd/ele/tests/small.lua')
+  smol_testpath(sm,   'cmd/ele/tests/data/small.lua')
 end
 
 T.walk_compress = function()

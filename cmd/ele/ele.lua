@@ -12,10 +12,9 @@ local ioopen = io.open
 -- shim exe function
 M.main = function(args)
   args = shim.parseStr(args)
-  print'ele exe'
   local vt = require'vt100'
   log.info('ele exe', args)
-  -- TODO: handle args
+  -- TODO: handle args besides paths
   local s = args.session or require'ele.Session':user{}
   local keysend = s.keys:sender()
 
@@ -26,8 +25,7 @@ M.main = function(args)
     io.fmt = require'civ'.Fmt{to=stderr}
 
     s.ed.display = vt.Term{}
-    print'print after display start'
-    log.info'log after display start'
+    log.info'ele: started display'
     s:handleEvents()
     lap.schedule(function()
       LAP_TRACE[coroutine.running()] = true
@@ -38,7 +36,15 @@ M.main = function(args)
     lap.schedule(function()
       s:draw()
     end)
-    log.info'ele started'
+    log.info'ele: started'
+    if #args > 0 then
+      for _, path in ipairs(args) do
+        log.info('arg path: %q', path)
+        s.ed:buffer(path)
+      end
+      s.ed:focus(args[1])
+    end
+    log.info'ele: end of setup'
   end,
   function() lap.async() -- setup: change to async()
     fd.ioAsync()

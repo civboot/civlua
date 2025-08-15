@@ -1,6 +1,7 @@
 METATY_CHECK = true
 
 local mty = require'metaty'
+local ds  = require'ds'
 local fmt = require'fmt'
 local T = require'civtest'
 
@@ -100,4 +101,14 @@ T.undoMulti = function() -- undo/redo across multi lines
 
   ch = b:undo()[2]                T.eq(ch1, ch)
   T.eq(START, fmt(g))
+end
+
+T['clear'] = function()
+  local b = Buffer.new'a\nb\n'; local g = b.dat
+  T.eq('a\nb\n', fmt(g))
+  b:changeStart(0,0)
+  b:remove(1,#b); T.eq('', fmt(g))
+                  T.eq({}, ds.icopy(g))
+  b:insert('hi', 1)
+  T.eq('hi', fmt(g)); T.eq({'hi'}, ds.icopy(g))
 end

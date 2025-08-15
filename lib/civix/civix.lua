@@ -4,6 +4,7 @@ local M = mod and mod'civix' or {}
 local mty  = require'metaty'
 local fmt  = require'fmt'
 local ds   = require'ds'
+local log  = require'ds.log'
 local shim = require'shim'
 local lib  = require'civix.lib'; local C = lib
 local fd   = require'fd'
@@ -75,6 +76,22 @@ ds.update(M, {
 
   -- TODO: probably good to catch return code for cross-filesystem
 })
+
+--- return a function that returns the entires in the dir.
+M.dir = function(dir) --> iter[entry]
+  return lib.dir(pth.canonical(dir))
+end
+
+--- Return the entries in a dir as a list.
+--- They are sorted to put the directories first.
+M.ls = function(dir) --> list[str]
+  local d, f = {}, {} -- dirs, files
+  for e, ftype in M.dir(dir) do
+    if ftype == 'dir' then push(d, pth.toDir(e))
+    else                   push(f, e) end
+  end
+  return ds.extend(ds.sort(d), ds.sort(f))
+end
 
 --- Move path from old -> new, throwing an error on failure.
 M.mv = function(old, new) assert(os.rename(old, new)) end

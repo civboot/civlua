@@ -109,6 +109,7 @@ M.testLinesRemove = function(new, assertEq, assertEqRemove)
   assertEqR({'', ''}, lines.remove(t, 1, 3, 1, 3))
   assertEq(new{'abc', 'de', ''}, t)
 
+
   -- TODO: consider re-adding as a separate test
   -- t = new'a b c\nd e\nf g\nh i\n'
   -- fmt.print('t:', t)

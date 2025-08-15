@@ -28,7 +28,7 @@ end
 local function newEditor(mode)
   local ed = Editor{
     mode=mode, modes={}, actions=actions, ext={},
-    buffers={}, namedBuffer={},
+    buffers={}, namedBuffers={},
   }
   M.install(ed)
   return ed

@@ -4,6 +4,7 @@ local fmt = require'fmt'
 local T = require'civtest'
 local ds = require'ds'
 local pth = require'ds.path'
+local B = require'ele.bindings'
 local M = require'ele.actions'
 local Edit = require'ele.edit'.Edit
 local Editor = require'ele.Editor'
@@ -17,6 +18,7 @@ ix.mkDir(O)
 
 local newEditor = function(lines)
   local ed = Editor{}
+  B.install(ed)
   local e = ed:focus()
   e.buf:insert(lines, 1)
   return ed
@@ -38,16 +40,16 @@ T.move = function()
 
   -- move some cols
   assertMove(nil, {cols=1}, 1, 2)
-  assertMove(nil, {cols=-3}, 1, 1)
+  assertMove(nil, {cols=-3}, 1, -1)
 
   -- forword/backword
   assertMove('forword',  {},        1, 3)
   assertMove('forword',  {times=2}, 1, 7)
   assertMove('backword', {},        1, 5)
-  assertMove('forword',  {times=5}, 1, 10)
+  assertMove('forword',  {times=5}, 1, 11)
 
   -- move lines
-  e.l, e.c = 1, 9; assertMove('lines', {lines=1}, 2, 6)
+  e.l, e.c = 1, 9; assertMove('lines', {lines=1}, 2, 9)
   e.l, e.c = 1, 9; assertMove('lines', {lines=2}, 3, 9)
 
   -- find
@@ -137,13 +139,13 @@ T.nav = function()
   T.eq('/focus/path/', r)
   T.eq('/focus/path/\n  * f\n  * d/\n', fmt(b.dat))
 
-  T.eq(1, #d.buffers)
+  T.eq(2, #d.buffers)
   local test_txt = O..'test.txt'
   b:insert(test_txt..'\n', 2)
   e.l, e.c = 2, 1
   T.eq(test_txt, nav.getPath(b, 2,1))
   nav.goPath(d, true)
-  T.eq(2, #d.buffers)
+  T.eq(3, #d.buffers)
   local e = d.edit
   T.eq(pth.abs(pth.resolve(test_txt)), e.buf.dat.path)
   T.eq({1,1}, {e.l, e.c})
@@ -151,4 +153,11 @@ T.nav = function()
   local content = 'some text\ninserted from actions'
   e:insert(content); e:save(d)
   T.path(test_txt, content)
+end
+
+T.namedBuffer = function()
+  local d = newEditor''
+  T.eq({"nav"}, ds.keys(d.namedBuffers))
+  local n = d:namedBuffer'nav'
+  T.eq(1, n.id)
 end

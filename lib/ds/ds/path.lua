@@ -102,10 +102,11 @@ end
 
 --- resolve any `..` or `.` path components, making the path
 --- /absolute if necessary.
-M.resolve = function(path, wd) --> list
+--- The return type is the same as the input type.
+M.resolve = function(path, wd) --> list|str
   local outTy = type(path)
   if type(path) == 'table' then path = update({}, path)
-  else path = M(path) end
+  else                          path = M(path) end
 
   -- walk path, resolving . and ..
   local i, j, len, last = 1, 1, #path, path[#path]
@@ -139,6 +140,10 @@ M.resolve = function(path, wd) --> list
   return path
 end
 
+--- Get the canonical path.
+--- This is a shortcut for [$resolve(abs(path))].
+M.canonical = function(path) return M.resolve(M.abs(path)) end
+
 M.itemeq = function(a, b) --> boolean: path items are equal
   return a:match'^/*(.-)/*$' == b:match'^/*(.-)/*$'
 end
@@ -160,6 +165,13 @@ M.nice = function(path, wd) --> string
   return M.concat(path)
 end
 
+--- Return the nice path but always keep either / or ./
+--- at the start.
+M.small = function(path, wd)
+  path = M.nice(path)
+  return path:find'^%.?/' and path or ('./'..path)
+end
+
 --- Return only the parent dir and final item.
 --- This is often used for documentation/etc
 M.short = function(path, wd)
@@ -179,6 +191,10 @@ M.last = function(path)
   local a, b = path:match('^(.*/)(.+)$')
   if not a or a == '/' or b == '' then return '', path end
   return a, b
+end
+
+M.dir = function(path)
+  return path:match'^(.*/)(.+)$' or './'
 end
 
 --- return whether the path looks like a dir.

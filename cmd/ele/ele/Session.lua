@@ -7,7 +7,7 @@ local Session = mty'Session' {
   'ed [Editor]',
   'events [Recv]', 'evsend [Send]',
   'keys [Recv]', 'keysend [Send]',
-  'logf [File]',
+  'logf [File]', 'running [bool]',
 }
 
 local ds = require'ds'
@@ -53,6 +53,7 @@ end
 
 -- run events until they are exhuasted
 Session.run = function(s)
+  s.running = true
   local actions = s.ed.actions
   while #s.events > 0 do
     local ev = s.events()
@@ -71,6 +72,7 @@ Session.run = function(s)
     if act == 'exit' then
       s.ed.error'exit action received'
       s.ed.run = false
+      s.running = false
       yield'STOP'
     end
     local actFn = actions[act]; if not actFn then
@@ -83,6 +85,7 @@ Session.run = function(s)
     end
     ::cont::
   end
+  s.running = false
 end
 
 -- send chord of keys and play them (run events)
@@ -90,7 +93,9 @@ end
 Session.play = function(s, chord)
   log.info('play %q', chord)
   s.keysend:extend(bindings.chord(chord))
-  while (#s.keys > 0) or (#s.events > 0) do yield(true) end
+  while (#s.keys > 0) or (#s.events > 0) or s.running do
+    yield(true)
+  end
   log.info('draw %q', chord)
   s.ed.display:clear(); -- normally part of resize()
   s.ed.redraw = true; s.ed:draw()

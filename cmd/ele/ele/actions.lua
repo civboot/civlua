@@ -10,6 +10,7 @@ local motion = require'lines.motion'
 local ix = require'civix'
 local et = require'ele.types'
 local Edit = require'ele.edit'.Edit
+local B = require'ele.bindings'
 
 local push, pop = table.insert, table.remove
 local concat    = table.concat
@@ -18,6 +19,7 @@ local srep, sconcat = string.rep, string.concat
 local min, max  = math.min, math.max
 local callable = mty.callable
 local try = ds.try
+local assertf = fmt.assertf
 
 ----------------------------------
 -- KEYBINDINGS
@@ -101,31 +103,45 @@ end
 local DOMOVE = {
   lines = function(e, _, ev) e.l = e.l + ev.lines end,
   -- start/end of line/text
-  sol = function(e, line) e.c = 1                  end,
-  sot = function(e, line) e.c = line:find'%S' or 1 end,
-  eol = function(e, line) e.c = #line              end,
+  sol = function(e, line) e.c = 1                           end,
+  sot = function(e, line) e.c = line:find'%S' or 1          end,
+  sof = function(e, line) e.l,e.c = 1,1                     end,
+  eol = function(e, line) e.c = #line                       end,
   eot = function(e, line) e.c = line:find'.*%S%s*' or #line end,
+  eof = function(e, line) e.l,e.c = #e,1                    end,
+
+  --- move lines screen widths (e.th * ev.mul / ev.div)
+  screen = function(e, line, ev)
+    e.l = e.l + (e.th * (ev.mul or 1) // (ev.div or 1))
+  end,
   -- move by word
   forword  = function(e, line)
+    e.c = e:boundC(e.l,e.c)
     e.c = motion.forword(line, e.c) or (e.c + 1)
   end,
   backword = function(e, line)
+    e.c = e:boundC(e.l,e.c)
     e.c = motion.backword(line, e.c) or (e.c + 1)
   end,
   -- search for character
   find = function(e, line, ev)
+    e.c = e:boundC(e.l,e.c)
     e.c = line:find(ev.find, e.c, true) or e.c
   end,
   findback = function(e, line, ev)
+    e.c = e:boundC(e.l,e.c)
     e.c = motion.findBack(line, ev.findback, e.c, true) or e.c
   end,
 }
 local domove = function(e, ev)
   local fn = ev.move and DOMOVE[ev.move]
-  if fn      then fn(e, e.buf:get(e.l), ev)       end
-  if ev.cols then e.c = e.c + ev.cols         end
-  if ev.off  then e.l, e.c = e:offset(ev.off) end
-  if ev.rows then e.l = e.l + ev.rows         end
+  if fn      then fn(e, e.buf:get(e.l), ev) end
+  if ev.cols then e.c = e.c + ev.cols       end
+  if ev.rows then e.l = e.l + ev.rows       end
+  if ev.off  then
+    e.c = e:boundC(e.l,e.c)
+    e.l, e.c = e:offset(ev.off)
+  end
 end
 
 -- move action
@@ -134,6 +150,8 @@ end
 --   lines: move set number of lines (set lines = +/- int)
 --   forword, backword: go to next/prev word
 --   sol, eol: go to start/end of line
+--   sot, eot: to to start/end of (non-whitespace) text
+--   sof, eof: to to start/end of file
 --   find, findback: find character forwards/backwards (set find/findback key)
 --
 -- these can additionally be set and will be done in order:
@@ -144,19 +162,21 @@ M.move = function(ed, ev)
   local e = ed.edit
   log.trace('move %q [start %s.%s]', ev, e.l, e.c)
   for _=1,ev.times or 1 do domove(e, ev) end
-  e.l, e.c = e:boundLC(e.l, e.c)
+  e.l = e:boundLC(e.l, e.c)
   ed:handleStandard(ev)
 end
 
 ----------------------------------
 -- MODIFY
 
--- insert action
+-- insert action, normally inserts ev[1] at the current position.
 --
--- this inserts text at the current position.
-M.insert = function(ed, ev)
+-- Set [$special] to call I_SPECIAL fn first.
+M.insert = function(ed, ev, evsend)
   local e = ed.edit; e:changeStart()
-  e:insert(string.rep(assert(ev[1]), ev.times or 1))
+  if ev[1] then
+    e:insert(string.rep(assert(ev[1]), ev.times or 1))
+  end
   ed:handleStandard(ev)
 end
 
@@ -191,8 +211,25 @@ end
 ----------------------------------
 -- NAV
 
-M.nav = mod and mod'ele.actions.nav' or {};
+M.nav = mod and mod'ele.actions.nav' or setmetatable({}, {})
 local nav = M.nav
+getmetatable(nav).__call = function(_, ed, ev, evsend)
+  local e1 = ed.edit
+  local e = ed:focus'b#nav'
+  if ev.nav == 'cwd' then
+    e:clear(); e:insert(pth.small(pth.cwd())); e.l = 1
+    nav.expandEntry(e.buf, 1, ix.ls)
+  end
+  if ev.nav == 'cbd' then
+    e:clear(); local p = e1.buf.dat.path
+    if p then
+      e:insert(pth.small(pth.dir(p))); e.l = 1
+      nav.expandEntry(e.buf, 1, ix.ls)
+    else e:insert(sfmt('b#%s', e.buf.id)); e.l,e.c = 1,1 end
+  end
+  ed.mode = 'system'
+end
+
 
 nav.getFocus = function(line)
   return line:match'^%-?([.~]?/[^\n]*)'
@@ -262,6 +299,7 @@ nav.getPath = function(b, l,c) --> string
     if #i < ind then push(path, e); ind = #i end
   end
   ::nonentry::
+  if not c then return end
   if motion.pathKind(ln:sub(c,c)) ~= 'path' then return end
   local si, ei = motion.getRange(ln, c, motion.pathKind)
   return ln:sub(si,ei)
@@ -303,13 +341,14 @@ end
 nav.expandEntry = function(b, l, ls) --> numEntries
   local entries = ls(nav.getPath(b, l))
   if #entries == 0 then return end
-  local ind = #(getEntry(b:get(l)) or '')
+  local line = b:get(l)
+  local ind = #(getEntry(line) or '')
   for i, e in ipairs(entries) do
     entries[i] = sconcat('', srep(' ',ind+2), '* ', e)
   end
-  push(entries, '')
-  b:insert(concat(entries, '\n'), l+1)
-  return #entries
+  b:insert('\n', l,#line+1)
+  b:insert(concat(entries, '\n'), l+1,1)
+  return #entries - 2
 end
 
 nav.doBack = function(b, l, times)
@@ -320,8 +359,10 @@ nav.doBack = function(b, l, times)
 end
 
 nav.doExpand = function(b, l, times, ls)
-  if not pth.isDir(getEntry(b:get(l))) then return end
-  ls = ls or ix.dir
+  local _, _, en = getEntry(b:get(l))
+  log.info('!! expanding entry %i: %q', l, en)
+  if not pth.isDir(en) then return end
+  ls = ls or ix.ls
   local numEntries = nav.expandEntry(b, l, ls)
   times = times - 1; if times <= 0 then return end
   for l=l+1, l+numEntries do nav.doExpand(b, l, times, ls) end
@@ -355,18 +396,22 @@ nav.doEntry = function(ed, op, times, ls)
 end
 
 M.path = function(ed, ev, evsend)
-  log.trace('path: %q line=%i', ev, e.l)
   if ev.entry then
-    nav.doEntry(ed, ev.entry, ev.times or 1, civix.dir)
+    nav.doEntry(ed, ev.entry, ev.times or 1, ix.ls)
   end
   if ev.go then nav.goPath(ed, 'create' == ev.go) end
 end
 
---- Do something to the current buffer, depending on ev [+
---- * save=true: save the current buffer
+--- Do something buffer related, depending on ev, in this order: [+
+--- * save=true: save the current buffer.
+--- * buf: focus the buffer, typically 'b#named' buffer.
+--- * clear: clear the current buffer.
 --- ]
 M.buf = function(ed, ev)
-  if ev.save then ed.edit:save(ed) end
+  if ev.save  then ed.edit:save(ed)   end
+  if ev.focus then ed:focus(ev.focus) end
+  if ev.clear then ed.edit:clear()    end
+  ed:handleStandard(ev)
 end
 
 --- What a window.split translates to

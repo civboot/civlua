@@ -174,6 +174,7 @@ T['Gap.ipairs'] = function()
     T.eq(g[i], g[i]) t[i] = v
   end
   T.eq({'12345', '6789', '98765', ''}, t)
+  T.eq({'12345', '6789', '98765', ''}, ds.icopy(g))
 end
 
 T['Gap.extend'] = function()
@@ -187,6 +188,16 @@ T['Gap.write'] = function()
   g:write'hi'; T.eq('hi', fmt(g))
   g:write' there\n'; T.eq('hi there\n', fmt(g))
   g:write'  next\nline'; T.eq('hi there\n  next\nline', fmt(g))
+end
+
+T['Gap.clear'] = function()
+  local g = Gap'a\nb\n'
+  T.eq('a\nb\n', fmt(g))
+  g:inset(1, nil, #g); T.eq('', fmt(g))
+  T.eq({}, ds.icopy(g))
+  g:set(1, 'hi')
+  g:set(2, 'bye')
+  T.eq('hi\nbye', fmt(g))
 end
 
 T.Writer = function()

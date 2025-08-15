@@ -46,7 +46,7 @@ local sinsert = function (s, i, v) return s:sub(1, i-1)..v..s:sub(i) end
 ---
 --- Note: this is NOT performant (O(N)) for large tables.
 --- See: lib/rebuf/gap.lua (or similar) for handling real-world workloads.
-M.inset = function(t, s, l, c) --> nil
+M.inset = function(t, s, l,c) --> nil
   inset(t, l, M(sinsert(get(t, l) or '', c or 1, s)), 1)
 end
 
@@ -106,10 +106,9 @@ end
 
 --- bound the line/col for the gap
 M.bound = function(t, l, c, len, line) --> l, c
-  len = len or #t
-  l = bound(l, 1, len)
+  l = bound(l, 1, max(1, len or #t))
   if not c then return l end
-  return l, bound(c, 1, #(line or get(t, l)) + 1)
+  return l, bound(c, 1, #(line or get(t, l) or '') + 1)
 end
 
 --- Get the [$l, c] with the +/- offset applied
@@ -211,7 +210,7 @@ M.remove = function(t, ...) --> string|table
       if c <= c2 then
         if c2 <= #get(t,l) then -- no newline
           new[1] = get(t,l):sub(1, c-1)..get(t,l):sub(c2+1)
-          rem[1]  = get(t,l):sub(c, c2)
+          rem[1] = get(t,l):sub(c, c2)
         else -- include newline in removal
           l2 = l2 + 1 -- inset removes additional line
           new[1]         = get(t,l):sub(1, c-1)..(get(t,l2) or '')

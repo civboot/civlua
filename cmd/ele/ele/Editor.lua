@@ -22,7 +22,7 @@ local Editor = mty'Editor' {
   'actions [table]: actions which events can trigger (see: actions.lua)',
   'resources [table]: resources to close when shutting down',
   'buffers [list[Buffer]]', 'bufferId[map[Buffer, id]]',
-  'namedBuffer [map[string,Buffer]]',
+  'namedBuffers [map[string,Buffer]]',
   'edit [Buffer]: the current edit buffer',
   'view [RootView]: the root view',
   'display [Term|other]: display/terminal to write+paint text',
@@ -41,9 +41,8 @@ getmetatable(Editor).__call = function(T, t)
     mode='command', modes={},
     actions=ds.copy(require'ele.actions'),
     buffers={}, bufferId={},
-    namedBuffer=ds.WeakV{},
-    resources={},
-    ext={},
+    namedBuffers=ds.WeakV{},
+    resources={}, ext={},
     redraw = true,
   }, t)
   return mty.construct(T, t)
@@ -71,8 +70,10 @@ Editor.getBuffer = function(ed, v) --> Buffer?
   if type(v) == 'number' then
     local b = ed.buffers[v]; if b then return b end
   elseif type(v) == 'string' then
-    local id = v:match'b#(%d+)'; if id then
-      return ed.buffers[tonumber(id) or ed.namedBuffer[id]]
+    log.info('!! match', {v:match'b#([%w_-]+)'})
+    local id = v:match'b#([%w_-]+)'; if id then
+      log.info('!! id %q', id, ed.namedBuffers[id])
+      return ed.buffers[tonumber(id) or ed.namedBuffers[id]]
     end
 
     v = pth.abs(pth.resolve(v))
@@ -99,6 +100,16 @@ Editor.buffer = function(ed, idOrPath) --> Buffer
   ed.bufferId[b] = id
   return ed.buffers[id]
 end
+
+--- Get or create a named buffer (NOT a path).
+Editor.namedBuffer = function(ed, name, path)
+  local id = ed.namedBuffers[name]
+  if id then return ed.buffers[id] end
+  local b = ed:buffer(path)
+  ed.namedBuffers[name] = assert(b.id)
+  return b
+end
+
 
 -- open path and focus. If already open then use existing buffer.
 Editor.open = function(ed, path) --> edit

@@ -137,10 +137,12 @@ M.unboundChord = function(keys)
   error('unbound chord: '..concat(keys.chord, ' '))
 end
 
-M.insertmode  = {mode='insert'}
+M.commandMode = {mode='command'}
+M.insertMode  = {mode='insert'}
+M.systemMode  = {mode='system'}
+
 M.insertsot   = {mode='insert', action='move', move='sot'}
 M.inserteol   = {mode='insert', action='move', move='eol', cols=1}
-M.commandmode = {mode='command'}
 
 M.insertBelow = {
   action='chain', mode='insert',
@@ -167,6 +169,9 @@ do local MA = M.moveAction
   -- start/end of line/text
   M.sol, M.sot           = MA{move='sol'}, MA{move='sot'}
   M.eol, M.eot           = MA{move='eol'}, MA{move='eot'}
+  M.sof, M.eof           = MA{move='sof'}, MA{move='eof'}
+  M.upScreen             = MA{move='screen', mul=-1, div=2}
+  M.downScreen           = MA{move='screen', mul=1,  div=2}
 end
 
 M.movekey = function(keys)
@@ -248,11 +253,12 @@ M.insert  = M.KeyBindings{name='insert', doc='insert mode'}
 M.command = M.KeyBindings{name='command', doc='command mode'}
 
 -- Navigation
-M.goPath      = {action='path', go=true}
+M.goPath      = {action='path', go='path'}
 M.createPath  = {action='path', go='create'}
 
 -- Basic movement and times (used in multiple)
 M.movement = {
+
   right = M.right, left=M.left, up=M.up, down=M.down,
   l     = M.right, h   =M.left, k =M.up, j   =M.down,
   w=M.forword, b=M.backword,
@@ -272,12 +278,44 @@ end
 -- INSERT
 ds.update(M.insert, {
   fallback = M.insertChord,
-  ['^q ^q'] = M.exit,
-  esc       = M.commandmode,
+  ['^q']   = M.exit,
+  esc      = M.commandMode,
   right = M.right, left=M.left, up=M.up, down=M.down,
   back = M.backspace, del=M.delkey,
 })
 
+---------------------------
+-- SYSTEM Mode
+
+--- System mode
+--- Mode for dealing with system-related resources such as
+--- files, directories and running single line or block
+--- commands directly in a buffer.
+M.system = M.KeyBindings {
+  name = 'system', doc = 'system mode: filesystem, commands, shell, etc',
+}
+ds.update(M.system, M.movement)
+
+M.pathFocus  = {action='path', entry='focus'}
+M.pathBack   = {action='path', entry='back'}
+M.pathExpand = {action='path', entry='expand'}
+M.pathFocusExpand = {action='chain', M.pathFocus, M.pathExpand}
+M.pathBackExpand = {action='chain',
+  M.pathFocus, M.pathBack, M.pathExpand,
+}
+
+ds.update(M.system, {
+  fallback = M.unboundChord,
+  esc = M.commandMode,
+
+  h = M.pathBack,   H = M.pathBackExpand,
+  l = M.pathExpand, L = M.pathFocusExpand,
+
+  -- TODO: J/K: focus below/above
+})
+
+M.navCwd = {action='nav', nav='cwd'}
+M.navCbd = {action='nav', nav='cbd'} --- current buf dir
 
 -----
 -- COMMAND
@@ -288,7 +326,7 @@ ds.update(M.command, {
   ['^q ^q'] = M.exit,
 
   -- insert
-  i = M.insertmode, I=M.insertsot, A=M.inserteol,
+  i = M.insertMode, I=M.insertsot, A=M.inserteol,
   o = M.insertBelow, O = M.insertAbove,
 
   d = M.delete,
@@ -296,44 +334,25 @@ ds.update(M.command, {
 
   -- movement
   f=M.find, F=M.findback,
+  ['^d'] = M.downScreen, ['^u'] = M.upScreen,
 
-  -- Navigation
+  -- System
+  s = M.systemMode,
+
+  -- G is for GO
+  ['g g'] = M.sof, ['G'] = M.eof, -- start/end of file
+
   ['g f'] = M.goPath,
+  ['g /'] = M.navCwd,
+  ['g .'] = M.navCbd,
 
+  -- Window
   ['g h'] = M.windowLeft, ['g l'] = M.windowRight,
   ['g j'] = M.windowDown, ['g k'] = M.windowUp,
 
   ['g H'] = M.splitVLeft, ['g L'] = M.splitVRight,
   ['g J'] = M.splitHDown, ['g K'] = M.splitHUp,
 })
-
----------------------------
--- SYSTEM Mode
-
---- System mode
---- Mode for dealing with system-related resources such as
---- files, directories and running single line or block
---- commands directly in a buffer.
-M.sys = M.KeyBindings {
-  name = 'nav', doc = 'nav mode',
-}
-ds.update(M.sys, M.movement)
-
-M.pathFocus  = {action='path', entry='focus'}
-M.pathBack   = {action='path', entry='back'}
-M.pathExpand = {action='path', entry='expand'}
-M.pathFocusExpand = {action='chain', M.pathFocus, M.pathExpand}
-M.pathBackExpand = {action='chain',
-  M.pathFocus, M.pathBack, M.pathExpand,
-}
-
-ds.update(M.sys, {
-  h = M.pathBack,   H = M.pathBackExpand,
-  l = M.pathExpand, L = M.pathFocusExpand,
-
-  -- TODO: J/K: focus below/above
-})
-
 
 ---------------------------
 -- INSTALL
@@ -345,10 +364,10 @@ M.install = function(ed)
   ed.ext.keys = M.KeySt{}
   -- TODO: replace with merge but need shouldMerge closure.
   ed.modes = ds.update(ed.modes or {}, {
-      insert=M.insert, command=M.command,
+      insert=M.insert, command=M.command, system=M.system,
   })
-  if not ed.namedBuffer.nav then
-    ed.namedBuffer.nav = ed:buffer()
+  if not ed.namedBuffers.nav then
+    push(ed:namedBuffer'nav'.tmp, ed.ext.keys) -- mark as not closed
   end
 end
 

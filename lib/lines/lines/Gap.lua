@@ -33,6 +33,13 @@ end
 
 Gap.flush = ds.noop
 Gap.close = ds.noop
+Gap.icopy = function(g) --> list
+  local b = g.bot
+  local o = move(b, 1, #b, 1, {})
+  local t = g.top
+  for i=#t, 1, -1 do push(o, t[i]) end
+  return o
+end
 
 --- Load gap from file, which can be a path.
 --- returns nil, err on error

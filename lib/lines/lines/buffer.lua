@@ -72,7 +72,7 @@ end
 
 Buffer.__fmt = function(b, fmt)
   fmt:write(('Buffer{%s, id=%s, path=%q}'):format(
-    b.tmp and (#b.tmp == 0) and '(closed) ',
+    b.tmp and (#b.tmp == 0) and '(closed) ' or '(tmp)',
     b.id, b.dat.path))
 end
 Buffer.__len = function(b)    return #b.dat end

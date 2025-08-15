@@ -37,6 +37,7 @@ end
 
 --- insert the str|lines into the grid at l.c
 --- this handles newlines by inserting at the same column
+--- This also clears the remainder of the line.
 G.insert = function(g, l, c, str)
   for _l, lstr in split(str) do
     local llen = 0

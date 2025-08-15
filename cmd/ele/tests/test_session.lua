@@ -1,5 +1,6 @@
 -- Test display functionality (not mutation)
 
+local G = G or _G
 local T = require'civtest'
 local CT = require'civtest'
 local mty = require'metaty'
@@ -17,11 +18,12 @@ local path = require'ds.path'
 local ixt = require'civix.testing'
 
 local _CWD = CWD
-CWD = path.abs(ds.srcdir()) -- override global
+G.CWD = path.abs(ds.srcdir())
 
 local SC = '[mode:command]'
 local SI = '[mode:insert]'
-local SMALL = CWD..'small.lua'
+local SS = '[mode:system]'
+local SMALL = CWD..'data/small.lua'
 local LINES3 =
   '1 3 5 7 9\n'
 ..' 2 4 6\n'
@@ -97,7 +99,7 @@ Test{'move', dat=LINES3, function(tst)
     T.eq(SC..'\n'..LINES3, fmt(ed.display))
   s:play'2 k'; T.eq({1, 1}, {e.l, e.c})
   s:play'$';   T.eq({1, 9}, {e.l, e.c})
-  s:play'j';   T.eq({2, 7}, {e.l, e.c})
+  s:play'j';   T.eq({2, 9}, {e.l, e.c})
     T.eq(SC..'\n'..LINES3, fmt(ed.display))
 
   s:play'0';   T.eq({2, 1}, {e.l, e.c})
@@ -123,12 +125,11 @@ local SMALL_1 = '\n'..[[
  4  print'hello world'
  5end
  6
-| small.lua:1.1 (b#3) ========]]
+| data/small.lua:1.1 (b#3) ===]]
 Test{'open', open=SMALL, th=9, tw=30, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
   local b, BID = e.buf, 3
   T.eq(b.id, BID)
-  T.eq(0, #ed.buffers[1].tmp) -- was temporary and was closed
   T.eq(SMALL, b.dat.path)
   s:play'' -- draws
     T.eq('-- a small lua file for tests', b:get(1))
@@ -153,12 +154,12 @@ local SPLIT_1 = '\n'..[[
  0-- a small lua file for te 0-- a small lua file for test
  1local M = {}               1local M = {}
  2                           2
-| small.lua:1.1 (b#3) ======| small.lua:1.1 (b#3) ========]]
+| data/small.lua:1.1 (b#3) =| data/small.lua:1.1 (b#3) ===]]
 local SPLIT_2 = '\n'..[[
  0-- a small lua file for te 1-- a small lua file for test
  1local M = {}               0local M = {}
  2                           1
-| small.lua:1.1 (b#3) ======| small.lua:2.7 (b#3) ========]]
+| data/small.lua:1.1 (b#3) =| data/small.lua:2.7 (b#3) ===]]
 
 Test{'window', open=SMALL, th=5, tw=60, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
@@ -180,5 +181,60 @@ Test{'window', open=SMALL, th=5, tw=60, function(tst)
     T.eq(SC..SPLIT_2, fmt(ed.display))
 end}
 
+local LINES3_wLN = [[
+ 01 3 5 7 9
+ 1 2 4 6
+ 2
+| b#2 1.1 ====================]]
+local INSERTED_3 = [[
+ 0inserted
+  
+  
+| b#2 1.9 ====================]]
+Test{'empty', dat=LINES3, th=5, tw=30, function(tst)
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
+  local g = e.buf.dat
+  T.eq(require'lines.Gap', mty.ty(g))
+  s:play''
+    T.eq(SC..'\n'..LINES3_wLN, fmt(ed.display))
+
+  e:clear(); T.eq({}, ds.icopy(g))
+    e:insert'inserted'
+    T.eq({'inserted'}, ds.icopy(g))
+    s:play''; T.eq(SC..'\n'..INSERTED_3, fmt(ed.display))
+end}
+
+
+local NAV_1 = [[
+ 0./data/
+ 1  * seuss/
+ 2  * small.lua
+  
+  
+| b#1 1.8 ==========]]
+
+local NAV_2 = [[
+ 1./data/
+ 0  * seuss/
+ 1    * thing1.txt
+ 2    * thing2.txt
+ 3  * small.lua
+| b#1 2.8 ==========]]
+Test{'nav', open=SMALL, th=7, function(tst)
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
+  s:play'g .'
+    T.eq(SS..'\n'..NAV_1, fmt(ed.display))
+    T.eq('system', ed.mode)
+    T.eq({1,1}, {e.l,e.c})
+
+  s:play'esc'; T.eq('command', ed.mode)
+
+  s:play's j l' -- expand seuss
+    T.eq('system', ed.mode)
+    T.eq(SS..'\n'..NAV_2, fmt(ed.display))
+
+  -- s:play'2 j h' -- go down, but then unexpand
+  --   T.eq(SS..'\n'..NAV_1, fmt(ed.display))
+end}
 
 CWD = _CWD
