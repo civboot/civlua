@@ -36,6 +36,8 @@ cmd/ele/ele/edit.lua
 cmd/ele/ele/testing.lua
 cmd/ele/ele/types.lua
 cmd/ele/resources/Intro.txt
+cmd/ele/tests/data/seuss/thing1.txt
+cmd/ele/tests/data/seuss/thing2.txt
 cmd/ele/tests/data/small.lua
 cmd/ele/tests/test_actions.lua
 cmd/ele/tests/test_bindings.lua
@@ -194,6 +196,3 @@ ui/vt100/test.lua
 ui/vt100/vt100.lua
 ui/vt100/vt100/AcWriter.lua
 ui/vt100/vt100/testing.lua
-cmd/ele/tests/data/seuss/thing1.txt
-cmd/ele/tests/data/seuss/thing2.txt
-lua5.4.core

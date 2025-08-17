@@ -18,6 +18,7 @@ local mty  = require'metaty'
 local fd = require'fd'
 local fmt  = require'fmt'
 local ds   = require'ds'
+local log  = require'ds.log'
 local pod = require'pod'
 local pth = require'ds.path'
 local Iter = require'ds.Iter'
@@ -38,7 +39,7 @@ local COMMAND_NAME = 'when executed directly'
 M.find = function(obj) --> Object
   if type(obj) ~= 'string' then return obj end
   return PKG_LOOKUP[obj] or M.getpath(obj)
-      or ds.rawget(G, ds.dotpath(obj))
+      or ds.rawgetp(G, ds.dotpath(obj))
 end
 
 local objTyStr = function(obj)
@@ -309,7 +310,7 @@ M.getpath = function(path)
   path = type(path) == 'string' and ds.splitList(path, '%.') or path
   local obj
   for i=1,#path do
-    local v = obj and ds.rawget(obj, ds.slice(path, i))
+    local v = obj and ds.rawgetp(obj, ds.slice(path, i))
     if v then return v end
     obj = pkglib.get(table.concat(path, '.', 1, i))
   end

@@ -237,7 +237,7 @@ local function parseTable(p, tbl)
     if delim == colDel then
       addToken(p, col, l, c, p.l, c1 - 1)
     else assert(rowStart[delim])
-      addToken(p, col, l, c, p.l - 1, #p.dat[p.l - 1])
+      addToken(p, col, l, c, p.l - 1, #ds.get(p.dat, p.l - 1))
     end
     p.c = c2 + 1
     if row then add(row, col) end
@@ -283,8 +283,8 @@ M.content = function(p, node, isRoot, altEnd)
   if p.line == nil then
     if not isRoot then p:error"Expected ']' but reached end of file" end
     p:dbgLeave()
-    return addToken(p, node, l, c, p.l - 1, #p.dat[p.l - 1]) --> nil
-  elseif #p.line == 0 and p.dat[l+1] then
+    return addToken(p, node, l, c, p.l - 1, #ds.get(p.dat, p.l - 1)) --> nil
+  elseif #p.line == 0 and ds.get(p.dat, l+1) then
     add(node, {pos={l}, br=true})
     p:incLine(); skipWs(p); l, c = p.l, p.c
     goto loop

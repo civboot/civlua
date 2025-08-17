@@ -9,7 +9,6 @@ srcs = {
   'ele/bindings.lua',
   'ele/edit.lua',
   'ele/actions.lua',
-  'ele/nav.lua',
   'ele/Editor.lua',
   'ele/Session.lua',
   'ele/testing.lua',

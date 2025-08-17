@@ -1,7 +1,6 @@
 [{h1}Ele: Extendable Lua Editor]
 
-Ele is an (**In Development**) extendable lua editor. This is the second
-rewrite, with the original code being in [/experiment/ele].
+Ele is an (**In Development**) [*E]xtendable [*L]ua [*E]ditor.
 
 Ele's primary goals are: [+
 * Implemented in a minimal amount of understandable code. It is the main editor
@@ -12,6 +11,7 @@ Ele's primary goals are: [+
 ]
 * Implements a lua shell (zsh competitor)
 * Can handle any size text file
+* Cross platform (currently vt100-only protocol, which should run anywhere)
 ]
 
 Non-goals of Ele are: [+
@@ -26,7 +26,6 @@ Ele is architected using the MVI (model-view-intent) architecture, also
 known as the "React architecture" from the web library of the same
 name.
 
-
 [##
    ,_____________________________________________
    | intent(): keyboard, timer, executor, etc    |
@@ -38,99 +37,84 @@ name.
   `~~~~~~~~~~~~~~~~~~'                   `~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
 ]##
 
-The update loop (displayed above) is as follows: [+
-* Receive a single intent: this can be a keyboard input, a timer firing or an
-  operation function (async function) completing.
-* Execute the model action tied to that event: aka the keybinding or a
-  registered action. This will mutate Data depending on the event. It may also
-  spawn some async opfns (operation functions)
-* Paint the view/s (user-visible) and await the next intent
+In practice, this is accomplished in four coroutines spawned
+by [/ele.lua]'s [$main] function: [+
+* A coroutine that listens to stdin for vt100 key sequences
+  and sends event (plain-old-table values) to the [$keys]
+  channel.
+* A coroutine that listens to key actions and converts them
+  to events (again, plain-old-tables) based on the [@ele.bindings],
+  which are sent on an events channel. This also handles
+  chords correctly, see the [@ele.bindings] documentation.
+* A coroutine that listens for event tables, looks up their
+  [$action] in [@ele.actions] and runs the appropriate action.
+* A coroutine that "draws" the current display once per "frame"
+  This is done by recursing the tree from [$Editor.root] down,
+  having them write the relevant text to a [@vt100.Term] object,
+  which gets flushed to the display at the end.
 ]
 
-[{h2}Data]
-Data holds almost all the "state" for the application, as well as helper
-methods. This includes: [+
-* The [$bufs] which has all open buffers
-* The [$root] View (and by extension all Views)
-* The [$keys] keybinding "plugin" (builtin)
-* utility methods like [$log()]
-]
+This roughly implements the MVI architecture because ALL actions
+are performed sequentially based on the ordering in the [$events]
+channel.
 
-It does NOT include: [+
-* [$events] fifo buffer
-]
+Actions or plugins have the option to spawn their own coroutine. However,
+this behavior should be extremely rare, and reserved mostly for things that
+really can happen concurrently with no user feedback needed, such as saving a
+file, finding file lints, or updating syntax highlighting. Most real-world
+editor operations can block the user while they happen, and if they can't
+then they should consider not being included as an editor operation. Some
+exceptions such as searching for patterns in a recursive tree should be
+spawned as a coroutine but be cancelled if the user modifies the buffer
+that the results are being written to in any way.
 
-[{h2}Actions]
-Actions are functions or [$__call]-able tables which must be registered in
-[$ele.Actions] and must have signature:
-
-[{# lang=lua}
-function action(self, data, ev, evsend)
-]#
-
-The action body is free to mutate both [$data] and [$ev] as well as call
-[$evsend(newEvent)]. It is also free to call [$lap.schedule(...)] to
-schedule coroutines which themselves call [$evsend(newEvent)] asynchronously
-in order ot update the main loop.
-
-Any events scheduled directly by the action will be handled immediately (the LAP
-executor will not be run). The actual implementation of [$model()] is:
+[{h1}Adding Bindings]
+Adding simple bindings is easy. Simply insert the space-separated chord
+of keys you want to go to your binding to one of ele's default modes, or
+create your own.  [@ele.bindings]'s [$command], [$insert] and/or [$system]
+entries are where you will find the default modes. For instance,
+the following will insert the expected text at the cursor position
+from command mode:
 
 [{## lang=lua}
-Ele.model = function(ele)
-  local ev = ele.events:pop()
-  while ev do
-    Actions[ev.action or 'noaction'](ele.data, ev, ele.events)
-    ev = ele.events:pop()
-  end
-end
+local B = require'ele.bindings'
+B.command['y y'] = {action='insert', 'Why oh why did I bind this?\n'},
 ]##
 
-The actual implementation of [$intent()] is basically a specialized LAP executor
-that calls [$model()] when any [$events] are present.
+To write your own action you must: [+
+* Add a callable to [@ele.actions] which implements the intended behavior. The
+  signature is: [$fn(Editor, event, Channel[event])]. You may modify the Editor
+  in the appropriate way for your action.  You are recommended to handle
+  [$event.times] to do your action multiple times (if that makes sense for your
+  action). Note that you are free to throw errors -- any errors will be caught
+  and logged.
 
-[{h2}Event Records]
-Event records MUST be ds.isPod (plain old data). This is asserted on by
-[$evsend()].
-
-Events are a table with some fields defined, mainly: [+
-* action: the action name that should be executed. This must be
-  registered in [$ele.Actions]. See [*Action] section above.
-* cause: (debugging only) a list of keys/etc that led to this action.
-* other data: used by the action function (this object is its second argument)
+* Add a binding to an editor mode. The binding can either be a plain table,
+  which is the event that will be generated, or a [$fn(KeySt) -> ev?] callable.
+  Using the callable API is slightly complex but allows for complex key
+  interactions where you build-up a command with a chaing (aka "chord") of
+  multiple key inputs. Refer to the [@ele.bindings] documentation.
 ]
 
-[{h2}Plugin Architecture]
-It is extremely simple to add plugins: [+
-* register relevant `Actions` fields for your plugin. When an event with
-  [$action] is emitted then that action will be called by [$model()].
-* (optional) initialize your plugin in [$data]
-* (optional) for listening to editor changes register with [$ele.changes], i.e.
-  [$push(ele.changes.fileOpened, myPluginFunction)]. It will be called like it
-  is an action for such events.
-* (optional) for listening to real events, schedule your plugin using
-  [$lap.schedule(...)] (i.e. the builtin [$Keys] plugin does this).
+[{h1}Editor API]
+[@ele.Editor] is the main object most custom actions or Ele scripts will
+interact with. It has several fields, but the fields and methods that most
+folks will care about are: [+
+* [$edit]: this is the current edit buffer and is typically where the
+  user wants to insert or otherwise interact with text. It is
+  typically a [@ele.edit.Edit] instance, though plugins may
+  eventually allow other types to be used.
+* [$view] this is the "root" view, which contains a tree who's
+  leaves are the visible Edit views.
+* [$ext] a plain table that extensions can set Edit-local values
+  too. Very useful for plugins.
+* [$:buffer(idOrPath) --> Buffer] this will get or create a buffer.
+* [$:focus(idOrPath) --> Edit] focus on a buffer, replacing
+  the current one.
 ]
 
-[{h2 name=ele-keys}Keys Builtin Plugin]
-Keys is a builtin plugin which handles actions associated with modal or chorded
-(aka vim or emacs style) keyboard input sequences. Users assign keybinding
-functions to [$Data.bindings] and add binding chains (nested tables) to one of
-the [$Data.bindings.modes] tables.
+Most plugins will simply get [$edit] and then insert/remove/search
+its [$buf] data using its APIs and/or change its [$l,c] (line,column) values.
+They are free to use any lua API to do so, but should avoid large amounts
+of work as much as possible.
 
-Keybinding functions receive [$Data.keys]  as their ONLY argument . [$keys] POD,
-see ele/keys.lua for the fields.
-
-The basic operation is that the [$keyinput] action walks the bindings in the
-mode, updating [$Data.keys.next] until it gets to an action to perform. It then
-calls the binding function, scheduling an event if one is returned.
-
-The binding functions can directly mutate Keys, or they can emit an event which
-calls an action to mutate data or schedule coroutines. Core data is never
-modified by the keybinding itself, which makes logging (and replaying) user
-actions trivial (see [$Data.bindings.listen]) which permits recording macros/etc.
-
-The event can have the following special fields: [+
-* [*mode]: if set then [$keys.mode] is set to this after the event is emitted.
-  Makes [$change]-like commands much simpler.
-]
