@@ -11,7 +11,7 @@ local fd = require'fd'
 local civix = require'civix'
 
 local construct, newindex = mty.construct, mty.newindex
-local sfmt = string.format
+local sfmt, srep = string.format, string.rep
 
 M.CONFIG_PATH = '.config/colors.luck'
 
@@ -56,6 +56,8 @@ end
 
 --- Dark mode styles (defaults)
 M.dark = {
+  bg = 'b',
+
   -- Find tools (i.e. ff)
   path  = 'm',  -- file/dir path
   match = 'Bf', -- search match
@@ -81,7 +83,7 @@ M.dark = {
   keyword       = 'R', -- for while do etc
   symbol        = 'A', -- = + . { } etc
   builtin       = 'p', -- builtin fns/mods/names: io sys self etc
-  commentbox    = 'bw', -- start/end of comment: -- // /**/ etc
+  commentbox    = 'bl', -- start/end of comment: -- // /**/ etc
   comment       = 'zb', -- content of comment:  /*content*/
   stringbox     = 'd', -- start/end of string: '' "" [[]] etc
   string        = 'g', -- content of string inside quotes
@@ -92,6 +94,22 @@ M.dark = {
   call          = 'c', -- function call: foo()
   dispatch      = 'C', -- object.method called: obj.foo(), obj:foo()
 }
+
+--- Sub-style for "bars", used in applications (like editor)
+--- to create sub-styles.
+M.dark.bar = {
+  fg = 'b', bg = 'w', -- foreground/background overrides
+  meta = 'lw',
+  line = 'nw',
+}
+
+-- Reverse any white fg items, preserving bold.
+for k, v in pairs(M.dark) do
+  if type(v) == 'string' then
+    if     'w' == v:sub(1,1) then M.dark.bar[k] = 'bw'
+    elseif 'W' == v:sub(1,1) then M.dark.bar[k] = 'Bw' end
+  end
+end
 
 -- TODO: light-mode styles
 
@@ -117,7 +135,7 @@ end
 --- Note: pass mode, stylepath to control loadStyle
 M.Styler = mty'Styler' {
   'acwriter [AcWriter]',
-  "style [table]: default=loadStyle()",
+  "style [table]: default=loadStyle() in Fmt", style=M.dark,
 }
 
 M.Styler.__tostring = function() return 'Styler{...}' end
@@ -125,9 +143,27 @@ M.Styler.__tostring = function() return 'Styler{...}' end
 M.Styler.level = function(st, add) return st.acwriter.f:level(add) end
 M.Styler.flush = function(st) return st.acwriter:flush() end
 
+--- Get the style's fb (foreground + background asciicolor bytes)
+M.Styler.getFB = function(st, style) --> fb
+  style = style or 'zz'
+  local sub, subSty = style:match'(%w+):(%w+)'
+  if sub then
+    style = subSty
+    sub = st.style[sub];   if not sub then goto getstyle end
+    local fb = sub[style]; if fb      then return fb     end
+    -- not explicitly defined, use the default background
+    fb = (st.style[style] or 'z'):sub(1,1)
+    if     CODES[fb] == 'z' then fb = sub.fg or 'z'
+    elseif CODES[fb] == 'Z' then fb = (sub.fg or 'Z'):upper() end
+    return fb..(assert(sub.bg))
+  end
+  ::getstyle::
+  return st.style[style] or 'zz'
+end
+
 --- Example: st:styled('path', 'path/to/foo.txt', '\n')
 M.Styler.styled = function(st, style, str, ...)
-  local len, fb = #str, st.style[style] or ''
+  local len, fb = #str, st:getFB(style)
   return st.acwriter:acwrite(
     fb:sub(1,1):rep(len), fb:sub(2,2):rep(len),
     str, ...)

@@ -7,6 +7,7 @@ local shim = require'shim'
 local lap = require'lap'
 local fd = require'fd'
 local log = require'ds.log'
+local ac = require'asciicolor'
 local ioopen = io.open
 
 -- shim exe function
@@ -24,7 +25,9 @@ M.main = function(args)
     vt.start(stderr)
     io.fmt = require'civ'.Fmt{to=stderr}
 
-    s.ed.display = vt.Term{}
+    s.ed.display = vt.Term{
+      styler=ac.Styler{style=ac.loadStyle()},
+    }
     log.info'ele: started display'
     s:handleEvents()
     lap.schedule(function()

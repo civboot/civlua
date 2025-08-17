@@ -8,13 +8,14 @@ local fmt = require'fmt'
 local ds, lines = require'ds', require'lines'
 local pth = require'ds.path'
 local log = require'ds.log'
+local path = require'ds.path'
+local ac = require'asciicolor'
 local etest = require'ele.testing'
+local Fake = require'vt100.testing'.Fake
 local edit = require'ele.edit'
 local Session = require'ele.Session'
 local et = require'ele.types'
 local Buffer = require'lines.buffer'.Buffer
-local Fake = require'vt100.testing'.Fake
-local path = require'ds.path'
 local ixt = require'civix.testing'
 
 local _CWD = CWD
@@ -46,7 +47,7 @@ getmetatable(Test).__call = function(Ty, t)
   t = mty.construct(Ty, t)
   t.s = t.s or Session:test{}; local ed = t.s.ed
   assert(ed.view == ed.edit)
-  ed.display = Fake{h=t.th, w=t.tw}
+  ed.display = Fake{h=t.th, w=t.tw, styler=ac.Styler{}}
   local name = assert(t[1], 'need name')
   print('## test_session.Test', name)
   local testFn = function()

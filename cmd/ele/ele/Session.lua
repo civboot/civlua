@@ -124,10 +124,10 @@ end
 Session.draw = function(s)
    while s.ed.run do
      if s.ed.redraw then
+       s.ed.redraw = false
        s.ed.display:resize()
        s.ed:draw()
        s.ed.display:draw()
-       s.ed.redraw = false
      end
      yield('sleep', FRAME)
    end

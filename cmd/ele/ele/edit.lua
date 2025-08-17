@@ -13,7 +13,7 @@ local Gap   = require'lines.Gap'
 local types = require'ele.types'
 
 local push, concat = table.insert, table.concat
-local sfmt = string.format, string.concat
+local sfmt, srep = string.format, string.rep
 local min, max = math.min, math.max
 local span, lsub = lines.span, lines.sub
 
@@ -31,6 +31,8 @@ M.Edit = mty'Edit' {
   -- override specific keybindings for this buffer
   'modes [table]',
   'drawBars [fn[Edit] -> botHeight,leftWidth]',
+  'lineStyle [str]: asciicolor style',
+    lineStyle = 'bar:line',
 }
 
 
@@ -206,15 +208,24 @@ M.Edit.barDims = function(e)
   if e.tw <= 10 or e.th <= 3 then return 0, 0 end
   return 1, 2
 end
+local pad2 = function(i)
+  i = tostring(i)
+  return srep(' ', 2 - #i)..i
+end
 M.Edit.drawBars = function(e, d) --> botHeight, leftWidth
   if e.tw <= 10 or e.th <= 3 then return end
   local tl, tc, th, tw = e.tl, e.tc, e.th, e.tw
-  local cl, cc, len = e.l,e.c, #e -- cursor line,col
-  local wl = tl -- write line
+  local cl, cc, len = e.l,e.c, #e -- cl,cc: cursor line,col
+  local wl = tl  -- wl: write line
+  local txt, fgd, bgd = d.text, d.fg, d.bg
+  local fb = d.styler:getFB(e.lineStyle)
+  local fg,bg = srep(fb:sub(1,1), 2), srep(fb:sub(-1), 2)
   for l=e.vl, e.vl+e.th - 2 do
-    if     l <= cl  then d.text:insert(wl, tc, sfmt('% 2i', cl - l))
-    elseif l <= len then d.text:insert(wl, tc, sfmt('% 2i', l - cl))
-    else                 d.text:insert(wl, tc, '  ') end
+    if     l <= cl  then txt:insert(wl, tc, pad2(cl - l))
+    elseif l <= len then txt:insert(wl, tc, pad2(l - cl))
+    else                 txt:insert(wl, tc, '  ') end
+    fgd:insert(wl, tc, fg)
+    bgd:insert(wl, tc, bg)
     wl = wl + 1
   end
 
@@ -223,8 +234,8 @@ M.Edit.drawBars = function(e, d) --> botHeight, leftWidth
     info = sfmt('| %s:%i.%i (b#%i)', pth.nice(p), e.l, e.c, id)
   else info = sfmt('| b#%i %i.%i', id, e.l, e.c) end
   info = info:sub(1, e.tw - 1)..' '
-  d.text:insert(wl, tc, info)
-  for c=tc+#info, tc+tw-1 do d.text[wl][c] = '=' end
+  txt:insert(wl, tc, info)
+  for c=tc+#info, tc+tw-1 do txt[wl][c] = '=' end
   return 1, 2
 end
 

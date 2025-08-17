@@ -50,6 +50,7 @@ M.Term = mty'Term'{
   'bg   [ds.Grid]: background color (ASCII coded)',
   '_waiting [thread]: the thread waiting on update (i.e. size)',
   'run [boolean]: set to false to stop coroutines', run=true,
+  'styler [asciicolor.Styler]: optional styler',
 }
 getmetatable(M.Term).__call = function(T, t)
   t = mty.construct(T, t)
@@ -317,11 +318,13 @@ M.Term.draw = function(tm, fd)
   local golc, nextline   = ctrl.golc, ctrl.nextline
   local fg, bg, ok, err = 'z', 'z'
   ctrl.hide(fd); ctrl.clear(fd)     -- hide cursor and clear screen
-  golc(fd, 1, 1)
+  ctrl.color(fd, 0) -- clear color
+  golc(fd, 1,1); ctrl.color(fd, 0)
   for l=1, tm.text.h do
     fg, bg, ok, err = acwrite(fd, colorFB, fg, bg,
       concat(tm.fg[l]), concat(tm.bg[l]), concat(tm.text[l]))
     assert(ok, err)
+    ctrl.color(fd, 0); fg, bg = 'z', 'z'
     nextline(fd)
   end
   ctrl.color(fd, 0) -- clear color

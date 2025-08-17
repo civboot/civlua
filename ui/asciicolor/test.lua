@@ -40,3 +40,13 @@ T.code = function()
   aeq('z',  c'')
   T.throws('invalid ascii color: "O"', function() c'O' end)
 end
+
+T.getFB = function()
+  local st = M.Styler{}
+  T.eq('m', st:getFB'path')
+  T.eq('Z', st:getFB'bold')
+  T.eq('Bw', st:getFB'bar:bold')
+  T.eq('bw', st:getFB'bar:dne')
+end
+
+
