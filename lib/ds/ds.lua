@@ -1096,7 +1096,10 @@ end
 -- This is a table pretending to be a write-only file.
 
 M.TWriter = mty'TWriter' {}
-M.TWriter.write = function(tw, ...) push(tw, sconcat('', ...)) end
+M.TWriter.write = function(tw, ...)
+  push(tw, sconcat('', ...))
+  return tw
+end
 M.TWriter.flush = M.noop
 M.TWriter.close = M.noop
 

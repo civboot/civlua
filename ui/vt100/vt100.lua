@@ -190,12 +190,14 @@ for name, fmt in pairs{
   getlc='6n',
 } do ctrl[name] = termFn(name, fmt) end
 local rawcolor, rawcolorFB = ctrl.color, ctrl.colorFB
+local cleareol             = ctrl.cleareol
+local golc, nextline       = ctrl.golc, ctrl.nextline
 
 --- causes terminal to send size as (escaped) cursor position
 ctrl.size = function(f)
   local C = ctrl
   C.save(f); C.down(f, 999); C.right(f, 999)
-  C.getlc(f); C.restore(f); f:flush()
+  C.getlc(f); C.restore(f)
 end
 
 ---------------------------------
@@ -315,21 +317,17 @@ end
 --- draw the text and color(fg/bg) grids to the screen
 M.Term.draw = function(tm, fd)
   fd = fd or io.stdout
-  local golc, nextline   = ctrl.golc, ctrl.nextline
-  local fg, bg, ok, err = 'z', 'z'
-  ctrl.hide(fd); ctrl.clear(fd)     -- hide cursor and clear screen
-  ctrl.color(fd, 0) -- clear color
-  golc(fd, 1,1); ctrl.color(fd, 0)
-  for l=1, tm.text.h do
-    fg, bg, ok, err = acwrite(fd, colorFB, fg, bg,
-      concat(tm.fg[l]), concat(tm.bg[l]), concat(tm.text[l]))
-    assert(ok, err)
-    ctrl.color(fd, 0); fg, bg = 'z', 'z'
-    nextline(fd)
+  local w, h, fg, bg, ok, err = tm.text.w, tm.text.h
+  ctrl.hide(fd); golc(fd, 1,1)
+  for l=1,h  do
+    local txt = concat(tm.text[l])
+    fg, bg, ok, err = acwrite(fd, colorFB, 'z', 'z',
+      concat(tm.fg[l]), concat(tm.bg[l]), txt)
+    if fg ~= 'z' or bg ~= 'z' then ctrl.color(fd, 0) end
+    if #txt < w               then cleareol(fd)      end
+    if l < h                  then fd:write'\r\n'    end
   end
-  ctrl.color(fd, 0) -- clear color
   golc(fd, tm.l, tm.c); ctrl.show(fd) -- set cursor and show it
-  fd:flush()
 end
 
 --- function to run in a (LAP) coroutine.

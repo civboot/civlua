@@ -9,6 +9,7 @@ local fd = require'fd'
 local log = require'ds.log'
 local ac = require'asciicolor'
 local ioopen = io.open
+local iostdout = io.stdout
 
 -- shim exe function
 M.main = function(args)
@@ -52,8 +53,10 @@ M.main = function(args)
   function() lap.async() -- setup: change to async()
     fd.ioAsync()
     fd.stdin:toNonblock()
+    fd.stdout:toNonblock()
   end,
   function() lap.sync() -- teardown: change to sync()
+    fd.stdout:toBlock()
     fd.stdin:toBlock()
     vt.stop()
     fd.ioSync()
