@@ -31,7 +31,7 @@ end
 --- return the top-left of two points
 M.topLeft = function(l, c, l2, c2) --> (l, c)
   if not c then
-    assert(not c2); return sort2(l, l2)
+    assert(not c2); return sort2(l, l2), 1
   end
   if l == l2 then return l, min(c, c2) end
   if l <  l2 then return l, c end

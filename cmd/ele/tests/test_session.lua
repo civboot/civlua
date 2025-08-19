@@ -118,6 +118,21 @@ Test{'backspace', dat=LINES3, function(tst)
   T.eq(SI..'\n13 5 7 9\n 2 4 6\n', fmt(ed.display))
 end}
 
+Test{'change_undo', dat=LINES3, function(tst)
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
+  local b = e.buf
+  s:play'f 3 C h i'   T.eq({1, 5}, {e.l, e.c})
+    T.eq(SI..'\n1 hi\n 2 4 6\n', fmt(ed.display))
+  s:play'esc u'   T.eq({1, 3}, {e.l, e.c})
+    T.eq(SC..'\n'..LINES3, fmt(ed.display))
+
+  e.l,e.c = 1,1
+  s:play'i a space b space c space'
+    T.eq(SI..'\n'..'a b c '..LINES3, fmt(ed.display))
+  s:play'esc u'   T.eq({1, 1}, {e.l, e.c})
+    T.eq(SC..'\n'..LINES3, fmt(ed.display))
+end}
+
 local SMALL_1 = '\n'..[[
  0-- a small lua file for test
  1local M = {}
@@ -142,14 +157,6 @@ Test{'open', open=SMALL, th=9, tw=30, function(tst)
     assert(rawequal(b, e.buf), 'buf is new')
     T.eq('a small lua file for tests', b:get(1)) -- no change to contents
 end}
-
--- Test{'nav', dat='', function(tst)
---   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
---   local b, BID = e.buf, 2
---   s:play'space f space' -- listCWD
---     T.eq(BID, b.id) -- opened new buffer
--- end}
-
 
 local SPLIT_1 = '\n'..[[
  0-- a small lua file for te 0-- a small lua file for test

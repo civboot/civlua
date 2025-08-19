@@ -70,7 +70,6 @@ end
 --- * plain event table to fire off a simple event
 --- * callable [$event(ev, keySt)] for more complex bindings.
 --- ]
--- TODO: actually use this
 M.KeyBindings = mty'KeyBindings' {
   'name [string]: the name of the group for documentation',
   'doc [string]: documentation to display to the user',
@@ -189,18 +188,18 @@ M.find = function(keys)
   keys.keep = true
 end
 
--- go to the column before the character
+--- go to the column before the character
 M.till = function(keys)
   M.find(keys); keys.event.cols = -1
 end
 
--- go back to the character
+--- go back to the character
 M.findback = function(keys)
   M.find(keys)
   keys.event.move = 'findback'
 end
 
--- go back to the column after the character
+--- go back to the column after the character
 M.tillback = function(keys)
   M.findback(keys); keys.event.cols = 1
 end
@@ -219,6 +218,7 @@ M.delete = function(keys)
   keys.keep = true
 end
 
+--- Delete <move> then enter insert.
 M.change = function(keySt)
   local ev = M.delete(keySt)
   keySt.event.mode = 'insert'
@@ -226,8 +226,9 @@ M.change = function(keySt)
 end
 M.changeEol = function(keySt, evsend)
   M.delete(keySt)
-  local ev = ds.pop(keySt, 'event')
-  ev.move = 'eol'; ev.mode = 'insert'; ev.keep = false
+  local ev = ds.popk(keySt, 'event')
+  ev.move, ev.mode, keySt.keep = 'eol', 'insert', nil
+  log.info('!! changeEol returns', ev)
   return ev
 end
 
@@ -246,55 +247,9 @@ M.zero = function(keys) -- special: movement if not after a digit
 end
 
 ---------------------------
--- KEYBOARD LAYOUT
-
--- Modes
-M.insert  = M.KeyBindings{name='insert', doc='insert mode'}
-M.command = M.KeyBindings{name='command', doc='command mode'}
-
--- Navigation
-M.goPath      = {action='path', go='path'}
-M.createPath  = {action='path', go='create'}
-
--- Basic movement and times (used in multiple)
-M.movement = {
-
-  right = M.right, left=M.left, up=M.up, down=M.down,
-  l     = M.right, h   =M.left, k =M.up, j   =M.down,
-  w=M.forword, b=M.backword,
-  t=M.till, T=M.tillback,
-  ['^'] = M.sot, ['$'] = M.eol,
-
-  -- times (note: 1-9 defined below)
-  ['0'] = M.zero, -- sol+0times
-}
-
--- times
-for b=('1'):byte(), ('9'):byte() do
-  M.movement[string.char(b)] = M.times
-end
-
------
--- INSERT
-ds.update(M.insert, {
-  fallback = M.insertChord,
-  ['^q']   = M.exit,
-  esc      = M.commandMode,
-  right = M.right, left=M.left, up=M.up, down=M.down,
-  back = M.backspace, del=M.delkey,
-})
-
----------------------------
 -- SYSTEM Mode
-
---- System mode
---- Mode for dealing with system-related resources such as
---- files, directories and running single line or block
---- commands directly in a buffer.
-M.system = M.KeyBindings {
-  name = 'system', doc = 'system mode: filesystem, commands, shell, etc',
-}
-ds.update(M.system, M.movement)
+M.goPath      = {action='path', go='path',   mode='command'}
+M.createPath  = {action='path', go='create', mode='command'}
 
 M.pathFocus  = {action='path', entry='focus'}
 M.pathBack   = {action='path', entry='back'}
@@ -304,55 +259,13 @@ M.pathBackExpand = {action='chain',
   M.pathFocus, M.pathBack, M.pathExpand,
 }
 
-ds.update(M.system, {
-  fallback = M.unboundChord,
-  esc = M.commandMode,
-
-  h = M.pathBack,   H = M.pathBackExpand,
-  l = M.pathExpand, L = M.pathFocusExpand,
-
-  -- TODO: J/K: focus below/above
-})
+M.save = {action='buf', save=true}
+M.undo = {action='buf', undo=true}
+M.redo = {action='buf', redo=true}
 
 M.navCwd = {action='nav', nav='cwd'}
 M.navCbd = {action='nav', nav='cbd'} --- current buf dir
-
------
--- COMMAND
-ds.update(M.command, M.movement)
-
-ds.update(M.command, {
-  fallback = M.unboundChord,
-  ['^q ^q'] = M.exit,
-
-  -- insert
-  i = M.insertMode, I=M.insertsot, A=M.inserteol,
-  o = M.insertBelow, O = M.insertAbove,
-
-  d = M.delete,
-  c = M.change, C = M.changeEol,
-
-  -- movement
-  f=M.find, F=M.findback,
-  ['^d'] = M.downScreen, ['^u'] = M.upScreen,
-
-  -- System
-  s = M.systemMode,
-
-  -- G is for GO
-  ['g g'] = M.sof, ['G'] = M.eof, -- start/end of file
-
-  ['g f'] = M.goPath,
-  ['g /'] = M.navCwd,
-  ['g .'] = M.navCbd,
-
-  -- Window
-  ['g h'] = M.windowLeft, ['g l'] = M.windowRight,
-  ['g j'] = M.windowDown, ['g k'] = M.windowUp,
-
-  ['g H'] = M.splitVLeft, ['g L'] = M.splitVRight,
-  ['g J'] = M.splitHDown, ['g K'] = M.splitHUp,
-})
+M.navBuf = {action='nav', nav='buf'} --- view buffers
 
 ---------------------------
 -- INSTALL
@@ -397,5 +310,97 @@ M.keyactions = function(ed, keyrecv, evsend)
   end
   log.warn'exited keyactions'
 end
+
+---------------------------
+-- BINDINGS
+
+--- Basic movement and times (used in multiple)
+M.movement = {
+  right = M.right, left=M.left, up=M.up, down=M.down,
+  l     = M.right, h   =M.left, k =M.up, j   =M.down,
+  w=M.forword, b=M.backword,
+  t=M.till, T=M.tillback,
+  ['^'] = M.sot, ['$'] = M.eol,
+
+  -- times (note: 1-9 defined below)
+  ['0'] = M.zero, -- sol+0times
+}
+
+-- times
+for b=('1'):byte(), ('9'):byte() do
+  M.movement[string.char(b)] = M.times
+end
+
+--- Insert Mode: directly insert text into the buffer.
+M.insert  = M.KeyBindings{name='insert', doc='insert mode'}
+ds.update(M.insert, {
+  fallback = M.insertChord,
+  ['^q']   = M.exit,
+  esc      = M.commandMode,
+  right = M.right, left=M.left, up=M.up, down=M.down,
+  back = M.backspace, del=M.delkey,
+})
+
+--- Command Mode: control the editor's text functions and
+--- enter other modes.
+M.command = M.KeyBindings{name='command', doc='command mode'}
+ds.update(M.command, M.movement)
+ds.update(M.command, {
+  fallback = M.unboundChord,
+  ['^q ^q'] = M.exit,
+
+  -- insert
+  i = M.insertMode, I=M.insertsot, A=M.inserteol,
+  o = M.insertBelow, O = M.insertAbove,
+
+  d = M.delete,
+  c = M.change, C = M.changeEol,
+
+  -- movement
+  f=M.find, F=M.findback,
+  ['^d'] = M.downScreen, ['^u'] = M.upScreen,
+
+  -- System
+  s = M.systemMode,
+
+  -- G is for GO
+  ['g g'] = M.sof, ['G'] = M.eof, -- start/end of file
+
+  ['g f'] = M.goPath, ['g F'] = M.createPath,
+  ['g /'] = M.navCwd, ['g .'] = M.navCbd, ['g b'] = M.navBuf,
+
+  -- Window
+  ['g h'] = M.windowLeft, ['g l'] = M.windowRight,
+  ['g j'] = M.windowDown, ['g k'] = M.windowUp,
+
+  ['g H'] = M.splitVLeft, ['g L'] = M.splitVRight,
+  ['g J'] = M.splitHDown, ['g K'] = M.splitHUp,
+
+  -- Other
+  u = M.undo, ['^r'] = M.redo,
+})
+
+--- System mode: view and control system-related resources such as
+--- files and directories. Run single line or block commands (lua,
+--- shell) directly in a buffer.
+M.system = M.KeyBindings {
+  name = 'system',
+  doc = 'system mode: filesystem, commands, shell, etc',
+}
+ds.update(M.system, M.movement)
+ds.update(M.system, {
+  fallback = M.unboundChord,
+  esc      = M.commandMode,
+
+  s = M.save,
+  g = M.goPath,
+
+  h = M.pathBack,   H = M.pathBackExpand,
+  l = M.pathExpand, L = M.pathFocusExpand,
+  -- TODO: J/K: focus below/above
+
+  -- Other
+  u = M.undo, ['^r'] = M.redo,
+})
 
 return M

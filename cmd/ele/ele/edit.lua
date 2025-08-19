@@ -120,11 +120,19 @@ end
 
 -----------------
 -- Mutations: these update the changes in the buffer
-M.Edit.changeStart = function(e) e.buf:changeStart(e.l, e.c) end
+M.Edit.changeStart = function(e)
+  log.info('!! changeStart', {e.l, e.c})
+  e.buf:changeStart(e.l, e.c)
+end
 
 M.Edit.changeUpdate2 = function(e)
-  local ch = assert(e.buf:getStart())
-  ch.l2, ch.c2 = e.l, e.c
+  local b = e.buf
+  log.info('!! changeUpdate2', {e.l, e.c})
+  if b:changed() then
+    log.info('!! changed')
+    local ch = assert(e.buf:getStart())
+    ch.l2, ch.c2 = e.l, e.c
+  end
 end
 
 M.Edit.append = function(e, msg)
@@ -182,11 +190,13 @@ M.Edit.undo = function(e)
   local chs = e.buf:undo(); if not chs then return end
   local c = assert(chs[1])
   e.l, e.c = c.l1, c.c1
+  return true
 end
 M.Edit.redo = function(e)
   local chs = e.buf:redo(); if not chs then return end
   local c = assert(chs[1])
   e.l, e.c = c.l2, c.c2
+  return true
 end
 
 -----------------
@@ -262,8 +272,6 @@ M.Edit.split = function(e, S) --> split
   return sp
 end
 
-M.Edit.path = function(e) --> path?
-  return e.buf.dat.path
-end
+M.Edit.path = function(e) return e.buf:path() end --> path?
 
 return M

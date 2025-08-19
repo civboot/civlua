@@ -23,12 +23,12 @@ end
 T.sub = function()
   local lsub = lines.sub
   local l = lines'ab\nc\n\nd'
-  T.eq({'ab'},      lsub(l, 1, 1))
-  T.eq({'ab', 'c'}, lsub(l, 1, 2))
-  T.eq({'c', ''},   lsub(l, 2, 3))
-  T.eq('ab\n',      lsub(l, 1, 1, 1, 3))
-  T.eq('ab\n',      lsub(l, 1, 1, 2, 0))
-  T.eq('b\nc',      lsub(l, 1, 2, 2, 1))
+  T.eq({'ab', ''},      lsub(l, 1, 1))
+  T.eq({'ab', 'c', ''}, lsub(l, 1, 2))
+  T.eq({'c', '', ''},   lsub(l, 2, 3))
+  T.eq('ab\n',          lsub(l, 1, 1, 1, 3))
+  T.eq('ab\n',          lsub(l, 1, 1, 2, 0))
+  T.eq('b\nc',          lsub(l, 1, 2, 2, 1))
 
   l = lines"4     It's nice to have some real data"
   T.eq('It',     lsub(l, 1, 7, 1, 8))
@@ -132,11 +132,11 @@ T['Gap.remove'] = function()
 end
 
 local function subTests(g)
-  T.eq({'ab'},      lines.sub(g, 1, 1))
-  T.eq({'ab', 'c'}, lines.sub(g, 1, 2))
-  T.eq({'c', ''},   lines.sub(g, 2, 3))
-  T.eq('ab\n',      lines.sub(g, 1, 1, 1, 3))
-  T.eq('b\nc',      lines.sub(g, 1, 2, 2, 1))
+  T.eq({'ab', ''},      lines.sub(g, 1, 1))
+  T.eq({'ab', 'c', ''}, lines.sub(g, 1, 2))
+  T.eq({'c', '', ''},   lines.sub(g, 2, 3))
+  T.eq('ab\n',          lines.sub(g, 1, 1, 1, 3))
+  T.eq('b\nc',          lines.sub(g, 1, 2, 2, 1))
 end
 T['Gap.sub'] = function()
   local g = Gap'ab\nc\n\nd'

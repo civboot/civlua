@@ -7,12 +7,21 @@ local T = require'civtest'
 local decDistance, lcLe, lcGe, lcWithin
 local forword, backword, findBack
 local wordKind, pathKind, getRange
+local topLeft
 ds.auto'lines.motion'
 
 T.distance = function()
   T.eq(3, decDistance(1, 4))
   T.eq(2, decDistance(5, 1))
   T.eq(5, decDistance(5, 5))
+end
+
+T.topLeft = function()
+  T.eq({1,1}, {topLeft(1, nil, 5, nil)})
+  T.eq({2,1}, {topLeft(2, nil, 3, nil)})
+  T.eq({2,5}, {topLeft(7, 1, 2, 5)})
+  T.eq({2,5}, {topLeft(2, 5, 7, 7)})
+  T.eq({2,5}, {topLeft(2, 5, 7, 3)})
 end
 
 T.lc = function()

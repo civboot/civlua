@@ -3,6 +3,7 @@ local M = mod and mod'ele.actions' or {}
 local mty = require'metaty'
 local fmt = require'fmt'
 local ds = require'ds'
+local Iter = require'ds.Iter'
 local pth = require'ds.path'
 local log = require'ds.log'
 local lines = require'lines'
@@ -173,7 +174,8 @@ end
 --
 -- Set [$special] to call I_SPECIAL fn first.
 M.insert = function(ed, ev, evsend)
-  local e = ed.edit; e:changeStart()
+  -- Note: changeStart is in Editor.handleStandard.
+  local e = ed.edit
   if ev[1] then
     e:insert(string.rep(assert(ev[1]), ev.times or 1))
   end
@@ -189,12 +191,16 @@ end
 -- Exceptions:
 -- * lines=0 removes a single line (also supports times)
 M.remove = function(ed, ev)
+  log.info('!! actions.remove start', ev)
+  local mode = ds.popk(ev, 'mode') -- cache, we handle at end
   local e = ed.edit; e:changeStart()
   if ev.lines == 0 then
+    log.info('!! remove lines=0')
     local t = ev.times; local l2 = (t and (t - 1)) or 0
     log.info('remove lines(0) %s:%s', e.l, e.l + l2)
     e:remove(e.l, e.l + l2)
-    return ed:handleStandard(ev)
+    ev.mode = mode; ed:handleStandard(ev)
+    return
   end
   if ev.move == 'forword' then ev.cols = ev.cols or -1 end
   local l, c = e.l, e.c + (ev.cols1 or 0)
@@ -205,7 +211,8 @@ M.remove = function(ed, ev)
   else             e:remove(l, c, l2, c2) end
   l, c = motion.topLeft(l, c, l2, c2)
   e.l = math.min(#e.buf, l); e.c = e:boundCol(c)
-  ed:handleStandard(ev)
+  ev.mode = mode; ed:handleStandard(ev)
+  e:changeUpdate2()
 end
 
 ----------------------------------
@@ -213,20 +220,39 @@ end
 
 M.nav = mod and mod'ele.actions.nav' or setmetatable({}, {})
 local nav = M.nav
-getmetatable(nav).__call = function(_, ed, ev, evsend)
-  local e1 = ed.edit
-  local e = ed:focus'b#nav'
-  if ev.nav == 'cwd' then
+
+M.DO_NAV = {
+  cwd = function(ed, e1, e)
     e:clear(); e:insert(pth.small(pth.cwd())); e.l = 1
     nav.expandEntry(e.buf, 1, ix.ls)
-  end
-  if ev.nav == 'cbd' then
+  end,
+  cbd = function(ed, e1, e)
     e:clear(); local p = e1.buf.dat.path
     if p then
       e:insert(pth.small(pth.dir(p))); e.l = 1
       nav.expandEntry(e.buf, 1, ix.ls)
     else e:insert(sfmt('b#%s', e.buf.id)); e.l,e.c = 1,1 end
-  end
+  end,
+  buf = function(ed, e1, e)
+    for i, b in Iter:ofOrdMap(ed.buffers) do
+      local n = ed.namedBuffers[b]
+      e:insert(sfmt('b#%s', i, n or i))
+      local p = b:path(); if p then
+        e:insert': '; e:insert(pth.small(p))
+      end
+      e:insert'\n'
+      e.l,e.c = 1,1
+      -- FIXME: enter find mode
+    end
+  end,
+}
+
+getmetatable(nav).__call = function(_, ed, ev, evsend)
+  local e1 = ed.edit
+  local e = ed:focus'b#nav'
+  e:changeStart()
+  assertf(M.DO_NAV[ev.nav], 'unknown nav: %q', ev.nav)(ed, e1, e)
+  e:changeUpdate2()
   ed.mode = 'system'
 end
 
@@ -374,7 +400,7 @@ nav.goPath = function(ed, create)
   local p = nav.getPath(e.buf, e.l,e.c)
   if p then
     local b = ed:getBuffer(p)
-    if b then return ed:editSwap(b) end
+    if b then return ed:focus(b) end
   end
   p = pth.abs(pth.resolve(p))
   if create or ed:getBuffer(p) or ix.exists(p) then
@@ -391,8 +417,10 @@ local DO_ENTRY = {
 --- perform the entry operation
 nav.doEntry = function(ed, op, times, ls)
   local e = ed.edit; local l = e.l
+  e:changeStart()
   local fn = fmt.assertf(DO_ENTRY[op], 'uknown entry op: %s', op)
   e.l = fn(e.buf, l, times, ls) or l
+  e:changeUpdate2()
 end
 
 M.path = function(ed, ev, evsend)
@@ -410,7 +438,20 @@ end
 M.buf = function(ed, ev)
   if ev.save  then ed.edit:save(ed)   end
   if ev.focus then ed:focus(ev.focus) end
-  if ev.clear then ed.edit:clear()    end
+  if ev.clear then
+    ed.edit:changeStart()
+    ed.edit:clear()
+  end
+  if ev.undo then
+    for _=1,ev.times or 1 do
+      if not ed.edit:undo() then break end
+    end
+  end
+  if ev.redo then
+    for _=1,ev.times or 1 do
+      if not ed.edit:redo() then break end
+    end
+  end
   ed:handleStandard(ev)
 end
 

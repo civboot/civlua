@@ -78,7 +78,8 @@ local function _lsub(sub, slen, t, ...)
   l, l2 = lb, lb2
   local s = {} -- s is sub
   for i=l,l2 do push(s, get(t, i)) end
-  if    nil == c then -- skip, only lines
+  if    nil == c then -- only lines
+    if l2 < len then push(s, '') end -- newline
   elseif #s == 0 then s = '' -- empty
   elseif l == l2 then
     assert(1 == #s); local line = s[1]

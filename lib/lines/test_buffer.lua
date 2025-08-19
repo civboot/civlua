@@ -86,21 +86,29 @@ end
 T.undoMulti = function() -- undo/redo across multi lines
   local START = '123\n456\n789\nabc'
   local b = Buffer.new(START); local g, ch = b.dat
+  T.eq(false, b:changed())
   T.eq(START, fmt(g))
   local ch1 = C{k='rm', s='\n', l=1, c=4}
   local ch2 = C{k='rm', s='\n', l=1, c=7}
   b:changeStart(0,0)
+    T.eq(false, b:changed())
   ch = b:remove(1, 4, 1, 4); T.eq(ch1, ch)
+    T.eq(true, b:changed())
   T.eq('123456\n789\nabc', fmt(g))
-  b:changeStart(0,0)
+
+  b:changeStart(0,0) T.eq(false, b:changed())
   ch = b:remove(1, 7, 1, 7); T.eq(ch2, ch)
-  T.eq('123456789\nabc', fmt(g))
+    T.eq('123456789\nabc', fmt(g))
+    T.eq(true, b:changed())
 
   ch = b:undo()[2]                T.eq(ch2, ch)
   T.eq('123456\n789\nabc', fmt(g))
 
   ch = b:undo()[2]                T.eq(ch1, ch)
   T.eq(START, fmt(g))
+
+  local ch3 = C{k='rm', s='456\n789\n', l=2, c=1}
+  ch = b:remove(2, 3)             T.eq(ch3, ch)
 end
 
 T['clear'] = function()

@@ -131,8 +131,15 @@ Editor.handleStandard = function(ed, ev)
     local err = et.checkMode(ed, m); if err then
       return ed.error('%s has invalid mode', ev, m)
     end
-    log.info(' + mode %s -> %s', ed.mode, m)
-    ed.mode = m
+    if ed.mode ~= m then
+      log.info(' + mode %s -> %s', ed.mode, m)
+      if m == 'insert' and not ed.edit.buf:changed() then
+        ed.edit:changeStart()
+      elseif ed.mode == 'insert' then
+        ed.edit.buf:discardUnusedStart()
+      end
+      ed.mode = m
+    end
   end
 end
 

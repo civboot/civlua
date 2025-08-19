@@ -70,6 +70,8 @@ Buffer.new = function(s)
   return Buffer{ dat=Gap(s) }
 end
 
+Buffer.path = function(b) return b.dat.path end --> path?
+
 Buffer.__fmt = function(b, fmt)
   fmt:write(('Buffer{%s, id=%s, path=%q}'):format(
     b.tmp and (#b.tmp == 0) and '(closed) ' or '(tmp)',
@@ -82,6 +84,10 @@ Buffer.addChange = function(b, ch)
   b.changeI = b.changeI + 1; b.changeMax = b.changeI
   b.changes[b.changeI] = ch
   return ch
+end
+--- Return true if anything has changed since i (default=changeStartI)
+Buffer.changed = function(b, i) --> bool
+  return (i or b.changeStartI) < b.changeI
 end
 Buffer.discardUnusedStart = function(b)
   if b.changeI ~= 0 and b.changeStartI == b.changeI then
@@ -142,8 +148,7 @@ Buffer.undo = function(b)
     end
     ch = b:undoTop()
   end
-  local o = ds.reverse(done)
-  return o
+  return ds.reverse(done)
 end
 
 Buffer.redo = function(b)
@@ -169,7 +174,6 @@ end
 
 Buffer.insetTracked = function(b, l, lines, rmlen) --> changes
   local chs, rm = {}, b:inset(l, lines, rmlen)
-  log.info('!! rm %q', rm)
   if rm then
     push(chs, b:changeRm(concat(rm, '\n'), l,1))
   end
@@ -192,7 +196,7 @@ Buffer.remove = function(b, ...)
   local dat = b.dat
   lt, ct = lines.bound(dat, lt, ct)
   local ch = lines.sub(dat, l, c, l2, c2)
-  ch = (type(ch)=='string' and ch) or table.concat(ch, '\n')
+  ch = (type(ch)=='string' and ch) or concat(ch, '\n')
   ch = b:changeRm(ch, lt, ct)
   log.info('remove %s.%s : %s.%s', l, c, l2, c2)
   lines.remove(dat, l, c, l2, c2)
