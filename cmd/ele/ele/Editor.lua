@@ -106,6 +106,7 @@ Editor.namedBuffer = function(ed, name, path)
   local id = ed.namedBuffers[name]
   if id then return ed.buffers[id] end
   local b = ed:buffer(path)
+  b.name = name
   ed.namedBuffers[name] = assert(b.id)
   return b
 end

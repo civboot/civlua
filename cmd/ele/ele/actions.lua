@@ -234,16 +234,15 @@ M.DO_NAV = {
     else e:insert(sfmt('b#%s', e.buf.id)); e.l,e.c = 1,1 end
   end,
   buf = function(ed, e1, e)
-    for i, b in Iter:ofOrdMap(ed.buffers) do
-      local n = ed.namedBuffers[b]
-      e:insert(sfmt('b#%s', i, n or i))
-      local p = b:path(); if p then
-        e:insert': '; e:insert(pth.small(p))
-      end
-      e:insert'\n'
-      e.l,e.c = 1,1
-      -- FIXME: enter find mode
+    e:clear()
+    for _, i in ipairs(ds.sort(ds.keys(ed.buffers))) do
+      local b = ed.buffers[i]
+      local p = b:path()
+      e:insert(sfmt('b#%-8s %s\n', b.name or i,
+        p and pth.small(p) or '(tmp)'))
     end
+    e.l,e.c = 1,1
+    -- FIXME: enter find mode
   end,
 }
 

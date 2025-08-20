@@ -219,7 +219,7 @@ local NAV_1 = [[
  2  * small.lua
   
   
-| b#1 1.8 ==========]]
+| b#1 1.8 ====================]]
 
 local NAV_2 = [[
  1./data/
@@ -227,7 +227,7 @@ local NAV_2 = [[
  1    * thing1.txt
  2    * thing2.txt
  3  * small.lua
-| b#1 2.8 ==========]]
+| b#1 2.8 ====================]]
 
 -- FIXME: I'm not sure about the extra newline
 local NAV_3 = [[
@@ -236,9 +236,18 @@ local NAV_3 = [[
  1  * small.lua
  0
   
-| b#1 4.8 ==========]]
+| b#1 4.8 ====================]]
 
-Test{'nav', open=SMALL, th=7, function(tst)
+local BUF_1 = [[
+ 0b#nav      (tmp)
+ 1b#2        (tmp)
+ 2b#3        ./data/small.lua
+ 3b#4        ./data/seuss/thin
+ 4
+| b#1 1.1 ====================]]
+
+
+Test{'nav', open=SMALL, th=7, tw=30, function(tst)
   local s, ed = tst.s, tst.s.ed
   s:play'g .'
   local e = tst.s.ed.edit
@@ -261,6 +270,16 @@ Test{'nav', open=SMALL, th=7, function(tst)
   e = tst.s.ed.edit
     T.matches('data/seuss/thing1%.txt$', e:path())
     T.eq('command', ed.mode)
+
+  s:play'g b'
+    T.eq(SS..'\n'..BUF_1, fmt(ed.display))
+    T.eq('system', ed.mode)
+
+  s:play'2 j g'
+    T.matches('data/small.lua$', ed.edit:path())
+
+  s:play'g b' -- same as above
+    T.eq(SS..'\n'..BUF_1, fmt(ed.display))
 end}
 
 CWD = _CWD
