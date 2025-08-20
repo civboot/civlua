@@ -263,9 +263,14 @@ M.save = {action='buf', save=true}
 M.undo = {action='buf', undo=true}
 M.redo = {action='buf', redo=true}
 
-M.navCwd = {action='nav', nav='cwd'}
-M.navCbd = {action='nav', nav='cbd'} --- current buf dir
-M.navBuf = {action='nav', nav='buf'} --- view buffers
+--- CWD: current working directory
+M.navCwd = {action='nav', nav='cwd', mode='system'}
+
+--- CBD: current buffer id
+M.navCbd = {action='nav', nav='cbd', mode='system'}
+
+--- View list of buffers
+M.navBuf = {action='nav', nav='buf', mode='system'}
 
 ---------------------------
 -- INSTALL

@@ -81,7 +81,7 @@ M.Edit.forceHeight = function(e) return e.fh end
 M.Edit.forceWidth  = function(e) return e.fw end
 M.Edit.curLine     = function(e)
   return e.buf.dat[e.l] end
-M.Edit.colEnd      = function(e) return #e:curLine() + 1 end
+M.Edit.colEnd      = function(e) return #(e:curLine() or '') + 1 end
 M.Edit.lastLine    = function(e) return e.buf[#e] end
 M.Edit.offset = function(e, off)
   return lines.offset(e.buf.dat, off, e.l, e.c)
@@ -106,9 +106,6 @@ end
 
 -- update view fields to see cursor (if needed)
 M.Edit.viewCursor = function(e)
-  if e.l > 1 and e.l > #e then error(
-    ('e.l OOB: %s > %s'):format(e.l, #e)
-  )end
   local l, c = e:boundLC(e.l, e.c)
   local bh, bw = e:barDims()
   local th, tw = e.th - bh, e.tw - bw
