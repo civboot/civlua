@@ -287,6 +287,9 @@ M.install = function(ed)
   if not ed.namedBuffers.nav then
     push(ed:namedBuffer'nav'.tmp, ed.ext.keys) -- mark as not closed
   end
+  if not ed.namedBuffers.find then
+    push(ed:namedBuffer'find'.tmp, ed.ext.keys) -- mark as not closed
+  end
 end
 
 -- keyactions coroutine.

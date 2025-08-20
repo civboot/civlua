@@ -139,13 +139,13 @@ T.nav = function()
   T.eq('/focus/path/', r)
   T.eq('/focus/path/\n  * f\n  * d/\n', fmt(b.dat))
 
-  T.eq(2, #d.buffers)
+  T.eq(3, #d.buffers)
   local test_txt = O..'test.txt'
   b:insert(test_txt..'\n', 2)
   e.l, e.c = 2, 1
   T.eq(test_txt, nav.getPath(b, 2,1))
   nav.goPath(d, true)
-  T.eq(3, #d.buffers)
+  T.eq(4, #d.buffers)
   local e = d.edit
   T.eq(pth.abs(pth.resolve(test_txt)), e.buf.dat.path)
   T.eq({1,1}, {e.l, e.c})
@@ -157,7 +157,7 @@ end
 
 T.namedBuffer = function()
   local d = newEditor''
-  T.eq({"nav"}, ds.keys(d.namedBuffers))
+  T.eq({'find', 'nav'}, ds.sort(ds.keys(d.namedBuffers)))
   local n = d:namedBuffer'nav'
   T.eq(1, n.id)
 end
