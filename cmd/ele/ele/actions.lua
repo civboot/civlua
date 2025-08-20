@@ -3,7 +3,7 @@ local M = mod and mod'ele.actions' or {}
 local mty = require'metaty'
 local fmt = require'fmt'
 local ds = require'ds'
-local Iter = require'ds.Iter'
+local It = require'ds.Iter'
 local pth = require'ds.path'
 local log = require'ds.log'
 local lines = require'lines'
@@ -235,8 +235,7 @@ M.DO_NAV = {
   end,
   buf = function(ed, e1, e)
     e:clear()
-    for _, i in ipairs(ds.sort(ds.keys(ed.buffers))) do
-      local b = ed.buffers[i]
+    for i, b in It:ofOrdMap(ed.buffers) do
       local p = b:path()
       e:insert(sfmt('b#%-8s %s\n', b.name or i,
         p and pth.small(p) or '(tmp)'))
