@@ -1,5 +1,5 @@
 local mty = require'metaty'
---- fluent iterator
+--- Fluent iterator
 ---
 --- [{## lang=lua}
 --- isNumber = function(v) return type(v) == 'number' end
@@ -60,21 +60,20 @@ Iter.ofUnpacked = function(T, t)
 end
 
 --- create an iterable of [$t] which emits keys in order.
----
 --- [" WARNING: this first sorts the keys, which can be slow]
-Iter.ofOrdMap = function(T, t, cmpFn)
+Iter.ofOrdMap = function(T, t, cmpFn) --> sortedIter[k, v]
   local keys = {}; for k, v in pairs(t) do push(keys, k) end
   sort(keys, cmpFn)
   return T{pairs(keys)}:lookup(t)
 end
 
 --- sort t then iterate over list
-Iter.ofOrdList = function(T, t, cmpFn)
+Iter.ofOrdList = function(T, t, cmpFn) --> sortedIter[i, v]
   sort(t, cmpFn); return T{ipairs(t)}
 end
 
 --- iterate over slice of [$starti:endi] in [$t]
-Iter.ofSlc = function(T, t, starti, endi)
+Iter.ofSlc = function(T, t, starti, endi) --> iter[i, v]
   if endi then
     return T{rawislice, {t, endi}, (starti or 1) - 1}
   end
@@ -90,7 +89,7 @@ end
 ---         application function since it doesn't create an internal
 ---         function.
 --- ]
-Iter.map = function(it, fn)
+Iter.map = function(it, fn) --> it
   local li = it._li - 1; it[li] = fn; it._li = li
   return it
 end
@@ -102,7 +101,7 @@ end
 
 --- emit [$k, fn(v)] for each non-nil result.
 --- (filtered when [$newK==nil])
-Iter.mapV = function(it, fn)
+Iter.mapV = function(it, fn) --> it
   return it:map(function(k, v)
     v = fn(v); if v ~= nil then return k, v end
   end)
@@ -177,7 +176,7 @@ end
 
 --- emit [$k, v] after calling [$fn(k, v)].
 --- The results of the fn are ignored
-Iter.listen = function(it, fn)
+Iter.listen = function(it, fn) --> it
   return it:map(function(k, v) fn(k, v); return k, v end)
 end
 
@@ -191,7 +190,9 @@ Iter.index = function(it) --> it
 end
 
 --- emit [$v, k] (swaps key and value)
-Iter.swap = function(it) return it:map(swapKV) end --> it
+Iter.swap = function(it) --> it[v, k]
+  return it:map(swapKV)
+end
 
 --------------------------------
 -- Collecting Methods
@@ -230,7 +231,6 @@ Iter.run = function(it, fn--[[noop]]) --> nil
   end
 end
 
-
 --- collect non-nil [$k, v] into table-like object [$to]
 Iter.to = function--(it, to={}) --> to
   (it, to) to = to or {}
@@ -255,7 +255,7 @@ end
 Iter.concat = function(it, sep) return concat(it:to(), sep) end
 
 --- reset the iterator to run from the start
-Iter.reset = function(it) it._nextK = it[3] end
+Iter.reset = function(it) it._nextK = it[3]; return it end --> it
 
 --- use as an iterator.
 Iter.__call = function(it)
@@ -267,10 +267,6 @@ Iter.__call = function(it)
     k, v = it[i](k, v); if k == nil then goto skip end
   end
   return k, v
-end
-Iter.iter = function(it)
-  it._nextK = it[3]
-  return it
 end
 Iter.__ipairs = ds.nosupport
 

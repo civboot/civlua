@@ -131,6 +131,10 @@ Test{'change_undo', dat=LINES3, function(tst)
     T.eq(SI..'\n'..'a b c '..LINES3, fmt(ed.display))
   s:play'esc u'   T.eq({1, 1}, {e.l, e.c})
     T.eq(SC..'\n'..LINES3, fmt(ed.display))
+  s:play'w D'
+    T.eq(SC..'\n1 \n 2 4 6\n', fmt(ed.display))
+  s:play'u'   T.eq({1, 3}, {e.l, e.c})
+    T.eq(SC..'\n'..LINES3, fmt(ed.display))
 end}
 
 local SMALL_1 = '\n'..[[
@@ -141,10 +145,10 @@ local SMALL_1 = '\n'..[[
  4  print'hello world'
  5end
  6
-| data/small.lua:1.1 (b#3) ===]]
+| data/small.lua:1.1 (b#4) ===]]
 Test{'open', open=SMALL, th=9, tw=30, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
-  local b, BID = e.buf, 3
+  local b, BID = e.buf, 4
   T.eq(b.id, BID)
   T.eq(SMALL, b.dat.path)
   s:play'' -- draws
@@ -162,16 +166,16 @@ local SPLIT_1 = '\n'..[[
  0-- a small lua file for te 0-- a small lua file for test
  1local M = {}               1local M = {}
  2                           2
-| data/small.lua:1.1 (b#3) =| data/small.lua:1.1 (b#3) ===]]
+| data/small.lua:1.1 (b#4) =| data/small.lua:1.1 (b#4) ===]]
 local SPLIT_2 = '\n'..[[
  0-- a small lua file for te 1-- a small lua file for test
  1local M = {}               0local M = {}
  2                           1
-| data/small.lua:1.1 (b#3) =| data/small.lua:2.7 (b#3) ===]]
+| data/small.lua:1.1 (b#4) =| data/small.lua:2.7 (b#4) ===]]
 
 Test{'window', open=SMALL, th=5, tw=60, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
-  local b, BID = e.buf, 3
+  local b, BID = e.buf, 4
   T.eq(b.id, BID)
   T.eq(SMALL, b.dat.path)
   s:play'g L'
@@ -193,12 +197,12 @@ local LINES3_wLN = [[
  01 3 5 7 9
  1 2 4 6
  2
-| b#2 1.1 ====================]]
+| b#3 1.1 ====================]]
 local INSERTED_3 = [[
  0inserted
   
   
-| b#2 1.9 ====================]]
+| b#3 1.9 ====================]]
 Test{'empty', dat=LINES3, th=5, tw=30, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
   local g = e.buf.dat
@@ -240,10 +244,10 @@ local NAV_3 = [[
 
 local BUF_1 = [[
  0b#nav      (tmp)
- 1b#2        (tmp)
- 2b#3        ./data/small.lua
- 3b#4        ./data/seuss/thin
- 4
+ 1b#find     (tmp)
+ 2b#3        (tmp)
+ 3b#4        ./data/small.lua
+ 4b#5        ./data/seuss/thin
 | b#1 1.1 ====================]]
 
 
@@ -274,11 +278,9 @@ Test{'nav', open=SMALL, th=7, tw=30, function(tst)
   s:play'g b'
     T.eq(SS..'\n'..BUF_1, fmt(ed.display))
     T.eq('system', ed.mode)
-
-  s:play'2 j g'
+  s:play'3 j g'
     T.matches('data/small.lua$', ed.edit:path())
-
-  s:play'g b' -- same as above
+  s:play'g b' -- should be same as before
     T.eq(SS..'\n'..BUF_1, fmt(ed.display))
 end}
 

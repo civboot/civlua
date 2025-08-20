@@ -208,14 +208,20 @@ M.backspace = {action='remove', off=-1, cols1=-1}
 M.delkey    = {action='remove', off=1}
 
 --- delete until a movement command (or similar)
-M.delete = function(keys)
-  local ev = keys.event or {}; keys.event = ev
+M.delete = function(keySt)
+  local ev = keySt.event or {}; keySt.event = ev
   if ev.action == 'remove' then
     ev.lines = 0
     return ev
   end
   ev.action = 'remove'
-  keys.keep = true
+  keySt.keep = true
+end
+M.deleteEol = function(keySt)
+  M.delete(keySt)
+  local ev = ds.popk(keySt, 'event')
+  ev.move, keySt.keep = 'eol', nil
+  return ev
 end
 
 --- Delete <move> then enter insert.
@@ -287,6 +293,9 @@ M.install = function(ed)
   if not ed.namedBuffers.nav then
     push(ed:namedBuffer'nav'.tmp, ed.ext.keys) -- mark as not closed
   end
+  if not ed.namedBuffers.find then
+    push(ed:namedBuffer'find'.tmp, ed.ext.keys) -- mark as not closed
+  end
 end
 
 -- keyactions coroutine.
@@ -321,10 +330,11 @@ end
 
 --- Basic movement and times (used in multiple)
 M.movement = {
-  right = M.right, left=M.left, up=M.up, down=M.down,
-  l     = M.right, h   =M.left, k =M.up, j   =M.down,
-  w=M.forword, b=M.backword,
-  t=M.till, T=M.tillback,
+  h   =M.left, j   =M.down, k =M.up, l     = M.right,
+  left=M.left, down=M.down, up=M.up, right = M.right,
+
+  w=M.forword,   b=M.backword,
+  t=M.till,      T=M.tillback,
   ['^'] = M.sot, ['$'] = M.eol,
 
   -- times (note: 1-9 defined below)
@@ -343,7 +353,7 @@ ds.update(M.insert, {
   ['^q']   = M.exit,
   esc      = M.commandMode,
   right = M.right, left=M.left, up=M.up, down=M.down,
-  back = M.backspace, del=M.delkey,
+  back=M.backspace, del=M.delkey,
 })
 
 --- Command Mode: control the editor's text functions and
@@ -358,7 +368,7 @@ ds.update(M.command, {
   i = M.insertMode, I=M.insertsot, A=M.inserteol,
   o = M.insertBelow, O = M.insertAbove,
 
-  d = M.delete,
+  d = M.delete, D = M.deleteEol,
   c = M.change, C = M.changeEol,
 
   -- movement

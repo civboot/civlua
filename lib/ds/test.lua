@@ -625,13 +625,17 @@ T['ds.Iter'] = function()
   local res = {}; for k, v in it do push(res, k)end
   T.eq({11, 22, 33,  44}, res)
 
-  -- local it = It:ofList(t):lookupK(lk)
-  -- local res = {}; for k, v in it:iter() do push(res, k)end
-  -- T.eq({11, 22, 33,  44}, res)
+  local it = It:ofList(t):lookupK(lk)
+  local res = {}; for k, v in it do push(res, k)end
+  T.eq({11, 22, 33,  44}, res)
 
-  -- local it = It:ofList(t):lookupV(lk)
-  -- local res = {}; for k, v in it:iter() do res[k] = v end
-  -- T.eq({44, 55, 666, 77}, res)
+  -- reset
+  local res = {}; for k, v in it:reset() do push(res, k)end
+  T.eq({11, 22, 33,  44}, res)
+
+  local it = It:ofList(t):lookupV(lk)
+  local res = {}; for k, v in it do res[k] = v end
+  T.eq({44, 55, 666, 77}, res)
 
   -- use a big table
   local t = {}; for i=100,1,-1 do t[sfmt('%03i', i)] = i end
