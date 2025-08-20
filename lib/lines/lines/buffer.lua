@@ -23,7 +23,7 @@ M.Change = mty'Change' {
 }
 
 M.Buffer = mty'Buffer' {
-  'id  [int]',
+  'id  [int]', 'name [str?]',
   'dat [Gap]',
   'readonly [bool]', -- TODO: actually implement readonly
   'l [int]', 'c [int]', -- used by clients
@@ -192,6 +192,7 @@ end
 
 Buffer.remove = function(b, ...)
   local l, c, l2, c2 = lines.span(...)
+  log.info('!! remove', {l,c,l2,c2})
   local lt, ct = motion.topLeft(l, c, l2, c2)
   local dat = b.dat
   lt, ct = lines.bound(dat, lt, ct)

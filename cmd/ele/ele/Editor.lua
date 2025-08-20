@@ -106,6 +106,7 @@ Editor.namedBuffer = function(ed, name, path)
   local id = ed.namedBuffers[name]
   if id then return ed.buffers[id] end
   local b = ed:buffer(path)
+  b.name = name
   ed.namedBuffers[name] = assert(b.id)
   return b
 end
@@ -127,19 +128,19 @@ end
 --- Handle standard event fields.
 --- Currently this only handles the [$mode] field.
 Editor.handleStandard = function(ed, ev)
-  local m = ev.mode; if m then
+  log.info('!! standard %s ->', ed.mode, ev)
+  local m = ev.mode; if m and ed.mode ~= m then
+    log.info('!! umm... mode')
     local err = et.checkMode(ed, m); if err then
       return ed.error('%s has invalid mode', ev, m)
     end
-    if ed.mode ~= m then
-      log.info(' + mode %s -> %s', ed.mode, m)
-      if m == 'insert' and not ed.edit.buf:changed() then
-        ed.edit:changeStart()
-      elseif ed.mode == 'insert' then
-        ed.edit.buf:discardUnusedStart()
-      end
-      ed.mode = m
+    log.info(' + mode %s -> %s', ed.mode, m)
+    if m == 'insert' and not ed.edit.buf:changed() then
+      ed.edit:changeStart()
+    elseif ed.mode == 'insert' then
+      ed.edit.buf:discardUnusedStart()
     end
+    ed.mode = m
   end
 end
 
