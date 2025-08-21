@@ -23,7 +23,8 @@ local Editor = mty'Editor' {
   'resources [table]: resources to close when shutting down',
   'buffers [list[Buffer]]', 'bufferId[map[Buffer, id]]',
   'namedBuffers [map[string,Buffer]]',
-  'edit [Buffer]: the current edit buffer',
+  'overlay [Buffer]: the overlay buffer',
+  'edit [Buffer]: the current edit buffer. Also in namedBuffers.overlay',
   'view [RootView]: the root view',
   'display [Term|other]: display/terminal to write+paint text',
   'run [boolean]: set to false to stop the app', run=true,
@@ -42,9 +43,11 @@ getmetatable(Editor).__call = function(T, t)
     actions=ds.copy(require'ele.actions'),
     buffers={}, bufferId={},
     namedBuffers=ds.WeakV{},
+    overlay = Buffer{id=-1, dat=Gap{}},
     resources={}, ext={},
     redraw = true,
   }, t)
+  t.namedBuffers.overlay = t.overlay
   return mty.construct(T, t)
 end
 
@@ -121,8 +124,13 @@ Editor.draw = function(ed)
   local v, d, e = ed.view, ed.display, ed.edit
   d.text:insert(1,1, sfmt('[mode:%s]', ed.mode))
   v.tl, v.tc, v.th, v.tw = 2, 1, d.h-1, d.w
-  v:draw(d, true)
-  e:drawCursor(d)
+  v:draw(ed, true)
+  e:drawCursor(ed)
+  ed:_drawOverlay()
+end
+
+Editor._drawOverlay = function(ed)
+
 end
 
 --- Handle standard event fields.

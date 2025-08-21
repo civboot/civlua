@@ -198,7 +198,8 @@ end
 
 -----------------
 -- Draw to display
-M.Edit.draw = function(e, d, isRight)
+M.Edit.draw = function(e, ed, isRight)
+  local d = ed.display
   local bh, bw = e:barDims()
   e:viewCursor()
   e:drawBars(d)
@@ -247,9 +248,10 @@ M.Edit.drawBars = function(e, d) --> botHeight, leftWidth
 end
 
 -- Called by model for only the focused editor
-M.Edit.drawCursor = function(e, t)
+M.Edit.drawCursor = function(e, ed)
+  local d = ed.display
   local c = math.min(e.c, e:colEnd())
-  t.l, t.c = e.tl + (e.l - e.vl), e.tc + (c - e.vc)
+  d.l, d.c = e.tl + (e.l - e.vl), e.tc + (c - e.vc)
 end
 
 M.Edit.copy = function(e)

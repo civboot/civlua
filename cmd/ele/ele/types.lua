@@ -47,23 +47,25 @@ M.VSplit.remove = function(sp, v) --> v
   end
   return v
 end
-M.VSplit.draw = function(sp, d, isRight)
+M.VSplit.draw = function(sp, ed, isRight)
+  local d = ed.display
   local len = #sp; if len == 0 then return end
   local l,c = sp.tl, sp.tc
   local w,h = sp.tw // len, sp.th -- divide up the available width
   -- First view gets any extra width, the rest are even
   local v = sp[1]; v.tl,v.tc, v.tw,v.th = l,c, w + (sp.tw % len), h
-  v:draw(d, isRight)
+  v:draw(ed, isRight)
   for i=2,len do
     c = c + v.tw -- increment the col# by previous width
     v = sp[i];     v.tl,v.tc, v.tw,v.th = l,c, w,h
-    v:draw(d, false) -- note: not right-most.
+    v:draw(ed, false) -- note: not right-most.
   end
 end
 
 --- A container with windows split horizontally (i.e. wide windows)
 M.HSplit = mty.extend(M.VSplit, 'HSplit')
-M.HSplit.draw = function(sp, d, isRight)
+M.HSplit.draw = function(sp, ed, isRight)
+  local d = ed.display
   local len = #sp; if len == 0 then return end
   local l,c = sp.tl, sp.tc
   local w,h = sp.tw, sp.th // len -- divide up the available height
@@ -73,7 +75,7 @@ M.HSplit.draw = function(sp, d, isRight)
     l = l + v.th -- increment the line# by previous height
     v = sp[i];     v.tl,v.tc, v.tw,v.th = l,c, w,h
   end
-  for _, v in ipairs(sp) do v:draw(d, isRight) end
+  for _, v in ipairs(sp) do v:draw(ed, isRight) end
 end
 
 M.ID = 1
