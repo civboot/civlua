@@ -124,8 +124,8 @@ Editor.draw = function(ed)
   local v, d, e = ed.view, ed.display, ed.edit
   d.text:insert(1,1, sfmt('[mode:%s]', ed.mode))
   v.tl, v.tc, v.th, v.tw = 2, 1, d.h-1, d.w
-  v:draw(d, true)
-  e:drawCursor(d)
+  v:draw(ed, true)
+  e:drawCursor(ed)
   ed:_drawOverlay()
 end
 

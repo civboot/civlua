@@ -28,16 +28,17 @@ T.edit = function()
   T.eq(3, #e.buf)
   T.eq(3, #e)
   local ft = Fake{h=3, w=10}
+  local fed = {display=ft}
   e.tl, e.tc, e.th, e.tw = 1, 1, 3, 10
-  e:draw(ft, true)
+  e:draw(fed, true)
   T.eq(lines3, fmt(ft))
 
   e.th, e.tw = 2, 5
-  ft:clear(); e:draw(ft, true)
+  ft:clear(); e:draw(fed, true)
   T.eq(L_2h5w, fmt(ft))
 
   e.tl, e.tc = 2, 3
-  ft:clear(); e:draw(ft, true)
+  ft:clear(); e:draw(fed, true)
   T.eq(L_2l3c2h5w, fmt(ft))
 end
 
