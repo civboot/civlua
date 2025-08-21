@@ -131,6 +131,10 @@ Test{'change_undo', dat=LINES3, function(tst)
     T.eq(SI..'\n'..'a b c '..LINES3, fmt(ed.display))
   s:play'esc u'   T.eq({1, 1}, {e.l, e.c})
     T.eq(SC..'\n'..LINES3, fmt(ed.display))
+  s:play'w D'
+    T.eq(SC..'\n1 \n 2 4 6\n', fmt(ed.display))
+  s:play'u'   T.eq({1, 3}, {e.l, e.c})
+    T.eq(SC..'\n'..LINES3, fmt(ed.display))
 end}
 
 local SMALL_1 = '\n'..[[
@@ -274,11 +278,9 @@ Test{'nav', open=SMALL, th=7, tw=30, function(tst)
   s:play'g b'
     T.eq(SS..'\n'..BUF_1, fmt(ed.display))
     T.eq('system', ed.mode)
-
   s:play'3 j g'
     T.matches('data/small.lua$', ed.edit:path())
-
-  s:play'g b' -- same as above
+  s:play'g b' -- should be same as before
     T.eq(SS..'\n'..BUF_1, fmt(ed.display))
 end}
 
