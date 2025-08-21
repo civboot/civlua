@@ -25,6 +25,14 @@ T.bitops = function()
   T.eq(0xF0F0, 0xFFFF & (~0x0F0F))
 end
 
+T.isTruncate = function()
+  T.eq(false, M.isTrunc'r')
+  T.eq(true,  M.isTrunc'w')
+  T.eq(true,  M.isTrunc'w+')
+  T.eq(false, M.isTrunc'a')
+  T.eq(false, M.isTrunc'a+')
+end
+
 T['open -> _write -> _read'] = function()
   local f = M.open(p, 'w'); T.eq(0, f:code())
   print'opened'

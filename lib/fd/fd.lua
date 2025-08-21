@@ -41,6 +41,17 @@ local MFLAGS = mty.enum'MFLAGS'{
   ['w+'] = S.O_RDWR   | S.O_CREAT | S.O_TRUNC,
   ['a+'] = S.O_RDWR   | S.O_CREAT | S.O_APPEND,
 }
+--- Given a string mode, return whether the file will be truncated.
+M.isTrunc = function(mode) --> bool
+  return (assert(MFLAGS.id(mode), mode) & S.O_TRUNC) ~= 0
+end
+
+--- Given a string mode, return whether the file will be created
+--- if it doesn't exist.
+M.isCreate = function(mode)
+  return (assert(MFLAGS.id(mode), mode) & S.O_CREAT) ~= 0
+end
+
 local mflagsInt = MFLAGS.id
 
 local AGAIN_CODE = {

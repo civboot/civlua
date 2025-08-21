@@ -15,12 +15,15 @@ local ixt     = require'civix.testing'
 
 local push, icopy = table.insert, ds.icopy
 
-local TXT, IDX = '.out/lines.txt', '.out/lines.idx'
+local O = '.out/ele/'
+local TXT, IDX = O..'lines.txt', O..'lines.idx'
 local SMALL = ds.srcdir()..'testdata/small.txt'
 
 local get, set = ds.get, ds.set
 
 local info = require'ds.log'.info
+
+ix.mkDirs(O)
 
 local loadu3s = function(f)
   local pos, t = f:seek'cur', {}; assert(pos)

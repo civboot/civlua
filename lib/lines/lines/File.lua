@@ -65,7 +65,7 @@ getmetatable(File).__call = function(T, t) --> File?, errmsg?
     T._initnew(f, idx)
   elseif type(t.path) == 'string' then
     t.mode = t.mode or 'r'
-    trace('reloading path %s %s', t.path, t.mode)
+    trace('opening path %s %s', t.path, t.mode)
     f, err = io.open(t.path, t.mode); if not f then return nil, err end
     local ipath = pth.concat{T.IDX_DIR, t.path}
     idx, err = loadIdx(f, ipath, t.mode, T._reindex)
@@ -82,9 +82,8 @@ end
 File.flush = function(lf) --> ok, errmsg?
   local o,e = lf.idx:flush(); if not o then return o,e end
   o,e = lf.f:flush()          if not o then return o,e end
-  local fstat, e = ix.stat(lf.f)
-  if not fstat then return nil,e end
-  return ix.setModified(lf.idx.f, fstat:modified())
+  local fs, e = ix.stat(lf.f); if not fs then return nil,e end
+  return ix.setModified(lf.idx.f, fs:modified())
 end
 
 --- append to file

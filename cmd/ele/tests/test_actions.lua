@@ -157,7 +157,7 @@ end
 
 T.namedBuffer = function()
   local d = newEditor''
-  T.eq({'find', 'nav'}, ds.sort(ds.keys(d.namedBuffers)))
+  T.eq({'find', 'nav', 'overlay'}, ds.sort(ds.keys(d.namedBuffers)))
   local n = d:namedBuffer'nav'
   T.eq(1, n.id)
 end
