@@ -4,13 +4,14 @@ local fmt    = require'fmt'
 local ds     = require'ds'
 local pth    = require'ds.path'
 local log    = require'ds.log'
+local lines  = require'lines'
 local Gap    = require'lines.Gap'
 local Buffer = require'lines.buffer'.Buffer
 local Edit   = require'ele.edit'.Edit
 local et     = require'ele.types'
 local push, pop, concat = table.insert, table.remove, table.concat
 
-local max = math.max
+local min, max = math.min, math.max
 local assertf = fmt.assertf
 local sfmt = string.format
 
@@ -144,9 +145,12 @@ Editor._drawOverlay = function(ed)
 
   -- Start column goes directly next to cursor if possible.
   if c + w > d.w then c = max(1, d.w - w) end
-  local b = lines.box(buf.dat, 1,1, h,w, ' ') -- filled box
-  local fg, bg = d.styler:getFB'info'
+  local b = lines.box(ov.dat, 1,1, h,w, ' ') -- filled box
+  b = concat(b, '\n')
+  local fb = d.styler:getFB'info'
   d.text:insert(l, c, b)
+  d.fg:insert(l, c, b:gsub('[^\n]', fb:sub(1,1)))
+  d.bg:insert(l, c, b:gsub('[^\n]', fb:sub(-1)))
 end
 
 --- Handle standard event fields.

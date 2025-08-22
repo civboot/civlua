@@ -245,7 +245,6 @@ M.box = function(t, l1, c1, l2, c2, fill) --> lines
   local b = {}; for l=l1,l2 do
     local line = get(t,l)
     line = line and line:sub(c1, c2) or ''
-    print('!! line', f, #line)
     if fill and #line < f then line = line..srep(fill, f - #line) end
     push(b, line)
   end
