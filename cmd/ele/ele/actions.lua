@@ -253,6 +253,17 @@ end
 -- NAV
 
 M.nav = mod and mod'ele.actions.nav' or setmetatable({}, {})
+getmetatable(M.nav).__call = function(_, ed, ev, evsend)
+  local e1 = ed.edit
+  local e = ed:focus'b#nav'
+  e:changeStart()
+  assertf(M.DO_NAV[ev.nav], 'unknown nav: %q', ev.nav)(ed, e1, e)
+  e:changeUpdate2()
+  log.info'!! ending nav'
+  ed:handleStandard(ev)
+  log.info'!! nav done'
+end
+
 local nav = M.nav
 
 M.DO_NAV = {
@@ -278,18 +289,6 @@ M.DO_NAV = {
     -- FIXME: enter find mode
   end,
 }
-
-getmetatable(nav).__call = function(_, ed, ev, evsend)
-  local e1 = ed.edit
-  local e = ed:focus'b#nav'
-  e:changeStart()
-  assertf(M.DO_NAV[ev.nav], 'unknown nav: %q', ev.nav)(ed, e1, e)
-  e:changeUpdate2()
-  log.info'!! ending nav'
-  ed:handleStandard(ev)
-  log.info'!! nav done'
-end
-
 
 nav.getFocus = function(line)
   return line:match'^%-?([.~]?/[^\n]*)'
@@ -327,17 +326,18 @@ end
 
 --- Find the last line of the focus's entities (or itself).
 --- invariant: line l is an entry or focus.
-nav.findEnd = function(b, l) --> linenum, line
-  for l=l+1,#b do
-    local line = b:get(l);
-    if not getEntry(line) then return l - 1 end
+nav.findEnd = function(b, l) --> linenum
+  while l + 1 <= #b do
+    l = l + 1
+    if not getEntry(b:get(l)) then return l - 1 end
   end
+  return l
 end
 
 --- Find the view (focusLineNum, endLineNum, focusLine)
 nav.findView = function(b, l) --> (fln, eln, fline)
   local fl, fline = nav.findFocus(b, l); if not fl then return end
-  return fl, assert(nav.findEnd(b, l)), fline
+  return fl, assert(nav.findEnd(b, l), 'findEnd'), fline
 end
 
 --- Walk up the parents, getting the full path.
@@ -376,8 +376,12 @@ end
 
 nav.backFocus = function(b, l)
   local fl,fe = nav.findView(b, l)
+  log.info('nav.backFocus fl=%i fe=%i', fl, fe)
   if not fl then return end
-  if fe > fl then b:remove(fl+1, fe) end
+  if fe > fl then return b:remove(fl+1, fe) end
+  local line = b:get(l)
+  local dir = pth.last(line)
+  b:remove(fl, #dir+1, fl, #line)
 end
 
 --- Go backwards on the entry, returning the new line
@@ -419,9 +423,11 @@ nav.doBack = function(b, l, times)
 end
 
 nav.doExpand = function(b, l, times, ls)
-  local _, _, en = getEntry(b:get(l))
-  log.info('!! expanding entry %i: %q', l, en)
-  if not pth.isDir(en) then return end
+  local line, en = b:get(l), nil
+  local path = getFocus(line) or select(3, getEntry(line))
+  if not path or not pth.isDir(path) then return end
+  log.info('!! expanding entry %i: %q', l, path)
+  ::expand::
   ls = ls or ix.ls
   local numEntries = nav.expandEntry(b, l, ls)
   times = times - 1; if times <= 0 then return end
@@ -433,8 +439,9 @@ nav.goPath = function(ed, create)
   local e = ed.edit
   local p = nav.getPath(e.buf, e.l,e.c)
   if p then
-    local b = ed:getBuffer(p)
-    if b then return ed:focus(b) end
+    local b = ed:getBuffer(p); if b then
+      ed:focus(b); return
+    end
   end
   p = pth.abs(pth.resolve(p))
   if create or ed:getBuffer(p) or ix.exists(p) then
@@ -453,7 +460,9 @@ nav.doEntry = function(ed, op, times, ls)
   local e = ed.edit; local l = e.l
   e:changeStart()
   local fn = fmt.assertf(DO_ENTRY[op], 'uknown entry op: %s', op)
-  e.l = fn(e.buf, l, times, ls) or l
+  local fl = fn(e.buf, l, times, ls) or l
+  assert(math.type(fl) == 'integer')
+  e.l = fl or l
   e:changeUpdate2()
 end
 
@@ -462,6 +471,12 @@ M.path = function(ed, ev, evsend)
     nav.doEntry(ed, ev.entry, ev.times or 1, ix.ls)
   end
   if ev.go then nav.goPath(ed, 'create' == ev.go) end
+  if ev.enter then
+    local e = ed.edit
+    local line = e.buf:get(e.l)
+    if pth.isDir(line) then nav.doEntry(ed, 'expand', ev.times or 1, ix.ls)
+    else                    goPath(ed, ev.create) end
+  end
   ed:handleStandard(ev)
 end
 

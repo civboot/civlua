@@ -135,10 +135,19 @@ T.nav = function()
   nav.backEntry(b, 3)
   T.eq('/focus/path/\n', fmt(b.dat))
 
+  b.dat:set(2, '  * f')
+  nav.backEntry(b, 1)
+  T.eq('/focus/path/', fmt(b.dat))
+
+  nav.backEntry(b, 1)
+  T.eq('/focus/', fmt(b.dat))
+
+  b.dat:set(1, '/focus/path/')
+
   local r, entries = nil, {'f', 'd/'}
   nav.expandEntry(b, 1, function(p) r = p; return entries end)
   T.eq('/focus/path/', r)
-  T.eq('/focus/path/\n  * f\n  * d/\n', fmt(b.dat))
+  T.eq('/focus/path/\n  * f\n  * d/', fmt(b.dat))
 
   T.eq(et.INIT_BUFS + 1, #d.buffers)
   local test_txt = O..'test.txt'

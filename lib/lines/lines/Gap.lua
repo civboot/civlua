@@ -76,7 +76,7 @@ Gap.__pairs = ipairs
 
 Gap.set = function(g, i, v)
   assert(not g.readonly, 'attempt to write to readonly Gap')
-  assert(i == #g + 1, 'can only set at len+1')
+  assert(i <= #g + 1, 'can only set at len+1')
   g:setGap(i); g.bot[i] = v
 end
 Gap.__newindex = Gap.set

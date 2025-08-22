@@ -175,7 +175,7 @@ do local MA = M.moveAction
 end
 
 M.moveG = function(keySt) -- specific line or end-of-file
-  local ev = keySt.event
+  local ev = keySt.event or {}
   return ev.times and {action='move', move='absolute', l=ev.times} or M.eof
 end
 
@@ -397,6 +397,12 @@ for b=('1'):byte(), ('9'):byte() do
   M.movement[string.char(b)] = M.times
 end
 
+
+M.searchBindings = {
+  ['/'] = M.searchBuf,
+  n = M.searchBufNext, N = M.searchBufPrev, ['^n'] = M.searchBufSub,
+}
+
 --- Insert Mode: directly insert text into the buffer.
 M.insert  = M.KeyBindings{name='insert', doc='insert mode'}
 ds.update(M.insert, {
@@ -411,6 +417,7 @@ ds.update(M.insert, {
 --- enter other modes.
 M.command = M.KeyBindings{name='command', doc='command mode'}
 ds.update(M.command, M.movement)
+ds.update(M.command, M.searchBindings)
 ds.update(M.command, {
   fallback = M.unboundChord,
   ['^q ^q'] = M.exit,
@@ -458,9 +465,11 @@ M.system = M.KeyBindings {
   doc = 'system mode: filesystem, commands, shell, etc',
 }
 ds.update(M.system, M.movement)
+ds.update(M.system, M.searchBindings)
 ds.update(M.system, {
   fallback = M.unboundChord,
   esc      = M.commandMode,
+  enter    = {action='path', enter=true},
 
   s = M.save,
   g = M.goPath,

@@ -32,7 +32,7 @@ M.VSplit.insert = function(sp, i, v)
 end
 
 M.VSplit.replace = function(sp, from, to) --> from
-  local i = assert(ds.indexOf(from), 'from not found in Split')
+  local i = assert(ds.indexOf(sp, from), 'from not found in Split')
   assert(from.container == sp)
   assert(not to.container)
   sp[i], to.container, from.container = to, sp, nil
