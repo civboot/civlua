@@ -255,35 +255,45 @@ end
 ---------------------------
 -- Search Buffer
 
-M.hideOverlay = {action='buf', name='overlay', ext={show=false}}
+M.hideOverlay = {action='buf', buf='b#overlay', ext={show=false}}
+
+M.searchBufNext = {action='searchBuf', next=true}
+M.searchBufPrev = {action='searchBuf', prev=true}
+M.searchBufSub  = {action='searchBuf', next=true, sub=true, wrap=true}
 
 --- Interactively search the buffer.
---- 
---- Implementation notes:
---- * This is a "state machine"
+---
+--- This holds onto keySt (sets .keep), effectively owning all keyboard
+--- inputs.
 M.searchBuf = function(keySt)
-  local ev = keySt.event or {}; keySt.event = ev
-  keySt.keep = true
+  local ev, chord = keySt.event or {}, keySt.chord
+  keySt.event, keySt.keep = ev, true
   if #chord == 1 then -- initial call
-    return {action='buf', name='overlay', clear=true, ext={show=true}}
+    keySt.next = M.searchBuf
+    return {action='buf', buf='b#overlay', clear=true, ext={show=true}}
   end
-  local k = chord[#chord]
+  local k, bufAction = chord[#chord], nil
 
-  -- TODO: do tab / ^j / ^k / ^n / etc
+  -- TODO: do tab / ^j / ^k / etc
   if k == 'back' then
-    return {action='buf', name='overlay', remove={1,-1}}
+    bufAction = {action='buf', buf='b#overlay', remove={1,-1,1,-1}}
   end
+  if k == '^n' then return ds.update({overlay=true}, M.searchBufSub) end
   if k == 'enter' then
     keySt.keep = false
     return {action='chain',
-      M.hideOverlay,
-      {action='searchBuf', overlay=true},
+      M.hideOverlay, ds.update({overlay='store'}, M.searchBufNext)
     }
   end
 
-  local char = vt100.literal(k)
-  if char then return {action='buf', name='overlay', insert={char, 1, -1}} end
-  keySt.keep = false -- any unknown control exits
+  local char = vt100.literal(k); if char then
+    bufAction = {action='buf', buf='b#overlay', insert={char, 1,'end'}}
+  end
+  if bufAction then return {action='chain',
+    bufAction,
+    {action='searchBuf', overlay=true}
+  } end
+  keySt.keep = false -- any unknown control exits find w/out save
   return M.hideOverlay
 end
 
@@ -410,6 +420,10 @@ ds.update(M.command, {
   -- movement
   f=M.find, F=M.findback,
   ['^d'] = M.downScreen, ['^u'] = M.upScreen,
+
+  -- Search
+  ['/'] = M.searchBuf,
+  n = M.searchBufNext, N = M.searchBufPrev, ['^n'] = M.searchBufSub,
 
   -- System
   s = M.systemMode,

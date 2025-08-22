@@ -220,17 +220,26 @@ end
 -- Search Buf
 
 M.searchBuf = function(ed, ev)
-  local e, fb = ed.edit, ed:namedBuffer'find'
+  local e, sb = ed.edit, ed:namedBuffer'search'
   if ev.overlay then -- update find buffer from overlay
     ed.search = ed.overlay:get(1)
-    if ev.overlay == 'store' then fb:insert(-1,'end', '\n'..ed.search) end
-  end
-  for _ in 1,ev.times or 1 do
+    if ev.overlay == 'store' then
+      sb:insert('\n'..ed.search, -1,'end')
+    end
+  else ed.search = sb:get(#sb) end
+
+  for _=1, ev.times or 1 do
     if ev.next then
       local l,c = lines.find(e.buf.dat, ed.search, e.l,e.c+1)
+      if not l and ev.wrap then
+        l,c = lines.find(e.buf.dat, ed.search, 1,1)
+      end
       if l then e.l,e.c = l,c end
     elseif ev.prev then
       local l,c = lines.findBack(e.buf.dat, ed.search, e.l,e.c-1)
+      if not l and ev.wrap then
+        l,c = lines.find(e.buf.dat, ed.search, -1,-1)
+      end
       if l then e.l,e.c = l,c end
     end
   end
@@ -483,6 +492,9 @@ M.buf = function(ed, ev)
   local b; if ev.create then b = ed:buffer(ev.buf)
   else                       b = ed:getBuffer(ev.buf) end
   b:changeStart(0,0)
+  if ev.ext then
+    for p,v in pairs(ev.ext) do ds.setp(b.ext, ds.splitList(p, '%.'), v) end
+  end
   if ev.clear then b:remove(1, #b) end
   if ev.remove then
     for _=1,ev.times or 1 do b:remove(unpack(ev.remove)) end
