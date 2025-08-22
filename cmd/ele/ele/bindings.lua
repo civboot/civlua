@@ -174,6 +174,11 @@ do local MA = M.moveAction
   M.downScreen           = MA{move='screen', mul=1,  div=2}
 end
 
+M.moveG = function(keySt) -- specific line or end-of-file
+  local ev = keySt.event
+  return ev.times and {action='move', move='absolute', l=ev.times} or M.eof
+end
+
 M.movekey = function(keys)
   local ev = keys.event or {}
   ev[ev.move] = M.literal(ds.last(keys.chord))
@@ -429,7 +434,7 @@ ds.update(M.command, {
   s = M.systemMode,
 
   -- G is for GO
-  ['g g'] = M.sof, ['G'] = M.eof, -- start/end of file
+  ['g g'] = M.sof,    ['G'] = M.moveG, -- start/end of file
 
   ['g f'] = M.goPath, ['g F'] = M.createPath,
   ['g /'] = M.navCwd, ['g .'] = M.navCbd, ['g b'] = M.navBuf,
