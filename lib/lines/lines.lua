@@ -173,12 +173,13 @@ end
 
 --- find the pattern starting at l/c
 --- Note: matches are only within a single line.
-M.find = function(t, pat, l, c) --> (l, c)
+M.find = function(t, pat, l, c) --> (l, c, c2)
   l, c = l or 1, c or 1
+  local c2
   while true do
     local s = get(t,l)
     if not s then return nil end
-    c = s:find(pat, c); if c then return l, c end
+    c,c2 = s:find(pat, c); if c then return l, c,c2 end
     l, c = l + 1, 1
   end
 end
@@ -197,11 +198,12 @@ end
 
 --- find the pattern (backwards) starting at l/c
 M.findBack = function(t, pat, l, c)
+  local c2
   while true do
     local s = get(t,l)
     if not s then return nil end
-    c = findBack(s, pat, c)
-    if c then return l, c end
+    c,c2 = findBack(s, pat, c)
+    if c then return l, c,c2 end
     l, c = l - 1, nil
   end
 end

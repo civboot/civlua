@@ -39,14 +39,14 @@ end
 
 T.find = function()
   local t = lines'12345\n6789\n98765\n'
-  T.eq({1, 3}, {lines.find(t, '34', 1, 1)})
-  T.eq({2, 1}, {lines.find(t, '67', 1, 3)})
-  T.eq({2, 1}, {lines.find(t, '6', 1, 3)})
-  T.eq({3, 4}, {lines.find(t, '6', 2, 2)})
+  T.eq({1, 3,4}, {lines.find(t, '34', 1, 1)})
+  T.eq({2, 1,2}, {lines.find(t, '67', 1, 3)})
+  T.eq({2, 1,1}, {lines.find(t, '6', 1, 3)})
+  T.eq({3, 4,4}, {lines.find(t, '6', 2, 2)})
 
-  T.eq({3, 4}, {lines.findBack(t, '6', 3)})
-  T.eq({3, 4}, {lines.findBack(t, '6', 3, 4)})
-  T.eq({2, 1}, {lines.findBack(t, '6', 3, 3)})
+  T.eq({3, 4,4}, {lines.findBack(t, '6', 3)})
+  T.eq({3, 4,4}, {lines.findBack(t, '6', 3, 4)})
+  T.eq({2, 1,1}, {lines.findBack(t, '6', 3, 3)})
 end
 
 T.offset = function()
@@ -164,10 +164,10 @@ end
 
 T['Gap.find'] = function()
   local g = Gap'12345\n6789\n98765\n'
-  T.eq({1, 3}, {lines.find(g, '34', 1, 1)})
-  T.eq({2, 1}, {lines.find(g, '67', 1, 3)})
-  T.eq({2, 1}, {lines.find(g, '6', 1, 3)})
-  T.eq({3, 4}, {lines.find(g, '6', 2, 2)})
+  T.eq({1, 3,4}, {lines.find(g, '34', 1, 1)})
+  T.eq({2, 1,2}, {lines.find(g, '67', 1, 3)})
+  T.eq({2, 1,1}, {lines.find(g, '6',  1, 3)})
+  T.eq({3, 4,4}, {lines.find(g, '6',  2, 2)})
 end
 
 T['Gap.ipairs'] = function()

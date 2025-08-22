@@ -31,6 +31,7 @@ local Editor = mty'Editor' {
   'display [Term|other]: display/terminal to write+paint text',
   'run [boolean]: set to false to stop the app', run=true,
   'ext [table]: table for extensions to store data',
+  'search [str]: search pattern for searchBuf, etc',
 
   'error [callable]: error handler (ds.log.logfmt sig)',
   'warn  [callable]: warn handler',
@@ -49,8 +50,10 @@ getmetatable(Editor).__call = function(T, t)
     resources={}, ext={},
     redraw = true,
   }, t)
+  t = mty.construct(T, t)
   t.namedBuffers.overlay = t.overlay
-  return mty.construct(T, t)
+  t.namedBuffers.search  = t:namedBuffer'search'
+  return t
 end
 
 Editor.__fmt = function(ed, f)
@@ -108,11 +111,10 @@ end
 
 --- Get or create a named buffer (NOT a path).
 Editor.namedBuffer = function(ed, name, path)
-  local id = ed.namedBuffers[name]
-  if id then return ed.buffers[id] end
-  local b = ed:buffer(path)
-  b.name = name
-  ed.namedBuffers[name] = assert(b.id)
+  local b = ed.namedBuffers[name]; if b then return b end
+  b = ed:buffer(path)
+  b.name                = name
+  ed.namedBuffers[name] = b
   return b
 end
 

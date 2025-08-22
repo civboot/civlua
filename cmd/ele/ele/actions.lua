@@ -15,6 +15,7 @@ local B = require'ele.bindings'
 
 local push, pop = table.insert, table.remove
 local concat    = table.concat
+local unpack    = table.unpack
 local sfmt      = string.format
 local srep, sconcat = string.rep, string.concat
 local min, max  = math.min, math.max
@@ -219,7 +220,20 @@ end
 -- Search Buf
 
 M.searchBuf = function(ed, ev)
-
+  local e, fb = ed.edit, ed:namedBuffer'find'
+  if ev.overlay then -- update find buffer from overlay
+    ed.search = ed.overlay:get(1)
+    if ev.overlay == 'store' then fb:insert(-1,'end', '\n'..ed.search) end
+  end
+  for _ in 1,ev.times or 1 do
+    if ev.next then
+      local l,c = lines.find(e.buf.dat, ed.search, e.l,e.c+1)
+      if l then e.l,e.c = l,c end
+    elseif ev.prev then
+      local l,c = lines.findBack(e.buf.dat, ed.search, e.l,e.c-1)
+      if l then e.l,e.c = l,c end
+    end
+  end
 end
 
 ----------------------------------
@@ -468,17 +482,13 @@ end
 M.buf = function(ed, ev)
   local b; if ev.create then b = ed:buffer(ev.buf)
   else                       b = ed:getBuffer(ev.buf) end
-
+  b:changeStart(0,0)
   if ev.clear then b:remove(1, #b) end
   if ev.remove then
-    for _=1,ev.times or 1 do
-      b:remove(table.unpack(ev.insert))
-    end
+    for _=1,ev.times or 1 do b:remove(unpack(ev.remove)) end
   end
   if ev.insert then
-    for _=1,ev.times or 1 do
-      b:insert(table.unpack(ev.insert))
-    end
+    for _=1,ev.times or 1 do b:insert(unpack(ev.insert)) end
   end
 end
 
