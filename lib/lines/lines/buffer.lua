@@ -6,6 +6,7 @@ local Gap  = require'lines.Gap'
 local log = require'ds.log'
 
 local M = {}
+local span, bound = lines.span, lines.bound
 local push, ty = table.insert, mty.ty
 local concat = table.concat
 
@@ -168,6 +169,19 @@ Buffer.redo = function(b)
   return done
 end
 
+--- Some APIs allow negative values for spans, this converts them
+--- to absolute positive line/cols.
+Buffer.span = function(b, ...)
+  local l, c, l2, c2 = span(...)
+  if l  < 0 then l  = #b + l  + 1 end
+  if l2 < 0 then l2 = #b + l2 + 1 end
+  if c  and c  < 0 then c  = #b:get(l)  + c  + 1 end
+  if c2 and c2 < 0 then c2 = #b:get(l2) + c2 + 1 end
+  return l, c, l2, c2
+end
+
+--- FIXME: I don't think this works the way I think...
+---        It shouldn't be #b.dat + 1 right?
 Buffer.append = function(b, s)
   local ch = b:changeIns(s, #b.dat + 1, 1)
   b.dat:append(s)
@@ -193,10 +207,10 @@ Buffer.insert = function(b, s, l, c)
 end
 
 Buffer.remove = function(b, ...)
-  local l, c, l2, c2 = lines.span(...)
-  log.info('!! remove', {l,c,l2,c2})
-  local lt, ct = motion.topLeft(l, c, l2, c2)
+  local l, c, l2, c2 = span(...)
   local dat = b.dat
+  l,c = bound(dat, l,c); l2,c2 = bound(dat, l2,c2)
+  local lt, ct = motion.topLeft(l, c, l2, c2)
   lt, ct = lines.bound(dat, lt, ct)
   local ch = lines.sub(dat, l, c, l2, c2)
   ch = (type(ch)=='string' and ch) or concat(ch, '\n')

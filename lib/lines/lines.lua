@@ -106,11 +106,17 @@ M.map = function(lines) --> table
   return map
 end
 
---- bound the line/col for the gap
+--- bound the line/col for the lines table.
+--- This will automatically convert negatives indexes to positive,
+--- where [$-1] is the last item.
 M.bound = function(t, l, c, len, line) --> l, c
+  if l < 0 then l = #t + l + 1 end
   l = bound(l, 1, max(1, len or #t))
   if not c then return l end
-  return l, bound(c, 1, #(line or get(t, l) or '') + 1)
+  line = line or get(t, l) or ''
+  if c == 'end' then c = #line + 1
+  elseif c < 0  then c = #line + c + 1  end
+  return l, bound(c, 1, #line + 1)
 end
 
 --- Get the [$l, c] with the +/- offset applied
@@ -167,12 +173,13 @@ end
 
 --- find the pattern starting at l/c
 --- Note: matches are only within a single line.
-M.find = function(t, pat, l, c) --> (l, c)
+M.find = function(t, pat, l, c) --> (l, c, c2)
   l, c = l or 1, c or 1
+  local c2
   while true do
     local s = get(t,l)
     if not s then return nil end
-    c = s:find(pat, c); if c then return l, c end
+    c,c2 = s:find(pat, c); if c then return l, c,c2 end
     l, c = l + 1, 1
   end
 end
@@ -191,11 +198,12 @@ end
 
 --- find the pattern (backwards) starting at l/c
 M.findBack = function(t, pat, l, c)
+  local c2
   while true do
     local s = get(t,l)
     if not s then return nil end
-    c = findBack(s, pat, c)
-    if c then return l, c end
+    c,c2 = findBack(s, pat, c)
+    if c then return l, c,c2 end
     l, c = l - 1, nil
   end
 end

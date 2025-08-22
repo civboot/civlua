@@ -121,6 +121,9 @@ T.File = function()
 
   f = File{path=TXT, mode='w+'}
   f:write'line 1\nline 2\nline 3'; f:flush()
+  -- FIXME: for some reason this sometimes has a HUGE number of indexes.
+  -- ... are these tests running concurrently and I'm actually seeing
+  -- the result of that?
   T.eq({0, 7, 14}, ds.icopy(f.idx))
   T.eq({'line 1', 'line 2', 'line 3'}, ds.icopy(f))
 

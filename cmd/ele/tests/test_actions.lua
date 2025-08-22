@@ -4,13 +4,14 @@ local fmt = require'fmt'
 local T = require'civtest'
 local ds = require'ds'
 local pth = require'ds.path'
+local Buffer = require'lines.buffer'.Buffer
+local Gap = require'lines.Gap'
+local ix = require'civix'
+local et = require'ele.types'
 local B = require'ele.bindings'
 local M = require'ele.actions'
 local Edit = require'ele.edit'.Edit
 local Editor = require'ele.Editor'
-local Buffer = require'lines.buffer'.Buffer
-local Gap = require'lines.Gap'
-local ix = require'civix'
 
 local nav = M.nav
 local O = './.out/ele/'; if ix.exists(O) then ix.rmRecursive(O) end
@@ -139,13 +140,13 @@ T.nav = function()
   T.eq('/focus/path/', r)
   T.eq('/focus/path/\n  * f\n  * d/\n', fmt(b.dat))
 
-  T.eq(3, #d.buffers)
+  T.eq(et.INIT_BUFS + 1, #d.buffers)
   local test_txt = O..'test.txt'
   b:insert(test_txt..'\n', 2)
   e.l, e.c = 2, 1
   T.eq(test_txt, nav.getPath(b, 2,1))
   nav.goPath(d, true)
-  T.eq(4, #d.buffers)
+  T.eq(et.INIT_BUFS + 2, #d.buffers)
   local e = d.edit
   T.eq(pth.abs(pth.resolve(test_txt)), e.buf.dat.path)
   T.eq({1,1}, {e.l, e.c})
@@ -157,7 +158,7 @@ end
 
 T.namedBuffer = function()
   local d = newEditor''
-  T.eq({'find', 'nav', 'overlay'}, ds.sort(ds.keys(d.namedBuffers)))
+  T.eq({'find', 'nav', 'overlay', 'search'}, ds.sort(ds.keys(d.namedBuffers)))
   local n = d:namedBuffer'nav'
-  T.eq(1, n.id)
+  T.eq(et.INIT_BUFS - 1, n.id)
 end

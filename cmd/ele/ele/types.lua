@@ -8,6 +8,8 @@ local sfmt = string.format
 local push, pop, concat = table.insert, table.remove, table.concat
 local getp = ds.getp
 
+M.INIT_BUFS = 3 -- the default number of bufs on init (for testing)
+
 M.WELCOME = [[
 Welcome to the Ele Editor!
 

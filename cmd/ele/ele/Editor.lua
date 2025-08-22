@@ -31,6 +31,7 @@ local Editor = mty'Editor' {
   'display [Term|other]: display/terminal to write+paint text',
   'run [boolean]: set to false to stop the app', run=true,
   'ext [table]: table for extensions to store data',
+  'search [str]: search pattern for searchBuf, etc',
 
   'error [callable]: error handler (ds.log.logfmt sig)',
   'warn  [callable]: warn handler',
@@ -49,8 +50,10 @@ getmetatable(Editor).__call = function(T, t)
     resources={}, ext={},
     redraw = true,
   }, t)
+  t = mty.construct(T, t)
   t.namedBuffers.overlay = t.overlay
-  return mty.construct(T, t)
+  t.namedBuffers.search  = t:namedBuffer'search'
+  return t
 end
 
 Editor.__fmt = function(ed, f)
@@ -75,13 +78,12 @@ Editor.getBuffer = function(ed, v) --> Buffer?
   if type(v) == 'number' then
     local b = ed.buffers[v]; if b then return b end
   elseif type(v) == 'string' then
-    log.info('!! match', {v:match'b#([%w_-]+)'})
-    local id = v:match'b#([%w_-]+)'; if id then
-      log.info('!! id %q', id, ed.namedBuffers[id])
-      return ed.buffers[tonumber(id) or ed.namedBuffers[id]]
+    local id = v:match'^b#(%d+)$'; if id then return ed.buffers[tonumber(id)] end
+    id = v:match'^b#([%w_-]+)$' if id then
+      return assertf(ed.namedBuffers[id], 'unknown named buffer: %q', id)
     end
-
-    v = pth.abs(pth.resolve(v))
+    id = v:match'^%d+$'; if id then return ed.buffers[tonumber(id)] end
+    v = pth.canonical(v)
     for _, b in pairs(ed.buffers) do
       if v == b.dat.path then return b end
     end
@@ -108,11 +110,12 @@ end
 
 --- Get or create a named buffer (NOT a path).
 Editor.namedBuffer = function(ed, name, path)
-  local id = ed.namedBuffers[name]
-  if id then return ed.buffers[id] end
-  local b = ed:buffer(path)
-  b.name = name
-  ed.namedBuffers[name] = assert(b.id)
+  log.info('!! namedBuffer %q %q', name, path)
+  local b = ed.namedBuffers[name]; if b then return b end
+  log.info'!!   namedBuffer not found'
+  b = ed:buffer(path)
+  b.name                = name
+  ed.namedBuffers[name] = b
   return b
 end
 

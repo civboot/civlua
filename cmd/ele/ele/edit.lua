@@ -237,11 +237,15 @@ M.Edit.drawBars = function(e, d) --> botHeight, leftWidth
     wl = wl + 1
   end
 
-  local id, info = assert(e.buf.id)
-  local p = e.buf.dat.path; if p then
-    info = sfmt('| %s:%i.%i (b#%i)', pth.nice(p), e.l, e.c, id)
-  else info = sfmt('| b#%i %i.%i', id, e.l, e.c) end
-  info = info:sub(1, e.tw - 1)..' '
+  local b, info = e.buf, {'|'}
+  local name, id, p = b.name, assert(b.id), b.dat.path
+  if p    then push(info, sfmt(' %s:%i.%i', pth.nice(p), e.l, e.c)) end
+  if name then push(info, ' b#'..name..(p and '' or sfmt(':%i.%i', e.l,e.c)))
+  end push(info, ' (b#'..id)
+  if p or name then push(info, ')')
+  else              push(info, sfmt(':%i.%i)', e.l, e.c)) end
+
+  info = concat(info):sub(1, e.tw - 1)..' '
   txt:insert(wl, tc, info)
   for c=tc+#info, tc+tw-1 do txt[wl][c] = '=' end
   return 1, 2

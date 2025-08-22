@@ -145,10 +145,10 @@ local SMALL_1 = '\n'..[[
  4  print'hello world'
  5end
  6
-| data/small.lua:1.1 (b#4) ===]]
+| data/small.lua:1.1 (b#5) ===]]
 Test{'open', open=SMALL, th=9, tw=30, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
-  local b, BID = e.buf, 4
+  local b, BID = e.buf, et.INIT_BUFS + 2
   T.eq(b.id, BID)
   T.eq(SMALL, b.dat.path)
   s:play'' -- draws
@@ -166,16 +166,16 @@ local SPLIT_1 = '\n'..[[
  0-- a small lua file for te 0-- a small lua file for test
  1local M = {}               1local M = {}
  2                           2
-| data/small.lua:1.1 (b#4) =| data/small.lua:1.1 (b#4) ===]]
+| data/small.lua:1.1 (b#5) =| data/small.lua:1.1 (b#5) ===]]
 local SPLIT_2 = '\n'..[[
  0-- a small lua file for te 1-- a small lua file for test
  1local M = {}               0local M = {}
  2                           1
-| data/small.lua:1.1 (b#4) =| data/small.lua:2.7 (b#4) ===]]
+| data/small.lua:1.1 (b#5) =| data/small.lua:2.7 (b#5) ===]]
 
 Test{'window', open=SMALL, th=5, tw=60, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
-  local b, BID = e.buf, 4
+  local b, BID = e.buf, et.INIT_BUFS + 2
   T.eq(b.id, BID)
   T.eq(SMALL, b.dat.path)
   s:play'g L'
@@ -197,12 +197,12 @@ local LINES3_wLN = [[
  01 3 5 7 9
  1 2 4 6
  2
-| b#3 1.1 ====================]]
+| (b#4:1.1) ==================]]
 local INSERTED_3 = [[
  0inserted
   
   
-| b#3 1.9 ====================]]
+| (b#4:1.9) ==================]]
 Test{'empty', dat=LINES3, th=5, tw=30, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
   local g = e.buf.dat
@@ -223,7 +223,7 @@ local NAV_1 = [[
  2  * small.lua
   
   
-| b#1 1.8 ====================]]
+| b#nav:1.8 (b#2) ============]]
 
 local NAV_2 = [[
  1./data/
@@ -231,7 +231,7 @@ local NAV_2 = [[
  1    * thing1.txt
  2    * thing2.txt
  3  * small.lua
-| b#1 2.8 ====================]]
+| b#nav:2.8 (b#2) ============]]
 
 -- FIXME: I'm not sure about the extra newline
 local NAV_3 = [[
@@ -240,15 +240,15 @@ local NAV_3 = [[
  1  * small.lua
  0
   
-| b#1 4.8 ====================]]
+| b#nav:4.8 (b#2) ============]]
 
 local BUF_1 = [[
- 0b#nav      (tmp)
- 1b#find     (tmp)
- 2b#3        (tmp)
- 3b#4        ./data/small.lua
- 4b#5        ./data/seuss/thin
-| b#1 1.1 ====================]]
+ 0b#search   (tmp)
+ 1b#nav      (tmp)
+ 2b#find     (tmp)
+ 3b#4        (tmp)
+ 4b#5        ./data/small.lua
+| b#nav:1.1 (b#2) ============]]
 
 
 Test{'nav', open=SMALL, th=7, tw=30, function(tst)
@@ -278,10 +278,27 @@ Test{'nav', open=SMALL, th=7, tw=30, function(tst)
   s:play'g b'
     T.eq(SS..'\n'..BUF_1, fmt(ed.display))
     T.eq('system', ed.mode)
-  s:play'3 j g'
+  s:play'4 j g'
     T.matches('data/small.lua$', ed.edit:path())
   s:play'g b' -- should be same as before
     T.eq(SS..'\n'..BUF_1, fmt(ed.display))
+end}
+
+Test{'overlay', dat=LINES3, function(tst)
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
+  local ov = ed.overlay; ov.ext.show = true
+  ov:insert('THE OVERLAY', 1,1)
+  s:play''
+    T.eq('THE OVERLAYnd]\n'..LINES3, fmt(ed.display))
+
+  e.c = 4
+  s:play''
+    T.eq('[moTHE OVERLAY\n'..LINES3, fmt(ed.display))
+
+  ov:insert('\n--NEXT LINE--', 1,12)
+  s:play''
+    T.eq(SC..'\n'..'1 3 5 7 9\n 2 THE OVERLAY  \n   --NEXT LINE--',
+         fmt(ed.display))
 end}
 
 CWD = _CWD
