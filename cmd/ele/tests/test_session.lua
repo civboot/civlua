@@ -301,4 +301,56 @@ Test{'overlay', dat=LINES3, function(tst)
          fmt(ed.display))
 end}
 
+Test{'overlay', dat=LINES3, function(tst)
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
+  local ov = ed.overlay; ov.ext.show = true
+  ov:insert('THE OVERLAY', 1,1)
+  s:play''
+    T.eq('THE OVERLAYnd]\n'..LINES3, fmt(ed.display))
+
+  e.c = 4
+  s:play''
+    T.eq('[moTHE OVERLAY\n'..LINES3, fmt(ed.display))
+
+  ov:insert('\n--NEXT LINE--', 1,12)
+  s:play''
+    T.eq(SC..'\n'..'1 3 5 7 9\n 2 THE OVERLAY  \n   --NEXT LINE--',
+         fmt(ed.display))
+end}
+
+Test{'searchBuf', dat=LINES3, function(tst)
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
+  local ov = ed.overlay
+  local sbuf = ed:namedBuffer'search'
+
+  s:play'/ 5 space 6 back 7'
+    T.eq('5 7', fmt(ov.dat)); T.eq('5 7', ed.search)
+    T.eq(true,  ov.ext.show)
+    T.eq('5 7'..SC:sub(4)..'\n'..LINES3, fmt(ed.display))
+    T.eq({1,1}, {e.l,e.c})
+
+  s:play'enter'
+    T.eq('5 7', fmt(ov.dat)); T.eq('5 7', ed.search)
+    T.eq(false,  ov.ext.show)
+    T.eq(SC..'\n'..LINES3, fmt(ed.display))
+    T.eq({1,5}, {e.l,e.c})
+    T.eq('\n5 7', fmt(sbuf.dat))
+
+  s:play'/ 4 space 6 ^n'
+    T.eq('4 6', fmt(ov.dat)); T.eq('4 6', ed.search)
+    T.eq(true,  ov.ext.show)
+    T.eq({2,4}, {e.l,e.c})
+    T.eq(SC..'\n1 34 67 9\n 2 4 6\n', fmt(ed.display))
+
+  s:play'esc'
+    T.eq('4 6', fmt(ov.dat)); T.eq('4 6', ed.search)
+
+  s:play'N'
+    T.eq('4 6', fmt(ov.dat)); T.eq('5 7', ed.search)
+    T.eq(false,  ov.ext.show)
+    T.eq(SC..'\n'..LINES3, fmt(ed.display))
+    T.eq({1,5}, {e.l,e.c})
+
+end}
+
 CWD = _CWD
