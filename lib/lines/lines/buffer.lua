@@ -35,6 +35,7 @@ M.Buffer = mty'Buffer' {
   'changeI [int]',      changeI=0,
 
   'tmp[parents]: if set, delete when parents are empty',
+  'ext[table]: table for arbitrary extensions',
 }
 
 getmetatable(M.Buffer).__index = mty.hardIndex
@@ -44,6 +45,7 @@ getmetatable(M.Buffer).__call = function(T, t)
   assert(t.dat, 'must set dat')
   if #t.dat == 0 then push(t.dat, '') end
   t.changes = t.changes or {}
+  t.ext = t.ext or {}
   return mty.construct(T, t)
 end
 

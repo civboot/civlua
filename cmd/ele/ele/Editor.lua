@@ -4,12 +4,14 @@ local fmt    = require'fmt'
 local ds     = require'ds'
 local pth    = require'ds.path'
 local log    = require'ds.log'
+local lines  = require'lines'
 local Gap    = require'lines.Gap'
 local Buffer = require'lines.buffer'.Buffer
 local Edit   = require'ele.edit'.Edit
 local et     = require'ele.types'
 local push, pop, concat = table.insert, table.remove, table.concat
 
+local min, max = math.min, math.max
 local assertf = fmt.assertf
 local sfmt = string.format
 
@@ -130,7 +132,25 @@ Editor.draw = function(ed)
 end
 
 Editor._drawOverlay = function(ed)
+  local ov = ed.overlay; if not ov.ext.show then return end
+  local d = ed.display
+  local h, w = min(d.h, max(1, #ov)), 1 -- get height and width of overlay
+  for l=1,#ov do w = max(w, #ov:get(l)) end
 
+  local l, c = d.l, d.c -- find where it goes, prefer above.
+  if     h < l        then  l = l - h     -- put above
+  elseif l + h <= d.h then  l = l + 1     -- put below
+  elseif l >= (d.h/2) then  l = 1         -- more space on top
+  else                      l = l + 1 end -- more space on bot
+
+  -- Start column goes directly next to cursor if possible.
+  if c + w > d.w then c = max(1, d.w - w) end
+  local b = lines.box(ov.dat, 1,1, h,w, ' ') -- filled box
+  b = concat(b, '\n')
+  local fb = d.styler:getFB'info'
+  d.text:insert(l, c, b)
+  d.fg:insert(l, c, b:gsub('[^\n]', fb:sub(1,1)))
+  d.bg:insert(l, c, b:gsub('[^\n]', fb:sub(-1)))
 end
 
 --- Handle standard event fields.

@@ -11,6 +11,7 @@ local ds  = require'ds'
 local push, pop = table.insert, table.remove
 local concat    = table.concat
 local max, min, bound = math.max, math.min, ds.bound
+local srep = string.rep
 local sort2 = ds.sort2
 local rawsplit = mty.rawsplit
 
@@ -239,10 +240,13 @@ M.remove = function(t, ...) --> string|table
 end
 
 -- return the box bounded top-left(l1,c1) and bot-right(l2,c2)
-M.box = function(t, l1, c1, l2, c2) --> lines
+M.box = function(t, l1, c1, l2, c2, fill) --> lines
+  local f = fill and assert(type(fill) == 'string') and (c2 - c1 + 1)
   local b = {}; for l=l1,l2 do
     local line = get(t,l)
-    push(b, line and line:sub(c1, c2) or '')
+    line = line and line:sub(c1, c2) or ''
+    if fill and #line < f then line = line..srep(fill, f - #line) end
+    push(b, line)
   end
   return b
 end
