@@ -263,7 +263,7 @@ M['string.unpack'] = string.unpack--(strtys, str) -> ...
 M['string.packsize'] = string.packsize--(strtys) -> int
 
 --- not documented: see [$string] module
-for k, v in pairs(undocumented'io') do M[k] = v end
+for k, v in pairs(undocumented'string') do M[k] = v end
 
 -------------------------------
 -- table
