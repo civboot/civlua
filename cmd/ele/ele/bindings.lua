@@ -9,6 +9,7 @@ local fmt = require'fmt'
 local ds = require'ds'
 local et = require'ele.types'
 local log = require'ds.log'
+local vt100 = require'vt100'
 
 local sfmt = string.format
 local push, pop, concat = table.insert, table.remove, table.concat
@@ -179,11 +180,10 @@ M.movekey = function(keys)
   return ev
 end
 
--- go to the character
+-- Find a single character.
 M.find = function(keys)
-  keys.event = keys.event or {}
-  keys.event.action = keys.event.action or 'move'
-  keys.event.move = 'find'
+  local ev = keys.event or {}; keys.event = ev
+  ev.action, ev.move = ev.action or 'move', ev.move or 'find'
   keys.next = M.movekey
   keys.keep = true
 end
@@ -253,6 +253,42 @@ M.zero = function(keys) -- special: movement if not after a digit
 end
 
 ---------------------------
+-- Search Buffer
+
+M.hideOverlay = {action='buf', name='overlay', ext={show=false}}
+
+--- Interactively search the buffer.
+--- 
+--- Implementation notes:
+--- * This is a "state machine"
+M.searchBuf = function(keySt)
+  local ev = keySt.event or {}; keySt.event = ev
+  keySt.keep = true
+  if #chord == 1 then -- initial call
+    return {action='buf', name='overlay', clear=true, ext={show=true}}
+  end
+  local k = chord[#chord]
+
+  -- TODO: do tab / ^j / ^k / ^n / etc
+  if k == 'back' then
+    return {action='buf', name='overlay', remove={1,-1}}
+  end
+  if k == 'enter' then
+    keySt.keep = false
+    return {action='chain',
+      M.hideOverlay,
+      {action='searchBuf', overlay=true},
+    }
+  end
+
+  local char = vt100.literal(k)
+  if char then return {action='buf', name='overlay', insert={char, 1, -1}} end
+  keySt.keep = false -- any unknown control exits
+  return M.hideOverlay
+end
+
+
+---------------------------
 -- SYSTEM Mode
 M.goPath      = {action='path', go='path',   mode='command'}
 M.createPath  = {action='path', go='create', mode='command'}
@@ -265,9 +301,9 @@ M.pathBackExpand = {action='chain',
   M.pathFocus, M.pathBack, M.pathExpand,
 }
 
-M.save = {action='buf', save=true}
-M.undo = {action='buf', undo=true}
-M.redo = {action='buf', redo=true}
+M.save = {action='edit', save=true}
+M.undo = {action='edit', undo=true}
+M.redo = {action='edit', redo=true}
 
 --- CWD: current working directory
 M.navCwd = {action='nav', nav='cwd', mode='system'}

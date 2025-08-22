@@ -216,6 +216,13 @@ M.remove = function(ed, ev)
 end
 
 ----------------------------------
+-- Search Buf
+
+M.searchBuf = function(ed, ev)
+
+end
+
+----------------------------------
 -- NAV
 
 M.nav = mod and mod'ele.actions.nav' or setmetatable({}, {})
@@ -431,12 +438,12 @@ M.path = function(ed, ev, evsend)
   ed:handleStandard(ev)
 end
 
---- Do something buffer related, depending on ev, in this order: [+
---- * save=true: save the current buffer.
---- * buf: focus the buffer, typically 'b#named' buffer.
---- * clear: clear the current buffer.
+--- Do something with the edit view, in this order: [+
+--- * save=true: save the current edit view.
+--- * focus: focus the buffer, typically 'b#named'.
+--- * clear: clear the current edit view.
 --- ]
-M.buf = function(ed, ev)
+M.edit = function(ed, ev)
   if ev.save  then ed.edit:save(ed)   end
   if ev.focus then ed:focus(ev.focus) end
   if ev.clear then
@@ -454,6 +461,25 @@ M.buf = function(ed, ev)
     end
   end
   ed:handleStandard(ev)
+end
+
+--- Directly modify a buffer by name. This is most commonly
+--- used for the overlay.
+M.buf = function(ed, ev)
+  local b; if ev.create then b = ed:buffer(ev.buf)
+  else                       b = ed:getBuffer(ev.buf) end
+
+  if ev.clear then b:remove(1, #b) end
+  if ev.remove then
+    for _=1,ev.times or 1 do
+      b:remove(table.unpack(ev.insert))
+    end
+  end
+  if ev.insert then
+    for _=1,ev.times or 1 do
+      b:insert(table.unpack(ev.insert))
+    end
+  end
 end
 
 --- What a window.split translates to

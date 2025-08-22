@@ -133,7 +133,7 @@ M.LITERALS = {
 --- Convert any key to it's literal form [#
 ---   literal'a'       -> 'a'
 ---   literal'enter'   -> '\n'
----   literal'invalid' -> nil
+---   literal'esc'     -> nil
 --- ]#
 M.literal = function(key) --> literalstring?
   return (1 == ulen(key)) and key or M.LITERALS[key]

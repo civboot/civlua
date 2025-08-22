@@ -284,4 +284,22 @@ Test{'nav', open=SMALL, th=7, tw=30, function(tst)
     T.eq(SS..'\n'..BUF_1, fmt(ed.display))
 end}
 
+Test{'overlay', dat=LINES3, function(tst)
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
+  local ov = ed.overlay; ov.ext.show = true
+  ov:insert('THE OVERLAY', 1,1)
+  s:play''
+    T.eq('THE OVERLAYnd]\n'..LINES3, fmt(ed.display))
+
+  e.c = 4
+  s:play''
+    T.eq('[moTHE OVERLAY\n'..LINES3, fmt(ed.display))
+
+  ov:insert('\n--NEXT LINE--', 1,12)
+  s:play''
+    T.eq(SC..'\n'..'1 3 5 7 9\n 2 THE OVERLAY  \n   --NEXT LINE--',
+         fmt(ed.display))
+
+end}
+
 CWD = _CWD

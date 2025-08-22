@@ -10,6 +10,28 @@ local buffer = require'lines.buffer'
 local Buffer = buffer.Buffer
 local C, CS = buffer.Change, buffer.ChangeStart
 
+T['insert & remove'] = function()
+  local b = Buffer.new'a\nb\n'; local g = b.dat
+  T.eq('a\nb\n', fmt(g))
+  b:changeStart(0,0)
+  b:insert('l', 1);         T.eq('la\nb\n',      fmt(g));
+  b:insert(' hi', 1, 'end') T.eq('la hi\nb\n',   fmt(g))
+  b:insert('la', 1, -3)     T.eq('lala hi\nb\n', fmt(g))
+  b:remove(1, -3, 1, -1)    T.eq('lala\nb\n', fmt(g))
+
+  T.eq({'lala', 'b', ''}, ds.icopy(g))
+end
+
+T['clear'] = function()
+  local b = Buffer.new'a\nb\n'; local g = b.dat
+  T.eq('a\nb\n', fmt(g))
+  b:changeStart(0,0)
+  b:remove(1,#b); T.eq('', fmt(g))
+                  T.eq({}, ds.icopy(g))
+  b:insert('hi', 1)
+  T.eq('hi', fmt(g)); T.eq({'hi'}, ds.icopy(g))
+end
+
 T.undoIns = function()
   local b = Buffer.new(''); local g = b.dat
 
@@ -109,14 +131,4 @@ T.undoMulti = function() -- undo/redo across multi lines
 
   local ch3 = C{k='rm', s='456\n789\n', l=2, c=1}
   ch = b:remove(2, 3)             T.eq(ch3, ch)
-end
-
-T['clear'] = function()
-  local b = Buffer.new'a\nb\n'; local g = b.dat
-  T.eq('a\nb\n', fmt(g))
-  b:changeStart(0,0)
-  b:remove(1,#b); T.eq('', fmt(g))
-                  T.eq({}, ds.icopy(g))
-  b:insert('hi', 1)
-  T.eq('hi', fmt(g)); T.eq({'hi'}, ds.icopy(g))
 end
