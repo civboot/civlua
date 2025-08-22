@@ -78,13 +78,12 @@ Editor.getBuffer = function(ed, v) --> Buffer?
   if type(v) == 'number' then
     local b = ed.buffers[v]; if b then return b end
   elseif type(v) == 'string' then
-    log.info('!! match', {v:match'b#([%w_-]+)'})
-    local id = v:match'b#([%w_-]+)'; if id then
-      log.info('!! id %q', id, ed.namedBuffers[id])
-      return ed.buffers[tonumber(id) or ed.namedBuffers[id]]
+    local id = v:match'^b#(%d+)$'; if id then return ed.buffers[tonumber(id)] end
+    id = v:match'^b#([%w_-]+)$' if id then
+      return assertf(ed.namedBuffers[id], 'unknown named buffer: %q', id)
     end
-
-    v = pth.abs(pth.resolve(v))
+    id = v:match'^%d+$'; if id then return ed.buffers[tonumber(id)] end
+    v = pth.canonical(v)
     for _, b in pairs(ed.buffers) do
       if v == b.dat.path then return b end
     end
@@ -111,7 +110,9 @@ end
 
 --- Get or create a named buffer (NOT a path).
 Editor.namedBuffer = function(ed, name, path)
+  log.info('!! namedBuffer %q %q', name, path)
   local b = ed.namedBuffers[name]; if b then return b end
+  log.info'!!   namedBuffer not found'
   b = ed:buffer(path)
   b.name                = name
   ed.namedBuffers[name] = b

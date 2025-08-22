@@ -197,12 +197,12 @@ local LINES3_wLN = [[
  01 3 5 7 9
  1 2 4 6
  2
-| b#4 1.1 ====================]]
+| (b#4:1.1) ==================]]
 local INSERTED_3 = [[
  0inserted
   
   
-| b#4 1.9 ====================]]
+| (b#4:1.9) ==================]]
 Test{'empty', dat=LINES3, th=5, tw=30, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
   local g = e.buf.dat
@@ -223,7 +223,7 @@ local NAV_1 = [[
  2  * small.lua
   
   
-| b#nav:1.8 (b#6) ============]]
+| b#nav:1.8 (b#2) ============]]
 
 local NAV_2 = [[
  1./data/
@@ -231,7 +231,7 @@ local NAV_2 = [[
  1    * thing1.txt
  2    * thing2.txt
  3  * small.lua
-| b#nav:2.8 (b#6) ============]]
+| b#nav:2.8 (b#2) ============]]
 
 -- FIXME: I'm not sure about the extra newline
 local NAV_3 = [[
@@ -240,7 +240,7 @@ local NAV_3 = [[
  1  * small.lua
  0
   
-| b#nav:4.8 (b#6) ============]]
+| b#nav:4.8 (b#2) ============]]
 
 local BUF_1 = [[
  0b#search   (tmp)
@@ -248,7 +248,7 @@ local BUF_1 = [[
  2b#find     (tmp)
  3b#4        (tmp)
  4b#5        ./data/small.lua
-| b#nav:1.1 (b#8) ============]]
+| b#nav:1.1 (b#2) ============]]
 
 
 Test{'nav', open=SMALL, th=7, tw=30, function(tst)
@@ -299,7 +299,6 @@ Test{'overlay', dat=LINES3, function(tst)
   s:play''
     T.eq(SC..'\n'..'1 3 5 7 9\n 2 THE OVERLAY  \n   --NEXT LINE--',
          fmt(ed.display))
-
 end}
 
 CWD = _CWD
