@@ -35,19 +35,20 @@ local split = function(s) --> lines
   else --[[lines]]            return ipairs(s) end
 end
 
---- insert the str|lines into the grid at l.c
---- this handles newlines by inserting at the same column
---- This also clears the remainder of the line.
+--- Insert the str into the Grid.
+--- Any newlines will be insert starting at column c.
+---
+--- This will automatically fill [1,c-1] with spaces, but will
+--- NOT clear any data after the insert text, meaning it is
+--- essentially a replace.
+--- FIXME: considere renaming to replace... or something.
 G.insert = function(g, l, c, str)
-  for _l, lstr in split(str) do
-    local llen = 0
-    local line = g[l]; if not line then return end
-    for _, code in codes(lstr) do
-      llen = llen + 1
-      local lc = c + llen - 1
-      assertf(lc <= g.w, 'line+c (%i) longer than width %i', lc, g.w)
-      for i=#line+1,lc-1 do line[i] = ' ' end -- fill spaces
-      line[lc] = char(code)
+  for _, sline in split(str) do -- line from string
+    local row = g[l]; if not row then return end
+    for i=#row+1, c-1 do row[i] = ' ' end -- fill pre-column space
+    local lc = c -- unicode column within line
+    for _, uchr in codes(sline) do
+      row[lc] = char(uchr); lc = lc + 1
     end
     l = l + 1
   end

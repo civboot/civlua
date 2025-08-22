@@ -85,6 +85,8 @@ T.box = function()
   T.eq({'1 3', ' 2 '        }, lines.box(l, 1,1, 2,3))
   T.eq({' 3 ', '2 4'        }, lines.box(l, 1,2, 2,4))
   T.eq({'7 9', '',   'e f g'}, lines.box(l, 1,7, 3,11))
+
+  T.eq({'7 9  ', '     ', 'e f g'}, lines.box(l, 1,7, 3,11, ' '))
 end
 
 ------------------------
