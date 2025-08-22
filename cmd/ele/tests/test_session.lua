@@ -107,6 +107,7 @@ Test{'move', dat=LINES3, function(tst)
   s:play'2 w'; T.eq({2, 4}, {e.l, e.c})
   s:play'b';   T.eq({2, 2}, {e.l, e.c})
   s:play'l ^'; T.eq({2, 2}, {e.l, e.c})
+  s:play'3 G'; T.eq({3, 2}, {e.l, e.c})
 end}
 
 Test{'backspace', dat=LINES3, function(tst)
@@ -350,7 +351,6 @@ Test{'searchBuf', dat=LINES3, function(tst)
     T.eq(false,  ov.ext.show)
     T.eq(SC..'\n'..LINES3, fmt(ed.display))
     T.eq({1,5}, {e.l,e.c})
-
 end}
 
 CWD = _CWD

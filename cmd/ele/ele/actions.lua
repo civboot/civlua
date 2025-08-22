@@ -163,7 +163,11 @@ end
 M.move = function(ed, ev)
   local e = ed.edit
   log.trace('move %q [start %s.%s]', ev, e.l, e.c)
-  for _=1,ev.times or 1 do domove(e, ev) end
+  if ev.move == 'absolute' then
+    e.l,e.c = ev.l, ev.c or e.c
+  else
+    for _=1,ev.times or 1 do domove(e, ev) end
+  end
   e.l = e:boundLC(e.l, e.c)
   ed:handleStandard(ev)
 end
@@ -238,7 +242,7 @@ M.searchBuf = function(ed, ev)
     elseif ev.prev then
       local l,c = lines.findBack(e.buf.dat, ed.search, e.l,e.c-1)
       if not l and ev.wrap then
-        l,c = lines.find(e.buf.dat, ed.search, -1,-1)
+        l,c = lines.findBack(e.buf.dat, ed.search, -1,-1)
       end
       if l then e.l,e.c = l,c end
     end
