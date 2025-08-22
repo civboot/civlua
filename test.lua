@@ -7,6 +7,8 @@ G.LOGFN = function(lvl, msg) if LOGLEVEL >= lvl then
   io.stderr:write(string.format('LOG(%s): %s\n', lvl, msg))
 end end
 
+assert(not os.execute'ls lua*.core', 'lua.*core file found!!')
+
 local io_open = io.open
 
 local dir = '' -- leave here incase support is needed for filedir
@@ -64,5 +66,5 @@ print'[[ele]]'
   dofile(dir..'cmd/ele/tests/test_actions.lua')
   dofile(dir..'cmd/ele/tests/test_session.lua')
 
-
+assert(not os.execute'ls lua*.core', 'lua.*core file found!!')
 io.fmt:styled('notify', '\nSuccess! All tests passed', '\n')
