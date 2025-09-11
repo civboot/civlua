@@ -948,7 +948,7 @@ It interacts (but does not set) the <b>globals</b> <code>CWD</code> and <code>HO
 <h3>Table <a id="ds.CONCRETE_TYPES" href="#ds.CONCRETE_TYPES">ds.CONCRETE_TYPES</a></h3>
 <h3>Table <a id="ds.DURATION_ZERO" href="#ds.DURATION_ZERO">ds.DURATION_ZERO</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L841"><i>src</i></a>)</h3>
 <h3>Table <a id="ds.IGNORE_TRACE" href="#ds.IGNORE_TRACE">ds.IGNORE_TRACE</a></h3>
-<h3>Table <a id="ds.R" href="#ds.R">ds.R</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1220"><i>src</i></a>)</h3>
+<h3>Table <a id="ds.R" href="#ds.R">ds.R</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1223"><i>src</i></a>)</h3>
 indexrequire: <code>R.foo</code> is same as <code>require'foo'</code>
 This is mostly used in scripts/etc<code class="block">M.R = setmetatable({}, {
   __index=function(_, k) return require(k) end,
@@ -1126,7 +1126,7 @@ extend deq to right
 </table>
 <h4>Function <a id="Epoch.__lt" href="#Epoch.__lt">Epoch.__lt</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L863"><i>src</i></a>)</h4>
 <h4>Function <a id="Epoch.__sub" href="#Epoch.__sub">Epoch.__sub</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L859"><i>src</i></a>)</h4>
-<h3>Record <a id="ds.Error" href="#ds.Error">ds.Error</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1142"><i>src</i></a>)</h3>
+<h3>Record <a id="ds.Error" href="#ds.Error">ds.Error</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1145"><i>src</i></a>)</h3>
 Error message, traceback and cause
 NOTE: you should only use this for printing/logging/etc.
 <p>
@@ -1151,7 +1151,7 @@ NOTE: you should only use this for printing/logging/etc.
 <b>Records: </b> <table>
   <tr>
     <td><code>ds.Error.__index</code></td>
-    <td>[Ty<Error>] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1142">src</a>)</td>
+    <td>[Ty<Error>] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1145">src</a>)</td>
   </tr>
 </table>
 <b>Methods: </b> <table>
@@ -1160,10 +1160,10 @@ NOTE: you should only use this for printing/logging/etc.
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L216">src</a>)</td>
   </tr>
 </table>
-<h4>Function <a id="Error.from" href="#Error.from">Error.from</a><code>(msg, tb, cause) -&gt; Error</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1167"><i>src</i></a>)</h4>
+<h4>Function <a id="Error.from" href="#Error.from">Error.from</a><code>(msg, tb, cause) -&gt; Error</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1170"><i>src</i></a>)</h4>
 create the error from the arguments.
 tb can be one of: <code>coroutine|string|table</code>
-<h4>Function <a id="Error.msgh" href="#Error.msgh">Error.msgh</a><code>(msg, level) -&gt; Error</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1172"><i>src</i></a>)</h4>
+<h4>Function <a id="Error.msgh" href="#Error.msgh">Error.msgh</a><code>(msg, level) -&gt; Error</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1175"><i>src</i></a>)</h4>
 for use with xpcall. See: try
 <h3>Record <a id="ds.Forget" href="#ds.Forget">ds.Forget</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L687"><i>src</i></a>)</h3>
 Table that ignores new indexes. Used to disable caching in tests.
@@ -1317,7 +1317,7 @@ return either a single (new) merged or two sorted Slcs.
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L91">src</a>)</td>
   </tr>
 </table>
-<h4>Function <a id="TWriter.write" href="#TWriter.write">TWriter.write</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1099"><i>src</i></a>)</h4>
+<h4>Function <a id="TWriter.write" href="#TWriter.write">TWriter.write</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1102"><i>src</i></a>)</h4>
 <h3>Record <a id="ds.TypoSafe" href="#ds.TypoSafe">ds.TypoSafe</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L587"><i>src</i></a>)</h3>
 A typo-safe table, typically used in libraries for storing constants.
 <p>
@@ -1369,7 +1369,7 @@ Weak value table, see docs on <code>__mode</code>
   </tr>
 </table>
 <h3>Function <a id="ds.add" href="#ds.add">ds.add</a><code>(t, ...) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L415"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.auto" href="#ds.auto">ds.auto</a><code>(mod, i) -&gt; (mod, i)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1207"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.auto" href="#ds.auto">ds.auto</a><code>(mod, i) -&gt; (mod, i)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1210"><i>src</i></a>)</h3>
 auto-set nil locals using require(mod)
 <code>local x, y, z; ds.auto'mm' -- sets x=mm.x; y=mm.y; z=mm.z</code>
 <h3>Function <a id="ds.bin" href="#ds.bin">ds.bin</a><code>(uint, width--[[8]], sep4--[['_']]) -&gt; str</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L259"><i>src</i></a>)</h3>
@@ -1388,7 +1388,7 @@ on the resulting index.
 <h3>Function <a id="ds.bool" href="#ds.bool">ds.bool</a><code>(v) -&gt; bool</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L757"><i>src</i></a>)</h3>
 convert to boolean (none aware)
 <h3>Function <a id="ds.bound" href="#ds.bound">ds.bound</a><code>(v, min, max) -&gt; value within [min,max]</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L133"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.check" href="#ds.check">ds.check</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1117"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.check" href="#ds.check">ds.check</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1120"><i>src</i></a>)</h3>
 Throw an error if <code>select(i, ...)</code> is truthy, else return ...
 <p>
 For example, <code>file:read'L'</code> returns <code>line?, errmsg?</code>.
@@ -1504,11 +1504,11 @@ same as ds.getp but uses <code>rawget</code>
 <h3>Function <a id="ds.readPath" href="#ds.readPath">ds.readPath</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L629"><i>src</i></a>)</h3>
 <h3>Function <a id="ds.replace" href="#ds.replace">ds.replace</a><code>(t, r) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L419"><i>src</i></a>)</h3>
 <h3>Function <a id="ds.repr" href="#ds.repr">ds.repr</a><code>(v) -&gt; sfmt('%q', v)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L137"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.resource" href="#ds.resource">ds.resource</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1227"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.resource" href="#ds.resource">ds.resource</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1230"><i>src</i></a>)</h3>
 Include a resource (raw data) relative to the current file.
 <p>
 Example: <code>M.myData = ds.resource'data/myData.csv'</code>
-<h3>Function <a id="ds.resume" href="#ds.resume">ds.resume</a><code>(th) -&gt; (ok, err, b, c)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1188"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.resume" href="#ds.resume">ds.resume</a><code>(th) -&gt; (ok, err, b, c)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1191"><i>src</i></a>)</h3>
 Same as coroutine.resume except uses a ds.Error object for errors
 (has traceback)
 <h3>Function <a id="ds.retFalse" href="#ds.retFalse">ds.retFalse</a><code>() -&gt; false</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L95"><i>src</i></a>)</h3>
@@ -1560,13 +1560,13 @@ sort t and remove anything where <code>rmFn(v1, v2)</code>
 Squash a string: convert all whitespace to repl (default=' ').
 <h3>Function <a id="ds.srcdir" href="#ds.srcdir">ds.srcdir</a><code>(level) -&gt; "/path/to/dir/"</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L113"><i>src</i></a>)</h3>
 <h3>Function <a id="ds.srcloc" href="#ds.srcloc">ds.srcloc</a><code>(level) -&gt; "/path/to/dir/file.lua:10"</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L105"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.traceback" href="#ds.traceback">ds.traceback</a><code>(level) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1136"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.tracelist" href="#ds.tracelist">ds.tracelist</a><code>(tbstr, level) -&gt; {traceback}</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1133"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.traceback" href="#ds.traceback">ds.traceback</a><code>(level) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1139"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.tracelist" href="#ds.tracelist">ds.tracelist</a><code>(tbstr, level) -&gt; {traceback}</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1136"><i>src</i></a>)</h3>
 convert the string traceback into a list
 <h3>Function <a id="ds.trim" href="#ds.trim">ds.trim</a><code>(subj, pat, index) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L171"><i>src</i></a>)</h3>
 <h3>Function <a id="ds.trimEnd" href="#ds.trimEnd">ds.trimEnd</a><code>(subj, pat, index) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L194"><i>src</i></a>)</h3>
 trim the end of the string by removing pat (default='%s')
-<h3>Function <a id="ds.try" href="#ds.try">ds.try</a><code>(fn, ...) -&gt; (ok, ...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1180"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.try" href="#ds.try">ds.try</a><code>(fn, ...) -&gt; (ok, ...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1183"><i>src</i></a>)</h3>
 try to run the fn. Similar to pcall. Return one of: <ul>
   <li>successs: <code>(true, ...)</code></li>
   <li>failure: <code>(false, ds.Error{...})</code></li>
@@ -1587,10 +1587,10 @@ Walk the table up to depth maxDepth (or infinite if nil) <ul>
 <p>
 If tableFn <code>stop==ds.SKIP</code> (i.e. 'skip') then that table is not recursed.
 Else if stop then the walk is halted immediately
-<h3>Function <a id="ds.want" href="#ds.want">ds.want</a><code>(mod) -&gt; module?</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1213"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.want" href="#ds.want">ds.want</a><code>(mod) -&gt; module?</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1216"><i>src</i></a>)</h3>
 like require but returns nil
 <h3>Function <a id="ds.writePath" href="#ds.writePath">ds.writePath</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L634"><i>src</i></a>)</h3>
-<h3>Function <a id="ds.yeet" href="#ds.yeet">ds.yeet</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1235"><i>src</i></a>)</h3>
+<h3>Function <a id="ds.yeet" href="#ds.yeet">ds.yeet</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L1238"><i>src</i></a>)</h3>
 exit immediately with message and errorcode = 99
 <p>
 <h2>Module <a id="bt" href="#bt">bt</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L948"><i>src</i></a>)</h2>
@@ -1657,10 +1657,14 @@ Note: this function does NOT detect cycles.
 </table>
 <h4>Function <a id="ds.Grid.clear" href="#ds.Grid.clear">ds.Grid.clear</a><code>(g) -&gt; g</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Grid.lua#L31"><i>src</i></a>)</h4>
 clear the grid
-<h4>Function <a id="ds.Grid.insert" href="#ds.Grid.insert">ds.Grid.insert</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Grid.lua#L54"><i>src</i></a>)</h4>
-insert the str|lines into the grid at l.c
-this handles newlines by inserting at the same column
-This also clears the remainder of the line.
+<h4>Function <a id="ds.Grid.insert" href="#ds.Grid.insert">ds.Grid.insert</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Grid.lua#L55"><i>src</i></a>)</h4>
+Insert the str into the Grid.
+Any newlines will be insert starting at column c.
+<p>
+This will automatically fill <code>[1,c-1]</code> with spaces, but will
+NOT clear any data after the insert text, meaning it is essentially a
+replace.
+FIXME: considere renaming to replace... or something.
 <h3>Record <a id="ds.Iter" href="#ds.Iter">ds.Iter</a></h3>
 <p>
 <b>Fields: </b> <table>
@@ -1705,69 +1709,67 @@ This also clears the remainder of the line.
 </table>
 <h4>Function <a id="Iter.__call" href="#Iter.__call">Iter.__call</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L270"><i>src</i></a>)</h4>
 use as an iterator.
-<h4>Function <a id="Iter.all" href="#Iter.all">Iter.all</a><code>(it) -&gt; not it:find(allFn)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L215"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.all" href="#Iter.all">Iter.all</a><code>(it) -&gt; not it:find(allFn)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L216"><i>src</i></a>)</h4>
 return true if any of the values are truthy
-<h4>Function <a id="Iter.any" href="#Iter.any">Iter.any</a><code>(it) -&gt; not not it:find(anyFn)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L219"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.any" href="#Iter.any">Iter.any</a><code>(it) -&gt; not not it:find(anyFn)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L220"><i>src</i></a>)</h4>
 return true if any of the values are truthy
-<h4>Function <a id="Iter.assertEq" href="#Iter.assertEq">Iter.assertEq</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L302"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.assertEq" href="#Iter.assertEq">Iter.assertEq</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L298"><i>src</i></a>)</h4>
 Used for testing. <code>Iter:assertEq(it1, it2)</code> constructs both
 iterators using <code>Iter()</code> and then asserts the results are
 identical.
 <h4>Function <a id="Iter.concat" href="#Iter.concat">Iter.concat</a><code>(it, sep) -&gt; concat(it:to(), sep)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L255"><i>src</i></a>)</h4>
-<h4>Function <a id="Iter.filter" href="#Iter.filter">Iter.filter</a><code>(it, fn) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L116"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.filter" href="#Iter.filter">Iter.filter</a><code>(it, fn) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L115"><i>src</i></a>)</h4>
 - emit only <code>if fn(k, v)</code> results
-<h4>Function <a id="Iter.filterK" href="#Iter.filterK">Iter.filterK</a><code>(it, fn) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L123"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.filterK" href="#Iter.filterK">Iter.filterK</a><code>(it, fn) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L122"><i>src</i></a>)</h4>
 - emit only <code>if fn(k)</code> results
-<h4>Function <a id="Iter.filterV" href="#Iter.filterV">Iter.filterV</a><code>(it, fn) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L130"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.filterV" href="#Iter.filterV">Iter.filterV</a><code>(it, fn) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L129"><i>src</i></a>)</h4>
 - emit only <code>if fn(v)</code> results
-<h4>Function <a id="Iter.find" href="#Iter.find">Iter.find</a><code>(it, fn) -&gt; k, v</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L210"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.find" href="#Iter.find">Iter.find</a><code>(it, fn) -&gt; k, v</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L211"><i>src</i></a>)</h4>
 run the iterator over all values, calling <code>fn(k, v)</code> for each.
 return the first <code>k, v</code> where the fn returns a truthy value.
-<h4>Function <a id="Iter.index" href="#Iter.index">Iter.index</a><code>(it) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L191"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.index" href="#Iter.index">Iter.index</a><code>(it) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L190"><i>src</i></a>)</h4>
 emit <code>i, k</code>, dropping values. <code>i</code> starts at <code>1</code> and increments each
 time called.
 <p>
 <blockquote> Note: this is most useful for iterators which don't emit a <code>v</code>.
 i.e. getting the line number in <code>file:lines()</code></blockquote>
-<h4>Function <a id="Iter.iter" href="#Iter.iter">Iter.iter</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L274"><i>src</i></a>)</h4>
-<h4>Function <a id="Iter.keyIn" href="#Iter.keyIn">Iter.keyIn</a><code>(it, t) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L155"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.keyIn" href="#Iter.keyIn">Iter.keyIn</a><code>(it, t) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L154"><i>src</i></a>)</h4>
 emit <code>k, v</code> for each non-nil <code>t[k]</code>
-<h4>Function <a id="Iter.keyNotIn" href="#Iter.keyNotIn">Iter.keyNotIn</a><code>(it, t) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L162"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.keyNotIn" href="#Iter.keyNotIn">Iter.keyNotIn</a><code>(it, t) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L161"><i>src</i></a>)</h4>
 emit <code>k, v</code> for each nil <code>t[k]</code>
 <h4>Function <a id="Iter.keysTo" href="#Iter.keysTo">Iter.keysTo</a><code>(it, to={}) -&gt; to</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L246"><i>src</i></a>)</h4>
 collect emitted <code>k</code> as a list (vals are dropped)
-<h4>Function <a id="Iter.listen" href="#Iter.listen">Iter.listen</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L182"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.listen" href="#Iter.listen">Iter.listen</a><code>(it, fn) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L181"><i>src</i></a>)</h4>
 emit <code>k, v</code> after calling <code>fn(k, v)</code>.
 The results of the fn are ignored
-<h4>Function <a id="Iter.lookup" href="#Iter.lookup">Iter.lookup</a><code>(it, t) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L136"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.lookup" href="#Iter.lookup">Iter.lookup</a><code>(it, t) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L135"><i>src</i></a>)</h4>
 emit<code>v, $t[k]</code>, looking up the iter's values in the table's keys.
-<h4>Function <a id="Iter.lookupK" href="#Iter.lookupK">Iter.lookupK</a><code>(it, t) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L141"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.lookupK" href="#Iter.lookupK">Iter.lookupK</a><code>(it, t) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L140"><i>src</i></a>)</h4>
 emit <code>t[k], v</code> for each non-nil <code>t[k]</code>
-<h4>Function <a id="Iter.lookupV" href="#Iter.lookupV">Iter.lookupV</a><code>(it, t) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L148"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.lookupV" href="#Iter.lookupV">Iter.lookupV</a><code>(it, t) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L147"><i>src</i></a>)</h4>
 emit <code>k, $t[v]</code> for each non-nil <code>t[v]</code>
-<h4>Function <a id="Iter.map" href="#Iter.map">Iter.map</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L96"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.map" href="#Iter.map">Iter.map</a><code>(it, fn) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L95"><i>src</i></a>)</h4>
 emit <code>k, fn(v)</code> for each non-nil result
 <p>
 <blockquote>Note: if performance matters this is the most performant
 application function since it doesn't create an internal
 function.
 </blockquote>
-<h4>Function <a id="Iter.mapK" href="#Iter.mapK">Iter.mapK</a><code>(it, fn) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L101"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.mapK" href="#Iter.mapK">Iter.mapK</a><code>(it, fn) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L100"><i>src</i></a>)</h4>
 - emit <code>fn(k), v)</code> for each non-nil result.
-<h4>Function <a id="Iter.mapV" href="#Iter.mapV">Iter.mapV</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L109"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.mapV" href="#Iter.mapV">Iter.mapV</a><code>(it, fn) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L108"><i>src</i></a>)</h4>
 emit <code>k, fn(v)</code> for each non-nil result.
 (filtered when <code>newK==nil</code>)
 <h4>Function <a id="Iter.of" href="#Iter.of">Iter.of</a><code>(T, t) -&gt; T{pairs(t)}</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L44"><i>src</i></a>)</h4>
 create iterable of <code>pairs(t)</code>
 <h4>Function <a id="Iter.ofList" href="#Iter.ofList">Iter.ofList</a><code>(T, t) -&gt; T{ipairs(t)}</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L47"><i>src</i></a>)</h4>
 create iterable of <code>ipairs(t)</code>
-<h4>Function <a id="Iter.ofOrdList" href="#Iter.ofOrdList">Iter.ofOrdList</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L74"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.ofOrdList" href="#Iter.ofOrdList">Iter.ofOrdList</a><code>(T, t, cmpFn) -&gt; sortedIter[i, v]</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L73"><i>src</i></a>)</h4>
 sort t then iterate over list
-<h4>Function <a id="Iter.ofOrdMap" href="#Iter.ofOrdMap">Iter.ofOrdMap</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L69"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.ofOrdMap" href="#Iter.ofOrdMap">Iter.ofOrdMap</a><code>(T, t, cmpFn) -&gt; sortedIter[k, v]</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L68"><i>src</i></a>)</h4>
 create an iterable of <code>t</code> which emits keys in order.
-<p>
 <blockquote> WARNING: this first sorts the keys, which can be slow</blockquote>
-<h4>Function <a id="Iter.ofSlc" href="#Iter.ofSlc">Iter.ofSlc</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L82"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.ofSlc" href="#Iter.ofSlc">Iter.ofSlc</a><code>(T, t, starti, endi) -&gt; iter[i, v]</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L81"><i>src</i></a>)</h4>
 iterate over slice of <code>starti:endi</code> in <code>t</code>
 <h4>Function <a id="Iter.ofUnpacked" href="#Iter.ofUnpacked">Iter.ofUnpacked</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L60"><i>src</i></a>)</h4>
 create an iterable that returns <code>table.unpack</code> on each
@@ -1775,19 +1777,19 @@ value in <code>ipairs(t)</code>.
 <p>
 i.e. <code>Iter:ofUnpacked{{5, 'five'}, {6, 'six'}}</code> will
 return (5, 'five') then (6, 'six')
-<h4>Function <a id="Iter.reset" href="#Iter.reset">Iter.reset</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L258"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.reset" href="#Iter.reset">Iter.reset</a><code>(it) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L258"><i>src</i></a>)</h4>
 reset the iterator to run from the start
-<h4>Function <a id="Iter.run" href="#Iter.run">Iter.run</a><code>(it, fn--[[noop]]) -&gt; nil</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L231"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.run" href="#Iter.run">Iter.run</a><code>(it, fn--[[noop]]) -&gt; nil</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L232"><i>src</i></a>)</h4>
 run the iterator over all values, calling <code>fn(k, v)</code> for each.
-<h4>Function <a id="Iter.single" href="#Iter.single">Iter.single</a><code>(k, v) -&gt; fn(): (k, v) .. nil</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L283"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.single" href="#Iter.single">Iter.single</a><code>(k, v) -&gt; fn(): (k, v) .. nil</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L279"><i>src</i></a>)</h4>
 create an iterator that returns a single value
-<h4>Function <a id="Iter.swap" href="#Iter.swap">Iter.swap</a><code>(it) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L194"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.swap" href="#Iter.swap">Iter.swap</a><code>(it) -&gt; it[v, k]</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L195"><i>src</i></a>)</h4>
 emit <code>v, k</code> (swaps key and value)
 <h4>Function <a id="Iter.to" href="#Iter.to">Iter.to</a><code>(it, to={}) -&gt; to</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L239"><i>src</i></a>)</h4>
 collect non-nil <code>k, v</code> into table-like object <code>to</code>
-<h4>Function <a id="Iter.valIn" href="#Iter.valIn">Iter.valIn</a><code>(it, t) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L169"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.valIn" href="#Iter.valIn">Iter.valIn</a><code>(it, t) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L168"><i>src</i></a>)</h4>
 emit <code>k, v</code> for each non-nil <code>t[v]</code>
-<h4>Function <a id="Iter.valNotIn" href="#Iter.valNotIn">Iter.valNotIn</a><code>(it, t) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L176"><i>src</i></a>)</h4>
+<h4>Function <a id="Iter.valNotIn" href="#Iter.valNotIn">Iter.valNotIn</a><code>(it, t) -&gt; it</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L175"><i>src</i></a>)</h4>
 emit <code>k, v</code> for each nil <code>t[v]</code>
 <h4>Function <a id="Iter.valsTo" href="#Iter.valsTo">Iter.valsTo</a><code>(it, to={}) -&gt; to</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds/Iter.lua#L253"><i>src</i></a>)</h4>
 collect emitted <code>v</code> as a list (keys are dropped)
@@ -2250,17 +2252,17 @@ Set line at index.
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L605">src</a>)</td>
   </tr>
 </table>
-<h4>Function <a id="File.__len" href="#File.__len">File.__len</a><code>(lf) -&gt; #lf.idx</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L115"><i>src</i></a>)</h4>
+<h4>Function <a id="File.__len" href="#File.__len">File.__len</a><code>(lf) -&gt; #lf.idx</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L114"><i>src</i></a>)</h4>
 <h4>Function <a id="File._reindex" href="#File._reindex">File._reindex</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L56"><i>src</i></a>)</h4>
 <h4>Function <a id="File.close" href="#File.close">File.close</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L81"><i>src</i></a>)</h4>
-<h4>Function <a id="File.flush" href="#File.flush">File.flush</a><code>(lf) -&gt; ok, errmsg?</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L88"><i>src</i></a>)</h4>
-<h4>Function <a id="File.get" href="#File.get">File.get</a><code>(lf, i) -&gt; line</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L132"><i>src</i></a>)</h4>
+<h4>Function <a id="File.flush" href="#File.flush">File.flush</a><code>(lf) -&gt; ok, errmsg?</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L87"><i>src</i></a>)</h4>
+<h4>Function <a id="File.get" href="#File.get">File.get</a><code>(lf, i) -&gt; line</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L131"><i>src</i></a>)</h4>
 Get line at index
-<h4>Function <a id="File.reader" href="#File.reader">File.reader</a><code>(lf) -&gt; lines.File?, err?</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L165"><i>src</i></a>)</h4>
+<h4>Function <a id="File.reader" href="#File.reader">File.reader</a><code>(lf) -&gt; lines.File?, err?</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L164"><i>src</i></a>)</h4>
 Get a new read-only instance with an independent file-descriptor.
-<h4>Function <a id="File.set" href="#File.set">File.set</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L149"><i>src</i></a>)</h4>
+<h4>Function <a id="File.set" href="#File.set">File.set</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L148"><i>src</i></a>)</h4>
 Set line at index
-<h4>Function <a id="File.write" href="#File.write">File.write</a><code>(lf, ...) -&gt; ok, errmsg?</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L113"><i>src</i></a>)</h4>
+<h4>Function <a id="File.write" href="#File.write">File.write</a><code>(lf, ...) -&gt; ok, errmsg?</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/File.lua#L112"><i>src</i></a>)</h4>
 append to file
 <h3>Record <a id="lines.Gap" href="#lines.Gap">lines.Gap</a></h3>
 <p>
@@ -2545,7 +2547,7 @@ Note that the num removed/added will be nil if none were added/removed.
 utilities for file loading of lines.
 <p>
 <h4>Value <a id="lines.futils.__name" href="#lines.futils.__name">lines.futils.__name</a></h4>
-<h3>Function <a id="lines.futils.loadIdx" href="#lines.futils.loadIdx">lines.futils.loadIdx</a><code>(f, idxpath, fmode, reindex) -&gt; idxFile</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/futils.lua#L31"><i>src</i></a>)</h3>
+<h3>Function <a id="lines.futils.loadIdx" href="#lines.futils.loadIdx">lines.futils.loadIdx</a><code>(f, idxpath, fmode, reindex) -&gt; idxFile</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/futils.lua#L29"><i>src</i></a>)</h3>
 load or reindex the file at path to/from idxpath.
 <h2>Module <a id="rebuf.motion" href="#rebuf.motion">rebuf.motion</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/lines/lines/motion.lua#L4"><i>src</i></a>)</h2>
 module with helper methods for moving a cursor
@@ -2702,10 +2704,10 @@ pod: plain old data
 </table>
 <h4>Value <a id="pod.__name" href="#pod.__name">pod.__name</a></h4>
 <h3>Table <a id="pod.boolean" href="#pod.boolean">pod.boolean</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
-<h3>Table <a id="pod.integer" href="#pod.integer">pod.integer</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
+<h3>Table <a id="pod.int" href="#pod.int">pod.int</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.nil" href="#pod.nil">pod.nil</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.number" href="#pod.number">pod.number</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
-<h3>Table <a id="pod.string" href="#pod.string">pod.string</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
+<h3>Table <a id="pod.str" href="#pod.str">pod.str</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.table" href="#pod.table">pod.table</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
 <h3>Record <a id="pod.List" href="#pod.List">pod.List</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L128"><i>src</i></a>)</h3>
 Poder for a list of items with a type.
@@ -3547,7 +3549,7 @@ Can override default `io` module for global async mode.
   fifo = S.S_IFIFO,
 }</code>
 <h4>Value <a id="fd.PIPE_BUF" href="#fd.PIPE_BUF">fd.PIPE_BUF</a></h4>
-<h3>Table <a id="fd.PollList" href="#fd.PollList">fd.PollList</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L257"><i>src</i></a>)</h3><code class="block">M.PollList = setmetatable({
+<h3>Table <a id="fd.PollList" href="#fd.PollList">fd.PollList</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L268"><i>src</i></a>)</h3><code class="block">M.PollList = setmetatable({
 __name='PollList',
 __index = {
   __len = function(pl) return pl._pl:size() - #pl.avail end,
@@ -3583,50 +3585,55 @@ __index = {
 })</code>
 <h4>Value <a id="fd.__name" href="#fd.__name">fd.__name</a></h4>
 <h3>Table <a id="fd.io" href="#fd.io">fd.io</a></h3>
-<h4>Value <a id="fd.stdin" href="#fd.stdin">fd.stdin</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L307"><i>src</i></a>)</h4>
-<h4>Value <a id="fd.stdout" href="#fd.stdout">fd.stdout</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L308"><i>src</i></a>)</h4>
+<h4>Value <a id="fd.stdin" href="#fd.stdin">fd.stdin</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L318"><i>src</i></a>)</h4>
+<h4>Value <a id="fd.stdout" href="#fd.stdout">fd.stdout</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L319"><i>src</i></a>)</h4>
 <h3>Table <a id="fd.sys" href="#fd.sys">fd.sys</a></h3>
 <b>Functions: </b> <table>
   <tr>
     <td><code>fd.tmpfile</code></td>
-    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L280">src</a>)</td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L291">src</a>)</td>
   </tr>
 </table>
-<h3>Function <a id="fd.close" href="#fd.close">fd.close</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L274"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.fileno" href="#fd.fileno">fd.fileno</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L328"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.finishRunning" href="#fd.finishRunning">fd.finishRunning</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L73"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.flush" href="#fd.flush">fd.flush</a><code>() -&gt; M.output():flush()</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L312"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.ftype" href="#fd.ftype">fd.ftype</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L332"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.input" href="#fd.input">fd.input</a><code>() -&gt; M.stdin</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L310"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.ioAsync" href="#fd.ioAsync">fd.ioAsync</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L371"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.ioStd" href="#fd.ioStd">fd.ioStd</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L365"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.ioSync" href="#fd.ioSync">fd.ioSync</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L368"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.isatty" href="#fd.isatty">fd.isatty</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L336"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.lines" href="#fd.lines">fd.lines</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L300"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.modifiedEq" href="#fd.modifiedEq">fd.modifiedEq</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L81"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.close" href="#fd.close">fd.close</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L285"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.fileno" href="#fd.fileno">fd.fileno</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L339"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.finishRunning" href="#fd.finishRunning">fd.finishRunning</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L84"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.flush" href="#fd.flush">fd.flush</a><code>() -&gt; M.output():flush()</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L323"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.ftype" href="#fd.ftype">fd.ftype</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L343"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.input" href="#fd.input">fd.input</a><code>() -&gt; M.stdin</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L321"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.ioAsync" href="#fd.ioAsync">fd.ioAsync</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L382"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.ioStd" href="#fd.ioStd">fd.ioStd</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L376"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.ioSync" href="#fd.ioSync">fd.ioSync</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L379"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.isCreate" href="#fd.isCreate">fd.isCreate</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L53"><i>src</i></a>)</h3>
+Given a string mode, return whether the file will be created
+if it doesn't exist.
+<h3>Function <a id="fd.isTrunc" href="#fd.isTrunc">fd.isTrunc</a><code>(mode) -&gt; bool</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L47"><i>src</i></a>)</h3>
+Given a string mode, return whether the file will be truncated.
+<h3>Function <a id="fd.isatty" href="#fd.isatty">fd.isatty</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L347"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.lines" href="#fd.lines">fd.lines</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L311"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.modifiedEq" href="#fd.modifiedEq">fd.modifiedEq</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L92"><i>src</i></a>)</h3>
 return whether two fstat's have equal modification times
 FIXME: move this to civix
-<h3>Function <a id="fd.newFD" href="#fd.newFD">fd.newFD</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L61"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.newFDT" href="#fd.newFDT">fd.newFDT</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L61"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.open" href="#fd.open">fd.open</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L273"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.openFD" href="#fd.openFD">fd.openFD</a><code>(...) -&gt; M.openWith(S.openFD, ...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L269"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.openFDT" href="#fd.openFDT">fd.openFDT</a><code>(...) -&gt; M.openWith(S.openFDT, ...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L270"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.openFileno" href="#fd.openFileno">fd.openFileno</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L306"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.openWith" href="#fd.openWith">fd.openWith</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L268"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.output" href="#fd.output">fd.output</a><code>() -&gt; M.stdout</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L311"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.read" href="#fd.read">fd.read</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L288"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.tmpfileFn" href="#fd.tmpfileFn">fd.tmpfileFn</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L279"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.type" href="#fd.type">fd.type</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L322"><i>src</i></a>)</h3>
-<h3>Function <a id="fd.write" href="#fd.write">fd.write</a><code>(...) -&gt; M.output():write(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L301"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.newFD" href="#fd.newFD">fd.newFD</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L72"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.newFDT" href="#fd.newFDT">fd.newFDT</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L72"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.open" href="#fd.open">fd.open</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L284"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.openFD" href="#fd.openFD">fd.openFD</a><code>(...) -&gt; M.openWith(S.openFD, ...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L280"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.openFDT" href="#fd.openFDT">fd.openFDT</a><code>(...) -&gt; M.openWith(S.openFDT, ...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L281"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.openFileno" href="#fd.openFileno">fd.openFileno</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L317"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.openWith" href="#fd.openWith">fd.openWith</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L279"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.output" href="#fd.output">fd.output</a><code>() -&gt; M.stdout</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L322"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.read" href="#fd.read">fd.read</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L299"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.tmpfileFn" href="#fd.tmpfileFn">fd.tmpfileFn</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L290"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.type" href="#fd.type">fd.type</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L333"><i>src</i></a>)</h3>
+<h3>Function <a id="fd.write" href="#fd.write">fd.write</a><code>(...) -&gt; M.output():write(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L312"><i>src</i></a>)</h3>
 <p>
-<h2>Module <a id="fd(async)" href="#fd(async)">fd(async)</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L57"><i>src</i></a>)</h2>
+<h2>Module <a id="fd(async)" href="#fd(async)">fd(async)</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L68"><i>src</i></a>)</h2>
 <p>
 <h4>Value <a id="fd._async.__name" href="#fd._async.__name">fd._async.__name</a></h4>
-<h3>Function <a id="fd(async).tmpfile" href="#fd(async).tmpfile">fd(async).tmpfile</a><code>() -&gt; M.tmpfileFn(S.tmpFDT)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L281"><i>src</i></a>)</h3>
-<h2>Module <a id="fd(sync)" href="#fd(sync)">fd(sync)</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L56"><i>src</i></a>)</h2>
+<h3>Function <a id="fd(async).tmpfile" href="#fd(async).tmpfile">fd(async).tmpfile</a><code>() -&gt; M.tmpfileFn(S.tmpFDT)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L292"><i>src</i></a>)</h3>
+<h2>Module <a id="fd(sync)" href="#fd(sync)">fd(sync)</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L67"><i>src</i></a>)</h2>
 <p>
 <h4>Value <a id="fd._sync.__name" href="#fd._sync.__name">fd._sync.__name</a></h4>
-<h3>Function <a id="fd(sync).tmpfile" href="#fd(sync).tmpfile">fd(sync).tmpfile</a><code>() -&gt; M.tmpfileFn(S.tmpFD)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L280"><i>src</i></a>)</h3>
+<h3>Function <a id="fd(sync).tmpfile" href="#fd(sync).tmpfile">fd(sync).tmpfile</a><code>() -&gt; M.tmpfileFn(S.tmpFD)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/fd/fd.lua#L291"><i>src</i></a>)</h3>
 <h3>Record <a id="fd.IFile" href="#fd.IFile">fd.IFile</a></h3>
 <p>
 <b>Fields: </b> <table>
@@ -3780,7 +3787,7 @@ other filedescriptor functionality.</blockquote>
 <h4>Value <a id="civix.SOCK" href="#civix.SOCK">civix.SOCK</a></h4>
 <h3>Table <a id="civix.Stat" href="#civix.Stat">civix.Stat</a></h3>
 <h4>Value <a id="civix.__name" href="#civix.__name">civix.__name</a></h4>
-<h3>Record <a id="civix.Sh" href="#civix.Sh">civix.Sh</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L416"><i>src</i></a>)</h3>
+<h3>Record <a id="civix.Sh" href="#civix.Sh">civix.Sh</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L415"><i>src</i></a>)</h3>
 Start args on the shell
 <blockquote>Suggestion: use civix.sh instead.</blockquote>
 <p>
@@ -3854,7 +3861,7 @@ Examples (see civix.sh for more examples): <table>
 <b>Records: </b> <table>
   <tr>
     <td><code>civix.Sh.__index</code></td>
-    <td>[Ty<Sh>] (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L416">src</a>)</td>
+    <td>[Ty<Sh>] (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L415">src</a>)</td>
   </tr>
 </table>
 <b>Methods: </b> <table>
@@ -3871,20 +3878,20 @@ Examples (see civix.sh for more examples): <table>
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L159">src</a>)</td>
   </tr>
 </table>
-<h4>Function <a id="Sh.finish" href="#Sh.finish">Sh.finish</a><code>(sh, other) -&gt; out, err</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L481"><i>src</i></a>)</h4>
+<h4>Function <a id="Sh.finish" href="#Sh.finish">Sh.finish</a><code>(sh, other) -&gt; out, err</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L480"><i>src</i></a>)</h4>
 finish files (in sh or other) by writing other.input to stdin and reading
 stdout/stderr.  All processes are done asynchronously
-<h4>Function <a id="Sh.isDone" href="#Sh.isDone">Sh.isDone</a><code>(sh) -&gt; sh._sh:isDone()</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L447"><i>src</i></a>)</h4>
-<h4>Function <a id="Sh.rc" href="#Sh.rc">Sh.rc</a><code>(sh) -&gt; sh._sh:rc()</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L448"><i>src</i></a>)</h4>
-<h4>Function <a id="Sh.read" href="#Sh.read">Sh.read</a><code>(sh, ...) -&gt; sh.stdout:read(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L483"><i>src</i></a>)</h4>
-<h4>Function <a id="Sh.start" href="#Sh.start">Sh.start</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L445"><i>src</i></a>)</h4>
+<h4>Function <a id="Sh.isDone" href="#Sh.isDone">Sh.isDone</a><code>(sh) -&gt; sh._sh:isDone()</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L446"><i>src</i></a>)</h4>
+<h4>Function <a id="Sh.rc" href="#Sh.rc">Sh.rc</a><code>(sh) -&gt; sh._sh:rc()</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L447"><i>src</i></a>)</h4>
+<h4>Function <a id="Sh.read" href="#Sh.read">Sh.read</a><code>(sh, ...) -&gt; sh.stdout:read(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L482"><i>src</i></a>)</h4>
+<h4>Function <a id="Sh.start" href="#Sh.start">Sh.start</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L444"><i>src</i></a>)</h4>
 start the shell in the background.
 Example: <code>sh{arg1, arg2, stdin=nostdin, stdout=true, stderr=io.stderr}</code>
 <blockquote>Note: See Sh for how filedescriptors are set</blockquote>
-<h4>Function <a id="Sh.wait" href="#Sh.wait">Sh.wait</a><code>(sh) -&gt; int</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L456"><i>src</i></a>)</h4>
+<h4>Function <a id="Sh.wait" href="#Sh.wait">Sh.wait</a><code>(sh) -&gt; int</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L455"><i>src</i></a>)</h4>
 wait for shell to complete, returns return code
-<h4>Function <a id="Sh.write" href="#Sh.write">Sh.write</a><code>(sh, ...) -&gt; sh.stdin:write(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L482"><i>src</i></a>)</h4>
-<h3>Record <a id="civix.ShFin" href="#civix.ShFin">civix.ShFin</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L462"><i>src</i></a>)</h3>
+<h4>Function <a id="Sh.write" href="#Sh.write">Sh.write</a><code>(sh, ...) -&gt; sh.stdin:write(...)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L481"><i>src</i></a>)</h4>
+<h3>Record <a id="civix.ShFin" href="#civix.ShFin">civix.ShFin</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L461"><i>src</i></a>)</h3>
 <p>
 <b>Fields: </b> <table>
   <tr>
@@ -3912,7 +3919,7 @@ wait for shell to complete, returns return code
 <b>Records: </b> <table>
   <tr>
     <td><code>civix.ShFin.__index</code></td>
-    <td>[Ty<ShFin>] (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L462">src</a>)</td>
+    <td>[Ty<ShFin>] (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L461">src</a>)</td>
   </tr>
 </table>
 <b>Methods: </b> <table>
@@ -3929,7 +3936,7 @@ wait for shell to complete, returns return code
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L159">src</a>)</td>
   </tr>
 </table>
-<h3>Record <a id="civix.Walk" href="#civix.Walk">civix.Walk</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L250"><i>src</i></a>)</h3>
+<h3>Record <a id="civix.Walk" href="#civix.Walk">civix.Walk</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L249"><i>src</i></a>)</h3>
 Walk the directory tree as a iterator of <code>path, ftype</code>. Can walk either a
 single path <code>Walk'path/'</code> or a list of paths <code>Walk{'a/', 'b.txt'}</code>. <ul>
   <li>Note: all <code>ftype=='dir'</code> paths end in <code>/</code>.</li>
@@ -3960,7 +3967,7 @@ single path <code>Walk'path/'</code> or a list of paths <code>Walk{'a/', 'b.txt'
 <b>Records: </b> <table>
   <tr>
     <td><code>civix.Walk.__index</code></td>
-    <td>[Ty<Walk>] (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L250">src</a>)</td>
+    <td>[Ty<Walk>] (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L249">src</a>)</td>
   </tr>
 </table>
 <b>Methods: </b> <table>
@@ -3977,14 +3984,14 @@ single path <code>Walk'path/'</code> or a list of paths <code>Walk{'a/', 'b.txt'
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L159">src</a>)</td>
   </tr>
 </table>
-<h4>Function <a id="Walk.__call" href="#Walk.__call">Walk.__call</a><code>(w) -&gt; path, ftype</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L273"><i>src</i></a>)</h4>
-<h4>Function <a id="Walk._deeper" href="#Walk._deeper">Walk._deeper</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L279"><i>src</i></a>)</h4>
+<h4>Function <a id="Walk.__call" href="#Walk.__call">Walk.__call</a><code>(w) -&gt; path, ftype</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L272"><i>src</i></a>)</h4>
+<h4>Function <a id="Walk._deeper" href="#Walk._deeper">Walk._deeper</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L278"><i>src</i></a>)</h4>
 walk one level deeper by pushing onto _dirs stack.
-<h4>Function <a id="Walk.depth" href="#Walk.depth">Walk.depth</a><code>(w) -&gt; #w._dirs</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L257"><i>src</i></a>)</h4>
+<h4>Function <a id="Walk.depth" href="#Walk.depth">Walk.depth</a><code>(w) -&gt; #w._dirs</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L256"><i>src</i></a>)</h4>
 - get the depth of the current directory being walked
-<h4>Function <a id="Walk.skip" href="#Walk.skip">Walk.skip</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L259"><i>src</i></a>)</h4>
+<h4>Function <a id="Walk.skip" href="#Walk.skip">Walk.skip</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L258"><i>src</i></a>)</h4>
 skip the current directory level
-<h3>Record <a id="civix._WalkDir" href="#civix._WalkDir">civix._WalkDir</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L286"><i>src</i></a>)</h3>
+<h3>Record <a id="civix._WalkDir" href="#civix._WalkDir">civix._WalkDir</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L285"><i>src</i></a>)</h3>
 Walk a single directory
 <p>
 <b>Fields: </b> <table>
@@ -4011,7 +4018,7 @@ Walk a single directory
 <b>Records: </b> <table>
   <tr>
     <td><code>civix._WalkDir.__index</code></td>
-    <td>[Ty<_WalkDir>] (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L286">src</a>)</td>
+    <td>[Ty<_WalkDir>] (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L285">src</a>)</td>
   </tr>
 </table>
 <b>Methods: </b> <table>
@@ -4028,30 +4035,30 @@ Walk a single directory
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L159">src</a>)</td>
   </tr>
 </table>
-<h4>Function <a id="_WalkDir.__call" href="#_WalkDir.__call">_WalkDir.__call</a><code>(wd, walk) -&gt; path, ftype</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L305"><i>src</i></a>)</h4>
-<h3>Function <a id="civix.Lap" href="#civix.Lap">civix.Lap</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L390"><i>src</i></a>)</h3>
-<h3>Function <a id="civix._sh" href="#civix._sh">civix._sh</a><code>(cmd) -&gt; Sh</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L503"><i>src</i></a>)</h3>
+<h4>Function <a id="_WalkDir.__call" href="#_WalkDir.__call">_WalkDir.__call</a><code>(wd, walk) -&gt; path, ftype</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L304"><i>src</i></a>)</h4>
+<h3>Function <a id="civix.Lap" href="#civix.Lap">civix.Lap</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L389"><i>src</i></a>)</h3>
+<h3>Function <a id="civix._sh" href="#civix._sh">civix._sh</a><code>(cmd) -&gt; Sh</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L502"><i>src</i></a>)</h3>
 <h3>Function <a id="civix.cp" href="#civix.cp">civix.cp</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L119"><i>src</i></a>)</h3>
 copy data from <code>from</code> to <code>to</code>. Their types can be either
 a string (path) or a file descriptor.
-<h3>Function <a id="civix.cpRecursive" href="#civix.cpRecursive">civix.cpRecursive</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L320"><i>src</i></a>)</h3>
+<h3>Function <a id="civix.cpRecursive" href="#civix.cpRecursive">civix.cpRecursive</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L319"><i>src</i></a>)</h3>
 recursively copy <code>from/</code> to new <code>to/</code> directory.
-<h3>Function <a id="civix.epoch" href="#civix.epoch">civix.epoch</a><code>() -&gt; ds.Epoch(lib.epoch())</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L159"><i>src</i></a>)</h3>
+<h3>Function <a id="civix.epoch" href="#civix.epoch">civix.epoch</a><code>() -&gt; ds.Epoch(lib.epoch())</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L158"><i>src</i></a>)</h3>
 Return the Epoch/Mono time
 Time according to realtime clock
 <h3>Function <a id="civix.exists" href="#civix.exists">civix.exists</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L422"><i>src</i></a>)</h3>
 return t with the key/vals of add inserted
 <h3>Function <a id="civix.fdWrite" href="#civix.fdWrite">civix.fdWrite</a><code>(to, from, sz--[[=BLOCK_SZ]]) -&gt; (to, from)</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L107"><i>src</i></a>)</h3>
 Read data from fd <code>from</code> and write to fd <code>to</code>, then flush.
-<h3>Function <a id="civix.forceCp" href="#civix.forceCp">civix.forceCp</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L346"><i>src</i></a>)</h3>
+<h3>Function <a id="civix.forceCp" href="#civix.forceCp">civix.forceCp</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L345"><i>src</i></a>)</h3>
 copy <code>from</code> to <code>to</code>, creating the directory structure if necessary.
-<h3>Function <a id="civix.forceWrite" href="#civix.forceWrite">civix.forceWrite</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L352"><i>src</i></a>)</h3>
+<h3>Function <a id="civix.forceWrite" href="#civix.forceWrite">civix.forceWrite</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L351"><i>src</i></a>)</h3>
 write <code>text</code> to <code>path</code>, creating the directory structure if necessary.
-<h3>Function <a id="civix.isDir" href="#civix.isDir">civix.isDir</a><code>(path) -&gt; M.pathtype(path) == 'dir'</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L188"><i>src</i></a>)</h3>
-<h3>Function <a id="civix.isFile" href="#civix.isFile">civix.isFile</a><code>(path) -&gt; M.pathtype(path) == 'file'</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L187"><i>src</i></a>)</h3>
-<h3>Function <a id="civix.mkDir" href="#civix.mkDir">civix.mkDir</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L340"><i>src</i></a>)</h3>
-<h3>Function <a id="civix.mkDirs" href="#civix.mkDirs">civix.mkDirs</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L336"><i>src</i></a>)</h3>
-<h3>Function <a id="civix.mkTree" href="#civix.mkTree">civix.mkTree</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L386"><i>src</i></a>)</h3>
+<h3>Function <a id="civix.isDir" href="#civix.isDir">civix.isDir</a><code>(path) -&gt; M.pathtype(path) == 'dir'</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L187"><i>src</i></a>)</h3>
+<h3>Function <a id="civix.isFile" href="#civix.isFile">civix.isFile</a><code>(path) -&gt; M.pathtype(path) == 'file'</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L186"><i>src</i></a>)</h3>
+<h3>Function <a id="civix.mkDir" href="#civix.mkDir">civix.mkDir</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L339"><i>src</i></a>)</h3>
+<h3>Function <a id="civix.mkDirs" href="#civix.mkDirs">civix.mkDirs</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L335"><i>src</i></a>)</h3>
+<h3>Function <a id="civix.mkTree" href="#civix.mkTree">civix.mkTree</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L385"><i>src</i></a>)</h3>
 mkTree(tree) builds a tree of files and dirs at `dir` <ul>
   <li>Dirs  are tables.</li>
   <li>Files are string or fd -- which are read+closed.</li>
@@ -4071,26 +4078,26 @@ a/a2.txt    # content: stuff in a2.txt
 a/a3/a4.txt # content: stuff in a3.txt</code>
 <h3>Function <a id="civix.modifiedEq" href="#civix.modifiedEq">civix.modifiedEq</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L61"><i>src</i></a>)</h3>
 return whether two path|File|Stat have equal modification times
-<h3>Function <a id="civix.mono" href="#civix.mono">civix.mono</a><code>() -&gt; ds.Duration(lib.mono())</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L161"><i>src</i></a>)</h3>
+<h3>Function <a id="civix.mono" href="#civix.mono">civix.mono</a><code>() -&gt; ds.Duration(lib.mono())</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L160"><i>src</i></a>)</h3>
 Duration according to monotomically incrementing clock.
-<h3>Function <a id="civix.monoSec" href="#civix.monoSec">civix.monoSec</a><code>() -&gt; M.mono():asSeconds()</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L162"><i>src</i></a>)</h3>
+<h3>Function <a id="civix.monoSec" href="#civix.monoSec">civix.monoSec</a><code>() -&gt; M.mono():asSeconds()</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L161"><i>src</i></a>)</h3>
 <h3>Function <a id="civix.mv" href="#civix.mv">civix.mv</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L97"><i>src</i></a>)</h3>
 Move path from old -> new, throwing an error on failure.
-<h3>Function <a id="civix.pathEq" href="#civix.pathEq">civix.pathEq</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L185"><i>src</i></a>)</h3>
+<h3>Function <a id="civix.pathEq" href="#civix.pathEq">civix.pathEq</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L184"><i>src</i></a>)</h3>
 return if the contents of the two paths are equal.
 If both are directories return true (do not recurse).
 If both don't exist return true
-<h3>Function <a id="civix.pathtype" href="#civix.pathtype">civix.pathtype</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L175"><i>src</i></a>)</h3>
-<h3>Function <a id="civix.quote" href="#civix.quote">civix.quote</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L143"><i>src</i></a>)</h3>
+<h3>Function <a id="civix.pathtype" href="#civix.pathtype">civix.pathtype</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L174"><i>src</i></a>)</h3>
+<h3>Function <a id="civix.quote" href="#civix.quote">civix.quote</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L142"><i>src</i></a>)</h3>
 quote the str if it's possible
 <h3>Function <a id="civix.rm" href="#civix.rm">civix.rm</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L422"><i>src</i></a>)</h3>
 return t with the key/vals of add inserted
-<h3>Function <a id="civix.rmRecursive" href="#civix.rmRecursive">civix.rmRecursive</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L326"><i>src</i></a>)</h3>
+<h3>Function <a id="civix.rmRecursive" href="#civix.rmRecursive">civix.rmRecursive</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L325"><i>src</i></a>)</h3>
 <h3>Function <a id="civix.rmdir" href="#civix.rmdir">civix.rmdir</a><code>(t, add) -&gt; t</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L422"><i>src</i></a>)</h3>
 return t with the key/vals of add inserted
-<h3>Function <a id="civix.setModified" href="#civix.setModified">civix.setModified</a><code>(f, sec, nsec) -&gt; ok, errmsg?</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L134"><i>src</i></a>)</h3>
+<h3>Function <a id="civix.setModified" href="#civix.setModified">civix.setModified</a><code>(f, sec, nsec) -&gt; ok, errmsg?</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L133"><i>src</i></a>)</h3>
 set the modified time of the path|file
-<h3>Function <a id="civix.sh" href="#civix.sh">civix.sh</a><code>(cmd) -&gt; out, err, sh</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L538"><i>src</i></a>)</h3>
+<h3>Function <a id="civix.sh" href="#civix.sh">civix.sh</a><code>(cmd) -&gt; out, err, sh</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L537"><i>src</i></a>)</h3>
 Execute the command in another process via execvp (system shell). Throws an
 error if the command fails.
 <p>
@@ -4123,13 +4130,13 @@ Note: use <code>Plumb{...}:run()</code> if you want to pipe multiple shells toge
     <td><code>echo "sent to stdin" | cat</code></td>
   </tr>
 </table>
-<h3>Function <a id="civix.sleep" href="#civix.sleep">civix.sleep</a><code>(d) -&gt; nil</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L155"><i>src</i></a>)</h3>
+<h3>Function <a id="civix.sleep" href="#civix.sleep">civix.sleep</a><code>(d) -&gt; nil</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L154"><i>src</i></a>)</h3>
 Sleep for the specified duration
 <h3>Function <a id="civix.stat" href="#civix.stat">civix.stat</a><code>(v) -&gt; Stat?, errmsg?</code> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L49"><i>src</i></a>)</h3>
 Given a path|File|Stat return a Stat
 <h3>Function <a id="civix.swap" href="#civix.swap">civix.swap</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L125"><i>src</i></a>)</h3>
 swap paths a <-> b
-<h3>Function <a id="civix.walk" href="#civix.walk">civix.walk</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L239"><i>src</i></a>)</h3>
+<h3>Function <a id="civix.walk" href="#civix.walk">civix.walk</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/civix/civix.lua#L238"><i>src</i></a>)</h3>
 TODO: remove this
 walk the paths up to depth, calling <code>ftypeFns[ftype]</code> for
 each item encountered.
@@ -6144,7 +6151,7 @@ See the vt100 module for that implementation</blockquote><code class="block">M.C
 }</code>
 <h4>Value <a id="asciicolor.__name" href="#asciicolor.__name">asciicolor.__name</a></h4>
 <h3>Table <a id="asciicolor.dark" href="#asciicolor.dark">asciicolor.dark</a></h3>
-<h3>Record <a id="asciicolor.Styler" href="#asciicolor.Styler">asciicolor.Styler</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/asciicolor/asciicolor.lua#L139"><i>src</i></a>)</h3>
+<h3>Record <a id="asciicolor.Styler" href="#asciicolor.Styler">asciicolor.Styler</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/asciicolor/asciicolor.lua#L140"><i>src</i></a>)</h3>
 Create a styler
 <p>
 Note: pass f (file) to create the default AcWriter with the file.
@@ -6157,7 +6164,7 @@ Note: pass mode, stylepath to control loadStyle
   </tr>
   <tr>
     <td><code>asciicolor.Styler.style</code></td>
-    <td>[table] = <code>{api="G", bar={basel="Bw", bg="w", changel="Bw", error="Bw", fg="b", h3="Bw", line="nw", meta="lw"}, base="F", basel="Wf", bg="b", bold="Z", boldul="ZZ", builtin="p", call="c", change="G", changel="Wg", char="g", code="hb", comment="zb", commentbox="bl", dispatch="C", empty="zd", error="Wr", h1="N", h2="S", h3="W", h4="Z", key="T", keyword="R", line="ld", literal="h", match="Bf", meta="d", notify="C", number="N", path="m", ref="cZ", string="g", stringbox="d", symbol="A", type="h", ul="zZ", var="G"}</code>
+    <td>[table] = <code>{api="G", bar={basel="Bw", bg="w", changel="Bw", error="Bw", fg="b", h3="Bw", line="nw", meta="lw"}, base="F", basel="Wf", bg="b", bold="Z", boldul="ZZ", builtin="p", call="c", change="G", changel="Wg", char="g", code="hb", comment="zb", commentbox="bl", dispatch="C", empty="zd", error="Wr", h1="N", h2="S", h3="W", h4="Z", info="bl", key="T", keyword="R", line="ld", literal="h", match="Bf", meta="d", notify="C", number="N", path="m", ref="cZ", string="g", stringbox="d", symbol="A", type="h", ul="zZ", var="G"}</code>
     default=loadStyle() in Fmt</td>
   </tr>
 </table>
@@ -6168,7 +6175,7 @@ Note: pass mode, stylepath to control loadStyle
 <b>Records: </b> <table>
   <tr>
     <td><code>asciicolor.Styler.__index</code></td>
-    <td>[Ty<Styler>] (<a href="https://github.com/civboot/civlua/blob/main/ui/asciicolor/asciicolor.lua#L139">src</a>)</td>
+    <td>[Ty<Styler>] (<a href="https://github.com/civboot/civlua/blob/main/ui/asciicolor/asciicolor.lua#L140">src</a>)</td>
   </tr>
 </table>
 <b>Methods: </b> <table>
@@ -6177,20 +6184,20 @@ Note: pass mode, stylepath to control loadStyle
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L153">src</a>)</td>
   </tr>
 </table>
-<h4>Function <a id="Styler.flush" href="#Styler.flush">Styler.flush</a><code>(st) -&gt; st.acwriter:flush()</code> (<a href="https://github.com/civboot/civlua/blob/main/ui/asciicolor/asciicolor.lua#L144"><i>src</i></a>)</h4>
-<h4>Function <a id="Styler.getFB" href="#Styler.getFB">Styler.getFB</a><code>(st, style) -&gt; fb</code> (<a href="https://github.com/civboot/civlua/blob/main/ui/asciicolor/asciicolor.lua#L162"><i>src</i></a>)</h4>
+<h4>Function <a id="Styler.flush" href="#Styler.flush">Styler.flush</a><code>(st) -&gt; st.acwriter:flush()</code> (<a href="https://github.com/civboot/civlua/blob/main/ui/asciicolor/asciicolor.lua#L145"><i>src</i></a>)</h4>
+<h4>Function <a id="Styler.getFB" href="#Styler.getFB">Styler.getFB</a><code>(st, style) -&gt; fb</code> (<a href="https://github.com/civboot/civlua/blob/main/ui/asciicolor/asciicolor.lua#L163"><i>src</i></a>)</h4>
 Get the style's fb (foreground + background asciicolor bytes)
-<h4>Function <a id="Styler.level" href="#Styler.level">Styler.level</a><code>(st, add) -&gt; st.acwriter.f:level(add)</code> (<a href="https://github.com/civboot/civlua/blob/main/ui/asciicolor/asciicolor.lua#L143"><i>src</i></a>)</h4>
-<h4>Function <a id="Styler.styled" href="#Styler.styled">Styler.styled</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/asciicolor/asciicolor.lua#L170"><i>src</i></a>)</h4>
+<h4>Function <a id="Styler.level" href="#Styler.level">Styler.level</a><code>(st, add) -&gt; st.acwriter.f:level(add)</code> (<a href="https://github.com/civboot/civlua/blob/main/ui/asciicolor/asciicolor.lua#L144"><i>src</i></a>)</h4>
+<h4>Function <a id="Styler.styled" href="#Styler.styled">Styler.styled</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/asciicolor/asciicolor.lua#L171"><i>src</i></a>)</h4>
 Example: st:styled('path', 'path/to/foo.txt', '\n')
-<h4>Function <a id="Styler.write" href="#Styler.write">Styler.write</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/asciicolor/asciicolor.lua#L175"><i>src</i></a>)</h4>
+<h4>Function <a id="Styler.write" href="#Styler.write">Styler.write</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/asciicolor/asciicolor.lua#L176"><i>src</i></a>)</h4>
 write as plain
-<h3>Function <a id="asciicolor.Fmt" href="#asciicolor.Fmt">asciicolor.Fmt</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/asciicolor/asciicolor.lua#L194"><i>src</i></a>)</h3>
+<h3>Function <a id="asciicolor.Fmt" href="#asciicolor.Fmt">asciicolor.Fmt</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/asciicolor/asciicolor.lua#L195"><i>src</i></a>)</h3>
 create a Fmt with sensible defaults from the config
 <h3>Function <a id="asciicolor.assertcode" href="#asciicolor.assertcode">asciicolor.assertcode</a><code>(ac) -&gt; single leter (or error)</code> (<a href="https://github.com/civboot/civlua/blob/main/ui/asciicolor/asciicolor.lua#L55"><i>src</i></a>)</h3>
-<h3>Function <a id="asciicolor.loadStyle" href="#asciicolor.loadStyle">asciicolor.loadStyle</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/asciicolor/asciicolor.lua#L130"><i>src</i></a>)</h3>
-<h3>Function <a id="asciicolor.mode" href="#asciicolor.mode">asciicolor.mode</a><code>() -&gt; G.CLIMODE or os.getenv'CLIMODE'</code> (<a href="https://github.com/civboot/civlua/blob/main/ui/asciicolor/asciicolor.lua#L116"><i>src</i></a>)</h3>
-<h3>Function <a id="asciicolor.stylePath" href="#asciicolor.stylePath">asciicolor.stylePath</a><code>() -&gt; pth.concat{pth.home(), CONFIG_PATH}</code> (<a href="https://github.com/civboot/civlua/blob/main/ui/asciicolor/asciicolor.lua#L118"><i>src</i></a>)</h3>
+<h3>Function <a id="asciicolor.loadStyle" href="#asciicolor.loadStyle">asciicolor.loadStyle</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/asciicolor/asciicolor.lua#L131"><i>src</i></a>)</h3>
+<h3>Function <a id="asciicolor.mode" href="#asciicolor.mode">asciicolor.mode</a><code>() -&gt; G.CLIMODE or os.getenv'CLIMODE'</code> (<a href="https://github.com/civboot/civlua/blob/main/ui/asciicolor/asciicolor.lua#L117"><i>src</i></a>)</h3>
+<h3>Function <a id="asciicolor.stylePath" href="#asciicolor.stylePath">asciicolor.stylePath</a><code>() -&gt; pth.concat{pth.home(), CONFIG_PATH}</code> (<a href="https://github.com/civboot/civlua/blob/main/ui/asciicolor/asciicolor.lua#L119"><i>src</i></a>)</h3>
 <p>
 <h2>Module <a id="Ascii" href="#Ascii">Ascii</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/asciicolor/asciicolor.lua#L37"><i>src</i></a>)</h2>
 typosafe mapping of fullname -> asciichar
@@ -6266,11 +6273,11 @@ Originally written 2022 Phil Leblanc, modified 2023 Rett Berg (Civboot.org)
 Authorized for relicense in: http://github.com/philanc/plterm/issues/4</code>
 <p>
 <h3>Table <a id="vt100.ATEXIT" href="#vt100.ATEXIT">vt100.ATEXIT</a></h3>
-<h3>Table <a id="vt100.Bg" href="#vt100.Bg">vt100.Bg</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L237"><i>src</i></a>)</h3>
+<h3>Table <a id="vt100.Bg" href="#vt100.Bg">vt100.Bg</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L239"><i>src</i></a>)</h3>
 asciicolor code -> vt100 code
 <h3>Table <a id="vt100.BgColor" href="#vt100.BgColor">vt100.BgColor</a></h3>
 <h3>Table <a id="vt100.CMD" href="#vt100.CMD">vt100.CMD</a></h3>
-<h3>Table <a id="vt100.Fg" href="#vt100.Fg">vt100.Fg</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L237"><i>src</i></a>)</h3>
+<h3>Table <a id="vt100.Fg" href="#vt100.Fg">vt100.Fg</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L239"><i>src</i></a>)</h3>
 asciicolor code -> vt100 code
 <h3>Table <a id="vt100.FgColor" href="#vt100.FgColor">vt100.FgColor</a></h3>
 <h3>Table <a id="vt100.INP_SEQ" href="#vt100.INP_SEQ">vt100.INP_SEQ</a></h3>
@@ -6360,21 +6367,21 @@ Requires <code>vt100.start()</code> have been called to initiate raw mode.
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L159">src</a>)</td>
   </tr>
 </table>
-<h4>Function <a id="Term._ready" href="#Term._ready">Term._ready</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L305"><i>src</i></a>)</h4>
-<h4>Function <a id="Term._requestSize" href="#Term._requestSize">Term._requestSize</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L301"><i>src</i></a>)</h4>
+<h4>Function <a id="Term._ready" href="#Term._ready">Term._ready</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L307"><i>src</i></a>)</h4>
+<h4>Function <a id="Term._requestSize" href="#Term._requestSize">Term._requestSize</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L303"><i>src</i></a>)</h4>
 send a request for size.
 Note: the input() coroutine will receive and call _ready()
 <h4>Function <a id="Term._updateChildren" href="#Term._updateChildren">Term._updateChildren</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L67"><i>src</i></a>)</h4>
 <h4>Function <a id="Term.clear" href="#Term.clear">Term.clear</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L71"><i>src</i></a>)</h4>
-<h4>Function <a id="Term.draw" href="#Term.draw">Term.draw</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L333"><i>src</i></a>)</h4>
+<h4>Function <a id="Term.draw" href="#Term.draw">Term.draw</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L331"><i>src</i></a>)</h4>
 draw the text and color(fg/bg) grids to the screen
-<h4>Function <a id="Term.input" href="#Term.input">Term.input</a><code>(tm, send) -&gt; infinite loop (run in coroutine)</code> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L389"><i>src</i></a>)</h4>
+<h4>Function <a id="Term.input" href="#Term.input">Term.input</a><code>(tm, send) -&gt; infinite loop (run in coroutine)</code> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L387"><i>src</i></a>)</h4>
 function to run in a (LAP) coroutine.
 <code>send()</code> is called with each key recieved. Typically this is a lap.Send.
-<h4>Function <a id="Term.resize" href="#Term.resize">Term.resize</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L313"><i>src</i></a>)</h4>
+<h4>Function <a id="Term.resize" href="#Term.resize">Term.resize</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L315"><i>src</i></a>)</h4>
 request size and clear children
 This can only be run with an active (LAP) input coroutine
-<h3>Function <a id="vt100.acwrite" href="#vt100.acwrite">vt100.acwrite</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L287"><i>src</i></a>)</h3>
+<h3>Function <a id="vt100.acwrite" href="#vt100.acwrite">vt100.acwrite</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L289"><i>src</i></a>)</h3>
 write to the terminal-like file f using colors fgstr and bgstr
 accounting for previous color codes fg, bg
 <p>
@@ -6383,7 +6390,7 @@ Additional strings (...) are written using plain color.
 Return: <code>fg, bg, write(str, ...)</code>
 <blockquote> Note: fg and bg are the updated color codes</blockquote>
 <h3>Function <a id="vt100.checkKey" href="#vt100.checkKey">vt100.checkKey</a><code>(key) -&gt; key?, errstring?</code> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L172"><i>src</i></a>)</h3>
-<h3>Function <a id="vt100.colorFB" href="#vt100.colorFB">vt100.colorFB</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L257"><i>src</i></a>)</h3>
+<h3>Function <a id="vt100.colorFB" href="#vt100.colorFB">vt100.colorFB</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L259"><i>src</i></a>)</h3>
 Set the color, taking into account the previous color
 <h3>Function <a id="vt100.ctrlChar" href="#vt100.ctrlChar">vt100.ctrlChar</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L118"><i>src</i></a>)</h3>
 <h3>Function <a id="vt100.key" href="#vt100.key">vt100.key</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L118"><i>src</i></a>)</h3>
@@ -6392,11 +6399,11 @@ Check that a key is valid. Return errstring if not.
 <h3>Function <a id="vt100.literal" href="#vt100.literal">vt100.literal</a><code>(key) -&gt; literalstring?</code> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L140"><i>src</i></a>)</h3>
 Convert any key to it's literal form <code class="block">  literal'a'       -&gt; 'a'
   literal'enter'   -&gt; '\n'
-  literal'invalid' -&gt; nil</code>
-<h3>Function <a id="vt100.main" href="#vt100.main">vt100.main</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L448"><i>src</i></a>)</h3>
+  literal'esc'     -&gt; nil</code>
+<h3>Function <a id="vt100.main" href="#vt100.main">vt100.main</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L446"><i>src</i></a>)</h3>
 Listens to keyboard inputs and echoes them.
-<h3>Function <a id="vt100.start" href="#vt100.start">vt100.start</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L430"><i>src</i></a>)</h3>
-<h3>Function <a id="vt100.stop" href="#vt100.stop">vt100.stop</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L413"><i>src</i></a>)</h3>
+<h3>Function <a id="vt100.start" href="#vt100.start">vt100.start</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L428"><i>src</i></a>)</h3>
+<h3>Function <a id="vt100.stop" href="#vt100.stop">vt100.stop</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L411"><i>src</i></a>)</h3>
 <p>
 <h2>Module <a id="vt100.ctrl" href="#vt100.ctrl">vt100.ctrl</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L32"><i>src</i></a>)</h2>
 Direct terminal control functions
@@ -6417,7 +6424,7 @@ Direct terminal control functions
 <h3>Function <a id="vt100.ctrl.right" href="#vt100.ctrl.right">vt100.ctrl.right</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L191"><i>src</i></a>)</h3>
 <h3>Function <a id="vt100.ctrl.save" href="#vt100.ctrl.save">vt100.ctrl.save</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L191"><i>src</i></a>)</h3>
 <h3>Function <a id="vt100.ctrl.show" href="#vt100.ctrl.show">vt100.ctrl.show</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L191"><i>src</i></a>)</h3>
-<h3>Function <a id="vt100.ctrl.size" href="#vt100.ctrl.size">vt100.ctrl.size</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L199"><i>src</i></a>)</h3>
+<h3>Function <a id="vt100.ctrl.size" href="#vt100.ctrl.size">vt100.ctrl.size</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L201"><i>src</i></a>)</h3>
 causes terminal to send size as (escaped) cursor position
 <h3>Function <a id="vt100.ctrl.up" href="#vt100.ctrl.up">vt100.ctrl.up</a> (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L191"><i>src</i></a>)</h3>
 <h3>Record <a id="vt100.AcWriter" href="#vt100.AcWriter">vt100.AcWriter</a></h3>
@@ -6546,11 +6553,11 @@ helpers for testing/demoing vt100
   </tr>
   <tr>
     <td><code>vt100.testing.Fake._ready</code></td>
-    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L305">src</a>)</td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L307">src</a>)</td>
   </tr>
   <tr>
     <td><code>vt100.testing.Fake._requestSize</code></td>
-    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L301">src</a>)</td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L303">src</a>)</td>
   </tr>
   <tr>
     <td><code>vt100.testing.Fake._updateChildren</code></td>
@@ -7387,16 +7394,16 @@ return the object's "document type"
 <p>
 <h4>Value <a id="doc.lua.__name" href="#doc.lua.__name">doc.lua.__name</a></h4>
 <h3>Table <a id="false" href="#false">false</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L545"><i>src</i></a>)</h3>
-<h3>Table <a id="io.fmt" href="#io.fmt">io.fmt</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266"><i>src</i></a>)</h3>
-not documented: see <code>string</code> module
-<h4>Value <a id="io.stderr" href="#io.stderr">io.stderr</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266"><i>src</i></a>)</h4>
-not documented: see <code>string</code> module
-<h4>Value <a id="io.stdin" href="#io.stdin">io.stdin</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266"><i>src</i></a>)</h4>
-not documented: see <code>string</code> module
-<h4>Value <a id="io.stdout" href="#io.stdout">io.stdout</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266"><i>src</i></a>)</h4>
-not documented: see <code>string</code> module
-<h3>Table <a id="io.user" href="#io.user">io.user</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266"><i>src</i></a>)</h3>
-not documented: see <code>string</code> module
+<h3>Table <a id="io.fmt" href="#io.fmt">io.fmt</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395"><i>src</i></a>)</h3>
+not documented: see <code>io</code> module
+<h4>Value <a id="io.stderr" href="#io.stderr">io.stderr</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395"><i>src</i></a>)</h4>
+not documented: see <code>io</code> module
+<h4>Value <a id="io.stdin" href="#io.stdin">io.stdin</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395"><i>src</i></a>)</h4>
+not documented: see <code>io</code> module
+<h4>Value <a id="io.stdout" href="#io.stdout">io.stdout</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395"><i>src</i></a>)</h4>
+not documented: see <code>io</code> module
+<h3>Table <a id="io.user" href="#io.user">io.user</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395"><i>src</i></a>)</h3>
+not documented: see <code>io</code> module
 <h3>Table <a id="local" href="#local">local</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L537"><i>src</i></a>)</h3>
 <code>local x = (expression)</code>
 <p>
@@ -7421,47 +7428,47 @@ most things unless you are: <ul>
 <b>Functions: </b> <table>
   <tr>
     <td><code>doc.lua.io.close</code></td>
-    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266">src</a>)</td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395">src</a>)</td>
   </tr>
   <tr>
     <td><code>doc.lua.io.flush</code></td>
-    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266">src</a>)</td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395">src</a>)</td>
   </tr>
   <tr>
     <td><code>doc.lua.io.input</code></td>
-    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266">src</a>)</td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395">src</a>)</td>
   </tr>
   <tr>
     <td><code>doc.lua.io.lines</code></td>
-    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266">src</a>)</td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395">src</a>)</td>
   </tr>
   <tr>
     <td><code>doc.lua.io.open</code></td>
-    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266">src</a>)</td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395">src</a>)</td>
   </tr>
   <tr>
     <td><code>doc.lua.io.output</code></td>
-    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266">src</a>)</td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395">src</a>)</td>
   </tr>
   <tr>
     <td><code>doc.lua.io.popen</code></td>
-    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266">src</a>)</td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L392">src</a>)</td>
   </tr>
   <tr>
     <td><code>doc.lua.io.read</code></td>
-    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266">src</a>)</td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395">src</a>)</td>
   </tr>
   <tr>
     <td><code>doc.lua.io.tmpfile</code></td>
-    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266">src</a>)</td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395">src</a>)</td>
   </tr>
   <tr>
     <td><code>doc.lua.io.type</code></td>
-    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266">src</a>)</td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395">src</a>)</td>
   </tr>
   <tr>
     <td><code>doc.lua.io.write</code></td>
-    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266">src</a>)</td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395">src</a>)</td>
   </tr>
   <tr>
     <td><code>doc.lua.math.abs</code></td>
@@ -7480,12 +7487,20 @@ most things unless you are: <ul>
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L452">src</a>)</td>
   </tr>
   <tr>
+    <td><code>doc.lua.math.atan2</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L452">src</a>)</td>
+  </tr>
+  <tr>
     <td><code>doc.lua.math.ceil</code></td>
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460">src</a>)</td>
   </tr>
   <tr>
     <td><code>doc.lua.math.cos</code></td>
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L447">src</a>)</td>
+  </tr>
+  <tr>
+    <td><code>doc.lua.math.cosh</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460">src</a>)</td>
   </tr>
   <tr>
     <td><code>doc.lua.math.deg</code></td>
@@ -7504,7 +7519,19 @@ most things unless you are: <ul>
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460">src</a>)</td>
   </tr>
   <tr>
+    <td><code>doc.lua.math.frexp</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460">src</a>)</td>
+  </tr>
+  <tr>
+    <td><code>doc.lua.math.ldexp</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460">src</a>)</td>
+  </tr>
+  <tr>
     <td><code>doc.lua.math.log</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460">src</a>)</td>
+  </tr>
+  <tr>
+    <td><code>doc.lua.math.log10</code></td>
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460">src</a>)</td>
   </tr>
   <tr>
@@ -7517,6 +7544,10 @@ most things unless you are: <ul>
   </tr>
   <tr>
     <td><code>doc.lua.math.modf</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460">src</a>)</td>
+  </tr>
+  <tr>
+    <td><code>doc.lua.math.pow</code></td>
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460">src</a>)</td>
   </tr>
   <tr>
@@ -7536,12 +7567,20 @@ most things unless you are: <ul>
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L448">src</a>)</td>
   </tr>
   <tr>
+    <td><code>doc.lua.math.sinh</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460">src</a>)</td>
+  </tr>
+  <tr>
     <td><code>doc.lua.math.sqrt</code></td>
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460">src</a>)</td>
   </tr>
   <tr>
     <td><code>doc.lua.math.tan</code></td>
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L449">src</a>)</td>
+  </tr>
+  <tr>
+    <td><code>doc.lua.math.tanh</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460">src</a>)</td>
   </tr>
   <tr>
     <td><code>doc.lua.math.tointeger</code></td>
@@ -7612,6 +7651,10 @@ most things unless you are: <ul>
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L160">src</a>)</td>
   </tr>
   <tr>
+    <td><code>doc.lua.string.dump</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266">src</a>)</td>
+  </tr>
+  <tr>
     <td><code>doc.lua.string.find</code></td>
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L158">src</a>)</td>
   </tr>
@@ -7626,6 +7669,14 @@ most things unless you are: <ul>
   <tr>
     <td><code>doc.lua.string.gsub</code></td>
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L191">src</a>)</td>
+  </tr>
+  <tr>
+    <td><code>doc.lua.string.len</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266">src</a>)</td>
+  </tr>
+  <tr>
+    <td><code>doc.lua.string.lower</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266">src</a>)</td>
   </tr>
   <tr>
     <td><code>doc.lua.string.match</code></td>
@@ -7644,12 +7695,20 @@ most things unless you are: <ul>
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L234">src</a>)</td>
   </tr>
   <tr>
+    <td><code>doc.lua.string.reverse</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266">src</a>)</td>
+  </tr>
+  <tr>
     <td><code>doc.lua.string.sub</code></td>
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L177">src</a>)</td>
   </tr>
   <tr>
     <td><code>doc.lua.string.unpack</code></td>
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L260">src</a>)</td>
+  </tr>
+  <tr>
+    <td><code>doc.lua.string.upper</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266">src</a>)</td>
   </tr>
   <tr>
     <td><code>doc.lua.table.concat</code></td>
@@ -7888,47 +7947,52 @@ seek <table>
 <b>Values: </b> <table>
   <tr>
     <td><code>doc.lua.io.fmt</code></td>
-    <td>[Fmt] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266">src</a>)</td>
+    <td>[Fmt] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395">src</a>)</td>
   </tr>
   <tr>
     <td><code>doc.lua.io.stderr</code></td>
-    <td>[userdata] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266">src</a>)</td>
+    <td>[userdata] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395">src</a>)</td>
   </tr>
   <tr>
     <td><code>doc.lua.io.stdin</code></td>
-    <td>[userdata] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266">src</a>)</td>
+    <td>[userdata] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395">src</a>)</td>
   </tr>
   <tr>
     <td><code>doc.lua.io.stdout</code></td>
-    <td>[userdata] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266">src</a>)</td>
+    <td>[userdata] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395">src</a>)</td>
   </tr>
   <tr>
     <td><code>doc.lua.io.user</code></td>
-    <td>[Fmt] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266">src</a>)</td>
+    <td>[Fmt] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395">src</a>)</td>
   </tr>
 </table>
-<h3>Function <a id="io.close" href="#io.close">io.close</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266"><i>src</i></a>)</h3>
-not documented: see <code>string</code> module
-<h3>Function <a id="io.flush" href="#io.flush">io.flush</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266"><i>src</i></a>)</h3>
-not documented: see <code>string</code> module
-<h3>Function <a id="io.input" href="#io.input">io.input</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266"><i>src</i></a>)</h3>
-not documented: see <code>string</code> module
-<h3>Function <a id="io.lines" href="#io.lines">io.lines</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266"><i>src</i></a>)</h3>
-not documented: see <code>string</code> module
-<h3>Function <a id="io.open" href="#io.open">io.open</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266"><i>src</i></a>)</h3>
-not documented: see <code>string</code> module
-<h3>Function <a id="io.output" href="#io.output">io.output</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266"><i>src</i></a>)</h3>
-not documented: see <code>string</code> module
-<h3>Function <a id="io.popen" href="#io.popen">io.popen</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266"><i>src</i></a>)</h3>
-not documented: see <code>string</code> module
-<h3>Function <a id="io.read" href="#io.read">io.read</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266"><i>src</i></a>)</h3>
-not documented: see <code>string</code> module
-<h3>Function <a id="io.tmpfile" href="#io.tmpfile">io.tmpfile</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266"><i>src</i></a>)</h3>
-not documented: see <code>string</code> module
-<h3>Function <a id="io.type" href="#io.type">io.type</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266"><i>src</i></a>)</h3>
-not documented: see <code>string</code> module
-<h3>Function <a id="io.write" href="#io.write">io.write</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266"><i>src</i></a>)</h3>
-not documented: see <code>string</code> module
+<h3>Function <a id="io.close" href="#io.close">io.close</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395"><i>src</i></a>)</h3>
+not documented: see <code>io</code> module
+<h3>Function <a id="io.flush" href="#io.flush">io.flush</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395"><i>src</i></a>)</h3>
+not documented: see <code>io</code> module
+<h3>Function <a id="io.input" href="#io.input">io.input</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395"><i>src</i></a>)</h3>
+not documented: see <code>io</code> module
+<h3>Function <a id="io.lines" href="#io.lines">io.lines</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395"><i>src</i></a>)</h3>
+not documented: see <code>io</code> module
+<h3>Function <a id="io.open" href="#io.open">io.open</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395"><i>src</i></a>)</h3>
+not documented: see <code>io</code> module
+<h3>Function <a id="io.output" href="#io.output">io.output</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395"><i>src</i></a>)</h3>
+not documented: see <code>io</code> module
+<h3>Function <a id="io.popen" href="#io.popen">io.popen</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L392"><i>src</i></a>)</h3>
+Execute shell command in separate process.
+<p>
+See also: <ul>
+  <li><code>os.execute()</code>: docs on file:close()</li>
+  <li><a href="https://github.com/civboot/civlua/blob/main/lib/civix">lib/civix</a><code>.sh()</code>: ergonomic blocking shell.</li>
+</ul>
+<h3>Function <a id="io.read" href="#io.read">io.read</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395"><i>src</i></a>)</h3>
+not documented: see <code>io</code> module
+<h3>Function <a id="io.tmpfile" href="#io.tmpfile">io.tmpfile</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395"><i>src</i></a>)</h3>
+not documented: see <code>io</code> module
+<h3>Function <a id="io.type" href="#io.type">io.type</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395"><i>src</i></a>)</h3>
+not documented: see <code>io</code> module
+<h3>Function <a id="io.write" href="#io.write">io.write</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L395"><i>src</i></a>)</h3>
+not documented: see <code>io</code> module
 <h2>Module <a id="math" href="#math">math</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L442"><i>src</i></a>)</h2>
 The builtin lua math module.
 <p>
@@ -7950,14 +8014,22 @@ The builtin lua math module.
     <td>[number] </td>
   </tr>
 </table>
+<b>Functions: </b> <table>
+  <tr>
+    <td><code>doc.lua.math.atan2</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L452">src</a>)</td>
+  </tr>
+</table>
 <h3>Function <a id="math.abs" href="#math.abs">math.abs</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460"><i>src</i></a>)</h3>
 currently not documented
 <h3>Function <a id="math.acos" href="#math.acos">math.acos</a><code>(x) -&gt; arccos(x) in radians</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L450"><i>src</i></a>)</h3>
 <h3>Function <a id="math.asin" href="#math.asin">math.asin</a><code>(x) -&gt; arcsin(x) in radians</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L451"><i>src</i></a>)</h3>
-<h3>Function <a id="math.atan" href="#math.atan">math.atan</a><code>(n, d) -&gt; arctan(n / d) in radians</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L452"><i>src</i></a>)</h3>
+<h3>Function <a id="n" href="#n">n</a><code>(n, d) -&gt; arctan(n / d) in radians</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L452"><i>src</i></a>)</h3>
 <h3>Function <a id="math.ceil" href="#math.ceil">math.ceil</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460"><i>src</i></a>)</h3>
 currently not documented
 <h3>Function <a id="math.cos" href="#math.cos">math.cos</a><code>(x) -&gt; cos(x) in radians</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L447"><i>src</i></a>)</h3>
+<h3>Function <a id="math.cosh" href="#math.cosh">math.cosh</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460"><i>src</i></a>)</h3>
+currently not documented
 <h3>Function <a id="math.deg" href="#math.deg">math.deg</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460"><i>src</i></a>)</h3>
 currently not documented
 <h3>Function <a id="math.exp" href="#math.exp">math.exp</a><code>(x) -&gt; e^x (where e is the natural log base)</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L453"><i>src</i></a>)</h3>
@@ -7965,10 +8037,18 @@ currently not documented
 currently not documented
 <h3>Function <a id="math.fmod" href="#math.fmod">math.fmod</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460"><i>src</i></a>)</h3>
 currently not documented
+<h3>Function <a id="math.frexp" href="#math.frexp">math.frexp</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460"><i>src</i></a>)</h3>
+currently not documented
+<h3>Function <a id="math.ldexp" href="#math.ldexp">math.ldexp</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460"><i>src</i></a>)</h3>
+currently not documented
 <h3>Function <a id="math.log" href="#math.log">math.log</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460"><i>src</i></a>)</h3>
+currently not documented
+<h3>Function <a id="math.log10" href="#math.log10">math.log10</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460"><i>src</i></a>)</h3>
 currently not documented
 <h3>Function <a id="" href="#"></a><code>(x, ...) -&gt; max according to [$&lt;]</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L445"><i>src</i></a>)</h3>
 <h3>Function <a id="math.modf" href="#math.modf">math.modf</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460"><i>src</i></a>)</h3>
+currently not documented
+<h3>Function <a id="math.pow" href="#math.pow">math.pow</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460"><i>src</i></a>)</h3>
 currently not documented
 <h3>Function <a id="math.rad" href="#math.rad">math.rad</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460"><i>src</i></a>)</h3>
 currently not documented
@@ -7977,9 +8057,13 @@ currently not documented
 <h3>Function <a id="math.randomseed" href="#math.randomseed">math.randomseed</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460"><i>src</i></a>)</h3>
 currently not documented
 <h3>Function <a id="math.sin" href="#math.sin">math.sin</a><code>(x) -&gt; sin(x) in radians</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L448"><i>src</i></a>)</h3>
+<h3>Function <a id="math.sinh" href="#math.sinh">math.sinh</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460"><i>src</i></a>)</h3>
+currently not documented
 <h3>Function <a id="math.sqrt" href="#math.sqrt">math.sqrt</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460"><i>src</i></a>)</h3>
 currently not documented
 <h3>Function <a id="math.tan" href="#math.tan">math.tan</a><code>(x) -&gt; tan(x) in radians</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L449"><i>src</i></a>)</h3>
+<h3>Function <a id="math.tanh" href="#math.tanh">math.tanh</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460"><i>src</i></a>)</h3>
+currently not documented
 <h3>Function <a id="math.tointeger" href="#math.tointeger">math.tointeger</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L460"><i>src</i></a>)</h3>
 currently not documented
 <h3>Function <a id="math.type" href="#math.type">math.type</a><code>(v) -&gt; ("float" | "integer" | nil)</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L444"><i>src</i></a>)</h3>
@@ -8086,6 +8170,8 @@ Get ASCII (integer) codes for <code>s[si:ei]</code>
 <p>
 Example: <code>T.eq({98, 99}, {string.byte('abcd', 2, 3)})</code>
 <h3>Function <a id="string.char" href="#string.char">string.char</a><code>(c1, c2, ...) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L231"><i>src</i></a>)</h3>
+<h3>Function <a id="string.dump" href="#string.dump">string.dump</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266"><i>src</i></a>)</h3>
+not documented: see <code>string</code> module
 <h3>Function <a id="string.find" href="#string.find">string.find</a><code>(subj, pat, index=1) -&gt; (si, ei, ...matches)</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L158"><i>src</i></a>)</h3>
 Find the pattern in the subj (subject) string, starting at the index.
 returns the si (start index), ei (end index) and match groups
@@ -8194,6 +8280,10 @@ Substittue all matches of pattern with repl, returning the new string.
 </ul>
 <p>
 See also: string.find for pattern documentation.
+<h3>Function <a id="string.len" href="#string.len">string.len</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266"><i>src</i></a>)</h3>
+not documented: see <code>string</code> module
+<h3>Function <a id="string.lower" href="#string.lower">string.lower</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266"><i>src</i></a>)</h3>
+not documented: see <code>string</code> module
 <h3>Function <a id="string.match" href="#string.match">string.match</a><code>(subj, pat, index=1) -&gt; ...groups</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L164"><i>src</i></a>)</h3>
 Return the capture groups of pat or the whole match if no capture groups.
 index: where to start the search and can be negative.
@@ -8261,6 +8351,8 @@ Example: <code class="block">T.eq(string.pack('&gt;i2i2', 0x1234, 0x5678) == '\x
 <h3>Function <a id="string.packsize" href="#string.packsize">string.packsize</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L263"><i>src</i></a>)</h3>
 Get the size which is used by strtys.
 <h3>Function <a id="string.rep" href="#string.rep">string.rep</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L234"><i>src</i></a>)</h3>
+<h3>Function <a id="string.reverse" href="#string.reverse">string.reverse</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266"><i>src</i></a>)</h3>
+not documented: see <code>string</code> module
 <h3>Function <a id="string.sub" href="#string.sub">string.sub</a><code>(subj, si, ei) -&gt; str[si:ei]</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L177"><i>src</i></a>)</h3>
 Return substring by index. <code>("1234"):sub(3,4) == "34"</code>
 <p>
@@ -8268,6 +8360,8 @@ Return substring by index. <code>("1234"):sub(3,4) == "34"</code>
 matching. Such is life.</blockquote>
 <h3>Function <a id="string.unpack" href="#string.unpack">string.unpack</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L260"><i>src</i></a>)</h3>
 See string.pack for the fmt
+<h3>Function <a id="string.upper" href="#string.upper">string.upper</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L266"><i>src</i></a>)</h3>
+not documented: see <code>string</code> module
 <h2>Module <a id="table" href="#table">table</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/doc/lua.lua#L290"><i>src</i></a>)</h2>
 the builtin lua table module
 <p>
@@ -8416,20 +8510,20 @@ re-imagining of ff using new tech and better args
     <td>[Ty<Main>] (<a href="https://github.com/civboot/civlua/blob/main/cmd/ff/ff.lua#L55">src</a>)</td>
   </tr>
 </table>
-<h3>Function <a id="ff.find" href="#ff.find">ff.find</a><code>(path, pats, sub) -&gt; boolean</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ff/ff.lua#L79"><i>src</i></a>)</h3>
+<h3>Function <a id="ff.find" href="#ff.find">ff.find</a><code>(path, pats, sub) -&gt; boolean</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ff/ff.lua#L83"><i>src</i></a>)</h3>
 find patterns in path.
 If there is a match then the path is logged to <code>io.stdout</code> and the matches
 to <code>io.fmt</code>.
-<h3>Function <a id="ff.fmtMatch" href="#ff.fmtMatch">ff.fmtMatch</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ff/ff.lua#L214"><i>src</i></a>)</h3>
-<h3>Function <a id="ff.fmtSub" href="#ff.fmtSub">ff.fmtSub</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ff/ff.lua#L226"><i>src</i></a>)</h3>
-<h3>Function <a id="ff.iter" href="#ff.iter">ff.iter</a><code>(args) -&gt; Iter</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ff/ff.lua#L157"><i>src</i></a>)</h3>
+<h3>Function <a id="ff.fmtMatch" href="#ff.fmtMatch">ff.fmtMatch</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ff/ff.lua#L218"><i>src</i></a>)</h3>
+<h3>Function <a id="ff.fmtSub" href="#ff.fmtSub">ff.fmtSub</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ff/ff.lua#L230"><i>src</i></a>)</h3>
+<h3>Function <a id="ff.iter" href="#ff.iter">ff.iter</a><code>(args) -&gt; Iter</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ff/ff.lua#L161"><i>src</i></a>)</h3>
 Get an iterator of matching paths.
 <p>
 <blockquote>WARNING: this also writes to io.fmt and io.stdout</blockquote>
-<h3>Function <a id="ff.main" href="#ff.main">ff.main</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ff/ff.lua#L229"><i>src</i></a>)</h3>
-<h3>Function <a id="ff.parseColons" href="#ff.parseColons">ff.parseColons</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ff/ff.lua#L189"><i>src</i></a>)</h3>
+<h3>Function <a id="ff.main" href="#ff.main">ff.main</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ff/ff.lua#L233"><i>src</i></a>)</h3>
+<h3>Function <a id="ff.parseColons" href="#ff.parseColons">ff.parseColons</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ff/ff.lua#L193"><i>src</i></a>)</h3>
 parse <code>c:commands</code> into t
-<h3>Function <a id="ff.replace" href="#ff.replace">ff.replace</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ff/ff.lua#L90"><i>src</i></a>)</h3>
+<h3>Function <a id="ff.replace" href="#ff.replace">ff.replace</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ff/ff.lua#L94"><i>src</i></a>)</h3>
 perform replacement of <code>pats</code> with <code>sub</code>, writing to <code>to</code>
 <p>
 <h1><a id="Package_pkgrock" href="#Package_pkgrock">Package pkgrock</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/pkgrock"><i>src</i></a>)</h1><table>
@@ -9141,7 +9235,7 @@ of work as much as possible.
 <h2>Module <a id="ele" href="#ele">ele</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele.lua#L2"><i>src</i></a>)</h2>
 <p>
 <h4>Value <a id="ele.__name" href="#ele.__name">ele.__name</a></h4>
-<h3>Function <a id="ele.main" href="#ele.main">ele.main</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele.lua#L62"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.main" href="#ele.main">ele.main</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele.lua#L65"><i>src</i></a>)</h3>
 <h3>Record <a id="ele.Editor" href="#ele.Editor">ele.Editor</a></h3>
 <p>
 <b>Fields: </b> <table>
@@ -9178,9 +9272,14 @@ of work as much as possible.
     <td>[map[string,Buffer]] </td>
   </tr>
   <tr>
+    <td><code>ele.Editor.overlay</code></td>
+    <td>[Buffer] 
+    the overlay buffer</td>
+  </tr>
+  <tr>
     <td><code>ele.Editor.edit</code></td>
     <td>[Buffer] 
-    the current edit buffer</td>
+    the current edit buffer. Also in namedBuffers.overlay</td>
   </tr>
   <tr>
     <td><code>ele.Editor.view</code></td>
@@ -9204,6 +9303,11 @@ of work as much as possible.
     table for extensions to store data</td>
   </tr>
   <tr>
+    <td><code>ele.Editor.search</code></td>
+    <td>[str] 
+    search pattern for searchBuf, etc</td>
+  </tr>
+  <tr>
     <td><code>ele.Editor.error</code></td>
     <td>[callable] 
     error handler (ds.log.logfmt sig)</td>
@@ -9215,7 +9319,7 @@ of work as much as possible.
   </tr>
   <tr>
     <td><code>ele.Editor.newDat</code></td>
-    <td>[callable(text)] = <code>fn"function"[/home/rett/projects/civlua/cmd/ele/ele/Editor.lua:35]</code>
+    <td>[callable(text)] = <code>fn"function"[/home/rett/projects/civlua/cmd/ele/ele/Editor.lua:39]</code>
     function to create new buffer</td>
   </tr>
   <tr>
@@ -9244,28 +9348,29 @@ of work as much as possible.
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L159">src</a>)</td>
   </tr>
 </table>
-<h4>Function <a id="Editor.buffer" href="#Editor.buffer">Editor.buffer</a><code>(ed, idOrPath) -&gt; Buffer</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Editor.lua#L102"><i>src</i></a>)</h4>
-<h4>Function <a id="Editor.draw" href="#Editor.draw">Editor.draw</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Editor.lua#L125"><i>src</i></a>)</h4>
-<h4>Function <a id="Editor.focus" href="#Editor.focus">Editor.focus</a><code>(ed, b) -&gt; Edit</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Editor.lua#L182"><i>src</i></a>)</h4>
+<h4>Function <a id="Editor._drawOverlay" href="#Editor._drawOverlay">Editor._drawOverlay</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Editor.lua#L157"><i>src</i></a>)</h4>
+<h4>Function <a id="Editor.buffer" href="#Editor.buffer">Editor.buffer</a><code>(ed, idOrPath) -&gt; Buffer</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Editor.lua#L109"><i>src</i></a>)</h4>
+<h4>Function <a id="Editor.draw" href="#Editor.draw">Editor.draw</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Editor.lua#L135"><i>src</i></a>)</h4>
+<h4>Function <a id="Editor.focus" href="#Editor.focus">Editor.focus</a><code>(ed, b) -&gt; Edit</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Editor.lua#L221"><i>src</i></a>)</h4>
 Replace the current edit view with the new <code>ed:buffer(b)</code>.
 Return the new edit view being focused.
-<h4>Function <a id="Editor.focusFirst" href="#Editor.focusFirst">Editor.focusFirst</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Editor.lua#L170"><i>src</i></a>)</h4>
+<h4>Function <a id="Editor.focusFirst" href="#Editor.focusFirst">Editor.focusFirst</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Editor.lua#L209"><i>src</i></a>)</h4>
 Focus the first edit view in container c (default ed.view)
-<h4>Function <a id="Editor.getBuffer" href="#Editor.getBuffer">Editor.getBuffer</a><code>(ed, v) -&gt; Buffer?</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Editor.lua#L85"><i>src</i></a>)</h4>
+<h4>Function <a id="Editor.getBuffer" href="#Editor.getBuffer">Editor.getBuffer</a><code>(ed, v) -&gt; Buffer?</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Editor.lua#L92"><i>src</i></a>)</h4>
 Get an existing buffer if it exists.
 Else return false if the buffer is path-like and should be
 created, else nil.
-<h4>Function <a id="Editor.handleStandard" href="#Editor.handleStandard">Editor.handleStandard</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Editor.lua#L137"><i>src</i></a>)</h4>
+<h4>Function <a id="Editor.handleStandard" href="#Editor.handleStandard">Editor.handleStandard</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Editor.lua#L176"><i>src</i></a>)</h4>
 Handle standard event fields.
 Currently this only handles the <code>mode</code> field.
-<h4>Function <a id="Editor.init" href="#Editor.init">Editor.init</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Editor.lua#L60"><i>src</i></a>)</h4>
-<h4>Function <a id="Editor.namedBuffer" href="#Editor.namedBuffer">Editor.namedBuffer</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Editor.lua#L111"><i>src</i></a>)</h4>
+<h4>Function <a id="Editor.init" href="#Editor.init">Editor.init</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Editor.lua#L68"><i>src</i></a>)</h4>
+<h4>Function <a id="Editor.namedBuffer" href="#Editor.namedBuffer">Editor.namedBuffer</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Editor.lua#L120"><i>src</i></a>)</h4>
 Get or create a named buffer (NOT a path).
-<h4>Function <a id="Editor.open" href="#Editor.open">Editor.open</a><code>(ed, path) -&gt; edit</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Editor.lua#L117"><i>src</i></a>)</h4>
-<h4>Function <a id="Editor.remove" href="#Editor.remove">Editor.remove</a><code>(ed, v) -&gt; v</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Editor.lua#L161"><i>src</i></a>)</h4>
+<h4>Function <a id="Editor.open" href="#Editor.open">Editor.open</a><code>(ed, path) -&gt; edit</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Editor.lua#L126"><i>src</i></a>)</h4>
+<h4>Function <a id="Editor.remove" href="#Editor.remove">Editor.remove</a><code>(ed, v) -&gt; v</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Editor.lua#L200"><i>src</i></a>)</h4>
 Remove a view and remove self as it's container.
 This does NOT close the view.
-<h4>Function <a id="Editor.replace" href="#Editor.replace">Editor.replace</a><code>(ed, from, to) -&gt; from</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Editor.lua#L150"><i>src</i></a>)</h4>
+<h4>Function <a id="Editor.replace" href="#Editor.replace">Editor.replace</a><code>(ed, from, to) -&gt; from</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Editor.lua#L189"><i>src</i></a>)</h4>
 Replace the view/edit from with to.
 Since Editor supports only <code>ed.view</code> this means
 it must be that value.
@@ -9333,79 +9438,89 @@ it must be that value.
 <h4>Function <a id="Session.user" href="#Session.user">Session.user</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/Session.lua#L52"><i>src</i></a>)</h4>
 <h2>Module <a id="ele.actions" href="#ele.actions">ele.actions</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L2"><i>src</i></a>)</h2>
 <p>
+<h3>Table <a id="ele.actions.DO_NAV" href="#ele.actions.DO_NAV">ele.actions.DO_NAV</a></h3>
 <h3>Table <a id="ele.actions.SPLIT" href="#ele.actions.SPLIT">ele.actions.SPLIT</a></h3>
 <h4>Value <a id="ele.actions.__name" href="#ele.actions.__name">ele.actions.__name</a></h4>
 <b>Functions: </b> <table>
   <tr>
     <td><code>ele.actions.keyinput</code></td>
-    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L80">src</a>)</td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L82">src</a>)</td>
   </tr>
 </table>
-<h3>Function <a id="ele.actions.buf" href="#ele.actions.buf">ele.actions.buf</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L415"><i>src</i></a>)</h3>
-Do something buffer related, depending on ev, in this order: <ul>
-  <li>save=true: save the current buffer.</li>
-  <li>buf: focus the buffer, typically 'b#named' buffer.</li>
-  <li>clear: clear the current buffer.</li>
+<h3>Function <a id="ele.actions.buf" href="#ele.actions.buf">ele.actions.buf</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L524"><i>src</i></a>)</h3>
+Directly modify a buffer by name. This is most commonly
+used for the overlay.
+<h3>Function <a id="ele.actions.chain" href="#ele.actions.chain">ele.actions.chain</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L100"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.actions.edit" href="#ele.actions.edit">ele.actions.edit</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L506"><i>src</i></a>)</h3>
+Do something with the edit view, in this order: <ul>
+  <li>save=true: save the current edit view.</li>
+  <li>focus: focus the buffer, typically 'b#named'.</li>
+  <li>clear: clear the current edit view.</li>
 </ul>
-<h3>Function <a id="ele.actions.chain" href="#ele.actions.chain">ele.actions.chain</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L98"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.actions.keyinput" href="#ele.actions.keyinput">ele.actions.keyinput</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L80"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.actions.insert" href="#ele.actions.insert">ele.actions.insert</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L181"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.actions.merge" href="#ele.actions.merge">ele.actions.merge</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L90"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.actions.move" href="#ele.actions.move">ele.actions.move</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L167"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.actions.path" href="#ele.actions.path">ele.actions.path</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L403"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.actions.remove" href="#ele.actions.remove">ele.actions.remove</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L209"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.actions.window" href="#ele.actions.window">ele.actions.window</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L462"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.actions.keyinput" href="#ele.actions.keyinput">ele.actions.keyinput</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L82"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.actions.insert" href="#ele.actions.insert">ele.actions.insert</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L188"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.actions.merge" href="#ele.actions.merge">ele.actions.merge</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L92"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.actions.move" href="#ele.actions.move">ele.actions.move</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L173"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.actions.path" href="#ele.actions.path">ele.actions.path</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L481"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.actions.remove" href="#ele.actions.remove">ele.actions.remove</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L221"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.actions.searchBuf" href="#ele.actions.searchBuf">ele.actions.searchBuf</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L250"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.actions.window" href="#ele.actions.window">ele.actions.window</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L571"><i>src</i></a>)</h3>
 Window operations like split and close
 <p>
-<h2>Module <a id="ele.actions.nav" href="#ele.actions.nav">ele.actions.nav</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L214"><i>src</i></a>)</h2>
+<h2>Module <a id="ele.actions.nav" href="#ele.actions.nav">ele.actions.nav</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L255"><i>src</i></a>)</h2>
 <p>
 <h4>Value <a id="ele.actions.nav.__name" href="#ele.actions.nav.__name">ele.actions.nav.__name</a></h4>
-<h3>Function <a id="ele.actions.nav.backEntry" href="#ele.actions.nav.backEntry">ele.actions.nav.backEntry</a><code>(b, l) -&gt; ln</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L339"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.actions.nav.backEntry" href="#ele.actions.nav.backEntry">ele.actions.nav.backEntry</a><code>(b, l) -&gt; ln</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L403"><i>src</i></a>)</h3>
 Go backwards on the entry, returning the new line
 For focus, this will go back one component.
 For entry, this will collapse parent (and move to it).
-<h3>Function <a id="ele.actions.nav.backFocus" href="#ele.actions.nav.backFocus">ele.actions.nav.backFocus</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L321"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.actions.nav.doBack" href="#ele.actions.nav.doBack">ele.actions.nav.doBack</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L359"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.actions.nav.doEntry" href="#ele.actions.nav.doEntry">ele.actions.nav.doEntry</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L396"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.actions.nav.backFocus" href="#ele.actions.nav.backFocus">ele.actions.nav.backFocus</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L385"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.actions.nav.doBack" href="#ele.actions.nav.doBack">ele.actions.nav.doBack</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L423"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.actions.nav.doEntry" href="#ele.actions.nav.doEntry">ele.actions.nav.doEntry</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L467"><i>src</i></a>)</h3>
 perform the entry operation
-<h3>Function <a id="ele.actions.nav.doExpand" href="#ele.actions.nav.doExpand">ele.actions.nav.doExpand</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L369"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.actions.nav.expandEntry" href="#ele.actions.nav.expandEntry">ele.actions.nav.expandEntry</a><code>(b, l, ls) -&gt; numEntries</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L352"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.actions.nav.findEnd" href="#ele.actions.nav.findEnd">ele.actions.nav.findEnd</a><code>(b, l) -&gt; linenum, line</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L275"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.actions.nav.doExpand" href="#ele.actions.nav.doExpand">ele.actions.nav.doExpand</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L435"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.actions.nav.expandEntry" href="#ele.actions.nav.expandEntry">ele.actions.nav.expandEntry</a><code>(b, l, ls) -&gt; numEntries</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L416"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.actions.nav.findEnd" href="#ele.actions.nav.findEnd">ele.actions.nav.findEnd</a><code>(b, l) -&gt; linenum</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L335"><i>src</i></a>)</h3>
 Find the last line of the focus's entities (or itself).
 invariant: line l is an entry or focus.
-<h3>Function <a id="ele.actions.nav.findEntryEnd" href="#ele.actions.nav.findEntryEnd">ele.actions.nav.findEntryEnd</a><code>(b, l) -&gt; linenum</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L315"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.actions.nav.findFocus" href="#ele.actions.nav.findFocus">ele.actions.nav.findFocus</a><code>(b, l) -&gt; linenum, line</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L266"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.actions.nav.findEntryEnd" href="#ele.actions.nav.findEntryEnd">ele.actions.nav.findEntryEnd</a><code>(b, l) -&gt; linenum</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L375"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.actions.nav.findFocus" href="#ele.actions.nav.findFocus">ele.actions.nav.findFocus</a><code>(b, l) -&gt; linenum, line</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L325"><i>src</i></a>)</h3>
 Find the focus path line num (i.e. the starting directory)
-<h3>Function <a id="ele.actions.nav.findParent" href="#ele.actions.nav.findParent">ele.actions.nav.findParent</a><code>(b, l) -&gt; linenum, line</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L257"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.actions.nav.findParent" href="#ele.actions.nav.findParent">ele.actions.nav.findParent</a><code>(b, l) -&gt; linenum, line</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L316"><i>src</i></a>)</h3>
 Find the parent of current path entry
 if isFocus the entry will be the focus (and ind will be 0)
-<h3>Function <a id="ele.actions.nav.findView" href="#ele.actions.nav.findView">ele.actions.nav.findView</a><code>(b, l) -&gt; (fln, eln, fline)</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L281"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.actions.nav.findView" href="#ele.actions.nav.findView">ele.actions.nav.findView</a><code>(b, l) -&gt; (fln, eln, fline)</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L341"><i>src</i></a>)</h3>
 Find the view (focusLineNum, endLineNum, focusLine)
-<h3>Function <a id="ele.actions.nav.getEntry" href="#ele.actions.nav.getEntry">ele.actions.nav.getEntry</a><code>(line) -&gt; (indent, kind, entry)</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L241"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.actions.nav.getFocus" href="#ele.actions.nav.getFocus">ele.actions.nav.getFocus</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L236"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.actions.nav.getPath" href="#ele.actions.nav.getPath">ele.actions.nav.getPath</a><code>(b, l,c) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L306"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.actions.nav.getEntry" href="#ele.actions.nav.getEntry">ele.actions.nav.getEntry</a><code>(line) -&gt; (indent, kind, entry)</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L300"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.actions.nav.getFocus" href="#ele.actions.nav.getFocus">ele.actions.nav.getFocus</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L295"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.actions.nav.getPath" href="#ele.actions.nav.getPath">ele.actions.nav.getPath</a><code>(b, l,c) -&gt; string</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L366"><i>src</i></a>)</h3>
 Walk up the parents, getting the full path.
 If not an entry, try to find the path from the column.
-<h3>Function <a id="ele.actions.nav.goPath" href="#ele.actions.nav.goPath">ele.actions.nav.goPath</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L383"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.actions.nav.goPath" href="#ele.actions.nav.goPath">ele.actions.nav.goPath</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/actions.lua#L450"><i>src</i></a>)</h3>
 go to path at l,c. If op=='create' then create the path
 <h2>Module <a id="ele.keys" href="#ele.keys">ele.keys</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L5"><i>src</i></a>)</h2>
 <p>
 <h4>Value <a id="ele.bindings.__name" href="#ele.bindings.__name">ele.bindings.__name</a></h4>
 <h3>Table <a id="ele.keys.backspace" href="#ele.keys.backspace">ele.keys.backspace</a></h3>
 <h3>Table <a id="ele.keys.close" href="#ele.keys.close">ele.keys.close</a></h3>
-<h3>Table <a id="ele.keys.command" href="#ele.keys.command">ele.keys.command</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L253"><i>src</i></a>)</h3>
+<h3>Table <a id="ele.keys.command" href="#ele.keys.command">ele.keys.command</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L418"><i>src</i></a>)</h3>
+Command Mode: control the editor's text functions and
+enter other modes.
 <h3>Table <a id="ele.keys.commandMode" href="#ele.keys.commandMode">ele.keys.commandMode</a></h3>
 <h3>Table <a id="ele.keys.createPath" href="#ele.keys.createPath">ele.keys.createPath</a></h3>
 <h3>Table <a id="ele.keys.delkey" href="#ele.keys.delkey">ele.keys.delkey</a></h3>
 <h3>Table <a id="ele.keys.exit" href="#ele.keys.exit">ele.keys.exit</a></h3>
 <h3>Table <a id="ele.keys.goPath" href="#ele.keys.goPath">ele.keys.goPath</a></h3>
-<h3>Table <a id="ele.keys.insert" href="#ele.keys.insert">ele.keys.insert</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L252"><i>src</i></a>)</h3>
+<h3>Table <a id="ele.keys.hideOverlay" href="#ele.keys.hideOverlay">ele.keys.hideOverlay</a></h3>
+<h3>Table <a id="ele.keys.insert" href="#ele.keys.insert">ele.keys.insert</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L407"><i>src</i></a>)</h3>
+Insert Mode: directly insert text into the buffer.
 <h3>Table <a id="ele.keys.insertAbove" href="#ele.keys.insertAbove">ele.keys.insertAbove</a></h3>
 <h3>Table <a id="ele.keys.insertBelow" href="#ele.keys.insertBelow">ele.keys.insertBelow</a></h3>
 <h3>Table <a id="ele.keys.insertMode" href="#ele.keys.insertMode">ele.keys.insertMode</a></h3>
 <h3>Table <a id="ele.keys.inserteol" href="#ele.keys.inserteol">ele.keys.inserteol</a></h3>
 <h3>Table <a id="ele.keys.insertsot" href="#ele.keys.insertsot">ele.keys.insertsot</a></h3>
 <h3>Table <a id="ele.keys.movement" href="#ele.keys.movement">ele.keys.movement</a></h3>
+<h3>Table <a id="ele.keys.navBuf" href="#ele.keys.navBuf">ele.keys.navBuf</a></h3>
 <h3>Table <a id="ele.keys.navCbd" href="#ele.keys.navCbd">ele.keys.navCbd</a></h3>
 <h3>Table <a id="ele.keys.navCwd" href="#ele.keys.navCwd">ele.keys.navCwd</a></h3>
 <h3>Table <a id="ele.keys.pathBack" href="#ele.keys.pathBack">ele.keys.pathBack</a></h3>
@@ -9413,23 +9528,41 @@ go to path at l,c. If op=='create' then create the path
 <h3>Table <a id="ele.keys.pathExpand" href="#ele.keys.pathExpand">ele.keys.pathExpand</a></h3>
 <h3>Table <a id="ele.keys.pathFocus" href="#ele.keys.pathFocus">ele.keys.pathFocus</a></h3>
 <h3>Table <a id="ele.keys.pathFocusExpand" href="#ele.keys.pathFocusExpand">ele.keys.pathFocusExpand</a></h3>
+<h3>Table <a id="ele.keys.redo" href="#ele.keys.redo">ele.keys.redo</a></h3>
+<h3>Table <a id="ele.keys.save" href="#ele.keys.save">ele.keys.save</a></h3>
+<h3>Table <a id="ele.keys.searchBindings" href="#ele.keys.searchBindings">ele.keys.searchBindings</a></h3>
+<h3>Table <a id="ele.keys.searchBufNext" href="#ele.keys.searchBufNext">ele.keys.searchBufNext</a></h3>
+<h3>Table <a id="ele.keys.searchBufPrev" href="#ele.keys.searchBufPrev">ele.keys.searchBufPrev</a></h3>
+<h3>Table <a id="ele.keys.searchBufSub" href="#ele.keys.searchBufSub">ele.keys.searchBufSub</a></h3>
 <h3>Table <a id="ele.keys.splitHDown" href="#ele.keys.splitHDown">ele.keys.splitHDown</a></h3>
 <h3>Table <a id="ele.keys.splitHUp" href="#ele.keys.splitHUp">ele.keys.splitHUp</a></h3>
 <h3>Table <a id="ele.keys.splitVLeft" href="#ele.keys.splitVLeft">ele.keys.splitVLeft</a></h3>
 <h3>Table <a id="ele.keys.splitVRight" href="#ele.keys.splitVRight">ele.keys.splitVRight</a></h3>
-<h3>Table <a id="ele.keys.system" href="#ele.keys.system">ele.keys.system</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L296"><i>src</i></a>)</h3>
-System mode
-Mode for dealing with system-related resources such as
-files, directories and running single line or block
-commands directly in a buffer.<code class="block">M.system = M.KeyBindings {
-  name = 'system', doc = 'system mode: filesystem, commands, shell, etc',
+<h3>Table <a id="ele.keys.system" href="#ele.keys.system">ele.keys.system</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L466"><i>src</i></a>)</h3>
+System mode: view and control system-related resources such as
+files and directories. Run single line or block commands (lua,
+shell) directly in a buffer.<code class="block">M.system = M.KeyBindings {
+  name = 'system',
+  doc = 'system mode: filesystem, commands, shell, etc',
 }</code>
 <h3>Table <a id="ele.keys.systemMode" href="#ele.keys.systemMode">ele.keys.systemMode</a></h3>
+<h3>Table <a id="ele.keys.undo" href="#ele.keys.undo">ele.keys.undo</a></h3>
 <h3>Table <a id="ele.keys.windowDown" href="#ele.keys.windowDown">ele.keys.windowDown</a></h3>
 <h3>Table <a id="ele.keys.windowLeft" href="#ele.keys.windowLeft">ele.keys.windowLeft</a></h3>
 <h3>Table <a id="ele.keys.windowRight" href="#ele.keys.windowRight">ele.keys.windowRight</a></h3>
 <h3>Table <a id="ele.keys.windowUp" href="#ele.keys.windowUp">ele.keys.windowUp</a></h3>
 <h3>Record <a id="ele.keys.KeyBindings" href="#ele.keys.KeyBindings">ele.keys.KeyBindings</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L77"><i>src</i></a>)</h3>
+A map of key -> binding.
+The name and doc can be provided for the user.
+<p>
+Other "fields" must be valid chords. They will be automatically
+split (by whitespace) to create sub-KeyBindings as-needed.
+<p>
+The value must be one of: <ul>
+  <li>KeyBindings instance to explicitly create chorded bindings.</li>
+  <li>plain event table to fire off a simple event</li>
+  <li>callable <code>event(ev, keySt)</code> for more complex bindings.</li>
+</ul>
 <p>
 <b>Fields: </b> <table>
   <tr>
@@ -9467,7 +9600,7 @@ commands directly in a buffer.<code class="block">M.system = M.KeyBindings {
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L138">src</a>)</td>
   </tr>
 </table>
-<h3>Record <a id="ele.keys.KeySt" href="#ele.keys.KeySt">ele.keys.KeySt</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L52"><i>src</i></a>)</h3>
+<h3>Record <a id="ele.keys.KeySt" href="#ele.keys.KeySt">ele.keys.KeySt</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L53"><i>src</i></a>)</h3>
 The state of the keyboard input (chord).
 Some bindings are a simple action to perform, whereas callable bindings
 can update the KeySt to affect future ones, such as decimals causing
@@ -9503,7 +9636,7 @@ later actions to be repeated a <code>num</code> of times.
 <b>Records: </b> <table>
   <tr>
     <td><code>ele.bindings.KeySt.__index</code></td>
-    <td>[Ty<KeySt>] (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L52">src</a>)</td>
+    <td>[Ty<KeySt>] (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L53">src</a>)</td>
   </tr>
 </table>
 <b>Methods: </b> <table>
@@ -9520,43 +9653,54 @@ later actions to be repeated a <code>num</code> of times.
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L159">src</a>)</td>
   </tr>
 </table>
-<h4>Function <a id="KeySt.check" href="#KeySt.check">KeySt.check</a><code>(k, ele) -&gt; errstring?</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L60"><i>src</i></a>)</h4>
+<h4>Function <a id="KeySt.check" href="#KeySt.check">KeySt.check</a><code>(k, ele) -&gt; errstring?</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L61"><i>src</i></a>)</h4>
 Check the current Key State.
 <h3>Function <a id="ele.keys.backword" href="#ele.keys.backword">ele.keys.backword</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L166"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.keys.change" href="#ele.keys.change">ele.keys.change</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L226"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.keys.changeEol" href="#ele.keys.changeEol">ele.keys.changeEol</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L232"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.keys.chord" href="#ele.keys.chord">ele.keys.chord</a><code>(str) -&gt; keylist</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L28"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.keys.chordstr" href="#ele.keys.chordstr">ele.keys.chordstr</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L38"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.keys.delete" href="#ele.keys.delete">ele.keys.delete</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L220"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.keys.change" href="#ele.keys.change">ele.keys.change</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L237"><i>src</i></a>)</h3>
+Delete <move> then enter insert.
+<h3>Function <a id="ele.keys.changeEol" href="#ele.keys.changeEol">ele.keys.changeEol</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L244"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.keys.chord" href="#ele.keys.chord">ele.keys.chord</a><code>(str) -&gt; keylist</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L29"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.keys.chordstr" href="#ele.keys.chordstr">ele.keys.chordstr</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L39"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.keys.delete" href="#ele.keys.delete">ele.keys.delete</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L224"><i>src</i></a>)</h3>
 delete until a movement command (or similar)
+<h3>Function <a id="ele.keys.deleteEol" href="#ele.keys.deleteEol">ele.keys.deleteEol</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L230"><i>src</i></a>)</h3>
 <h3>Function <a id="ele.keys.down" href="#ele.keys.down">ele.keys.down</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L168"><i>src</i></a>)</h3>
 <h3>Function <a id="ele.keys.downScreen" href="#ele.keys.downScreen">ele.keys.downScreen</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L174"><i>src</i></a>)</h3>
 <h3>Function <a id="ele.keys.eof" href="#ele.keys.eof">ele.keys.eof</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L172"><i>src</i></a>)</h3>
 <h3>Function <a id="ele.keys.eol" href="#ele.keys.eol">ele.keys.eol</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L171"><i>src</i></a>)</h3>
 <h3>Function <a id="ele.keys.eot" href="#ele.keys.eot">ele.keys.eot</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L171"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.keys.find" href="#ele.keys.find">ele.keys.find</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L190"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.keys.findback" href="#ele.keys.findback">ele.keys.findback</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L201"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.keys.find" href="#ele.keys.find">ele.keys.find</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L194"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.keys.findback" href="#ele.keys.findback">ele.keys.findback</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L205"><i>src</i></a>)</h3>
+go back to the character
 <h3>Function <a id="ele.keys.forword" href="#ele.keys.forword">ele.keys.forword</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L166"><i>src</i></a>)</h3>
 <h3>Function <a id="ele.keys.insertChord" href="#ele.keys.insertChord">ele.keys.insertChord</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L135"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.keys.install" href="#ele.keys.install">ele.keys.install</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L372"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.keys.keyactions" href="#ele.keys.keyactions">ele.keys.keyactions</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L399"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.keys.install" href="#ele.keys.install">ele.keys.install</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L350"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.keys.keyactions" href="#ele.keys.keyactions">ele.keys.keyactions</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L377"><i>src</i></a>)</h3>
 <h3>Function <a id="ele.keys.left" href="#ele.keys.left">ele.keys.left</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L165"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.keys.literal" href="#ele.keys.literal">ele.keys.literal</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L33"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.keys.literal" href="#ele.keys.literal">ele.keys.literal</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L34"><i>src</i></a>)</h3>
 <h3>Function <a id="ele.keys.moveAction" href="#ele.keys.moveAction">ele.keys.moveAction</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L163"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.keys.movekey" href="#ele.keys.movekey">ele.keys.movekey</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L181"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.keys.moveG" href="#ele.keys.moveG">ele.keys.moveG</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L180"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.keys.movekey" href="#ele.keys.movekey">ele.keys.movekey</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L186"><i>src</i></a>)</h3>
 <h3>Function <a id="ele.keys.right" href="#ele.keys.right">ele.keys.right</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L165"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.keys.searchBuf" href="#ele.keys.searchBuf">ele.keys.searchBuf</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L303"><i>src</i></a>)</h3>
+Interactively search the buffer.
+<p>
+This holds onto keySt (sets .keep), effectively owning all keyboard
+inputs.
 <h3>Function <a id="ele.keys.sof" href="#ele.keys.sof">ele.keys.sof</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L172"><i>src</i></a>)</h3>
 <h3>Function <a id="ele.keys.sol" href="#ele.keys.sol">ele.keys.sol</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L170"><i>src</i></a>)</h3>
 <h3>Function <a id="ele.keys.sot" href="#ele.keys.sot">ele.keys.sot</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L170"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.keys.till" href="#ele.keys.till">ele.keys.till</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L195"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.keys.tillback" href="#ele.keys.tillback">ele.keys.tillback</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L206"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.keys.times" href="#ele.keys.times">ele.keys.times</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L240"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.keys.till" href="#ele.keys.till">ele.keys.till</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L199"><i>src</i></a>)</h3>
+go to the column before the character
+<h3>Function <a id="ele.keys.tillback" href="#ele.keys.tillback">ele.keys.tillback</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L210"><i>src</i></a>)</h3>
+go back to the column after the character
+<h3>Function <a id="ele.keys.times" href="#ele.keys.times">ele.keys.times</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L252"><i>src</i></a>)</h3>
 used for setting the number of times to do an action.
 1 0 d t x: delete till the 10th x
 <h3>Function <a id="ele.keys.unboundChord" href="#ele.keys.unboundChord">ele.keys.unboundChord</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L138"><i>src</i></a>)</h3>
 <h3>Function <a id="ele.keys.up" href="#ele.keys.up">ele.keys.up</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L167"><i>src</i></a>)</h3>
 <h3>Function <a id="ele.keys.upScreen" href="#ele.keys.upScreen">ele.keys.upScreen</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L173"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.keys.zero" href="#ele.keys.zero">ele.keys.zero</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L246"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.keys.zero" href="#ele.keys.zero">ele.keys.zero</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/bindings.lua#L258"><i>src</i></a>)</h3>
 <h2>Module <a id="ele.edit" href="#ele.edit">ele.edit</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L1"><i>src</i></a>)</h2>
 <p>
 <h4>Value <a id="ele.edit.__name" href="#ele.edit.__name">ele.edit.__name</a></h4>
@@ -9625,7 +9769,7 @@ used for setting the number of times to do an action.
   </tr>
   <tr>
     <td><code>ele.edit.Edit.drawBars</code></td>
-    <td>[fn[Edit] -> botHeight,leftWidth] = <code>fn"Edit.drawBars"[/home/rett/projects/civlua/cmd/ele/ele/edit.lua:240]</code></td>
+    <td>[fn[Edit] -> botHeight,leftWidth] = <code>fn"Edit.drawBars"[/home/rett/projects/civlua/cmd/ele/ele/edit.lua:252]</code></td>
   </tr>
   <tr>
     <td><code>ele.edit.Edit.lineStyle</code></td>
@@ -9654,36 +9798,36 @@ used for setting the number of times to do an action.
   </tr>
 </table>
 <h4>Function <a id="Edit.__len" href="#Edit.__len">Edit.__len</a><code>(e) -&gt; #e.buf</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L77"><i>src</i></a>)</h4>
-<h4>Function <a id="Edit.append" href="#Edit.append">Edit.append</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L135"><i>src</i></a>)</h4>
-<h4>Function <a id="Edit.barDims" href="#Edit.barDims">Edit.barDims</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L210"><i>src</i></a>)</h4>
+<h4>Function <a id="Edit.append" href="#Edit.append">Edit.append</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L140"><i>src</i></a>)</h4>
+<h4>Function <a id="Edit.barDims" href="#Edit.barDims">Edit.barDims</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L218"><i>src</i></a>)</h4>
 <h4>Function <a id="Edit.boundC" href="#Edit.boundC">Edit.boundC</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L92"><i>src</i></a>)</h4>
 <h4>Function <a id="Edit.boundCol" href="#Edit.boundCol">Edit.boundCol</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L105"><i>src</i></a>)</h4>
 <h4>Function <a id="Edit.boundLC" href="#Edit.boundLC">Edit.boundLC</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L100"><i>src</i></a>)</h4>
 <h4>Function <a id="Edit.changeStart" href="#Edit.changeStart">Edit.changeStart</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L123"><i>src</i></a>)</h4>
-<h4>Function <a id="Edit.changeUpdate2" href="#Edit.changeUpdate2">Edit.changeUpdate2</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L128"><i>src</i></a>)</h4>
-<h4>Function <a id="Edit.clear" href="#Edit.clear">Edit.clear</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L177"><i>src</i></a>)</h4>
+<h4>Function <a id="Edit.changeUpdate2" href="#Edit.changeUpdate2">Edit.changeUpdate2</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L133"><i>src</i></a>)</h4>
+<h4>Function <a id="Edit.clear" href="#Edit.clear">Edit.clear</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L182"><i>src</i></a>)</h4>
 Clear the buffer.
 <h4>Function <a id="Edit.close" href="#Edit.close">Edit.close</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L56"><i>src</i></a>)</h4>
-<h4>Function <a id="Edit.colEnd" href="#Edit.colEnd">Edit.colEnd</a><code>(e) -&gt; #e:curLine() + 1</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L84"><i>src</i></a>)</h4>
+<h4>Function <a id="Edit.colEnd" href="#Edit.colEnd">Edit.colEnd</a><code>(e) -&gt; #(e:curLine() or '') + 1</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L84"><i>src</i></a>)</h4>
 <h4>Function <a id="Edit.curLine" href="#Edit.curLine">Edit.curLine</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L83"><i>src</i></a>)</h4>
-<h4>Function <a id="Edit.draw" href="#Edit.draw">Edit.draw</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L205"><i>src</i></a>)</h4>
-<h4>Function <a id="Edit.drawCursor" href="#Edit.drawCursor">Edit.drawCursor</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L246"><i>src</i></a>)</h4>
+<h4>Function <a id="Edit.draw" href="#Edit.draw">Edit.draw</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L213"><i>src</i></a>)</h4>
+<h4>Function <a id="Edit.drawCursor" href="#Edit.drawCursor">Edit.drawCursor</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L259"><i>src</i></a>)</h4>
 <h4>Function <a id="Edit.forceHeight" href="#Edit.forceHeight">Edit.forceHeight</a><code>(e) -&gt; e.fh</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L80"><i>src</i></a>)</h4>
 <h4>Function <a id="Edit.forceWidth" href="#Edit.forceWidth">Edit.forceWidth</a><code>(e) -&gt; e.fw</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L81"><i>src</i></a>)</h4>
-<h4>Function <a id="Edit.insert" href="#Edit.insert">Edit.insert</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L147"><i>src</i></a>)</h4>
+<h4>Function <a id="Edit.insert" href="#Edit.insert">Edit.insert</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L152"><i>src</i></a>)</h4>
 <h4>Function <a id="Edit.lastLine" href="#Edit.lastLine">Edit.lastLine</a><code>(e) -&gt; e.buf[#e]</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L85"><i>src</i></a>)</h4>
 <h4>Function <a id="Edit.offset" href="#Edit.offset">Edit.offset</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L88"><i>src</i></a>)</h4>
-<h4>Function <a id="Edit.path" href="#Edit.path">Edit.path</a><code>(e) -&gt; path?</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L267"><i>src</i></a>)</h4>
-<h4>Function <a id="Edit.redo" href="#Edit.redo">Edit.redo</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L190"><i>src</i></a>)</h4>
-<h4>Function <a id="Edit.remove" href="#Edit.remove">Edit.remove</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L152"><i>src</i></a>)</h4>
-<h4>Function <a id="Edit.removeOff" href="#Edit.removeOff">Edit.removeOff</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L160"><i>src</i></a>)</h4>
-<h4>Function <a id="Edit.replace" href="#Edit.replace">Edit.replace</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L170"><i>src</i></a>)</h4>
+<h4>Function <a id="Edit.path" href="#Edit.path">Edit.path</a><code>(e) -&gt; path?</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L278"><i>src</i></a>)</h4>
+<h4>Function <a id="Edit.redo" href="#Edit.redo">Edit.redo</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L197"><i>src</i></a>)</h4>
+<h4>Function <a id="Edit.remove" href="#Edit.remove">Edit.remove</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L157"><i>src</i></a>)</h4>
+<h4>Function <a id="Edit.removeOff" href="#Edit.removeOff">Edit.removeOff</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L165"><i>src</i></a>)</h4>
+<h4>Function <a id="Edit.replace" href="#Edit.replace">Edit.replace</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L175"><i>src</i></a>)</h4>
 <h4>Function <a id="Edit.save" href="#Edit.save">Edit.save</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L75"><i>src</i></a>)</h4>
-<h4>Function <a id="Edit.split" href="#Edit.split">Edit.split</a><code>(e, S) -&gt; split</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L263"><i>src</i></a>)</h4>
+<h4>Function <a id="Edit.split" href="#Edit.split">Edit.split</a><code>(e, S) -&gt; split</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L276"><i>src</i></a>)</h4>
 Split the edit by wrapping it and a copy into split type S.
 Return the resulting split.
-<h4>Function <a id="Edit.undo" href="#Edit.undo">Edit.undo</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L185"><i>src</i></a>)</h4>
-<h4>Function <a id="Edit.viewCursor" href="#Edit.viewCursor">Edit.viewCursor</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L119"><i>src</i></a>)</h4>
+<h4>Function <a id="Edit.undo" href="#Edit.undo">Edit.undo</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L191"><i>src</i></a>)</h4>
+<h4>Function <a id="Edit.viewCursor" href="#Edit.viewCursor">Edit.viewCursor</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/edit.lua#L116"><i>src</i></a>)</h4>
 <h2>Module <a id="ele.testing" href="#ele.testing">ele.testing</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/testing.lua#L2"><i>src</i></a>)</h2>
 <p>
 <h4>Value <a id="ele.testing.SLEEP" href="#ele.testing.SLEEP">ele.testing.SLEEP</a></h4>
@@ -9696,10 +9840,14 @@ Return the resulting split.
     <td><code>ele.types.ID</code></td>
     <td>[number] </td>
   </tr>
+  <tr>
+    <td><code>ele.types.INIT_BUFS</code></td>
+    <td>[number] </td>
+  </tr>
 </table>
 <h4>Value <a id="ele.types.WELCOME" href="#ele.types.WELCOME">ele.types.WELCOME</a></h4>
 <h4>Value <a id="ele.types.__name" href="#ele.types.__name">ele.types.__name</a></h4>
-<h3>Record <a id="ele.types.HSplit" href="#ele.types.HSplit">ele.types.HSplit</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L65"><i>src</i></a>)</h3>
+<h3>Record <a id="ele.types.HSplit" href="#ele.types.HSplit">ele.types.HSplit</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L68"><i>src</i></a>)</h3>
 A container with windows split horizontally (i.e. wide windows)
 <p>
 <b>Fields: </b> <table>
@@ -9734,7 +9882,7 @@ A container with windows split horizontally (i.e. wide windows)
 <b>Records: </b> <table>
   <tr>
     <td><code>ele.types.HSplit.__index</code></td>
-    <td>[Ty<HSplit>] (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L65">src</a>)</td>
+    <td>[Ty<HSplit>] (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L68">src</a>)</td>
   </tr>
 </table>
 <b>Methods: </b> <table>
@@ -9755,10 +9903,10 @@ A container with windows split horizontally (i.e. wide windows)
     <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/ds/ds.lua#L91">src</a>)</td>
   </tr>
 </table>
-<h4>Function <a id="VSplit.insert" href="#VSplit.insert">VSplit.insert</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L30"><i>src</i></a>)</h4>
-<h4>Function <a id="VSplit.remove" href="#VSplit.remove">VSplit.remove</a><code>(sp, v) -&gt; v</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L49"><i>src</i></a>)</h4>
-<h4>Function <a id="VSplit.replace" href="#VSplit.replace">VSplit.replace</a><code>(sp, from, to) -&gt; from</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L38"><i>src</i></a>)</h4>
-<h3>Record <a id="ele.types.VSplit" href="#ele.types.VSplit">ele.types.VSplit</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L25"><i>src</i></a>)</h3>
+<h4>Function <a id="VSplit.insert" href="#VSplit.insert">VSplit.insert</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L32"><i>src</i></a>)</h4>
+<h4>Function <a id="VSplit.remove" href="#VSplit.remove">VSplit.remove</a><code>(sp, v) -&gt; v</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L51"><i>src</i></a>)</h4>
+<h4>Function <a id="VSplit.replace" href="#VSplit.replace">VSplit.replace</a><code>(sp, from, to) -&gt; from</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L40"><i>src</i></a>)</h4>
+<h3>Record <a id="ele.types.VSplit" href="#ele.types.VSplit">ele.types.VSplit</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L27"><i>src</i></a>)</h3>
 A container with windows split vertically (i.e. tall windows)
 <p>
 <b>Fields: </b> <table>
@@ -9793,7 +9941,7 @@ A container with windows split vertically (i.e. tall windows)
 <b>Records: </b> <table>
   <tr>
     <td><code>ele.types.VSplit.__index</code></td>
-    <td>[Ty<VSplit>] (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L25">src</a>)</td>
+    <td>[Ty<VSplit>] (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L27">src</a>)</td>
   </tr>
 </table>
 <b>Methods: </b> <table>
@@ -9815,25 +9963,117 @@ A container with windows split vertically (i.e. tall windows)
   </tr>
   <tr>
     <td><code>ele.types.VSplit.insert</code></td>
-    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L30">src</a>)</td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L32">src</a>)</td>
   </tr>
   <tr>
     <td><code>ele.types.VSplit.remove</code></td>
-    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L49">src</a>)</td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L51">src</a>)</td>
   </tr>
   <tr>
     <td><code>ele.types.VSplit.replace</code></td>
-    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L38">src</a>)</td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L40">src</a>)</td>
   </tr>
 </table>
-<h4>Function <a id="VSplit.draw" href="#VSplit.draw">VSplit.draw</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L62"><i>src</i></a>)</h4>
-<h3>Function <a id="ele.types.checkAction" href="#ele.types.checkAction">ele.types.checkAction</a><code>(data, action) -&gt; errstring</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L125"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.types.checkBinding" href="#ele.types.checkBinding">ele.types.checkBinding</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L88"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.types.checkBindings" href="#ele.types.checkBindings">ele.types.checkBindings</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L113"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.types.checkMode" href="#ele.types.checkMode">ele.types.checkMode</a><code>(data, mode) -&gt; errstring</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L119"><i>src</i></a>)</h3>
-<h3>Function <a id="ele.types.uniqueId" href="#ele.types.uniqueId">ele.types.uniqueId</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L82"><i>src</i></a>)</h3>
+<h4>Function <a id="VSplit.draw" href="#VSplit.draw">VSplit.draw</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L65"><i>src</i></a>)</h4>
+<h3>Function <a id="ele.types.checkAction" href="#ele.types.checkAction">ele.types.checkAction</a><code>(data, action) -&gt; errstring</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L129"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.types.checkBinding" href="#ele.types.checkBinding">ele.types.checkBinding</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L92"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.types.checkBindings" href="#ele.types.checkBindings">ele.types.checkBindings</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L117"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.types.checkMode" href="#ele.types.checkMode">ele.types.checkMode</a><code>(data, mode) -&gt; errstring</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L123"><i>src</i></a>)</h3>
+<h3>Function <a id="ele.types.uniqueId" href="#ele.types.uniqueId">ele.types.uniqueId</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/ele/ele/types.lua#L86"><i>src</i></a>)</h3>
 <p>
 <code>ele.types.term</code> | [Mod<vt100>] (<a href="https://github.com/civboot/civlua/blob/main/ui/vt100/vt100.lua#L9">src</a>)
+<p>
+<h1><a id="Package_anote" href="#Package_anote">Package anote</a> (<a href="https://github.com/civboot/civlua/blob/main/game/anote"><i>src</i></a>)</h1><table>
+  <tr>
+    <td><b>summary</b></td>
+    <td>ASCII midi programming language</td>
+  </tr>
+  <tr>
+    <td><b>version</b></td>
+    <td><code>0.1</code></td>
+  </tr>
+  <tr>
+    <td><b>homepage</b></td>
+    <td><a href="https://lua.civboot.org#Package_anote">https://lua.civboot.org#Package_anote</a></td>
+  </tr>
+</table>
+<h1>anote: ASCII midi programming language</h1>
+<p>
+anote (ASCII note) is an ASCII programming language for controlling music,
+specifically designed to compile to MIDI and sheet music. It draws from some
+of the concepts of the languages <a href="https://abcnotation.com">ABC</a> and
+<a href="https://en.wikipedia.org/wiki/Music_Macro_Language">MML</a> but is designed to
+look as much like sheet music as the medium of ASCII text permits. Here is
+an example:
+<p>
+<code class="block">#  121212121212
+4: g--   g g--
+4: e--  e- e--
+4: c-- c-- c--
+"  to- lov-e--</code>
+<p>
+<ul>
+  <li>The top row of numbers following <code>#</code> are the step divisions that each column
+  is played at. <ul>
+    <li>Every <code>1</code> signifies the beginning of a new step</li>
+    <li>2's are played at the 1/2 step.</li>
+    <li>additional numbers allow more precision (see "other note notations" below)</li>
+  </ul></li>
+  <li>The left <code>4:</code> specify the row's octave. The values that follow are the notes
+  to play at their column's specified step time. Each note is represented by
+  one of the characters <code>c d e f g a b</code>, each representing their standard
+  musical note.</li>
+  <li>The final row starting with <code>"</code> is the lyrics. It is not parsed by the
+  computer and is for humans to read.</li>
+</ul>
+<p>
+For each numbered column (each step time): <code>* The first column is "g e c", which is a standard c-chord.
+* The next two columns [$--] specify to hold the c-chord for 1-1/2 steps.
+* The blank space is a 1/2 step rest
+* A [$c] note is played and held for 1-1/2 steps ([$c--]).
+* A 1/2 step later [$e] is played and held for two half steps ([$e-]).
+* A 1/2 step later [$g] is played for a 1/2 step, then all keys are
+  released.
+* Then a 1/2 step rest
+* Finally another c-chord is played and held for 1-1/2 steps.</code>
+<p>
+<h2>Other Settings</h2>
+anote provides several ways to control aspects of the music: <ul>
+  <li>There are several explicit settings that can be placed above the <code>#</code> bar,
+  preceeded by <code>@</code>. This includes the instrument, tempo (default=4/4), default
+  volume override, base octave (default=0), etc.
+  <p>
+  <code class="block">@instrument=double_bass  volume=7
+  @tempo=4/4               octave=-3
+  #  1212...</code></li>
+  <li>Lyrics can be placed on any number of lines by using <code>"</code>. The songwriter
+  will typically increase the note precision (i.e. use <code>1 2 3 4</code> instead
+  of just <code>1 2</code>) to allow space for lyrics when needed.</li>
+  <li>Individual note volume (from 0-10) is controlled by the row, after the
+  octave, i.e. <code>4 2.3: ...notes</code> is 4th octave with 2.3 volume. <code>0</code> means
+  silent and can be used to "comment" out a specific line while writing music.</li>
+</ul>
+<p>
+Other note notations: <ul>
+  <li>A sharp note (half step up) is one of <code>C D E F G A B</code>. Flats cannot be
+  represented, except as sharps (i.e. "a sharp" is the same note as "b flat").</li>
+  <li>The step precision can be controlled by simply adding more step values to the
+  top row (after <code>#</code>). For example, 1/8th step precision would be
+  <code>12345678</code>, 1/16th step precision is <code>123456789abcdefg</code>. anote supports up
+  to character 'w', which would be 1/32nd step precision.
+  <p>
+  The precision can be altered for each bar, for instance you could do
+  <code>1231234512312345</code> to alternate between 1/3 and 1/5 note precision.</li>
+  <li>Notes can "draw" into eachother with <code>&gt;</code>, i.e. <code>c-&gt;&gt;d</code> on a string
+  instrument would mean to hold <code>c</code> briefly then move your finger towards <code>d</code>
+  (just holding, not playing it).<ul>
+    <li>The length of <code>&gt;&gt;&gt;</code> determines the time it takes to draw.</li>
+    <li>If you were supposed to strum <code>d</code> as well then it would be <code>c-&gt;-d</code>.</li>
+    <li>A quick transition without strumming would be <code>c-&gt;=d</code>.</li>
+  </ul></li>
+</ul>
+<p>
+<h3>Table <a id="anote" href="#anote">anote</a></h3>
 <p>
 <h1><a id="Package_iA" href="#Package_iA">Package iA</a> (<a href="https://github.com/civboot/civlua/blob/main/os/iA"><i>src</i></a>)</h1><table>
   <tr>

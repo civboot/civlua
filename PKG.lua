@@ -39,6 +39,9 @@ pkgs = {
   'cmd/pvc',     -- patch version control
   'cmd/ele',     -- Extendable Lua Editor (and shell)
 
+  -- game
+  'game/anote',  -- ASCII music notation language
+
   -- os
   'os/iA',       -- intermediate Assembly
 }

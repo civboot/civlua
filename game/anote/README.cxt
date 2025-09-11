@@ -1,0 +1,87 @@
+[{h1}anote: ASCII midi programming language]
+
+anote (ASCII note) is an ASCII programming language for controlling music,
+specifically designed to compile to MIDI and sheet music. It draws from some
+of the concepts of the languages [<https://abcnotation.com>ABC] and
+[<https://en.wikipedia.org/wiki/Music_Macro_Language>MML] but is designed to
+look as much like sheet music as the medium of ASCII text permits. Here is
+an example:
+
+[{## lang=anote}
+#  121212121212
+4: g--   g g--
+4: e--  e- e--
+4: c-- c-- c--
+"  to- lov-e--
+]##
+
+[+
+* The top row of numbers following [$#] are the step divisions that each column
+  is played at. [+
+  * Every [$1] signifies the beginning of a new step
+  * 2's are played at the 1/2 step.
+  * additional numbers allow more precision (see "other note notations" below)
+  ]
+
+* The left [$4:] specify the row's octave. The values that follow are the notes
+  to play at their column's specified step time. Each note is represented by
+  one of the characters [$c d e f g a b], each representing their standard
+  musical note.
+
+* The final row starting with [$"] is the lyrics. It is not parsed by the
+  computer and is for humans to read.
+]
+
+For each numbered column (each step time): [$
+* The first column is "g e c", which is a standard c-chord.
+* The next two columns [$--] specify to hold the c-chord for 1-1/2 steps.
+* The blank space is a 1/2 step rest
+* A [$c] note is played and held for 1-1/2 steps ([$c--]).
+* A 1/2 step later [$e] is played and held for two half steps ([$e-]).
+* A 1/2 step later [$g] is played for a 1/2 step, then all keys are
+  released.
+* Then a 1/2 step rest
+* Finally another c-chord is played and held for 1-1/2 steps.
+]
+
+[{h2}Other Settings]
+anote provides several ways to control aspects of the music: [+
+* There are several explicit settings that can be placed above the [$#] bar,
+  preceeded by [$@]. This includes the instrument, tempo (default=4/4), default
+  volume override, base octave (default=0), etc.
+
+  [{## lang=anote}
+  @instrument=double_bass  volume=7
+  @tempo=4/4               octave=-3
+  #  1212...
+  ]##
+
+* Lyrics can be placed on any number of lines by using [$"]. The songwriter
+  will typically increase the note precision (i.e. use [$1 2 3 4] instead
+  of just [$1 2]) to allow space for lyrics when needed.
+
+* Individual note volume (from 0-10) is controlled by the row, after the
+  octave, i.e. [$4 2.3: ...notes] is 4th octave with 2.3 volume. [$0] means
+  silent and can be used to "comment" out a specific line while writing music.
+]
+
+Other note notations: [+
+* A sharp note (half step up) is one of [$C D E F G A B]. Flats cannot be
+  represented, except as sharps (i.e. "a sharp" is the same note as "b flat").
+
+* The step precision can be controlled by simply adding more step values to the
+  top row (after [$#]). For example, 1/8th step precision would be
+  [$12345678], 1/16th step precision is [$123456789abcdefg]. anote supports up
+  to character 'w', which would be 1/32nd step precision.
+
+  The precision can be altered for each bar, for instance you could do
+  [$1231234512312345] to alternate between 1/3 and 1/5 note precision.
+
+* Notes can "draw" into eachother with [$>], i.e. [$c->>d] on a string
+  instrument would mean to hold [$c] briefly then move your finger towards [$d]
+  (just holding, not playing it).[+
+  * The length of [$>>>] determines the time it takes to draw.
+  * If you were supposed to strum [$d] as well then it would be [$c->-d].
+  * A quick transition without strumming would be [$c->=d].
+  ]
+]

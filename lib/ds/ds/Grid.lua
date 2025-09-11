@@ -38,9 +38,9 @@ end
 --- Insert the str into the Grid.
 --- Any newlines will be insert starting at column c.
 ---
---- This will automatically fill [1,c-1] with spaces, but will
---- NOT clear any data after the insert text, meaning it is
---- essentially a replace.
+--- This will automatically fill [$[1,c-1]] with spaces, but will
+--- NOT clear any data after the insert text, meaning it is essentially a
+--- replace.
 --- FIXME: considere renaming to replace... or something.
 G.insert = function(g, l, c, str)
   for _, sline in split(str) do -- line from string
