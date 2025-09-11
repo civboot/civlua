@@ -15,12 +15,11 @@ an example:
 "  to- lov-e--
 ]##
 
-[+
+The structure is as follows: [+
 * The top row of numbers following [$#] are the step divisions that each column
   is played at. [+
   * Every [$1] signifies the beginning of a new step
-  * 2's are played at the 1/2 step.
-  * additional numbers allow more precision (see "other note notations" below)
+  * [$2] is played at the 1/2 step.
   ]
 
 * The left [$4:] specify the row's octave. The values that follow are the notes
@@ -32,7 +31,7 @@ an example:
   computer and is for humans to read.
 ]
 
-For each numbered column (each step time): [$
+For each numbered column (each step time): [+
 * The first column is "g e c", which is a standard c-chord.
 * The next two columns [$--] specify to hold the c-chord for 1-1/2 steps.
 * The blank space is a 1/2 step rest

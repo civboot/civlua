@@ -2704,7 +2704,7 @@ pod: plain old data
 </table>
 <h4>Value <a id="pod.__name" href="#pod.__name">pod.__name</a></h4>
 <h3>Table <a id="pod.boolean" href="#pod.boolean">pod.boolean</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
-<h3>Table <a id="pod.int" href="#pod.int">pod.int</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
+<h3>Table <a id="pod.integer" href="#pod.integer">pod.integer</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.nil" href="#pod.nil">pod.nil</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.number" href="#pod.number">pod.number</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
 <h3>Table <a id="pod.str" href="#pod.str">pod.str</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pod/pod.lua#L96"><i>src</i></a>)</h3>
@@ -10012,12 +10012,11 @@ an example:
 4: c-- c-- c--
 "  to- lov-e--</code>
 <p>
-<ul>
+The structure is as follows: <ul>
   <li>The top row of numbers following <code>#</code> are the step divisions that each column
   is played at. <ul>
     <li>Every <code>1</code> signifies the beginning of a new step</li>
-    <li>2's are played at the 1/2 step.</li>
-    <li>additional numbers allow more precision (see "other note notations" below)</li>
+    <li><code>2</code> is played at the 1/2 step.</li>
   </ul></li>
   <li>The left <code>4:</code> specify the row's octave. The values that follow are the notes
   to play at their column's specified step time. Each note is represented by
@@ -10027,15 +10026,17 @@ an example:
   computer and is for humans to read.</li>
 </ul>
 <p>
-For each numbered column (each step time): <code>* The first column is "g e c", which is a standard c-chord.
-* The next two columns [$--] specify to hold the c-chord for 1-1/2 steps.
-* The blank space is a 1/2 step rest
-* A [$c] note is played and held for 1-1/2 steps ([$c--]).
-* A 1/2 step later [$e] is played and held for two half steps ([$e-]).
-* A 1/2 step later [$g] is played for a 1/2 step, then all keys are
-  released.
-* Then a 1/2 step rest
-* Finally another c-chord is played and held for 1-1/2 steps.</code>
+For each numbered column (each step time): <ul>
+  <li>The first column is "g e c", which is a standard c-chord.</li>
+  <li>The next two columns <code>--</code> specify to hold the c-chord for 1-1/2 steps.</li>
+  <li>The blank space is a 1/2 step rest</li>
+  <li>A <code>c</code> note is played and held for 1-1/2 steps (<code>c--</code>).</li>
+  <li>A 1/2 step later <code>e</code> is played and held for two half steps (<code>e-</code>).</li>
+  <li>A 1/2 step later <code>g</code> is played for a 1/2 step, then all keys are
+  released.</li>
+  <li>Then a 1/2 step rest</li>
+  <li>Finally another c-chord is played and held for 1-1/2 steps.</li>
+</ul>
 <p>
 <h2>Other Settings</h2>
 anote provides several ways to control aspects of the music: <ul>
