@@ -1237,4 +1237,12 @@ M.yeet = function(fmt, ...)
   os.exit(99)
 end
 
+--- Print to io.sderr
+M.eprint = function(...)
+  local t = {...}; for i,v in ipairs(t)
+    do t[i] = tostring(v)
+  end
+  io.stderr:write(concat(t, '\t'), '\n')
+end
+
 return M

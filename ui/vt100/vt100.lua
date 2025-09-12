@@ -43,6 +43,7 @@ local RESET, BOLD, UL, INV = 0, 1, 4, 7
 ---
 --- Requires [$vt100.start()] have been called to initiate raw mode.
 M.Term = mty'Term'{
+  'fd [file]: file to write output to in draw()',
   'l [int]: cursor line', 'c [int]: cursor column', l=1, c=1,
   'h [int]: height', 'w [int]: width', h=40, w=80,
   'text [ds.Grid]: the text to display',
@@ -298,8 +299,8 @@ end
 
 --- send a request for size.
 --- Note: the input() coroutine will receive and call _ready()
-M.Term._requestSize = function(tm, f)
-  tm._waiting = coroutine.running(); ctrl.size(f or io.stdout)
+M.Term._requestSize = function(tm)
+  tm._waiting = coroutine.running(); ctrl.size(tm.fd)
 end
 M.Term._ready = function(tm, msg)
   LAP_READY[assert(tm._waiting)] = msg or true
@@ -315,8 +316,8 @@ M.Term.resize = function(tm)
 end
 
 --- draw the text and color(fg/bg) grids to the screen
-M.Term.draw = function(tm, fd)
-  fd = fd or io.stdout
+M.Term.draw = function(tm)
+  local fd = tm.fd
   local w, h, fg, bg, ok, err = tm.text.w, tm.text.h
   ctrl.hide(fd); golc(fd, 1,1)
   for l=1,h  do
@@ -400,31 +401,16 @@ M.savemode = function() --> mode?, errmsg?
 end
 M.restoremode = function(mode) return os.execute('stty '..mode) end
 
-M.ATEXIT = {}
-M.stop = function()
-  local mt = getmetatable(M.ATEXIT); assert(mt)
-  mt.__gc()
-  setmetatable(M.ATEXIT, nil)
-  local stdout = M.ATEXIT.stdout
-  io.stderr = M.ATEXIT.stderr
-  log.info'vt100.stop() complete'
-end
-M.start = function(stderr, ...); assert(select('#', ...) == 0)
-  log.info'vt100.start() begin'
-  assert(stderr, 'must provide new stderr')
-  assert(not getmetatable(M.ATEXIT))
-  local SAVED = assert(M.savemode())
-  local mt = {
-    __gc = function()
-      if not getmetatable(M.ATEXIT) then return end
-      ctrl.clear(io.stdout); ctrl.show(io.stdout)
-      M.restoremode(SAVED)
-   end,
-  }
-  setmetatable(M.ATEXIT, mt)
-  M.ATEXIT.stderr = io.stderr; io.stderr = stderr
+M.start = function() --> savedmode
+  local sm = M.savemode()
   M.setrawmode()
-  log.info'vt100.start() complete'
+  return sm
+end
+M.stop = function(fd, savedmode)
+  assert(fd and savedmode, 'must pass in fd and savedmode')
+  ctrl.clear(fd)
+  ctrl.show(fd)
+  M.restoremode(savedmode)
 end
 
 --- Listens to keyboard inputs and echoes them.

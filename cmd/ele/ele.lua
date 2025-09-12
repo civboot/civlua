@@ -6,29 +6,32 @@ CWD = CWD or os.getenv'PWD' or os.getenv'CD'
 local shim = require'shim'
 local lap = require'lap'
 local fd = require'fd'
+local ds = require'ds'
 local log = require'ds.log'
 local ac = require'asciicolor'
 local ioopen = io.open
-local iostdout = io.stdout
+local iostdout, iostderr = io.stdout, io.stderr
+local sysprint = G.print
 
 -- shim exe function
 M.main = function(args)
   args = shim.parseStr(args)
   local vt = require'vt100'
+  local savedmode
   log.info('ele exe', args)
   -- TODO: handle args besides paths
   local s = args.session or require'ele.Session':user{}
   local keysend = s.keys:sender()
+  local iofmt   = io.fmt
 
   local l = require'civix'.Lap{}:run(
   function() -- setup terminal and kickoff ele coroutines
-    local stderr = assert(ioopen('/tmp/ele.err', 'w'))
-    vt.start(stderr)
-    io.fmt = require'civ'.Fmt{to=stderr}
-
     s.ed.display = vt.Term{
+      fd=io.stdout,
       styler=ac.Styler{style=ac.loadStyle()},
     }
+    io.stdout = nil
+    G.print = ds.eprint
     log.info'ele: started display'
     s:handleEvents()
     lap.schedule(function()
@@ -51,6 +54,10 @@ M.main = function(args)
     log.info'ele: end of setup'
   end,
   function() lap.async() -- setup: change to async()
+    io.stderr = assert(ioopen('/tmp/ele.err', 'w'))
+    io.fmt = require'civ'.Fmt{to=io.stderr}
+    savedmode = vt.start()
+
     fd.ioAsync()
     fd.stdin:toNonblock()
     fd.stdout:toNonblock()
@@ -58,8 +65,12 @@ M.main = function(args)
   function() lap.sync() -- teardown: change to sync()
     fd.stdout:toBlock()
     fd.stdin:toBlock()
-    vt.stop()
     fd.ioSync()
+
+    vt.stop(io.stdout, savedmode)
+    io.stderr = iostderr
+    io.fmt    = iofmt
+
   end)
   return s, l
 end
