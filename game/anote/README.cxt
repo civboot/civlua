@@ -4,11 +4,13 @@ anote (ASCII note) is an ASCII programming language for controlling music,
 specifically designed to compile to MIDI and sheet music. It draws from some
 of the concepts of the languages [<https://abcnotation.com>ABC] and
 [<https://en.wikipedia.org/wiki/Music_Macro_Language>MML] but is designed to
-look as much like sheet music as the medium of ASCII text permits. Here is
-an example:
+look as much like sheet music as the medium of ASCII text permits.
+
+[{h2}anote sheet music]
+Here is an example of the sheet music:
 
 [{## lang=anote}
-#  121212121212
+#  2.2.2.2.2.2.
 4: g--   g g--
 4: e--  e- e--
 4: c-- c-- c--
@@ -18,8 +20,9 @@ an example:
 The structure is as follows: [+
 * The top row of numbers following [$#] are the step divisions that each column
   is played at. [+
-  * Every [$1] signifies the beginning of a new step
-  * [$2] is played at the 1/2 step.
+  * Every [$2] signifies the beginning of a new step. The 2 means it has a 1/2 step
+    precision.
+  * Each [$.] is played at the 1/2 step following the column labeled with [$2].
   ]
 
 * The left [$4:] specify the row's octave. The values that follow are the notes
@@ -43,44 +46,41 @@ For each numbered column (each step time): [+
 * Finally another c-chord is played and held for 1-1/2 steps.
 ]
 
-[{h2}Other Settings]
+[{h3}Other Settings]
 anote provides several ways to control aspects of the music: [+
 * There are several explicit settings that can be placed above the [$#] bar,
-  preceeded by [$@]. This includes the instrument, tempo (default=4/4), default
-  volume override, base octave (default=0), etc.
+  preceeded by [$@]. This includes the instrument, tempo (default=60bpm),
+  default volume override, base octave (default=0), etc. Multiple bars
+  with the same name will be concatenated.
 
   [{## lang=anote}
+  @name=bass_1
   @instrument=double_bass  volume=7
   @tempo=4/4               octave=-3
   #  1212...
   ]##
 
 * Lyrics can be placed on any number of lines by using [$"]. The songwriter
-  will typically increase the note precision (i.e. use [$1 2 3 4] instead
-  of just [$1 2]) to allow space for lyrics when needed.
+  will typically increase the note precision (i.e. use [$4...] for 1/4 note
+  precision instead of just [$2.], which is 1/2 note precision) to allow space
+  for lyrics when needed.
 
-* Individual note volume (from 0-10) is controlled by the row, after the
-  octave, i.e. [$4 2.3: ...notes] is 4th octave with 2.3 volume. [$0] means
-  silent and can be used to "comment" out a specific line while writing music.
+* Multiple settings can be done on the row, for instance the volume
+  can be set with [$4 v2.3:] (aka 4th octave, 2.3/10 volume). In addition,
+  macros can be defined with [$var agg = v7 a9] (7/10 volume, 9/10 attack
+  speed). Macros can be used with [$!name], i.e. [$4 !agg:].
 ]
 
 Other note notations: [+
 * A sharp note (half step up) is one of [$C D E F G A B]. Flats cannot be
-  represented, except as sharps (i.e. "a sharp" is the same note as "b flat").
+  represented, except as sharps (i.e. "c-sharp" is the same note as "d-flat").
 
-* The step precision can be controlled by simply adding more step values to the
-  top row (after [$#]). For example, 1/8th step precision would be
-  [$12345678], 1/16th step precision is [$123456789abcdefg]. anote supports up
-  to character 'w', which would be 1/32nd step precision.
-
-  The precision can be altered for each bar, for instance you could do
-  [$1231234512312345] to alternate between 1/3 and 1/5 note precision.
-
-* Notes can "draw" into eachother with [$>], i.e. [$c->>d] on a string
-  instrument would mean to hold [$c] briefly then move your finger towards [$d]
-  (just holding, not playing it).[+
-  * The length of [$>>>] determines the time it takes to draw.
-  * If you were supposed to strum [$d] as well then it would be [$c->-d].
-  * A quick transition without strumming would be [$c->=d].
-  ]
+* The step precision can be controlled by increasing the number starting each
+  step in the top row. For example, 1/8th step precision might be [$8...*...],
+  16th step precision might be [$G...*...+...*...] (G is the 16th letter from
+  1-9 A-Z). Note that [$. * - +] are all valid characters following the
+  alphanumeric and are for the human writer to visually divide the step.
 ]
+
+[{h2}anote mixer]
+
