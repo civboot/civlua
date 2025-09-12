@@ -383,8 +383,8 @@ end
 M.Lap.isDone = function(lap)
   return not (next(LAP_READY) or (#lap.monoHeap > 0) or next(lap.pollMap))
 end
-M.Lap.run = function(lap, fns, async, sync)
-  async, sync = async or M.async, sync or M.sync
+M.Lap.run = function(lap, fns, setup, teardown)
+  setup, teardown = setup or M.async, teardown or M.sync
   local errors
   assert(lap:isDone(), "cannot run non-done Lap")
   assert(not LAP_ASYNC, 'already in async mode')
@@ -395,11 +395,17 @@ M.Lap.run = function(lap, fns, async, sync)
       LAP_READY[coroutine.create(fn)] = 'run'
     end
   end
-  async()
-  while not lap:isDone() do
-    errors = lap(); if errors then break end
+  setup()
+  local ok, ierr = ds.try(function()
+    while not lap:isDone() do
+      errors = lap(); if errors then break end
+    end
+  end)
+  if not ok then
+    errors = errors or {}
+    push(errors, ierr)
   end
-  sync()
+  teardown()
   if errors then
     errors = M.formatCorErrors(errors)
     log.info('coroutine errors: %s', errors)
