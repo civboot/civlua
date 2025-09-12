@@ -389,16 +389,16 @@ end
 -------------------
 -- start / stop raw mode
 local READALL = (_VERSION < "Lua 5.3") and "*a" or "a"
-local setrawmode = function()
+M.setrawmode = function()
   return os.execute'stty raw -echo 2> /dev/null'
 end
-local setsanemode = function() return os.execute'stty sane' end
-local savemode = function() --> mode?, errmsg?
+M.setsanemode = function() return os.execute'stty sane' end
+M.savemode = function() --> mode?, errmsg?
   local fh = io.popen'stty -g'; local mode = fh:read(READALL)
   local ok, e, msg = fh:close()
   return ok and mode or nil, msg
 end
-local restoremode = function(mode) return os.execute('stty '..mode) end
+M.restoremode = function(mode) return os.execute('stty '..mode) end
 
 M.ATEXIT = {}
 M.stop = function()
@@ -413,17 +413,17 @@ M.start = function(stderr, ...); assert(select('#', ...) == 0)
   log.info'vt100.start() begin'
   assert(stderr, 'must provide new stderr')
   assert(not getmetatable(M.ATEXIT))
-  local SAVED = assert(savemode())
+  local SAVED = assert(M.savemode())
   local mt = {
     __gc = function()
       if not getmetatable(M.ATEXIT) then return end
       ctrl.clear(io.stdout); ctrl.show(io.stdout)
-      restoremode(SAVED)
+      M.restoremode(SAVED)
    end,
   }
   setmetatable(M.ATEXIT, mt)
   M.ATEXIT.stderr = io.stderr; io.stderr = stderr
-  setrawmode()
+  M.setrawmode()
   log.info'vt100.start() complete'
 end
 
