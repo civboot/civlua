@@ -15,10 +15,16 @@ local min, max = math.min, math.max
 local assertf = fmt.assertf
 local sfmt = string.format
 
+local EdSettings = mty'EdSettings' {
+  'tabwidth [int]', tabwidth=2,
+}
+
+
 -- Editor is the global editor state that actions have access to.
 --
 -- action signature: function(data, event, evsend)
 local Editor = mty'Editor' {
+  's [EdSettings]',
   'mode  [string]: current editor mode',
   'modes [table]: keyboard bindings per mode (see: bindings.lua)',
   'actions [table]: actions which events can trigger (see: actions.lua)',
@@ -32,6 +38,7 @@ local Editor = mty'Editor' {
   'run [boolean]: set to false to stop the app', run=true,
   'ext [table]: table for extensions to store data',
   'search [str]: search pattern for searchBuf, etc',
+  'lastEvent [table]: the last event executed.',
 
   'error [callable]: error handler (ds.log.logfmt sig)',
   'warn  [callable]: warn handler',
@@ -42,6 +49,7 @@ local Editor = mty'Editor' {
 
 getmetatable(Editor).__call = function(T, t)
   t = ds.merge({
+    s=EdSettings{},
     mode='command', modes={},
     actions=ds.copy(require'ele.actions'),
     buffers={}, bufferId={},

@@ -187,6 +187,13 @@ M.insert = function(ed, ev, evsend)
   ed:handleStandard(ev)
 end
 
+M.insertTab = function(ed, ev)
+  local tw = ed.s.tabwidth
+  local c = (ed.edit.c - 1) % tw
+  ed.edit:insert(srep(' ', tw - c))
+  ed:handleStandard(ev)
+end
+
 -- remove movement action
 --
 -- This is always tied with a movement (except below).
@@ -550,9 +557,16 @@ M.window = function(ed, ev)
   if ev.moveH then
     local v = ed.edit; local c = v.container
     if mty.ty(c) == et.HSplit then
+
+
+
+
+
+
       v, c = c, c.container
     end
     if mty.ty(c) == et.VSplit then
+
       local i = assert(ds.indexOf(c, v)) + ev.moveH
       if 1 <= i and i <= #c then
         assert(mty.ty(c[i] == Edit))

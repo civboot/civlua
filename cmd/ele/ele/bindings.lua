@@ -141,6 +141,7 @@ M.commandMode = {mode='command'}
 M.insertMode  = {mode='insert'}
 M.systemMode  = {mode='system'}
 
+M.insertTab   = {action='insertTab'}
 M.insertsot   = {mode='insert', action='move', move='sot'}
 M.inserteol   = {mode='insert', action='move', move='eol', cols=1}
 
@@ -409,6 +410,7 @@ ds.update(M.insert, {
   fallback = M.insertChord,
   ['^q']   = M.exit,
   esc      = M.commandMode,
+  tab      = M.insertTab,
   right = M.right, left=M.left, up=M.up, down=M.down,
   back=M.backspace, del=M.delkey,
 })
