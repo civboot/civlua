@@ -183,7 +183,11 @@ local function _serialize(w, line, node) --> line
     if s:sub(1, 1) == '\n' then s = s:sub(2)    end
     if s:sub(-1)   == '\n' then s = s:sub(1,-2) end
     s = s:gsub('[&<>]', CODE_REPL)
-    push(line, s)
+    if s:find'\n' then -- multi-line code block
+      local lvl = w.to:level(); w.to:level(-lvl)
+      push(line, s); addLine(w, line)
+      line = {}; w.to:level(lvl)
+    else push(line, s) end
   elseif #node == 0 then
     if node.href then line = _serialize(w, line, node.href) end
   else

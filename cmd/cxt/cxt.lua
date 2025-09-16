@@ -169,12 +169,12 @@ local function parseAttrs(p, node)
 end
 
 local ITEM = {
-  ['^%s*%* ']      = 'bullet',
-  ['^%s*%(%d+%) '] = 'numbered',
+  ['^%s*%*%s?']      = 'bullet',
+  ['^%s*%(%d+%)%s?'] = 'numbered',
 }
 
 local LIST_ITEM_ERR = [[
-expected bullet item followed by whitespace. Examples:\n
+expected bullet item followed by whitespace (or EoL). Examples:\n
       *   bullet
       (1) numbered
       [ ] unchecked

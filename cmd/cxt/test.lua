@@ -160,6 +160,40 @@ A list:[+
   },
   true)
 
+  -- bracketedStrRaw whitespace handling
+  M.assertParse([[
+A list:[+
+*
+  [#
+  one block
+  ]#
+* second block:
+
+  [#
+  start
+    two block
+  end
+  ]#
+]
+]], {
+    "A list:", { list=true,
+      {
+        '\n',
+        { code=true, block=true,
+          '\n', 'one block\n',
+        }, "",
+      },
+      {
+        'second block:\n', {br=true},
+        { code=true, block=true,
+          '\n',
+          'start\n', '  two block\n', 'end\n',
+        }, "",
+      },
+    },
+    '\n',
+  },
+  true)
 end
 
 T.nested = function()
@@ -309,7 +343,8 @@ listing:[+
   html.assertHtml(
 [[
 Some <code>inline code</code> and: <code class="block">code 1
-code 2</code>
+code 2
+</code>
 next line.
 ]],
 [[
@@ -323,7 +358,8 @@ next line.
   html.assertHtml(
 [[
 Code block: <code class="block">echo "foo bar"  # does baz
-echo "blah blah"</code>
+echo "blah blah"
+</code>
 end of code block.
 ]],
 [[
@@ -332,6 +368,25 @@ echo "foo bar"  # does baz
 echo "blah blah"
 ]##
 end of code block.
+]])
+
+  html.assertHtml(
+[[
+list <ul>
+  <li>code:
+  <code class="block">some code
+more code
+</code></li>
+</ul>
+]],
+[[
+list [+
+* code:
+  [#
+  some code
+  more code
+  ]#
+]
 ]])
 end
 

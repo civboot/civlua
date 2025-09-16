@@ -143,17 +143,18 @@ M['string.concat'] = string.concat--(sep, ...) --> string
 ---   %z  the character with representation 0
 --- ]##
 ---
---- Magic characters, [$.] indicates one character, more indicates many [##
----     %.     selects a character class or escapes a magic char
----     (...)  create a group
----     [...]  create your own character class
----     [^..]  inversion of [...]
----     +.     match one or more of previous class  (NOT group)
----     *.     match zero or more of previous class (NOT group)
----     ?      match zero or one of previous class  (NOT group)
----     ^...   if at pat[1], match only beggining of text
----     ...$   if at pat[#pat], match only end of text
----     %1-9   matches the previously matched group index EXACTLY
+--- Magic characters, [$.] indicates one character, more indicates many
+--- [##
+---   %.     selects a character class or escapes a magic char
+---   (...)  create a group
+---   [...]  create your own character class
+---   [^..]  inversion of [...]
+---   +.     match one or more of previous class  (NOT group)
+---   *.     match zero or more of previous class (NOT group)
+---   ?      match zero or one of previous class  (NOT group)
+---   ^...   if at pat[1], match only beggining of text
+---   ...$   if at pat[#pat], match only end of text
+---   %1-9   matches the previously matched group index EXACTLY
 --- ]##
 M['string.find'] = string.find--(subj, pat, index=1) --> (si, ei, ...matches)
 
@@ -315,16 +316,16 @@ M['table.sort'] = table.sort--(list, cmp=lt) --> nil
 ---
 --- Example: [{## lang=lua}
 --- local push = table.insert
----   local t = {}
+--- local t = {}
 ---
----   -- push/append behavior
----   push(t, 'd')            -- {'d'
----   push(t, 'e')            -- {'d', 'e'}
+--- -- push/append behavior
+--- push(t, 'd')            -- {'d'
+--- push(t, 'e')            -- {'d', 'e'}
 ---
----   -- insert behavior
----   table.insert(t, 'b', 1) -- {'b', 'd', 'e'}
----   table.insert(t, 'c', 2) -- {'b', 'c', 'd', 'e'}
----   T.eq({'b', 'c', 'd', 'e'}, t)
+--- -- insert behavior
+--- table.insert(t, 'b', 1) -- {'b', 'd', 'e'}
+--- table.insert(t, 'c', 2) -- {'b', 'c', 'd', 'e'}
+--- T.eq({'b', 'c', 'd', 'e'}, t)
 --- ]##
 M['table.insert'] = table.insert
 
@@ -333,10 +334,10 @@ M['table.insert'] = table.insert
 ---
 --- Equivalent to the following, though done in a way
 --- that will properly handle overlapping data: [{## lang=lua}
----   ti = siTo
----   for fi=siFrom,eiFrom do
----     to[ti] = from[fi]; ti = ti + 1
----   end
+--- ti = siTo
+--- for fi=siFrom,eiFrom do
+---   to[ti] = from[fi]; ti = ti + 1
+--- end
 --- ]##
 M['table.move'] = table.move --(from, siFrom, eiFrom, siTo, to=from) -> to
 

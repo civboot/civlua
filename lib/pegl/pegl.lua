@@ -31,7 +31,7 @@ end
 
 M.Token = mty'Token'{'kind [string]: optional, used for debugging'}
 M.Token.span = function(t, dec) return M.decodeSpan(t[1]) end
-M.Token.encode=function(ty_, p, l, c, l2, c2, kind)
+M.Token.encode = function(ty_, p, l, c, l2, c2, kind)
   return M.Token{M.encodeSpan(l, c, l2, c2), kind=kind}
 end
 M.Token.decode = function(t, dat) return lines.sub(dat, M.decodeSpan(t[1])) end
@@ -263,8 +263,8 @@ M.notEmpty = function(t) return not mty.eq(M.EMPTY, t) end
 -- Denotes the end of the file
 M.EOF = ds.sentinel('EOF', {kind='EOF', __len=zero})
 M.Eof = ds.sentinel('Eof', {
-  __tostring=function() return 'Eof' end,
-  parse=function(self, p)
+  __tostring = function() return 'Eof' end,
+  parse = function(self, p)
     p:skipEmpty(); if p:isEof() then return M.EOF end
   end
 })
@@ -448,8 +448,8 @@ end
 -- Misc
 
 local SPEC_TY = {
-  ['function']=function(p, fn) p:skipEmpty() return fn(p) end,
-  string=function(p, kw)
+  ['function'] = function(p, fn) p:skipEmpty() return fn(p) end,
+  string = function(p, kw)
     p:skipEmpty();
     local tk = p.root.tokenizer(p)
     if kw == tk then
@@ -457,7 +457,7 @@ local SPEC_TY = {
       return M.Token:encode(p, p.l, c, p.l, p.c - 1, kw)
     end
   end,
-  table=function(p, tbl) return M.parseSeq(p, tbl) end,
+  table = function(p, tbl) return M.parseSeq(p, tbl) end,
 }
 
 --- Parse a spec, returning the nodes or throwing a syntax error.
@@ -505,7 +505,7 @@ M.assertParse = function (t) --> result, node, parser
   return result, node, parser
 end
 
-M.assertParseError=function(t)
+M.assertParseError = function(t)
   T.throws(
     t.errPat,
     function() M.parse(assert(t.dat), assert(t.spec)) end,
@@ -515,7 +515,7 @@ end
 -------------------
 -- Parser Methods
 
-M.Parser.__tostring=function() return 'Parser()' end
+M.Parser.__tostring = function() return 'Parser()' end
 M.Parser.new = function(T, dat, root)
   dat = (type(dat)=='string') and lines(dat) or dat
   return mty.construct(T, {
@@ -549,24 +549,24 @@ M.Parser.peek = function(p, pat)
     return M.Token:encode(p, p.l, c, p.l, c2)
   end
 end
-M.Parser.sub =function(p, t) -- t=token
+M.Parser.sub = function(p, t) -- t=token
   return lines.sub(p.dat, t:span())
 end
-M.Parser.incLine=function(p)
+M.Parser.incLine = function(p)
   p.l, p.c = p.l + 1, 1
   p.line = get(p.dat,p.l)
 end
-M.Parser.isEof=function(p) return not p.line end --> isAtEndOfFile
-M.Parser.skipEmpty=function(p)
+M.Parser.isEof = function(p) return not p.line end --> isAtEndOfFile
+M.Parser.skipEmpty = function(p)
   p.root.skipEmpty(p)
   return p:isEof()
 end
 --- get the current parser state [${l, c, line}]
-M.Parser.state   =function(p) return {l=p.l, c=p.c, line=p.line} end
+M.Parser.state = function(p) return {l=p.l, c=p.c, line=p.line} end
 --- restore the current parser state [${l, c, line}]
-M.Parser.setState=function(p, st) p.l, p.c, p.line = st.l, st.c, st.line end
+M.Parser.setState = function(p, st) p.l, p.c, p.line = st.l, st.c, st.line end
 -- convert to token strings for test assertion
-M.Parser.toStrTokens=function(p, n)
+M.Parser.toStrTokens = function(p, n)
   if not n then return nil end
   if ty(n) == M.Token then
     local t = p:tokenStr(n)
@@ -616,10 +616,11 @@ local function fmtStack(p)
       push(b, sfmt('%s(%s.%s)', v, p.stackL[i], p.stackC[i]))
     end
   end
-  push(b, sfmt('%s(%s.%s)', unpack(p.stackLast)))
+  local x, y, z = unpack(p.stackLast)
+  push(b, sfmt('%s(%s.%s)', x, y or '?', z or '?'))
   return concat(b, '\n  ')
 end
-M.Parser.checkPin=function(p, pin, expect)
+M.Parser.checkPin = function(p, pin, expect)
   if not pin then return end
   if p.line then p:error(fmt.format(
     "parser expected: %q\nGot: %s",
@@ -628,14 +629,14 @@ M.Parser.checkPin=function(p, pin, expect)
     "parser reached EOF but expected: "..fmt(expect)
   )end
 end
-M.Parser.error=function(p, msg)
+M.Parser.error = function(p, msg)
   local lmsg = sfmt('[LINE %s.%s]', p.l, p.c)
   fmt.errorf("ERROR %s\n%s%s\n%s\nCause: %s\nParse stack:\n  %s",
     rawget(p.dat, 'path') or '(rawdata)',
     lmsg, p.line, srep(' ', #lmsg + p.c - 2)..'^',
     msg, fmtStack(p))
 end
-M.Parser.parseAssert=function(p, spec)
+M.Parser.parseAssert = function(p, spec)
   local n = p:parse(spec); if not n then p:error(fmt.format(
     "parser expected: %q\nGot: %s",
     spec, p.line:sub(p.c))
@@ -643,7 +644,7 @@ M.Parser.parseAssert=function(p, spec)
   return n
 end
 
-M.Parser.dbgEnter=function(p, spec)
+M.Parser.dbgEnter = function(p, spec)
   push(p.stack, spec.kind or spec.name or true)
   push(p.stackL, p.l); push(p.stackC, p.c)
   if not p.root.dbg then return end
@@ -651,7 +652,7 @@ M.Parser.dbgEnter=function(p, spec)
   p.dbgLevel = p.dbgLevel + 1
 end
 
-M.Parser.dbgLeave=function(p, n)
+M.Parser.dbgLeave = function(p, n)
   local sl = p.stackLast
   sl[1], sl[2], sl[3] = pop(p.stack), pop(p.stackL), pop(p.stackC)
   if not p.root.dbg then return n end
@@ -659,16 +660,16 @@ M.Parser.dbgLeave=function(p, n)
   p:dbg('LEAVE: %s(%s.%s)', fmt(n or sl[1]), sl[2], sl[3])
   return n
 end
-M.Parser.dbgMatched=function(p, spec)
+M.Parser.dbgMatched = function(p, spec)
   if p.root.dbg then p:dbg('MATCH: %s', fmt(spec)) end
 end
-M.Parser.dbgMissed=function(p, spec, note)
+M.Parser.dbgMissed = function(p, spec, note)
   if p.root.dbg then p:dbg('MISS: %s%s', fmt(spec), (note or '')) end
 end
-M.Parser.dbgUnpack=function(p, spec, t)
+M.Parser.dbgUnpack = function(p, spec, t)
   if p.root.dbg then p:dbg('UNPACK: %s :: %s', fmt(spec), fmt(t)) end
 end
-M.Parser.dbg=function(p, fmtstr, ...)
+M.Parser.dbg = function(p, fmtstr, ...)
   if not p.root.dbg then return end
   local msg = sfmt(fmtstr, ...)
   fmt.print(sfmt('%%%s%s (%s.%s)',
