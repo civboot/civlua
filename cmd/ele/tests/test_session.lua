@@ -173,10 +173,17 @@ local SPLIT_2 = '\n'..[[
  1local M = {}               0local M = {}
  2                           1
 | data/small.lua:1.1 (b#5) =| data/small.lua:2.7 (b#5) ===]]
+local SPLIT_3 = '\n'..[[
+ 0-- a small lua file for tests
+ 1local M = {}
+ 2
+| data/small.lua:1.1 (b#5) =================================]]
 
 Test{'window', open=SMALL, th=5, tw=60, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
   local b, BID = e.buf, et.INIT_BUFS + 2
+  local d = ed.display
+
   T.eq(b.id, BID)
   T.eq(SMALL, b.dat.path)
   s:play'g L'
@@ -192,6 +199,13 @@ Test{'window', open=SMALL, th=5, tw=60, function(tst)
     T.eq({1,1}, {e1.l,e1.c})
     T.eq({2,7}, {e2.l,e2.c})
     T.eq(SC..SPLIT_2, fmt(ed.display))
+
+  s:play'g c'; e = ed.edit
+    T.eq(log.LogTable{}, ed.error)
+    T.eq(ed.view, e)
+    T.eq(SC..SPLIT_3, fmt(d))
+    T.eq({1,1}, {e.l,e.c})
+    T.eq({2,3}, {d.l, d.c})
 end}
 
 local LINES3_wLN = [[

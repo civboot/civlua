@@ -74,8 +74,11 @@ M.Edit.save = function(e, ed)
   b.dat = dat
 end
 
+M.Edit.__fmt       = function(e, f)
+  f:write'Edit[id='; f:number(e.id); f:write']'
+end
+
 M.Edit.__len       = function(e) return #e.buf end
-M.Edit.__tostring  = function(e) return string.format('Edit[id=%s]', e.id) end
 M.Edit.copy        = function(e) return ds.copy(e, {id=T.nextViewId()}) end
 M.Edit.forceHeight = function(e) return e.fh end
 M.Edit.forceWidth  = function(e) return e.fw end

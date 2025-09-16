@@ -190,7 +190,7 @@ Editor.replace = function(ed, from, to) --> from
   assert(to)
   assert(ed.view == from, 'view being replaced is not ed.view')
   assert(from.container == ed)
-  assert(not to.container)
+  assert(not to.container or to.container == from)
   ed.view = to
   to.container, from.container = ed, nil
   return from

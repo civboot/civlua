@@ -9,6 +9,8 @@ local fd = require'fd'
 local ds = require'ds'
 local log = require'ds.log'
 local ac = require'asciicolor'
+local vt = require'vt100'
+
 local ioopen = io.open
 local iostdout, iostderr = io.stdout, io.stderr
 local sysprint = G.print
@@ -16,7 +18,6 @@ local sysprint = G.print
 -- shim exe function
 M.main = function(args)
   args = shim.parseStr(args)
-  local vt = require'vt100'
   local savedmode
   log.info('ele exe', args)
   -- TODO: handle args besides paths

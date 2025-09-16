@@ -2,8 +2,10 @@ local M = mod'ele.types'
 
 local mty    = require'metaty'
 local ds     = require'ds'
+local fmt    = require'fmt'
 local log    = require'ds.log'
 M.term       = require'vt100'
+local assertf = fmt.assertf
 local sfmt = string.format
 local push, pop, concat = table.insert, table.remove, table.concat
 local getp = ds.getp
@@ -39,13 +41,13 @@ M.VSplit.replace = function(sp, from, to) --> from
   return from
 end
 M.VSplit.remove = function(sp, v) --> v
-  local i = assert(ds.indexOf(v), 'from not found in Split')
+  local i = assertf(ds.indexOf(sp, v), '%q not found in Split', v)
   table.remove(sp, i); v.container = nil
-  if #sp == 1 then -- only 1 item left, close it
-    sp.container:replace(sp, sp[1]); sp[1] = nil
-  elseif #sp == 0 then -- no items, this shouldn't happen
+  if #sp == 0 then -- no items, this shouldn't happen
     log.warning('zero items left in %s', mty.name(sp))
     sp.container:remove(sp)
+  elseif #sp == 1 then -- only 1 item left, close it
+    sp.container:replace(sp, sp[1]); sp[1] = nil
   end
   return v
 end

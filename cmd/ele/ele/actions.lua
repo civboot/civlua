@@ -557,16 +557,10 @@ M.window = function(ed, ev)
   if ev.moveH then
     local v = ed.edit; local c = v.container
     if mty.ty(c) == et.HSplit then
-
-
-
-
-
-
       v, c = c, c.container
+      -- FIXME:
     end
     if mty.ty(c) == et.VSplit then
-
       local i = assert(ds.indexOf(c, v)) + ev.moveH
       if 1 <= i and i <= #c then
         assert(mty.ty(c[i] == Edit))
@@ -576,8 +570,8 @@ M.window = function(ed, ev)
   end
   if ev.close then
     local e = ed.edit
-    e.container:remove(e)
-    e:close()
+    e.container:remove(e); e:close()
+    ed.edit = nil;         ed:focusFirst()
     if not ed.view or not ed.edit then
       ed:focus(ed:buffer'b#scratch')
     end

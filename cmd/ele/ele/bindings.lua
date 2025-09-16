@@ -126,7 +126,7 @@ M.windowDown  = {action='window', moveV=1}
 M.windowLeft  = {action='window', moveH=-1}
 M.windowRight = {action='window', moveH=1}
 
-M.close  = {action='window', close=true}
+M.windowClose = {action='window', close=true}
 
 M.insertChord = function(keys)
   return ds.update(keys.event or {}, {
@@ -451,6 +451,7 @@ ds.update(M.command, {
   -- Window
   ['g h'] = M.windowLeft, ['g l'] = M.windowRight,
   ['g j'] = M.windowDown, ['g k'] = M.windowUp,
+  ['g c'] = M.windowClose,
 
   ['g H'] = M.splitVLeft, ['g L'] = M.splitVRight,
   ['g J'] = M.splitHDown, ['g K'] = M.splitHUp,
