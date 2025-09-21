@@ -1,0 +1,10 @@
+[{h1}asciicolor syntax highlighting.]
+
+This module contains a standardized method to configure syntax
+highlighting.
+
+Syntax highlighting is typically configured in an editor which supports lua
+(like ele). The editor can either use acsyntax functions directly, modify
+acsyntax exported tables or allow users ot modify acsyntax tables. Ele does the
+latter.
+

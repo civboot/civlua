@@ -6,6 +6,7 @@ local M = G.mod and G.mod'pegl' or {}
 local mty     = require'metaty'
 local fmt     = require'fmt'
 local ds      = require'ds'
+local log     = require'ds.log'
 local lines   = require'lines'
 local T       = require'civtest'
 local extend  = ds.extend
@@ -62,10 +63,9 @@ M.nodeSpan = function(t)
   return l1, c1, select(3, lst:span())
 end
 
---- The root spec defines custom behavior for your spec. It's attributes
+--- The config spec defines custom behavior when parsing. It's attributes
 --- can be set to change how the parser skips empty (whitespace) and handles comments.
---- TODO: rename this.
-M.RootSpec = mty'RootSpec' {
+M.Config = mty'Config' {
 [==[skipEmpty [fn(p) -> nil]: default=skip whitespace [+
     * must be a function that accepts the `Parser`
       and advances it's `l` and `c` past any empty (white) space. It must also set
@@ -85,9 +85,13 @@ M.RootSpec = mty'RootSpec' {
       or a whole word ([$_%w])
     * Objects like [$Key] can use the single punctuation characters in a Trie-like
       performant data structure.
-    ]]==],
+  ]]==],
 
-  'dbg [boolean]',
+  'dbg [boolean]: if true, prints out huge amounts of debug information of parsing.',
+
+[==[lenient [bool]: if set, syntax errors do not cause failure.
+   Instead, all errors act as if the current block missed but was UNPIN.
+]==],
 }
 
 --- The parser tracks the current position of parsing in `dat` and has several
@@ -103,12 +107,13 @@ M.Parser = mty'Parser'{
   'c [int]: column in [$line]',
   'line [string]: the current line ([$dat:get(l)])',
   'lines',
-  'root [RootSpec]',
+  'config [Config]',
   'stack [list]', 'stackL [list]', 'stackC [list]',
   'stackLast [{item, l, c}]',
   'commentLC [table]: table of {line={col=CommentToken}}',
   'dbgLevel [number]', dbgLevel = 0,
   'path [string]',
+  'firstError {l=int,c=int, [1]=str]]: first error',
 }
 
 M.fmtSpec = function(s, f)
@@ -169,7 +174,7 @@ local function constructKeys(keys)
 end
 
 --- The table given to [$Key] forms a Trie which is extremely performant. Key depends
---- strongly on the [$tokenizer] passed to RootSpec.
+--- strongly on the [$tokenizer] passed to Config.
 ---
 --- Example: [$Key{{'myKeword', ['+']={'+'=true}}, kind='kw'}] will match tokens "myKeyword"
 --- and "+" followed by "+" (but not "+" not followed by "+").
@@ -282,7 +287,7 @@ M.skipWs1 = function(p)
 end
 
 M.skipEmpty = function(p)
-  local loop, sc, cmt, cL = true, p.root.skipComment
+  local loop, sc, cmt, cL = true, p.config.skipComment
   while loop and not p:isEof() do
     loop = not M.skipWs1(p)
     if sc then
@@ -297,7 +302,7 @@ M.skipEmpty = function(p)
     end
   end
 end
-M.RootSpec.skipEmpty = M.skipEmpty
+M.Config.skipEmpty = M.skipEmpty
 
 M.skipEmptyMinimal = function(p)
   while not p:isEof() do
@@ -310,7 +315,7 @@ M.defaultTokenizer = function(p)
   if p:isEof() then return end
   return p.line:match('^%p', p.c) or p.line:match('^[_%w]+', p.c)
 end
-M.RootSpec.tokenizer = M.defaultTokenizer
+M.Config.tokenizer = M.defaultTokenizer
 
 local UNPACK_SPECS = ds.Set{'table', M.Seq, M.Many, M.Or}
 local function shouldUnpack(spec, t)
@@ -341,7 +346,7 @@ M.Key.parse = function(key, p)
   p:skipEmpty()
   local c, keys, found = p.c, key.keys, false
   while true do
-    local k = p.root.tokenizer(p); if not k    then break end
+    local k = p.config.tokenizer(p); if not k    then break end
     keys = keys[k];                if not keys then break end
     p.c = p.c + #k
     if keys == true then found = true; break end
@@ -451,7 +456,7 @@ local SPEC_TY = {
   ['function'] = function(p, fn) p:skipEmpty() return fn(p) end,
   string = function(p, kw)
     p:skipEmpty();
-    local tk = p.root.tokenizer(p)
+    local tk = p.config.tokenizer(p)
     if kw == tk then
       local c = p.c; p.c = c + #kw
       return M.Token:encode(p, p.l, c, p.l, p.c - 1, kw)
@@ -462,18 +467,19 @@ local SPEC_TY = {
 
 --- Parse a spec, returning the nodes or throwing a syntax error.
 ---
---- [$root] is used to define settings of the parser such as how to skip
+--- [$config] is used to define settings of the parser such as how to skip
 --- comments and whether to use debug mode.
-M.parse = function(dat, spec, root) --> list[Node]
-  local p = M.Parser:new(dat, root)
-  return p:parse(spec), p
+M.parse = function(dat, spec, config) --> list[Node]
+  local p = M.Parser:new(dat, config)
+  local n = p:parse(spec)
+  return n, p
 end
 
-M.Parser.assertNode = function(p, expect, node, root)
+M.Parser.assertNode = function(p, expect, node, config)
   local result = p:toStrTokens(node)
   if not mty.eq(expect, result) then
-    local eStr = concat(p.root.newFmt()(expect))
-    local rStr = concat(p.root.newFmt()(result))
+    local eStr = concat(p.config.newFmt()(expect))
+    local rStr = concat(p.config.newFmt()(result))
     if eStr ~= rStr then
       print('\n#### EXPECT:'); print(eStr)
       print('\n#### RESULT:'); print(rStr)
@@ -493,14 +499,14 @@ end
 --- are identical to [$expect].
 ---
 --- the input is a table of the form: [{# lang=lua}
----   {dat, spec, expect, dbg=nil, root=default} --> nil
+---   {dat, spec, expect, dbg=nil, config=default} --> nil
 --- ]#
 M.assertParse = function (t) --> result, node, parser
   assert(t.dat, 'dat'); assert(t.spec, 'spec')
-  local root = (t.root and ds.copy(t.root)) or M.RootSpec{}
-  root.dbg   = t.dbg or root.dbg
-  local node, parser = M.parse(t.dat, t.spec, root)
-  if not t.expect and t.parseOnly then return end
+  local config = (t.config and ds.copy(t.config)) or M.Config{}
+  config.dbg   = t.dbg or config.dbg
+  local node, parser = M.parse(t.dat, t.spec, config)
+  if not t.expect and t.parseOnly then return nil, node, parser end
   local result = parser:assertNode(t.expect, node)
   return result, node, parser
 end
@@ -516,11 +522,11 @@ end
 -- Parser Methods
 
 M.Parser.__tostring = function() return 'Parser()' end
-M.Parser.new = function(T, dat, root)
+M.Parser.new = function(T, dat, config)
   dat = (type(dat)=='string') and lines(dat) or dat
   return mty.construct(T, {
     dat=dat, l=1, c=1, line=get(dat,1), lines=#dat,
-    root=root or M.RootSpec{},
+    config=config or M.Config{},
     stack={}, stackL={}, stackC={}, stackLast={},
     commentLC={},
   })
@@ -558,7 +564,7 @@ M.Parser.incLine = function(p)
 end
 M.Parser.isEof = function(p) return not p.line end --> isAtEndOfFile
 M.Parser.skipEmpty = function(p)
-  p.root.skipEmpty(p)
+  p.config.skipEmpty(p)
   return p:isEof()
 end
 --- get the current parser state [${l, c, line}]
@@ -631,13 +637,17 @@ M.Parser.checkPin = function(p, pin, expect)
 end
 M.Parser.error = function(p, msg)
   local lmsg = sfmt('[LINE %s.%s]', p.l, p.c)
-  fmt.errorf("ERROR %s\n%s%s\n%s\nCause: %s\nParse stack:\n  %s",
+  local err = fmt.format("ERROR %s\n%s%s\n%s\nCause: %s\nParse stack:\n  %s",
     rawget(p.dat, 'path') or '(rawdata)',
-    lmsg, p.line, srep(' ', #lmsg + p.c - 2)..'^',
+    lmsg, p.line, srep(' ', #lmsg + p.c - 1)..'^',
     msg, fmtStack(p))
+  if not p.firstError then p.firstError = {l=p.l, c=p.c, err} end
+  if not p.config.lenient then error(err) end
+  log.warn('lenient parsing error (%i.%i): %s', p.l, p.c, msg)
 end
+
 M.Parser.parseAssert = function(p, spec)
-  local n = p:parse(spec); if not n then p:error(fmt.format(
+  local n = p:parse(spec); if not n then return p:error(fmt.format(
     "parser expected: %q\nGot: %s",
     spec, p.line:sub(p.c))
   )end
@@ -647,7 +657,7 @@ end
 M.Parser.dbgEnter = function(p, spec)
   push(p.stack, spec.kind or spec.name or true)
   push(p.stackL, p.l); push(p.stackC, p.c)
-  if not p.root.dbg then return end
+  if not p.config.dbg then return end
   p:dbg('ENTER: %s', fmt(spec))
   p.dbgLevel = p.dbgLevel + 1
 end
@@ -655,22 +665,22 @@ end
 M.Parser.dbgLeave = function(p, n)
   local sl = p.stackLast
   sl[1], sl[2], sl[3] = pop(p.stack), pop(p.stackL), pop(p.stackC)
-  if not p.root.dbg then return n end
+  if not p.config.dbg then return n end
   p.dbgLevel = p.dbgLevel - 1
   p:dbg('LEAVE: %s(%s.%s)', fmt(n or sl[1]), sl[2], sl[3])
   return n
 end
 M.Parser.dbgMatched = function(p, spec)
-  if p.root.dbg then p:dbg('MATCH: %s', fmt(spec)) end
+  if p.config.dbg then p:dbg('MATCH: %s', fmt(spec)) end
 end
 M.Parser.dbgMissed = function(p, spec, note)
-  if p.root.dbg then p:dbg('MISS: %s%s', fmt(spec), (note or '')) end
+  if p.config.dbg then p:dbg('MISS: %s%s', fmt(spec), (note or '')) end
 end
 M.Parser.dbgUnpack = function(p, spec, t)
-  if p.root.dbg then p:dbg('UNPACK: %s :: %s', fmt(spec), fmt(t)) end
+  if p.config.dbg then p:dbg('UNPACK: %s :: %s', fmt(spec), fmt(t)) end
 end
 M.Parser.dbg = function(p, fmtstr, ...)
-  if not p.root.dbg then return end
+  if not p.config.dbg then return end
   local msg = sfmt(fmtstr, ...)
   fmt.print(sfmt('%%%s%s (%s.%s)',
     string.rep('* ', p.dbgLevel), msg, p.l, p.c))
@@ -746,7 +756,7 @@ M.FmtPegl.__call = function(ft, f, t)
   local fmtK = t.kind and ft.kinds and ft.kinds[t.kind]
   if fmtK then fmtK(f, t) else fmt.Fmt.table(f, t) end
 end
-M.RootSpec.newFmt = function()
+M.Config.newFmt = function()
   local f = fmt.Fmt:pretty{}
   f.table = M.FmtPegl{}
   return f

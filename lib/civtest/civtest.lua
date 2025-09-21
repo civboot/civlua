@@ -94,10 +94,11 @@ end
 --- assert [$subj:find(pat, 1, true)] (plain find)
 M.contains = function(plain, subj) --> !?error
   if subj:find(plain, 1, true) then return end
-  io.fmt:styled('error', '\n!! RESULT:', '\n');   f(b)
-  io.fmt:styled('error', '\n!! Did not contain:', sfmt('%q\n', plain))
-  io.fmt:styled('error', '!! Failed Test.contains:', ' ')
-  io.fmt:styled('path', pth.nice(ds.srcloc(1)), '\n')
+  local f = io.fmt
+  f:styled('error', '\n!! RESULT:', '\n');   f(subj)
+  f:styled('error', '\n!! Did not contain:', sfmt('%q\n', plain))
+  f:styled('error', '!! Failed Test.contains:', ' ')
+  f:styled('path', pth.nice(ds.srcloc(1)), '\n')
   fail'contains'
 end
 

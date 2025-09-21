@@ -42,7 +42,7 @@ M.loadraw = function(dat, env, path)
 end
 
 M.loadMeta = function(dat, path)
-  local r = ds.copy(lua.root)
+  local r = ds.copy(lua.config)
   local p = pegl.Parser:new(dat, r)
   local name = p:parse(lua.name)
   if not name or p:tokenStr(name) ~= 'meta' then return end

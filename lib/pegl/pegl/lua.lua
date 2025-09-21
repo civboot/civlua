@@ -20,11 +20,12 @@ local num = Or{name='num', common.base16, common.base10}
 
 local stmt = Or{name='stmt'}
 
-local keyW = Key{name='keyw', {
+local KEYWORDS = {
   'end', 'if', 'else', 'elseif', 'while', 'do', 'repeat', 'local', 'until',
   'then', 'function', 'return',
-}}
-local name = {UNPIN, Not{keyW}, common.name}
+}
+local keyW           = Key{name='keyword',       KEYWORDS}
+local name           = {UNPIN, Not{keyW}, common.name}
 
 -- uniary and binary operations
 local op1 = Key{name='op1', {'-', 'not', '#'}}
@@ -76,6 +77,17 @@ local block = {name='block',
   Many{stmt, Maybe(';')},
   Maybe{laststmt, Maybe(';')}
 }
+
+M.unexpectedKeyW  = Key{name='unexpectedKey', KEYWORDS}
+M.unexpectedGroup = Key{name='unexpectedGroup', {'(', ')', '{', '}', '[', ']'}}
+M.unexpectedToken = Pat{name='unexpectedToken', '%S+'}
+
+M.lenient = Or{
+  stmt, ';',
+  laststmt,
+  M.unexpectedKeyW, M.unexpectedGroup, M.unexpectedToken,
+}
+M.lenientBlock = Many{M.lenient}
 
 -----------------
 -- String (+exp1)
@@ -248,11 +260,13 @@ local function skipComment(p)
 end
 
 local src = {name='src', block, Eof}
-M.root = pegl.RootSpec{skipComment=skipComment}
-local parse = function(dat, spec, root)
-  root = root or M.root
-  if not root.skipComment then root.skipComment = skipComment end
-  return pegl.parse(dat, spec, root)
+M.config = pegl.Config{skipComment=skipComment}
+M.lenientConfig = ds.copy(M.config, {lenient=true})
+
+local parse = function(dat, spec, config)
+  config = config or M.config
+  if not config.skipComment then config.skipComment = skipComment end
+  return pegl.parse(dat, spec, config)
 end
 
 return ds.update(M, {

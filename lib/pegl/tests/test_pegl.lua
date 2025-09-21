@@ -5,7 +5,7 @@ local T = require'civtest'
 local ds = require'ds'
 local Set = ds.Set
 
-local RootSpec, Key
+local Config, Key
 local Pat, Or, Not, Many, Maybe, Seq
 local Empty, Eof, PIN, UNPIN
 local testing, EMPTY, EOF, assertParse, assertParseError

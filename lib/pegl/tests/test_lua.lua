@@ -5,12 +5,12 @@ local ds = require'ds'
 local pth = require'ds.path'
 local T = require'civtest'
 
-local RootSpec, Token
+local Config, Token
 local testing, EMPTY, EOF, assertParse, assertParseError
 local pegl = ds.auto'pegl'
 
 local num, str, exp1, exp, field, varset
-local root, src
+local config, lenientConfig, src
 local M = ds.auto'pegl.lua'
 local D = 'lib/pegl/'
 
@@ -20,7 +20,7 @@ local SRC = function(...) return {..., EMPTY, EMPTY, EOF} end
 T.easy = function()
   assertParse{dat='42  0x3A', spec={num, num}, expect={
     NUM'42', HEX'0x3A',
-  }, root=root}
+  }, config=config}
   assertParse{dat='  nil\n', spec={exp1}, expect=KW('nil')}
   assertParse{
     dat='true  \n false', spec={exp1, exp1},
@@ -43,10 +43,10 @@ T.str = function()
   assertParse{dat=[[  'single'  ]], spec={str},
     expect={kind='singleStr', [['single']]}}
 
-  assertParse{dat="[[a ['string'] ]]", spec=str, root=root,
+  assertParse{dat="[[a ['string'] ]]", spec=str, config=config,
     expect={kind='bracketStr', "[[", "a ['string'] ", "]]"}}
   assertParse{dat="[====[\n[=[\n[[ wow ]]\n]=]\n]====]",
-    spec=str, root=root,
+    spec=str, config=config,
     expect={kind='bracketStr',
       "[====[", "\n[=[\n[[ wow ]]\n]=]\n", "]====]",
     }}
@@ -55,7 +55,7 @@ end
 T.decimal = function()
   assertParse{dat='-42 . 3343', spec={num}, expect=
     NUM{neg=true, '42','3343'}
-  , root=root}
+  , config=config}
 end
 
 T.field = function()
@@ -157,18 +157,18 @@ T.comment = function()
       },
     })
   assertParse{dat='x = --line\n  {}', spec=src,
-    expect=expect, root=root,
+    expect=expect, config=config,
   }
   assertParse{dat='x = -- block{}\n{}', spec=src,
-    expect = expect, root=root,
+    expect = expect, config=config,
   }
   assertParse{dat='x\n=\n-- \n--block\n\n{}--hi\n--EOF', spec=src,
-    expect = expect, root=root,
+    expect = expect, config=config,
   }
 end
 
 T.function_ = function()
-  assertParse{ spec=src, root=root,
+  assertParse{ spec=src, config=config,
     dat=[[ local function f(a) end ]],
     expect = {
       {kind="fnlocal",
@@ -179,7 +179,7 @@ T.function_ = function()
 end
 
 T.fncall = function()
-  local r, n, p = assertParse{dat='foo(4)', spec=src, root=root,
+  local r, n, p = assertParse{dat='foo(4)', spec=src, config=config,
     expect = SRC({ kind="stmtexp",
       N"foo", {kind='call',
         KW"(", NUM'4', KW")",
@@ -195,9 +195,9 @@ T.fncall = function()
     kind="stmtexp"
   }, EMPTY, EMPTY, EOF
 }]]
-  T.eq(expect, table.concat(root.newFmt()(r)))
+  T.eq(expect, table.concat(config.newFmt()(r)))
 
-  assertParse{dat='foo({__tostring=4})', spec=src, root=root,
+  assertParse{dat='foo({__tostring=4})', spec=src, config=config,
     expect = SRC({ kind="stmtexp",
       N"foo", { kind='call',
         KW"(", { kind="table",
@@ -209,7 +209,7 @@ T.fncall = function()
     })
   }
 
-  assertParse{dat='foo"4"', spec=src, root=root,
+  assertParse{dat='foo"4"', spec=src, config=config,
     expect = SRC({ kind="stmtexp",
       N"foo", {kind='callStr',
         {"\"4\"", kind="doubleStr"}
@@ -217,7 +217,7 @@ T.fncall = function()
     })
   }
 
-  assertParse{dat='foo[[4]]', spec=src, root=root,
+  assertParse{dat='foo[[4]]', spec=src, config=config,
     expect = SRC({ kind="stmtexp",
       N"foo", {kind='callStr',
         {"[[", "4", "]]", kind="bracketStr"}
@@ -227,7 +227,7 @@ T.fncall = function()
 end
 
 T.if_elseif_else = function()
-  assertParse{dat='if n==nil then return "" end', spec=src, root=root,
+  assertParse{dat='if n==nil then return "" end', spec=src, config=config,
     expect=SRC(
     { kind='if',
       KW"if",
@@ -243,7 +243,7 @@ T.if_elseif_else = function()
 end
 
 T.fnChain = function()
-  assertParse{dat='x(1)(3)', spec=src, root=root,
+  assertParse{dat='x(1)(3)', spec=src, config=config,
     expect=SRC{ kind="stmtexp", N"x",
       { KW"(", NUM{1}, KW")", kind="call" },
       { KW"(", NUM{3}, KW")", kind="call" },
@@ -251,7 +251,7 @@ T.fnChain = function()
   }
 
   local DAT=[[x "a ['string'] "]]
-  assertParse{dat=DAT, spec=src, root=root,
+  assertParse{dat=DAT, spec=src, config=config,
     expect = SRC { kind="stmtexp",
         N"x", { kind="callStr",
         { "\"a ['string'] \"", kind="doubleStr" },
@@ -290,12 +290,12 @@ local function extendExpectAssert(code, spec, expect, extend, dbg)
   table.insert(expect, EMPTY)
   table.insert(expect, EMPTY)
   table.insert(expect, EOF)
-  assertParse{dat=code, spec=spec, expect=expect, root=root, dbg=dbg}
+  assertParse{dat=code, spec=spec, expect=expect, config=config, dbg=dbg}
 end
 
 T.src2 = function()
   local code = '-- this is a comment\n--\n-- and another comment\n'
-  assertParse{dat=code, spec=src, expect={EMPTY, EOF}, root=root}
+  assertParse{dat=code, spec=src, expect={EMPTY, EOF}, config=config}
 
   local expect = {EMPTY, EMPTY, EOF}
   local code = code..'\nlocal add = table.insert\n'
@@ -324,39 +324,64 @@ T.src2 = function()
   })
 end
 
-local ERR_EXPECT = [===[
-[LINE 2.20]        x = 1 + {2 3} -- '2 3' is invalid
-                             ^
+
+local ERR_EXPECT = [[
+ERROR (rawdata)
+[LINE 2.16]    x = 1 + {2 3} -- '2 3' is invalid
+                          ^
 Cause: parser expected: "}"
 Got: 3} -- '2 3' is invalid
 Parse stack:
-  src(1.7)
-  block(1.7)
-  stmt(1.7)
-  fnlocal(1.7)
-  fnbody(1.23)
-  block(2.9)
-  stmt(2.9)
-  varset(2.9)
+  src(1.3)
+  block(1.3)
+  stmt(1.3)
+  fnlocal(1.3)
+  fnbody(1.19)
+  block(2.5)
+  stmt(2.5)
+  varset(2.5)
+  exp(2.9)
+  op2exp(2.11)
   exp(2.13)
-  op2exp(2.15)
-  exp(2.17)
-  exp1(2.17)
-  table(2.17)]===]
+  exp1(2.13)
+  table(2.13)]]
 
+local BAD_LUA = [[
+  local function x()
+    x = 1 + {2 3} -- '2 3' is invalid
+  end
+]]
 T.error = function()
   T.throws(ERR_EXPECT, function()
-    pegl.parse([[
-      local function x()
-        x = 1 + {2 3} -- '2 3' is invalid
-      end
-    ]], src, RootSpec{dbg=false})
+    pegl.parse(BAD_LUA, src, Config{dbg=false})
   end)
+end
+
+T.lenient = function()
+  local r, n, p = assertParse{
+    dat=BAD_LUA, spec=M.lenientBlock, config=lenientConfig,
+    expect= {
+      KW"local", KW"function",
+      { kind="stmtexp",
+        N"x",
+        { kind="call",
+          KW"(", EMPTY, KW")",
+        },
+      },
+      { kind="varset",
+        N"x", KW"=", NUM{1},
+      },
+      "+", KW"{", NUM{2}, NUM{3}, KW"}", KW"end"
+    }
+  }
+  local fe = p.firstError
+  T.eq({2,16}, {fe.l, fe.c})
+  T.contains("'2 3' is invalid", fe[1])
 end
 
 local function testLuaPath(path)
   local text = pth.read(path)
-  assertParse{dat=text, spec=src, root=root, parseOnly=true}
+  assertParse{dat=text, spec=src, config=config, parseOnly=true}
 end
 
 T.parseSrc = function()

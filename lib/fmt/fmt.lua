@@ -158,7 +158,7 @@ Fmt.boolean     = function(f, b)
 end
 --- format a number value.
 Fmt.number      = function(f, n)
-  f:styled('number', sfmt(f.numfmt, n), '')
+  f:styled('num', sfmt(f.numfmt, n), '')
 end
 --- format a string value.
 Fmt.string      = function(f, s)

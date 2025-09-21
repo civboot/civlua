@@ -42,6 +42,7 @@ print'[[core]]'
 
 print'[[libs]]'
   dofile(dir..'ui/asciicolor/test.lua')
+  dofile(dir..'ui/acsyntax/test.lua')
   dofile(dir..'ui/vt100/test.lua')
   dofile(dir..'lib/lson/test.lua')
   dofile(dir..'lib/vcds/test.lua')

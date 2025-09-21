@@ -80,7 +80,7 @@ local function nodeText(p, node, errNode)
   local txt = {}; for _, t in ipairs(node) do
     if mty.ty(t) ~= Token then
       p.c, p.l = (errNode or t).pos
-      p:error(sfmt('text must be of node with only strings %q', ctrl))
+      return p:error(sfmt('text must be of node with only strings %q', ctrl))
     end
     add(txt, p:tokenStr(t))
   end
@@ -97,13 +97,13 @@ local function bracketedStrRaw(p, node, raw, startCol)
   local closePatStart = '^'..closePat
   if p.c > #p.line then p:incLine() end
   while true do
-    if p:isEof() then p:error(sfmt(
+    if p:isEof() then return p:error(sfmt(
       "Got EOF, expected %q", closePat:sub(2)
     ))end
     if ws and p.c == 1 then -- strip leading whitespace
       addToken(p, node, l, c, p.l, p.c - 1)
       local w1, w2 = p.line:find(ws); if w1 ~= 1 then
-        p:error(sfmt('Expected leading %q', ws))
+        return p:error(sfmt('Expected leading %q', ws))
       end
       l, c, p.c = p.l, w2+1, w2+1
     end
@@ -123,7 +123,7 @@ local function bracketedStr(p, node, raw, startCol)
   if raw > 0 then return bracketedStrRaw(p, node, raw, startCol) end
   local l, c, nested = p.l, p.c, 1
   while nested > 0 do
-    if p:isEof()     then p:error"Got EOF, expected matching ']'" end
+    if p:isEof()     then return p:error"Got EOF, expected matching ']'" end
     if p.c > #p.line then p:incLine(); goto continue end
     local c1, c2 = p.line:find('[%[%]]', p.c); if c2 then
       if p.line:sub(c1,c2) == '[' then p.c = c2 + 1; nested = nested + 1
@@ -159,7 +159,7 @@ local function parseAttrs(p, node)
     else
       fmt.assertf(attr.kind == 'raw', 'kind: %s', attr.kind)
       if raw then
-        p.l, p.c = l, c; p:error'multiple raw (##...) attributes'
+        p.l, p.c = l, c; return p:error'multiple raw (##...) attributes'
       end
       local _, c1, _, c2 = attr:span()
       raw = c2 - c1 + 1
@@ -182,13 +182,13 @@ expected bullet item followed by whitespace (or EoL). Examples:\n
 ]]
 local function parseList(p, list)
   p:skipEmpty()
-  if p:isEof() then p:error'Expected a list got EOF' end
+  if p:isEof() then return rp:error'Expected a list got EOF' end
   local ipat, ikind; for ip, i in pairs(ITEM) do
     if p:consume(ip) then ipat, ikind = ip, i
       break
     end
   end
-  if not ipat then p:error(LIST_ITEM_ERR) end
+  if not ipat then return p:error(LIST_ITEM_ERR) end
   local altEnd = function(p, node, l, c)
     local c1, c2 = p.line:find(ipat)
     if c2 and (p.c <= c2) then return {l, c} end
@@ -226,7 +226,7 @@ local function parseTable(p, tbl)
 
   local r, content, row = 1
   repeat
-    if p:isEof() then p:error'Expected a table got EOF' end
+    if p:isEof() then return p:error'Expected a table got EOF' end
     local col = {}; content = M.content(p, col, false, altEnd)
     if not content then
       if row and #col > 0 then add(row, col) end
@@ -281,7 +281,7 @@ M.content = function(p, node, isRoot, altEnd)
   p:dbgEnter(CONTENT_SPEC)
   ::loop::
   if p.line == nil then
-    if not isRoot then p:error"Expected ']' but reached end of file" end
+    if not isRoot then return p:error"Expected ']' but reached end of file" end
     p:dbgLeave()
     return addToken(p, node, l, c, p.l - 1, #ds.get(p.dat, p.l - 1)) --> nil
   elseif #p.line == 0 and ds.get(p.dat, l+1) then
@@ -312,7 +312,7 @@ M.content = function(p, node, isRoot, altEnd)
   if p.line:sub(c1,c2) == ']' then p:dbgLeave(); return end
   local raw, ctrl = nil, p.line:sub(p.c, p.c)
   if ctrl == '' then
-    p:error("expected control char after '['")
+    return p:error("expected control char after '['")
   elseif ctrl == RAW then
     local c1, c2 = p.line:find('^#+', p.c)
     assert(c2)
@@ -328,7 +328,9 @@ M.content = function(p, node, isRoot, altEnd)
   elseif ctrl == '{'   then raw = parseAttrs(p, sub)
   elseif ctrl == '<' then
     sub.href = p:tokenStr(assert(p:parse{PIN, Pat'[^>]*', '>'}[1]))
-  else p:error(sfmt( "Unrecognized control character after '[': %q", ctrl)) end
+  else return p:error(sfmt(
+    "Unrecognized control character after '[': %q", ctrl
+  ))end
   -- parse table depending on kind
   if raw           then bracketedStr(p, sub, raw, c2)
   elseif sub.table then parseTable(p, sub)
@@ -396,17 +398,17 @@ local function resolveFetches(p, node, named)
 end
 
 M.parse = function(dat, dbg)
-  local p = pegl.Parser:new(dat, pegl.RootSpec{dbg=dbg})
+  local p = pegl.Parser:new(dat, pegl.Config{dbg=dbg})
   skipWs(p)
-  local root, named = {}, {}
-  M.content(p, root, true)
-  extractNamed(root, named)
-  resolveFetches(p, root, named)
-  return root, p
+  local config, named = {}, {}
+  M.content(p, config, true)
+  extractNamed(config, named)
+  resolveFetches(p, config, named)
+  return config, p
 end
 
 M.checkParse = function(dat, context) --> dat
-  local ok, root, p = pcall(M.parse, dat); if ok then
+  local ok, config, p = pcall(M.parse, dat); if ok then
     if p.l <= #p.dat then error(sfmt(
       '%s: parse stopped before end\n%s.%s: %s', context, p.l, p.c, p.line
     ))end
@@ -414,7 +416,7 @@ M.checkParse = function(dat, context) --> dat
   end
   if type(dat) == 'table' then dat = table.concat(dat, '\n') end
   error(sfmt('Failed to parse cxt %s:\n%s\n\nError: %s',
-        context, dat, root))
+        context, dat, config))
 end
 
 ---------------------------

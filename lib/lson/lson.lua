@@ -141,7 +141,7 @@ M.deString = function(de)
   local c, line, q1, c2 = de.c + 1, de.line
   while true do
     q1, c2 = line:find('\\*"', c)
-    if not q1 then de:error[[no matching '"' found]] end
+    if not q1 then return de:error[[no matching '"' found]] end
     if (c2 - q1) % 2 == 0 then break end -- len of escapes before quote
     c = c2 + 1
   end

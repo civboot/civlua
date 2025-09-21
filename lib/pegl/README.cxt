@@ -68,7 +68,10 @@ p:parse(grammar)
 ]##
 
 [*PEGL]: very concise and easy to fallback to hand-rolled recursive descent.
-Things like `kind` and `name` make debug printing easier. [{## lang=lua}
+Things like `kind` and `name` make debug printing easier. Simply name your
+specs, putting them together into a root spec and parsing:
+
+[{## lang=lua}
 num    = Pat{'%d+', kind='num'} -- kind=num sets the node name
 name   = Pat{'%w+', kind='name'}
 -- Note: UNPIN and PIN are used for when errors should be raised

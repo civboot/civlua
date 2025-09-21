@@ -416,8 +416,7 @@ T.ds_path = function()
   T.eq('b/',       pr'a/../b/')
   T.eq('/a/b/', pr('..',       '/a/b/c/'))
   T.eq('/a/d/', pr('../../d/', '/a/b/c/'))
-  -- FIXME
-  T.eq('//',       pr('/a/..'))
+  T.eq('//',       pr('/a/..')) -- FIXME
   T.eq('',         pr('a/..'))
   T.throws('before root', function() pr('/..')    end)
   T.throws('before root', function() pr('/../..') end)

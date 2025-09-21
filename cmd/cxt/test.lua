@@ -17,7 +17,7 @@ local term = require'cxt.term'
 local html = require'cxt.html'
 local T = require'civtest'
 
-local RootSpec, Token
+local Config, Token
 local testing, EMPTY, EOF
 local pegl = ds.auto'pegl'
 

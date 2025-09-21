@@ -4913,7 +4913,7 @@ pegl: peg-like lua parser
 <h4>Function <a id="FmtPegl.__call" href="#FmtPegl.__call">FmtPegl.__call</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L748"><i>src</i></a>)</h4>
 <h3>Record <a id="pegl.Key" href="#pegl.Key">pegl.Key</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L184"><i>src</i></a>)</h3>
 The table given to <code>Key</code> forms a Trie which is extremely performant. Key depends
-strongly on the <code>tokenizer</code> passed to RootSpec.
+strongly on the <code>tokenizer</code> passed to Config.
 <p>
 Example: <code>Key{{'myKeword', ['+']={'+'=true}}, kind='kw'}</code> will match tokens "myKeyword"
 and "+" followed by "+" (but not "+" not followed by "+").
@@ -5149,7 +5149,7 @@ is designed to work with an application that stores the strings as lines
   </tr>
   <tr>
     <td><code>pegl.Parser.root</code></td>
-    <td>[RootSpec] </td>
+    <td>[Config] </td>
   </tr>
   <tr>
     <td><code>pegl.Parser.stack</code></td>
@@ -5285,14 +5285,14 @@ get the current parser state <code>{l, c, line}</code>
   </tr>
 </table>
 <h4>Function <a id="Pat.parse" href="#Pat.parse">Pat.parse</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L370"><i>src</i></a>)</h4>
-<h3>Record <a id="pegl.RootSpec" href="#pegl.RootSpec">pegl.RootSpec</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L91"><i>src</i></a>)</h3>
+<h3>Record <a id="pegl.Config" href="#pegl.Config">pegl.Config</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L91"><i>src</i></a>)</h3>
 The root spec defines custom behavior for your spec. It's attributes
 can be set to change how the parser skips empty (whitespace) and handles comments.
 TODO: rename this.
 <p>
 <b>Fields: </b> <table>
   <tr>
-    <td><code>pegl.RootSpec.skipEmpty</code></td>
+    <td><code>pegl.Config.skipEmpty</code></td>
     <td>[fn(p) -> nil] = <code>fn"pegl.skipEmpty"[/home/rett/projects/civlua/lib/pegl/pegl.lua:299]</code>
     default=skip whitespace <ul>
       <li>must be a function that accepts the `Parser`
@@ -5307,12 +5307,12 @@ TODO: rename this.
     </ul></td>
   </tr>
   <tr>
-    <td><code>pegl.RootSpec.skipComment</code></td>
+    <td><code>pegl.Config.skipComment</code></td>
     <td>[function] 
     fn(p) -> Token for found comment</td>
   </tr>
   <tr>
-    <td><code>pegl.RootSpec.tokenizer</code></td>
+    <td><code>pegl.Config.tokenizer</code></td>
     <td>[fn(p) -> nil] = <code>fn"pegl.defaultTokenizer"[/home/rett/projects/civlua/lib/pegl/pegl.lua:312]</code>
     Requires: <ul>
       <li>must return one token. The default is to return a single punctuation character
@@ -5322,35 +5322,35 @@ TODO: rename this.
     </ul></td>
   </tr>
   <tr>
-    <td><code>pegl.RootSpec.dbg</code></td>
+    <td><code>pegl.Config.dbg</code></td>
     <td>[boolean] </td>
   </tr>
 </table>
-<h3>Table <a id="pegl.RootSpec.__docs" href="#pegl.RootSpec.__docs">pegl.RootSpec.__docs</a></h3>
-<h3>Table <a id="pegl.RootSpec.__fieldIds" href="#pegl.RootSpec.__fieldIds">pegl.RootSpec.__fieldIds</a></h3>
-<h3>Table <a id="pegl.RootSpec.__fields" href="#pegl.RootSpec.__fields">pegl.RootSpec.__fields</a></h3>
-<h4>Value <a id="pegl.RootSpec.__name" href="#pegl.RootSpec.__name">pegl.RootSpec.__name</a></h4>
+<h3>Table <a id="pegl.Config.__docs" href="#pegl.Config.__docs">pegl.Config.__docs</a></h3>
+<h3>Table <a id="pegl.Config.__fieldIds" href="#pegl.Config.__fieldIds">pegl.Config.__fieldIds</a></h3>
+<h3>Table <a id="pegl.Config.__fields" href="#pegl.Config.__fields">pegl.Config.__fields</a></h3>
+<h4>Value <a id="pegl.Config.__name" href="#pegl.Config.__name">pegl.Config.__name</a></h4>
 <b>Records: </b> <table>
   <tr>
-    <td><code>pegl.RootSpec.__index</code></td>
-    <td>[Ty<RootSpec>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L91">src</a>)</td>
+    <td><code>pegl.Config.__index</code></td>
+    <td>[Ty<Config>] (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L91">src</a>)</td>
   </tr>
 </table>
 <b>Methods: </b> <table>
   <tr>
-    <td><code>pegl.RootSpec.__fmt</code></td>
-    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L138">src</a>)</td>
+    <td><code>pegl.Config.__fmt</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L153">src</a>)</td>
   </tr>
   <tr>
-    <td><code>pegl.RootSpec.__newindex</code></td>
-    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L201">src</a>)</td>
+    <td><code>pegl.Config.__newindex</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L216">src</a>)</td>
   </tr>
   <tr>
-    <td><code>pegl.RootSpec.__tostring</code></td>
-    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L144">src</a>)</td>
+    <td><code>pegl.Config.__tostring</code></td>
+    <td>[function] (<a href="https://github.com/civboot/civlua/blob/main/lib/metaty/metaty.lua#L159">src</a>)</td>
   </tr>
 </table>
-<h4>Function <a id="RootSpec.newFmt" href="#RootSpec.newFmt">RootSpec.newFmt</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L753"><i>src</i></a>)</h4>
+<h4>Function <a id="Config.newFmt" href="#Config.newFmt">Config.newFmt</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L753"><i>src</i></a>)</h4>
 <h3>Record <a id="pegl.Seq" href="#pegl.Seq">pegl.Seq</a> (<a href="https://github.com/civboot/civlua/blob/main/lib/pegl/pegl.lua#L246"><i>src</i></a>)</h3>
 A Sequence of parsers. Note that <code>Parser</code> treats <code>Seq{'a'}</code> and <code>{'a'}</code>
 identically (you can use plain tables instead).

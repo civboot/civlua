@@ -9,7 +9,7 @@ local ds = require'ds'
 local heap = require'ds.heap'
 
 local sfmt = string.format
-local push = table.insert
+local push, concat = table.insert, table.concat
 local yield, create  = coroutine.yield, coroutine.create
 local resume, status = coroutine.resume, coroutine.status
 local running        = coroutine.running

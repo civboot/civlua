@@ -180,8 +180,6 @@ Buffer.span = function(b, ...)
   return l, c, l2, c2
 end
 
---- FIXME: I don't think this works the way I think...
----        It shouldn't be #b.dat + 1 right?
 Buffer.append = function(b, s)
   local ch = b:changeIns(s, #b.dat + 1, 1)
   b.dat:append(s)
