@@ -80,6 +80,13 @@ expr   = Or{setVar, ... other valid expressions, name='expr'}
 p:parse(expr)
 ]
 
+["Note: the difference between name and kind is that a node
+  with [$kind] set will [*never be unpacked]. For instance,
+  to define a [$block; of; items;] you might use [$name] since you want
+  [$single;] to not be represented as just [$single] instead of
+  [$block { single }].
+]
+
 [*Recursive Descent]: not very concise, harder to debug. [{## lang=lua}
 -- Note: p=parser, an object which tracks the current position
 -- in it's `state`

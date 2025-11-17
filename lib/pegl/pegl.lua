@@ -113,7 +113,7 @@ M.Parser = mty'Parser'{
   'commentLC [table]: table of {line={col=CommentToken}}',
   'dbgLevel [number]', dbgLevel = 0,
   'path [string]',
-  'firstError {l=int,c=int, [1]=str]]: first error',
+  'firstError {l=int,c=int, [1]=str}: first error.',
 }
 
 M.fmtSpec = function(s, f)
@@ -287,12 +287,13 @@ M.skipWs1 = function(p)
 end
 
 M.skipEmpty = function(p)
-  local loop, sc, cmt, cL = true, p.config.skipComment
+  local loop, sc, cmt, cL = true, p.config.skipComment, nil, nil
   while loop and not p:isEof() do
     loop = not M.skipWs1(p)
     if sc then
+      -- cL=comments at line. Parse the comment if not already done.
       cL = p.commentLC[p.l]; cmt = (cL and cL[p.c]) or sc(p)
-      if cmt then -- cache for later and advance
+      if cmt then -- found comment, advance past it.
         p:dbg('COMMENT: %s.%s', p.l, p.c)
         cL = p.commentLC[p.l]
         if not cL then cL = {}; p.commentLC[p.l] = cL end

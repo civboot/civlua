@@ -26,6 +26,8 @@ local KEYWORDS = {
 }
 local keyW           = Key{name='keyword',       KEYWORDS}
 local name           = {UNPIN, Not{keyW}, common.name}
+local methname = ds.copy(name)
+methname.name = 'methname'
 
 -- uniary and binary operations
 local op1 = Key{name='op1', {'-', 'not', '#'}}
@@ -61,7 +63,7 @@ local exp = {name='exp'}    -- defined just below
 add(exp1, {'(', exp, ')', kind='group'})
 
 local call     = Or{kind='call'} -- function call (defined much later)
-local methcall = {UNPIN, ':', name, PIN, call, kind='methcall'}
+local methcall = {UNPIN, ':', methname, PIN, call, kind='methcall'}
 local index    = {kind='index',
   UNPIN, '[', Not{Or{'[', '='}}, PIN, exp, ']'
 }
@@ -164,7 +166,7 @@ add(exp1, tbl)
 -- call ::=  `(´ [explist1] `)´  |  tableconstructor  |  String
 ds.extend(call, {
   {kind='call', '(', explist, ')'},
-  {kind='callParen', tbl},
+  {kind='callTbl', tbl},
   {kind="callStr", str},
 })
 
