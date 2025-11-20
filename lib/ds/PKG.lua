@@ -24,3 +24,6 @@ srcs = {
   'ds/testing.lua',
   ['ds.lib'] = {'ds.c', 'ds.h'},
 }
+libs = {
+  ['ds.lib'] = 'libds.so',
+}
