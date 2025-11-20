@@ -23,8 +23,9 @@ bytearray* bytearray_new(lua_State* L);
 
 bytearray* asbytearray(lua_State* L, int index);
 
-// resize the bytearray. Return whether resize was successful.
-bool bytearray_resize(bytearray* b, size_t sz);
+// Grow the bytearray.
+// Return true if successful or if sz < b->sz.
+bool bytearray_grow(bytearray* b, size_t sz);
 
 // Extend the data onto the end of the bytearray
 bool bytearray_extend(bytearray* b, uint8_t* d, size_t sz);

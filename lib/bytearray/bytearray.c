@@ -24,7 +24,7 @@ bytearray* bytearray_new(LS* L) {
 bytearray* bytearray_close(bytearray* b) {
   if(b && b->dat) {
     free(b->dat); b->dat = NULL;
-    b->sz = 0;
+    b->len = 0; b->sz = 0;
   }
 }
 
@@ -34,9 +34,9 @@ bytearray* asbytearray(LS* L, int index) {
   return b;
 }
 
-bool bytearray_resize(bytearray* b, size_t sz) {
+bool bytearray_grow(bytearray* b, size_t sz) {
   if(sz <= b->sz) return true;
-  if(sz < 8) sz = 8; // min sz is 8
+  sz += sz % 16; // make divisible by 16
   if(sz < (b->sz * 2)) sz = b->sz * 2; // at least double size
   uint8_t* dat = realloc(b->dat, sz); if(dat == NULL) return false;
   b->dat = dat; b->sz = sz;
@@ -44,7 +44,7 @@ bool bytearray_resize(bytearray* b, size_t sz) {
 }
 
 bool bytearray_extend(bytearray* b, uint8_t* dat, size_t len) {
-  if(!bytearray_resize(b, b->len + len)) return false;
+  if(!bytearray_grow(b, b->len + len)) return false;
   memcpy(b->dat + b->len, dat, len);
   b->len += len;
   return true;
@@ -53,19 +53,20 @@ bool bytearray_extend(bytearray* b, uint8_t* dat, size_t len) {
 //***********
 // Lua API
 
-static int l_extend(LS* L) {
-  int top = lua_gettop(L); uint8_t* s; size_t sz;
+static int l_extend(LS* L) { // --> bytearray
+  int top = lua_gettop(L); uint8_t* s; size_t len;
   bytearray* b = asbytearray(L, 1);
+  size_t extend_len = 0;
+  // Grow the bytearray first
   for(int i = 2; i <= top; i++) {
-    int tp = lua_type(L, i);
-    switch(tp) {
-      case LUA_TNIL: break;
-      case LUA_TSTRING:
-        s = (uint8_t*)lua_tolstring(L, i, &sz);
-        ASSERT(L, bytearray_extend(b, s, sz), "OOM");
-        break;
-      default: luaL_error(L, "unknown type: %s", lua_typename(L, tp));
-    }
+    ASSERT(L, lua_tolstring(L, i, &len), "arg %I is not a string", i);
+    extend_len += len;
+  }
+  ASSERT(L, bytearray_grow(b, b->len + extend_len), "OOM");
+  // Then add data.
+  for(int i = 2; i <= top; i++) {
+    s = (uint8_t*)lua_tolstring(L, i, &len);
+    ASSERT(L, bytearray_extend(b, s, len), "unreachable");
   }
   lua_settop(L, 1);
   return 1;
