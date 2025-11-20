@@ -10,6 +10,8 @@ T.basic = function()
   local b = bytearray"test data";
   T.eq('test data', tostring(b))
   T.eq('test data', b:to())
+  b:extend(', and more data.', '.. and some more')
+  T.eq('test data, and more data... and some more', b:to())
 end
 
 ds.yeet'bytearray works'

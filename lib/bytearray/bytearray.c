@@ -86,7 +86,7 @@ static int l_bytearray_close(LS* L) {
 
 static int l_tostring(LS* L) {
   bytearray* b = asbytearray(L, 1);
-  lua_pushlstring(L, b->dat, b->sz);
+  lua_pushlstring(L, b->dat, b->len);
   return 1;
 }
 
@@ -106,6 +106,7 @@ int luaopen_bytearray(LS *L) {
     lua_setmetatable(L, -2);
 
     lua_newtable(L); // bytearray methods
+      L_setmethod(L, "extend",     l_extend);
       L_setmethod(L, "to",         l_tostring);
     lua_setfield(L, -2, "__index");
   return 1;
