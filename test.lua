@@ -26,7 +26,6 @@ print'[[core]]'
     for tpath in tests:gmatch'%S+' do dofile(dir..tpath) end
   end
 
-  dofile(dir..'lib/bytearray/test.lua')
   dofile(dir..'lib/shim/test.lua')
   dofile(dir..'lib/ds/test.lua')
   dofile(dir..'lib/lines/test_diff.lua')

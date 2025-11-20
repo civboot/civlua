@@ -1,7 +1,7 @@
 # Copy/pastable Makefile for Lua C sources.
 
 # Modify these for a new library
-NAME  = bytearray
+NAME  = ds
 FILES = $(NAME).c $(NAME).h
 OUT   = $(NAME)
 LUA_VERSION = lua

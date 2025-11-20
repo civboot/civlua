@@ -31,6 +31,7 @@ local dp = M.dotpath
 local path = require'ds.path'
 local s = M.simplestr
 local LL = require'ds.LL'
+local bytearray = require'ds.bytearray'
 
 ---------------------
 -- ds.lua
@@ -800,3 +801,18 @@ T.kev = function()
   push(r, 'this has no equal sign and is ignored')
   T.eq(t, kev.from(r))
 end
+
+-----------------
+-- bytearray
+T.bytearray = function()
+  T.eq('bytearray', bytearray.__name)
+  T.eq('bytearray type', getmetatable(bytearray).__name)
+
+  local b = bytearray"test data";
+  T.eq('test data', tostring(b))
+  T.eq('test data', b:to())
+  b:extend(', and more data.', '.. and some more')
+  T.eq('test data, and more data... and some more', b:to())
+end
+
+ds.yeet'bytearray works'
