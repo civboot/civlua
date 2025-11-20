@@ -1,5 +1,5 @@
-#ifndef BYTEARRAY_H
-#define BYTEARRAY_H
+#ifndef DS_H
+#define DS_H
 #include <lua.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -7,7 +7,7 @@
 #define LUA_BYTEARRAY  "bytearray"
 
 // Lua library API
-int luaopen_bytearray(lua_State* L);
+int luaopen_ds_lib(lua_State* L);
 
 //***********
 // C API
@@ -31,4 +31,4 @@ bool bytearray_grow(bytearray* b, size_t sz);
 bool bytearray_extend(bytearray* b, uint8_t* d, size_t sz);
 
 
-#endif // BYTEARRAY_H
+#endif // DS_H

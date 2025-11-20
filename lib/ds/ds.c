@@ -1,4 +1,4 @@
-#include "bytearray.h"
+#include "ds.h"
 
 #include <lua.h>
 #include <lualib.h>
@@ -94,7 +94,8 @@ static int l_tostring(LS* L) {
 #define L_setmethod(L, KEY, FN) \
   lua_pushcfunction(L, FN); lua_setfield(L, -2, KEY);
 
-int luaopen_bytearray(LS *L) {
+int luaopen_ds_lib(LS *L) {
+  lua_newtable(L);
   luaL_newmetatable(L, LUA_BYTEARRAY);
     // bytearray fields/metamethods
     L_setmethod(L, "__gc",       l_bytearray_close);
@@ -110,6 +111,7 @@ int luaopen_bytearray(LS *L) {
       L_setmethod(L, "extend",     l_extend);
       L_setmethod(L, "to",         l_tostring);
     lua_setfield(L, -2, "__index");
+  lua_setfield(L, -2, "bytearray");
   return 1;
 }
 
