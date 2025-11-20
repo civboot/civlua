@@ -8,10 +8,4 @@ doc      = 'README.cxt'
 deps = {
   "lua ~> 5.3",
 }
-srcs = {
-  'metaty.lua',
-  ['metaty.native'] = 'metaty.c',
-}
-libs = {
-  ['metaty.native'] = 'metaty.so',
-}
+srcs = { 'metaty.lua', }

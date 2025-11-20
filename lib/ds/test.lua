@@ -31,6 +31,7 @@ local dp = M.dotpath
 local path = require'ds.path'
 local s = M.simplestr
 local LL = require'ds.LL'
+local bytearray = ds.bytearray
 
 ---------------------
 -- ds.lua
@@ -800,3 +801,69 @@ T.kev = function()
   push(r, 'this has no equal sign and is ignored')
   T.eq(t, kev.from(r))
 end
+
+-----------------
+-- ds.lib (ds.c, ds.h)
+
+T.bytearray = function()
+  T.eq('bytearray', bytearray.__name)
+  T.eq('bytearray type', getmetatable(bytearray).__name)
+
+  local b = bytearray"test data";
+  T.eq('test data', tostring(b))
+  T.eq('test data', b:sub())
+  T.eq(9, #b)
+  T.eq('st',   b:sub(3,4))
+  T.eq('data', b:sub(-4));   T.eq('data', b:sub(-4, -1))
+  T.eq('dat', b:sub(-4, 8)); T.eq('dat', b:sub(-4, -2))
+  b:extend(', and more data.', '.. and some more')
+  T.eq('test data, and more data... and some more', b:sub())
+
+  b:write'fun.'
+  T.eq('fun. data', b:sub(1,9))
+  T.eq(4, b:pos())
+
+  b:len(9);       T.eq('fun. data',    b:sub())
+  b:len(12, 'z'); T.eq('fun. datazzz', b:sub())
+  
+  b:write" That's what programming in lua is!"
+  T.eq("fun. That's what programming in lua is!", b:sub())
+  b:len(4); b:replace(1, "Wow"); T.eq("Wow.", b:sub())
+  b:pos(0); T.eq("Wo", b:read(2)); T.eq("w.", b:read'*a');
+  b:pos(0); b:write'line 1\nline 2'
+  b:pos(0); T.eq('line 1',   b:read'l'); T.eq('line 2', b:read'l')
+            T.eq(nil, b:read'l')
+  b:pos(0); T.eq('line 1\n', b:read'L'); T.eq('line 2', b:read'L')
+            T.eq(nil, b:read'L')
+  b:pos(0);
+  local lines = {}; for l in b:lines() do push(lines, l) end
+  T.eq({'line 1', 'line 2'}, lines)
+
+  b:close()
+  T.eq('', b:sub())
+end
+
+T['string.concat'] = function()
+  local sc = string.concat
+  T.eq('',             sc(''))
+  T.eq('one',          sc(' ', 'one'))
+  T.eq('1 2',          sc(' ', '1', 2))
+  T.eq('12',           sc('', '1', 2))
+  T.eq('one-two-true', sc('-', 'one', 'two', 'true'))
+end
+
+T['table.update'] = function()
+  local tu = table.update
+  T.eq({},       tu({},  {}))
+  T.eq({1},      tu({},  {1}))
+  T.eq({1, a=3}, tu({1}, {a=3}))
+  T.eq({1, a=3, b=44, c=5},
+        tu({1, a=3, b=4}, {b=44, c=5}))
+end
+
+T['table.push'] = function()
+  local tp = table.push
+  local t = {1, 2, a=3}
+  T.eq(3, tp(t, 3)); T.eq({1, 2, 3, a=3}, t)
+end
+

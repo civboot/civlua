@@ -2,12 +2,24 @@ local G = G or _G
 
 -- ds: data structures and algorithms
 local M = G.mod and G.mod'ds' or {}
+local lib = require'ds.lib'
+
+--- concatenate the string arguments.
+M.sconcat = lib.string_concat --(sep, ...) --> string
+
+--- push the value onto the end of the table, return the index.
+M.push    = lib.push --(t, v) --> index
+
+-- add missing globals
+string.concat = rawget(string, 'concat') or lib.string_concat
+table.update  = rawget(table,  'update') or lib.update
+table.push    = rawget(table,  'push')   or lib.push
 
 local mty = require'metaty'
 local fmt = require'fmt'
 
 local getmt = getmetatable
-local push, pop, sfmt    = table.insert, table.remove, string.format
+local push, pop, sfmt    = table.push, table.remove, string.format
 local sfind = string.find
 local move, sort, unpack = table.move, table.sort, table.unpack
 local concat             = table.concat
@@ -18,8 +30,9 @@ local resume = coroutine.resume
 local getmethod = mty.getmethod
 local EMPTY = {}
 
-local sconcat = string.concat -- note: from metaty
-local tupdate  = table.update  -- note: from metaty
+local sconcat = string.concat
+local tupdate = table.update
+
 
 M.PlainStyler = mty'PlainStyler' {}
 
@@ -1102,6 +1115,47 @@ M.TWriter.write = function(tw, ...)
 end
 M.TWriter.flush = M.noop
 M.TWriter.close = M.noop
+
+------------------
+-- Export bytearray
+
+--- bytearray: an array of bytes that can also be used as a file.
+---
+--- Construct with [$bytearray(str...)]
+---
+--- Methods:[+
+--- * [$b:len(v, fill='') --> int]
+---     get (no args) or set the bytearray length. When v is set, the first
+---     character of fill will be used to fill any characters above the current
+---     length.
+---
+--- * [$b:size() --> int]
+---     return the allocated space of the buffer.
+---
+--- * [$b:extend(str...) --> b]
+---     extend bytearray with strings after len.
+---
+--- * [$b:sub(si, ei) --> string]: same as string:sub(...)
+---
+--- * [$b:replace(i, str)]:
+---     replace the string at i with str, increasing length if necessary.
+--- ]
+---
+--- In addition, bytearray is file-like with the methods read(), write(),
+--- seek() and flush(). close() will free all internal memory. pos(n) gets and
+--- sets the current "file" position, and supports negative indexes.
+M.bytearray = lib.bytearray
+M.bytearray.lines = function(b, opt)
+  return function() return b:read(opt) end
+end
+M.bytearray.seek = function(b, whence, offset)
+  if not whence or whence == 'cur' then return b:pos()
+  elseif whence == 'set'           then return b:pos(offset or 0)
+  elseif whence == 'end'           then return b:pos(-1) end
+  error('unknown whence: '..whence)
+end
+M.bytearray.flush   = M.noop
+M.bytearray.setvbuf = M.noop
 
 -----------------------
 -- Handling Errors

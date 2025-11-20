@@ -21,4 +21,8 @@ srcs = {
   'ds/Grid.lua',
   'ds/kev.lua',
   'ds/testing.lua',
+  ['ds.lib'] = {'ds.c', 'ds.h'},
+}
+libs = {
+  ['ds.lib'] = 'libds.so',
 }

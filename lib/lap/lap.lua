@@ -12,6 +12,7 @@ local sfmt = string.format
 local push = table.insert
 local yield, create  = coroutine.yield, coroutine.create
 local resume, status = coroutine.resume, coroutine.status
+local running        = coroutine.running
 local log = require'ds.log'
 local errorFrom = ds.Error.from
 local TRACE = log.LEVEL.TRACE
@@ -269,12 +270,23 @@ local LAP_UPDATE = {
     lap.monoHeap:add{lap:monoFn() + sleepSec, cor}
   end,
   poll = function(lap, cor, fileno, events)
-    if lap.pollMap[fileno] then return string.format(
-      'two coroutines are both attempting to listen to fileno=%s\n'
-      ..'Existing traceback:\n  %s',
-      fileno,
-      table.concat(ds.tracelist(debug.traceback(lap.pollMap[fileno])), '\n  ')
-    )end
+    local cur = lap.pollMap[fileno]
+    if cor == cur then
+      assert(lap.pollList.map[fileno] == events)
+      -- TODO: figure out why this happens sometimes.
+      log.warn('coroutine %q polled twice', LAP_CORS[cor])
+      return
+    end
+    if cur then
+      return fmt.format(
+        'two coroutines are both attempting to listen to fileno=%s\n'
+        ..'Previous %q (%q) traceback:\n  %s\nRunning %q (%q) traceback:\n  %s',
+        fileno,
+        LAP_CORS[cur] or 'unnamed', cur,
+        table.concat(ds.tracelist(debug.traceback(cur)), '\n  '),
+        LAP_CORS[cor] or 'unnamed', cor,
+        table.concat(ds.tracelist(debug.traceback(cor)), '\n  '))
+    end
     lap.pollList:insert(fileno, events)
     lap.pollMap[fileno] = cor
   end,
@@ -330,7 +342,7 @@ M.Lap.execute = function(lap, cor, note) --> errstr?
     log.trace("execute %s %s %q [%q]", cor, status(cor), note, LAP_CORS[cor])
   end
   local ok, kind, a, b = resume(cor)
-  if not ok then return kind end -- error
+  if not ok then return kind end -- kind=error
   local fn = LAP_UPDATE[kind]
   if fn then return fn(lap, cor, a, b)
   elseif kind then return 'unknown kind: '..kind end

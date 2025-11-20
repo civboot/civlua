@@ -10,7 +10,6 @@ local sfmt, srep = string.format, string.rep
 local push, concat = table.insert, table.concat
 local sort = table.sort
 local mathtype = math.type
-local sconcat = string.concat
 local split = mty.split
 
 
@@ -107,7 +106,7 @@ Fmt._write = function(f, str)
 end
 --- Same as [$file:write].
 Fmt.write = function(f, ...)
-  local str = sconcat('', ...)
+  local str = concat{...}
   local doIndent = false
   for _, line in split(str, '\n') do
     if doIndent then f:_write(f._nl) end
@@ -126,7 +125,7 @@ Fmt.styled = function(f, style, text, ...)
     to:styled(style, line); doIndent = true
   end
   doIndent = false
-  for _, line in split(sconcat('', ...), '\n') do
+  for _, line in split(concat{...}, '\n') do
     if doIndent then f:_write(f._nl) end
     to:write(line); doIndent = true
   end
