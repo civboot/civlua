@@ -20,17 +20,17 @@ $(OUT).so: $(FILES)
 
 BuildNetBSD:
 	echo "building NetBSD"
-	$(CC) $(FILES) -fPIC -O0 -g -llua -lpthread -I/usr/pkg/include/$(LUA_VERSION) -shared -o $(OUT).so
+	$(CC) $(FILES) -fPIC -O0 -g -llua -lpthread -I/usr/pkg/include/$(LUA_VERSION) -shared -o lib$(OUT).so
 
 BuildLinux: $(FILES)
-	$(CC) $(FILES) -fPIC -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -shared -o $(OUT).so
+	$(CC) $(FILES) -fPIC -l$(LUA_VERSION) -I/usr/include/$(LUA_VERSION) -shared -o lib$(OUT).so
 
 BuildDarwin:
 	$(CC) $(FILES) $(shell pkg-config lua --cflags) -c -O2 -fPIC $(WNO)
-	$(CC) $(OUT).o -bundle -undefined dynamic_lookup -all_load     -o $(OUT).so
+	$(CC) $(OUT).o -bundle -undefined dynamic_lookup -all_load -o lib$(OUT).so
 
 # BuildWindows: TODO
 
 clean:
-	rm -f $(OUT).o $(OUT).so $(OUT).dll
+	rm -f $(OUT).o lib$(OUT).so lib$(OUT).dll
 
