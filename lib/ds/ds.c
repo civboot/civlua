@@ -144,9 +144,20 @@ static int l_bytearray_tostring(LS* L) {
 
 static int l_bytearray_sub(LS* L) {
   bytearray* b = asbytearray(L, 1);
+  size_t len = b->len;
   int si = luaL_optinteger(L, 2, 1);
-  int ei = luaL_optinteger(L, 2, b->len);
-  lua_pushlstring(L, b->dat, b->len);
+  if(si < 0) si = len + si;
+  else       si = si - 1; // make zero-index.
+  if(si < 0) si = 0;
+
+  // note: ei is inclusive, so is effectively 0-index already.
+  int ei = luaL_optinteger(L, 3, len); 
+  if(ei < 0)        ei = len + ei + 1;
+  if(ei < 0)        ei = 0;
+  else if(ei > len) ei = len; 
+
+  if(si >= ei) lua_pushstring(L, "");
+  else         lua_pushlstring(L, b->dat + si, ei - si);
   return 1;
 }
 
@@ -176,6 +187,7 @@ int luaopen_ds_lib(LS *L) {
 
     L_setmethod(L, "close",      l_bytearray_close);
     L_setmethod(L, "extend",     l_bytearray_extend);
+    L_setmethod(L, "sub",        l_bytearray_sub);
     L_setmethod(L, "to",         l_bytearray_tostring);
     lua_pushvalue(L, -1);
     lua_setfield(L, -2, "__index");

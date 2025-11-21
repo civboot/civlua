@@ -811,15 +811,18 @@ T.bytearray = function()
 
   local b = bytearray"test data";
   T.eq('test data', tostring(b))
-  T.eq('test data', b:to())
+  T.eq('test data', b:sub())
+  T.eq('st',   b:sub(3,4))
+  T.eq('data', b:sub(-4));   T.eq('data', b:sub(-4, -1))
+  T.eq('dat', b:sub(-4, 8)); T.eq('dat', b:sub(-4, -2))
   b:extend(', and more data.', '.. and some more')
-  T.eq('test data, and more data... and some more', b:to())
+  T.eq('test data, and more data... and some more', b:sub())
 
   b:close()
-  T.eq('', b:to())
+  T.eq('', b:sub())
 end
 
--- ds.yeet'bytearray ok'
+ds.yeet'bytearray ok'
 
 T['string.concat'] = function()
   local sc = string.concat
