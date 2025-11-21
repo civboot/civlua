@@ -812,13 +812,15 @@ T.bytearray = function()
   local b = bytearray"test data";
   T.eq('test data', tostring(b))
   T.eq('test data', b:sub())
+  T.eq(9, #b)
   T.eq('st',   b:sub(3,4))
   T.eq('data', b:sub(-4));   T.eq('data', b:sub(-4, -1))
   T.eq('dat', b:sub(-4, 8)); T.eq('dat', b:sub(-4, -2))
   b:extend(', and more data.', '.. and some more')
   T.eq('test data, and more data... and some more', b:sub())
   b:write'fun.'
-  T.eq('fun. data,', b:sub(1,9))
+  T.eq('fun. data', b:sub(1,9))
+  T.eq(4, b:pos())
 
   b:close()
   T.eq('', b:sub())

@@ -128,6 +128,16 @@ static int l_bytearray_call(LS* L) {
   return 1;
 }
 
+static int l_bytearray_len(LS* L) {
+  lua_pushinteger(L, asbytearray(L, 1)->len); return 1;
+}
+static int l_bytearray_size(LS* L) {
+  lua_pushinteger(L, asbytearray(L, 1)->sz); return 1;
+}
+static int l_bytearray_pos(LS* L) {
+  lua_pushinteger(L, asbytearray(L, 1)->pos); return 1;
+}
+
 static int l_bytearray_noop(LS* L) {
   asbytearray(L, 1);
   return 1;
@@ -202,12 +212,17 @@ int luaopen_ds_lib(LS *L) {
     // bytearray fields/metamethods
     L_setmethod(L, "__gc",       l_bytearray_close);
     L_setmethod(L, "__tostring", l_bytearray_tostring);
+    L_setmethod(L, "__len",      l_bytearray_len);
     lua_pushstring(L, "bytearray"); lua_setfield(L, -2, "__name");
 
     lua_newtable(L); // bytearray metatable
       lua_pushstring(L, "bytearray type"); lua_setfield(L, -2, "__name");
       L_setmethod(L, "__call", l_bytearray_call); // constructor
     lua_setmetatable(L, -2);
+
+    // fields
+    L_setmethod(L, "size",       l_bytearray_size);
+    L_setmethod(L, "pos",        l_bytearray_pos);
 
     L_setmethod(L, "extend",     l_bytearray_extend);
     L_setmethod(L, "sub",        l_bytearray_sub);
