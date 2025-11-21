@@ -12,6 +12,14 @@ typedef lua_State LS;
 #define ASSERT(L, OK, ...) \
   if(!(OK)) { luaL_error(L, __VA_ARGS__); }
 
+// make a one-based-index be zero-based.
+int index0(int i, size_t len) {
+  if(i < 0) i = len + i;
+  else      i = i - 1; // make zero-index.
+  if(i < 0) i = 0;
+  return i;
+}
+
 //***********
 // C API
 
@@ -33,7 +41,7 @@ bytearray* asbytearray(LS* L, int index) {
 
 bool bytearray_grow(bytearray* b, size_t sz) {
   if(sz <= b->sz) return true;
-  sz += sz % 16; // make divisible by 16
+  sz += sz % 8; // make divisible by 8
   if(sz < (b->sz * 2)) sz = b->sz * 2; // at least double size
   uint8_t* dat = realloc(b->dat, sz); if(dat == NULL) return false;
   b->dat = dat; b->sz = sz;
@@ -128,14 +136,38 @@ static int l_bytearray_call(LS* L) {
   return 1;
 }
 
+// b:len() -> len        : when called with no args returns len
+// b:len(10, ' ') -> len : sets len to 10, filling with spaces.
 static int l_bytearray_len(LS* L) {
-  lua_pushinteger(L, asbytearray(L, 1)->len); return 1;
+  bytearray* b = asbytearray(L, 1);
+  if(!lua_isinteger(L, 2)) { // bug: #b passes b twice (lua 5.8).
+    lua_pushinteger(L, b->len);
+    return 1;
+  }
+  int len = luaL_checkinteger(L, 2);
+  if(len > b->len) {
+    const uint8_t* fill = luaL_optstring(L, 3, ""); // default=0 char
+    bytearray_grow(b, len);
+    memset(b->dat + b->len, fill[0], len - b->len);
+  }
+  b->len = len; lua_pushinteger(L, len);
+  return 1;
 }
 static int l_bytearray_size(LS* L) {
   lua_pushinteger(L, asbytearray(L, 1)->sz); return 1;
 }
 static int l_bytearray_pos(LS* L) {
-  lua_pushinteger(L, asbytearray(L, 1)->pos); return 1;
+  bytearray* b = asbytearray(L, 1);
+  if(lua_isnumber(L, 2)) {
+    int pos = lua_tointeger(L, 2);
+    if(pos < 0) {
+      pos += b->len;
+      if(pos < 0) pos = 0;
+    }
+    b->pos = (pos > b->len) ? b->len : pos;
+  }
+  lua_pushinteger(L, b->pos);
+  return 1;
 }
 
 static int l_bytearray_noop(LS* L) {
@@ -152,10 +184,7 @@ static int l_bytearray_tostring(LS* L) {
 static int l_bytearray_sub(LS* L) {
   bytearray* b = asbytearray(L, 1);
   size_t len = b->len;
-  int si = luaL_optinteger(L, 2, 1);
-  if(si < 0) si = len + si;
-  else       si = si - 1; // make zero-index.
-  if(si < 0) si = 0;
+  int si = index0(luaL_optinteger(L, 2, 1), len);
 
   // note: ei is inclusive, so is effectively 0-index already.
   int ei = luaL_optinteger(L, 3, len); 
@@ -168,9 +197,58 @@ static int l_bytearray_sub(LS* L) {
   return 1;
 }
 
+// replace b[i:i+#str] with str, growing b if needed.
+// (b, i, str) --> nil
+static int l_bytearray_replace(LS* L) {
+  bytearray* b = asbytearray(L, 1);
+  int si = index0(luaL_checkinteger(L, 2), b->len);
+  size_t len; const char* s = luaL_checklstring(L, 3, &len);
+  size_t ei = si + len;
+  bytearray_grow(b, ei);
+  memcpy(b->dat + si, s, len);
+  if(ei > b->len) b->len = ei;
+  return 0;
+}
+
 static int l_bytearray_close(LS* L) {
   bytearray_close(asbytearray(L, 1));
   return 0;
+}
+
+static int bytearray_read(LS* L, bytearray* b, int num) {
+  int ei = b->pos + num;
+  if(ei > b->len) ei = b->len;
+  lua_pushlstring(L, b->dat + b->pos, ei - b->pos);
+  b->pos = ei;
+  return 1;
+}
+
+// File-like read. Does not support  "n"
+// (b, opt) --> str
+static int l_bytearray_read(LS* L) {
+  bytearray* b = asbytearray(L, 1);
+  if(b->pos >= b->len) return 0;
+  if(lua_isnumber(L, 2))
+    return bytearray_read(L, b, lua_tointeger(L, 2));
+  size_t len; const uint8_t* opt = luaL_optlstring(L, 2, "l", &len);
+  ASSERT(L, len > 0, "invalid read opt: %s", opt);
+  switch(opt[len-1]) {
+    case 'n': luaL_error(L, "read 'n' not supported");
+    case 'a': return bytearray_read(L, b, b->len);
+    case 'l':
+    case 'L': break;
+    default: luaL_error(L, "invalid read opt: %s", opt);
+  }
+  uint8_t incl = (opt[len-1] == 'l') ? 0 : 1; // incl newline
+  uint8_t* dat = b->dat;
+  for(size_t i = b->pos; i < b->len; i++) {
+    if(dat[i] == '\n') {
+      bytearray_read(L, b, i - b->pos + incl);
+      if(!incl) b->pos += 1;
+      return 1;
+    }
+  }
+  return bytearray_read(L, b, b->len); // newline not found, return rest.
 }
 
 // (b, string...) --> b
@@ -221,12 +299,15 @@ int luaopen_ds_lib(LS *L) {
     lua_setmetatable(L, -2);
 
     // fields
+    L_setmethod(L, "len",        l_bytearray_len);
     L_setmethod(L, "size",       l_bytearray_size);
     L_setmethod(L, "pos",        l_bytearray_pos);
 
     L_setmethod(L, "extend",     l_bytearray_extend);
     L_setmethod(L, "sub",        l_bytearray_sub);
+    L_setmethod(L, "replace",    l_bytearray_replace);
 
+    L_setmethod(L, "read",       l_bytearray_read);
     L_setmethod(L, "write",      l_bytearray_write);
     L_setmethod(L, "flush",      l_bytearray_noop);
     L_setmethod(L, "close",      l_bytearray_close);

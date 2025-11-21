@@ -1128,6 +1128,9 @@ M.TWriter.close = M.noop
 --- * [$b:close()] - clear bytearray and free internal memory.
 --- ]
 M.bytearray = lib.bytearray
+M.bytearray.lines = function(b, opt)
+  return function() return b:read(opt) end
+end
 
 -----------------------
 -- Handling Errors

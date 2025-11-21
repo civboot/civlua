@@ -818,9 +818,26 @@ T.bytearray = function()
   T.eq('dat', b:sub(-4, 8)); T.eq('dat', b:sub(-4, -2))
   b:extend(', and more data.', '.. and some more')
   T.eq('test data, and more data... and some more', b:sub())
+
   b:write'fun.'
   T.eq('fun. data', b:sub(1,9))
   T.eq(4, b:pos())
+
+  b:len(9);       T.eq('fun. data',    b:sub())
+  b:len(12, 'z'); T.eq('fun. datazzz', b:sub())
+  
+  b:write" That's what programming in lua is!"
+  T.eq("fun. That's what programming in lua is!", b:sub())
+  b:len(4); b:replace(1, "Wow"); T.eq("Wow.", b:sub())
+  b:pos(0); T.eq("Wo", b:read(2)); T.eq("w.", b:read'*a');
+  b:pos(0); b:write'line 1\nline 2'
+  b:pos(0); T.eq('line 1',   b:read'l'); T.eq('line 2', b:read'l')
+            T.eq(nil, b:read'l')
+  b:pos(0); T.eq('line 1\n', b:read'L'); T.eq('line 2', b:read'L')
+            T.eq(nil, b:read'L')
+  b:pos(0);
+  local lines = {}; for l in b:lines() do push(lines, l) end
+  T.eq({'line 1', 'line 2'}, lines)
 
   b:close()
   T.eq('', b:sub())
