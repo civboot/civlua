@@ -17,15 +17,12 @@ typedef lua_State LS;
 
 bytearray* bytearray_new(LS* L) {
   bytearray* b = (bytearray*) lua_newuserdata(L, sizeof(bytearray));
-  b->dat = NULL; b->len = 0; b->sz = 0;
+  *b = (bytearray){0};
   luaL_setmetatable(L, LUA_BYTEARRAY);
   return b;
 }
 bytearray* bytearray_close(bytearray* b) {
-  if(b && b->dat) {
-    free(b->dat); b->dat = NULL;
-    b->len = 0; b->sz = 0;
-  }
+  if(b && b->dat) { free(b->dat); *b = (bytearray){0}; }
 }
 
 bytearray* asbytearray(LS* L, int index) {
@@ -131,9 +128,9 @@ static int l_bytearray_call(LS* L) {
   return 1;
 }
 
-static int l_bytearray_close(LS* L) {
-  bytearray_close(asbytearray(L, 1));
-  return 0;
+static int l_bytearray_noop(LS* L) {
+  asbytearray(L, 1);
+  return 1;
 }
 
 static int l_bytearray_tostring(LS* L) {
@@ -161,6 +158,33 @@ static int l_bytearray_sub(LS* L) {
   return 1;
 }
 
+static int l_bytearray_close(LS* L) {
+  bytearray_close(asbytearray(L, 1));
+  return 0;
+}
+
+// (b, string...) --> b
+static int l_bytearray_write(LS* L) {
+  int top = lua_gettop(L);
+  bytearray* b = asbytearray(L, 1);
+  size_t len; const uint8_t* s;
+  size_t write_len = 0;
+  for(int i=2; i <= top; i++) {
+    lua_tolstring(L, 2, &len);
+    write_len += len;
+  }
+  ASSERT(L, bytearray_grow(b, b->pos + write_len), "OOM");
+  uint8_t* dat = b->dat + b->pos;
+  for(int i=2; i <= top; i++) {
+    s = lua_tolstring(L, 2, &len);
+    memcpy(dat, s, len);
+    dat += len;
+  }
+  b->pos += write_len;
+  if(b->pos > b->len) b->len = b->pos;
+  return 1;
+}
+
 static const struct luaL_Reg ds_lib[] = {
   {"string_concat", l_string_concat},
   {"update", l_update},
@@ -185,10 +209,12 @@ int luaopen_ds_lib(LS *L) {
       L_setmethod(L, "__call", l_bytearray_call); // constructor
     lua_setmetatable(L, -2);
 
-    L_setmethod(L, "close",      l_bytearray_close);
     L_setmethod(L, "extend",     l_bytearray_extend);
     L_setmethod(L, "sub",        l_bytearray_sub);
-    L_setmethod(L, "to",         l_bytearray_tostring);
+
+    L_setmethod(L, "write",      l_bytearray_write);
+    L_setmethod(L, "flush",      l_bytearray_noop);
+    L_setmethod(L, "close",      l_bytearray_close);
     lua_pushvalue(L, -1);
     lua_setfield(L, -2, "__index");
   lua_setfield(L, -2, "bytearray");

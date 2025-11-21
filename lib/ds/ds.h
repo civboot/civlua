@@ -16,6 +16,7 @@ typedef struct _bytearray {
   uint8_t* dat;
   size_t len; // length of current data in bytearray
   size_t sz;  // allocated size of dat
+  size_t pos; // file-like operations.
 } bytearray;
 
 // Allocate bytearray whos memory will be managed by Lua.
