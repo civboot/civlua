@@ -31,7 +31,7 @@ local dp = M.dotpath
 local path = require'ds.path'
 local s = M.simplestr
 local LL = require'ds.LL'
-local bytearray = require'ds.bytearray'
+local bytearray = ds.bytearray
 
 ---------------------
 -- ds.lua
@@ -803,7 +803,8 @@ T.kev = function()
 end
 
 -----------------
--- bytearray
+-- ds.lib (ds.c, ds.h)
+
 T.bytearray = function()
   T.eq('bytearray', bytearray.__name)
   T.eq('bytearray type', getmetatable(bytearray).__name)
@@ -813,6 +814,34 @@ T.bytearray = function()
   T.eq('test data', b:to())
   b:extend(', and more data.', '.. and some more')
   T.eq('test data, and more data... and some more', b:to())
+
+  b:close()
+  T.eq('', b:to())
 end
 
-ds.yeet'bytearray works'
+ds.yeet'bytearray ok'
+
+T['string.concat'] = function()
+  local sc = string.concat
+  T.eq('',             sc(''))
+  T.eq('one',          sc(' ', 'one'))
+  T.eq('1 2',          sc(' ', '1', 2))
+  T.eq('12',           sc('', '1', 2))
+  T.eq('one-two-true', sc('-', 'one', 'two', 'true'))
+end
+
+T['table.update'] = function()
+  local tu = table.update
+  T.eq({},       tu({},  {}))
+  T.eq({1},      tu({},  {1}))
+  T.eq({1, a=3}, tu({1}, {a=3}))
+  T.eq({1, a=3, b=44, c=5},
+        tu({1, a=3, b=4}, {b=44, c=5}))
+end
+
+T['table.push'] = function()
+  local tp = table.push
+  local t = {1, 2, a=3}
+  T.eq(3, tp(t, 3)); T.eq({1, 2, 3, a=3}, t)
+end
+

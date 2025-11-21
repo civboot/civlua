@@ -24,8 +24,10 @@ end
 
 local srep = string.rep
 local sfmt = string.format
-
-local push, update = table.push, table.update
+local push = table.insert
+local update = function(t, update)
+  for k, v in pairs(update) do t[k] = v end; return t
+end
 
 ---------------
 -- Pre module: environment variables

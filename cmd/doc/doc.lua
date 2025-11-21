@@ -444,7 +444,7 @@ local function fmtPkg(f, construct, pkg, expand, deep)
   -- pkg/ is not itself a PKG... this is a hack
   if pkg == 'pkg' then pkg = pkglib.loadpkg('lib/pkg', 'pkg') end
   pkg = pkglib.isPkg(pkg) and pkg
-     or pkglib.getpkg(pkg) or error('could not find pkg: '..pkg)
+     or pkglib.getpkg(pkg) or error(sfmt('could not find pkg: %q', pkg))
   M.fmt(f, construct:pkg(pkg, expand))
   if deep and pkg.pkgs then
     for _, dir in ipairs(pkg.pkgs) do
@@ -465,6 +465,7 @@ M.main = function(args)
   local to = args.to and shim.file(args.to) or nil
   local f, c = fmt.Fmt{to=to}, M._Construct{}
   for _, obj in ipairs(args) do
+    print('!! obj:', obj)
     if args.pkg then fmtPkg(f, c, obj, expand, args.pkg == 'deep')
     else
       if type(obj) == 'string' then
