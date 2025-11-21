@@ -18,10 +18,7 @@ demo: build
 	$(PRETEST) $(LUA) ui/vt100/demo.lua
 	# $(PRETEST) $(LUA) cmd/ele/tests/test_term.lua
 
-build: metaty ds fd pod civix smol
-
-metaty: lib/metaty/metaty.c
-	cd lib/metaty && make build LUA_VERSION=$(LUA_VERSION)
+build: ds fd pod civix smol
 
 fd: lib/fd/fd.c
 	cd lib/fd && make build LUA_VERSION=$(LUA_VERSION)

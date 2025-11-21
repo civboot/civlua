@@ -5,23 +5,6 @@ local M = G.mod and G.mod'metaty' or setmetatable({}, {})
 local concat = table.concat
 local getmt, type, rawget = getmetatable, type, rawget
 
-do
-  local treq = function(n) --> try to require n from metaty.native
-    local ok, o = pcall(function() return require'metaty.native'[n] end)
-    if ok then return o end
-  end
-  string.concat = treq'concat'
-  or function(sep, ...) return concat({...}, sep) end
-
-  table.update = table.update or treq'update'
-  or function(t, update)
-    for k, v in pairs(update) do t[k] = v end; return t
-  end
-
-  table.push = table.push or treq'push'
-  or function(t, v) local i = #t + 1; t[i] = v; return i end
-end
-
 local srep = string.rep
 local sfmt = string.format
 local push = table.insert

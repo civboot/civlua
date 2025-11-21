@@ -819,7 +819,7 @@ T.bytearray = function()
   T.eq('', b:to())
 end
 
-ds.yeet'bytearray ok'
+-- ds.yeet'bytearray ok'
 
 T['string.concat'] = function()
   local sc = string.concat

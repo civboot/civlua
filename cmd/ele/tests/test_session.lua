@@ -36,6 +36,8 @@ local function run(s)
   while (#s.keys + #s.events > 0) do coroutine.yield(true) end
 end
 
+local running = false
+
 -- Test{th=5, ..., 'name', function(test) ed = test.s.ed; ... end}
 local Test = mty.record'session.Test' {
   'th', th=4, 'tw', tw=20,
@@ -43,6 +45,7 @@ local Test = mty.record'session.Test' {
   's [Session]',
 }
 getmetatable(Test).__call = function(Ty, t)
+  assert(not running); running = true
   local path = ds.srcloc(1)
   t = mty.construct(Ty, t)
   t.s = t.s or Session:test{}; local ed = t.s.ed
@@ -60,6 +63,7 @@ getmetatable(Test).__call = function(Ty, t)
     ed.run = false
   end
   ixt.runAsyncTest(function() T.runTest(name, testFn, path) end)
+  assert(running); running = false
 end
 
 Test{'session', dat='', function(tst)

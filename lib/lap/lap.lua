@@ -269,12 +269,14 @@ local LAP_UPDATE = {
     lap.monoHeap:add{lap:monoFn() + sleepSec, cor}
   end,
   poll = function(lap, cor, fileno, events)
-    if lap.pollMap[fileno] then return string.format(
-      'two coroutines are both attempting to listen to fileno=%s\n'
-      ..'Existing traceback:\n  %s',
-      fileno,
-      table.concat(ds.tracelist(debug.traceback(lap.pollMap[fileno])), '\n  ')
-    )end
+    if lap.pollMap[fileno] then
+      local existing = lap.pollMap[fileno]
+      return fmt(
+        'two coroutines are both attempting to listen to fileno=%s\n'
+        ..'Existing %q traceback:\n  %s',
+        fileno, existing,
+        table.concat(ds.tracelist(debug.traceback(existing)), '\n  '))
+    end
     lap.pollList:insert(fileno, events)
     lap.pollMap[fileno] = cor
   end,
