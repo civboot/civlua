@@ -9,12 +9,12 @@ local M = setmetatable({}, {
 })
 
 -- cache globals / fallback
-M.require = require
+M.requireBuiltin = require
 
 -- Documentation globals
 local weakk = {__mode='k'}
 PKG_NAMES  = PKG_NAMES  or setmetatable({}, weakk)        -- obj -> name
-PKG_LOC   = PKG_LOC     or setmetatable({}, weakk)        -- obj -> path:loc
+PKG_LOC    = PKG_LOC     or setmetatable({}, weakk)       -- obj -> path:loc
 PKG_LOOKUP = PKG_LOOKUP or setmetatable({}, {__mode='v'}) -- name -> obj
 
 -- pkg.UNAME is the platform, typically: Windows, Linux or Darwin
@@ -147,7 +147,7 @@ end
 --- get the package. The API is identical to 'require' except
 --- it uses LUA_PKGS to search.
 M.get = function(name, fallback)
-  fallback = (fallback == nil) and M.require or fallback
+  fallback = (fallback == nil) and M.requireBuiltin or fallback
   local mod = package.loaded[name]; if mod then return mod end
   -- use fallback if pkg doesn't exist
   local pkgname = name:match'(.*)%.' or name
