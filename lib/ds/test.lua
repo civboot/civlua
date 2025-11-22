@@ -843,8 +843,6 @@ T.bytearray = function()
   T.eq('', b:sub())
 end
 
-ds.yeet'bytearray ok'
-
 T['string.concat'] = function()
   local sc = string.concat
   T.eq('',             sc(''))

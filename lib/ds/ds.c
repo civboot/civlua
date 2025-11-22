@@ -170,11 +170,6 @@ static int l_bytearray_pos(LS* L) {
   return 1;
 }
 
-static int l_bytearray_noop(LS* L) {
-  asbytearray(L, 1);
-  return 1;
-}
-
 static int l_bytearray_tostring(LS* L) {
   bytearray* b = asbytearray(L, 1);
   lua_pushlstring(L, b->dat, b->len);
@@ -309,7 +304,6 @@ int luaopen_ds_lib(LS *L) {
 
     L_setmethod(L, "read",       l_bytearray_read);
     L_setmethod(L, "write",      l_bytearray_write);
-    L_setmethod(L, "flush",      l_bytearray_noop);
     L_setmethod(L, "close",      l_bytearray_close);
     lua_pushvalue(L, -1);
     lua_setfield(L, -2, "__index");

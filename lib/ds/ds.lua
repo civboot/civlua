@@ -1119,18 +1119,43 @@ M.TWriter.close = M.noop
 ------------------
 -- Export bytearray
 
---- bytearray: an array of bytes.
+--- bytearray: an array of bytes that can also be used as a file.
 ---
 --- Construct with [$bytearray(str...)]
 ---
 --- Methods:[+
---- * [$b:extend(str...)] - extend bytearray with strings.
---- * [$b:close()] - clear bytearray and free internal memory.
+--- * [$b:len(v, fill='') --> int]
+---     get (no args) or set the bytearray length. When v is set, the first
+---     character of fill will be used to fill any characters above the current
+---     length.
+---
+--- * [$b:size() --> int]
+---     return the allocated space of the buffer.
+---
+--- * [$b:extend(str...) --> b]
+---     extend bytearray with strings after len.
+---
+--- * [$b:sub(si, ei) --> string]: same as string:sub(...)
+---
+--- * [$b:replace(i, str)]:
+---     replace the string at i with str, increasing length if necessary.
 --- ]
+---
+--- In addition, bytearray is file-like with the methods read(), write(),
+--- seek() and flush(). close() will free all internal memory. pos(n) gets and
+--- sets the current "file" position, and supports negative indexes.
 M.bytearray = lib.bytearray
 M.bytearray.lines = function(b, opt)
   return function() return b:read(opt) end
 end
+M.bytearray.seek = function(b, whence, offset)
+  if not whence or whence == 'cur' then return b:pos()
+  elseif whence == 'set'           then return b:pos(offset or 0)
+  elseif whence == 'end'           then return b:pos(-1) end
+  error('unknown whence: '..whence)
+end
+M.bytearray.flush   = M.noop
+M.bytearray.setvbuf = M.noop
 
 -----------------------
 -- Handling Errors
