@@ -66,9 +66,7 @@ local function isOkay(msg)
   if string.find(msg, OKAY, 1, true) then return msg end
 end
 local msgh = function(msg, level)
-  print('!! msgh:', msg, 'level=', level)
   if isOkay(msg) then return msg end
-  print('!! here')
   return sfmt('PKG.lua error %s:\n%s',
     msg, debug.traceback('', (level or 1) + 1))
 end

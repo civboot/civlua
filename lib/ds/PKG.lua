@@ -6,12 +6,12 @@ import {
 }
 
 local P = pkg {
-  name     = 'ds'
-  version  = '0.1-13'
-  url      = 'git+http://github.com/civboot/civlua'
-  homepage = "https://lua.civboot.org#Package_ds"
-  license  = "UNLICENSE"
-  doc      = 'README.cxt'
+  name     = 'ds',
+  version  = '0.1-13',
+  url      = 'git+http://github.com/civboot/civlua',
+  homepage = "https://lua.civboot.org#Package_ds",
+  license  = "UNLICENSE",
+  doc      = 'README.cxt',
 }
 
 P.lua = lua {
