@@ -1,7 +1,7 @@
 #!/usr/bin/env -S lua
 require'pkglib'(); local G = assert(G)
 
--- civ.lua: convieience command runner and environment config.
+-- civ.lua: civboot build system and command runner.
 local M = G.mod'civ'; G.MAIN = G.MAIN or M
 G.METATY_CHECK = true
 

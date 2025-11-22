@@ -1,4 +1,5 @@
 [!you can see a rendered version of this document in [/API.html]!]
+
 civlua: a minimalist, self-documenting and public domain tech stack.
 
 ["You are reading the developer documentation. Tutorial-style documentation is
@@ -208,6 +209,121 @@ incantations necessary for luarocks to find the version.
 * [<https://civboot.org>]
 ]
 
+
+[{:h1}civ build system (and eventual package manager)]
+Civboot aims to be a full developer tech stack and one of the core components
+of this is it's build system, named the "civ build system" or just "civ".
+
+A "build system" is fundamentally a mechanism to convert a set of files and
+configuration (a package) into a runnable (and testable) software that a user
+can run in whole or in part. A package system is then a way to upload and
+depend on other packages.
+
+A [,good] build system has two other primary features: [+
+* ergonomics: package specification is complete and easy to both read and write.
+* hermetic: each built component [,can] be isolated from the rest of the system
+  and deterministically built.
+]
+
+[{:h2}civ directory structure]
+To configure a directory to be built, tested and packaged by [$civ], all
+you must do is define: [+
+* [$HUB.lua]: Your [$HUB.lua] should be at the root of packages you are writing
+  and acts to tie them all together. It specifies a small amount of metadata
+  (like where to find [$PKG.lua] files), and will eventually be the root of how
+  packages are distributed to others.
+
+* [$PKG.lua]: each package should have a [$PKG.lua] in it's directory. This
+  defines the [*targets] the pkg is exporting, how to build them and how other
+  pkgs can include them as a dependency.
+
+  In addition, the [$PKG.lua] doubles as the primary import mechanism for
+  [*pkgrequire] (civlua's [$require] function).
+]
+
+[{:h3}HUB.lua]
+The [$HUB.lua] file contains a relatively small amount of metadata.
+The major functional piece is the [$subdir{ ... }] function call, which
+tells both the civ build-system and lua's [$pkgrequire] how to find
+sub-packages from your hub.
+
+[{## lang=lua}
+name'civ'  -- name of this hub
+summary'civboot lua software'
+version'1.4.3'
+subdir {
+  'path/to/a/subpkg/',
+  'path/to/another/subpkg/',
+}
+]##
+
+[{:h3}PKG.lua]
+The [$PKG.lua] file is much more involved and is how you specify how to build
+a package and what is exported from that package. Below is an example one which
+we will walk though. Before we do, a few notes: [+
+* This file is 100% pure lua except with different builtin globals.
+* Noteablly none of lua's stdlibrary is available, and instead there are several
+  functions for specifying package information such as bundling lua files
+  and specifying how to build C code.
+* The values passed to builtin functions like `summary`, `import`, and `lua`
+  are cached by the program executing the PKG.lua file, allowing that
+  program to throw an error at that point to halt execution until later.
+]
+
+Example [$PKG.lua]:
+[{## lang=lua}
+summary'Does foo and some bar'
+
+-- import for civ build system:
+--  * on first execution will store the imports and throw an error.
+--  * on second execution will set globals to tables returned by
+--    the requested imports.
+import {
+  bar  = 'somehub:bar',
+  time = 'unix:systemtime',
+}
+
+-- Set up metadata for this PKG.lua file, this must be
+-- returned at the end with the targets and PoD to provide
+-- clients.
+local P = pkg {
+  name = 'foo',
+  version = '1.4.3',
+}
+
+-- The `lua{...}` function specifies a target including lua
+-- sources and and native libraries.
+-- It should be called just after `pkg{...}`. pkgrequire executes
+-- this file until `lua{...}` to get the lua module structure.
+P.lua = lua {
+  -- specify the lua source files. Optionally, the key
+  -- can be the module name and value the file.
+  src = {
+   'foo.lua',              -- require'foo'
+   'foo/baz.lua',          -- require'foo.baz'
+   ['foo.bob'] = 'bob.lua', -- require'foo.bob'
+  },
+  lib = {
+    'libfoo',               -- require'foo.lib', finds 'libfoo.so'
+    ['foo.sys'] = 'foosys', -- require'foo.sys', finds 'libfoosys.so'
+  },
+  dep = { 'time:lua' }, -- specifies a dependency
+}
+
+-- The `cc{...}` function specifies C source files and dependencies.
+P.libfoo = cc {
+  hdr = { 'foo.h' },
+  src = { 'foo.c' },
+  dep = {
+    bar.lib,   -- direct imported value, okay past `lua{...}`
+   'time.lib', -- or continue using string reference.
+  },
+}
+
+-- This is what a dependency will get when they import us.
+return P
+]##
+
 [{:h2}LICENSE]
 All software, tests, documentation, notes and anything else in this repository
 is released into the public domain ([/UNLICENSE]) unless otherwise noted in
@@ -217,4 +333,3 @@ If you find any of this software helpful or copy large parts of it, please give
 us a a shoutout in your own projects and let us know by opening an
 [<https://github.com/civboot/civlua/issues>issue]. Please note that this is not
 required but is highly appreciated, thanks!
-
