@@ -1,13 +1,4 @@
 summary"Unix sys library"
-local P = pkg {
-  name     = 'civix',
-  homepage = "https://lua.civboot.org#Package_civix",
-  license  = "UNLICENSE",
-  version  = '0.1-8',
-  url      = 'git+http://github.com/civboot/civlua',
-  doc      = 'README.cxt',
-}
-
 import {
   "lua ~> 5.3",
   "shim   ~> 0.1",
@@ -15,6 +6,15 @@ import {
   "metaty ~> 0.1",
   "ds     ~> 0.1",
   "lap    ~> 0.1",
+}
+
+local P = pkg {
+  name     = 'civix',
+  homepage = "https://lua.civboot.org#Package_civix",
+  license  = "UNLICENSE",
+  version  = '0.1-8',
+  url      = 'git+http://github.com/civboot/civlua',
+  doc      = 'README.cxt',
 }
 
 P.lua = lua {
