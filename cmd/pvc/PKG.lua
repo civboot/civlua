@@ -1,14 +1,17 @@
-name     = 'pvc'
-version  = '0.1-0'
-url      = 'git+http://github.com/civboot/civlua'
-summary  = "Simple version control software"
-homepage = "https://lua.civboot.org#Package_pvc"
-license  = "UNLICENSE"
-doc      = 'README.cxt'
-deps = {
-  "lua    ~> 5.3",
+summary"Simple version control software"
+
+pkg {
+  name     = 'pvc',
+  version  = '0.1-0',
+  url      = 'git+http://github.com/civboot/civlua',
+  homepage = "https://lua.civboot.org#Package_pvc",
+  license  = "UNLICENSE",
+  doc      = 'README.cxt',
 }
-srcs = {
-  'pvc.lua',
-  'pvc/unix.lua'
+
+P.pvc = lua {
+  src = {
+    'pvc.lua',
+    'pvc/unix.lua'
+  }
 }

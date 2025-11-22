@@ -77,6 +77,8 @@ The following attributes and shortcuts are supported
           Example: [{name=Civboot href=http://civboot.org}Civboot]
           Example: [{: href=http://civboot.org}Civboot]
 
+          You can link to the named item with [<#name>link to name].
+
   value   when @ is used for an attr value, it will get this attribute.
    v      defaults to "href" if the node has one, else "text" which
           is the node's text.

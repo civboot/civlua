@@ -4,7 +4,6 @@ local Iter = require'ds.Iter'
 local fmt = require'fmt'
 local lines = require'lines'
 local T = require'civtest'
-local Keep, Change, toChanges; ds.auto'vcds'
 local add, concat = table.insert, table.concat
 local diff = require'lines.diff'
 

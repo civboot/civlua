@@ -272,12 +272,10 @@ local LAP_UPDATE = {
   poll = function(lap, cor, fileno, events)
     local cur = lap.pollMap[fileno]
     if cor == cur then
-      assert(lap.pollList.map[fileno] == events)
       -- TODO: figure out why this happens sometimes.
-      log.warn('coroutine %q polled twice', LAP_CORS[cor])
-      return
-    end
-    if cur then
+      log.warn('coroutine %q (%q) polled twice',
+               LAP_CORS[cor] or 'unnamed', cor)
+    elseif cur then
       return fmt.format(
         'two coroutines are both attempting to listen to fileno=%s\n'
         ..'Previous %q (%q) traceback:\n  %s\nRunning %q (%q) traceback:\n  %s',

@@ -1,4 +1,5 @@
 [!you can see a rendered version of this document in [/API.html]!]
+
 civlua: a minimalist, self-documenting and public domain tech stack.
 
 ["You are reading the developer documentation. Tutorial-style documentation is
@@ -208,6 +209,188 @@ incantations necessary for luarocks to find the version.
 * [<https://civboot.org>]
 ]
 
+
+[{:h1}civ build system (and eventual package manager)]
+Civboot aims to be a full developer tech stack and one of the core components
+of this is it's build system, named the "civ build system" or just "civ".
+
+A "build system" is fundamentally a mechanism to convert a set of files and
+configuration (a package) into a runnable (and testable) software that a user
+can run in whole or in part. A package system is then a way to upload and
+depend on other packages.
+
+A [,good] build system has two other primary features: [+
+* ergonomics: package specification is complete and easy to both read and write.
+* hermetic: each built component [,can] be isolated from the rest of the system
+  and deterministically built.
+]
+
+[{:h2}civ directory structure]
+To configure a directory to be built, tested and packaged by [$civ], all
+you must do is define: [+
+* [$HUB.lua]: Your [$HUB.lua] should be at the root of packages you are writing
+  and acts to tie them all together. It specifies a small amount of metadata
+  (like where to find [$PKG.lua] files), and will eventually be the root of how
+  packages are distributed to others.
+
+* [$PKG.lua]: each package should have a [$PKG.lua] in it's directory. This
+  defines the [*targets] the pkg is exporting, how to build them and how other
+  pkgs can include them as a dependency.
+
+  In addition, the [$PKG.lua] doubles as the primary import mechanism for
+  [*pkgrequire] (civlua's [$require] function).
+]
+
+[{:h3}HUB.lua]
+The [$HUB.lua] file contains a relatively small amount of metadata.
+The major functional piece is the [$subdir{ ... }] function call, which
+tells both the civ build-system and lua's [$pkgrequire] how to find
+sub-packages from your hub.
+
+[{## lang=lua}
+name'civ'  -- name of this hub
+summary'civboot lua software'
+version'1.4.3'
+subdir {
+  'path/to/a/subpkg/',
+  'path/to/another/subpkg/',
+}
+]##
+
+[{:h3}PKG.lua]
+The [$PKG.lua] file is much more involved and is how you specify how to build
+a package and what is exported from that package. Below is an example one which
+we will walk though. Before we do, a few notes: [+
+* This file is 100% pure lua except with different builtin globals.
+* Noteablly none of lua's builtins are available, and instead there are several
+  functions for specifying package information such as bundling lua files
+  and specifying how to build C code.
+* Calling [$pkg] (along with a few helpers like [$summary] and [$import])
+  initializes the file and provides metadata needed to determine the build
+  graph as well as display debugging information to the user.
+]
+
+Example [$PKG.lua]:
+[{## lang=lua}
+summary'Does foo and some bar'
+
+-- import for civ build system:
+--  * on first execution will store the imports and throw an error.
+--  * on second execution will set globals to tables returned by
+--    the requested imports.
+import {
+  bar  = 'somehub:bar',
+  time = 'unix:systemtime',
+}
+
+-- Set up metadata for this PKG.lua file, this must be
+-- returned at the end with the targets and PoD to provide
+-- clients.
+--
+-- This also creates the global `P` value, which is the data
+-- (build information) exported by this file.
+pkg {
+  name = 'foo',
+  version = '1.4.3',
+}
+
+-- The `cc{...}` function specifies C source files and dependencies.
+P.libfoo = cc {
+  hdr = { 'foo.h' },
+  src = { 'foo.c' },
+  dep = {
+    bar.lib,   -- bar.h, libbar.so
+    time.lib,  -- systemtime.h, libsystemtime.so (note it was aliased)
+  },
+}
+
+-- The `lua{...}` function specifies a target including lua
+-- sources and and native libraries.
+-- It should be called just after `pkg{...}`. pkgrequire executes
+-- this file until `lua{...}` to get the lua module structure.
+--
+-- The name can be overriden, but is otherwise the name given
+-- to the target.
+P.foo = lua {
+  -- specify the lua source files.
+  src = {
+   'foo.lua',     -- require'foo'
+   'baz.lua',     -- require'foo.baz'
+   'bar/bla.lua', -- require'foo.bar.bla',
+  },
+  dep = {
+    P.libfoo,
+    time.time, -- lua library in time
+  },
+  -- exporting dynamic library.
+  -- note: the C library must be named "libfoo" and define a luaopen_foo_lib
+  --       function.
+  -- see: https://www.lua.org/manual/5.4/manual.html#pdf-package.searchers
+  lib = {
+    lib = P.libfoo, -- require'foo.lib'
+  },
+  -- or just
+  lib = P.libfoo,   -- require'foo.lib'
+}
+]##
+
+[{:h3 name=civ-target}Target records]
+The fundamental "goal" of a [$PKG.lua] file is to create "Target" objects,
+which are the only type of object allowed to be assigned to the global [$P]
+variable (except under [$P.a] which can contain arbitrary concrete PoD
+attributes). A target is just a record with the following fields:
+
+[*Target]: [+
+* [*name]: name of target within the pkg ([$P.name]).
+* [*fullname]: full target name [$hub:pkg.target].
+* [*src]: list of input source files (strings).
+* [*dep]: list of input Target objects (dependencies).
+* [*out]: POD outputs segregated by language.
+  * t: PoD in a k/v table, can be used to configure downstream targets.
+  * data: list of raw files.
+  * hdr: header file paths for native code (C/iA).
+  * lib: dynamic library files (i.e. libfoo.so)
+  * bin: executable binaries
+  * lua: lua files
+* [*a]: arbitrary attributes like test, testonly, etc.
+* [*build]: lua script (file) on how to build target.
+* [*run]: lua script (file) on how to run target.
+* [*builddep]: build-only dependencies, typically used only by library rules
+  (i.e. [$cc]).
+]
+
+The build system will then construct a directed acyclic graph (DAG) to determine
+the order to build the targets. It then executes the [$build] scripts sequentially,
+putting the outputs in the [<#civ-out>.out/civ/] output directories.
+
+[{:h3 name=civ-out}civ output directory]
+By default, Civbuild puts files in [$.out/civ/]. Wherever it puts it's output
+(whether during build or installation), the output structure under that directory
+is as follows: [+
+* [$bin/]: executable binaries/scripts segregated by pkg, i.e.
+  [$bin/pkgname_foo]. Also contains soft-links for binaries with unique names
+  to conform with [$PATH], i.e. [$bin/foo].
+
+* [$lua/]: contains all [$mod.lua] files, and the sub-module files under
+  [$mod/sub.lua]. This conforms with
+  [<https://www.lua.org/manual/5.4/manual.html#pdf-package.searchpath>package.searchpath],
+  which allows the normal lua loader to load these packages with [$LUA_PATH]
+  set to [$.../civ/lua/].
+
+* [$data/]: contains arbitrary data files segregated by pkg, i.e. [$pkgname/path/to/data.txt].
+
+* [$lib/]: all library files in a flat directory, all of which must start with
+  [$lib] i.e. [$libfoo.so]. This is to conform with the envornment variables
+  [$LUA_CPATH, LD_LIBRARY_PATH], etc as well as the [$cc -l] flag.
+
+* [$include/]: header files, both [$.h] and [$.iH] (iA header) for linking
+  dynamic libraries during compilation.
+
+* [$log/]: contains metadata about what each target installed, i.e. [$log/mypkg/foo.files] used
+  by the build system for incremental builds as well as by installation system to remove
+  files during uninstall.
+]
+
 [{:h2}LICENSE]
 All software, tests, documentation, notes and anything else in this repository
 is released into the public domain ([/UNLICENSE]) unless otherwise noted in
@@ -217,4 +400,3 @@ If you find any of this software helpful or copy large parts of it, please give
 us a a shoutout in your own projects and let us know by opening an
 [<https://github.com/civboot/civlua/issues>issue]. Please note that this is not
 required but is highly appreciated, thanks!
-

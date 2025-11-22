@@ -9,12 +9,12 @@ local M = setmetatable({}, {
 })
 
 -- cache globals / fallback
-M.require = require
+M.requireBuiltin = require
 
 -- Documentation globals
 local weakk = {__mode='k'}
 PKG_NAMES  = PKG_NAMES  or setmetatable({}, weakk)        -- obj -> name
-PKG_LOC   = PKG_LOC     or setmetatable({}, weakk)        -- obj -> path:loc
+PKG_LOC    = PKG_LOC     or setmetatable({}, weakk)       -- obj -> path:loc
 PKG_LOOKUP = PKG_LOOKUP or setmetatable({}, {__mode='v'}) -- name -> obj
 
 -- pkg.UNAME is the platform, typically: Windows, Linux or Darwin
@@ -61,12 +61,26 @@ M.PKGS = false
 M.PKG  = nil -- PKG.lua being loaded
 M.PATH = nil -- path to lua file being loaded
 
+local OKAY = '** pkgrequire okay **'
+local function isOkay(msg)
+  if string.find(msg, OKAY, 1, true) then return msg end
+end
+local msgh = function(msg, level)
+  if isOkay(msg) then return msg end
+  return sfmt('PKG.lua error %s:\n%s',
+    msg, debug.traceback('', (level or 1) + 1))
+end
+
 M.ENV = {
   UNAME=UNAME,   LIB_EXT=M.LIB_EXT,
   format=string.format,
   insert=table.insert, sort=table.sort, concat=table.concat,
   pairs=pairs,   ipairs=ipairs,
   error=error,   assert=assert,
+
+  -- civ build system shims
+  import=function() end,
+  nolua=function() error(OKAY) end,
 }; M.ENV.__index = M.ENV
 
 --- Compile + Run (load) paths
@@ -77,9 +91,21 @@ end
 --- load(path) -> globals
 M.load = function(name, path); assert(name and path)
   local env = setmetatable({}, M.ENV)
+  local P = {}; env.P = P
+  env.name = function(n) P.name = n end
+  env.summary = function(s) P.summary = s                   end
+  env.pkg = function(p) for k,v in pairs(p) do P[k] = v end; return P end
+  env.lua = function(l) for k,v in pairs(l) do P[k] = v end end
   local pkg, err = loadfile(path, nil, env)
   if not pkg then loaderr(name, path, err) end
-  pkg()
+  local ok, errmsg = xpcall(pkg, msgh)
+
+  if not ok and not isOkay(errmsg) then
+    error(sfmt('%s failed with error:\n%s', path, errmsg))
+  end
+  for k,v in pairs(P) do env[k] = v end
+  if P.src then env.srcs = P.src end
+  if P.lib then env.libs = P.lib end
   return env
 end
 
@@ -147,7 +173,7 @@ end
 --- get the package. The API is identical to 'require' except
 --- it uses LUA_PKGS to search.
 M.get = function(name, fallback)
-  fallback = (fallback == nil) and M.require or fallback
+  fallback = (fallback == nil) and M.requireBuiltin or fallback
   local mod = package.loaded[name]; if mod then return mod end
   -- use fallback if pkg doesn't exist
   local pkgname = name:match'(.*)%.' or name
@@ -157,7 +183,8 @@ M.get = function(name, fallback)
     error(sfmt('name %s (pkgname=%s) not found', name, pkgname))
   end
   -- search in srcs for lua modules
-  for mname, mpath in pairs(M.modules(pkg.srcs)) do
+  -- FIXME: remove pkg.srcs
+  for mname, mpath in pairs(M.modules(pkg.srcs or {})) do
     if mname == name and type(mpath) == 'string' and mpath:match'%.lua$' then
       package.loaded[mname] = dofile(pjoin(pkgdir, mpath))
       return package.loaded[mname]
