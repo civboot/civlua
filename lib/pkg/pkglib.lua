@@ -61,12 +61,28 @@ M.PKGS = false
 M.PKG  = nil -- PKG.lua being loaded
 M.PATH = nil -- path to lua file being loaded
 
+local OKAY = '** pkgrequire okay **'
+local function isOkay(msg)
+  if string.find(msg, OKAY, 1, true) then return msg end
+end
+local msgh = function(msg, level)
+  print('!! msgh:', msg, 'level=', level)
+  if isOkay(msg) then return msg end
+  print('!! here')
+  return sfmt('PKG.lua error %s:\n%s',
+    msg, debug.traceback('', (level or 1) + 1))
+end
+
 M.ENV = {
   UNAME=UNAME,   LIB_EXT=M.LIB_EXT,
   format=string.format,
   insert=table.insert, sort=table.sort, concat=table.concat,
   pairs=pairs,   ipairs=ipairs,
   error=error,   assert=assert,
+
+  -- civ build system shims
+  import=function() end,
+  nolua=function() error(OKAY) end,
 }; M.ENV.__index = M.ENV
 
 --- Compile + Run (load) paths
@@ -77,9 +93,24 @@ end
 --- load(path) -> globals
 M.load = function(name, path); assert(name and path)
   local env = setmetatable({}, M.ENV)
+  local p, lua, summary
+  env.pkg = function(pvar) p = pvar end
+  env.lua = function(l) lua = l; error(OKAY) end
+  env.summary = function(s) summary = s end
   local pkg, err = loadfile(path, nil, env)
   if not pkg then loaderr(name, path, err) end
-  pkg()
+  local ok, errmsg = xpcall(pkg, msgh)
+
+  if not ok and not isOkay(errmsg) then
+    error(sfmt('%s failed with error:\n%s', path, errmsg))
+  end
+  if p then
+    env.summary = summary
+    env.name = p.name or error'pkg{} has no name'
+    env.doc = p.doc
+    env.srcs = assert(lua.src)
+    env.libs = lua.lib
+  end
   return env
 end
 
@@ -157,7 +188,8 @@ M.get = function(name, fallback)
     error(sfmt('name %s (pkgname=%s) not found', name, pkgname))
   end
   -- search in srcs for lua modules
-  for mname, mpath in pairs(M.modules(pkg.srcs)) do
+  -- FIXME: remove pkg.srcs
+  for mname, mpath in pairs(M.modules(pkg.srcs or {})) do
     if mname == name and type(mpath) == 'string' and mpath:match'%.lua$' then
       package.loaded[mname] = dofile(pjoin(pkgdir, mpath))
       return package.loaded[mname]

@@ -7,11 +7,11 @@ url      = 'git+http://github.com/civboot/civlua'
 doc      = 'README.cxt'
 srcs = {
   'civix.lua',
-  ['civix.lib'] = 'civix/lib.c',
+  ['civix.lib'] = 'civix.c',
   'civix/testing.lua',
 }
 libs = {
-  ['civix.lib'] = 'civix/lib.so',
+  ['civix.lib'] = 'civix.so',
 }
 deps = {
   "lua ~> 5.3",

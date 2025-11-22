@@ -5,8 +5,8 @@
 
 # Modify these for a new library
 NAME  = civix
-FILES = $(NAME)/lib.c
-OUT   = $(NAME)/lib
+FILES = $(NAME).c
+OUT   = $(NAME)
 LUA_VERSION = lua
 
 UNAME != uname

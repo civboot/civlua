@@ -29,7 +29,7 @@ ds: lib/ds/*.c lib/ds/*.h
 pod: lib/pod/pod.c
 	cd lib/pod && make build LUA_VERSION=$(LUA_VERSION)
 
-civix: lib/civix/civix/lib.c
+civix: lib/civix/civix.c
 	cd lib/civix && make build LUA_VERSION=$(LUA_VERSION)
 
 smol: lib/smol/smol.c
