@@ -89,26 +89,21 @@ int l_mkdir(LS* L) {
 
 static int rmfn(LS* L, char* name, int fn(const char*)) {
   const char* path = luaL_checkstring(L, 1);
-  bool rerr = lua_toboolean(L, 2);
-  if(!fn(path)) return 0;
-  ASSERT(L, rerr, "failed to %s: %s (%s)", name, path, SERR);
-  lua_pushinteger(L, errno); return 1;
+  bool ok = !fn(path); lua_pushboolean(L, ok);
+  if(ok) return 1;
+  lua_pushstring(L, SERR);
+  lua_pushinteger(L, errno);
+  return 3;
 }
-// rm(path, reterrno) -> errno: removes path
-// if reterrno just returns errno on failure, else fails
+// rm(path) -> ok, errmsg, errno: removes path
 static int l_rm(LS* L)    { return rmfn(L, "rm",    unlink); }
 static int l_rmdir(LS* L) { return rmfn(L, "rmdir", rmdir); }
-static int l_copy(LS* L) { // copy(from, to) -> errno
-  const char* old = luaL_checkstring(L, 1);
-  const char* new = luaL_checkstring(L, 2);
-  bool rerr       = lua_toboolean(L, 3);
-  if(!rename(old, new)) return 0;
-  ASSERT(L, rerr, "failed to rename %s -> %s: %s", old, new, SERR);
-  lua_pushinteger(L, errno); return 1;
-}
+
+// exists(path) --> bool
 static int l_exists(LS* L) {
   const char* path = luaL_checkstring(L, 1);
-  lua_pushboolean(L, 0 == access(path, F_OK)); return 1;
+  lua_pushboolean(L, 0 == access(path, F_OK));
+  return 1;
 }
 
 const char* DIR_META = "civix.Dir";

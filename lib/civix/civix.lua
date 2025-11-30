@@ -1,13 +1,14 @@
--- civix: unix-like OS utilities.
-local M = mod and mod'civix' or {}
+local G = G or _G
+
+--- civix: unix-like OS utilities.
+local M = G.mod and G.mod'civix' or {}
 
 local mty  = require'metaty'
+local shim = require'shim'
 local fmt  = require'fmt'
 local ds   = require'ds'
 local log  = require'ds.log'
-local shim = require'shim'
-local lib  = require'civix.lib'; local C = lib
-local fd   = require'fd'
+local Iter = require'ds.Iter'
 local lap  = require'lap'
 
 local trace = require'ds.log'.trace
@@ -18,20 +19,145 @@ local push, pop = table.insert, table.remove
 local yield = coroutine.yield
 local pc = pth.concat
 local construct = mty.construct
-
 local type = type
-local fdType = fd.type
 local check = ds.check
 local toDir, toNonDir = pth.toDir, pth.toNonDir
 local cmpDirsLast = pth.cmpDirsLast
-local fmodeName = fd.FMODE.name
+
+local lib, fd, fdType, fmodeName, mkdir
+
+--- Several (but not all) functions in this module are used for civ.lua.
+--- However, native modules especially cannot be loaded before the
+--- bulid system is bootstrapped (at least not easily), so there are
+--- a few of these checks for NOLIB in this library which will use
+--- civix.B (bootstrap) instead in that case.
+---
+--- Clients should typically not use civix.B.
+M.B = G.mod and G.mod'civix.B' or {}
+local B = M.B
+
+--- Mostly for bootstrapping. Makes command str quoted if necessary.
+local cmdstr = function(cmd) --> 'cmd'
+  assert(not cmd:find"'",
+    "single quote ' not allowed in bootstrapped civix.sh: "..cmd)
+  return cmd:find'[^%w_.-/]' and sfmt("'%s'", cmd) or cmd
+end
+
+B.SH_UNSUPPORTED = {'stdin', 'ENV', 'CWD'}
+
+local shError = function(cmd, out, rc)
+  fmt.errorf(
+    'Command failed with rc=%s: %q%s', rc, cmd,
+    (out and (#out > 0) and ('\nSTDOUT:\n'..out) or ''))
+end
+
+-- sh used for bootstrap
+B.sh = function(cmd)
+  local rcOk
+  if type(cmd) == 'table' then
+    rcOk = ds.popk(cmd, 'rc')
+    local stdout = ds.popk(cmd, 'stdout')
+    local bad = ds.updateKeys({}, cmd, B.SH_UNSUPPORTED)
+    if next(bad) then error(
+        'unsupported argument in bootstrap mode: '
+        ..table.concat(ds.keys(bad)))
+    end
+    if stdout ~= nil then
+      assert(stdout == true, 'only supported stdout is true')
+    end
+    local t = {}; for i, c in ipairs(shim.expand(cmd)) do
+      t[i] = cmdstr(c)
+    end
+    cmd = concat(t, ' ')
+  end
+  print('!! sh:', cmd)
+  local f = io.popen(cmd, 'r')
+  local out, done, why, rc = f:read'*a', f:close()
+  print('!! sh got:', out, done, why, rc)
+  if not rcOk and rc ~= 0 then shError(cmd, out, rc) end
+  return out, --[[stderr]] nil, {rc=function() return rc end}
+end
+
+B.mkdir = function(dir)
+  local out_, _, sh_ = B.sh{'mkdir', dir, rc=true}
+  local ok = sh_:rc() == 0; if ok then return ok end
+  return ok, 'mkdir failed', sh_:rc()
+end
+
+B.rmdir = function(dir)
+  local out_, _, sh_ = B.sh{'rmdir', dir, rc=true}
+  local ok = sh_:rc() == 0; if ok then return ok end
+  return ok, 'rmdir failed', sh_:rc()
+end
+
+local DIR_CMD = 'find %s -maxdepth 1 '
+  ..'\\( -type d -printf "%%p/\\n" ,'   -- print dir/
+  ..   ' ! -type d -printf "%%p\\n" \\)'
+B.dir = function(dir) --> iter[entry]
+  if not pth.isDir(dir) then error('must be a dir/: '..dir) end
+  local out, _, s = B.sh(sfmt(DIR_CMD, cmdstr(dir:sub(1,-2))))
+  if s:rc() ~= 0 then return ds.noop end -- empty iter
+  return Iter{ds.split(out, '\n')}:map(function(_, p)
+    if p == '' or p == dir then return end
+    return p:sub(#dir+1)
+  end)
+end
+
+B.exists = function(path) --> bool
+  local _out, _, sh_ = B.sh{'test', '-e', path, rc=true}
+  return sh_:rc() == 0
+end
+
+if G.NOLIB then
+  -- bootstrap mode for "civ.lua".
+  fdType = io.type
+
+  M.sh     = B.sh
+  M.mkdir  = B.mkdir
+  M.rmdir  = B.rmdir
+  M.dir    = B.dir
+  M.exists = B.exists
+else
+  lib  = require'civix.lib'
+  fd   = require'fd'
+  fdType = fd.type
+  fmodeName = fd.FMODE.name
+  mkdir = lib.mkdir
+  M.mkdir = lib.mkdir
+
+  --- Stat object with mode() and modified() functions
+  M.Stat = lib.Stat
+
+  --- list entires in directory.
+  M.ls = lib.dir -- (path) --> iter(str)
+
+  --- list entires in directory.
+  M.dir = function(dir) --> iter[entry]
+    return lib.dir(pth.canonical(dir))
+  end
+
+  --- remove empty directory
+  M.rmdir = lib.rmdir -- (path) --> ok, errmsg, errno
+
+  --- return whether path exists.
+  M.exists = lib.exists -- (path) --> bool
+end
+
+--- remove file.
+M.rm = os.remove -- (path) --> nil
+
+ds.update(M, {
+  -- file types
+  SOCK = "sock", LINK = "link",
+  FILE = "file", BLK  = "blk",
+  DIR  = "dir",  CHR  = "chr",
+  FIFO = "fifo",
+})
+
 
 --- Block size used as default for file moves/etc
 --- Default is 32 KiB
 M.BLOCK_SZ = 1 << 15
-
---- Stat object with mode() and modified() functions
-M.Stat = C.Stat
 
 --- Given two Stat objects return whether their modifications
 --- are equal
@@ -61,26 +187,7 @@ M.modifiedEq = function(a, b)
 end
 
 -- TODO: actually implement
-lib.getpagesize = function() return 4096 end
-
-ds.update(M, {
-  -- file types
-  SOCK = "sock", LINK = "link",
-  FILE = "file", BLK  = "blk",
-  DIR  = "dir",  CHR  = "chr",
-  FIFO = "fifo",
-
-  dir = lib.dir, ls    = lib.dir,
-  rm  = lib.rm,  rmdir = lib.rmdir,
-  exists = lib.exists,
-
-  -- TODO: probably good to catch return code for cross-filesystem
-})
-
---- return a function that returns the entires in the dir.
-M.dir = function(dir) --> iter[entry]
-  return lib.dir(pth.canonical(dir))
-end
+M.getpagesize = function() return 4096 end
 
 --- Return the entries in a dir as a list.
 --- They are sorted to put the directories first.
@@ -170,7 +277,7 @@ end
 M.pathtype = function(path)
   local stat, err = lib.stat(path)
   if not stat then return nil, err end
-  return fmodeName(C.S_IFMT & stat:mode())
+  return fmodeName(lib.S_IFMT & stat:mode())
 end
 
 --- return if the contents of the two paths are equal.
@@ -318,7 +425,11 @@ M.cpRecursive = function(from, to, except)
   end
 end
 
-local RM_FNS = {dir = ds.noop, default = M.rm, dirDone = M.rmdir }
+local RM_FNS = {
+  dir = ds.noop,
+  default = function(p) assert(M.rm(p))    end,
+  dirDone = function(p) assert(M.rmdir(p)) end,
+}
 M.rmRecursive = function(path)
   if not M.exists(path) then return end
   M.walk({path}, RM_FNS, nil)
@@ -327,15 +438,15 @@ M.mkDirs = function(path)
   if type(path) == 'string' then path = pth(path) end
   local dir = ''; for _, c in ipairs(path) do
     dir = pc{dir, c}
-    local ok, errno = lib.mkdir(dir)
-    if ok or (errno == C.EEXIST) then -- directory created or exists
+    local ok, errno = mkdir(dir)
+    if ok or (errno == lib.EEXIST) then -- directory created or exists
     else fmt.errorf('failed to create directory: %s (%s)', 
                     dir, lib.strerrno(errno)) end
   end
 end
 M.mkDir = function(path, parents) --!!> nil
   if parents then M.mkDirs(pth(path))
-  else fmt.assertf(lib.mkdir(path), "mkdir failed: %s", path) end
+  else fmt.assertf(mkdir(path), "mkdir failed: %s", path) end
 end
 
 --- copy [$from] to [$to], creating the directory structure if necessary.
@@ -522,17 +633,14 @@ end
 --- + [$sh{'ls', 'foo/bar', 'dir w spc/'}] | [$ls foo/bar "dir w spc/"]
 --- + [$sh{stdin='sent to stdin', 'cat'}]  | [$echo "sent to stdin" | cat]
 --- ]
-M.sh = function(cmd) --> out, err, sh
+M.sh = rawget(M,'sh') or function(cmd) --> out, err, sh
   trace('sh%q', cmd)
   local rcOk; if type(cmd) == 'table' then rcOk = ds.popk(cmd, 'rc') end
   local sh, other = M._sh(cmd)
   sh:start()
   local out, err = sh:finish(other)
   local rc = sh:wait();
-  if not rcOk and rc ~= 0 then fmt.errorf(
-    'Command failed with rc=%s: %q%s', rc, cmd,
-    (out and (#out > 0) and ('\nSTDOUT:\n'..out) or '')
-  )end
+  if not rcOk and rc ~= 0 then shError(cmd, out, rc) end
   return out, err, sh
 end
 

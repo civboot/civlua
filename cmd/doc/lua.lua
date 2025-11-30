@@ -228,10 +228,10 @@ M['string.format'] = string.format--(fmt: str, ...) --> str
 --- Example: [$T.eq({98, 99}, {string.byte('abcd', 2, 3)})]
 M['string.byte'] = string.byte--(str, si=1, ei=si) --> ...ints
 
--- convert character codes to string and concatenate
+--- convert character codes to string and concatenate
 M['string.char'] = string.char-- char(c1, c2, ...) --> string
 
--- repeat str n times with separator
+--- repeat str n times with separator
 M['string.rep'] = string.rep-- rep(str, n, sep) -> string
 
 --- pack the values as bytes into the string using the strtys.
@@ -444,7 +444,7 @@ M.math = math
 
 M['math.type'] = math.type--(v) --> ("float" | "integer" | nil)
 M['math.max']  = math.max --(x, ...) --> max according to [$<]
-M['math.min']  = math.max --(x, ...) --> min according to [$<]
+M['math.min']  = math.min --(x, ...) --> min according to [$<]
 M['math.cos']  = math.cos  --(x) --> cos(x) in radians
 M['math.sin']  = math.sin  --(x) --> sin(x) in radians
 M['math.tan']  = math.tan  --(x) --> tan(x) in radians

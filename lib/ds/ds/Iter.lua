@@ -17,6 +17,7 @@ local Iter = mty'Iter' {
 }
 
 local ds = require'ds'
+local fmt = require'fmt'
 
 local select, unpack = select, table.unpack
 local pairs, ipairs = pairs, ipairs
@@ -83,7 +84,7 @@ end
 --------------------------------
 -- Mapping methods
 
---- emit [$k, fn(v)] for each non-nil result
+--- emit [$k, v = fn(v)] for each non-nil result
 ---
 --- ["Note: if performance matters this is the most performant
 ---         application function since it doesn't create an internal
@@ -259,17 +260,17 @@ Iter.reset = function(it) it._nextK = it[3]; return it end --> it
 
 --- use as an iterator.
 Iter.__call = function(it)
-  local li, k, v = it._li, it._nextK
-  ::skip::
-  k, v = it[1](it[2], k); if k == nil then return end
-  it._nextK = k
-  for i=-1,li,-1 do
-    k, v = it[i](k, v); if k == nil then goto skip end
+  local li, k = it._li
+  for key, v in it[1], it[2], it._nextK do
+    k, it._nextK = key, key
+    for i=-1,li,-1 do
+      k, v = it[i](k, v); if k == nil then goto skip end
+    end
+    if true then return k, v end -- `if` necessary for parser
+    ::skip::
   end
-  return k, v
 end
 Iter.__ipairs = ds.nosupport
-
 
 --- create an iterator that returns a single value
 Iter.single = function(k, v) --> fn(): (k, v) .. nil

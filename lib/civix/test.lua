@@ -9,6 +9,7 @@ local fd = require'fd'
 local ixt = require'civix.testing'
 
 local M  = require'civix'
+local B  = M.B -- bootstrapped
 local lib = require'civix.lib'
 local D = 'lib/civix/'
 local O = '.out/'
@@ -16,30 +17,74 @@ local push = table.insert
 
 local fin
 local tests = function()
-T.simple = function()
-  local sh, o = M.sh
+
+-- test lib or bootstrap
+local testLib = function(m)
+  local p1 = O..'lib.test'
+  os.remove(p1)
+  pth.write(p1, 'test data'); assert(m.exists(p1))
+  os.remove(p1);              assert(not m.exists(p1))
+
+  local d1 = O..'testDir/'
+  M.rmRecursive(d1);  assert(not M.exists(d1)) -- setup
+  m.mkdir(d1);                 assert(m.exists(d1))
+  assert(not m.mkdir(d1))
+
+  local p2 = d1..'test2.txt';   assert(not m.exists(p2))
+  local d = m.dir(d1)
+  T.eq(nil, d())
+
+  pth.write(p2, 'test2 data'); assert(m.exists(p2))
+  local t = {}; for v in m.dir(d1) do push(t, v) end
+  T.eq({'test2.txt'}, t)
+  local p3 = d1..'test3.txt'
+  pth.write(p3, 'test3 data')
+  t = {}; for v in m.dir(d1) do push(t, v) end
+  table.sort(t); T.eq({'test2.txt', 'test3.txt'}, t)
+
+  assert(not m.rmdir(d1))
+  assert(os.remove(p2));       assert(not m.exists(p2))
+  assert(os.remove(p3));       assert(not m.exists(p3))
+  assert(m.rmdir(d1));         assert(not m.exists(d1))
+end
+
+T.lib     = function() testLib(M) end
+T.libBoot = function() testLib(B) end
+
+local directShTest = function(sh)
+  T.eq('',           sh'true')
+  T.eq('hi there\n', sh{'echo', 'hi there'})
+  T.eq('foo --abc=ya --aa=bar --bb=42\n',
+    sh{'echo', 'foo', '--abc=ya', aa='bar', bb=42})
+
+  T.throws('Command failed with rc=1', function()
+    sh'false'
+  end)
+  T.throws('Command failed with rc=1', function()
+    sh{'commandNotExist', 'blah'}
+  end)
+end
+
+T.directSh     = function() directShTest(M.sh) end
+T.directShBoot = function() directShTest(B.sh) end
+
+T.testSh = function()
+  local sh, out, err, s = M.sh
+
   T.eq('/tmp\n', sh{'pwd', CWD='/tmp'})
 
   T.eq('/tmp thisIsFOO\n',
     sh{'sh', '-c', 'echo $PWD $FOO',
        CWD='/tmp', ENV={'FOO=thisIsFOO'}})
 
-  local o, e, sh = M.sh{'false', rc=true}
-  T.eq(1, sh:rc())
-end
+  out, err, s = M.sh{'false', rc=true}
+  T.eq(1, s:rc())
 
-T.testSh = function()
-  local sh, o = M.sh
-
-  T.eq('',           sh'true')
-  T.eq('hi there\n', sh{'echo', 'hi there'})
   T.eq('from stdin', sh{stdin='from stdin', 'cat'})
-  T.eq('foo --abc=ya --aa=bar --bb=42\n',
-    sh{'echo', 'foo', '--abc=ya', aa='bar', bb=42})
 
   local path = '.out/echo.test'
   local f = io.open(path, 'w+')
-  local out, err, s = sh{'echo', 'send to file', stdout=f}
+  out, err, s = sh{'echo', 'send to file', stdout=f}
   T.eq(nil, out); T.eq(nil, err);
   T.eq(nil, s.stdin); T.eq(nil, s.stdout)
   T.eq('send to file\n', io.open(path):read'a')
@@ -53,15 +98,6 @@ T.testSh = function()
   out, err, s = sh{'sh', '-c', "echo 'on STDERR' >&2 ", stdout=false, stderr=true}
   T.eq(nil, out); T.eq('on STDERR\n', err)
   collectgarbage()
-end
-
-T.sh_fail = function()
-  T.throws('Command failed with rc=1', function()
-    M.sh'false'
-  end)
-  T.throws('Command failed with rc=1', function()
-    M.sh{'commandNotExist', 'blah'}
-  end)
 end
 
 T.time = function()
@@ -92,9 +128,13 @@ local function mkTestTree(tree)
 end
 
 T.cp = function()
-  pth.write(O..'cp.txt', 'copy this\ndata')
-  M.cp(O..'cp.txt', O..'cp.2.txt')
-  T.eq(pth.read(O..'cp.txt'), pth.read(O..'cp.2.txt'))
+  local p1, p2 = O..'cp.txt', O..'cp.2.txt'
+  pth.write(p1, 'copy this\ndata')
+  M.cp(p1, p2)
+  T.eq(pth.read(p1), pth.read(p2))
+  assert(M.exists(p2))
+  M.rm(p1); assert(not M.exists(p1))
+  M.rm(p2); assert(not M.exists(p2))
 end
 
 T.walk = function()
@@ -194,3 +234,4 @@ fd.ioSync(); T.SUBNAME = ''
 -- end
 
 fd.ioStd()
+
