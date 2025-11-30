@@ -28,8 +28,8 @@ pkgs = {
   'lib/vcds',
 
   -- Interacting with the user
-  'ui/asciicolor', -- simple style and color to the user
-  'ui/vt100',    -- VT100 terminal interface
+  'lib/asciicolor', -- simple style and color to the user
+  'lib/vt100',    -- VT100 terminal interface
 
   -- cmd
   'cmd/cxt',     -- simple text markup language

@@ -7,7 +7,6 @@ local fmt = require'fmt'
 local ds = require'ds'
 local log = require'ds.log'
 local pth = require'ds.path'
-local fd = require'fd'
 local civix = require'civix'
 
 local construct, newindex = mty.construct, mty.newindex
@@ -123,9 +122,10 @@ M.loadStyle = function(mode, path)
   path = (path == true) and M.stylePath() or path
   local style = M[mode] or error('styles not found: '..mode)
   if path and civix.isFile(path) then
-    log.info('loading style from %s', path)
-    local cfg = require'luck'.load(path, {MODE = mode})
-    return ds.update(table.update({}, style), cfg)
+    print('!! TODO: load luck config')
+    -- log.info('loading style from %s', path)
+    -- local cfg = require'luck'.load(path, {MODE = mode})
+    -- return ds.update(table.update({}, style), cfg)
   end
   return style
 end
@@ -185,13 +185,19 @@ end
 M.Fmt = function(t)
   assert(t.to, 'must set to = the output')
   if t.style == nil then t.style = shim.getEnvBool'COLOR' end
-  if t.style or (t.style==nil) and fd.isatty(t.to) then
+  if t.style or (t.style==nil) and fmt.TTY[t.to] then
     t.style, t.to = true, M.Styler {
       acwriter = require'vt100.AcWriter'{f=t.to},
       style = M.loadStyle(),
     }
   end
   return fmt.Fmt(t)
+end
+
+--- Setup standard formatters (io.fmt and io.user).
+M.setup = function(to, user)
+  io.fmt  = M.Fmt{to=to   or io.stderr}
+  io.user = M.Fmt{to=user or io.stdout}
 end
 
 return M

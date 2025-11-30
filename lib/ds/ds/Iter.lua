@@ -266,7 +266,7 @@ Iter.__call = function(it)
     for i=-1,li,-1 do
       k, v = it[i](k, v); if k == nil then goto skip end
     end
-    if true then return k, v end -- `if` necessary for parser
+    do return k, v end -- `do` necessary for parser
     ::skip::
   end
 end

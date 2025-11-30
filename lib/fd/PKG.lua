@@ -1,7 +1,6 @@
 summary"filedescriptor interfaces"
 import {
-  "lua ~> 5.3",
-  "metaty ~> 0.1",
+  metaty = 'civ:lib/metaty',
 }
 pkg {
   name     = 'fd',
@@ -12,13 +11,18 @@ pkg {
   doc      = 'README.cxt',
 }
 
+P.libfd = cc {
+  lib = 'fd', -- libfd.so
+  hdr = 'fd.h',
+  src = 'fd.c',
+}
+
 P.fd = lua {
+  mod = 'fd',
   src = {
     'fd.lua',
-    ['fd.sys'] = 'fd.c',
     'fd/IFile.lua',
   },
-  lib = {
-    ['fd.sys'] = 'fd.so',
-  },
+  lib = P.libfd,
+  dep = { metaty },
 }

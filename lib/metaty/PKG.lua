@@ -1,6 +1,5 @@
 summary'Simple but effective Lua type system using metatables'
 import {} -- none
-
 pkg {
   name     = 'metaty',
   version  = '0.1-15',
@@ -10,6 +9,4 @@ pkg {
   doc      = 'README.cxt',
 }
 
-P.metaty = lua {
-  src = { 'metaty.lua' }
-}
+P.metaty = lua'metaty'

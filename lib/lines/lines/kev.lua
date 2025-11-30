@@ -10,7 +10,7 @@ local G = G or _G
 --- Nested data is absolutely not supported. Spaces are treated as literal both
 --- before and after [$=]. If you want a key containing [$=] or key/value
 --- containing newline then use a different format.
-local M = G.mod and mod'ds.kev' or {}
+local M = G.mod and mod'lines.kev' or {}
 
 local lines = require'lines'
 local split = require'ds'.split

@@ -30,4 +30,3 @@ M.runAsyncTest = function(fn)
 end
 
 return M
-

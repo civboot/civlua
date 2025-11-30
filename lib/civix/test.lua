@@ -5,12 +5,9 @@ local ds = require'ds'
 local pth = require'ds.path'
 local Iter = require'ds.Iter'
 local T = require'civtest'
-local fd = require'fd'
-local ixt = require'civix.testing'
 
 local M  = require'civix'
 local B  = M.B -- bootstrapped
-local lib = require'civix.lib'
 local D = 'lib/civix/'
 local O = '.out/'
 local push = table.insert
@@ -48,7 +45,9 @@ local testLib = function(m)
   assert(m.rmdir(d1));         assert(not m.exists(d1))
 end
 
-T.lib     = function() testLib(M) end
+if not G.NOLIB then
+  T.lib   = function() testLib(M) end
+end
 T.libBoot = function() testLib(B) end
 
 local directShTest = function(sh)
@@ -196,6 +195,9 @@ end
 fin = true;
 end ---------------- end tests()
 
+if not G.NOLIB then
+local fd = require'fd'
+local ixt = require'civix.testing'
 fd.ioStd(); T.SUBNAME = '[ioStd]'
 fin = false; tests(); assert(fin)
 
@@ -234,4 +236,5 @@ fd.ioSync(); T.SUBNAME = ''
 -- end
 
 fd.ioStd()
+end -- if not G.NOLIB
 

@@ -617,7 +617,7 @@ static int l_isatty(LS* L) {
 }
 
 
-static const struct luaL_Reg fd_sys[] = {
+static const struct luaL_Reg fd_lib[] = {
   {"openFD", l_FD_open},   {"openFDT", l_FDT_open},
   {"tmpFD",  l_FD_tmp},    {"tmpFDT",  l_FDT_tmp},
   {"newFD",  l_FD_create}, {"newFDT",  l_FDT_create},
@@ -631,8 +631,8 @@ static const struct luaL_Reg fd_sys[] = {
 #define L_setmethod(L, KEY, FN) \
   lua_pushcfunction(L, FN); lua_setfield(L, -2, KEY);
 
-int luaopen_fd_sys(LS *L) {
-  luaL_newlib(L, fd_sys);
+int luaopen_fd_lib(LS *L) {
+  luaL_newlib(L, fd_lib);
 
     #define FD_METHODS  (/*native=*/ 11 + /*lua=*/ 3)
     luaL_newmetatable(L, LUA_FD);

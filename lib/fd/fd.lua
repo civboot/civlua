@@ -10,8 +10,11 @@ G.CWD = G.CWD or os.getenv'PWD' or os.getenv'CD' -- current working dir
 G.LAP_FNS_ASYNC = G.LAP_FNS_ASYNC or {}
 G.LAP_FNS_SYNC  = G.LAP_FNS_SYNC  or {}
 
+--- cache the original values.
+io._stdout, io._stderr = io.stdout, io.stderr
+
 local trace = G.LOG and G.LOG.trace or function() end
-local S = require'fd.sys' -- fd.c, fd.h
+local S = require'fd.lib' -- fd.c, fd.h
 local mty = require'metaty'
 local ds = require'ds'
 

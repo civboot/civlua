@@ -8,7 +8,7 @@ local mty, split = M, M.split
 
 local add, sfmt = table.insert, string.format
 
-local Tm = mod'Tm'
+local Tm = G.mod and mod'Tm' or {}
 
 local function test(name, fn)
   print('# Test', name)

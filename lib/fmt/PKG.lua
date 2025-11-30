@@ -1,7 +1,6 @@
 summary"format and style anything"
 import {
-  "lua    ~> 5.3",
-  "metaty ~> 0.1",
+  metaty = "civ:lib/metaty",
 }
 pkg {
   name     = 'fmt',
@@ -12,8 +11,12 @@ pkg {
 }
 
 P.fmt = lua {
+  mod = 'fmt',
   src = {
     'fmt.lua',
-    ['fmt.binary'] = 'binary.lua',
+    'binary.lua',
+  },
+  dep = {
+    metaty,
   },
 }

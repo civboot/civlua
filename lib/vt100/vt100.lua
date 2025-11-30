@@ -10,6 +10,8 @@ local M = G.mod and mod'vt100' or setmetatable({}, {})
 G.MAIN = G.MAIN or M
 
 local mty = require'metaty'
+local fmt = require'fmt'
+local shim = require'shim'
 local ds  = require'ds'
 local Grid = require'ds.Grid'
 local log = require'ds.log'

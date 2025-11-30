@@ -107,7 +107,7 @@ M.throws = function(contains, fn) --> ds.Error
   local ok, err = ds.try(fn)
   if ok then
     io.fmt:styled('error',
-      '!! Unexpected: did not receive an error')
+      '!! Unexpected: did not receive an error: ')
     fail'Test.throws (no error)'
   end
   if err.msg:find(contains, 1, true) then return err end
@@ -142,11 +142,16 @@ end
 --- * table: recursively assert the subtree contents exist.
 M.path = function(path, expect)
   M.exists(path)
+  if io.type(expect) then
+    expect:seek'set'
+    expect = assert(expect:read'*a')
+  end
   if type(expect) == 'string' then
     local txt = pth.read(path)
     if expect == txt then return end
     io.fmt:styled('error', '!! Path '..path, '\n')
-    showDiff(io.fmt, expect, txt); fail'Test.tree'
+    showDiff(io.fmt, expect, txt)
+    fail'Test.tree'
   end
   if ix.pathtype(path) ~= ix.DIR then error(path..' is not a dir') end
   for k, v in pairs(expect) do M.path(pth.concat{path, k}, v) end
@@ -155,4 +160,5 @@ end
 getmetatable(M).__newindex = function(m, name, fn)
   return m.runTest(name, fn, select(2, mty.fninfo(fn)))
 end
+
 return M

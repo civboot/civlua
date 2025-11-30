@@ -12,8 +12,14 @@ local sort = table.sort
 local mathtype = math.type
 local split = mty.split
 
-
 local DEPTH_ERROR = '{!max depth reached!}'
+
+--- valid TTYs. These are used by other libraries
+--- to determine if the output can handle color.
+M.TTY = {
+  [rawget(io, '_stdout') or io.stdout] = 1,
+  [rawget(io, '_stderr') or io.stderr] = 2,
+}
 
 --- Compares two values of any type.
 ---

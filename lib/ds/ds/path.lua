@@ -57,9 +57,9 @@ M.cwd = function() return G.CWD or os.getenv'PWD' or os.getenv'CD' end
 --- get the user's home directory
 M.home = function() return G.HOME or os.getenv'HOME'
                         or os.getenv'HOMEDIR'      end
-
 --- join a table of path components
-M.concat = function(t) --> string
+M.concat = function(t, _) --> string
+  assert(not _, 'usage: concat{...}')
   if #t == 0 then return '' end
   local root = (t[1]:sub(1,1)=='/') and '/' or ''
   local dir  = (t[#t]:sub(-1)=='/') and '/' or ''

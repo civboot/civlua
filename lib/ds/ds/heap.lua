@@ -3,6 +3,7 @@ local M = mod and mod'ds.heap' or {}
 
 local mty = require'metaty'
 local ds  = require'ds'
+
 local bt = ds.bt
 local push = table.insert
 

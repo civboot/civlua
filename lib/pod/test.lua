@@ -75,6 +75,7 @@ T.toPod = function()
   })
 end
 
+if not G.NOLIB then
 T['ds.pod.serialize'] = function()
   testing.testAll(pod.ser, function(str, P)
     local t, len = pod.deser(str, P)
@@ -82,4 +83,5 @@ T['ds.pod.serialize'] = function()
     return t
   end)
 end
+end -- if not G.NOLIB
 

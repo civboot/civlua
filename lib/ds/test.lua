@@ -31,7 +31,8 @@ local dp = M.dotpath
 local path = require'ds.path'
 local s = M.simplestr
 local LL = require'ds.LL'
-local bytearray = ds.bytearray
+
+local D = ds.srcdir()
 
 ---------------------
 -- ds.lua
@@ -403,6 +404,7 @@ T.ds_path = function()
   T.eq('/foo/bar',  pc{'/foo/', 'bar'})
   T.eq('/foo/bar/', pc{'/foo/', 'bar/'})
   T.eq('',          pc{''})
+  T.eq('foo',       pc{'', 'foo'})
   T.eq('a/b',       pc{'a', '', 'b'})
   T.eq('a/b',       pc{'a/', '', 'b'})
 
@@ -499,18 +501,13 @@ T.dag = function()
     b = {'c', 'd'},
     c = {'d'}, d = {},
   }
-  local parentsMap = M.dag.reverseMap(childrenMap)
-  for _, v in pairs(parentsMap) do table.sort(v) end
-  T.eq({
-    d = {'b', 'c'}, c = {'a', 'b'},
-    b = {'a'},      a = {},
-  }, parentsMap)
+  local res = M.dagSort({'a'}, childrenMap)
 
-  local result = M.dag.reverseMap(parentsMap)
-  for _, v in pairs(result) do table.sort(v) end
-  T.eq(childrenMap, result)
-
-  T.eq({'d', 'c', 'b', 'a'}, M.dag.sort(childrenMap))
+  T.eq({'d', 'c', 'b', 'a'}, M.dagSort({'a'}, childrenMap))
+  childrenMap.d = {'a'}
+  local res, cycle = M.dagSort({'a'}, childrenMap)
+  assert(not res)
+  T.eq({'a', 'b', 'c', 'd', 'a'}, cycle)
 end
 
 T.bimap = function()
@@ -790,21 +787,11 @@ T.Grid = function()
 end
 
 -----------------
--- kev
-T.kev = function()
-  local kev = require'ds.kev'
-  local t = {a='value a', b='value b', e=''}
-  local r = {'a=value a', 'b=value b', 'e='}
-  T.eq(r, kev.to(t))
-  T.eq(t, kev.from(r))
-  push(r, 'this has no equal sign and is ignored')
-  T.eq(t, kev.from(r))
-end
-
------------------
 -- ds.lib (ds.c, ds.h)
 
+if G.NOLIB then print'skip bytearray' else
 T.bytearray = function()
+  local bytearray = ds.bytearray
   T.eq('bytearray', bytearray.__name)
   T.eq('bytearray type', getmetatable(bytearray).__name)
 
@@ -841,6 +828,7 @@ T.bytearray = function()
   b:close()
   T.eq('', b:sub())
 end
+end -- if not G.NOLIB
 
 T['string.concat'] = function()
   local sc = string.concat
@@ -864,5 +852,16 @@ T['table.push'] = function()
   local tp = table.push
   local t = {1, 2, a=3}
   T.eq(3, tp(t, 3)); T.eq({1, 2, 3, a=3}, t)
+end
+
+T.load = function()
+  local dload = require'ds.load'
+  local env = {}
+  local ok, res = dload(D..'test/load_data.lua', env)
+  assert(ok)
+  T.eq({answer=42, formatted='answer: 42'}, res)
+
+  T.eq(getmetatable(env), dload.ENV); setmetatable(env, nil)
+  T.eq(env, {global_ = 'global value'})
 end
 

@@ -16,10 +16,10 @@ pkg {
 P.pod = lua {
   src = {
     'pod.lua',
-    ['pod.native'] = 'pod.c',
+    ['pod.lib'] = 'pod.c',
     'pod/testing.lua',
   },
   lib = {
-    ['pod.native'] = 'pod.so',
+    ['pod.lib'] = 'pod.so',
   },
 }

@@ -36,6 +36,8 @@ local lib, fd, fdType, fmodeName, mkdir
 M.B = G.mod and G.mod'civix.B' or {}
 local B = M.B
 
+B.EEXIST = 17
+
 --- Mostly for bootstrapping. Makes command str quoted if necessary.
 local cmdstr = function(cmd) --> 'cmd'
   assert(not cmd:find"'",
@@ -73,12 +75,12 @@ B.sh = function(cmd)
   print('!! sh:', cmd)
   local f = io.popen(cmd, 'r')
   local out, done, why, rc = f:read'*a', f:close()
-  print('!! sh got:', out, done, why, rc)
   if not rcOk and rc ~= 0 then shError(cmd, out, rc) end
   return out, --[[stderr]] nil, {rc=function() return rc end}
 end
 
 B.mkdir = function(dir)
+  if B.exists(dir) then return false, M.EEXIST, dir..' exists' end
   local out_, _, sh_ = B.sh{'mkdir', dir, rc=true}
   local ok = sh_:rc() == 0; if ok then return ok end
   return ok, 'mkdir failed', sh_:rc()
@@ -99,30 +101,40 @@ B.dir = function(dir) --> iter[entry]
   if s:rc() ~= 0 then return ds.noop end -- empty iter
   return Iter{ds.split(out, '\n')}:map(function(_, p)
     if p == '' or p == dir then return end
-    return p:sub(#dir+1)
+    return p:sub(#dir+1),
+           pth.isDir(p) and M.DIR or M.FILE
   end)
 end
 
 B.exists = function(path) --> bool
-  local _out, _, sh_ = B.sh{'test', '-e', path, rc=true}
-  return sh_:rc() == 0
+  local _out, _, s = B.sh{'test', '-e', path, rc=true}
+  return s:rc() == 0
+end
+
+B.pathtype = function(path)
+  if not B.exists(path) then return nil, path..' does not exist' end
+  local _out, _, s = B.sh{'test', '-d', path, rc=true}
+  return (s:rc() == 0) and M.DIR or M.FILE
 end
 
 if G.NOLIB then
   -- bootstrap mode for "civ.lua".
   fdType = io.type
 
+  M.EEXIST = B.EEXIST
   M.sh     = B.sh
   M.mkdir  = B.mkdir
   M.rmdir  = B.rmdir
   M.dir    = B.dir
   M.exists = B.exists
+  M.pathtype = B.pathtype
 else
   lib  = require'civix.lib'
   fd   = require'fd'
   fdType = fd.type
   fmodeName = fd.FMODE.name
-  mkdir = lib.mkdir
+
+  M.EEXIST = lib.EEXIST
   M.mkdir = lib.mkdir
 
   --- Stat object with mode() and modified() functions
@@ -141,7 +153,17 @@ else
 
   --- return whether path exists.
   M.exists = lib.exists -- (path) --> bool
+
+  --- return path type (i.e. M.FILE, M.DIR, etc).
+  --- if path DNE then return (nil, errmsg).
+  M.pathtype = function(path) --> str?, err
+    local stat, err = lib.stat(path)
+    if not stat then return nil, err end
+    return fmodeName(lib.S_IFMT & stat:mode())
+  end
 end
+
+mkdir = M.mkdir
 
 --- remove file.
 M.rm = os.remove -- (path) --> nil
@@ -272,12 +294,6 @@ M.monoSec = function() return M.mono():asSeconds()    end
 
 local function qp(p)
   return fmt.assertf(M.quote(p), 'path cannot contain "\'": %s', p)
-end
-
-M.pathtype = function(path)
-  local stat, err = lib.stat(path)
-  if not stat then return nil, err end
-  return fmodeName(lib.S_IFMT & stat:mode())
 end
 
 --- return if the contents of the two paths are equal.
@@ -438,10 +454,10 @@ M.mkDirs = function(path)
   if type(path) == 'string' then path = pth(path) end
   local dir = ''; for _, c in ipairs(path) do
     dir = pc{dir, c}
-    local ok, errno = mkdir(dir)
-    if ok or (errno == lib.EEXIST) then -- directory created or exists
+    local ok, errno, errmsg = mkdir(dir)
+    if ok or (errno == M.EEXIST) then -- directory created or exists
     else fmt.errorf('failed to create directory: %s (%s)', 
-                    dir, lib.strerrno(errno)) end
+                    dir, errmsg) end
   end
 end
 M.mkDir = function(path, parents) --!!> nil

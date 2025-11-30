@@ -15,7 +15,7 @@ local dir = '' -- leave here incase support is needed for filedir
 
 print'[[core]]'
   dofile(dir..'lib/metaty/test.lua')
-  require'civ'.setupFmt()
+  require'asciicolor'.setup()
   dofile(dir..'lib/fmt/test.lua')
   dofile(dir..'lib/civtest/test.lua')
 
@@ -41,14 +41,13 @@ print'[[core]]'
   assert(io_open == io.open)
 
 print'[[libs]]'
-  dofile(dir..'ui/asciicolor/test.lua')
-  dofile(dir..'ui/acsyntax/test.lua')
-  dofile(dir..'ui/vt100/test.lua')
+  dofile(dir..'lib/asciicolor/test.lua')
+  dofile(dir..'lib/acsyntax/test.lua')
+  dofile(dir..'lib/vt100/test.lua')
   dofile(dir..'lib/lson/test.lua')
   dofile(dir..'lib/vcds/test.lua')
   dofile(dir..'lib/pegl/tests/test_pegl.lua')
   dofile(dir..'lib/pegl/tests/test_lua.lua')
-  dofile(dir..'lib/luck/test.lua')
   dofile(dir..'lib/civix/test.lua')
   dofile(dir..'lib/smol/test.lua')
 

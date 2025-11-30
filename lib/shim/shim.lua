@@ -159,21 +159,27 @@ M.popRaw = function(args, to) --> to
   return to
 end
 
---- Performs common setup by parsing and constructing an Args metaty, getting
---- the standard `to` attribute and checking help and printing to [$to] if
---- requested.
+--- Construct a metaty-like object from args.
 ---
---- Returns the constructed Args and Styler.
+--- If [$Args.subcmd] is truthy then treats it as a table of
+--- subcmds. Looks for a subcmd at args[1], removes it and
+--- constructs that subcmd, returning a table with the subcmd
+--- key set.
 ---
---- [" Note: This method depends on the [$doc] module]
-M.setup = function(Args, args) --> args, styler
-  args = Args(M.parseStr(args))
-  local to = M.file(args.to, io.stdout)
-  local styler = require'asciicolor'.Styler{
-    f = to, color = M.color(args.color, require'fd'.isatty(to)),
-  }
-  if args.help then M.styleHelp(styler, Args) end
-  return args, styler
+--- For example:
+--- [$construct({foo=Foo, bar=Bar}, {'foo', 'ding', zing=true})]
+--- returns a {foo=Foo{'ding', zing=true}}.
+M.construct = function(Args, args) --> ok, err?
+  if type(Args) == 'table' and Args.subcmd then
+    local sc = Args[args[1]]
+    if not sc then
+      return nil, sfmt('invalid subcmd %q, valid subcommands are: %s',
+                       args[1], table.concat(v, ' '))
+    end
+    table.remove(args, 1)
+    return {sc=M.construct(sc, args)}
+  end
+  return Args(args)
 end
 
 return M

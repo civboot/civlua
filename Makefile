@@ -1,7 +1,8 @@
 
 LUA_VERSION = lua
 LUA_EX = $(LUA_VERSION)
-LUA = $(LUA_EX) -e "require'pkglib'()"
+LUA_ENV = LUA_PKGS=./ LUA_PATH=lib/pkg/?.lua
+LUA = $(LUA_ENV) $(LUA_EX) -e "require'pkglib'()"
 
 .PHONY: ele
 

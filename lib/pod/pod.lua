@@ -1,14 +1,23 @@
 local G = G or _G
 --- pod: plain old data
 local M = G.mod and mod'pod' or setmetatable({}, {})
-local N = require'pod.native'
 
 local mty = require'metaty'
-
 local push = table.insert
-local ser, deser = N.ser, N.deser
 local mtype = math.type
 local sfmt = string.format
+
+local lib, ser, deser
+if not G.NOLIB then
+  lib = require'pod.lib'
+  ser, deser = lib.ser, lib.deser
+
+  --- serialize the value (without calling toPod on it)
+  M.serRaw = ser--(value) --> string
+  
+  --- deserialize the value (without calling fromPod on it)
+  M.deserRaw = deser--(string) --> value
+end
 
 --- Pod: configuration for converting values to/from POD.
 M.Pod = mty'Pod'{
@@ -247,12 +256,6 @@ M.implPod = function(T, tys)
   T.__fromPod = M.mty_fromPod
   return T
 end
-
---- serialize the value (without calling toPod on it)
-M.serRaw = N.ser--(value) --> string
-
---- deserialize the value (without calling fromPod on it)
-M.deserRaw = N.deser--(string) --> value
 
 --- Serialize value, converting it to a compact string.
 --- Note: this function first calls toPod on the value.

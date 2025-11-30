@@ -2,18 +2,7 @@ local G = G or _G
 
 -- ds: data structures and algorithms
 local M = G.mod and G.mod'ds' or {}
-local lib = require'ds.lib'
 
---- concatenate the string arguments.
-M.sconcat = lib.string_concat --(sep, ...) --> string
-
---- push the value onto the end of the table, return the index.
-M.push    = lib.push --(t, v) --> index
-
--- add missing globals
-string.concat = rawget(string, 'concat') or lib.string_concat
-table.update  = rawget(table,  'update') or lib.update
-table.push    = rawget(table,  'push')   or lib.push
 
 local mty = require'metaty'
 local fmt = require'fmt'
@@ -30,9 +19,40 @@ local resume = coroutine.resume
 local getmethod = mty.getmethod
 local EMPTY = {}
 
+--- pure-lua bootstrapped library (mainly for bootstrap.lua)
+M.B = mty.mod'M.B'
+
+--- concatenate varargs.
+M.B.string_concat = function(sep, ...) --> string
+  return concat({...}, sep)
+end
+
+--- push v onto table, returning index.
+M.B.push = function(t, v) --> index
+  local i = #t + 1; t[i] = v; return i
+end
+
+--- return t with the key/vals of add inserted
+M.B.update = function(t, add) --> t
+  for k, v in pairs(add) do t[k] = v end; return t
+end
+
+local lib = G.NOLIB and M.B or require'ds.lib'
+
+--- concatenate the string arguments.
+M.sconcat = lib.string_concat --(sep, ...) --> string
+
+--- push the value onto the end of the table, return the index.
+M.push    = lib.push --(t, v) --> index
+
+-- add missing globals
+string.concat = rawget(string, 'concat') or lib.string_concat
+table.update  = rawget(string, 'update') or lib.update
+table.push    = rawget(table,  'push')   or lib.push
+local push, sconcat = M.push, M.sconcat
+
 local sconcat = string.concat
 local tupdate = table.update
-
 
 M.PlainStyler = mty'PlainStyler' {}
 
@@ -119,7 +139,9 @@ end
 M.shortloc = function(level) --> "dir/file.lua:10"
   local info = debug.getinfo(2 + (level or 0), 'Sl')
   local loc = info.source; if loc:sub(1,1) ~= '@' then return end
-  return loc:match'^@.-([^/]*/[^/]*)$'..':'..info.currentline
+  -- Get only the dir/file.lua. If no dir, get just file.lua.
+  loc = loc:match'^@.-([^/]*/[^/]+)$' or loc:sub(2)
+  return loc..':'..info.currentline
 end
 M.srcdir = function(level) --> "/path/to/dir/"
   return M.srcloc(1 + (level or 0)):match'^(.*/)[^/]+$'
@@ -431,9 +453,7 @@ M.replace = function(t, r) --> t
   return move(r, 1, max(#t, #r), 1, t)
 end
 --- return t with the key/vals of add inserted
-M.update = function(t, add) --> t
-  for k, v in pairs(add) do t[k] = v end; return t
-end
+M.update = M.B.update
 --- return new list which contains all elements inserted in order
 M.flatten = function(...)
   local t, len = {}, select('#', ...)
@@ -969,54 +989,36 @@ M.bt.parenti = function(t, i) return   i // 2     end
 ---------------------
 -- Directed Acyclic Graph
 
---- Functions for working with directed acyclic graphs.
-M.dag = mod and mod'dag' or {}
-
-local function _dagSort(st, name, parents)
-  if st.visited[name] then return end; st.visited[name] = true
-  if parents then for _, pname in ipairs(parents) do
-    _dagSort(st, pname, st.depsMap[pname])
-  end end
-  push(st.out, name)
-end
-
---- Sort the directed acyclic graph. depsMap must behave like a table which:
---- [{## lang=lua}
----   for pairs(depsMap) -> nodeName, ...
----   depsMap[nodeName]  -> nodeDeps (list)
---- ]##
----
---- If depsMap is a map of pkg -> depPkgs then the result is the order the pkgs
---- should be built.
----
---- Note: this function does NOT detect cycles.
-M.dag.sort = function(depsMap) --> sortedDeps
-  local state = {depsMap=depsMap, out={}, visited={}}
-  for name, parents in pairs(depsMap) do
-    _dagSort(state, name, parents)
-  end
-  return state.out
-end
-
-M.dag.reverseMap = function(childrenMap) --> parentsMap (or vice-versa)
-  local pmap = {}
-  for pname, children in pairs(childrenMap) do
-    M.getOrSet(pmap, pname, M.emptyTable)
-    if children then for _, cname in ipairs(children) do
-      push(M.getOrSet(pmap, cname, M.emptyTable), pname)
-    end end
-  end
-  return pmap
-end
-
---- Given a depsMap return missing deps (items in a deps with no name).
-M.dag.missing = function(depsMap) --> missingDeps
-  local missing = {}; for n, deps in pairs(depsMap) do
-    for _, dep in ipairs(deps) do
-      if not depsMap[dep] then missing[dep] = true end
+local function _dagSort(out, id, parentMap, visited) --> cycle?
+  do -- detect cycles and whether we've already visited id.
+    local v = visited[id]; if v then
+      if type(v) == 'number' then  -- cycle detected
+        push(visited, id);
+        return M.slice(visited, v)
+      end
+      return -- already visited
     end
   end
-  return missing
+  push(visited, id); visited[id] = #visited
+  for _, pid in ipairs(parentMap[id] or EMPTY) do
+    local cycle = _dagSort(out, pid, parentMap, visited)
+    if cycle then return cycle end
+  end
+  push(out, id)
+  pop(visited); visited[id] = true -- clear cycle detection
+end
+
+--- Sort the directed acyclic graph of ids + parentMap
+--- to put children before the parents.
+---
+--- returns [$nil, cycle] in the case of a cycle
+M.dagSort = function(ids, parentMap) --> sorted?, cycle?
+  local out, visited, cycle = {}, {}
+  for _, id in ipairs(ids) do
+    cycle = _dagSort(out, id, parentMap, visited)
+    if cycle then return nil, cycle end
+  end
+  return out
 end
 
 ---------------------
@@ -1119,6 +1121,7 @@ M.TWriter.close = M.noop
 ------------------
 -- Export bytearray
 
+if not G.NOLIB then
 --- bytearray: an array of bytes that can also be used as a file.
 ---
 --- Construct with [$bytearray(str...)]
@@ -1156,6 +1159,7 @@ M.bytearray.seek = function(b, whence, offset)
 end
 M.bytearray.flush   = M.noop
 M.bytearray.setvbuf = M.noop
+end -- if not NOLIB
 
 -----------------------
 -- Handling Errors

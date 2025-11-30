@@ -1,10 +1,8 @@
 summary"Tiny data structures and algorithms"
 import {
-  "lua    ~> 5.3",
-  "metaty ~> 0.1",
-  "fmt    ~> 0.1",
+  metaty = 'civ:metaty',
+  fmt = 'civ:fmt',
 }
-
 pkg {
   name     = 'ds',
   version  = '0.1-13',
@@ -12,6 +10,12 @@ pkg {
   homepage = "https://lua.civboot.org#Package_ds",
   license  = "UNLICENSE",
   doc      = 'README.cxt',
+}
+
+P.libds = cc {
+  lib = 'ds',
+  hdr = 'ds.h',
+  src = 'ds.c',
 }
 
 P.ds = lua {
@@ -24,11 +28,8 @@ P.ds = lua {
     'ds/heap.lua',
     'ds/log.lua',
     'ds/Grid.lua',
-    'ds/kev.lua',
-    'ds/testing.lua',
-    ['ds.lib'] = {'ds.c', 'ds.h'},
+    'ds/load.lua',
+    -- 'ds/testing.lua',
   },
-  lib = {
-    ['ds.lib'] = 'libds.so',
-  },
+  lib = P.libds,
 }

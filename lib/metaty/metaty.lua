@@ -1,13 +1,97 @@
-local G = G or _G
-
---- metaty: simple but effective Lua type system using metatable
-local M = G.mod and G.mod'metaty' or setmetatable({}, {})
 local concat = table.concat
 local getmt, type, rawget = getmetatable, type, rawget
 
 local srep = string.rep
 local sfmt = string.format
 local push = table.insert
+local rawget, rawset = rawget, rawset
+
+--- G is a global variable which allows assignment and returns nil if a
+--- variable is missing.
+---
+--- Calling [$metaty.setup()] makes globals typosafe.
+local G = setmetatable({}, {
+  __name='G(init globals)',
+  __index    = function(_, k)    return rawget(_G, k)    end,
+  __newindex = function(g, k, v) return rawset(_G, k, v) end,
+})
+rawset(_G, 'G', rawget(_G, 'G') or G)
+
+local noG = function(_, k)
+  error(sfmt(
+    'global %s is nil/unset. Initialize with G.%s = non_nil_value', k, k
+  ), 2)
+end
+
+-- Documentation globals
+local weakk, weakv = {__mode='k'}, {__mode='v'}
+G.PKG_NAMES  = G.PKG_NAMES  or setmetatable({}, weakk) -- obj -> name
+G.PKG_LOC    = G.PKG_LOC    or setmetatable({}, weakk) -- obj -> path:loc
+G.PKG_LOOKUP = G.PKG_LOOKUP or setmetatable({}, weakv) -- name -> obj
+
+local srcloc = function(level)
+  local info = debug.getinfo(2 + (level or 0), 'Sl')
+  local loc = info.source; if loc:sub(1,1) ~= '@' then return end
+  return loc:sub(2)..':'..info.currentline
+end
+
+-- set of concrete types
+local CONCRETE = {['nil']=1, bool=1, number=1, string=1}
+
+-- mod: create typosafe mod.
+--
+-- usage: [$local M = mod'name']
+if not G.mod then modloc = srcloc()
+  G.mod = {}
+  PKG_LOC[mod] = modloc; PKG_NAMES[mod] = 'mod'; PKG_LOOKUP.mod = mod
+  mod.__name = 'Mod'
+  mod.__index = function(m, k) error('mod does not have: '..k, 2) end
+  mod.__newindex = function(t, k, v)
+    rawset(t, k, v)
+    if type(k) ~= 'string' then return end
+    local n = rawget(t, '__name')
+    mod.save(t.__name..'.'..k, v)
+  end
+
+  -- member function (not method)
+  -- save v with name to PKG variables
+  mod.save = function(name, v)
+    if CONCRETE[type(v)] then return end
+    PKG_LOC[v]  = PKG_LOC[v]  or srcloc(2)
+    PKG_NAMES[v] = PKG_NAMES[v] or name
+    PKG_LOOKUP[name] = PKG_LOOKUP[name] or v
+  end
+
+  setmetatable(mod, {
+    __name='Mod',
+    __call=function(T, name)
+      assert(type(name) == 'string', 'must provide name str')
+      local m = setmetatable({__name=name}, {
+        __name=sfmt('Mod<%s>', name),
+        __index=mod.__index,
+        __newindex=mod.__newindex,
+      })
+      mod.save(name, m)
+      return m
+    end,
+  })
+end
+
+--- metaty: simple but effective Lua type system using metatable
+local M = G.mod'metaty'
+rawset(M, 'mod', G.mod)
+
+--- Setup lua's global environment to meet metaty protocol.
+---
+--- Currently this only makes non-[$G] global access typosafe (throw error if
+--- not previously set).
+M.setup = function()
+  setmetatable(_G, {
+    __name='_G(metatable by metaty)',
+    __index=noG, __newindex=noG,
+  })
+end
+
 local update = function(t, update)
   for k, v in pairs(update) do t[k] = v end; return t
 end
@@ -423,4 +507,5 @@ M.enum = function(name)
 end
 
 getmt(M).__call = function(T, name) return M.record(name) end
+assert(M.setup)
 return M
