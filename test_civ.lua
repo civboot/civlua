@@ -31,7 +31,7 @@ local HUBS = { civ = D }
 
 local function newCiv()
   ix.rmRecursive(O); ix.mkDirs(O)
-  return civ.Civ{out = O, hubs=HUBS}
+  return civ.Civ{cfg=civ.Cfg{buildDir= O, hubs=HUBS}}
 end
 
 local metaty_out = {

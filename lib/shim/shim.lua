@@ -170,14 +170,22 @@ end
 --- [$construct({foo=Foo, bar=Bar}, {'foo', 'ding', zing=true})]
 --- returns a {foo=Foo{'ding', zing=true}}.
 M.construct = function(Args, args) --> ok, err?
-  if type(Args) == 'table' and Args.subcmd then
-    local sc = Args[args[1]]
-    if not sc then
-      return nil, sfmt('invalid subcmd %q, valid subcommands are: %s',
-                       args[1], table.concat(v, ' '))
+  assert(Args and args, 'must provide (Args,args)')
+  if type(Args) == 'table' and rawget(Args, 'subcmd') then
+    local v = {}; for k in pairs(Args) do
+      if k ~= 'subcmd' then push(v, k) end
+    end
+    local sc = args[1]
+    if not sc or not Args[sc] then
+      return nil, sfmt(
+        'invalid subcmd %q, valid subcommands are: %s',
+        sc or '', table.concat(v, ' '))
     end
     table.remove(args, 1)
-    return {sc=M.construct(sc, args)}
+    return {
+      subcmd = sc,
+      [sc]=M.construct(Args[sc], args),
+    }
   end
   return Args(args)
 end

@@ -92,6 +92,6 @@ if arg[1] == 'testself' then
   return
 end
 
-MAIN = nil
-BOOTSTRAP = true
+G.MAIN = nil
+G.BOOTSTRAP = true
 dofile(D..'civ.lua')

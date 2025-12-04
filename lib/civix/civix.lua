@@ -54,7 +54,7 @@ local shError = function(cmd, out, rc)
 end
 
 -- sh used for bootstrap
-B.sh = function(cmd)
+B.sh = function(cmd) --> stdout, stderr, fakeSh
   local rcOk
   if type(cmd) == 'table' then
     rcOk = ds.popk(cmd, 'rc')
@@ -78,6 +78,12 @@ B.sh = function(cmd)
   if not rcOk and rc ~= 0 then shError(cmd, out, rc) end
   return out, --[[stderr]] nil, {rc=function() return rc end}
 end
+
+--- The current operating system in lowercase
+--- examples: windows, linux, netbsd, etc.
+M.OS = ds.trim(G.OS or os.getenv'OS'
+  or (package.config:sub(1,1)=='\\' and 'windows')
+  or assert(B.sh'uname')):lower()
 
 B.mkdir = function(dir)
   if B.exists(dir) then return false, M.EEXIST, dir..' exists' end

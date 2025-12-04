@@ -6,8 +6,10 @@ local mty = require'metaty'
 local M = mty.mod'civ'
 G.MAIN = G.MAIN or M
 
+local shim = require'shim'
 local fmt = require'fmt'
 local ds = require'ds'
+local info = require'ds.log'.info
 local dload = require'ds.load'
 local pth = require'ds.path'
 local ix = require'civix'
@@ -17,9 +19,7 @@ local sfmt = string.format
 local getmt, setmt = getmetatable, setmetatable
 local push = ds.push
 
-if package.config:sub(1,1) == '\\' then
-     M.OS = 'Windows'
-else M.OS = select(2, ix.sh'uname') end
+M.DIR = pth.canonical(ds.srcdir() or '')
 
 local EMPTY = {}
 local LIB_EXT = '.so'
@@ -37,7 +37,21 @@ C.host_os = %q
 -- A table of hubname -> /absolute/dir/path/
 -- This should contain the "software hubs" (which contain HUB.lua files)
 -- that you want your project to depend on when being built.
-C.hubs = %q
+C.hubs = {
+  -- This hub, which contains libraries and software for
+  -- the civboot tech stack (along with this build tool).
+  civ = %q,
+
+  -- The sys hub, which contains system-specific rules for building
+  -- source code.
+  sys = %q,
+}
+
+-- The directory where `civ build` and `civ test` puts files.
+C.buildDir = '.civ/'
+
+-- The directory where `civ install` puts files.
+C.installDir = HOME..'.local/'
 
 return C -- return for civ to read.
 ]]
@@ -51,12 +65,12 @@ M.Init = mty'Init' {
 --- civ build arguments.
 M.Build = mty'Build' {
   'config [string]: path to civ config.', config=DEFAULT_CONFIG,
-  'out [string]: path to build outputs.', out=DEFAULT_OUT,
 }
 
 --- civ cmdline tool arguments.
 M.Args = {
   subcmd = true,
+  init  = M.Init,
   build = M.Build,
 }
 
@@ -90,7 +104,7 @@ end
 --- Copy output files from Target.out[outKey].
 function M.Target:copyOut(ldr, outKey) --> ok, errmsg
   if not self.out[outKey] then return nil, 'missing out: '..outKey end
-  local F, T = ldr:tgtDir(self), ldr.out..outKey..'/'
+  local F, T = ldr:tgtDir(self), ldr.cfg.buildDir..outKey..'/'
   for from, to in pairs(self.out[outKey]) do
     if type(from) == 'number' then from = to end
     to = T..to; fmt.assertf(not ix.exists(to), 'to %q already exists', to)
@@ -121,17 +135,17 @@ end
 --- TODO: move this to a sys/ script.
 M.ccBuild = function(ldr, tgt)
   local F = ldr:tgtDir(tgt)
-  ix.mkDirs(ldr.out..'lib')
+  ix.mkDirs(ldr.cfg.buildDir..'lib')
   local lib = tgt.out.lib; if lib then
     local cmd = {'cc'}
     for _, src in ipairs(tgt.src) do push(cmd, F..src) end
     -- TODO: needs to come from sys:lua.
     push(cmd, '-llua')
 
-    ds.extend(cmd, {'-fPIC', '-I'..ldr.out..'hdr'})
+    ds.extend(cmd, {'-fPIC', '-I'..ldr.cfg.buildDir..'hdr'})
     for _, dep in ipairs(tgt.dep or EMPTY) do pushLibs(cmd, dep) end
     push(cmd, '-shared')
-    lib = ldr.out..'lib/'..lib
+    lib = ldr.cfg.buildDir..'lib/'..lib
     ds.extend(cmd, {'-o', lib})
     ix.sh(cmd)
     T.exists(lib)
@@ -264,15 +278,30 @@ M.initpkg = function(path)
   return P
 end
 
+--- The user configuration, typically at ./.civconfig.lua
+M.Cfg = mty'Cfg' {
+  'path [string]: the path to this config file.',
+ [[host_os [string]: the operating system of this computer.'
+    Typically equal to civix.OS]],
+  'hubs {string: string}: table of hubname -> /absolute/dir/path',
+  'buildDir [string]: directory to put build/test files.',
+  'installDir [string]: directory to install files to.',
+}
+M.Cfg.load = function(T, path)
+  local t = dload(path or DEFAULT_CONFIG, {HOME=pth.home()})
+  t.path = path
+  return M.Cfg(t)
+end
+
 M.Civ = mty'Civ' {
-  'out [string]: output directory',
-  'hubs: table of hub -> dir',
+  'cfg [Cfg]: the user config',
+  'hubs: table of hub -> dir (cfg.hubs)',
   'pkgs: table of pkgname -> pkg',
   'imports: table of pkgname -> import_pkgnames',
 }
 getmetatable(M.Civ).__call = function(T, t)
-  assert(t.hubs, 'must set hubs')
-  t.out     = pth.toDir(t.out)
+  assert(t.cfg, 'must set cfg')
+  t.hubs    = t.cfg.hubs
   t.pkgs    = t.pkgs or {}
   t.imports = t.imports or {}
   return mty.construct(T, t)
@@ -368,32 +397,38 @@ function M.Civ:build(tgt)
 end
 
 function M.Init:__call()
+  info('civ init', self)
   local cfg
   if G.BOOTSTRAP then
     cfg = self.base and assert(dload(self.base)) and pth.read(self.base)
-      or CONFIG_TMPL:format(OS, --[[hubs=]] {
-        civ = ds.srcdir(), sys = ds.srcdir()..'sys/'
-      })
+       or sfmt(CONFIG_TMPL, ix.OS, M.DIR, M.DIR..'sys/')
   else
     cfg = self.base or HOME_CONFIG
     cfg = assert(dload(cfg)) and pth.read(cfg)
   end
-  if not pth.exists(HOME_CONFIG) then
+  if not ix.exists(HOME_CONFIG) then
     pth.write(HOME_CONFIG, cfg)
     io.fmt:styled('notify', 'Wrote base config to: ')
     io.fmt:styled('path', HOME_CONFIG, '\n')
   end
   pth.write(self.out, cfg)
 
-  io.fmt:styled('notify', 'Wrote config to: ')
+  io.fmt:styled('notify', 'Local config is at: ')
   io.fmt:styled('path', self.out, '\n')
   io.fmt:styled('notify', 'Feel free to customize it as-needed.', '\n')
 end
 
 function M.Build:__call()
   local c = M.Civ{
-    out=self.out,
+    cfg=M.Cfg:load(self.config),
   }
 end
 
+M.main = function(args)
+  args = assert(shim.construct(M.Args, shim.parse(args)))
+  io.fmt:styled('notify', 'Running civ '..args.subcmd, '\n')
+  args[args.subcmd]()
+end
+
+if MAIN == M then M.main(arg) end
 return M
