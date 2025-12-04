@@ -1,5 +1,5 @@
 summary'Simple but effective Lua type system using metatables'
-import {} -- none
+import { lua = 'sys:lua' }
 pkg {
   name     = 'metaty',
   version  = '0.1-15',

@@ -1,9 +1,9 @@
 summary"Lua Asynchronous Protocol and helper library"
 import {
-  "lua    ~> 5.3",
-  "metaty ~> 0.1",
-  "fmt    ~> 0.1",
-  "ds     ~> 0.1",
+  lua    = 'sys:lua',
+  metaty = 'civ:lib/metaty',
+  fmt    = 'civ:lib/fmt',
+  ds     = 'civ:lib/ds',
 }
 pkg {
   name     = 'lap',
@@ -15,5 +15,11 @@ pkg {
 }
 
 P.lap = lua {
+  mod = 'lap',
   src = { 'lap.lua' },
+  dep = {
+    metaty.metaty,
+    fmt.fmt,
+    ds.ds,
+  }
 }

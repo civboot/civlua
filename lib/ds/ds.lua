@@ -999,8 +999,11 @@ local function _dagSort(out, id, parentMap, visited) --> cycle?
       return -- already visited
     end
   end
+  local info = require'ds.log'.info
+  info('!! dagSort %q', id)
   push(visited, id); visited[id] = #visited
-  for _, pid in ipairs(parentMap[id] or EMPTY) do
+  for _, pid in ipairs(
+      fmt.assertf(parentMap[id], '%q missing parents', id)) do
     local cycle = _dagSort(out, pid, parentMap, visited)
     if cycle then return cycle end
   end

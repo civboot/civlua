@@ -1,9 +1,10 @@
 summary"Ultra simple testing library"
 import {
-  "lua    ~> 5.3",
-  "pkg    ~> 0.1",
-  "metaty ~> 0.1",
-  "ds     ~> 0.1",
+  lua     = 'sys:lua',
+  ds      = 'civ:lib/ds',
+  fd      = 'civ:lib/fd',
+  ix      = 'civ:lib/civix',
+  lines   = 'civ:lib/lines',
 }
 
 pkg {
@@ -16,5 +17,16 @@ pkg {
 }
 
 P.civtest = lua {
+  mod = 'civtest',
   src = { 'civtest.lua' },
+  dep = {
+    ds.ds,
+    fd.fd,
+    ix.civix,
+    lines.lines,
+  },
 }
+
+-- P.call = luck {
+--   name = 'civtest'
+-- }

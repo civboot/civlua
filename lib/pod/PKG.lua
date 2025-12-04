@@ -1,7 +1,8 @@
 summary"Plain old data (POD) de/serialization"
 import {
-  "lua    ~> 5.3",
-  "metaty ~> 0.1",
+  cc     = 'sys:cc',
+  lua    = 'sys:lua',
+  metaty = 'civ:lib/metaty',
 }
 
 pkg {
@@ -13,13 +14,15 @@ pkg {
   doc      = 'README.cxt',
 }
 
+P.podlib = cc {
+  lib = 'pod',
+  hdr = 'pod.h',
+  src = 'pod.c',
+}
+
 P.pod = lua {
-  src = {
-    'pod.lua',
-    ['pod.lib'] = 'pod.c',
-    'pod/testing.lua',
-  },
-  lib = {
-    ['pod.lib'] = 'pod.so',
-  },
+  mod = 'pod',
+  src = { 'pod.lua' },
+  dep = { metaty.metaty },
+  lib = P.podlib,
 }

@@ -1,7 +1,9 @@
 summary"encode text color and style with a two ascii characters"
 import {
-  "lua    ~> 5.3",
-  "metaty ~> 0.1", -- only for asciicolor/AcWriter.lua
+  lua     = 'sys:lua',
+  ds      = 'civ:lib/ds',
+  fd      = 'civ:lib/fd',
+  ix      = 'civ:lib/civix',
 }
 
 pkg {
@@ -14,7 +16,11 @@ pkg {
 }
 
 P.asciicolor = lua {
-  src = {
-    'asciicolor.lua',
+  mod = 'asciicolor',
+  src = { 'asciicolor.lua' },
+  dep = {
+    ds.ds,
+    fd.fd,
+    ix.civix,
   },
 }

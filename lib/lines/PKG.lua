@@ -1,8 +1,9 @@
 summary"Data structures for mixed media (memory/fs) lines of text"
 import {
-  "lua    ~> 5.3",
-  "metaty ~> 0.1",
-  "ds     ~> 0.1",
+  lua     = 'sys:lua',
+  ds      = 'civ:lib/ds',
+  fd      = 'civ:lib/fd',
+  ix      = 'civ:lib/civix',
 }
 
 pkg {
@@ -14,6 +15,7 @@ pkg {
 }
 
 P.lines = lua {
+  mod = 'lines',
   src = {
     'lines.lua',
     'lines/diff.lua',
@@ -26,5 +28,10 @@ P.lines = lua {
     'lines/futils.lua',
     'lines/motion.lua',
     'lines/buffer.lua',
+  },
+  dep = {
+    ds.ds,
+    fd.fd,
+    ix.civix,
   },
 }

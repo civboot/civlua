@@ -1,4 +1,7 @@
 summary"write scripts for Lua, execute from shell"
+import {
+  lua   = 'sys:lua',
+}
 pkg {
   name     = 'shim',
   version  = '0.1-5',
@@ -8,6 +11,4 @@ pkg {
   doc      = 'README.cxt',
 }
 
-P.shim = lua {
-  src = { 'shim.lua' }
-}
+P.shim = lua'shim'

@@ -1,7 +1,9 @@
 summary"Tiny data structures and algorithms"
 import {
-  metaty = 'civ:metaty',
-  fmt = 'civ:fmt',
+  cc     = 'sys:cc',
+  lua    = 'sys:lua',
+  metaty = 'civ:lib/metaty',
+  fmt    = 'civ:lib/fmt',
 }
 pkg {
   name     = 'ds',
@@ -12,13 +14,14 @@ pkg {
   doc      = 'README.cxt',
 }
 
-P.libds = cc {
+P.dslib = cc {
   lib = 'ds',
   hdr = 'ds.h',
   src = 'ds.c',
 }
 
 P.ds = lua {
+  mod = 'ds',
   src = {
     'ds.lua',
     'ds/Iter.lua',
@@ -29,7 +32,10 @@ P.ds = lua {
     'ds/log.lua',
     'ds/Grid.lua',
     'ds/load.lua',
-    -- 'ds/testing.lua',
   },
-  lib = P.libds,
+  lib = P.dslib,
+  dep = {
+    metaty.metaty,
+    fmt.fmt,
+  }
 }

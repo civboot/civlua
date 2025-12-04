@@ -43,6 +43,11 @@ M.ENV = {
   pairs=pairs,   ipairs=ipairs,
   error=error,   assert=assert,
 }; M.ENV.__index = M.ENV
+setmetatable(M.ENV, {
+  __index = function(_, k)
+    error(sfmt('%s: not a defined global', k))
+  end,
+})
 
 --- Similar to lua's [$loadfile] but follows conventions of [$ds.load(...)].
 --- Unlike loadfile, this throws an error if the path doesn't parse.

@@ -1,11 +1,11 @@
 summary"Unix sys library"
 import {
-  "lua ~> 5.3",
-  "shim   ~> 0.1",
-  "fd     ~> 0.1",
-  "metaty ~> 0.1",
-  "ds     ~> 0.1",
-  "lap    ~> 0.1",
+  cc   = 'sys:cc',
+  lua  = 'sys:lua',
+  ds   = 'civ:lib/ds',
+  shim = 'civ:lib/shim',
+  fd   = 'civ:lib/fd',
+  lap  = 'civ:lib/lap',
 }
 
 pkg {
@@ -17,13 +17,22 @@ pkg {
   doc      = 'README.cxt',
 }
 
+P.civixlib = cc {
+  lib = 'civix',
+  src = 'civix.c',
+}
+
 P.civix = lua {
+  mod = 'civix',
   src = {
     'civix.lua',
-    ['civix.lib'] = 'civix.c',
-    'civix/testing.lua',
+    'testing.lua',
   },
-  lib = {
-    ['civix.lib'] = 'civix.so',
+  lib = P.civixlib,
+  dep = {
+    ds.ds,
+    shim.shim,
+    fd.fd,
+    lap.lap,
   },
 }

@@ -1,6 +1,9 @@
 summary"filedescriptor interfaces"
 import {
+  cc     = 'sys:cc',
+  lua    = 'sys:lua',
   metaty = 'civ:lib/metaty',
+  ds     = 'civ:lib/ds',
 }
 pkg {
   name     = 'fd',
@@ -10,6 +13,7 @@ pkg {
   url      = 'git+http://github.com/civboot/civlua',
   doc      = 'README.cxt',
 }
+assert(metaty, 'pkg import not working')
 
 P.libfd = cc {
   lib = 'fd', -- libfd.so
@@ -24,5 +28,8 @@ P.fd = lua {
     'fd/IFile.lua',
   },
   lib = P.libfd,
-  dep = { metaty },
+  dep = {
+    metaty.metaty,
+    ds.ds,
+  }
 }

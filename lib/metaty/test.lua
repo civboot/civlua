@@ -115,9 +115,9 @@ test('record', function()
   assertEq(5, b.b1); assertEq(32, b.b2) -- default
   b.b2 = 7;          assertEq(7, b.b2)
 
-  assertErrorPat('A does not have field a3',
+  assertErrorPat('"a3" is not a field of A',
     function() local x = a.a3 end)
-  assertErrorPat('A does not have field a3',
+  assertErrorPat('"a3" is not a field of A',
     function() a.a3 = 7 end)
 
   A.meth = function() end

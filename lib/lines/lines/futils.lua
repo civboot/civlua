@@ -2,11 +2,11 @@ local G = G or _G
 --- utilities for file loading of lines.
 local M = G.mod and mod'lines.futils' or {}
 
+local pth = require'ds.path'
+local trace = require'ds.log'.trace
 local fd = require'fd'
 local ix = require'civix'
 local U3File = require'lines.U3File'
-local pth = require'ds.path'
-local trace = require'ds.log'.trace
 
 --- load or reindex the file at path to/from idxpath.
 M.loadIdx = function(f, idxpath, fmode, reindex) --> idxFile

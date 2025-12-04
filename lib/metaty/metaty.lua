@@ -5,23 +5,13 @@ local srep = string.rep
 local sfmt = string.format
 local push = table.insert
 local rawget, rawset = rawget, rawset
+local _G = _G
 
---- G is a global variable which allows assignment and returns nil if a
---- variable is missing.
----
---- Calling [$metaty.setup()] makes globals typosafe.
 local G = setmetatable({}, {
   __name='G(init globals)',
   __index    = function(_, k)    return rawget(_G, k)    end,
   __newindex = function(g, k, v) return rawset(_G, k, v) end,
 })
-rawset(_G, 'G', rawget(_G, 'G') or G)
-
-local noG = function(_, k)
-  error(sfmt(
-    'global %s is nil/unset. Initialize with G.%s = non_nil_value', k, k
-  ), 2)
-end
 
 -- Documentation globals
 local weakk, weakv = {__mode='k'}, {__mode='v'}
@@ -38,49 +28,62 @@ end
 -- set of concrete types
 local CONCRETE = {['nil']=1, bool=1, number=1, string=1}
 
--- mod: create typosafe mod.
---
--- usage: [$local M = mod'name']
-if not G.mod then modloc = srcloc()
-  G.mod = {}
-  PKG_LOC[mod] = modloc; PKG_NAMES[mod] = 'mod'; PKG_LOOKUP.mod = mod
-  mod.__name = 'Mod'
-  mod.__index = function(m, k) error('mod does not have: '..k, 2) end
-  mod.__newindex = function(t, k, v)
+local mod; mod = {
+  __name = 'Mod',
+  __index = function(m, k) error('mod does not have: '..k, 2) end,
+  __newindex = function(t, k, v)
     rawset(t, k, v)
     if type(k) ~= 'string' then return end
     local n = rawget(t, '__name')
     mod.save(t.__name..'.'..k, v)
-  end
+  end,
+}
 
-  -- member function (not method)
-  -- save v with name to PKG variables
-  mod.save = function(name, v)
-    if CONCRETE[type(v)] then return end
-    PKG_LOC[v]  = PKG_LOC[v]  or srcloc(2)
-    PKG_NAMES[v] = PKG_NAMES[v] or name
-    PKG_LOOKUP[name] = PKG_LOOKUP[name] or v
-  end
-
-  setmetatable(mod, {
-    __name='Mod',
-    __call=function(T, name)
-      assert(type(name) == 'string', 'must provide name str')
-      local m = setmetatable({__name=name}, {
-        __name=sfmt('Mod<%s>', name),
-        __index=mod.__index,
-        __newindex=mod.__newindex,
-      })
-      mod.save(name, m)
-      return m
-    end,
-  })
+-- member function (not method)
+-- save v with name to PKG variables
+mod.save = function(name, v)
+  if CONCRETE[type(v)] then return end
+  PKG_LOC[v]  = PKG_LOC[v]  or srcloc(2)
+  PKG_NAMES[v] = PKG_NAMES[v] or name
+  PKG_LOOKUP[name] = PKG_LOOKUP[name] or v
 end
 
---- metaty: simple but effective Lua type system using metatable
-local M = G.mod'metaty'
-rawset(M, 'mod', G.mod)
+setmetatable(mod, {
+  __name='Mod',
+  __call=function(T, name)
+    assert(type(name) == 'string', 'must provide name str')
+    local m = setmetatable({__name=name}, {
+      __name=sfmt('Mod<%s>', name),
+      __index=mod.__index,
+      __newindex=mod.__newindex,
+    })
+    mod.save(name, m)
+    return m
+  end,
+})
 
+--- metaty: simple but effective Lua type system using metatable
+local M = mod'metaty'
+
+--- G allows assignment to globals and returns nil if a variable is missing.
+---
+--- Calling [$metaty.setup()] makes non-G globals typosafe.
+M.G = G
+
+-- mod: create typosafe mod.
+--
+-- usage: [$local M = mod'name']
+M.mod = mod
+
+-- TODO: remove these globals
+G.G = G.G or G
+G.mod = mod
+
+local noG = function(_, k)
+  error(sfmt(
+    'global %s is nil/unset. Initialize with G.%s = non_nil_value', k, k
+  ), 2)
+end
 --- Setup lua's global environment to meet metaty protocol.
 ---
 --- Currently this only makes non-[$G] global access typosafe (throw error if
@@ -264,7 +267,7 @@ M.eq = function(a, b) return NATIVE_TY_EQ[type(a)](a, b) end --> bool
 -----------------------
 -- record
 M.indexError = function(R, k, lvl) -- note: can use directly as mt.__index
-  error(R.__name..' does not have field '..k, lvl or 2)
+  error(sfmt('%q is not a field of %s', k, R.__name), lvl or 2)
 end
 
 M.index = function(R, k) -- Note: R is record's metatable

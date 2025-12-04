@@ -1,11 +1,11 @@
 local G = G or _G
 local M = G.mod and mod'pod.testing' or {}
 
-local T  = require'civtest'
 local mty = require'metaty'
-local ds  = require'ds'
 local fmt = require'fmt'
+local ds  = require'ds'
 local pod = require'pod'
+local T  = require'civtest'
 
 --- Test [$eq(v, decFn(encFn(v))]
 --- If expectEncoding is provided then test [$eq(expectEncoding, encFn(v)]
