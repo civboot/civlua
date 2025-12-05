@@ -128,22 +128,8 @@ T.fileno_and_friends = function()
   -- T.eq('file', M.ftype(io.tmpfile()))
 end
 
--- Note: most test coverage is in things that
--- use IFile (i.e. U3File).
-T.IFile = function()
-  if G.LAP_ASYNC then return 'FIXME: IFile async' end
-  local IFile = require'fd.IFile'
-  local fi = IFile:create(1)
-  fi:set(1, 'a'); fi:set(2, 'b'); fi:set(3, 'c')
-  T.eq(3, #fi)
-  T.eq('a', fi:get(1))
-  T.eq('b', fi:get(2))
-  T.eq('c', fi:get(3))
-  T.eq(nil, fi:get(4))
-end
-
 fin=true
-end -- end generalTest
+end -- generalTest
 
 T.SUBNAME = '[ioStd]'; M.ioStd()
 fin=false; generalTest(); assert(fin)

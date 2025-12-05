@@ -1,6 +1,6 @@
 local mty = require'metaty'
 local ds  = require'ds'
-local IFile = require'fd.IFile'
+local IFile = require'ds.IFile'
 
 --- A file that holds 3 byte (24 bit) integers. These are commonly
 --- used for indexing lines.

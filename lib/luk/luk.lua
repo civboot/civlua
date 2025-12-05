@@ -4,10 +4,21 @@ local mty = require'metaty'
 local M = mty.mod'luk'
 
 local ds = require'ds'
+local info = require'ds.log'.info
 local pth = require'ds.path'
 local dload = require'ds.load'
 
 local push, pop = ds.push, table.remove
+
+M.ENV = dload.ENV
+
+function M.checkCycle(cycle, path)
+  if cycle[path] then
+    push(cycle, path)
+    error('cycle detected:\n  '
+      ..table.concat(ds.slice(cycle, ds.indexOf(path)), '\n  '))
+  end
+end
 
 --- The luk loader.
 M.Luk = mty'Luk' {
@@ -19,11 +30,17 @@ M.Luk = mty'Luk' {
   'envMeta', envMeta=dload.ENV,
   'cycle {path}: used to detect cycles',
 }
+getmetatable(M.Luk).__call = function(T, t)
+  t.imported = t.imported or {}
+  t.imports  = t.imports  or {}
+  t.cycle    = t.cycle    or {}
+  return mty.construct(T, t)
+end
 
 --- Resolve the path into the abspath.
 function M.Luk:resolve(path, wd) --> /abs/path
-  if path.find'^/'      then return path end
-  if path.find'^%.%.?/' then return pth.abs(path, wd) end
+  if path:find'^/'      then return path end
+  if path:find'^%.%.?/' then return pth.abs(path, wd) end
   return pth.abs(self.pathFn(path))
 end
 
@@ -32,11 +49,8 @@ end
 function M.Luk:import(path, wd) --> luk, abspath
   path = self:resolve(path, wd)
   local lk = self.imported[path]; if lk then return lk end
-  if self.cycle[path] then
-    push(self.cycle, path)
-    error('cycle detected:\n  '
-      ..table.concat(ds.slice(self.cycle, ds.indexOf(path)), '\n  '))
-  end
+  info('luk loading: %q', path)
+  M.checkCycle(self.cycle, path)
   push(self.cycle, path); self.cycle[path] = 1
   self.imports[path] = {}
   local pathWd, env = pth.dir(path), {}
@@ -46,9 +60,9 @@ function M.Luk:import(path, wd) --> luk, abspath
     return luk
   end
   local ok, luk = dload(path, env, self.envMeta)
-  assert(ok, luk)
+  if not ok then error(tostring(luk)) end -- FIXME
   self.imported[path] = luk
-  assert(pop(cycle) == path); cycle[path] = nil
+  assert(pop(self.cycle) == path); self.cycle[path] = nil
   return luk
 end
 

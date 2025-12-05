@@ -1,6 +1,5 @@
 local mty = require'metaty'
 local fmt = require'fmt'
-local fd = require'fd'
 local ds = require'ds'
 local pth = require'ds.path'
 local T = require'civtest'
@@ -11,8 +10,8 @@ local File    = require'lines.File'
 local EdFile  = require'lines.EdFile'
 local Gap     = require'lines.Gap'
 local ix      = require'civix'
-local ixt     = require'civix.testing'
 
+local G = mty.G
 local push, icopy = table.insert, ds.icopy
 
 local O = '.out/ele/'
@@ -127,7 +126,8 @@ T.File = function()
   T.eq({0, 7, 14}, ds.icopy(f.idx))
   T.eq({'line 1', 'line 2', 'line 3'}, ds.icopy(f))
 
-  local r = f:reader()
+  local r = assert(f:reader())
+  T.eq(3, #r)
   T.eq({'line 1', 'line 2', 'line 3'}, ds.icopy(r))
 end
 
@@ -276,14 +276,18 @@ end
 fin = true
 end -- tests()
 
-fd.ioStd(); T.SUBNAME = '[ioStd]'
 fin = false; tests(); assert(fin)
+
+if G.NOLIB then return end
+
+-- Continue tests with fd
+local fd = require'fd'
 
 fd.ioSync(); T.SUBNAME = '[ioSync]'
 fin = false; tests(); assert(fin)
 
--- FIXME:
+-- FIXME: 
 -- T.SUBNAME = '[ioAsync]'
--- fin=false; ixt.runAsyncTest(tests); assert(fin)
+-- fin=false; require'civix.testing'.runAsyncTest(tests); assert(fin)
 
 fd.ioStd(); T.SUBNAME = ''

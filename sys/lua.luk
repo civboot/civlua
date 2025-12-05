@@ -1,0 +1,56 @@
+local MOD_INVALID = '[^%w_.]+' -- lua mod name.
+
+--- Creating a [$lua { ... }] Target.
+local Lua = record'Lua' {
+  'mod {string}: the base modname, i.e. "ds" or "ds.testing"',
+  'src {string}',
+  'dep {Target}',
+  'lib {name: Target}: dynamic library modules.',
+}
+
+return function(l)
+  if type(l) == 'string' then l = {mod = l} end
+  local mod = assert(l.mod or l[1], 'must set mod')
+  assert(not mod:find(MOD_INVALID),
+    'mod name must have only characters [%%w_.]: %s', mod)
+  l = Lua(l)
+
+  local t = Target {
+    src = l.src or {mod..'.lua'},
+    dep = l.dep or {},
+    build = 'sys:lua/build.lua',
+  }
+  if l.lib then
+    -- local expect = 'lib'..mod
+    -- local libo = assert(l.lib.out.lib,
+    --   "lib doesn't export out.lib (is it a cc/iA/etc target?)")
+    -- local lib = l.lib:match'^(.*)%.%w+$'
+    -- assert(expect == l.lib,
+    --   'library for %s must have name %s but is %s (%s)',
+    --   mod, expect, l.lib)
+    push(t.dep, l.lib)
+  end
+
+  local luaOut = {}
+  local O = mod:gsub('%.', '/')..'/' -- output dir
+  for _, src in ipairs(t.src) do
+    -- Get the src file's final mod name
+    local smod, ext = src:match'([%w_./]*[%w_]+)(%.%w+)'
+    assert(ext, 'no .ext found: %s', src)
+    local smod = smod:gsub('/', '.') -- i.e. ds.testing
+    assert(not smod:find(MOD_INVALID),
+      'src must have only characters [%%w_./]: %s', src)
+
+    -- strip the mod from the beginnging
+    if 1 == smod:find(mod, 1, true) then
+      smod = smod:sub(#mod+1):match'^%.?(.*)'
+    end
+    local out
+    if smod == '' then out = O:sub(1,-2)..ext
+    else               out = O..smod:gsub('%.', '/')..ext end
+    if src == out then push(luaOut, out)
+    else               luaOut[src] = out end
+  end
+  t.out = { lua = luaOut }
+  return t
+end

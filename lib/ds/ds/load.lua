@@ -29,6 +29,7 @@ local mty = require'metaty'
 local M = mty.mod'ds.load'
 
 local ds = require'ds'
+local fmt = require'fmt'
 
 local getmt, setmt = getmetatable, setmetatable
 local sfmt = string.format
@@ -36,12 +37,18 @@ local sfmt = string.format
 --- Default environment for sandboxed loading.
 M.ENV = {
   __name = 'ds.load.ENV',
-  format=string.format,
-  insert=table.insert, sort=table.sort, concat=table.concat,
+  format=fmt.format,
+  insert=table.insert, push=ds.push,
+  sort=ds.sort,
   update=ds.update, merge=ds.merge,
-
+  concat=table.concat,
+  tostring=tostring, tointeger=math.tointeger,
+  tonumber=tonumber,
   pairs=pairs,   ipairs=ipairs,
-  error=error,   assert=assert,
+  error=error,   assert=fmt.assertf,
+
+  record = mty.record, enum = mty.enum,
+  type = mty.ty,
 }; M.ENV.__index = M.ENV
 setmetatable(M.ENV, {
   __index = function(_, k)

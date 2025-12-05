@@ -7,7 +7,8 @@ local M = G.mod and G.mod'ds' or {}
 local mty = require'metaty'
 local fmt = require'fmt'
 
-local getmt = getmetatable
+local next = G.next
+local getmt = G.getmetatable
 local push, pop, sfmt    = table.push, table.remove, string.format
 local sfind = string.find
 local move, sort, unpack = table.move, table.sort, table.unpack
@@ -18,6 +19,7 @@ local xpcall, traceback = xpcall, debug.traceback
 local resume = coroutine.resume
 local getmethod = mty.getmethod
 local EMPTY = {}
+
 
 --- pure-lua bootstrapped library (mainly for bootstrap.lua)
 M.B = mty.mod'M.B'
@@ -34,10 +36,24 @@ end
 
 --- return t with the key/vals of add inserted
 M.B.update = function(t, add) --> t
-  for k, v in pairs(add) do t[k] = v end; return t
+  for k,v in pairs(add) do t[k] = v end
+  return t
 end
 
-local lib = G.NOLIB and M.B or require'ds.lib'
+--- update ignoring t.__pairs.
+local function updateRaw(t, add)
+  for k,v in next, add do
+    t[k] = v
+  end
+  return t
+end
+
+local lib
+if G.NOLIB then lib = M.B
+else
+  lib = require'ds.lib'
+  updateRaw = lib.update
+end
 
 --- concatenate the string arguments.
 M.sconcat = lib.string_concat --(sep, ...) --> string
@@ -47,7 +63,7 @@ M.push    = lib.push --(t, v) --> index
 
 -- add missing globals
 string.concat = rawget(string, 'concat') or lib.string_concat
-table.update  = rawget(string, 'update') or lib.update
+table.update  = rawget(table, 'update')  or lib.update
 table.push    = rawget(table,  'push')   or lib.push
 local push, sconcat = M.push, M.sconcat
 
@@ -638,10 +654,10 @@ M.defaultICopy = function(r)
 end
 
 --- Copy and update full table
-M.copy = function(t, update) --> new t
+M.copy = function(t, add) --> new t
   return setmetatable(
-    update and tupdate(tupdate({}, t), update) -- copy+update
-            or tupdate({}, t)                  -- copy
+    add and updateRaw(updateRaw({}, t), add) -- copy+add
+         or updateRaw({}, t)                 -- copy
     , getmt(t))
 end
 

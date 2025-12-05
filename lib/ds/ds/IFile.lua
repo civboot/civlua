@@ -3,7 +3,7 @@ local ds = require'ds'
 
 --- Indexed File: supports setting and getting fixed-length values (bytes) by
 --- index, implementing the API of a list-like table.
-local IFile = mty'fd.IFile' {
+local IFile = mty'ds.IFile' {
   'f [file]', 'path [str]', 'mode [str]',
   'len [int]', '_i [int]', '_m [str]: r/w mode',
   'sz [int]: the size of each value',

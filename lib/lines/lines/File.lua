@@ -6,21 +6,24 @@ local mty = require'metaty'
 ---
 --- Initialize with File{path=path?, mode=mode?}
 local File = mty'File' {
-  'path [string]', 'mode [string]',
+  'path [string]',
+  'mode [string]',
   'f   [file]: open file',
   'idx [U3File]: line index of f',
   'cache [WeakV]: cache of lines',
+  'loadIdxFn: default=lines.futils.loadIdx',
   '_ln  [int]:  current line num (false=end)',
   '_pos [bool]: current file pos',
 }
 
+local G = mty.G
 local ds = require'ds'
 local pth = require'ds.path'
 local lines = require'lines'
 local U3File = require'lines.U3File'
-local fd = require'fd'
 local ix = require'civix'
 local loadIdx = require'lines.futils'.loadIdx
+local fd; if not G.NOLIB then fd = require'fd' end
 
 local trace = require'ds.log'.trace
 local largs = lines.args
@@ -58,7 +61,7 @@ end
 getmetatable(File).__call = function(T, t) --> File?, errmsg?
   t = t and assert(type(t) == 'table') and t or {}
   trace('%s.init%q', mty.tyName(T), t)
-  local f, err, idx, fstat, xstat
+  local f, err, idx, fstat, xstat -- FIXME: remove fstat/xstat
   if not t.path then
     f, err   = io.tmpfile();    if not f   then return nil, err end
     idx, err = U3File:create(); if not idx then return nil, err end
@@ -68,7 +71,7 @@ getmetatable(File).__call = function(T, t) --> File?, errmsg?
     trace('opening path %s %s', t.path, t.mode)
     f, err = io.open(t.path, t.mode); if not f then return nil, err end
     local ipath = pth.concat{T.IDX_DIR, t.path}
-    idx, err = loadIdx(f, ipath, t.mode, T._reindex)
+    idx, err = (t.loadIdxFn or loadIdx)(f, ipath, t.mode, T._reindex)
     if not idx then return nil, err end
   else error'invalid path' end
   t.f, t.idx, t.cache = f, idx, WeakV{}
@@ -82,8 +85,10 @@ end
 File.flush = function(lf) --> ok, errmsg?
   local o,e = lf.idx:flush(); if not o then return o,e end
   o,e = lf.f:flush()          if not o then return o,e end
-  local fs, e = ix.stat(lf.f); if not fs then return nil,e end
-  return ix.setModified(lf.idx.f, fs:modified())
+  if not G.NOLIB then
+    local fs, e = ix.stat(lf.f); if not fs then return nil,e end
+    return ix.setModified(lf.idx.f, fs:modified())
+  end
 end
 
 --- append to file

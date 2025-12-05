@@ -1,18 +1,16 @@
-summary"Tiny data structures and algorithms"
-import {
-  cc     = 'sys:cc',
-  lua    = 'sys:lua',
-  metaty = 'civ:lib/metaty',
-  fmt    = 'civ:lib/fmt',
-}
-pkg {
-  name     = 'ds',
-  version  = '0.1-13',
-  url      = 'git+http://github.com/civboot/civlua',
-  homepage = "https://lua.civboot.org#Package_ds",
-  license  = "UNLICENSE",
-  doc      = 'README.cxt',
-}
+local P = {}
+P.summary = "Tiny data structures and algorithms for lua."
+-- pkg {
+--   name     = 'ds',
+--   version  = '0.1-13',
+--   url      = 'git+http://github.com/civboot/civlua',
+--   homepage = "https://lua.civboot.org#Package_ds",
+--   license  = "UNLICENSE",
+--   doc      = 'README.cxt',
+-- }
+
+local cc  = import'sys:cc.luk'
+local lua = import'sys:lua.luk'
 
 P.dslib = cc {
   lib = 'ds',
@@ -32,10 +30,13 @@ P.ds = lua {
     'ds/log.lua',
     'ds/Grid.lua',
     'ds/load.lua',
+    'ds/IFile.lua',
   },
-  lib = P.dslib,
+  lib = 'civ:lib/ds dslib',
   dep = {
-    metaty.metaty,
-    fmt.fmt,
-  }
+    'civ:lib/metaty metaty',
+    'civ:lib/fmt fmt',
+  },
 }
+
+return P
