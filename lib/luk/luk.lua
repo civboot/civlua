@@ -4,53 +4,52 @@ local mty = require'metaty'
 local M = mty.mod'luk'
 
 local ds = require'ds'
+local pth = require'ds.path'
 local dload = require'ds.load'
 
-local IMPORT_CALLED = '__IMPORT CALLED__'
+local push, pop = ds.push, table.remove
 
 --- The luk loader.
 M.Luk = mty'Luk' {
-  'preLuks {string: pod}: table of ipath -> preloaded luk',
-  'luks {string: pod}: table of ipath -> loaded luk',
-  'imports {string: {string}}: table of ipath to its imports',
- [[pathFn [fn(string) -> string]: a function that given an ipath
-     returns the path to the file to load.]],
+  'imported {string: pod}: table of ipath -> imported luk',
+  'imports {string: {string}}: table of ipath to its imports for dependency analysis.',
+ [[pathFn [fn(string) -> string]: a function that given a non-relative import path
+     returns the path to the file to import.]],
    pathFn = ds.iden,
+  'envMeta', envMeta=dload.ENV,
+  'cycle {path}: used to detect cycles',
 }
 
-function M.Luk:preload(ipath)
-  local p = self.pathFn(ipath)
-  local l = self.luks[p] or self.preLuks[p]
-  if l then return l end
-  l = M.preload(p)
+--- Resolve the path into the abspath.
+function M.Luk:resolve(path, wd) --> /abs/path
+  if path.find'^/'      then return path end
+  if path.find'^%.%.?/' then return pth.abs(path, wd) end
+  return pth.abs(self.pathFn(path))
 end
 
-function M.getimports(path, env, ENV, reserved) --> import?, errmsg?
-  env = env or {}
-  ENV = ENV or dload.ENV
-  local import
-
-  env.import = function(i) import = i; error(IMPORT_CALLED) end
-  local ok, res = dload(path, env, ENV)
-  if ok then return {} end
-  if not res.msg:find(PKG_CALLED) then error(tostring(res)) end
-  return import
-end
-
-
-M.load = function(root, relpath, env, ENV)
-
-  local ok, res = dload(path, env, ENV)
-  if ok then error(path..' never called pkg{...}') end
-  if not res.msg:find(PKG_CALLED) then error(tostring(res)) end
-  P.import = P.import or {}
-  for k, v in pairs(P.import) do
-    if type(k) ~= 'string' or type(v) ~= 'string' then
-      error'import must be map of str -> str'
-    end
-    fmt.assertf(not M.RESERVED[v], 'import name reserved: %s', v)
+--- Recursively import the luk file at path.
+--- Each luk file has a sandboxed global environment.
+function M.Luk:import(path, wd) --> luk, abspath
+  path = self:resolve(path, wd)
+  local lk = self.imported[path]; if lk then return lk end
+  if self.cycle[path] then
+    push(self.cycle, path)
+    error('cycle detected:\n  '
+      ..table.concat(ds.slice(self.cycle, ds.indexOf(path)), '\n  '))
   end
-
+  push(self.cycle, path); self.cycle[path] = 1
+  self.imports[path] = {}
+  local pathWd, env = pth.dir(path), {}
+  env.import = function(p)
+    local luk, ap = self:import(p, pathWd)
+    push(self.imports[path], ap)
+    return luk
+  end
+  local ok, luk = dload(path, env, self.envMeta)
+  assert(ok, luk)
+  self.imported[path] = luk
+  assert(pop(cycle) == path); cycle[path] = nil
+  return luk
 end
 
 return M
