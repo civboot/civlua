@@ -27,7 +27,6 @@ local EMPTY = {}
 local MOD_INVALID = '[^%w_.]+' -- lua mod name.
 
 M.DIR = pth.canonical( (pth.last(ds.srcdir() or '')) )
-assert(M.DIR == '/home/rett/projects/civlua/', M.DIR)
 M.LIB_EXT = '.so'
 M.DEFAULT_CONFIG = '.civconfig.lua'
 M.HOME_CONFIG = pth.concat{pth.home(), '.config/civ.lua'}
@@ -309,6 +308,7 @@ function M.Civ:build(tgts)
   local tgtsDbArg = '--tgtsDb='..tgtsDbPath
   local tgtFile = assert(File { path = tgtsDbPath, mode = 'w' })
   info('Civ.build args: %s %s', cfgArg, tgtsDbArg)
+  ix.mkDirs(self.cfg.buildDir..'bin/')
   for id, tgtname in ipairs(ordered) do
     local tgt = self:target(tgtname)
     if not tgt.build then goto skip end

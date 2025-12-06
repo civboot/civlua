@@ -16,6 +16,7 @@ local forceLoadIdx = require'lines.futils'.forceLoadIdx
 
 local sfmt = string.format
 local push, pop = ds.push, table.remove
+local EMPTY = {}
 
 local BUILDER -- single instance
 

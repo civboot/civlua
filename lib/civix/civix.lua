@@ -243,6 +243,10 @@ end
 --- copy data from [$from] to [$to]. Their types can be either
 --- a string (path) or a file descriptor.
 M.cp = function(from, to)
+  if type(from) == 'string' and type(to) == 'string' then
+    M.sh{'cp', from, to}
+    return
+  end
   local fd, fc, td, tc -- f:from, t:to, d:descriptor, c:close
   if type(from) == 'string' then fd = assert(io.open(from, 'r')); fc = 1
                             else fd = from end

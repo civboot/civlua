@@ -1,4 +1,5 @@
 local MOD_INVALID = '[^%w_.]+' -- lua mod name.
+local EMPTY = {}
 
 --- Creating a [$lua { ... }] Target.
 local Lua = record'Lua' {
@@ -6,6 +7,7 @@ local Lua = record'Lua' {
   'src {string}',
   'dep {Target}',
   'lib {name: Target}: dynamic library modules.',
+  'bin {path: path}: keys are lua src files, values are paths to go in bin/',
   'tag {table}',
 }
 
@@ -36,6 +38,8 @@ return function(l)
 
   local luaOut = {}
   local O = mod:gsub('%.', '/')..'/' -- output dir
+  local luaMap = {}
+
   for _, src in ipairs(t.src) do
     -- Get the src file's final mod name
     local smod, ext = src:match'([%w_./]*[%w_]+)(%.%w+)'
@@ -53,7 +57,14 @@ return function(l)
     else               out = O..smod:gsub('%.', '/')..ext end
     if src == out then push(luaOut, out)
     else               luaOut[src] = out end
+    luaMap[out] = true
   end
+  assert(not isEmpty(luaOut), 'src is empty')
   t.out = { lua = luaOut }
+
+  if not isEmpty(l.bin or EMPTY) then
+    error'lua.bin not yet supported'
+  end
+
   return t
 end

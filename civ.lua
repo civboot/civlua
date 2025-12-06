@@ -86,6 +86,13 @@ C.installDir = HOME..'.local/civ/'
 return C -- return for civ to read.
 ]]
 
+local BASH_ADD = [[
+CIV=%s
+export PATH=$PATH:$CIV/bin:$CIV/lua
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CIV/lib
+export LUA_PATH="$LUA_PATH;$CIV/lua/?.lua"
+export LUA_CPATH="$LUA_CPATH;$CIV/lib/lib?.so"]]
+
 function M.Init:__call()
   info('civ init', self)
   local cfg
@@ -147,6 +154,10 @@ function M.Install:__call()
   ix.cpRecursive(cv.cfg.buildDir, cv.cfg.installDir)
   io.fmt:styled('notify', 'Installed in ')
   io.fmt:styled('path', D, '\n')
+  io.fmt:styled('notify',
+    'Add (something like) the following to your ~/.bashrc', '\n')
+  local d = pth.toNonDir(D)
+  io.fmt:styled('code', BASH_ADD:format(pth.toNonDir(d)), '\n')
 end
 
 M.main = function(args)

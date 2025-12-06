@@ -63,7 +63,7 @@ end
 T.loadPkg = function()
   local c = newCiv()
 
-  local metatyPkg = c:loadPkg'civ:lib/metaty/'
+  local metatyPkg = c:loadPkg'civ:lib/metaty'
   T.eq({
     pkgname="civ:lib/metaty",
     summary="Simple but effective Lua type system using metatables",

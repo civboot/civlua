@@ -1,32 +1,24 @@
-summary"Ultra simple testing library"
-import {
-  lua     = 'sys:lua',
-  ds      = 'civ:lib/ds',
-  fd      = 'civ:lib/fd',
-  ix      = 'civ:lib/civix',
-  lines   = 'civ:lib/lines',
-}
+local P = {}
+P.summary = "Ultra simple testing library"
+local lua = import'sys:lua.luk'
 
-pkg {
-  name     = 'civtest',
-  version  = '0.1-2',
-  url      = 'git+http://github.com/civboot/civlua',
-  homepage = "https://lua.civboot.org#Package_civtest",
-  license  = "UNLICENSE",
-  doc = 'README.cxt',
-}
+-- pkg {
+--   name     = 'civtest',
+--   version  = '0.1-2',
+--   url      = 'git+http://github.com/civboot/civlua',
+--   homepage = "https://lua.civboot.org#Package_civtest",
+--   license  = "UNLICENSE",
+--   doc = 'README.cxt',
+-- }
 
 P.civtest = lua {
   mod = 'civtest',
   src = { 'civtest.lua' },
   dep = {
-    ds.ds,
-    fd.fd,
-    ix.civix,
-    lines.lines,
+    'civ:lib/civix',
+    'civ:lib/lines',
   },
+  tag = { builder = 'bootstrap' },
 }
 
--- P.call = luck {
---   name = 'civtest'
--- }
+return P

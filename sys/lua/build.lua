@@ -19,5 +19,5 @@ for _, id in ipairs(b.ids) do
   local tgt = b:target(id)
   io.stderr:write('lua building target: ', tgt:tgtname(), '\n')
   b:copyOut(tgt, 'lua')
-  -- b:copyOut(tgt, 'data')
+  b:copyOut(tgt, 'data')
 end
