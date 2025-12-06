@@ -21,7 +21,8 @@ P.vt100 = lua {
   dep = {
     'civ:lib/civix',
     'civ:lib/asciicolor',
-  }
+  },
+  tag = { builder = 'bootstrap' },
 }
 
 return P

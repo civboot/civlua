@@ -21,6 +21,7 @@ local T = require'civtest'
 local sfmt = string.format
 local getmt, setmt = getmetatable, setmetatable
 local push, pop = ds.push, table.remove
+local assertf = fmt.assertf
 
 local EMPTY = {}
 local MOD_INVALID = '[^%w_.]+' -- lua mod name.
@@ -40,15 +41,15 @@ M.ENV.__index = M.ENV
 
 local function hubpathSplit(hp)
   local hub, pkgpath = hp:match'^([%w_]+):(.*)$'
-  fmt.assertf(hub, '%q: invalid hubpath', hp)
+  assertf(hub, 'invalid hubpath %q', hp)
   return hub, pkgpath
 end
 
 local function pkgnameValidate(pn) --> pkgname, hub, pkgpath
-  fmt.assertf(not pn:find'//+',  '%q: cannot contain multiple /', pn)
-  fmt.assertf(pn:sub(-1) ~= '/', '%q: cannot end with /', pn)
+  assertf(not pn:find'//+',  '%q: cannot contain multiple /', pn)
+  assertf(pn:sub(-1) ~= '/', '%q: cannot end with /', pn)
   local hub, pkgpath = pn:match'^([%w_]+):([%w_/]*)$'
-  fmt.assertf(hub, '%q: invalid pkgname', pn)
+  assertf(hub, 'invalid pkgname %q', pn)
   return pn, hub, pkgpath
 end
 
@@ -66,7 +67,7 @@ local function tgtnameSplit(str) --> pkgname, name
   local hub, pkgpath = pkgnameSplit(str)
   if pkgpath == '' then return hub..':', hub end
   local name = select(2, pth.last(pkgpath))
-  fmt.assertf(not name:find'[^%w_]', 'invalid name: %q', str)
+  assertf(not name:find'[^%w_]', 'invalid name: %q', str)
   return sfmt('%s:%s', hub, pkgpath), name
 end
 M.tgtnameSplit = tgtnameSplit
@@ -132,7 +133,7 @@ local function targetWithIds(tgt, ids)
   tgt = ds.copy(tgt)
   tgt.depIds = {}
   for i, dep in ipairs(tgt.dep) do
-    tgt.depIds[i] = fmt.assertf(ids[dep], '%q target not found', dep)
+    tgt.depIds[i] = assertf(ids[dep], '%q target not found', dep)
   end
   return tgt
 end
@@ -190,7 +191,7 @@ end
 --- Fix the pkgname
 function M.Civ:fixName(pn) --> pkgname
   assert(not pn:find'//+', 'pkgname cannot contain multiple /')
-  return fmt.assertf(pn:match'^([%w_]+:[%w_/]-)/?$',
+  return assertf(pn:match'^([%w_]+:[%w_/]-)/?$',
                      'invalid pkgname: %s', pn)
 end
 
@@ -243,15 +244,15 @@ function M.Civ:loadPkg(pkgname)
 
   local pkgfile = pkgname..'/PKG.lua'
   pkg = self.luk:import(pkgfile)
-  fmt.assertf(mty.ty(pkg) == 'table',
+  assertf(mty.ty(pkg) == 'table',
     '%q did not return a table', pkgfile)
   pkg.pkgname = pkgname
   for k, tgt in pairs(pkg) do -- validation
-    fmt.assertf(type(k) == 'string',
+    assertf(type(k) == 'string',
       '%s.%q: must have only string keys', pkgname, k)
-    fmt.assertf(not k:find'[^%w_]',
+    assertf(not k:find'[^%w_]',
       '%s.%q: keys must be of [%w_]', pkgname, k)
-    fmt.assertf(type(tgt) == 'string' or mty.ty(tgt) == M.Target,
+    assertf(type(tgt) == 'string' or mty.ty(tgt) == M.Target,
       '%s.%s: not a string or Target', pkgname, k)
   end
   for k, tgt in pairs(pkg) do -- load deps
@@ -260,7 +261,7 @@ function M.Civ:loadPkg(pkgname)
       tgt.dir = self:abspath(pkgname)..'/'
       for _, dep in ipairs(tgt.dep) do
         local dty = mty.ty(dep)
-        fmt.assertf(dty == 'string',
+        assertf(dty == 'string',
           'target %s has invalid dep type %q', tgt:tgtname(), dty)
         local pkgnameDep = self:getPkgname(dep)
         if pkgnameDep ~= pkgname then
@@ -285,7 +286,7 @@ end
 --- recursively find all deps
 function M.Civ:targetDepMap(tgts, depMap)
   for i, tgtname in ipairs(tgts) do
-    fmt.assertf(type(tgtname) == 'string')
+    assertf(type(tgtname) == 'string')
     if not depMap[tgtname] then
       local tgt = self:target(tgtname)
       depMap[tgtname] = tgt.dep or EMPTY
@@ -299,7 +300,7 @@ function M.Civ:build(tgts)
   info('Civ.build: %q', tgts)
   local depMap = {}; self:targetDepMap(tgts, depMap)
   local ordered, cycle = ds.dagSort(tgts, depMap)
-  fmt.assertf(not cycle, 'import cycle detected: %q', cycle)
+  assertf(not cycle, 'import cycle detected: %q', cycle)
   info('build ordering: %q', ordered)
 
   -- For creating and running build scripts inline
@@ -313,7 +314,7 @@ function M.Civ:build(tgts)
   local tgtsDbPath = self.cfg.buildDir..'targets.json'
   local cfgArg    = '--config='..assert(self.cfg.path)
   local tgtsDbArg = '--tgtsDb='..tgtsDbPath
-  local tgtFile = File { path = tgtsDbPath, mode = 'w' }
+  local tgtFile = assert(File { path = tgtsDbPath, mode = 'w' })
   info('Civ.build args: %s %s', cfgArg, tgtsDbArg)
   for id, tgtname in ipairs(ordered) do
     local tgt = self:target(tgtname)
@@ -333,8 +334,9 @@ function M.Civ:build(tgts)
       info('build direct: %q', script)
       dofile(script); G.MAIN = nil
     else
+      assertf(not G.BOOTSTRAP, '%s not tagged as bootstrap', tgtname)
       -- build in a separate process
-      local hub, bpath = pkgnameSplit(tgt.build)
+      local hub, bpath = hubpathSplit(tgt.build)
       local cmd = {script, cfgArg, tgtsDbArg, tostring(id)}
       info('build cmd: %q', cmd)
       ix.sh(cmd)

@@ -75,10 +75,7 @@ T.loadPkg = function()
 end
 
 local fd_out = {
-  lua = {
-    'fd.lua',
-    'fd/IFile.lua',
-  }
+  lua = { 'fd.lua', }
 }
 local libfd_out = {
   include = { 'fd.h' },
@@ -137,6 +134,7 @@ end
 T.buildCiv = function()
   local l = newCiv()
   l:load{'civ:'}
+  l:build{'civ:'}
 end
 
 ds.yeet'test_civ done'

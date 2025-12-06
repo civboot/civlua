@@ -22,12 +22,8 @@ P.libfd = cc {
 
 P.fd = lua {
   mod = 'fd',
-  src = {
-    'fd.lua',
-    'fd/IFile.lua',
-  },
-  lib = 'civ:lib/fd#libfd',
   dep = {
+    'civ:lib/fd#libfd',
     'civ:lib/metaty',
     'civ:lib/ds',
   },

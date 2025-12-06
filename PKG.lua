@@ -21,6 +21,7 @@ P.civ = lua {
     'civ:lib/civix',
     'civ:lib/vt100',
   },
+  tag = { builder = 'bootstrap' },
 }
 
 return P

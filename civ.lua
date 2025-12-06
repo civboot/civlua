@@ -81,7 +81,7 @@ C.hubs = {
 C.buildDir = '.civ/'
 
 -- The directory where `civ install` puts files.
-C.installDir = HOME..'.local/'
+C.installDir = HOME..'.local/civ/'
 
 return C -- return for civ to read.
 ]]
@@ -111,6 +111,7 @@ end
 local function build(cv, tgts)
   assert(cv.cfg.buildDir, 'must set buildDir')
   ix.rmRecursive(cv.cfg.buildDir)
+  ix.mkDirs(cv.cfg.buildDir)
   local pkgnames, tgtnames = parseTargetNames(tgts)
   info('pkgnames: %q', pkgnames)
   info('tgtnames: %q', tgtnames)
@@ -132,9 +133,9 @@ function M.Install:__call()
   assert(D, 'must set config.installDir')
   if not shim.bool(self.force) and ix.exists(D) then
     io.fmt:styled('warn',
-      sfmt('This will delete %s - continue (Y/N)?', D), '\n')
+      sfmt('This will delete %s - continue (Y/N)?', D), ' ')
     local inp = io.read'l'
-    if inp[1]:lower() ~= 'y' then
+    if inp:sub(1,1):lower() ~= 'y' then
       io.fmt:styled('warn', sfmt('replied %q, exiting', inp), '\n')
       return
     end

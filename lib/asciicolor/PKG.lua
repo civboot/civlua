@@ -16,6 +16,7 @@ P.asciicolor = lua {
   dep = {
     'civ:lib/civix',
   },
+  tag = { builder = 'bootstrap' },
 }
 
 return P

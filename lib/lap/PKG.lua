@@ -15,7 +15,8 @@ P.lap = lua {
   mod = 'lap',
   dep = {
     'civ:lib/ds',
-  }
+  },
+  tag = { builder = 'bootstrap' },
 }
 
 return P
