@@ -53,10 +53,11 @@ local FMT_PKG = core.Target {
 }
 
 T.tgtname = function()
-  T.eq({'foo:bar', 'baz'}, {core.tgtnameSplit'foo:bar#baz'})
-  T.eq({'foo:bar', 'bar'}, {core.tgtnameSplit'foo:bar'})
-  T.eq({'foo:',    'foo'}, {core.tgtnameSplit'foo:'})
-  T.eq({'foo:',    'foo'}, {core.tgtnameSplit'foo:'})
+  T.eq({'foo:bar',  'baz'}, {core.tgtnameSplit'foo:bar#baz'})
+  T.eq({'foo:bar',  'bar'}, {core.tgtnameSplit'foo:bar'})
+  T.eq({'foo:',     'foo'}, {core.tgtnameSplit'foo:'})
+  T.eq({'foo:',     'foo'}, {core.tgtnameSplit'foo:#foo'})
+  T.eq({'foo:',     'foo'}, {core.tgtnameSplit'foo:'})
 end
 
 T.loadPkg = function()

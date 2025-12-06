@@ -38,17 +38,30 @@ M.ENV.__index = M.ENV
 -- # Target
 -- Creating and processing target objects.
 
-local function pkgnameSplit(str) --> hub, pkgpath
-  local hub, pkgpath = str:match'^([%w_]+):(.*)'
-  if not pkgpath then error(sfmt('invalid pkgname: %q', str)) end
+local function hubpathSplit(hp)
+  local hub, pkgpath = hp:match'^([%w_]+):(.*)$'
+  fmt.assertf(hub, '%q: invalid hubpath', hp)
+  return hub, pkgpath
+end
+
+local function pkgnameValidate(pn) --> pkgname, hub, pkgpath
+  fmt.assertf(not pn:find'//+',  '%q: cannot contain multiple /', pn)
+  fmt.assertf(pn:sub(-1) ~= '/', '%q: cannot end with /', pn)
+  local hub, pkgpath = pn:match'^([%w_]+):([%w_/]*)$'
+  fmt.assertf(hub, '%q: invalid pkgname', pn)
+  return pn, hub, pkgpath
+end
+
+local function pkgnameSplit(pn) --> hub, pkgpath
+  local _, hub, pkgpath = pkgnameValidate(pn)
   return hub, pkgpath
 end
 
 local function tgtnameSplit(str) --> pkgname, name
   if str:find'#' then
-    local pkgname, name = str:match'^([%w_]+:[%w_/]*[%w_]+)#([%w_]*)$'
+    local pkgname, name = str:match'^(.*)#([%w_]+)$'
     if not pkgname then error(sfmt('invalid target name: %q', str)) end
-    return pkgname, name
+    return pkgnameValidate(pkgname), name
   end
   local hub, pkgpath = pkgnameSplit(str)
   if pkgpath == '' then return hub..':', hub end
@@ -311,7 +324,7 @@ function M.Civ:build(tgts)
     tgtFile:write(lson.json(tgt)); tgtFile:write'\n'
     tgtFile:flush()
     ids[tgtname] = id
-    local hub, bpath = pkgnameSplit(tgt.build)
+    local hub, bpath = hubpathSplit(tgt.build)
     local script = self.hubs[hub]..bpath
     if tgt.tag.builder == 'bootstrap'
         or (tgt.tag.builder == 'direct' and self.cfg.builder.direct) then

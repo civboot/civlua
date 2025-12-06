@@ -108,10 +108,10 @@ function M.Init:__call()
   io.fmt:styled('notify', 'Feel free to customize it as-needed.', '\n')
 end
 
-local function build(cv)
+local function build(cv, tgts)
   assert(cv.cfg.buildDir, 'must set buildDir')
   ix.rmRecursive(cv.cfg.buildDir)
-  local pkgnames, tgtnames = parseTargetNames(self)
+  local pkgnames, tgtnames = parseTargetNames(tgts)
   info('pkgnames: %q', pkgnames)
   info('tgtnames: %q', tgtnames)
 
@@ -122,7 +122,7 @@ end
 
 function M.Build:__call()
   info('build %q', self)
-  build(core.Civ{cfg=core.Cfg:load(self.config)})
+  build(core.Civ{cfg=core.Cfg:load(self.config)}, self)
 end
 
 function M.Install:__call()
@@ -141,7 +141,7 @@ function M.Install:__call()
   end
   io.fmt:styled('notify', 'installing in ')
   io.fmt:styled('path', D, '\n')
-  build(cv)
+  build(cv, self)
   ix.rmRecursive(cv.cfg.installDir)
   ix.cpRecursive(cv.cfg.buildDir, cv.cfg.installDir)
   io.fmt:styled('notify', 'Installed in ')
