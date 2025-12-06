@@ -17,6 +17,8 @@ local forceLoadIdx = require'lines.futils'.forceLoadIdx
 local sfmt = string.format
 local push, pop = ds.push, table.remove
 
+local BUILDER -- single instance
+
 --- civ Builder object.
 --- Parses the arguments passed during [$civ build] and
 --- allows deserializing any referenced targets by id from an indexed file.
@@ -32,11 +34,13 @@ getmetatable(Builder).__call = function(T, self)
   assert(self.cfg,    'must set cfg')
   assert(self.tgtsDb, 'must set tgtsDb')
   self.targets = self.targets or {}
-  return mty.construct(T, self)
+  self = mty.construct(T, self)
+  return self
 end
 
---- Usage: [$builder = Builder:parse(G.arg)]
-Builder.parse = function(T, args)
+--- Usage: [$builder = Builder:get()]
+Builder.get = function(T, args)
+  if BUILDER then return BUILDER end
   args = args or G.arg
   args = shim.parse(args)
   fmt.print('parsing Builder from args:', args)
@@ -45,7 +49,7 @@ Builder.parse = function(T, args)
   assert(#ids > 0, 'must specify at least one id to build')
   local ok, cfg = dload(assert(args.config, '--config not set'))
   assert(ok, cfg)
-  return T {
+  BUILDER = T {
     ids = ids,
     cfg = cfg,
     tgtsDb = assert(File {
@@ -54,6 +58,7 @@ Builder.parse = function(T, args)
       loadIdxFn = forceLoadIdx,
     }),
   }
+  return BUILDER
 end
 
 function Builder:target(id) --> Target
@@ -77,5 +82,11 @@ function Builder:copyOut(tgt, outKey)
   end
   return true
 end
+
+--- Make self the singleton (future calls to Builder.get will return)
+function Builder:set() BUILDER = self; return self end
+
+--- Remove this as singleton.
+function Builder:close() BUILDER = nil               end
 
 return Builder

@@ -12,7 +12,6 @@ local O = '.out/civ/'
 
 local HUBS = { civ = D, sys = D..'sys/' }
 
-
 local CFG_PATH = O..'civconfig.lua'
 local CFG = ([[
 return {
@@ -36,6 +35,7 @@ local METATY_PKG = core.Target {
   dir = pth.abs(D.."lib/metaty/"),
   src={"metaty.lua"},
   out={lua={"metaty.lua"}},
+  tag={builder='bootstrap'},
   build=LUA_BUILD,
 }
 
@@ -43,13 +43,21 @@ local FMT_PKG = core.Target {
   pkgname='civ:lib/fmt', name='fmt',
   dir = pth.abs(D.."lib/fmt/"),
   src={ 'fmt.lua', 'binary.lua' },
-  dep={'civ:lib/metaty metaty'},
+  dep={'civ:lib/metaty#metaty'},
   out={lua={
     'fmt.lua',
     ['binary.lua'] = 'fmt/binary.lua',
   }},
+  tag={builder='bootstrap'},
   build=LUA_BUILD,
 }
+
+T.tgtname = function()
+  T.eq({'foo:bar', 'baz'}, {core.tgtnameSplit'foo:bar#baz'})
+  T.eq({'foo:bar', 'bar'}, {core.tgtnameSplit'foo:bar'})
+  T.eq({'foo:',    'foo'}, {core.tgtnameSplit'foo:'})
+  T.eq({'foo:',    'foo'}, {core.tgtnameSplit'foo:'})
+end
 
 T.loadPkg = function()
   local c = newCiv()
@@ -64,7 +72,6 @@ T.loadPkg = function()
   local fmtPkg = c:loadPkg'civ:lib/fmt'
   T.eq(FMT_PKG, fmtPkg.fmt)
 end
-
 
 local fd_out = {
   lua = {
@@ -90,7 +97,7 @@ end
 T.buildMetaty = function()
   local l = newCiv()
   l:load{'civ:lib/metaty'}
-  l:build{'civ:lib/metaty metaty'}
+  l:build{'civ:lib/metaty'}
   T.path('.out/civ/', {
     ['lua/'] = {
       ['metaty.lua'] = io.open'lib/metaty/metaty.lua',
@@ -102,7 +109,7 @@ T.buildDs = function()
   local l = newCiv()
   l:load{'civ:lib/ds'}
   local dsPkg = l.pkgs['civ:lib/ds']
-  T.eq({"civ:lib/metaty metaty", "civ:lib/fmt fmt", "civ:lib/ds dslib"},
+  T.eq({"civ:lib/metaty#metaty", "civ:lib/fmt#fmt", "civ:lib/ds#dslib"},
        dsPkg.ds.dep)
   T.eq(core.Target{
     pkgname="civ:lib/ds",
@@ -114,16 +121,21 @@ T.buildDs = function()
       include={"ds.h"},
       lib="libds.so"
     },
-    a={},
+    tag={ builder = 'bootstrap' },
     build="sys:cc/build.lua",
   }, dsPkg.dslib)
 
-  l:build{'civ:lib/ds ds'}
+  l:build{'civ:lib/ds'}
 
   T.path('.out/civ/include', {
     ['ds.h'] = io.open'lib/ds/ds.h',
   })
   T.exists'.out/civ/lib/libds.so'
+end
+
+T.buildCiv = function()
+  local l = newCiv()
+  l:load{'civ:'}
 end
 
 ds.yeet'test_civ done'

@@ -5,12 +5,13 @@ local CC = record'CC' {
   'lib [string]: output library name.',
   'hdr {string}: input header/s.',
   'src {string}: input src file/s.',
+  'tag',
 }
 
 return function(cc)
   local cc = CC(cc)
-  cc.src = type(cc.src) == 'string' and {cc.src} or cc.src or EMPTY
-  cc.hdr = type(cc.hdr) == 'string' and {cc.hdr} or cc.hdr or EMPTY
+  cc.src = type(cc.src) == 'string' and {cc.src} or cc.src or {}
+  cc.hdr = type(cc.hdr) == 'string' and {cc.hdr} or cc.hdr or {}
   assert(#cc.src > 0 or #cc.hdr > 0, 'must provide src or hdr')
 
   local out = {}
@@ -21,6 +22,7 @@ return function(cc)
     src = cc.src,
     out = out,
     build = 'sys:cc/build.lua',
+    tag = cc.tag,
   }
 end
 

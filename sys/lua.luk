@@ -6,10 +6,10 @@ local Lua = record'Lua' {
   'src {string}',
   'dep {Target}',
   'lib {name: Target}: dynamic library modules.',
+  'tag {table}',
 }
 
 return function(l)
-  if type(l) == 'string' then l = {mod = l} end
   local mod = assert(l.mod or l[1], 'must set mod')
   assert(not mod:find(MOD_INVALID),
     'mod name must have only characters [%%w_.]: %s', mod)
@@ -19,7 +19,10 @@ return function(l)
     src = l.src or {mod..'.lua'},
     dep = l.dep or {},
     build = 'sys:lua/build.lua',
+    tag = l.tag or {},
   }
+  if not t.tag.builder then t.tag.builder = 'direct' end
+
   if l.lib then
     -- local expect = 'lib'..mod
     -- local libo = assert(l.lib.out.lib,

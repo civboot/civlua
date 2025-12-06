@@ -18,7 +18,7 @@ local T  = require'civtest'
 
 local push = ds.push
 
-local b = require'civ.Builder':parse()
+local b = require'civ.Builder':get()
 io.stderr:write'cc builder starting\n'
 
 local function pushLibs(cmd, tgt)

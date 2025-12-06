@@ -1,5 +1,8 @@
 local P = {}
 P.summary = "Tiny data structures and algorithms for lua."
+local cc  = import'sys:cc.luk'
+local lua = import'sys:lua.luk'
+
 -- pkg {
 --   name     = 'ds',
 --   version  = '0.1-13',
@@ -9,13 +12,11 @@ P.summary = "Tiny data structures and algorithms for lua."
 --   doc      = 'README.cxt',
 -- }
 
-local cc  = import'sys:cc.luk'
-local lua = import'sys:lua.luk'
-
 P.dslib = cc {
   lib = 'ds',
   hdr = 'ds.h',
   src = 'ds.c',
+  tag = { builder = 'bootstrap', }
 }
 
 P.ds = lua {
@@ -32,11 +33,12 @@ P.ds = lua {
     'ds/load.lua',
     'ds/IFile.lua',
   },
-  lib = 'civ:lib/ds dslib',
+  lib = 'civ:lib/ds#dslib',
   dep = {
-    'civ:lib/metaty metaty',
-    'civ:lib/fmt fmt',
+    'civ:lib/metaty',
+    'civ:lib/fmt',
   },
+  tag = { builder = 'bootstrap' },
 }
 
 return P
