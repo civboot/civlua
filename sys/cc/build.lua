@@ -1,10 +1,3 @@
--- TODO: fix this file.
-print'Running command:'
-for i=0, 10 do
-  if arg[i] == nil then break end
-  print(' Arg', i, arg[i])
-end
-
 local mty  = require'metaty'
 
 --- C compiler for civ build.

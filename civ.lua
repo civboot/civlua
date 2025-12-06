@@ -125,6 +125,7 @@ local function build(cv, tgts)
 
   cv:load(pkgnames)
   cv:build(tgtnames)
+  io.fmt:styled('notify', 'civ build complete', '\n')
   return cv
 end
 
@@ -161,6 +162,8 @@ function M.Install:__call()
 end
 
 M.main = function(args)
+  mty.setup()
+  require'asciicolor'.setup()
   assert(not ix.isRoot(), "Do not (yet) run this command as root")
   args = assert(shim.construct(M.Args, shim.parse(args)))
   io.fmt:styled('notify', 'Running civ '..args.subcmd, '\n')
