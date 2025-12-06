@@ -182,7 +182,6 @@ ds.update(M, {
   FIFO = "fifo",
 })
 
-
 --- Block size used as default for file moves/etc
 --- Default is 32 KiB
 M.BLOCK_SZ = 1 << 15
@@ -665,5 +664,7 @@ M.sh = rawget(M,'sh') or function(cmd) --> out, err, sh
   if not rcOk and rc ~= 0 then shError(cmd, out, rc) end
   return out, err, sh
 end
+
+M.isRoot = function() return os.getenv'EUID' == '0' end
 
 return M

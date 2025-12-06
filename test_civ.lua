@@ -136,5 +136,3 @@ T.buildCiv = function()
   l:load{'civ:'}
   l:build{'civ:'}
 end
-
-ds.yeet'test_civ done'

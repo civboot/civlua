@@ -150,6 +150,7 @@ function M.Install:__call()
 end
 
 M.main = function(args)
+  assert(not ix.isRoot(), "Do not (yet) run this command as root")
   args = assert(shim.construct(M.Args, shim.parse(args)))
   io.fmt:styled('notify', 'Running civ '..args.subcmd, '\n')
   args[args.subcmd]()

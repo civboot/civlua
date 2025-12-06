@@ -26,7 +26,8 @@ local assertf = fmt.assertf
 local EMPTY = {}
 local MOD_INVALID = '[^%w_.]+' -- lua mod name.
 
-M.DIR = pth.canonical(ds.srcdir() or '')
+M.DIR = pth.canonical( (pth.last(ds.srcdir() or '')) )
+assert(M.DIR == '/home/rett/projects/civlua/', M.DIR)
 M.LIB_EXT = '.so'
 M.DEFAULT_CONFIG = '.civconfig.lua'
 M.HOME_CONFIG = pth.concat{pth.home(), '.config/civ.lua'}
@@ -188,19 +189,6 @@ getmetatable(M.Civ).__call = function(T, self)
   return self
 end
 
---- Fix the pkgname
-function M.Civ:fixName(pn) --> pkgname
-  assert(not pn:find'//+', 'pkgname cannot contain multiple /')
-  return assertf(pn:match'^([%w_]+:[%w_/]-)/?$',
-                     'invalid pkgname: %s', pn)
-end
-
-function M.Civ:fixNames(pkgnames)
-  for i, pkgname in ipairs(pkgnames) do
-    pkgnames[i] = self:fixName(pkgname)
-  end
-end
-
 function M.Civ:getPkgname(dep) --> pkgname
   return dep:match'^([%w_]+:[%w_/]*)'
 end
@@ -209,7 +197,10 @@ end
 function M.Civ:abspath(pkgpath) --> abspath
   local hub, p = pkgpath:match'([%w_]+):(.*)'
   if not hub then error(pkgpath..' must start with "hub:"') end
-  return pth.concat{self.hubs[hub] or error('unknown hub: '..hub), p}
+  local apath = pth.concat{self.hubs[hub] or error('unknown hub: '..hub),
+                           p}
+  info('!! abspath %q %q -> %q', pkgpath, self.hubs[hub], apath)
+  return apath
 end
 
 --- Get pkgname's full directory.
@@ -236,13 +227,15 @@ function M.Civ:target(tgt) --> Target?, errmsg
 end
 
 function M.Civ:loadPkg(pkgname)
-  pkgname = assert(self:fixName(pkgname))
+  pkgnameValidate(pkgname)
   local pkg = self.pkgs[pkgname]; if pkg then return pkg end
   luk.checkCycle(self.cycle, pkgname)
   info('loading pkg %q', pkgname)
   push(self.cycle, pkgname); self.cycle[pkgname] = 1
 
-  local pkgfile = pkgname..'/PKG.lua'
+  local pkgfile = pkgname
+  if not pkgname:sub(-1) ~= ':' then pkgfile = pkgfile..'/' end
+  pkgfile = pkgfile..'PKG.lua'
   pkg = self.luk:import(pkgfile)
   assertf(mty.ty(pkg) == 'table',
     '%q did not return a table', pkgfile)
