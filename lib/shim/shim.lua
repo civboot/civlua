@@ -68,11 +68,12 @@ local BOOLS = {
 
 --- Duck type: always return a boolean (except for nil).
 --- See BOOLS (above) for mapping.
-M.boolean = function(v)
+M.bool = function(v)
   if v == nil then return nil end
   local b = BOOLS[v] if b ~= nil then return b end
   error('invalid boolean: '..tostring(v))
 end
+M.boolean = M.bool
 M.bools = function(args, ...)
   for _, arg in ipairs{...} do
     args[arg] = M.boolean(args[arg])

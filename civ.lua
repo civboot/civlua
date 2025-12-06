@@ -21,7 +21,7 @@ local function parseTargetNames(args) --> pkgnames, tgtnames
   for _, tgtname in ipairs(args) do
     info('parsing %q', tgtname)
     local tgt = core.TargetName:parse(tgtname)
-    push(tgtnames, tgt)
+    push(tgtnames, tostring(tgt))
     if not pkgnames[tgt.pkgname] then
       push(pkgnames, tgt.pkgname)
       pkgnames[tgt.pkgname] = true
@@ -36,16 +36,24 @@ M.Init = mty'Init' {
   'base [string]: base config to copy from',
 }
 
---- civ build arguments.
-M.Build = mty'Build' {
+M.Base = mty'Base' {
   'config [string]: path to civ config.', config=core.DEFAULT_CONFIG,
 }
 
+--- civ build arguments.
+M.Build   = mty.extend(M.Base, 'Build', {})
+
+--- civ install arguments.
+M.Install = mty.extend(M.Base, 'Install', {
+  "force [bool]: do not confirm deletion of files.",
+})
+
 --- civ cmdline tool arguments.
 M.Args = {
-  subcmd = true,
-  init  = M.Init,
-  build = M.Build,
+  subcmd=true,
+  init    = M.Init,
+  build   = M.Build,
+  install = M.Install,
 }
 
 local CONFIG_TMPL = [[
@@ -100,19 +108,44 @@ function M.Init:__call()
   io.fmt:styled('notify', 'Feel free to customize it as-needed.', '\n')
 end
 
-function M.Build:__call()
-  info('build %q', self)
-  local c = core.Civ{
-    cfg=core.Cfg:load(self.config),
-  }
-  ix.rmRecursive(c.cfg.buildDir)
+local function build(cv)
+  assert(cv.cfg.buildDir, 'must set buildDir')
+  ix.rmRecursive(cv.cfg.buildDir)
   local pkgnames, tgtnames = parseTargetNames(self)
   info('pkgnames: %q', pkgnames)
   info('tgtnames: %q', tgtnames)
 
-  c:load(pkgnames)
-  c:build(tgtnames)
-  ds.yeet'TODO'
+  cv:load(pkgnames)
+  cv:build(tgtnames)
+  return cv
+end
+
+function M.Build:__call()
+  info('build %q', self)
+  build(core.Civ{cfg=core.Cfg:load(self.config)})
+end
+
+function M.Install:__call()
+  info('install %q', self)
+  local cv = core.Civ{cfg=core.Cfg:load(self.config)}
+  local D = cv.cfg.installDir
+  assert(D, 'must set config.installDir')
+  if not shim.bool(self.force) and ix.exists(D) then
+    io.fmt:styled('warn',
+      sfmt('This will delete %s - continue (Y/N)?', D), '\n')
+    local inp = io.read'l'
+    if inp[1]:lower() ~= 'y' then
+      io.fmt:styled('warn', sfmt('replied %q, exiting', inp), '\n')
+      return
+    end
+  end
+  io.fmt:styled('notify', 'installing in ')
+  io.fmt:styled('path', D, '\n')
+  build(cv)
+  ix.rmRecursive(cv.cfg.installDir)
+  ix.cpRecursive(cv.cfg.buildDir, cv.cfg.installDir)
+  io.fmt:styled('notify', 'Installed in ')
+  io.fmt:styled('path', D, '\n')
 end
 
 M.main = function(args)
