@@ -1,13 +1,13 @@
-summary"luk: lua config language."
-import {
-  lua    = 'sys:lua',
-  ds     = 'civ:lib/ds',
-}
-pkg { name = 'luk' }
+local P = {}
+P.summary = "luk: lua config language."
+local lua = import'sys:lua.luk'
 
 P.luk = lua {
   mod = 'luk',
   dep = {
-    ds.ds,
+    'civ:lib/ds',
   },
+  tag = { builder = 'bootstrap' },
 }
+
+return P

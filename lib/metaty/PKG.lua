@@ -11,6 +11,9 @@ P.summary = "Simple but effective Lua type system using metatables"
 
 local lua = import'sys:lua.luk'
 
-P.metaty = lua'metaty'
+P.metaty = lua{
+  'metaty',
+  tag = {builder = 'bootstrap'},
+}
 
 return P

@@ -1,8 +1,10 @@
-local G = G or _G
+#!/usr/bin/env -S lua
+local mty = require'metaty'
+local G = mty.G
 
 --- re-imagining of ff using new tech and better args
-local M = G.mod and G.mod'ff' or setmetatable({}, {})
-G.MAIN = G.MAIN or M
+local M = mty.mod'ff'
+G.MAIN = G.MAIN or M; if G.MAIN == M then mty.setup() end
 
 local shim = require'shim'
 local mty  = require'metaty'
@@ -230,7 +232,12 @@ M.fmtSub = function(f, before, after)
 end
 fmtMatch, fmtSub = M.fmtMatch, M.fmtSub
 
-M.main = function(args) M.iter(args):run() end
+M.main = function(args)
+  require'asciicolor'.setup()
+  M.iter(args):run()
+end
+if G.MAIN == M then M.main(G.arg) end
+
 getmetatable(M).__call = function(_, args) --> list of paths
   return M.iter(args):keysTo()
 end

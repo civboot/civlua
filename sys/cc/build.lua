@@ -1,10 +1,3 @@
--- TODO: fix this file.
-print'Running command:'
-for i=0, 10 do
-  if arg[i] == nil then break end
-  print(' Arg', i, arg[i])
-end
-
 local mty  = require'metaty'
 
 --- C compiler for civ build.
@@ -18,7 +11,7 @@ local T  = require'civtest'
 
 local push = ds.push
 
-local b = require'civ.Builder':parse()
+local b = require'civ.Builder':get()
 io.stderr:write'cc builder starting\n'
 
 local function pushLibs(cmd, tgt)

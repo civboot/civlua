@@ -45,6 +45,7 @@ M.ENV = {
   tostring=tostring, tointeger=math.tointeger,
   tonumber=tonumber,
   pairs=pairs,   ipairs=ipairs,
+  isEmpty = ds.isEmpty,
   error=error,   assert=fmt.assertf,
 
   record = mty.record, enum = mty.enum,

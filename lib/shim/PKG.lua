@@ -1,14 +1,19 @@
-summary"write scripts for Lua, execute from shell"
-import {
-  lua   = 'sys:lua',
-}
-pkg {
-  name     = 'shim',
-  version  = '0.1-5',
-  url      = 'git+http://github.com/civboot/civlua',
-  homepage = "https://lua.civboot.org#Package_shim",
-  license  = "UNLICENSE",
-  doc      = 'README.cxt',
+local P = {}
+P.summary = "Write scripts for Lua, execute from shell"
+local lua = import'sys:lua.luk'
+
+-- pkg {
+--   name     = 'shim',
+--   version  = '0.1-5',
+--   url      = 'git+http://github.com/civboot/civlua',
+--   homepage = "https://lua.civboot.org#Package_shim",
+--   license  = "UNLICENSE",
+--   doc      = 'README.cxt',
+-- }
+
+P.shim = lua {
+  mod = 'shim',
+  tag = { builder = 'bootstrap' },
 }
 
-P.shim = lua'shim'
+return P

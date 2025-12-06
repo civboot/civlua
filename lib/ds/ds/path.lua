@@ -55,8 +55,13 @@ end
 M.cwd = function() return G.CWD or os.getenv'PWD' or os.getenv'CD' end
 
 --- get the user's home directory
-M.home = function() return G.HOME or os.getenv'HOME'
-                        or os.getenv'HOMEDIR'      end
+M.home = function()
+  local d = G.HOME; if d then return d end
+  d = os.getenv'HOME' or os.getenv'HOMEDIR'
+  assert(d, 'no HOME directory set')
+  d = M.toDir(M.canonical(d)); G.HOME = d
+  return d
+end
 --- join a table of path components
 M.concat = function(t, _) --> string
   assert(not _, 'usage: concat{...}')

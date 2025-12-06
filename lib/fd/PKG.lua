@@ -17,19 +17,17 @@ P.libfd = cc {
   lib = 'fd', -- libfd.so
   hdr = 'fd.h',
   src = 'fd.c',
+  tag = { builder = 'bootstrap' },
 }
 
 P.fd = lua {
   mod = 'fd',
-  src = {
-    'fd.lua',
-    'fd/IFile.lua',
-  },
-  -- lib = 'civ:lib/fd libfd',
   dep = {
-    'civ:lib/metaty metaty',
-    -- 'civ:lib/ds ds',
-  }
+    'civ:lib/fd#libfd',
+    'civ:lib/metaty',
+    'civ:lib/ds',
+  },
+  tag = { builder = 'bootstrap' },
 }
 
 return P

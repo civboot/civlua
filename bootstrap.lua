@@ -58,24 +58,14 @@ print'[[load]]'
   preload('asciicolor', 'lib/asciicolor/asciicolor.lua')
   preload('vt100', 'lib/vt100/vt100.lua')
   preload('vt100.AcWriter', 'lib/vt100/vt100/AcWriter.lua')
-  preload('civ.core', 'core.lua')
-  preload('civ.Builder', 'Builder.lua')
+  preload('civ.core', 'civ/core.lua')
+  preload('civ.Builder', 'civ/Builder.lua')
 
   -- Additional
   preload('lson', 'lib/lson/lson.lua')
   preload('ds.testing', 'lib/ds/testing/testing.lua')
   preload('pod.testing', 'lib/pod/testing/testing.lua')
   preload('lines.testing', 'lib/lines/testing/testing.lua')
-
-local arg1 = arg[1]
-if arg1 == 'boot-run' then
-  G.BOOTSTRAP, G.MAIN = true, nil
-  local path = arg[2]
-  table.remove(arg, 1)
-  table.remove(arg, 1)
-  print('boot-run:', path)
-  return dofile(path)
-end
 
 print'[[test]]'
   -- setup and run tests
@@ -109,21 +99,12 @@ require'fmt'.print('args:', arg)
 
 local core = require'civ.core'
 
-local runBuildCmd = core.Civ.runBuildCmd
-core.Civ.runBuildCmd = function(self, cmd)
-  table.insert(cmd, 1, './bootstrap.lua')
-  table.insert(cmd, 2, 'boot-run')
-  return runBuildCmd(self, cmd)
-end
-
 G.BOOTSTRAP = true
-if arg1 == 'boot-test' then
+if arg[1] == 'boot-test' then
   preload('civ', 'civ.lua')
   dofile(D..'test_civ.lua')
-  print('Test complete')
+  print('boot-test complete')
   return
 end
 
-G.MAIN = nil
-
-dofile(D..'civ.lua')
+G.MAIN = nil; dofile(D..'civ.lua')

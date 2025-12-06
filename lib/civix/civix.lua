@@ -182,7 +182,6 @@ ds.update(M, {
   FIFO = "fifo",
 })
 
-
 --- Block size used as default for file moves/etc
 --- Default is 32 KiB
 M.BLOCK_SZ = 1 << 15
@@ -244,6 +243,10 @@ end
 --- copy data from [$from] to [$to]. Their types can be either
 --- a string (path) or a file descriptor.
 M.cp = function(from, to)
+  if type(from) == 'string' and type(to) == 'string' then
+    M.sh{'cp', from, to}
+    return
+  end
   local fd, fc, td, tc -- f:from, t:to, d:descriptor, c:close
   if type(from) == 'string' then fd = assert(io.open(from, 'r')); fc = 1
                             else fd = from end
@@ -665,5 +668,7 @@ M.sh = rawget(M,'sh') or function(cmd) --> out, err, sh
   if not rcOk and rc ~= 0 then shError(cmd, out, rc) end
   return out, err, sh
 end
+
+M.isRoot = function() return os.getenv'EUID' == '0' end
 
 return M

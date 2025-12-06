@@ -21,11 +21,12 @@ local T = require'civtest'
 local sfmt = string.format
 local getmt, setmt = getmetatable, setmetatable
 local push, pop = ds.push, table.remove
+local assertf = fmt.assertf
 
 local EMPTY = {}
 local MOD_INVALID = '[^%w_.]+' -- lua mod name.
 
-M.DIR = pth.canonical(ds.srcdir() or '')
+M.DIR = pth.canonical( (pth.last(ds.srcdir() or '')) )
 M.LIB_EXT = '.so'
 M.DEFAULT_CONFIG = '.civconfig.lua'
 M.HOME_CONFIG = pth.concat{pth.home(), '.config/civ.lua'}
@@ -38,21 +39,42 @@ M.ENV.__index = M.ENV
 -- # Target
 -- Creating and processing target objects.
 
-local function pkgnameSplit(str) --> hub, pkgpath
-  local hub, pkgpath = str:match'^([%w_]+):(.*)'
-  if not pkgpath then error(sfmt('invalid pkgname: %q', str)) end
+local function hubpathSplit(hp)
+  local hub, pkgpath = hp:match'^([%w_]+):(.*)$'
+  assertf(hub, 'invalid hubpath %q', hp)
+  return hub, pkgpath
+end
+
+local function pkgnameValidate(pn) --> pkgname, hub, pkgpath
+  assertf(not pn:find'//+',  '%q: cannot contain multiple /', pn)
+  assertf(pn:sub(-1) ~= '/', '%q: cannot end with /', pn)
+  local hub, pkgpath = pn:match'^([%w_]+):([%w_/]*)$'
+  assertf(hub, 'invalid pkgname %q', pn)
+  return pn, hub, pkgpath
+end
+
+local function pkgnameSplit(pn) --> hub, pkgpath
+  local _, hub, pkgpath = pkgnameValidate(pn)
   return hub, pkgpath
 end
 
 local function tgtnameSplit(str) --> pkgname, name
-  local pkgname, name = str:match'^([%w_]+:[%w_/]*)%s+([%w_]+)$'
-  if not pkgname then error(sfmt('invalid target name: %q', str)) end
-  return pkgname, name
+  if str:find'#' then
+    local pkgname, name = str:match'^(.*)#([%w_]+)$'
+    if not pkgname then error(sfmt('invalid target name: %q', str)) end
+    return pkgnameValidate(pkgname), name
+  end
+  local hub, pkgpath = pkgnameSplit(str)
+  if pkgpath == '' then return hub..':', hub end
+  local name = select(2, pth.last(pkgpath))
+  assertf(not name:find'[^%w_]', 'invalid name: %q', str)
+  return sfmt('%s:%s', hub, pkgpath), name
 end
+M.tgtnameSplit = tgtnameSplit
 
 local function tgtnameFix(tgtname)
   local pkgname, name = tgtnameSplit(tgtname)
-  return sfmt('%s %s', pkgname, name)
+  return sfmt('%s#%s', pkgname, name)
 end
 
 --- Represents a pkgname.target parsed from a string
@@ -61,7 +83,7 @@ M.TargetName = mty'TargetName' {
   'name [string]',
 }
 function M.TargetName:__tostring()
-  return sfmt('%s %s', self.pkgname, self.name)
+  return sfmt('%s#%s', self.pkgname, self.name)
 end
 M.TargetName.parse = function(T, tgtname)
   local pn, name = tgtnameSplit(tgtname)
@@ -84,7 +106,7 @@ M.Target = pod(mty'Target' {
      * bin: executable binaries
      * lua: lua files
  ] ]],
-  'a [table]: arbitrary attributes like test, testonly, etc.',
+  'tag [table]: arbitrary attributes like test, testonly, etc.',
   'build [str]: lua script (file) on how to build target.',
  [[run {string}: command to run the target. The first value must be the path to
      an executable file relative to the out/ dir (i.e. buildDir, installDir). The
@@ -99,12 +121,11 @@ getmetatable(M.Target).__call = function(T, t)
   for i, dep in ipairs(t.dep) do
     t.dep[i] = tgtnameFix(dep)
   end
-  t.a = t.a or {}
-  t = mty.construct(T, t)
-  return t
+  t.tag = t.tag or {}
+  return mty.construct(T, t)
 end
 function M.Target:tgtname() 
-  return sfmt('%s %s', self.pkgname, self.name)
+  return sfmt('%s#%s', self.pkgname, self.name)
 end
 
 --- Return a copy of the target with ids used instead of deps.
@@ -112,7 +133,7 @@ local function targetWithIds(tgt, ids)
   tgt = ds.copy(tgt)
   tgt.depIds = {}
   for i, dep in ipairs(tgt.dep) do
-    tgt.depIds[i] = fmt.assertf(ids[dep], '%q target not found', dep)
+    tgt.depIds[i] = assertf(ids[dep], '%q target not found', dep)
   end
   return tgt
 end
@@ -120,6 +141,12 @@ end
 -- #####################
 -- # Civ
 -- The Civ object and it's configuration.
+
+M.CfgBuilder = mty'CfgBuilder' {
+ [[direct [bool]: prefer building directly
+   (running build scripts w/ dofile).
+ ]],
+}
 
 --- The user configuration, typically at ./.civconfig.lua
 M.Cfg = mty'Cfg' {
@@ -129,12 +156,14 @@ M.Cfg = mty'Cfg' {
   'hubs {string: string}: table of hubname -> /absolute/dir/path',
   'buildDir [string]: directory to put build/test files.',
   'installDir [string]: directory to install files to.',
+  'builder [CfgBuilder]: builder settings',
 }
 M.Cfg.load = function(T, path)
   local ok, t = dload(path or M.DEFAULT_CONFIG, {HOME=pth.home()})
   assert(ok, t)
   t.path = path
   for h, d in pairs(t.hubs) do t.hubs[h] = pth.abs(d) end
+  t.builder = M.CfgBuilder(t.builder or {})
   return M.Cfg(t)
 end
 
@@ -146,6 +175,7 @@ M.Civ = mty'Civ' {
   'pkgs: table of pkgname -> pkg',
   'luk [luk.Luk]',
   'cycle',
+  'builder [civ.Builder]: direct builder',
 }
 getmetatable(M.Civ).__call = function(T, self)
   assert(self.cfg, 'must set cfg')
@@ -158,19 +188,6 @@ getmetatable(M.Civ).__call = function(T, self)
   return self
 end
 
---- Fix the pkgname
-function M.Civ:fixName(pn) --> pkgname
-  assert(not pn:find'//+', 'pkgname cannot contain multiple /')
-  return fmt.assertf(pn:match'^([%w_]+:[%w_/]-)/?$',
-                     'invalid pkgname: %s', pn)
-end
-
-function M.Civ:fixNames(pkgnames)
-  for i, pkgname in ipairs(pkgnames) do
-    pkgnames[i] = self:fixName(pkgname)
-  end
-end
-
 function M.Civ:getPkgname(dep) --> pkgname
   return dep:match'^([%w_]+:[%w_/]*)'
 end
@@ -179,7 +196,10 @@ end
 function M.Civ:abspath(pkgpath) --> abspath
   local hub, p = pkgpath:match'([%w_]+):(.*)'
   if not hub then error(pkgpath..' must start with "hub:"') end
-  return pth.concat{self.hubs[hub] or error('unknown hub: '..hub), p}
+  local apath = pth.concat{self.hubs[hub] or error('unknown hub: '..hub),
+                           p}
+  info('!! abspath %q %q -> %q', pkgpath, self.hubs[hub], apath)
+  return apath
 end
 
 --- Get pkgname's full directory.
@@ -206,23 +226,25 @@ function M.Civ:target(tgt) --> Target?, errmsg
 end
 
 function M.Civ:loadPkg(pkgname)
-  pkgname = assert(self:fixName(pkgname))
+  pkgnameValidate(pkgname)
   local pkg = self.pkgs[pkgname]; if pkg then return pkg end
   luk.checkCycle(self.cycle, pkgname)
   info('loading pkg %q', pkgname)
   push(self.cycle, pkgname); self.cycle[pkgname] = 1
 
-  local pkgfile = pkgname..'/PKG.lua'
+  local pkgfile = pkgname
+  if not pkgname:sub(-1) ~= ':' then pkgfile = pkgfile..'/' end
+  pkgfile = pkgfile..'PKG.lua'
   pkg = self.luk:import(pkgfile)
-  fmt.assertf(mty.ty(pkg) == 'table',
+  assertf(mty.ty(pkg) == 'table',
     '%q did not return a table', pkgfile)
   pkg.pkgname = pkgname
   for k, tgt in pairs(pkg) do -- validation
-    fmt.assertf(type(k) == 'string',
+    assertf(type(k) == 'string',
       '%s.%q: must have only string keys', pkgname, k)
-    fmt.assertf(not k:find'[^%w_]',
+    assertf(not k:find'[^%w_]',
       '%s.%q: keys must be of [%w_]', pkgname, k)
-    fmt.assertf(type(tgt) == 'string' or mty.ty(tgt) == M.Target,
+    assertf(type(tgt) == 'string' or mty.ty(tgt) == M.Target,
       '%s.%s: not a string or Target', pkgname, k)
   end
   for k, tgt in pairs(pkg) do -- load deps
@@ -230,6 +252,9 @@ function M.Civ:loadPkg(pkgname)
       tgt.pkgname, tgt.name = pkgname, k
       tgt.dir = self:abspath(pkgname)..'/'
       for _, dep in ipairs(tgt.dep) do
+        local dty = mty.ty(dep)
+        assertf(dty == 'string',
+          'target %s has invalid dep type %q', tgt:tgtname(), dty)
         local pkgnameDep = self:getPkgname(dep)
         if pkgnameDep ~= pkgname then
           self:loadPkg(pkgnameDep)
@@ -253,7 +278,7 @@ end
 --- recursively find all deps
 function M.Civ:targetDepMap(tgts, depMap)
   for i, tgtname in ipairs(tgts) do
-    fmt.assertf(type(tgtname) == 'string')
+    assertf(type(tgtname) == 'string')
     if not depMap[tgtname] then
       local tgt = self:target(tgtname)
       depMap[tgtname] = tgt.dep or EMPTY
@@ -262,38 +287,58 @@ function M.Civ:targetDepMap(tgts, depMap)
   end
 end
 
-function M.Civ:runBuildCmd(cmd)
-  info('running build cmd: %q', cmd)
-  return ix.sh(cmd)
-end
-
 --- Build the target.
 function M.Civ:build(tgts)
   info('Civ.build: %q', tgts)
   local depMap = {}; self:targetDepMap(tgts, depMap)
   local ordered, cycle = ds.dagSort(tgts, depMap)
-  fmt.assertf(not cycle, 'import cycle detected: %q', cycle)
+  assertf(not cycle, 'import cycle detected: %q', cycle)
   info('build ordering: %q', ordered)
+
+  -- For creating and running build scripts inline
+  local main = G.MAIN
+  G.MAIN = nil
+  local builder = require'civ.Builder' {
+    ids = {}, cfg = self.cfg, targets = {}, tgtsDb = {},
+  }:set()
 
   local ids = {} -- map tgtname -> id
   local tgtsDbPath = self.cfg.buildDir..'targets.json'
   local cfgArg    = '--config='..assert(self.cfg.path)
   local tgtsDbArg = '--tgtsDb='..tgtsDbPath
-  local tgtFile = File { path = tgtsDbPath, mode = 'w' }
+  local tgtFile = assert(File { path = tgtsDbPath, mode = 'w' })
   info('Civ.build args: %s %s', cfgArg, tgtsDbArg)
+  ix.mkDirs(self.cfg.buildDir..'bin/')
   for id, tgtname in ipairs(ordered) do
     local tgt = self:target(tgtname)
     if not tgt.build then goto skip end
     info('building target %q', tgtname)
     tgt = targetWithIds(tgt, ids)
+    push(builder.targets, tgt) -- for inline
     tgtFile:write(lson.json(tgt)); tgtFile:write'\n'
     tgtFile:flush()
     ids[tgtname] = id
-    local hub, bpath = pkgnameSplit(tgt.build)
-    local cmd = {self.hubs[hub]..bpath, cfgArg, tgtsDbArg, tostring(id)}
-    self:runBuildCmd(cmd)
+    local hub, bpath = hubpathSplit(tgt.build)
+    local script = self.hubs[hub]..bpath
+    if tgt.tag.builder == 'bootstrap'
+        or (tgt.tag.builder == 'direct' and self.cfg.builder.direct) then
+      -- build directly in-process: script must have no deps outside of civ.
+      ds.clear(builder.ids); builder.ids[1] = id
+      info('build direct: %q', script)
+      dofile(script); G.MAIN = nil
+    else
+      assertf(not G.BOOTSTRAP, '%s not tagged as bootstrap', tgtname)
+      -- build in a separate process
+      local hub, bpath = hubpathSplit(tgt.build)
+      local cmd = {script, cfgArg, tgtsDbArg, tostring(id)}
+      info('build cmd: %q', cmd)
+      ix.sh(cmd)
+    end
     ::skip::
   end
+
+  builder:close()
+  G.MAIN = main
 end
 
 return M

@@ -1,4 +1,5 @@
 local MOD_INVALID = '[^%w_.]+' -- lua mod name.
+local EMPTY = {}
 
 --- Creating a [$lua { ... }] Target.
 local Lua = record'Lua' {
@@ -6,10 +7,11 @@ local Lua = record'Lua' {
   'src {string}',
   'dep {Target}',
   'lib {name: Target}: dynamic library modules.',
+  'bin {path: path}: keys are lua src files, values are paths to go in bin/',
+  'tag {table}',
 }
 
 return function(l)
-  if type(l) == 'string' then l = {mod = l} end
   local mod = assert(l.mod or l[1], 'must set mod')
   assert(not mod:find(MOD_INVALID),
     'mod name must have only characters [%%w_.]: %s', mod)
@@ -19,7 +21,10 @@ return function(l)
     src = l.src or {mod..'.lua'},
     dep = l.dep or {},
     build = 'sys:lua/build.lua',
+    tag = l.tag or {},
   }
+  if not t.tag.builder then t.tag.builder = 'direct' end
+
   if l.lib then
     -- local expect = 'lib'..mod
     -- local libo = assert(l.lib.out.lib,
@@ -33,6 +38,8 @@ return function(l)
 
   local luaOut = {}
   local O = mod:gsub('%.', '/')..'/' -- output dir
+  local luaMap = {}
+
   for _, src in ipairs(t.src) do
     -- Get the src file's final mod name
     local smod, ext = src:match'([%w_./]*[%w_]+)(%.%w+)'
@@ -50,7 +57,14 @@ return function(l)
     else               out = O..smod:gsub('%.', '/')..ext end
     if src == out then push(luaOut, out)
     else               luaOut[src] = out end
+    luaMap[out] = true
   end
+  assert(not isEmpty(luaOut), 'src is empty')
   t.out = { lua = luaOut }
+
+  if not isEmpty(l.bin or EMPTY) then
+    error'lua.bin not yet supported'
+  end
+
   return t
 end

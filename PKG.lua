@@ -1,30 +1,36 @@
-summary'civ build system and developer software stack'
-import {
-  lua   = 'sys:lua',
-  ix    = 'civ:lib/civix',
-  vt100 = 'civ:lib/vt100',
-}
-
-pkg {
-  name    = 'civ',
-  version = '0.1-0',
-  url     = 'git+http://github.com/civboot/civlua',
-  doc     = 'README.cxt',
-  repo    = 'https://github.com/civboot/civlua',
-  homepage = 'https://lua.civboot.org',
-}
+local P = {}
+P.summary = "civ build system and developer software stack"
+local lua = import'sys:lua.luk'
+-- pkg {
+--   name    = 'civ',
+--   version = '0.1-0',
+--   url     = 'git+http://github.com/civboot/civlua',
+--   doc     = 'README.cxt',
+--   repo    = 'https://github.com/civboot/civlua',
+--   homepage = 'https://lua.civboot.org',
+-- }
 
 P.civ = lua {
   mod = 'civ',
+  -- bin = {['civ.lua'] = 'civ'},
   src = {
     'civ.lua',
-    'core.lua',
+    'civ/core.lua',
+    'civ/Builder.lua',
   },
   dep = {
-    ix.civix,
-    vt100.vt100,
+    'civ:lib/civix',
+    'civ:lib/vt100',
+    'civ:lib/pod',
+    'civ:lib/luk',
+    'civ:lib/lson',
+    'civ:lib/lines',
+    'civ:lib/civtest',
   },
+  tag = { builder = 'bootstrap' },
 }
+
+return P
 
 -- local FILE = 'https://github.com/civboot/civlua/blob/main/'
 -- local FILE_LINE = FILE..'%s#L%s'
@@ -42,3 +48,4 @@ P.civ = lua {
 --     return FILE..p
 --   end,
 -- }
+--

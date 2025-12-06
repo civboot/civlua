@@ -17,8 +17,9 @@ P.fmt = lua {
     'binary.lua',
   },
   dep = {
-    'civ:lib/metaty metaty',
+    'civ:lib/metaty',
   },
+  tag = { builder = 'bootstrap' },
 }
 
 return P

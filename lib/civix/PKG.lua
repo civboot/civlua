@@ -1,25 +1,21 @@
-summary"Unix sys library"
-import {
-  cc   = 'sys:cc',
-  lua  = 'sys:lua',
-  ds   = 'civ:lib/ds',
-  shim = 'civ:lib/shim',
-  fd   = 'civ:lib/fd',
-  lap  = 'civ:lib/lap',
-}
+local P = {}
+P.summary = "Unix sys library"
+local cc  = import'sys:cc.luk'
+local lua = import'sys:lua.luk'
 
-pkg {
-  name     = 'civix',
-  homepage = "https://lua.civboot.org#Package_civix",
-  license  = "UNLICENSE",
-  version  = '0.1-8',
-  url      = 'git+http://github.com/civboot/civlua',
-  doc      = 'README.cxt',
-}
+-- pkg {
+--   name     = 'civix',
+--   homepage = "https://lua.civboot.org#Package_civix",
+--   license  = "UNLICENSE",
+--   version  = '0.1-8',
+--   url      = 'git+http://github.com/civboot/civlua',
+--   doc      = 'README.cxt',
+-- }
 
 P.civixlib = cc {
   lib = 'civix',
   src = 'civix.c',
+  tag = { builder = 'bootstrap', }
 }
 
 P.civix = lua {
@@ -28,11 +24,14 @@ P.civix = lua {
     'civix.lua',
     'testing.lua',
   },
-  lib = P.civixlib,
+  lib = 'civ:lib/civix#civixlib',
   dep = {
-    ds.ds,
-    shim.shim,
-    fd.fd,
-    lap.lap,
+    'civ:lib/ds',
+    'civ:lib/shim',
+    'civ:lib/fd',
+    'civ:lib/lap',
   },
+  tag = { builder = 'bootstrap' },
 }
+
+return P

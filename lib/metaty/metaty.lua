@@ -377,6 +377,8 @@ end
 
 --- Extend the Type with (optional) new name and (optional) additional fields.
 M.extend = function(Type, name, fields)
+  assert(type(Type) == 'table' and getmt(Type), 'arg 1 must be Type')
+  assert(type(name) == 'string',                'arg 2 must be name')
   name, fields = name or Type.__name, fields or {}
   local E, mt = update({}, Type), update({}, getmt(Type))
   E.__name, mt.__name = name, 'Ty<'..name..'>'
