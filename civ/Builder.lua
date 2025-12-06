@@ -48,11 +48,9 @@ Builder.get = function(T, args)
   local ids = {}
   local ids = Iter:ofList(args):mapV(math.tointeger):to()
   assert(#ids > 0, 'must specify at least one id to build')
-  local ok, cfg = dload(assert(args.config, '--config not set'))
-  assert(ok, cfg)
   BUILDER = T {
     ids = ids,
-    cfg = cfg,
+    cfg = core.Cfg:load(assert(args.config, '--config not set')),
     tgtsDb = assert(File {
       path = assert(args.tgtsDb, '--tgtsDb not set'),
       mode = 'r',
