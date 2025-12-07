@@ -671,13 +671,13 @@ end
 
 ---------------------
 -- File Functions
-M.readPath = function(path) --!!> string
+M.readPath = function(path) --!> string
   local f, out, err = assert(io.open(path))
   out, err = f:read('a'); f:close()
   return assert(out, err)
 end
 
-M.writePath = function(path, text) --!!> nil
+M.writePath = function(path, text) --!> nil
   local f = fmt.assertf(io.open(path, 'w'), 'invalid %s', path)
   local out, err = f:write(text); f:close(); assert(out, err)
 end
@@ -1016,7 +1016,6 @@ local function _dagSort(out, id, parentMap, visited) --> cycle?
     end
   end
   local info = require'ds.log'.info
-  info('!! dagSort %q', id)
   push(visited, id); visited[id] = #visited
   for _, pid in ipairs(
       fmt.assertf(parentMap[id], '%q missing parents', id)) do
@@ -1191,7 +1190,7 @@ end -- if not NOLIB
 ---
 --- Therefore you can use [$line = check(2, f:read'L')]
 --- to only assert on the presence of errmsg.
-M.check = function(i, ...) --!!> ...
+M.check = function(i, ...) --!> ...
   if select(i, ...) then error(tostring(select(i, ...))) end
   return ...
 end

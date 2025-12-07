@@ -396,6 +396,7 @@ T.ds_path = function()
   T.eq({'a', 'b', 'c'},  path('a/b/c'))
   T.eq({'/', 'b', 'c'},  path('/b/c'))
   T.eq({'a', 'b', 'c/'}, path('a/b/c/'))
+  T.eq({},               path'')
   T.eq({'a', 'b', 'c'},  path{'a', 'b', 'c'})
   T.eq({'/', 'b', 'c'},  path{'/', 'b', 'c'})
 
@@ -405,6 +406,7 @@ T.ds_path = function()
   T.eq('/foo/bar/', pc{'/foo/', 'bar/'})
   T.eq('',          pc{''})
   T.eq('foo',       pc{'', 'foo'})
+  T.eq('foo',       pc{'foo', ''})
   T.eq('a/b',       pc{'a', '', 'b'})
   T.eq('a/b',       pc{'a/', '', 'b'})
 
@@ -425,6 +427,10 @@ T.ds_path = function()
   T.throws('before root', function() pr('/../../a') end)
   T.throws('before root', function() pr('/a/../..') end)
   T.throws('before root', function() pr('/a/../../') end)
+
+  assert(#path.cwd() ~= 1, path.cwd())
+  T.eq(path.abs'', path.cwd())
+  T.eq(path.abs{}, path(path.cwd()))
 
   local pn = path.nice
   T.eq('./',        pn('a/..'))
@@ -466,6 +472,13 @@ T.ds_path = function()
 
   T.eq({'y', 'z/z', 'a/', 'a/b/'},
     M.sort({'a/', 'a/b/', 'z/z', 'y'}, path.cmpDirsLast))
+
+  local rel = path.relative
+  T.eq('a/b',        rel('',   'a/b'))
+  T.eq('../a/b',     rel('c/', 'a/b'))
+  T.eq('../bin/foo', rel('lua/foo.lua', 'bin/foo'))
+  T.eq(rel('/foo/bar',  '/foo/baz/bob'), 'baz/bob')
+  T.eq(rel('/foo/bar/', '/foo/baz/bob'), '../baz/bob')
 end
 
 local heap = require'ds.heap'

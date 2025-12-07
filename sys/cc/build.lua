@@ -12,7 +12,6 @@ local T  = require'civtest'
 local push = ds.push
 
 local b = require'civ.Builder':get()
-io.stderr:write'cc builder starting\n'
 
 local function pushLibs(cmd, tgt)
   if tgt.out.lib then
@@ -25,7 +24,6 @@ end
 
 for _, id in ipairs(b.ids) do
   local tgt = b:target(id)
-  io.stderr:write('cc building target: ', tgt:tgtname(), '\n')
   ix.mkDirs(b.cfg.buildDir..'lib')
   b:copyOut(tgt, 'include')
   local lib = tgt.out.lib; if lib then

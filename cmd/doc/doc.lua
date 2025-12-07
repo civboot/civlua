@@ -465,7 +465,6 @@ M.main = function(args)
   local to = args.to and shim.file(args.to) or nil
   local f, c = fmt.Fmt{to=to}, M._Construct{}
   for _, obj in ipairs(args) do
-    print('!! obj:', obj)
     if args.pkg then fmtPkg(f, c, obj, expand, args.pkg == 'deep')
     else
       if type(obj) == 'string' then

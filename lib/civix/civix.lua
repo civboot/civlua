@@ -72,7 +72,6 @@ B.sh = function(cmd) --> stdout, stderr, fakeSh
     end
     cmd = concat(t, ' ')
   end
-  print('!! sh:', cmd)
   local f = io.popen(cmd, 'r')
   local out, done, why, rc = f:read'*a', f:close()
   if not rcOk and rc ~= 0 then shError(cmd, out, rc) end
@@ -469,7 +468,7 @@ M.mkDirs = function(path)
                     dir, errmsg) end
   end
 end
-M.mkDir = function(path, parents) --!!> nil
+M.mkDir = function(path, parents) --!> nil
   if parents then M.mkDirs(pth(path))
   else fmt.assertf(mkdir(path), "mkdir failed: %s", path) end
 end
@@ -507,7 +506,7 @@ end
 --- a/a2.txt    # content: stuff in a2.txt
 --- a/a3/a4.txt # content: stuff in a3.txt
 --- ]#
-M.mkTree = function(dir, tree, parents) --!!> nil
+M.mkTree = function(dir, tree, parents) --!> nil
   M.mkDir(dir, parents)
   for name, v in pairs(tree) do
     local p = pc{dir, name, type(v) == 'table' and '/' or nil}

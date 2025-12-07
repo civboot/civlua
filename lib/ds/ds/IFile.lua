@@ -18,7 +18,7 @@ getmetatable(IFile).__index = mty.hardIndex
 IFile.__newindex            = mty.hardNewindex
 
 --- seek to index in the "mode" m. Invariant: [$i <= len+1]
-local function iseek(fi, i, m, sz) --!!> nil
+local function iseek(fi, i, m, sz) --!> nil
   if fi._i == i and fi._m == m then return end
   fi._m = m
   local to = (i-1) * sz
@@ -66,7 +66,7 @@ end
 
 --- get bytes. If index out of bounds return nil.
 --- Panic if there are read errors.
-IFile.getbytes = function(fi, i) --!!> str?
+IFile.getbytes = function(fi, i) --!> str?
   if i > fi.len then return end
   local sz = fi.sz; iseek(fi, i, 'r', sz)
   local v = assert(fi.f:read(sz))

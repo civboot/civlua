@@ -6,7 +6,7 @@ local M = G.mod and mod'ds.path' or setmetatable({}, {__name='ds.path'})
 
 local mty = require'metaty'
 local ds = require'ds'
-local push = table.insert
+local push, pop = table.insert, table.remove
 local sfmt = string.format
 local update = table.update
 
@@ -41,7 +41,8 @@ M.append = function(path, text)
 end
 
 getmetatable(M).__call = function(_, p)
-  if type(p) == 'table' then return p end
+  if type(p) == 'table' then return p  end
+  if p == ''            then return {} end
   p = splitList(p, '/+')
   if p[1] == ''  then p[1] = '/' end
   local len = #p
@@ -51,17 +52,20 @@ getmetatable(M).__call = function(_, p)
   return p
 end
 
---- get current working directory
-M.cwd = function() return G.CWD or os.getenv'PWD' or os.getenv'CD' end
-
---- get the user's home directory
-M.home = function()
-  local d = G.HOME; if d then return d end
-  d = os.getenv'HOME' or os.getenv'HOMEDIR'
+M.pathenv = function(var, alt)
+  local d = G[var]; if d then return d end
+  d = os.getenv(var) or alt and os.getenv(alt)
   assert(d, 'no HOME directory set')
-  d = M.toDir(M.canonical(d)); G.HOME = d
+  d = M.toDir(M.canonical(d)); G[var] = d
   return d
 end
+
+--- get current working directory
+M.cwd = function() return M.pathenv('PWD', 'CD') end
+
+--- get the user's home directory
+M.home = function() return M.pathenv('HOME', 'HOMEDIR') end
+
 --- join a table of path components
 M.concat = function(t, _) --> string
   assert(not _, 'usage: concat{...}')
@@ -97,12 +101,11 @@ M.abs = function(path, wd) --> /absolute/path
   if type(path) == 'string' then
     if (path:sub(1,1) == '/') then return path end
     wd = wd or M.cwd()
-    return (wd:sub(-1) == '/') and (wd..path)
-                               or  (wd..'/'..path)
+    return wd..path
   end
-  if path[1]:sub(1,1) == '/' then return path end
-  wd = wd or M.cwd()
-  return extend(M(wd), path)
+  local st = path[1]
+  if st and st:sub(1,1) == '/' then return path end
+  return extend(M(wd or M.cwd()), path)
 end
 
 --- resolve any `..` or `.` path components, making the path
@@ -213,6 +216,31 @@ end
 
 M.toNonDir = function(path) --> path (without ending /)
   return (path:sub(-1) == '/') and path:sub(1,-2) or path
+end
+
+--- return the relative path needed to get from [$from] to [$to].
+---
+--- Note: this ignores (pops) the last item in [$from] if it's not a dir/.
+---
+--- For example
+--- T.eq(relative('/foo/bar',  '/foo/baz/bob'), 'baz/bob')
+--- T.eq(relative('/foo/bar/', '/foo/baz/bob'), '../baz/bob')
+M.relative = function(from, to, wd)
+  local inpTy = type(from)
+  from, to = M.abs(M(from), wd), M.abs(M(to), wd) -- make abspath lists
+  assert(from[1] == to[1] and from[1] == '/', 'not abs paths')
+  if not M.isDir(from[#from]) then pop(from) end
+  local rel = {}
+  -- find index they have shared root (si=shared index)
+  local si=1; for i=2,#from do
+    si = i
+    if from[i] ~= to[i] then
+      si=i-1; break
+    end
+  end
+  for _=si+1,#from do push(rel, '..')  end -- get from down to same root
+  for i=si+1,#to   do push(rel, to[i]) end -- push remaing to path
+  return inpTy == 'string' and M.concat(rel) or rel
 end
 
 --- path comparison function for [$table.sort] that sorts

@@ -231,7 +231,6 @@ M.assertHtml = function(expectedHtml, cxtDat, dbg)
   local node, p = cxt.parse(cxtDat, dbg)
   local w = cxt.Writer:fromParser(p)
   M.serialize(w, node)
-  require'ds.log'.trace('!! w.to:', setmetatable(w.to, nil))
   T.eq(expectedHtml, concat(w.to))
 end
 

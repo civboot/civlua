@@ -18,8 +18,8 @@ After you follow the directions regarding PATH variables you
 can then run:
 
 ```sh
-civ.lua install civ: civ:cmd/ff  # install software
-ff.lua p:'%.lua$' HOME           # run find-fix command
+civ install civ: civ:cmd/ff  # install software
+ff p:'%.lua$' HOME           # run find-fix command
 ```
 
 Needed items to make this code hackable again:

@@ -30,7 +30,6 @@ local Builder = mty'civ.Builder' {
   'targets [id -> Target]: already loaded targets',
 }
 getmetatable(Builder).__call = function(T, self)
-  fmt.print('creating Builder:', self)
   assert(self.ids,    'must set ids')
   assert(self.cfg,    'must set cfg')
   assert(self.tgtsDb, 'must set tgtsDb')
@@ -67,7 +66,6 @@ function Builder:target(id) --> Target
   return tgt
 end
 
-
 --- Copy output files from [$tgt.out[outKey]].
 function Builder:copyOut(tgt, outKey)
   if not tgt.out[outKey] then return nil, 'missing out: '..outKey end
@@ -80,6 +78,15 @@ function Builder:copyOut(tgt, outKey)
     ix.forceCp(from, to)
   end
   return true
+end
+
+function Builder:link(tgt)
+  local O = self.cfg.buildDir
+  for from, to in pairs(tgt.link or EMPTY) do
+    local f, t = O..from, O..to
+    info('ln %q -> %q: %q', f, t, pth.relative(t, f))
+    ix.sh{'ln', '-s', pth.relative(t, f), t}
+  end
 end
 
 --- Make self the singleton (future calls to Builder.get will return)

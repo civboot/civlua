@@ -198,7 +198,6 @@ Buffer.insetTracked = function(b, l, lines, rmlen) --> changes
 end
 
 Buffer.insert = function(b, s, l, c)
-  log.info('!! insert', {l, c})
   l, c = lines.bound(b.dat, l, c)
   local ch = b:changeIns(s, l, c)
   lines.inset(b.dat, s, l, c)

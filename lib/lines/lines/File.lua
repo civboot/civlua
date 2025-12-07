@@ -40,7 +40,7 @@ File.__newindex            = mty.hardNewindex
 File.IDX_DIR = pth.concat{pth.home(), '.data/lines'}
 
 File._initnew = ds.noop -- empty file: do nothing
-File._reindex = function(f, idx, l, pos) --!!> nil
+File._reindex = function(f, idx, l, pos) --!> nil
   l, pos = l or 1, pos or 0
   if f:seek'end' == 0 then return end
   assert(f:seek('set', pos))

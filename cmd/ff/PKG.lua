@@ -21,6 +21,7 @@ P.ff = lua {
     'civ:lib/lines',
     'civ:lib/civtest',
   },
+  link = {['lua/ff.lua'] = 'bin/ff'},
 }
 
 return P

@@ -106,6 +106,7 @@ M.Target = pod(mty'Target' {
      * bin: executable binaries
      * lua: lua files
  ] ]],
+  'link {str: str}: link outputs from -> to',
   'tag [table]: arbitrary attributes like test, testonly, etc.',
   'build [str]: lua script (file) on how to build target.',
  [[run {string}: command to run the target. The first value must be the path to
@@ -198,7 +199,6 @@ function M.Civ:abspath(pkgpath) --> abspath
   if not hub then error(pkgpath..' must start with "hub:"') end
   local apath = pth.concat{self.hubs[hub] or error('unknown hub: '..hub),
                            p}
-  info('!! abspath %q %q -> %q', pkgpath, self.hubs[hub], apath)
   return apath
 end
 

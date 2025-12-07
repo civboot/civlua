@@ -158,7 +158,6 @@ M.Literal = mty'Literal' { 'ty [iA.Ty]' }
 
 --- Create a Literal
 M.literal = function(v)
-  info('!! literal %q', v)
   if not v then error('invalid literal: '..tostring(v)) end
   if type(v) == 'string' then
     error'strings not yet impl'

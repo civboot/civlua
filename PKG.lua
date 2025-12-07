@@ -12,7 +12,6 @@ local lua = import'sys:lua.luk'
 
 P.civ = lua {
   mod = 'civ',
-  -- bin = {['civ.lua'] = 'civ'},
   src = {
     'civ.lua',
     'civ/core.lua',
@@ -28,6 +27,7 @@ P.civ = lua {
     'civ:lib/civtest',
   },
   tag = { builder = 'bootstrap' },
+  link = {['lua/civ.lua'] = 'bin/civ'},
 }
 
 return P

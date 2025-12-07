@@ -7,11 +7,10 @@ assert(not G.MAIN, 'must be run as main')
 G.MAIN = M
 
 local b = require'civ.Builder':get()
-io.stderr:write'lua builder starting\n'
 
 for _, id in ipairs(b.ids) do
   local tgt = b:target(id)
-  io.stderr:write('lua building target: ', tgt:tgtname(), '\n')
   b:copyOut(tgt, 'lua')
   b:copyOut(tgt, 'data')
+  b:link(tgt)
 end

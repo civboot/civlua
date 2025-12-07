@@ -7,7 +7,8 @@ local Lua = record'Lua' {
   'src {string}',
   'dep {Target}',
   'lib {name: Target}: dynamic library modules.',
-  'bin {path: path}: keys are lua src files, values are paths to go in bin/',
+  'link {path: path}: output files to link from -> to.'
+  ..' Creates relative symlinks',
   'tag {table}',
 }
 
@@ -61,10 +62,6 @@ return function(l)
   end
   assert(not isEmpty(luaOut), 'src is empty')
   t.out = { lua = luaOut }
-
-  if not isEmpty(l.bin or EMPTY) then
-    error'lua.bin not yet supported'
-  end
-
+  t.link = l.link
   return t
 end
