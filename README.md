@@ -10,14 +10,16 @@ is roughly how that is done:
 ```sh
 export LOGLEVEL=INFO
 lua bootstrap.lua init         # create .civconfig.lua
-lua bootstrap.lua boot-test    # run bootstrapped tests
-lua bootstrap.lua install civ: # install civ locally
-```
 
-After you follow the directions regarding PATH variables you
-can then run:
+# run bootstrapped tests with log output.
+LOGLEVEL=INFO lua bootstrap.lua boot-test
 
-```sh
+# install civ in ~/.local/civ/
+lua bootstrap.lua install civ:
+
+# After following the directions regarding PATH variables run:
+
+# install civ + ff command
 civ install civ: civ:cmd/ff  # install software
 ff p:'%.lua$' HOME           # run find-fix command
 ```

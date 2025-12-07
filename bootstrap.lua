@@ -9,18 +9,19 @@ local D = src:match'@?(.*)bootstrap%.lua$'
 print(sfmt('running bootstrap.lua in dir %q', D))
 assert(not os.execute'ls lua*.core', 'lua.*core file found!!')
 
+assert(not MAIN, 'bootstrap.lua must not be used as a library')
 MAIN = {}
 METATY_CHECK = true
-NOLIB = true
+NOLIB, BOOTSTRAP = true, true
 
 local function preload(name, path)
   package.loaded[name] = dofile(D..path)
 end
 
-LOGLEVEL = tonumber(os.getenv'LOGLEVEL') or 4
-LOGFN = function(lvl, msg) if LOGLEVEL >= lvl then
-  io.stderr:write(sfmt('LOG(%s): %s\n', lvl, msg))
-end end
+-- LOGLEVEL = tonumber(os.getenv'LOGLEVEL') or 4
+-- LOGFN = function(lvl, msg) if LOGLEVEL >= lvl then
+--   io.stderr:write(sfmt('LOG(%s): %s\n', lvl, msg))
+-- end end
 
 print'[[load]]'
   preload('metaty', 'lib/metaty/metaty.lua')
@@ -60,6 +61,7 @@ print'[[load]]'
   preload('vt100.AcWriter', 'lib/vt100/vt100/AcWriter.lua')
   preload('civ.core', 'civ/core.lua')
   preload('civ.Builder', 'civ/Builder.lua')
+  preload('civ', 'civ.lua')
 
   -- Additional
   preload('lson', 'lib/lson/lson.lua')
@@ -67,9 +69,14 @@ print'[[load]]'
   preload('pod.testing', 'lib/pod/testing/testing.lua')
   preload('lines.testing', 'lib/lines/testing/testing.lua')
 
-print'[[test]]'
+require'asciicolor'.setup()
+require'fmt'.print('Running bootstrap.lua:', G.arg)
+
+local core = require'civ.core'
+
+local function bootTest()
+  print'[[test]]'
   -- setup and run tests
-  require'asciicolor'.setup()
 
   dofile(D..'lib/metaty/test.lua')
   dofile(D..'lib/fmt/test.lua')
@@ -91,20 +98,19 @@ print'[[test]]'
   dofile(D..'lib/lines/test.lua')
   dofile(D..'lib/asciicolor/test.lua')
   dofile(D..'lib/vt100/test.lua')
-  -- dofile(D..'lib/lson/test.lua')
-  -- dofile(dir..'lib/luck/test.lua')
+  dofile(D..'lib/lson/test.lua')
+  -- dofile(D..'lib/luk/test.lua') TODO
 
-io.fmt:styled('notify', 'Tests done, running civ.lua', '\n')
-require'fmt'.print('args:', arg)
-
-local core = require'civ.core'
-
-G.BOOTSTRAP = true
-if arg[1] == 'boot-test' then
-  preload('civ', 'civ.lua')
   dofile(D..'test_civ.lua')
-  print('boot-test complete')
-  return
+  io.fmt:styled('notify', 'boot-test done', '\n')
 end
 
-G.MAIN = nil; dofile(D..'civ.lua')
+local function main()
+  G.MAIN = nil; dofile(D..'civ.lua')
+end
+
+if arg[1] == 'boot-test' then
+  return bootTest()
+end
+
+main()
