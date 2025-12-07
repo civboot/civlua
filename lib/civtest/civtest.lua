@@ -1,10 +1,11 @@
-local G = G or _G
+local mty = require'metaty'
 
 --- module for writing simple tests
-local M = G.mod and G.mod'civtest' or setmetatable({}, {})
-M.SUBNAME = ''
+local M = mty.mod'civtest'
+local G = mty.G; G.MAIN = G.MAIN or M
 
 local mty = require'metaty'
+local shim = require'shim'
 local fmt = require'fmt'
 local fbin = require'fmt.binary'
 local ds = require'ds'
@@ -12,9 +13,10 @@ local pth = require'ds.path'
 local lines = require'lines'
 local ix = require'civix'
 
+M.SUBNAME = ''
+
 local getmt = getmetatable
 local push, sfmt = table.insert, string.format
-local function exit(rc) io.stderr:flush(); os.exit(rc) end
 
 local function errordiff(e, r)
   local f = io.fmt
@@ -158,7 +160,19 @@ M.path = function(path, expect)
 end
 
 getmetatable(M).__newindex = function(m, name, fn)
+  print('!! civtest newindex', name, fn)
   return m.runTest(name, fn, select(2, mty.fninfo(fn)))
 end
+
+-- M.Args = mty'Args' {
+--   -- no args yet
+-- }
+-- getmetatable(M.Args).__index = nil
+-- 
+-- M.main = function(args)
+-- 
+--   args = shim.construct(M.Args, shim.parse(args))
+-- end
+-- if G.MAIN == M then M.main(shim.parse(G.arg)) end
 
 return M

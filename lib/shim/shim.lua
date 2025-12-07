@@ -160,6 +160,13 @@ M.popRaw = function(args, to) --> to
   return to
 end
 
+--- Setup lua using [$require(LUA_SETUP).setup(args, force)].
+---
+--- The default is to use fmt.setup.
+M.setup = function(args, force)
+  require(rawget(_G, 'LUA_SETUP') or os.getenv'LUA_SETUP' or 'fmt').setup(args, force)
+end
+
 --- Construct a metaty-like object from args.
 ---
 --- If [$Args.subcmd] is truthy then treats it as a table of

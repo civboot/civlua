@@ -415,6 +415,24 @@ M.stop = function(fd, savedmode)
   M.restoremode(savedmode)
 end
 
+--- create a Fmt with sensible defaults from the config
+M.Fmt = function(t)
+  assert(t.to, 'must set to = the output')
+  if t.style == nil then t.style = shim.getEnvBool'COLOR' end
+  if t.style or (t.style==nil) and fmt.TTY[t.to] then
+    t.style, t.to = true, acolor.Styler {
+      acwriter = require'vt100.AcWriter'{f=t.to},
+      style = M.loadStyle(),
+    }
+  end
+  return fmt.Fmt(t)
+end
+
+M.setup = function(to, user)
+  io.fmt  = M.Fmt{to=to   or io.stderr}
+  io.user = M.Fmt{to=user or io.stdout}
+end
+
 --- Listens to keyboard inputs and echoes them.
 M.main = function(args)
   local epath = '/tmp/vt100.err'

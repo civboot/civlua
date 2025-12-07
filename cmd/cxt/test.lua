@@ -1,5 +1,3 @@
-METATY_CHECK = true
-
 local pkg = require'pkglib'
 local mty = require'metaty'
 local fmt = require'fmt'

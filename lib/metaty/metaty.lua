@@ -7,6 +7,10 @@ local push = table.insert
 local rawget, rawset = rawget, rawset
 local _G = _G
 
+local LUA_OPT = rawget(_G, 'LUA_OPT') or tonumber(os.getenv'LUA_OPT' or 2)
+rawset(_G, 'LUA_OPT', LUA_OPT)
+print('!! LUA_OPT', type(LUA_OPT), LUA_OPT)
+
 local G = setmetatable({}, {
   __name='G(init globals)',
   __index    = function(_, k)    return rawget(_G, k)    end,
@@ -113,8 +117,6 @@ M.isEnvG = function(var) -- is env or globals
   local e = M.isEnv(var); if e ~= nil then return e end
   return G[var]
 end
-local CHECK  = M.isEnvG'METATY_CHECK' or false -- private
-M.getCheck = function() return CHECK end
 
 --- get method of table if it exists.
 --- This first looks for the item directly on the table, then the item
@@ -353,7 +355,7 @@ M.namedRecord = function(name, R, loc)
     __tostring = function() return R.__name end,
   }
   local R = setmetatable(R, mt)
-  if G.METATY_CHECK then
+  if G.LUA_OPT <= 2 then
     mt.__call    = M.constructChecked
     mt.__index   = M.index
     rawset(R, '__newindex', rawget(R, '__newindex') or M.newindex)

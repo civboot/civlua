@@ -1,4 +1,3 @@
-METATY_CHECK = true
 local function testloc()  return require'ds'.srcloc() end
 local function testshort() return require'ds'.shortloc() end
 local loc1, loc2 = testloc(), testshort()
@@ -38,8 +37,8 @@ local D = ds.srcdir()
 -- ds.lua
 
 T.loc = function()
-  T.eq('lib/ds/test.lua:4', loc1)
-  T.eq('ds/test.lua:4', loc2)
+  T.eq('lib/ds/test.lua:3', loc1)
+  T.eq('ds/test.lua:3', loc2)
 
   T.eq(   'lib/ds/',          M.srcdir())
   local function fn()
@@ -581,9 +580,9 @@ T.error = function()
   local expect = M.Error{
     msg='a error',
     traceback={
-      "lib/ds/test.lua:5: in upvalue 'a'",
-      "lib/ds/test.lua:6: in upvalue 'b'",
-      "lib/ds/test.lua:6: in function <lib/ds/test.lua:6>",
+      "lib/ds/test.lua:4: in upvalue 'a'",
+      "lib/ds/test.lua:5: in upvalue 'b'",
+      "lib/ds/test.lua:5: in function <lib/ds/test.lua:5>",
     },
   }
   T.eq(expect, err)

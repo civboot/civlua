@@ -11,7 +11,6 @@ assert(not os.execute'ls lua*.core', 'lua.*core file found!!')
 
 assert(not MAIN, 'bootstrap.lua must not be used as a library')
 MAIN = {}
-METATY_CHECK = true
 NOLIB, BOOTSTRAP = true, true
 
 local function preload(name, path)

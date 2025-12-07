@@ -13,6 +13,7 @@ local lua = import'sys:lua.luk'
 
 P.shim = lua {
   mod = 'shim',
+  dep = { 'civ:lib/fmt' },
   tag = { builder = 'bootstrap' },
 }
 

@@ -1,5 +1,3 @@
-METATY_CHECK = true
-
 local ds = require'ds'
 local iA = require'iA'
 local piA = require'iA.parse'

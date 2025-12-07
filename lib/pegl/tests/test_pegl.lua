@@ -1,5 +1,3 @@
-METATY_CHECK = true
-
 local mty = require'metaty'
 local T = require'civtest'
 local ds = require'ds'

@@ -1,5 +1,3 @@
-METATY_CHECK = true
-
 local mty = require'metaty'
 local ds  = require'ds'
 local fmt = require'fmt'

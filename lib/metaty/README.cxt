@@ -3,8 +3,7 @@ simple but effective Lua type system using metatables
 Metatype is a library and specification for creating performant, documented, and
 typo-safe Lua record-types which can be formatted.
 
-[" Turn on typo checking by setting the global [$METATY_CHECK=true] before
-   requiring any modules that require metaty.]
+[" Turn off typo checking by setting the global [$LUA_OPT=3] or higher.]
 
 [{## lang=lua}
 local G = G or _G
@@ -24,7 +23,8 @@ local p1 = Pos{x=4, y=3, z=5} -- error if checking turned on
 ]##
 
 The above expands to the following. Note that the "typosafe" elements
-are removed when [$not METATY_CHECK] [{## lang=lua}
+are removed when [$LUA_OPT > 3]
+[{## lang=lua}
 local M = {}
 local metaty = require'metaty'
 
@@ -100,11 +100,8 @@ The following fields can optionally be set on the metatable: [+
 In addition, there is runtime type specification defined below.
 
 [{h3 name=metaty-typoe-check}Runtime typo checking (optional)]
-["Note: Runtime typo checking has a cost and so is [*optional]
-  (default=false)]
-
-To enable runtime checking set the global value [$METATY_CHECK = true] at the
-top of your application or test file (before executing ANY [$require] calls).
+["Note: Runtime typo checking has a cost and can be disabled with
+  LUA_OPT=3 or higher.]
 
 You can override the typo-checking behavior of a single type with [{## lang=lua}
 getmetatable(MyType).__call  = myConstructor

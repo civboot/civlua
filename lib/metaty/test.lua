@@ -2,7 +2,7 @@ G.METATY_CHECK = true
 
 local ge = {}; for k in pairs(_G) do table.insert(ge, k) end
 local M = require'metaty'
-assert(M.getCheck())
+assert(LUA_OPT <= 2)
 
 local mty, split = M, M.split
 

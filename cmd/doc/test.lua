@@ -11,8 +11,6 @@ M.Example  = require'metaty''Example'{
 }
 M.Example.method = function() end
 
-METATY_CHECK = true
-
 local pkglib = require'pkglib'
 local mty = require'metaty'
 local fmt = require'fmt'

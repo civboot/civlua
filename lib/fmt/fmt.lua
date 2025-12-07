@@ -295,8 +295,6 @@ local format = M.format
 M.errorf  = function(...)    error(format(...), 2)             end
 M.assertf = function(a, ...) return a or error(format(...), 2) end
 
-io.fmt = io.fmt or Fmt{to=io.stderr}
-
 M.fprint = function(f, ...)
   local len = select('#', ...)
   for i=1,len do
@@ -323,6 +321,11 @@ end
 
 --- pretty format the value
 M.pretty = function(v) return concat(Fmt:pretty{}(v)) end --> string
+
+M.setup = function(args)
+  io.user = io.user or Fmt{to=io.stdout}
+  io.fmt = io.fmt   or Fmt{to=io.stderr}
+end
 
 --- directly call fmt for better [$tostring]
 getmt(M).__call = function(_, v) return concat(Fmt{}(v)) end
