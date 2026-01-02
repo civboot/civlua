@@ -145,8 +145,6 @@ else
   --- Stat object with mode() and modified() functions
   M.Stat = lib.Stat
 
-  --- list entires in directory.
-  M.ls = lib.dir -- (path) --> iter(str)
 
   --- list entires in directory.
   M.dir = function(dir) --> iter[entry]
@@ -342,7 +340,7 @@ local function _walk(base, ftypeFns, maxDepth, depth)
   if ftypeFns.dirDone then ftypeFns.dirDone(base, 'dir') end
 end
 
---- TODO: remove this
+--- TODO: remove this, use Walk instead.
 --- walk the paths up to depth, calling [$ftypeFns[ftype]] for
 --- each item encountered.
 ---
@@ -544,6 +542,7 @@ M.Sh = mty'Sh' {
   "stdin  [file|bool]: shell's stdin to send  (default=empty)",
   "stdout [file|bool]: shell's stdout              (default=empty)",
   "stderr [file|bool]: shell's stderr              (default=empty)",
+  -- WARNING: must outlive the subprocess.
   "env [list]:  shell's environment {'FOO=bar', ...}",
   "cwd [string]: current working directory",
   '_sh [userdata]: internal C implemented shell',
@@ -625,6 +624,9 @@ M._sh = function(cmd) --> Sh
     sh.stderr = pk(cmd, 'stderr')
     sh.env    = pk(cmd, 'ENV')
     sh.cwd    = pk(cmd, 'CWD')
+    if sh.env then
+      push(sh.env, 'PWD='..(sh.cwd or pth.cwd()))
+    end
   end
   sh.args = shim.expand(cmd)
   if type(sh.stdin) == 'string' then

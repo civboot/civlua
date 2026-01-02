@@ -1,21 +1,13 @@
 local P = {}
 P.summary = "civ build system and developer software stack"
 local lua = import'sys:lua.luk'
--- pkg {
---   name    = 'civ',
---   version = '0.1-0',
---   url     = 'git+http://github.com/civboot/civlua',
---   doc     = 'README.cxt',
---   repo    = 'https://github.com/civboot/civlua',
---   homepage = 'https://lua.civboot.org',
--- }
 
 P.civ = lua {
   mod = 'civ',
   src = {
     'civ.lua',
-    'civ/core.lua',
-    'civ/Builder.lua',
+    'core.lua',
+    'Worker.lua',
   },
   dep = {
     'civ:lib/civix',
@@ -30,7 +22,12 @@ P.civ = lua {
   link = {['lua/civ.lua'] = 'bin/civ'},
 }
 
-return P
+P.test_civ = lua.test {
+  src = 'test_civ.lua',
+  dep = {
+    'civ:cmd/civ',
+  }
+}
 
 -- local FILE = 'https://github.com/civboot/civlua/blob/main/'
 -- local FILE_LINE = FILE..'%s#L%s'
@@ -49,3 +46,6 @@ return P
 --   end,
 -- }
 --
+
+return P
+

@@ -5,7 +5,6 @@ local M = mty.mod'civtest'
 local G = mty.G; G.MAIN = G.MAIN or M
 
 local mty = require'metaty'
-local shim = require'shim'
 local fmt = require'fmt'
 local fbin = require'fmt.binary'
 local ds = require'ds'
@@ -86,9 +85,10 @@ end
 M.matches = function(pat, subj) --> !?error
   if subj:find(pat) then return end
   local f = io.fmt
+  print('pat:', pat, 'subj:', subj)
   f:styled('error', '\n!! RESULT:', '\n');   f(subj)
   f:styled('error', '\n!! Did not match:', sfmt('%q\n', pat))
-  f:styled('error', '!! Failed Test.matches:', ' ')
+  f:styled('error', '!! Failed Test.matches: ', ' ')
   f:styled('path', pth.nice(ds.srcloc(1)), '\n')
   fail'matches'
 end
@@ -160,19 +160,7 @@ M.path = function(path, expect)
 end
 
 getmetatable(M).__newindex = function(m, name, fn)
-  print('!! civtest newindex', name, fn)
   return m.runTest(name, fn, select(2, mty.fninfo(fn)))
 end
-
--- M.Args = mty'Args' {
---   -- no args yet
--- }
--- getmetatable(M.Args).__index = nil
--- 
--- M.main = function(args)
--- 
---   args = shim.construct(M.Args, shim.parse(args))
--- end
--- if G.MAIN == M then M.main(shim.parse(G.arg)) end
 
 return M

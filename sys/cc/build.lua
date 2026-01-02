@@ -11,31 +11,30 @@ local T  = require'civtest'
 
 local push = ds.push
 
-local b = require'civ.Builder':get()
+local w = require'civ.Worker':get()
 
 local function pushLibs(cmd, tgt)
   if tgt.out.lib then
     push(cmd, '-l'..assert(tgt.out.lib:match'lib([%w_]+)%.so'))
   end
   for _, id in ipairs(tgt.dep) do
-    pushLibs(cmd, b:target(id))
+    pushLibs(cmd, w:target(id))
   end
 end
 
-for _, id in ipairs(b.ids) do
-  local tgt = b:target(id)
-  ix.mkDirs(b.cfg.buildDir..'lib')
-  b:copyOut(tgt, 'include')
+for _, id in ipairs(w.ids) do
+  local tgt = w:target(id)
+  ix.mkDirs(w.cfg.buildDir..'lib')
+  w:copyOut(tgt, 'include')
   local lib = tgt.out.lib; if lib then
     local cmd = {'cc'}
     for _, src in ipairs(tgt.src) do push(cmd, tgt.dir..src) end
     -- TODO: needs to come from sys:lua.
     push(cmd, '-llua')
-  
-    ds.extend(cmd, {'-fPIC', '-I'..b.cfg.buildDir..'include'})
+    ds.extend(cmd, {'-fPIC', '-I'..w.cfg.buildDir..'include'})
     for _, dep in ipairs(tgt.dep or EMPTY) do pushLibs(cmd, dep) end
     push(cmd, '-shared')
-    lib = b.cfg.buildDir..'lib/'..lib
+    lib = w.cfg.buildDir..'lib/'..lib
     ds.extend(cmd, {'-o', lib})
     ix.sh(cmd)
     T.exists(lib)

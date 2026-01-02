@@ -20,7 +20,7 @@ T.isPod = function()
   T.eq(true,  pod.isPod'hi')
 
   T.eq(nil,  pod.isPod(function() end))
-  T.eq(nil,  pod.isPod(io.open'PKG.lua'))
+  T.eq(nil,  pod.isPod(io.open'README.cxt'))
 
   T.eq(true, pod.isPod{1, 2, a=3})
   T.eq(true, pod.isPod{1, 2, a={4, 5, b=6}})

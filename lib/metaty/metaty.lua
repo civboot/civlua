@@ -7,9 +7,8 @@ local push = table.insert
 local rawget, rawset = rawget, rawset
 local _G = _G
 
-local LUA_OPT = rawget(_G, 'LUA_OPT') or tonumber(os.getenv'LUA_OPT' or 2)
-rawset(_G, 'LUA_OPT', LUA_OPT)
-print('!! LUA_OPT', type(LUA_OPT), LUA_OPT)
+rawset(_G, 'LUA_OPT', rawget(_G, 'LUA_OPT')
+                   or tonumber(os.getenv'LUA_OPT' or 1))
 
 local G = setmetatable({}, {
   __name='G(init globals)',
@@ -310,7 +309,7 @@ end
 M.constructUnchecked = function(T, t)
   return setmetatable(t, T)
 end
-M.construct = (CHECK and M.constructChecked) or M.constructUnchecked
+M.construct = (G.LUA_OPT <= 2 and M.constructChecked) or M.constructUnchecked
 M.extendFields = function(fields, ids, docs, R)
   for i=1,#R do
     local spec = rawget(R, i); rawset(R, i, nil)

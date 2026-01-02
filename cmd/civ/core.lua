@@ -9,7 +9,7 @@ local shim = require'shim'
 local fmt = require'fmt'
 local ds = require'ds'
 local dload = require'ds.load'
-local info = require'ds.log'.info
+local log = require'ds.log'
 local pth = require'ds.path'
 local pod = require'pod'
 local luk = require'luk'
@@ -18,6 +18,7 @@ local ix = require'civix'
 local File = require'lines.File'
 local T = require'civtest'
 
+local info = log.info
 local sfmt = string.format
 local getmt, setmt = getmetatable, setmetatable
 local push, pop = ds.push, table.remove
@@ -97,7 +98,7 @@ M.Target = pod(mty'Target' {
   'dir [str]: directory of src files',
   'src {key: str}: list of input source files (strings).',
   'dep {str}: list of input Target objects (dependencies).',
-  'depIds {int}: list of dependency target ids. Populated for Builder.',
+  'depIds {int}: list of dependency target ids. Populated for Worker.',
  [[out [table]: POD table output segregated by language.[+
      * t: PoD in a k/v table, can be used to configure downstream targets.
      * data: list of raw files.
@@ -108,21 +109,20 @@ M.Target = pod(mty'Target' {
  ] ]],
   'link {str: str}: link outputs from -> to',
   'tag [table]: arbitrary attributes like test, testonly, etc.',
-  'build [str]: lua script (file) on how to build target.',
- [[run {string}: command to run the target. The first value must be the path to
-     an executable file relative to the out/ dir (i.e. buildDir, installDir). The
-     rest of the paramaters are arguments.
- ]],
+  'build [str]: executable script which builds the targets.',
+  'test [str]: executable script which tests the targets.',
+  'ENV [table]: the environment that scripts run in.',
 })
 M.ENV.Target = M.Target
 getmetatable(M.Target).__call = function(T, t)
   if type(t.src) == 'string' then t.src = {t.src} end
   if type(t.dep) == 'string' then t.dep = {t.dep} end
   t.dep = t.dep or {}
+  t.tag = t.tag or {}
+  if t.tag.builder ~= 'bootstrap' then push(t.dep, 'civ:cmd/civ') end
   for i, dep in ipairs(t.dep) do
     t.dep[i] = tgtnameFix(dep)
   end
-  t.tag = t.tag or {}
   return mty.construct(T, t)
 end
 function M.Target:tgtname() 
@@ -176,17 +176,68 @@ M.Civ = mty'Civ' {
   'pkgs: table of pkgname -> pkg',
   'luk [luk.Luk]',
   'cycle',
-  'builder [civ.Builder]: direct builder',
+  'worker [civ.Worker]: direct worker',
+  'ENV [table]: environment for running workers',
 }
 getmetatable(M.Civ).__call = function(T, self)
-  assert(self.cfg, 'must set cfg')
-  self.hubs = self.cfg.hubs
+  local cfg = assert(self.cfg, 'must set cfg')
+  local B = assert(cfg.buildDir, 'must set cfg.buildDir')
+  B = pth.abs(B); cfg.buildDir = B
+  self.hubs = cfg.hubs
   self.pkgs = self.pkgs or {}
   self.luk  = self.luk or luk.Luk{envMeta=M.ENV}
   self.cycle = self.cycle or {}
+  self.ENV = ds.update({
+    'HOME='..pth.home(),
+    'PATH='..os.getenv'PATH',
+    'LD_LIBRARY_PATH='..B..'lib/',
+    'LUA_PATH='       ..B..'lua/?.lua',
+    'LUA_CPATH='      ..B..'lib/lib?.so',
+    'LUA_SETUP='      ..LUA_SETUP,
+    'LOGLEVEL='       ..G.LOGLEVEL,
+  }, self.ENV or {})
   self = mty.construct(T, self)
   self.luk.pathFn = function(p) return self:abspath(p) end
   return self
+end
+
+--- Expand a pattern to it's targets
+function M.Civ:expand(pat) --> targets
+  local hub, pkgpat = pat:match'([%w_]+):(.*)$'
+  assertf(hub, 'invalid pkg pat: %q', pat)
+  local hubdir = assertf(self.hubs[hub], 'unknown hub: %s', hub)
+  local pkgdir, tgtpat = pkgpat:match'([^#]*)(#?.*)'
+  local pkgroot, pkgpat = pkgdir:match'([%w_/]+)/?(.*)'
+  local pkgnames = {}
+  info('!! pkgroot=%q pkgpat=%q', pkgroot, pkgpat)
+  if pkgpat == '' then push(pkgnames, sfmt('%s:%s', hub, pth.toNonDir(pkgroot)))
+  else
+    local hublist = pth(hubdir)
+    for path, ftype in ix.Walk(pth.concat{hubdir, pkgroot}) do
+      if ftype == 'dir' and path:match(pkgpat)
+          and ix.exists(pth.concat{path, 'PKG.lua'}) then
+        path = pth.rmleft(pth(path), hublist)
+        push(pkgnames, sfmt('%s:%s', hub, pth.toNonDir(pth.concat(path))))
+      end
+    end
+  end
+  local tgtnames = {}
+  if tgtpat == '' then 
+    for _, pkg in ipairs(pkgnames) do push(tgtnames, tgtnameFix(pkg)) end
+    return tgtnames
+  end
+  tgtpat = tgtpat:sub(2) -- remove '#'
+  self:load(pkgnames)
+  for _, pkgname in ipairs(pkgnames) do
+    local pkg = self.pkgs[pkgname]
+    for _, tgt in pairs(pkg) do
+      if mty.ty(tgt) ~= M.Target then goto continue end
+      info('!! tgt=%q name=%q pat=%q', tgt:tgtname(), tgt.name, tgtpat)
+      if tgt.name:find(tgtpat) then push(tgtnames, tgt:tgtname()) end
+      ::continue::
+    end
+  end
+  return ds.sort(tgtnames)
 end
 
 function M.Civ:getPkgname(dep) --> pkgname
@@ -236,7 +287,7 @@ function M.Civ:loadPkg(pkgname)
   if not pkgname:sub(-1) ~= ':' then pkgfile = pkgfile..'/' end
   pkgfile = pkgfile..'PKG.lua'
   pkg = self.luk:import(pkgfile)
-  assertf(mty.ty(pkg) == 'table',
+  assertf(mty.ty(pkg) == luk.Table,
     '%q did not return a table', pkgfile)
   pkg.pkgname = pkgname
   for k, tgt in pairs(pkg) do -- validation
@@ -245,7 +296,7 @@ function M.Civ:loadPkg(pkgname)
     assertf(not k:find'[^%w_]',
       '%s.%q: keys must be of [%w_]', pkgname, k)
     assertf(type(tgt) == 'string' or mty.ty(tgt) == M.Target,
-      '%s.%s: not a string or Target', pkgname, k)
+      '%s.%s is not a string or Target: %q', pkgname, k, tgt)
   end
   for k, tgt in pairs(pkg) do -- load deps
     if mty.ty(tgt) == M.Target then
@@ -280,11 +331,23 @@ function M.Civ:targetDepMap(tgts, depMap)
   for i, tgtname in ipairs(tgts) do
     assertf(type(tgtname) == 'string')
     if not depMap[tgtname] then
-      local tgt = self:target(tgtname)
+      local tgt = assertf(self:target(tgtname), 'unknown target %s', tgtname)
       depMap[tgtname] = tgt.dep or EMPTY
       self:targetDepMap(tgt.dep or EMPTY, depMap)
     end
   end
+end
+
+function M.Civ:run(script, ids)
+  local cmd = {
+    script,
+    '--config='..self.cfg.path,
+    sfmt('--tgtsDb=%stargets.json', self.cfg.buildDir),
+    ENV=self.ENV,
+  }
+  for _, id in ipairs(ids) do push(cmd, tostring(id)) end
+  info('Civ:run %q', cmd)
+  return ix.sh(cmd)
 end
 
 --- Build the target.
@@ -298,8 +361,8 @@ function M.Civ:build(tgts)
   -- For creating and running build scripts inline
   local main = G.MAIN
   G.MAIN = nil
-  local builder = require'civ.Builder' {
-    ids = {}, cfg = self.cfg, targets = {}, tgtsDb = {},
+  local worker = require'civ.Worker' {
+    ids = {}, cfg = self.cfg, tgtsCache = {}, tgtsDb = {},
   }:set()
 
   local ids = {} -- map tgtname -> id
@@ -311,33 +374,61 @@ function M.Civ:build(tgts)
   ix.mkDirs(self.cfg.buildDir..'bin/')
   for id, tgtname in ipairs(ordered) do
     local tgt = self:target(tgtname)
-    if not tgt.build then goto skip end
-    info('building target %q', tgtname)
     tgt = targetWithIds(tgt, ids)
-    push(builder.targets, tgt) -- for inline
+    ids[tgtname] = id
+    push(worker.tgtsCache, tgt) -- for inline
     tgtFile:write(lson.json(tgt)); tgtFile:write'\n'
     tgtFile:flush()
-    ids[tgtname] = id
+    if not tgt.build then goto skip end
+    info('building target %q', tgtname)
     local hub, bpath = hubpathSplit(tgt.build)
     local script = self.hubs[hub]..bpath
     if tgt.tag.builder == 'bootstrap'
         or (tgt.tag.builder == 'direct' and self.cfg.builder.direct) then
       -- build directly in-process: script must have no deps outside of civ.
-      ds.clear(builder.ids); builder.ids[1] = id
+      ds.clear(worker.ids); worker.ids[1] = id
       info('build direct: %q', script)
       dofile(script); G.MAIN = nil
-    else
+    else -- build in a separate process
       assertf(not G.BOOTSTRAP, '%s not tagged as bootstrap', tgtname)
-      -- build in a separate process
-      local hub, bpath = hubpathSplit(tgt.build)
-      local cmd = {script, cfgArg, tgtsDbArg, tostring(id)}
-      info('build cmd: %q', cmd)
-      ix.sh(cmd)
+      self:run(script, {id})
     end
     ::skip::
   end
+  worker:close()
+  G.MAIN = main
+  return ordered, worker.tgtsCache
+end
 
-  builder:close()
+--- Test the targets.
+function M.Civ:test(tgts, ordered, tgtsCache)
+  local tgtId = {}
+  for i, tgtname in ipairs(ordered) do tgtId[tgtname] = i end
+  local worker; if G.BOOTSTRAP then
+    worker = require'civ.Worker' {
+      ids = {}, cfg = self.cfg, tgtsCache = tgtsCache, tgtsDb = {},
+    }:set()
+  end
+  local main = G.MAIN
+  G.MAIN = nil
+  for _, tgt in ipairs(tgts) do
+    tgt = assert(self:target(tgt))
+    if not tgt.test then
+      log.user('%q is not a test', tgt:tgtname())
+      goto continue
+    end
+    local id = assert(tgtId[tgt:tgtname()])
+    local hub, bpath = hubpathSplit(tgt.test)
+    local script = self.hubs[hub]..bpath
+    if G.BOOTSTRAP then
+      ds.clear(worker.ids); worker.ids[1] = id
+      info('test direct: %q', script)
+      dofile(script); G.MAIN = nil
+    else
+      self:run(script, {id})
+    end
+    ::continue::
+  end
   G.MAIN = main
 end
 

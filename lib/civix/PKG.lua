@@ -3,21 +3,13 @@ P.summary = "Unix sys library"
 local cc  = import'sys:cc.luk'
 local lua = import'sys:lua.luk'
 
--- pkg {
---   name     = 'civix',
---   homepage = "https://lua.civboot.org#Package_civix",
---   license  = "UNLICENSE",
---   version  = '0.1-8',
---   url      = 'git+http://github.com/civboot/civlua',
---   doc      = 'README.cxt',
--- }
-
 P.civixlib = cc {
   lib = 'civix',
   src = 'civix.c',
   tag = { builder = 'bootstrap', }
 }
 
+-- Note: tests are in lib/tests/
 P.civix = lua {
   mod = 'civix',
   src = {

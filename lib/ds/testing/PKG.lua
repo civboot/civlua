@@ -1,14 +1,14 @@
-import {
-  lua     = 'sys:lua',
-  ds      = 'civ:lib/metaty',
-  civtest = 'civ:lib/civtest',
-}
-pkg { name = 'ds_testing' }
+local P = {}
+
+local lua = import'sys:lua.luk'
 
 P.testing = lua{
-  mod='ds.testing',
+  mod = 'ds',
+  src = { 'testing.lua' },
   dep = {
-    ds.ds,
-    civtest.civtest,
+    'civ:lib/ds',
+    'civ:lib/civtest',
   },
 }
+
+return P

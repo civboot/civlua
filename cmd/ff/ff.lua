@@ -13,7 +13,7 @@ local log  = require'ds.log'
 local pth  = require'ds.path'
 local Iter = require'ds.Iter'
 local civix = require'civix'
-local ac = require'asciicolor'
+local vt100 = require'vt100'
 
 local sfmt, gsub = string.format, string.gsub
 local push = table.insert
@@ -61,7 +61,7 @@ M.Main = mty'Main' {
 --- If there is a match then the path is logged to [$io.stdout] and the matches
 --- to [$io.fmt].
 M.find = function(path, pats, sub) --> boolean
-  local f, sf = io.fmt, ac.Fmt{to=io.stdout}
+  local f, sf = io.fmt, vt100.Fmt{to=io.stdout}
   if not civix.exists(path) then
     sf:styled('error', 'Does not exist: '..path, '\n')
     return false
@@ -102,7 +102,7 @@ M.iter = function(args) --> Iter
   args = M.Main(args)
   if #args.root == 0 then args.root[1] = pth.cwd() end
   log.info('ff %q', args)
-  local sf = ac.Fmt{to=io.stdout}
+  local sf = vt100.Fmt{to=io.stdout}
 
   local w = civix.Walk(args.root)
   local it, ffind, finds = Iter{w}, M.find, ds.find
@@ -233,7 +233,7 @@ end
 fmtMatch, fmtSub = M.fmtMatch, M.fmtSub
 
 M.main = function(args)
-  require'asciicolor'.setup()
+  shim.runSetup()
   M.iter(args):run()
 end
 if G.MAIN == M then M.main(G.arg) end

@@ -1,115 +1,174 @@
-local SMOL_LARGE = os.getenv('SMOL_LARGE')
 
-local T      = require'civtest'
-local pkg = require'pkglib'
-local mty    = require'metaty'
-local M      = require'smol'
-local lzw    = require'smol.lzw'
-local huff   = require'smol.huff'
-local lzhuff = require'smol.lzhuff'
-local V = require'smol.lzhuff'
-local V = require'smol.verify'
+local T = require'civtest'
+local smol = require'smol'
+local S = require'smol.sys'
+local fbin = require'fmt.binary'
+local ds = require'ds'
+local pth = require'ds.path'
+local Iter = require'ds.Iter'
 local civix = require'civix'
 
-local push = table.insert
-local test, T.eq = T.test, T.T.eq
-local b = string.byte
+local sfmt, char = string.format, string.char
 
-test('util', function()
-  T.eq(0xFF,   M.bitsmax(8))
-  T.eq(0xFFF,  M.bitsmax(12))
-  T.eq(0xFFFF, M.bitsmax(16))
-end)
-
-local TF = '.out/test.bits'
-
--- exp = {1, 2, 3}              -- value only with bits
--- exp = {{0x7, 3}, {0x3, 2}, {1, 1}}  -- {values,bits}
-local function testbits(exp, str, bits)
-  local wb = M.WriteBits{file=io.open(TF, 'wb')}
-  local rb = M.ReadBits{file=io.open(TF, 'rb')}
-  for i, v in ipairs(exp) do
-    if type(v) == 'table' then wb(table.unpack(v))
-    else                       wb(v, bits) end
+local function rtest(base, change, expCmd, expText)
+  print(('### rtest (%q)  (%q)  ->  %q %q'):format(
+    base, change, expCmd, expText))
+  local x = S.createX{fp4po2=14}
+  local cmds, text = S.rdelta(change, x, base)
+  print('cmds, text:', cmds, text)
+  io.fmt:write('cmds\n')
+  fbin.columns(io.fmt, cmds); io.fmt:write'\n'
+  io.fmt:write('text\n')
+  fbin.columns(io.fmt, text); io.fmt:write'\n'
+  T.eq(change, S.rpatch(cmds, text, x, base))
+  if expCmd then
+    T.binEq(expCmd, cmds)
+    T.eq(expText, text)
   end
-  wb:finish(); wb.file:close()
-  if str then T.eq(str, rb.file:read'a') end
-  rb.file:seek'set'
-  local res, v = {}
-  for i, e in ipairs(exp) do
-    if type(e) == 'table' then v = {rb(e[2]), e[2]}
-    else                       v = rb(bits) end
-    push(res, assert(v))
-  end
-  T.eq(exp, res)
-  rb.file:close()
+  return cmds, text
 end
 
-test('bits', function()
-  testbits({b'h', b'i', b'\n'}           , 'hi\n',   8)
-  testbits({0x6, 0x8, 0x6, 0x9, 0x0, 0xA}, 'hi\n',   4)
-  testbits({0x6869, 0x0A0A}              , 'hi\n\n', 16)
-  testbits({0x686,         0x90A}        , 'hi\n',   12)
+T.rdelta_small = function()
+  -- hand-rolled decode
+  local rp = S.rpatch
+  local x = S.createX{fp4po2=14}
+  T.eq('abc',    rp('\x03',     'abc', x)) -- ADD
+  T.eq('abcabc', rp('\x03\x83\x00', 'abc', x)) -- ADD+CPY
+  T.eq('abc',    rp('\x83\x00', '',        x, 'abc')) --CPY(base)
 
-  -- 'hi\n' in 2bit values
-  local e = {}; for _, b4 in ipairs{0x6, 0x8, 0x6, 0x9, 0x0, 0xA} do
-    push(e, b4 >> 2 ) -- 2bit high
-    push(e, b4 & 0x3) -- 2bit low
+  rtest('',     '', '\0', '')
+  rtest('base', '', '\0', '')
+  rtest('',     'zzzzz',  '\x45', 'z') -- len=3 RUN(3, 'z')
+  -- copy start                       cpy8@2   ad2
+  rtest('01234567ab', '01234567yz',  '\x88\x02\x02', 'yz')
+  -- copy end                         ad2  cpy8@2
+  rtest('ab01234567', 'yz01234567',  '\x02\x88\x02', 'yz')
+
+  -- copy base w/fingerprint        ad1  cpy8@1 ad1
+  rtest('01234567', 'a01234567z', '\x01\x88\x01\x01', 'az')
+  -- copy nobase w/fingerprint      ad8 cpy8@0
+  rtest('', '0123456701234567',   '\x08\x88\x00', '01234567')
+end
+
+T.huffman_small = function()
+  local x = S.createX{fp4po2=14}
+  local txt = "AAAA   zzzz;;"
+  print('!! txt len: ', #txt)
+  -- Note:
+  -- ';' = 00   ' ' = 01
+  -- 'A' = 10   'z' = 11
+  assert((S.calcHT(x, txt)))
+  local enc = assert(S.hencode(txt, x))
+  T.binEq(
+  -- len AAAA   zzz
+    '\x0D\xAA\x57\xFC\x00',
+    enc)
+
+  print(sfmt("Enc len=%i: %q\n", #enc, enc))
+  local dec, err = assert(S.hdecode(enc, x));
+  print(sfmt("Dec len=%i: %q", #dec, dec))
+  print(sfmt("Dec err: %q", err));
+  assert(not err)
+  T.binEq(txt, dec);
+end
+
+-- Note: esz (encoding sz) substracts the length byte
+local function htest(txt, esz)
+  print(('!! ### htest %q'):format(txt))
+  local x = S.createX{fp4po2=14}
+  assert(S.calcHT(x, txt))
+  local h = assert(S.hencode(txt, x))
+  print(sfmt("!! ##### htest %q (%i) -> %q (%i)", txt, #txt, h, #h))
+  local res = assert(S.hdecode(h, x))
+  T.binEq(txt, res)
+  if esz then T.eq(esz, #h - 1) end
+end
+
+T.huffman = function()
+  htest('abcdefg', 3) htest('00000', 1) htest('01010101', 1)
+  htest('abaabbcccddaa', 4)
+end
+
+local test_encv = function(v, len)
+  local e = S.encv(v);       T.eq(len, #e)
+  local d, elen = S.decv(e); T.eq(len, elen)
+  T.eq(v, d)
+end
+
+T.encv = function()
+  test_encv(0, 1); test_encv(1, 1); test_encv(0x37, 1); test_encv(0x7F, 1)
+  test_encv(0x080, 2); test_encv(0x100, 2); test_encv(0x3FFF, 2);
+  test_encv(0x4000, 3);
+  test_encv(0x7FFFFFFF, 5);
+end
+
+local function print_stats(name, path, tsize, csize)
+  print(sfmt('  %-10s: compress % 8i / %-8i (%3i%%) : %s',
+    name, csize, tsize, math.floor(csize * 100 / tsize), pth.nice(path)))
+end
+local function rdelta_testpath(sm, path)
+  local ftext = pth.read(path)
+  local xmds, txt = S.rdelta(ftext, sm.x); local csize
+  if not xmds then csize = #ftext -- no compression
+  else
+    csize = #xmds + #txt
+    T.eq(#ftext, S.rcmdlen(xmds))
+    T.eq(ftext, S.rpatch(xmds, txt, sm.x))
   end
-  testbits(e, 'hi\n', 2)
+  print_stats('rdelta', path, #ftext, csize)
+  return csize, #ftext
+end
 
-  -- 'hi\n' in 3bit values
-  local e = {}; for _, b12 in ipairs{0x686, 0x90A } do
-    push(e,  b12 >> 9       ) -- high
-    push(e, (b12 >> 6) & 0x7) -- midhigh
-    push(e, (b12 >> 3) & 0x7) -- midlow
-    push(e,  b12       & 0x7) -- low
+local function huff_testpath(sm, path) --> encsz, pathsz
+  local ftext = pth.read(path)
+  if ftext == '' then print('skipping: '..path); return end
+  assert(S.calcHT(sm.x, ftext))
+  local enc = S.hencode(ftext, sm.x)
+  local dec = S.hdecode(enc, sm.x)
+  local btree = assert(S.encodeHT(sm.x))
+  print_stats('huff', path, #ftext, #btree + #enc)
+  T.binEq(ftext, dec)
+  return #btree + #enc, #ftext
+end
+
+local function smol_testpath(sm, path) --> encsz, pathsz
+  local ftext = pth.read(path)
+  local enc = sm:compress(ftext)
+  print_stats('smol', path, #ftext, #enc)
+  assert(#enc <= #ftext * 2, 'enc too large')
+  local dec = sm:decompress(enc)
+  T.binEq(ftext, dec)
+  return #enc, #ftext
+end
+
+T.compress_files = function()
+  local sm = smol.Smol{}
+  rdelta_testpath(sm, 'cmd/cxt/test.lua')
+  huff_testpath(sm,   'cmd/cxt/test.lua')
+  smol_testpath(sm,   'cmd/cxt/test.lua')
+  smol_testpath(sm,   'cmd/ele/tests/data/small.lua')
+end
+
+T.walk_compress = function()
+  local walkpath = os.getenv'SMOL_TEST_PATH'
+  if not walkpath then
+    return print'skipping: set SMOL_TEST_PATH=./ (for example) to run'
   end
-  testbits(e, 'hi\n', 3)
-  push(e, 4)
-  testbits(e, 'hi\n'..string.char(0x80), 3)
-  testbits({{2, 2}, 1, 1, 1, {2, 2}, 1, {2, 2}, {0, 2}}, nil, 1)
-end)
-
-test('lzw', function()
-  V.verify('LZW', 12, false, 'abbbaba',
-           lzw.Encoder, lzw.Decoder,
-           {watch=true})
-  V.verify('LZW',  9, false, 'abbbaba',
-           lzw.Encoder, lzw.Decoder,
-           {watch=true})
-
-end)
-
-test('huff', function()
-  V.verify('Huff', 8, false, 'abbbaba',
-           huff.easyEncoder, huff.easyDecoder,
-           {finalDecode=string.char})
-end)
-
-test('lzhuff', function()
-  V.verify('LzHuff', 8, false, 'abbbaba',
-           lzhuff.encoder, lzhuff.decoder)
-end)
-
-test('large', function()
-  if not SMOL_LARGE then
-    print('... skipping, set SMOL_LARGE=path/to/file to'
-          ..' test a large file')
-    return
+  local sm = smol.Smol{}
+  local num, osize, rsize, hsize, ssize = 0, 0, 0, 0, 0
+  for path, ftype in civix.Walk{walkpath} do
+    if ftype ~= 'file' or path:find'/%.'
+      or path:find'experiment' then
+      goto continue end
+      print("compressing "..pth.nice(path))
+      local r, o = rdelta_testpath(sm, path); rsize = rsize + r
+      local h    = huff_testpath(sm, path);   hsize = hsize + h
+      local s    = smol_testpath(sm, path);   ssize = ssize + s
+      num = num + 1; osize = osize + o
+    ::continue::
   end
-  -- V.verify('Huff', 8, true, SMOL_LARGE,
-  --          huff.easyEncoder, huff.easyDecoder,
-  --          {finalDecode=string.char})
-  V.verify('LZW', 12, true, SMOL_LARGE,
-           lzw.Encoder, lzw.Decoder)
-  V.verify('LzHuff', 12, true, SMOL_LARGE,
-           lzhuff.encoder, lzhuff.decoder)
-  V.verify('LZW', 16, true, SMOL_LARGE,
-           lzw.Encoder, lzw.Decoder)
-  V.verify('LzHuff', 16, true, SMOL_LARGE,
-           lzhuff.encoder, lzhuff.decoder)
-  print('exiting after SMOL_LARGE')
-  os.exit(1)
-end)
-
+  print(sfmt('!! average compression of %i individual files', num))
+  print(sfmt('  rdelta == %i/%i (%.0f%%)', rsize, osize, (rsize * 100) / osize))
+  print(sfmt('  huff   == %i/%i (%.0f%%)', hsize, osize, (hsize * 100) / osize))
+  print(sfmt('  smol   == %i/%i (%.0f%%)', ssize, osize, (ssize * 100) / osize))
+end

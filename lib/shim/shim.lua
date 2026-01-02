@@ -1,8 +1,14 @@
+local mty = require'metaty'
+
 --- shim: use a lua module in lua OR in the shell.
-local M = mod and mod'shim' or setmetatable({}, {})
+local M = mty.mod'shim'
 
 local push, sfmt = table.insert, string.format
 local lower = string.lower
+
+rawset(_G, 'LUA_SETUP', rawget(_G, 'LUA_SETUP')
+                     or os.getenv'LUA_SETUP'
+                     or 'ds')
 
 local ENV_VALS = {['true'] = true, ['1'] = true }
 
@@ -121,6 +127,9 @@ end
 --- Duck type: get a file handle.
 --- If [$v or default] is a string then open the file in mode [$default='w+']
 M.file = function(v, default, mode--[[w+]]) --> file, error?
+  if BOOLS[v] ~= nil then
+    return default -- TODO: handle false -> /dev/null.
+  end
   v = v or default
   if type(v) == 'string' then return io.open(v, mode or 'w+') end
   return v
@@ -162,9 +171,10 @@ end
 
 --- Setup lua using [$require(LUA_SETUP).setup(args, force)].
 ---
---- The default is to use fmt.setup.
-M.setup = function(args, force)
-  require(rawget(_G, 'LUA_SETUP') or os.getenv'LUA_SETUP' or 'fmt').setup(args, force)
+--- The default is to use ds.setup.
+M.runSetup = function(args, force)
+  mty.setup()
+  require(rawget(_G, 'LUA_SETUP') or os.getenv'LUA_SETUP' or 'ds').setup(args, force)
 end
 
 --- Construct a metaty-like object from args.
@@ -196,6 +206,13 @@ M.construct = function(Args, args) --> ok, err?
     }
   end
   return Args(args)
+end
+
+--- Convienience function to perform common setup and run a command-like object.
+M.init = function(Args, args)
+  local a, err = M.construct(Args, args)
+  M.runSetup(a or {})
+  return assert(a, err)
 end
 
 return M

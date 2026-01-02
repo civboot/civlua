@@ -1,0 +1,5 @@
+This is the default [$sys:] hub for the civ build system.
+
+Users can select a different hub, it the hub must adhere to the API in this hub
+in order to build the civ build system itself.
+

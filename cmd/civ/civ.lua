@@ -40,10 +40,13 @@ M.Base = mty'Base' {
   'config [string]: path to civ config.', config=core.DEFAULT_CONFIG,
 }
 
---- civ build arguments.
+--- Usage: [$civ build hub:tgt#name]
 M.Build   = mty.extend(M.Base, 'Build', {})
 
---- civ install arguments.
+--- Usage: [$civ test hub:tgt#name]
+M.Test   = mty.extend(M.Build, 'Test', {})
+
+--- Usage: [$civ install hub:tgt#name]
 M.Install = mty.extend(M.Base, 'Install', {
   "force [bool]: do not confirm deletion of files.",
 })
@@ -53,6 +56,7 @@ M.Args = {
   subcmd=true,
   init    = M.Init,
   build   = M.Build,
+  test    = M.Test,
   install = M.Install,
 }
 
@@ -91,7 +95,9 @@ CIV=%s
 export PATH=$PATH:$CIV/bin:$CIV/lua
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CIV/lib
 export LUA_PATH="$LUA_PATH;$CIV/lua/?.lua"
-export LUA_CPATH="$LUA_CPATH;$CIV/lib/lib?.so"]]
+export LUA_CPATH="$LUA_CPATH;$CIV/lib/lib?.so"
+export LUA_SETUP=vt100
+]]
 
 function M.Init:__call()
   info('civ init', self)
@@ -124,14 +130,22 @@ local function build(cv, tgts)
   info('tgtnames: %q', tgtnames)
 
   cv:load(pkgnames)
-  cv:build(tgtnames)
+  local out = cv:build(tgtnames)
   io.fmt:styled('notify', 'civ build complete', '\n')
-  return cv
+  return out
 end
 
 function M.Build:__call()
   info('build %q', self)
   build(core.Civ{cfg=core.Cfg:load(self.config)}, self)
+end
+
+function M.Test:__call()
+  info('test %q', self)
+  local cv = core.Civ{cfg=core.Cfg:load(self.config)}
+  local ordered = build(cv, self)
+  cv:test(self, ordered)
+  io.fmt:styled('notify', 'civ test complete', '\n')
 end
 
 function M.Install:__call()
@@ -162,12 +176,11 @@ function M.Install:__call()
 end
 
 M.main = function(args)
-  mty.setup()
-  require'asciicolor'.setup()
-  assert(not ix.isRoot(), "Do not (yet) run this command as root")
-  args = assert(shim.construct(M.Args, shim.parse(args)))
-  io.fmt:styled('notify', 'Running civ '..args.subcmd, '\n')
-  args[args.subcmd]()
+  assert(not ix.isRoot(), "Do not run this command as root")
+  local a = shim.init(M.Args, shim.parse(args))
+  assert(io.fmt and io.user)
+  io.fmt:styled('notify', 'Running civ '..a.subcmd, '\n')
+  a[a.subcmd]()
 end
 
 if MAIN == M then M.main(arg) end

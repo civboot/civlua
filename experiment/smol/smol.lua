@@ -1,102 +1,155 @@
+local G = G or _G
+--- small compression algorithms
+local M = G.mod and mod'smol' or setmetatable({}, {})
+local S = require'smol.sys'
 
-local pkg = require'pkglib'
-local mty = require'metaty'
-local ds = require'ds'
-local heap = require'ds.heap'
-
+local shim = require'shim'
+local mty  = require'metaty'
+local ds   = require'ds'
+local pth  = require'ds.path'
+local construct = mty.construct
 local char, byte = string.char, string.byte
-local push = table.insert
 
-local M = mty.docTy({}, [[smol: data compression algorithms to make data smaller.]])
+local rdelta, rpatch          = S.rdelta, S.rpatch
+local calcHT                  = S.calcHT
+local encodeHT, decodeHT      = S.encodeHT, S.decodeHT
+local hencode, hdecode        = S.hencode, S.hdecode
+local encv, decv              = S.encv, S.decv
 
-local B8 = {
-  0x01, 0x03, 0x07, 0x0F,
-  0x1F, 0x3F, 0x7F, 0xFF,
-}; M.BITMASK8 = B8
+local sfmt = string.format
+local assertEq = require'civtest'.eq
+local assertBinEq = require'civtest'.binEq
+local fbin = require'fmt.binary'
 
-M.bitsmax = function(bits)
-  assert(bits <= 32); return (1 << bits) - 1
+local RDELTA, HUFF_CMDS, HUFF_RAW = 0x80, 0x40, 0x20
+
+M.XConfig = mty'XConfig' {
+  'fp4po2 [int]: max size of len4 fingerprint table', fp4po2=14,
+}
+
+M.Smol = mty'Smol' {
+  'x [smol.X]: holds settings and buffers for smol operations',
+  'rdelta [bool]: whether to use rdelta in compress',
+  'huff   [bool]: whether to use huffman coding in compress and rdelta',
+}
+
+getmetatable(M.Smol).__call = function(T, t)
+  t.x = S.createX(t.x or M.XConfig{})
+  return construct(T, t)
 end
 
----------------------
--- File Codes
-M.FileCodes = mty.doc[[FileCodes(file): file as 8bit codes.]]
-(mty.record'FileCodes')
-  :field('file', 'userdata')
-:new(function(ty_, file) return mty.new(ty_, {file=file}) end)
-M.FileCodes.reset = function(fc) fc.file:seek'set' end
-M.FileCodes.__call = function(fc)
-  local c = fc.file:read(1)
-  return c and byte(c) or nil
+-- encode text usin ghuffman encoding. Tree is included at the front
+M.Smol.hencode = function(sm, text) --> htree..enc
+  assert(calcHT(sm.x, text))
+  local ht  = assert(encodeHT(sm.x))
+
+  -- FIXME: remove these checks for decode equality
+  assertEq(#ht, assert(decodeHT(sm.x, ht..string.rep('Z', 1024))))
+  local htStr = S.fmtHT(sm.x)
+  assertEq(htStr:gsub('#%d+', '#0'), S.fmtHT(sm.x))
+
+  local enc = assert(hencode(text, sm.x))
+  local elen, lensz = S.decv(enc)
+  assertEq(#text, elen)
+  assertBinEq(text, hdecode(enc, sm.x))
+
+  return ht..enc
 end
 
----------------------
--- Bits
-M.WriteBits = mty.doc[[Write bits as big-endian.
-Compression is all about making things as small as possible
-and it don't get smaller than bits.
+-- decode huffman tree+encoded bytes.
+M.Smol.hdecode = function(sm, henc) --> text
+  local treelen = assert(decodeHT(sm.x, henc))
+  return assert(hdecode(henc:sub(treelen+1), sm.x))
+end
 
-See tests for examples.
-]]
-(mty.record'WriteBits')
-  :field('file', 'userdata')
-  :fieldMaybe('bits', 'number')
-  :field('_data',     'number', 0) -- max 0xFF
-  :field('_dataBits', 'number', 0) -- 1-8
+M.Smol.compressRDelta = function(sm, cmds, raw, text, base)
+  local hcmds = assert(sm:hencode(cmds))
+  local hraw  = assert(sm:hencode(raw))
 
-M.WriteBits.__call = function(wb, n, bits)
-  bits = assert(bits or wb.bits, 'no bits'); assert(bits > 0)
-  local data, dataBits = wb._data or 0, wb._dataBits
-  while bits > 0 do
-    local mbits = math.min(8 - dataBits, bits) -- minBits
-    assert(mbits > 0, mbits)
-    data = (data << mbits) | ((n >> (bits - mbits)) & B8[mbits])
-    dataBits, bits = dataBits + mbits, bits - mbits
-    if dataBits >= 8 then
-      assert(dataBits == 8, dataBits)
-      assert(data <= 0xFF, data)
-      wb.file:write(char(data))
-      data, dataBits = 0, 0
-    else break end
+  -- FIXME: remove checks
+  assertEq(text, rpatch(cmds, raw, sm.x, base))
+  assertEq(cmds, sm:hdecode(hcmds))
+  assertEq(raw, sm:hdecode(hraw))
+
+  return char(RDELTA | HUFF_CMDS | HUFF_RAW)..encv(#hcmds)..hcmds..hraw
+end
+
+M.Smol.compress = function(sm, text, base)
+  if text == '' then return '' end
+  local cmds, raw = rdelta(text, sm.x, base)
+  if cmds and #cmds + #raw < #text then
+    return sm:compressRDelta(cmds, raw, text, base)
   end
-  wb._data, wb._dataBits = data, dataBits
+  local enc = assert(sm:hencode(text))
+  return (#enc < #text) and (char(HUFF_RAW)..enc) or ('\x00'..text)
 end
 
-M.WriteBits.finish = mty.doc[[write any leftover data and flush.]]
-(function(wb)
-  if wb._dataBits > 0 then
-    wb.file:write(char(wb._data << (8 - wb._dataBits)))
-  end
-  wb._data, wb._dataBits = nil, nil
-  wb.file:flush()
-end)
+M.Smol.decompress = function(sm, enc, base)
+  if enc == '' then return '' end
+  local kind = byte(enc:sub(1,1))
 
-M.ReadBits = mty.doc[[Read bits as big-endian
-
-  rb = ReadBits{file=io.open(path, 'rb'), bits=12}
-  my12bitvalue = rb()
-]]
-(mty.record'ReadBits')
-  :field('file', 'userdata')
-  :fieldMaybe('bits', 'number')
-  :field('_data',     'number', 0) -- max 0xFF
-  :field('_dataBits', 'number', 0) -- 1-8
-
-M.ReadBits.__call = function(rb, bits)
-  bits = assert(bits or rb.bits, 'no bits')
-  local n, data, dataBits = 0, rb._data, rb._dataBits
-  while bits > 0 do
-    if dataBits == 0 then
-      data, dataBits = rb.file:read(1), 8
-      if data then data = byte(data)
-      else dataBits = 0; return end
+  if RDELTA & kind ~= 0 then
+    if (RDELTA | HUFF_CMDS | HUFF_RAW) ~= kind then
+      error(sfmt('not yet implemented: 0x%X', kind))
     end
-    local mbits = math.min(bits, dataBits) -- minBits
-    n = (n << mbits) | ((data >> (dataBits - mbits)) & B8[mbits])
-    bits, dataBits = bits - mbits, dataBits - mbits
+    local cmdlen, enclen = decv(enc:sub(2,10))
+
+    local si = 2 + enclen
+    local hcmds = enc:sub(si, si + cmdlen - 1)
+    local hraw  = enc:sub(si + cmdlen)
+
+    local cmds = sm:hdecode(hcmds)
+    local raw  = sm:hdecode(hraw)
+    return rpatch(cmds, raw, sm.x, base)
+  elseif HUFF_RAW & kind ~= 0 then
+    assert(kind == HUFF_RAW)
+    return sm:hdecode(enc:sub(2))
+  else
+    assert(kind == 0);
+    return enc:sub(2)
   end
-  rb._data, rb._dataBits = data, dataBits
-  return n
 end
 
+--- de/compress library and utility.
+---
+--- Example: [+
+---   * [$smol file.txt    file.txt.sm --compress]
+---   * [$smol file.txt.sm file.txt]
+--- ]
+M.Main = mty'Main' {
+  'compress [bool]: compresses first argument, otherwise decompress it',
+  'verbose [bool]: prints stats',
+  "dry [bool]: if true then don't write data",
+}
+
+M.main = function(args)
+  args = M.Main(shim.parseStr(args))
+  if #args < 1 then
+    print'Usage: smol file.txt file.txt.sm'
+    return 1
+  end
+  local sm, inp, toPath, out = M.Smol{}, pth.read(args[1])
+
+  if args.compress then
+    toPath = args[2] or (args[1]..'.sm')
+    out = sm:compress(inp)
+  else
+    toPath = args[2]
+      or (args[1]:sub(-3) == '.sm') and args[1]:sub(1,-4)
+      or error'must provide output file'
+    out = sm:decompress(inp)
+  end
+  if args.verbose then
+    io.fmt:write(sfmt('%scompression ratio: %i / %i = %i%%\n',
+      args.compress and '' or 'de',
+      #out, #inp, 100 * #out // #inp))
+  end
+  if args.dry then
+    io.fmt:write('smol would write to: '..toPath..'\n')
+  else pth.write(toPath, out) end
+  return out
+end
+
+
+getmetatable(M).__call = function(_, args) return M.main(args) end
 return M

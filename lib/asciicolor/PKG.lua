@@ -2,15 +2,7 @@ local P = {}
 P.summary = "Tiny data structures and algorithms for lua."
 local lua = import'sys:lua.luk'
 
--- pkg {
---   name     = 'asciicolor',
---   version  = '0.1-0',
---   url      = 'git+http://github.com/civboot/civlua',
---   homepage = "https://lua.civboot.org#Package_asciicolor",
---   license  = "UNLICENSE",
---   doc = 'README.cxt',
--- }
-
+-- Note: tests are in lib/tests/
 P.asciicolor = lua {
   mod = 'asciicolor',
   dep = {

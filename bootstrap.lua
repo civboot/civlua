@@ -12,6 +12,7 @@ assert(not os.execute'ls lua*.core', 'lua.*core file found!!')
 assert(not MAIN, 'bootstrap.lua must not be used as a library')
 MAIN = {}
 NOLIB, BOOTSTRAP = true, true
+LUA_SETUP = os.getenv'LUA_SETUP' or 'vt100'
 
 local function preload(name, path)
   package.loaded[name] = dofile(D..path)
@@ -58,9 +59,9 @@ print'[[load]]'
   preload('asciicolor', 'lib/asciicolor/asciicolor.lua')
   preload('vt100', 'lib/vt100/vt100.lua')
   preload('vt100.AcWriter', 'lib/vt100/vt100/AcWriter.lua')
-  preload('civ.core', 'civ/core.lua')
-  preload('civ.Builder', 'civ/Builder.lua')
-  preload('civ', 'civ.lua')
+  preload('civ.core', 'cmd/civ/core.lua')
+  preload('civ.Worker', 'cmd/civ/Worker.lua')
+  preload('civ', 'cmd/civ/civ.lua')
 
   -- Additional
   preload('lson', 'lib/lson/lson.lua')
@@ -68,8 +69,9 @@ print'[[load]]'
   preload('pod.testing', 'lib/pod/testing/testing.lua')
   preload('lines.testing', 'lib/lines/testing/testing.lua')
 
-require'asciicolor'.setup()
-require'fmt'.print('Running bootstrap.lua:', G.arg)
+require'vt100'.setup()
+io.fmt:styled('notify', 'Running bootstrap.lua:', ' ');
+io.fmt(G.arg); io.fmt:write'\n'
 
 local core = require'civ.core'
 
@@ -77,35 +79,34 @@ local function bootTest()
   print'[[test]]'
   -- setup and run tests
 
-  dofile(D..'lib/metaty/test.lua')
-  dofile(D..'lib/fmt/test.lua')
-  dofile(D..'lib/civtest/test.lua')
+  dofile(D..'lib/tests/test_metaty.lua')
+  dofile(D..'lib/tests/test_fmt.lua')
+  dofile(D..'lib/tests/test_civtest.lua')
 
   local log = require'ds.log'
   LOGFN = log.logFn; log.setLevel()
 
-  dofile(D..'lib/shim/test.lua')
-  dofile(D..'lib/ds/test.lua')
-  dofile(D..'lib/ds/test_IFile.lua')
-  dofile(D..'lib/lines/test_diff.lua')
-  dofile(D..'lib/lines/test_file.lua')
-  dofile(D..'lib/lap/test.lua')
-  dofile(D..'lib/pod/test.lua')
-  dofile(D..'lib/lson/test.lua')
-  dofile(D..'lib/civix/test.lua')
+  dofile(D..'lib/tests/test_shim.lua')
+  dofile(D..'lib/tests/test_ds.lua')
+  dofile(D..'lib/tests/test_ds_IFile.lua')
+  dofile(D..'lib/tests/test_lines_diff.lua')
+  dofile(D..'lib/tests/test_lines_file.lua')
+  dofile(D..'lib/tests/test_lap.lua')
+  dofile(D..'lib/tests/test_pod.lua')
+  dofile(D..'lib/tests/test_lson.lua')
+  dofile(D..'lib/tests/test_civix.lua')
 
-  dofile(D..'lib/lines/test.lua')
-  dofile(D..'lib/asciicolor/test.lua')
-  dofile(D..'lib/vt100/test.lua')
-  dofile(D..'lib/lson/test.lua')
+  dofile(D..'lib/tests/test_lines.lua')
+  dofile(D..'lib/tests/test_asciicolor.lua')
+  dofile(D..'lib/tests/test_vt100.lua')
   -- dofile(D..'lib/luk/test.lua') TODO
 
-  dofile(D..'test_civ.lua')
+  dofile(D..'cmd/civ/test_civ.lua')
   io.fmt:styled('notify', 'boot-test done', '\n')
 end
 
 local function main()
-  G.MAIN = nil; dofile(D..'civ.lua')
+  G.MAIN = nil; dofile(D..'cmd/civ/civ.lua')
 end
 
 if arg[1] == 'boot-test' then

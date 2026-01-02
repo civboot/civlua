@@ -42,9 +42,14 @@ static bool l_defaulttrue(LS *L, int index) {
 // Note: you MUST free it.
 char** checkstringarray(LS *L, int index, int* lenOut) {
   lua_len(L, index); int len = luaL_checkinteger(L, -1); lua_pop(L, 1);
-  char** arr = malloc(sizeof(char*) * (len + 1));
+  // validate
   for(int i = 0; i < len; i++) {
-    lua_geti(L, index, i + 1); arr[i] = (char*)luaL_checkstring(L, -1);
+    lua_geti(L, index, i + 1); (char*)luaL_checkstring(L, -1); lua_pop(L, 1);
+  }
+  // assign to array
+  char** arr = malloc(sizeof(char*) * (len + 1)); ASSERT(L, arr, "OOM");
+  for(int i = 0; i < len; i++) {
+    lua_geti(L, index, i + 1); arr[i] = (char*)lua_tostring(L, -1);
     lua_pop(L, 1);
   }
   arr[len] = NULL; *lenOut = len;
@@ -251,16 +256,18 @@ static int l_sh_wait(LS *L) {
 #define CLOSE(fno) if(fno >= 0) { close(fno); }
 static int l_sh(LS *L) {
   const char* command = luaL_checkstring(L, 1);
-  char **env = NULL; int _unused;
+  int _unused;
   char **argv = checkstringarray(L, 2, &_unused);
-  if(!lua_isnoneornil(L, 3)) { env = checkstringarray(L, 3, &_unused); }
   bool createdChR = false, createdChW = false, createdChL = false;
 
   int topi = lua_gettop(L); // FIXME: remove
   struct sh* sh = (struct sh*)lua_newuserdata(L, sizeof(struct sh));
-  assert(!lua_isnil(L, -1));
-  *sh = (struct sh) { .env = env };
+  ASSERT(L, sh, "OOM");
+  *sh = (struct sh) {0};
   luaL_setmetatable(L, SH_META);
+  if(!lua_isnoneornil(L, 3)) {
+    sh->env = checkstringarray(L, 3, &_unused);
+  }
 
   // ch_r=child-read, pr_w=parent-write, etc
   int rw[2];
@@ -280,22 +287,24 @@ static int l_sh(LS *L) {
   else if (lua_toboolean(L, 6)) {
     createdChL = true; if(pipe(rw)) goto error; pr_l  = rw[0]; ch_l  = rw[1];
   }
-
   const char* cwd = luaL_optstring(L, 7, NULL);
 
   int pid = fork(); if(pid == -1) goto error;
   else if(pid == 0) { // child
     CLOSE(pr_r); CLOSE(pr_w); CLOSE(pr_l);
+    if(sh->env) {
+      char **env = sh->env;
+      clearenv();
+      while(*env) { putenv(*env); env += 1; }
+    }
+    if(cwd) chdir(cwd);
     if(ch_w != STDOUT_FILENO) { dup2(ch_w,  STDOUT_FILENO); close(ch_w); }
     else if(ch_w < 0) close(STDOUT_FILENO);
     if(ch_r != STDIN_FILENO)  { dup2(ch_r,  STDIN_FILENO);  close(ch_r); }
     else if (ch_r < 0) close(STDIN_FILENO);
+
     if(ch_l != STDERR_FILENO) { dup2(ch_l,  STDERR_FILENO); close(ch_l); }
     else if (ch_l < 0) close(STDERR_FILENO);
-    if(env) {
-      clearenv(); while(*env) { putenv(*env); env += 1; }
-    }
-    if(cwd) chdir(cwd);
     execvp(command, argv);
     if(errno) fprintf(stderr, "execvp\"%s\"(%s [%i])\n",
           command, SERR, errno);

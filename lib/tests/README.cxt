@@ -1,0 +1,7 @@
+This contains tests of the bootstrapping libraries.
+
+These cannot be inside the same directory as their library because all
+non-bootstrapped targets must depend on [$civ:cmd/civ] to be buildable. Technically we
+could have marked these as also bootstrapped, but then we wouldn't be
+eating our own dogfood as much as we like.
+

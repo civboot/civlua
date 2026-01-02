@@ -1,11 +1,11 @@
-local G = G or _G
-
--- ds: data structures and algorithms
-local M = G.mod and G.mod'ds' or {}
-
-
 local mty = require'metaty'
+
+--- ds: data structures and algorithms.
+local M = mty.mod'ds'
+
+local G = mty.G
 local fmt = require'fmt'
+local shim = require'shim'
 
 local next = G.next
 local getmt = G.getmetatable
@@ -20,6 +20,14 @@ local resume = coroutine.resume
 local getmethod = mty.getmethod
 local EMPTY = {}
 
+--- Default LUA_SETUP, though vt100 is recommended for most users.
+M.setup = function(args)
+  if G.IS_SETUP then return end
+  args = args or {}
+  io.user = fmt.Fmt{to=assert(shim.file(rawget(args, 'to'),  io.stdout))}
+  io.fmt  = fmt.Fmt{to=assert(shim.file(rawget(args, 'log'), io.stderr))}
+  G.IS_SETUP = true
+end
 
 --- pure-lua bootstrapped library (mainly for bootstrap.lua)
 M.B = mty.mod'M.B'
@@ -1320,5 +1328,6 @@ M.eprint = function(...)
   end
   io.stderr:write(concat(t, '\t'), '\n')
 end
+
 
 return M

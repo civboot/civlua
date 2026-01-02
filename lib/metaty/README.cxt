@@ -108,3 +108,16 @@ getmetatable(MyType).__call  = myConstructor
 getmetatable(MyType).__index = myIndex
 MyType.__newindex            = myNewIndex
 ]##
+
+[{h3 name=lua_opt}LUA_OPT]
+[$LUA_OPT] is an integer from 0-3 which is intended to have the following
+semantic meanings: [+
+* [$4]: may be used for more optimization of certain library functions with
+  reduced dynamic abilities, i.e.  logging.
+* [$3]: optimize out most safety checks and documentation.
+* [$2]: typosafety or related only, turn off below.
+* [$1] (default): typosafety and related, plus include docs.
+* [$0]: no optimizations, turn on anything. May be used as a debug mode or
+  similar.
+]
+

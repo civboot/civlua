@@ -1,17 +1,14 @@
-import {
-  lua     = 'sys:lua',
-  ds      = 'civ:lib/ds',
-  pod     = 'civ:lib/pod',
-  civtest = 'civ:lib/civtest',
-}
-pkg { name = 'pod_testing' }
+local P = {}
+
+local lua = import'sys:lua.luk'
 
 P.testing = lua {
-  mod = 'pod.testing',
+  mod = 'pod',
   src = { 'testing.lua' },
   dep = {
-    ds.ds,
-    pod.pod,
-    civtest.civtest,
+    'civ:lib/pod',
+    'civ:lib/civtest',
   }
 }
+
+return P

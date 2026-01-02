@@ -16,7 +16,7 @@ local ds  = require'ds'
 local Grid = require'ds.Grid'
 local log = require'ds.log'
 local d8  = require'ds.utf8'
-local acolor = require'asciicolor'
+local ac = require'asciicolor'
 
 local min = math.min
 local char, byte, slen = string.char, string.byte, string.len
@@ -26,7 +26,7 @@ local push, unpack, sfmt = table.insert, table.unpack, string.format
 local concat             = table.concat
 local io = io
 local isup, islow = ds.isupper, ds.islower
-local acode = acolor.assertcode
+local acode = ac.assertcode
 
 local ty = mty.ty
 
@@ -240,7 +240,7 @@ M.Style = {
 
 --- asciicolor code -> vt100 code
 M.Fg, M.Bg = ds.TypoSafe{}, ds.TypoSafe{}
-for code, name in pairs(acolor.Color) do
+for code, name in pairs(ac.Color) do
   M.Fg[code]        = M.FgColor[name]
   M.Fg[upper(code)] = M.FgColor[name]
   M.Bg[code]        = M.BgColor[name]
@@ -420,17 +420,12 @@ M.Fmt = function(t)
   assert(t.to, 'must set to = the output')
   if t.style == nil then t.style = shim.getEnvBool'COLOR' end
   if t.style or (t.style==nil) and fmt.TTY[t.to] then
-    t.style, t.to = true, acolor.Styler {
+    t.style, t.to = true, ac.Styler {
       acwriter = require'vt100.AcWriter'{f=t.to},
-      style = M.loadStyle(),
+      style = ac.loadStyle(),
     }
   end
   return fmt.Fmt(t)
-end
-
-M.setup = function(to, user)
-  io.fmt  = M.Fmt{to=to   or io.stderr}
-  io.user = M.Fmt{to=user or io.stdout}
 end
 
 --- Listens to keyboard inputs and echoes them.
@@ -449,6 +444,19 @@ M.main = function(args)
   M.Term.input(te, send)
   M.stop()
   print'^c stopped, done'
+end
+
+
+
+--- The recommended setup function, enables color in the terminal in civstack
+--- libraries (and those that adhere to them).
+M.setup = function(args)
+  if G.IS_SETUP then return end
+  args = args or {}
+  io.user = M.Fmt{to=assert(shim.file(rawget(args, 'to'),  io.stdout))}
+  -- io.fmt  = M.Fmt{to=assert(shim.file(rawget(args, 'log'), io.stderr))}
+  io.fmt  = M.Fmt{to=io.stderr}
+  G.IS_SETUP = true
 end
 
 return M

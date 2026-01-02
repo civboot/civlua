@@ -2,17 +2,18 @@
 local T = require'civtest'
 local ds = require'ds'
 local pth = require'ds.path'
-
 local ix = require'civix'
+local luk = require'luk'
 local civ = require'civ'
 local core = require'civ.core'
 
-local D = ds.srcdir() or ''
-local O = '.out/civ/'
+local D = pth.resolve(ds.srcdir()..'../..')
+local O = D..'.out/civ/'
 
 local HUBS = { civ = D, sys = D..'sys/' }
 
 local CFG_PATH = O..'civconfig.lua'
+
 local CFG = ([[
 return {
   buildDir = %q,
@@ -64,7 +65,7 @@ T.loadPkg = function()
   local c = newCiv()
 
   local metatyPkg = c:loadPkg'civ:lib/metaty'
-  T.eq({
+  T.eq(luk.Table{
     pkgname="civ:lib/metaty",
     summary="Simple but effective Lua type system using metatables",
     metaty=METATY_PKG,
@@ -90,6 +91,24 @@ T.loadFd = function()
   T.eq(fd_out,    fdpkg.fd.out)
   T.eq({'fd.c'},  fdpkg.libfd.src)
   T.eq(libfd_out, fdpkg.libfd.out)
+end
+
+T.loadLinesTesting = function()
+  local l = newCiv()
+  l:load{'civ:lib/lines/testing'}
+  T.eq({
+    lua = { ['testing.lua'] = 'lines/testing.lua' },
+  }, l.pkgs['civ:lib/lines/testing'].testing.out)
+end
+
+T.expandDs = function()
+  local l = newCiv()
+  T.eq({"civ:lib/metaty#metaty"},             l:expand'civ:lib/metaty#.*')
+  T.eq({"civ:lib/ds#ds", "civ:lib/ds#dslib"}, l:expand'civ:lib/ds#')
+  T.eq({
+    "civ:lib/ds#ds", "civ:lib/ds#dslib",
+    "civ:lib/ds/testing#testing",
+  }, l:expand'civ:lib/ds/.*#')
 end
 
 T.buildMetaty = function()
@@ -133,6 +152,14 @@ end
 
 T.buildCiv = function()
   local l = newCiv()
-  l:load{'civ:'}
-  l:build{'civ:'}
+  l:load{'civ:cmd/civ'}
+  l:build{'civ:cmd/civ'}
+end
+
+T.testMetaty = function()
+  local l = newCiv()
+  local p = 'civ:lib/tests'
+  local t = p..'#test_metaty'
+  l:load{p}
+  l:test({t}, l:build{t})
 end

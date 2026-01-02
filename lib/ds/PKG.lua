@@ -3,15 +3,6 @@ P.summary = "Tiny data structures and algorithms for lua."
 local cc  = import'sys:cc.luk'
 local lua = import'sys:lua.luk'
 
--- pkg {
---   name     = 'ds',
---   version  = '0.1-13',
---   url      = 'git+http://github.com/civboot/civlua',
---   homepage = "https://lua.civboot.org#Package_ds",
---   license  = "UNLICENSE",
---   doc      = 'README.cxt',
--- }
-
 P.dslib = cc {
   lib = 'ds',
   hdr = 'ds.h',
@@ -19,6 +10,7 @@ P.dslib = cc {
   tag = { builder = 'bootstrap', }
 }
 
+-- Note: tests are in lib/tests/
 P.ds = lua {
   mod = 'ds',
   src = {

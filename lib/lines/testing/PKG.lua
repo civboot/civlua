@@ -1,18 +1,14 @@
-import {
-  lua     = 'sys:lua',
-  ds      = 'civ:lib/ds',
-  lines   = 'civ:lib/lines',
-  civtest = 'civ:lib/civtest',
-}
+local P = {}
 
-pkg { name = 'lines_testing' }
+local lua = import'sys:lua.luk'
 
 P.testing = lua {
-  mod = 'lines.testing',
+  mod = 'lines',
   src = { 'testing.lua' },
   dep = {
-    ds.ds,
-    lines.lines,
-    civtest.civtest,
+    'civ:lib/civix',
+    'civ:lib/civtest',
   }
 }
+
+return P

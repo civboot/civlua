@@ -296,6 +296,7 @@ M.errorf  = function(...)    error(format(...), 2)             end
 M.assertf = function(a, ...) return a or error(format(...), 2) end
 
 M.fprint = function(f, ...)
+  assert(f, 'must set f')
   local len = select('#', ...)
   for i=1,len do
     local v = select(i, ...)
@@ -322,10 +323,8 @@ end
 --- pretty format the value
 M.pretty = function(v) return concat(Fmt:pretty{}(v)) end --> string
 
-M.setup = function(args)
-  io.user = io.user or Fmt{to=io.stdout}
-  io.fmt = io.fmt   or Fmt{to=io.stderr}
-end
+--- Set to __fmt to format a type like a table.
+M.table = function(tbl, f) return f:rawtable(tbl) end
 
 --- directly call fmt for better [$tostring]
 getmt(M).__call = function(_, v) return concat(Fmt{}(v)) end

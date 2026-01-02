@@ -18,36 +18,37 @@ local sfmt = string.format
 local push, pop = ds.push, table.remove
 local EMPTY = {}
 
-local BUILDER -- single instance
+local SINGLETON -- single instance
 
---- civ Builder object.
---- Parses the arguments passed during [$civ build] and
+--- civ Worker object.
+--- Parses the arguments passed during [$civ build]/etc and
 --- allows deserializing any referenced targets by id from an indexed file.
-local Builder = mty'civ.Builder' {
-  'ids {int}: the target ids to build.',
+local Worker = mty'civ.Worker' {
+  'ids {int}: the target ids to work on.',
   'cfg [civ.core.Cfg]',
   'tgtsDb [lines.File]: indexed line-file of targets by id',
-  'targets [id -> Target]: already loaded targets',
+  'tgtsCache [id -> Target]: already loaded targets',
 }
-getmetatable(Builder).__call = function(T, self)
+getmetatable(Worker).__call = function(T, self)
   assert(self.ids,    'must set ids')
   assert(self.cfg,    'must set cfg')
   assert(self.tgtsDb, 'must set tgtsDb')
-  self.targets = self.targets or {}
+  self.tgtsCache = self.tgtsCache or {}
   self = mty.construct(T, self)
   return self
 end
 
---- Usage: [$builder = Builder:get()]
-Builder.get = function(T, args)
-  if BUILDER then return BUILDER end
+--- Usage: [$worker = Worker:get()]
+Worker.get = function(T, args)
+  if SINGLETON then return SINGLETON end
+  shim.runSetup()
   args = args or G.arg
   args = shim.parse(args)
-  fmt.print('parsing Builder from args:', args)
+  info('parsing Worker from args %q', args)
   local ids = {}
   local ids = Iter:ofList(args):mapV(math.tointeger):to()
-  assert(#ids > 0, 'must specify at least one id to build')
-  BUILDER = T {
+  assert(#ids > 0, 'must specify at least one id')
+  SINGLETON = T {
     ids = ids,
     cfg = core.Cfg:load(assert(args.config, '--config not set')),
     tgtsDb = assert(File {
@@ -56,18 +57,18 @@ Builder.get = function(T, args)
       loadIdxFn = forceLoadIdx,
     }),
   }
-  return BUILDER
+  return SINGLETON
 end
 
-function Builder:target(id) --> Target
-  local tgt = self.targets[id]; if tgt then return tgt end
+function Worker:target(id) --> Target
+  local tgt = self.tgtsCache[id]; if tgt then return tgt end
   tgt = core.Target(lson.decode(self.tgtsDb:get(id)))
-  self.targets[id] = tgt
+  self.tgtsCache[id] = tgt
   return tgt
 end
 
 --- Copy output files from [$tgt.out[outKey]].
-function Builder:copyOut(tgt, outKey)
+function Worker:copyOut(tgt, outKey)
   if not tgt.out[outKey] then return nil, 'missing out: '..outKey end
   local F, T = tgt.dir, self.cfg.buildDir..outKey..'/'
   for from, to in pairs(tgt.out[outKey]) do
@@ -80,7 +81,7 @@ function Builder:copyOut(tgt, outKey)
   return true
 end
 
-function Builder:link(tgt)
+function Worker:link(tgt)
   local O = self.cfg.buildDir
   for from, to in pairs(tgt.link or EMPTY) do
     local f, t = O..from, O..to
@@ -89,10 +90,10 @@ function Builder:link(tgt)
   end
 end
 
---- Make self the singleton (future calls to Builder.get will return)
-function Builder:set() BUILDER = self; return self end
+--- Make self the singleton (future calls to Worker.get will return)
+function Worker:set() SINGLETON = self; return self end
 
 --- Remove this as singleton.
-function Builder:close() BUILDER = nil               end
+function Worker:close() SINGLETON = nil             end
 
-return Builder
+return Worker

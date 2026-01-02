@@ -55,13 +55,16 @@ end
 M.pathenv = function(var, alt)
   local d = G[var]; if d then return d end
   d = os.getenv(var) or alt and os.getenv(alt)
-  assert(d, 'no HOME directory set')
+  if not d then error('no '..var..' path set') end
   d = M.toDir(M.canonical(d)); G[var] = d
   return d
 end
 
---- get current working directory
-M.cwd = function() return M.pathenv('PWD', 'CD') end
+--- get/set current working directory
+M.cwd = function(path)
+  if path then G.PWD = path; return end
+  return M.pathenv('PWD', 'CD')
+end
 
 --- get the user's home directory
 M.home = function() return M.pathenv('HOME', 'HOMEDIR') end

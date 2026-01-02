@@ -16,7 +16,7 @@ local push, icopy = table.insert, ds.icopy
 
 local O = '.out/ele/'
 local TXT, IDX = O..'lines.txt', O..'lines.idx'
-local SMALL = ds.srcdir()..'testdata/small.txt'
+local SMALL = ds.srcdir()..'data/small.txt'
 
 local get, set = ds.get, ds.set
 

@@ -1,14 +1,8 @@
 local P = {}
 P.summary = "Data structures for mixed media (memory/fs) lines of text"
 local lua = import'sys:lua.luk'
--- pkg {
---   name     = 'lines',
---   version  = '0.1-0',
---   url      = 'git+http://github.com/civboot/civlua',
---   homepage = "https://lua.civboot.org#Package_lines",
---   license  = "UNLICENSE",
--- }
 
+-- Note: tests are in lib/tests/
 P.lines = lua {
   mod = 'lines',
   src = {

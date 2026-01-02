@@ -1,5 +1,12 @@
+--- Lua build rules.
+---
+--- Call directly to create a lua target, or call .test to create a test
+--- target.
+local M = {}
+
 local MOD_INVALID = '[^%w_.]+' -- lua mod name.
 local EMPTY = {}
+
 
 --- Creating a [$lua { ... }] Target.
 local Lua = record'Lua' {
@@ -12,7 +19,7 @@ local Lua = record'Lua' {
   'tag {table}',
 }
 
-return function(l)
+function M.__call(l)
   local mod = assert(l.mod or l[1], 'must set mod')
   assert(not mod:find(MOD_INVALID),
     'mod name must have only characters [%%w_.]: %s', mod)
@@ -49,7 +56,7 @@ return function(l)
     assert(not smod:find(MOD_INVALID),
       'src must have only characters [%%w_./]: %s', src)
 
-    -- strip the mod from the beginnging
+    -- strip the mod from the beginning
     if 1 == smod:find(mod, 1, true) then
       smod = smod:sub(#mod+1):match'^%.?(.*)'
     end
@@ -65,3 +72,13 @@ return function(l)
   t.link = l.link
   return t
 end
+
+function M.test(l)
+  l.src = type(l.src) == 'string' and {l.src} or l.src
+  assert(type(l.src) == 'table', 'must set src to one or more tables')
+  l.dep = type(l.dep) == 'string' and {l.dep} or l.dep or {}
+  l.test = l.test or 'sys:lua/test.lua'
+  return Target(l)
+end
+
+return M
