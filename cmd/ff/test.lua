@@ -2,7 +2,6 @@
 -- Many of these involve writing some text files and dirs to .out/ff/
 -- and then using it to
 
-local pkg = require'pkglib'
 local shim = require'shim'
 local mty = require'metaty'
 local fmt = require'fmt'

@@ -1,6 +1,6 @@
-local P = {}
-P.summary = "Write scripts for Lua, execute from shell"
 local lua = import'sys:lua.luk'
+
+local P = { summary = "Write scripts for Lua, execute from shell" }
 
 -- Note: tests are in lib/tests/
 P.shim = lua {

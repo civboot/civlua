@@ -1,4 +1,3 @@
-local pkg = require'pkglib'
 local mty = require'metaty'
 local fmt = require'fmt'
 local Mt = mod'Mt'

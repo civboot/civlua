@@ -23,7 +23,7 @@ T.IFile = function()
   T.eq(nil, fi:get(4))
 end
 
-end -- generalTest
+fin=true; end -- generalTest
 
 generalTest();
 if G.NOLIB then return end

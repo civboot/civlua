@@ -1,18 +1,16 @@
+local mty = require'metaty'
+
 --- Get documentation for lua types and syntax.
 --- Examples: [{## lang=lua}
 --- doc{string.find}
 --- doc'for'
 --- doc'myMod.myFunction'
---- doc{'someMod', --pkg} -- full pkg documentation
 --- ]##
----
---- ["Note: depends on pkg for lookup]
-local M = mod and mod'doc' or setmetatable({}, {})
-MAIN = MAIN or M
+local M = mty.mod'doc'
 
-assert(PKG_LOC and PKG_NAMES, 'must use pkglib or equivalent')
+local G = mty.G
+G.MAIN = G.MAIN or M
 
-local pkglib = require'pkglib'
 local shim = require'shim'
 local mty  = require'metaty'
 local fd = require'fd'
@@ -35,7 +33,7 @@ local sfmt = string.format
 local INTERNAL = '(internal)'
 local COMMAND_NAME = 'when executed directly'
 
---- Find the object or name in pkgs
+--- Find the object or name
 M.find = function(obj) --> Object
   if type(obj) ~= 'string' then return obj end
   return PKG_LOOKUP[obj] or M.getpath(obj)
@@ -75,7 +73,7 @@ end
 --- from the PKG and META_TY specs into a single object.
 M.Doc = mty'Doc' {
   'obj [any]: the object being documented',
-  'name[string]', 'pkgname[string]',
+  'name[string]',
   'ty [Type]: type, can be string', 'docTy [string]',
   'path [str]',
   'main [Doc]: main Args, mostly used for PKG',
@@ -96,7 +94,7 @@ M.Doc.__tostring = function(d) return sfmt('Doc%q', d.name) end
 
 M.DocItem = mty'DocItem' {
   'obj [any]',
-  'name', 'pkgname [string]', 'ty [string]', 'docTy [string]',
+  'name', 'ty [string]', 'docTy [string]',
   'path [string]',
   'fnsig  [string]: function signature',
   'default [any]', 'doc [string]',
@@ -107,8 +105,7 @@ M.DocItem.__tostring = function(di) return sfmt('DocItem%q', di.name) end
 --- return the object's "document type"
 M.type = function(obj)
   return type(obj) == 'function' and 'Function'
-      or pkglib.isPkg(obj)       and 'Package'
-      or pkglib.isMod(obj)       and 'Module'
+      or mty.isMod(obj)          and 'Module'
       or mty.isRecord(obj)       and 'Record'
       or (type(obj) == 'table')  and 'Table'
       or 'Value'
@@ -147,11 +144,10 @@ M._Construct.__call = function(c, obj, key, expand, lvl) --> Doc | DocItem
   assert(obj ~= nil, key)
   expand = expand or 0
   local docTy = assert(M.type(obj))
-  if docTy == 'Package' then return c:pkg(obj, expand) end
   local name, path = M.modinfo(obj)
   local d = {
     obj=obj, path=path, docTy=docTy,
-    name=assert(key or name), pkgname=PKG_NAMES[obj],
+    name=assert(key or name),
     ty=objTyStr(obj),
   }
   if c.done[obj] then return M.DocItem(d) end
@@ -187,7 +183,7 @@ M._Construct.__call = function(c, obj, key, expand, lvl) --> Doc | DocItem
     if type(v) == 'function' then
       if PKG_NAMES[v] then d.fns[key] = v; t[k] = nil end
       -- else keep as "value"
-    elseif pkglib.isMod(v)  then d.mods[key]   = v; t[k] = nil
+    elseif mty.isMod(v)     then d.mods[key]   = v; t[k] = nil
     elseif mty.isRecord(v)  then d.tys[key]    = v; t[k] = nil
     else                         d.values[key] = v
     end
@@ -212,33 +208,6 @@ local function modcmp(a, b)
     if not b:find'%.' then return false end -- b is first
   elseif b:find'%.'   then return true  end -- a is first
   return a < b
-end
-
-M._Construct.pkg = function(c, pkg, expand) --> Doc
-  local d = M.Doc{
-    docTy = 'Package', name = 'Package '..pkg.name, path = pkg.dir,
-  }
-  d.meta = {
-    summary = pkg.summary, version = pkg.version,
-    repo = pkg.repo, homepage = pkg.homepage,
-  }
-  if pkg.doc then
-    d.comments = assert(lines.load(pth.concat{pkg.dir, pkg.doc}))
-  end
-  if pkg.main then
-    local m = fmt.assertf(
-      M.find(pkg.main), 'PKG %s: main not found', d.name)
-    d.main = c:main(m)
-  end
-  d.mods = pkglib.modules(pkg.srcs)
-  ds.pushSortedKeys(d.mods, modcmp)
-  for i, mname in ipairs(d.mods) do
-    local mod = M.find(mname); if not mod then error(
-      'module '..mname..' not found'
-    )end
-    d.mods[mname] = c(mod, mname, expand - 1)
-  end
-  return d
 end
 
 M._Construct.main = function(c, obj) --> Doc
@@ -312,7 +281,7 @@ M.getpath = function(path)
   for i=1,#path do
     local v = obj and ds.rawgetp(obj, ds.slice(path, i))
     if v then return v end
-    obj = pkglib.get(table.concat(path, '.', 1, i))
+    obj = require(table.concat(path, '.', 1, i))
   end
   return obj
 end
@@ -378,7 +347,7 @@ end
 
 M.fmtDoc = function(f, d)
   local path = d.path and sfmt(' ([{i path=%s}src])', escape(pth.nice(d.path))) or ''
-  local name = d.pkgname or d.name
+  local name = d.name
   local hname = name and sfmt('[:%s]', name) or '(unnamed)'
   if d.fnsig then hname = hname..cxt.code(d.fnsig) end
   f:write(sfmt('[{h%s}%s%s%s]',
@@ -434,27 +403,9 @@ end
 M.Args = mty'Args' {
   'help [bool]: get help',
   'to   [path]: the output. If ends in [$.html] then auto-converts to html',
-  'pkg  [deep|bool]: if true uses PKG.lua (and all sub-modules).'
-    ..' If "deep" also uses PKG.pkgs',
   'expand [int|bool]: expand to depth (expand=true means expand=10)', expand=1,
-  'local [bool]: if true only unpacks local pkgs/mods',
+  'local [bool]: if true only unpacks local mods',
 }
-
-local function fmtPkg(f, construct, pkg, expand, deep)
-  -- pkg/ is not itself a PKG... this is a hack
-  if pkg == 'pkg' then pkg = pkglib.loadpkg('lib/pkg', 'pkg') end
-  pkg = pkglib.isPkg(pkg) and pkg
-     or pkglib.getpkg(pkg) or error(sfmt('could not find pkg: %q', pkg))
-  M.fmt(f, construct:pkg(pkg, expand))
-  if deep and pkg.pkgs then
-    for _, dir in ipairs(pkg.pkgs) do
-      local subp = pkglib.loadpkg(dir)
-      f:write'\n\n'
-      fmtPkg(f, construct, subp, expand, deep)
-    end
-  end
-  return pkg
-end
 
 M.main = function(args)
   args = M.Args(shim.parseStr(args))
@@ -465,14 +416,11 @@ M.main = function(args)
   local to = args.to and shim.file(args.to) or nil
   local f, c = fmt.Fmt{to=to}, M._Construct{}
   for _, obj in ipairs(args) do
-    if args.pkg then fmtPkg(f, c, obj, expand, args.pkg == 'deep')
-    else
-      if type(obj) == 'string' then
-        obj = M.find(obj) or error('could not find obj: '..obj)
-      end
-      local name = (type(obj) == 'string') and obj or nil
-      M.fmt(f, c(obj, name, expand))
+    if type(obj) == 'string' then
+      obj = M.find(obj) or error('could not find obj: '..obj)
     end
+    local name = (type(obj) == 'string') and obj or nil
+    M.fmt(f, c(obj, name, expand))
     f:write'\n'
   end
   if to then to:flush(); to:close()

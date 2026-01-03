@@ -1,7 +1,7 @@
-local P = {}
-P.summary = "Plain old data (POD) de/serialization"
 local cc  = import'sys:cc.luk'
 local lua = import'sys:lua.luk'
+
+local P = { summary = "Plain old data (POD) de/serialization" }
 
 P.podlib = cc {
   lib = 'pod',

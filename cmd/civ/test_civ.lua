@@ -37,7 +37,7 @@ local METATY_PKG = core.Target {
   src={"metaty.lua"},
   out={lua={"metaty.lua"}},
   tag={builder='bootstrap'},
-  build=LUA_BUILD,
+  kind='build', run=LUA_BUILD,
 }
 
 local FMT_PKG = core.Target {
@@ -50,7 +50,7 @@ local FMT_PKG = core.Target {
     ['binary.lua'] = 'fmt/binary.lua',
   }},
   tag={builder='bootstrap'},
-  build=LUA_BUILD,
+  kind='build', run=LUA_BUILD,
 }
 
 T.tgtname = function()
@@ -101,7 +101,7 @@ T.loadLinesTesting = function()
   }, l.pkgs['civ:lib/lines/testing'].testing.out)
 end
 
-T.expandDs = function()
+T.expand = function()
   local l = newCiv()
   T.eq({"civ:lib/metaty#metaty"},             l:expand'civ:lib/metaty#.*')
   T.eq({"civ:lib/ds#ds", "civ:lib/ds#dslib"}, l:expand'civ:lib/ds#')
@@ -109,6 +109,8 @@ T.expandDs = function()
     "civ:lib/ds#ds", "civ:lib/ds#dslib",
     "civ:lib/ds/testing#testing",
   }, l:expand'civ:lib/ds/.*#')
+  T.eq({"civ:lib/ds#ds"}, l:expand'civ:lib/ds')
+  T.eq({"civ:lib/ds#ds"}, l:expand'civ:lib/ds#ds')
 end
 
 T.buildMetaty = function()
@@ -139,7 +141,7 @@ T.buildDs = function()
       lib="libds.so"
     },
     tag={ builder = 'bootstrap' },
-    build="sys:cc/build.lua",
+    kind='build', run="sys:cc/build.lua",
   }, dsPkg.dslib)
 
   l:build{'civ:lib/ds'}

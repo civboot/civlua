@@ -1,17 +1,21 @@
-summary"Simple version control software"
+local lua = import'sys:lua.luk'
 
-pkg {
-  name     = 'pvc',
-  version  = '0.1-0',
-  url      = 'git+http://github.com/civboot/civlua',
-  homepage = "https://lua.civboot.org#Package_pvc",
-  license  = "UNLICENSE",
-  doc      = 'README.cxt',
-}
+local P = { summary = "Simple version control software" }
 
 P.pvc = lua {
+  mod = 'pvc',
   src = {
     'pvc.lua',
-    'pvc/unix.lua'
-  }
+    'unix.lua'
+  },
+  dep = { 'civ:lib' },
 }
+
+P.test = lua.test {
+  src = 'test.lua',
+  dep = {
+    'civ:cmd/pvc',
+  },
+}
+
+return P

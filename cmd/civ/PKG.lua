@@ -1,6 +1,6 @@
-local P = {}
-P.summary = "civ build system and developer software stack"
 local lua = import'sys:lua.luk'
+
+local P = { summary = "civ build system and developer software stack" }
 
 P.civ = lua {
   mod = 'civ',
@@ -22,7 +22,7 @@ P.civ = lua {
   link = {['lua/civ.lua'] = 'bin/civ'},
 }
 
-P.test_civ = lua.test {
+P.test = lua.test {
   src = 'test_civ.lua',
   dep = {
     'civ:cmd/civ',
@@ -48,4 +48,3 @@ P.test_civ = lua.test {
 --
 
 return P
-

@@ -1,13 +1,6 @@
-local P = {}
-P.summary = "find+fix files"
 local lua = import'sys:lua.luk'
--- pkg {
---   name    = 'ff',
---   version = '0.1-0',
---   url     = 'git+http://github.com/civboot/civlua',
---   homepage = "https://lua.civboot.org#Package_ff",
---   license  = "UNLICENSE",
--- }
+
+local P = { summary = "find+fix files" }
 
 P.ff = lua {
   mod  = 'ff',
@@ -22,6 +15,11 @@ P.ff = lua {
     'civ:lib/civtest',
   },
   link = {['lua/ff.lua'] = 'bin/ff'},
+}
+
+P.test = lua.test {
+  src = 'test.lua',
+  dep = { 'civ:cmd/ff' },
 }
 
 return P

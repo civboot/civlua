@@ -871,7 +871,7 @@ T.load = function()
   local dload = require'ds.load'
   local env = {}
   local ok, res = dload(D..'data/load_data.lua', env)
-  assert(ok)
+  assert(ok, res or 'unknown')
   T.eq({answer=42, formatted='answer: 42'}, res)
 
   T.eq(getmetatable(env), dload.ENV); setmetatable(env, nil)

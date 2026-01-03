@@ -2,10 +2,3 @@
 .civ/
 .pvc/
 .out/
-bin/
-API.html
-**/*src.rock
-**/*.rockspec
-**/*.o
-**/*.so
-**/*.gch

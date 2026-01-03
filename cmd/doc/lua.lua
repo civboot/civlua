@@ -218,7 +218,7 @@ M['string.gsub'] = string.gsub--(subj, pat, repl, index=1) --> string
 ---   sfmt = string.format
 ---   T.eq('age: 42',    sfmt('%s: %i',   'age', 42))
 ---   T.eq('age:    42', sfmt('%s: %5i',  'age', 42))
----   T.eq('age: 42,     sfmt('%s: %-5i', 'age', 42))
+---   T.eq('age: 42   ',     sfmt('%s: %-5i', 'age', 42))
 ---   T.eq('age: 00042', sfmt('%s: %05i', 'age', 42)
 --- ]##
 M['string.format'] = string.format--(fmt: str, ...) --> str

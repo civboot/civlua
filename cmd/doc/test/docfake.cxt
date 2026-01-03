@@ -21,12 +21,12 @@ Documentation for A
 [*Records: ] [{table}
 + [$docfake.A.__index] | \[Ty<A>\] ([{path=cmd/doc/test/docfake.lua:000}src])
 ]
-[{h4}Function [:metaty.fmt] ([{i path=lib/metaty/metaty.lua:000}src])]
+[{h4}Function [:docfake.A.__fmt] ([{i path=.civ/lua/metaty.lua:000}src])]
 The default __fmt method.
-[{h4}Function [:metaty.newindex] ([{i path=lib/metaty/metaty.lua:000}src])]
-[{h4}Function [:metaty.tostring] ([{i path=lib/metaty/metaty.lua:000}src])]
+[{h4}Function [:docfake.A.__newindex] ([{i path=.civ/lua/metaty.lua:000}src])]
+[{h4}Function [:docfake.A.__tostring] ([{i path=.civ/lua/metaty.lua:000}src])]
 The default __tostring method.
-[{h4}Function [:A.meth1][$() -> thing] ([{i path=cmd/doc/test/docfake.lua:000}src])]
+[{h4}Function [:docfake.A.meth1][$() -> thing] ([{i path=cmd/doc/test/docfake.lua:000}src])]
 docs for meth1
 [{h3}Function [:docfake.fun1][$() -> thing] ([{i path=cmd/doc/test/docfake.lua:000}src])]
 this is a function.

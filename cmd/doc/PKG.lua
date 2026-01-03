@@ -1,16 +1,22 @@
-summary'Print and export documentation.'
+local lua = import'sys:lua.luk'
 
-pkg {
-  name    = 'doc',
-  version = '0.1-0',
-  url     = 'git+http://github.com/civboot/civlua',
-  homepage = "https://lua.civboot.org#Package_doc",
-  doc     = 'README.cxt',
-}
+local P = { summary = "Print and export documentation." }
 
 P.doc = lua {
+  mod = 'doc',
   src = {
-    doc = 'doc.lua',
-    ['doc.lua'] = 'lua.lua',
+    'doc.lua',
+    'lua.lua',
+  },
+  dep = {
+    "civ:lib",
+    "civ:cmd/cxt",
   },
 }
+
+P.test = lua.test {
+  src = 'test.lua',
+  dep = { 'civ:cmd/doc' },
+}
+
+return P

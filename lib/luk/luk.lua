@@ -9,6 +9,7 @@ local info = require'ds.log'.info
 local pth = require'ds.path'
 local dload = require'ds.load'
 
+local assertf = fmt.assertf
 local push, pop = ds.push, table.remove
 local getmt = getmetatable
 
@@ -73,23 +74,21 @@ end
 
 --- Recursively import the luk file at path.
 --- Each luk file has a sandboxed global environment.
-function M.Luk:import(path, wd) --> luk, abspath
+function M.Luk:import(path, wd) --> lukMod?, ds.Error?
   path = self:resolve(path, wd)
   local lk = self.imported[path]; if lk then return lk end
-  info('luk loading: %q', path)
+  info('loading luk: %q', path)
   M.checkCycle(self.cycle, path)
   push(self.cycle, path); self.cycle[path] = 1
   self.imports[path] = {}
   local pathWd, env = pth.dir(path), {}
   env.import = function(p)
-    local luk, ap = self:import(p, pathWd)
-    push(self.imports[path], ap)
-    return luk
+    assertf(type(p) == 'string', 'import expects string, got: %q', p)
+    return assert(self:import(p, pathWd))
   end
   local ok, luk = dload(path, env, self.envMeta)
-  if not ok then error(tostring(luk)) end -- FIXME
-  luk = M.value(luk)
-
+  if not ok then return nil, --[[error]]luk end
+  luk = assertf(M.value(luk), '%s did not return a value', path)
   self.imported[path] = luk
   assert(pop(self.cycle) == path); self.cycle[path] = nil
   return luk

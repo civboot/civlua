@@ -12,6 +12,7 @@ local Gap = mty'Gap' {
   'path [string]', 'readonly [bool]' }
 
 local ds, lines  = require'ds', require'lines'
+local pth = require'ds.path'
 local lload = lines.load
 local largs = lines.args
 local span = lines.span
@@ -44,6 +45,7 @@ end
 --- Load gap from file, which can be a path.
 --- returns nil, err on error
 Gap.load = function(T, f, close) --> Gap?, err?
+  if type(f) == 'string' then f = pth.abs(f) end
   local dat, err = lload(f, close)
   if not dat then return nil, err end
   return T(dat, type(f) == 'string' and f or nil)

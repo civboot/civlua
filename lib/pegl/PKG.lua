@@ -1,23 +1,27 @@
-summary"PEG-like recursive descent parsing in Lua"
-import {
-  "lua     ~> 5.3",
-  "pkg     ~> 0.1",
-  "metaty  ~> 0.1",
-  "ds      ~> 0.1",
-  "civtest ~> 0.1",
-}
+local lua = import'sys:lua.luk'
 
-pkg {
-  name    = 'pegl',
-  version = '0.1-2',
-  url     = 'git+http://github.com/civboot/civlua',
-  homepage = "https://lua.civboot.org#Package_pegl",
-  doc = 'README.cxt',
-}
+local P = {}
+P.summary = "PEG-like recursive descent parsing in Lua"
 
 P.pegl = lua {
+  mod = 'pegl',
   src = {
     'pegl.lua',
-    'pegl/lua.lua',
+    'lua.lua',
+  },
+  dep = {
+    'civ:lib/ds',
+    'civ:lib/lines',
+    'civ:lib/civtest',
   },
 }
+
+P.test = lua.test {
+  src = {
+    'test_pegl.lua',
+    'test_lua.lua',
+  },
+  dep = { 'civ:lib/pegl' },
+}
+
+return P

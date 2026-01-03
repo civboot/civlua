@@ -1,8 +1,6 @@
--- TODO:
---   [1Header block]
+-- TODO: see TODO.cxt
 local M = mod and mod'cxt' or {}
 
-local pkg = require'pkglib'
 local mty = require'metaty'
 local fmt = require'fmt'
 local ds  = require'ds'

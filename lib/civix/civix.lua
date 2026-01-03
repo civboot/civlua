@@ -659,7 +659,7 @@ end
 --- + [$sh{'ls', 'foo/bar', 'dir w spc/'}] | [$ls foo/bar "dir w spc/"]
 --- + [$sh{stdin='sent to stdin', 'cat'}]  | [$echo "sent to stdin" | cat]
 --- ]
-M.sh = rawget(M,'sh') or function(cmd) --> out, err, sh
+M.sh = rawget(M,'sh') or function(cmd) --> out, err, Sh
   trace('sh%q', cmd)
   local rcOk; if type(cmd) == 'table' then rcOk = ds.popk(cmd, 'rc') end
   local sh, other = M._sh(cmd)

@@ -1,6 +1,6 @@
-local P = {}
-P.summary = "luk: lua config language."
 local lua = import'sys:lua.luk'
+
+local P = { summary = "luk: lua config language." }
 
 P.luk = lua {
   mod = 'luk',

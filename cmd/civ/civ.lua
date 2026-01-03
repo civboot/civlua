@@ -16,10 +16,9 @@ local core = require'civ.core'
 local sfmt = string.format
 local push = ds.push
 
-local function parseTargetNames(args) --> pkgnames, tgtnames
+local function tgtnamesSplit(args) --> pkgnames, tgtnames
   local pkgnames, tgtnames = {}, {}
   for _, tgtname in ipairs(args) do
-    info('parsing %q', tgtname)
     local tgt = core.TargetName:parse(tgtname)
     push(tgtnames, tostring(tgt))
     if not pkgnames[tgt.pkgname] then
@@ -121,17 +120,18 @@ function M.Init:__call()
   io.fmt:styled('notify', 'Feel free to customize it as-needed.', '\n')
 end
 
-local function build(cv, tgts)
+local function build(cv, tgtnames)
   assert(cv.cfg.buildDir, 'must set buildDir')
+  -- TODO: check timestamps/etc instead of just deleting everything.
   ix.rmRecursive(cv.cfg.buildDir)
   ix.mkDirs(cv.cfg.buildDir)
-  local pkgnames, tgtnames = parseTargetNames(tgts)
-  info('pkgnames: %q', pkgnames)
-  info('tgtnames: %q', tgtnames)
-
-  cv:load(pkgnames)
+  tgtnames = cv:expandAll(tgtnames)
   local out = cv:build(tgtnames)
-  io.fmt:styled('notify', 'civ build complete', '\n')
+  local f = io.fmt
+  f:styled('notify', 'targets built', '\n')
+  for _, tgtname in ipairs(tgtnames) do
+    f:write(sfmt('  %s\n', tgtname))
+  end
   return out
 end
 
@@ -143,14 +143,21 @@ end
 function M.Test:__call()
   info('test %q', self)
   local cv = core.Civ{cfg=core.Cfg:load(self.config)}
-  local ordered = build(cv, self)
-  cv:test(self, ordered)
-  io.fmt:styled('notify', 'civ test complete', '\n')
+  local tgtnames = cv:expandAll(self)
+  local ordered = build(cv, tgtnames)
+  local ran = cv:test(tgtnames, ordered)
+  local f = io.fmt
+  f:styled('good', #ran..' tests passed:', '\n')
+  for _, tgtname in ipairs(ran) do
+    f:write'  '; f:styled('good', tgtname, '\n')
+  end
+  f:styled('notify', 'civ test: complete', '\n')
 end
 
 function M.Install:__call()
   info('install %q', self)
   local cv = core.Civ{cfg=core.Cfg:load(self.config)}
+  local tgtnames = cv:expandAll(self)
   local D = cv.cfg.installDir
   assert(D, 'must set config.installDir')
   if not shim.bool(self.force) and ix.exists(D) then
@@ -164,11 +171,13 @@ function M.Install:__call()
   end
   io.fmt:styled('notify', 'installing in ')
   io.fmt:styled('path', D, '\n')
-  build(cv, self)
+  build(cv, tgtnames)
   ix.rmRecursive(cv.cfg.installDir)
   ix.cpRecursive(cv.cfg.buildDir, cv.cfg.installDir)
-  io.fmt:styled('notify', 'Installed in ')
-  io.fmt:styled('path', D, '\n')
+  io.fmt:styled('notify', 'Installed in '); io.fmt:styled('path', D, '\n')
+  for _, tgtname in ipairs(tgtnames) do
+    io.fmt:write(sfmt('  %s\n', tgtname))
+  end
   io.fmt:styled('notify',
     'Add (something like) the following to your ~/.bashrc', '\n')
   local d = pth.toNonDir(D)
@@ -183,5 +192,5 @@ M.main = function(args)
   a[a.subcmd]()
 end
 
-if MAIN == M then M.main(arg) end
+if MAIN == M then return ds.main(M.main, arg) end
 return M

@@ -17,6 +17,7 @@ local G = setmetatable({}, {
 })
 
 -- Documentation globals
+-- FIXME: rename these MOD_*
 local weakk, weakv = {__mode='k'}, {__mode='v'}
 G.PKG_NAMES  = G.PKG_NAMES  or setmetatable({}, weakk) -- obj -> name
 G.PKG_LOC    = G.PKG_LOC    or setmetatable({}, weakk) -- obj -> path:loc
@@ -77,6 +78,12 @@ M.G = G
 --
 -- usage: [$local M = mod'name']
 M.mod = mod
+
+M.isMod = function(t) --> boolean
+  if type(t) ~= 'table' then return false end
+  local mt = getmetatable(t)
+  return mt and mt.__name and mt.__name:find'^Mod<'
+end
 
 -- TODO: remove these globals
 G.G = G.G or G

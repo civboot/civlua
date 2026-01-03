@@ -59,15 +59,19 @@ setmetatable(M.ENV, {
 
 --- Similar to lua's [$loadfile] but follows conventions of [$ds.load(...)].
 --- Unlike loadfile, this throws an error if the path doesn't parse.
-M.loadfile = function(path, env, envMeta) --> fn
+M.loadfile = function(path, env, envMeta) --> fn?, ds.Error?
   env = env or {}
   if not getmt(env) then setmt(env, envMeta or M.ENV) end
-  local m, err = loadfile(path, nil, env)
-  if err then error(sfmt('failed to parse %s: %s', path, err)) end
-  return m
+  local fn, err = loadfile(path, nil, env)
+  if not fn then
+    return nil, ds.Error { msg = err, traceback = { path }, }
+  end
+  return fn
 end
 
 getmetatable(M).__call = function(_, path, env, envMeta) --> ok, result
-  return ds.try(M.loadfile(path, env, envMeta))
+  local fn, err = M.loadfile(path, env, envMeta)
+  if not fn then return false, err end
+  return ds.try(fn)
 end
 return M

@@ -18,13 +18,13 @@ local et = require'ele.types'
 local Buffer = require'lines.buffer'.Buffer
 local ixt = require'civix.testing'
 
-local _CWD = CWD
-G.CWD = path.abs(ds.srcdir())
+local _PWD = PWD
+G.PWD = path.abs(ds.srcdir())
 
 local SC = '[mode:command]'
 local SI = '[mode:insert]'
 local SS = '[mode:system]'
-local SMALL = CWD..'data/small.lua'
+local SMALL = 'data/small.lua'
 local LINES3 =
   '1 3 5 7 9\n'
 ..' 2 4 6\n'
@@ -155,7 +155,7 @@ Test{'open', open=SMALL, th=9, tw=30, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
   local b, BID = e.buf, et.INIT_BUFS + 2
   T.eq(b.id, BID)
-  T.eq(SMALL, b.dat.path)
+  T.eq(SMALL, pth.nice(b.dat.path))
   s:play'' -- draws
     T.eq('-- a small lua file for tests', b:get(1))
     T.eq(SC..SMALL_1, fmt(ed.display))
@@ -189,7 +189,7 @@ Test{'window', open=SMALL, th=5, tw=60, function(tst)
   local d = ed.display
 
   T.eq(b.id, BID)
-  T.eq(SMALL, b.dat.path)
+  T.eq(SMALL, pth.nice(b.dat.path))
   s:play'g L'
     T.eq(SC..SPLIT_1, fmt(ed.display))
     T.eq(et.VSplit, mty.ty(ed.view))
@@ -371,4 +371,4 @@ Test{'searchBuf', dat=LINES3, function(tst)
     T.eq({1,5}, {e.l,e.c})
 end}
 
-CWD = _CWD
+G.PWD = _PWD

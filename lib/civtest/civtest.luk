@@ -1,9 +1,0 @@
-import {
-  civ = 'civ.luk',
-}
-
-return function(tgt)
-  local t = civ.Target(tgt)
-  t.run = {'lua/civtest.lua', '--target='..self}
-  return extend(t.run, self.src)
-end

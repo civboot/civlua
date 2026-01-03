@@ -616,7 +616,6 @@ static int l_isatty(LS* L) {
   return 1;
 }
 
-
 static const struct luaL_Reg fd_lib[] = {
   {"openFD", l_FD_open},   {"openFDT", l_FDT_open},
   {"tmpFD",  l_FD_tmp},    {"tmpFDT",  l_FDT_tmp},

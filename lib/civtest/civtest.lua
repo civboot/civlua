@@ -48,6 +48,7 @@ M.runTest = function(name, fn, path)
 end
 
 M.showDiff = function(f, a, b)
+  f:styled('error', '\n!! EXPECT:', '\n');   f(a)
   f:styled('error', '\n!! RESULT:', '\n');   f(b)
   if mty.ty(a) ~= mty.ty(b) then
     f:styled('error', '\n!! TYPES:', ' ',

@@ -26,10 +26,11 @@ function M.__call(l)
   l = Lua(l)
 
   local t = Target {
+    kind = 'build',
     src = l.src or {mod..'.lua'},
     dep = l.dep or {},
-    build = 'sys:lua/build.lua',
     tag = l.tag or {},
+    run = 'sys:lua/build.lua',
   }
   if not t.tag.builder then t.tag.builder = 'direct' end
 
@@ -77,7 +78,7 @@ function M.test(l)
   l.src = type(l.src) == 'string' and {l.src} or l.src
   assert(type(l.src) == 'table', 'must set src to one or more tables')
   l.dep = type(l.dep) == 'string' and {l.dep} or l.dep or {}
-  l.test = l.test or 'sys:lua/test.lua'
+  l.kind, l.run = 'test', l.run or 'sys:lua/test.lua'
   return Target(l)
 end
 

@@ -65,6 +65,7 @@ M.dark = {
   info  = 'bl', -- info box, i.e. editor overlay.
   -- TODO: rename notice
   notify = 'C', -- make very visible
+  good   = 'G',
   error = 'Wr', warn  = 'Y',
   base   = 'F', basel   = 'Wf', -- base(line),   aka removed text
   change = 'G', changel = 'Wg', -- change(line), aka added text

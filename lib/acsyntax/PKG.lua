@@ -1,24 +1,20 @@
-local P = {}
-
-P.summary = "asciicolor syntax highlighting"
 local lua = import'sys:lua.luk'
 
--- pkg {
---   name     = 'acsyntax',
---   version  = '0.1-0',
---   url      = 'git+http://github.com/civboot/civlua',
---   homepage = "https://lua.civboot.org#Package_acsyntax",
---   license  = "UNLICENSE",
---   doc = 'README.cxt',
--- }
+local P = {}
+P.summary = "asciicolor syntax highlighting"
 
 P.acsyntax = lua {
-  mod = 'acsyntax'
-  src = {
-    'acsyntax.lua',
-  },
+  mod = 'acsyntax',
+  src = 'acsyntax.lua',
   dep = {
-    'civ:civix',
-    'civ:pegl',
+    'civ:lib/civix',
+    'civ:lib/pegl',
   }
 }
+
+P.test = lua.test {
+  src = 'test.lua',
+  dep = { 'civ:lib/acsyntax' },
+}
+
+return P

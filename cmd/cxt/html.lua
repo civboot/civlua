@@ -2,7 +2,6 @@
 local M = mod and mod'cxt.html' or setmetatable({}, {})
 MAIN = MAIN or M
 
-local pkglib = require'pkglib'
 local mty  = require'metaty'
 local fmt  = require'fmt'
 local pegl = require'pegl'
@@ -244,7 +243,7 @@ M.main = function(args)
   local inp = LFile{path=args[1]}
   local to  = fmt.Fmt{to=assert(io.open(args[2], 'w'))}
   if args.config then
-    args.config = cxt.Config(pkglib.load('CxtConfig', args.config).html)
+    args.config = cxt.Config(require'ds.load'(args.config).html)
   end
   M.convert(inp, to, args.config)
   inp:close(); to:flush(); to:close()

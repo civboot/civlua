@@ -1222,29 +1222,41 @@ M.traceback = function(level) --> string
   return concat(M.tracelist(nil, 1 + (level or 0)), '\n    ')
 end
 
+local function fmtTracebackItem(f, tbitem)
+  f:write'  '
+  local path, li, ctx = tbitem:match'%s*(%S+):(%d+):%s*(.*)'
+  if not path then return f:styled('warn', tbitem, '\n') end
+  f:styled('warn', sfmt('[% 5i]', math.tointeger(li)), ' ')
+  f:styled('path', require'ds.path'.nice(path), ' ')
+  f:styled('warn', ctx, '\n')
+end
+
 --- Error message, traceback and cause
 --- NOTE: you should only use this for printing/logging/etc.
 M.Error = mty'Error' {
-  'msg [string]', 'traceback [table]', 'cause [Error]',
+  'msg [string]', 'traceback {path}', 'cause [Error]',
 }
 M.Error.__fmt = function(e, f)
-  f:write('ERROR: ', e.msg)
-  if e.traceback then
-    f:write'\ntraceback:\n'
-    for _, l in ipairs(e.traceback) do
-      f:write('  ', l, '\n')
+  local pth = require'ds.path'
+  f:styled('warn', '[ERROR] '..e.msg)
+  if e.traceback and #e.traceback > 0 then
+    f:styled('warn', '\ntraceback:', '\n')
+    for _, item in ipairs(e.traceback) do
+      fmtTracebackItem(f, item)
     end
   end
   if e.cause then
-    f:write'\nCaused by: '
-    f(e.cause); f:write'\n'
+    f:styled('warn', '\nCaused by: ', '\n')
+    f(e.cause)
   end
+  f:write'\n'
 end
 M.Error.__tostring = function(e) return fmt(e) end
 
 --- create the error from the arguments.
 --- tb can be one of: [$coroutine|string|table]
 M.Error.from = function(msg, tb, cause) --> Error
+  if mty.ty(msg) == M.Error then return msg end
   tb = (type(tb) == 'thread') and traceback(tb) or tb
   return M.Error{
     msg=msg:match'^%S+/%S+:%d+: (.*)' or msg, -- remove line number
@@ -1264,6 +1276,14 @@ end
 --- ]
 M.try = function(fn, ...) --> (ok, ...)
   return xpcall(fn, M.Error.msgh, ...)
+end
+
+--- Helper function for running commands as "main".
+M.main = function(fn, ...) --> errno?
+  local ok, err = M.try(fn, ...)
+  if ok then return nil end
+  io.fmt(err)
+  return 1
 end
 
 --- Same as coroutine.resume except uses a ds.Error object for errors

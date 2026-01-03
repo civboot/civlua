@@ -1,17 +1,15 @@
-summary"version control data structures and algorithms"
-import {
-  "lua    ~> 5.3",
-  "metaty ~> 0.1",
-  "ds     ~> 0.1",
+local lua = import'sys:lua.luk'
+
+local P = { summary = "version control data structures and algorithms" }
+
+P.vcds = lua {
+  mod = 'vcds',
+  dep = { 'civ:lib/ds' },
 }
 
-pkg {
-  name     = 'vcds',
-  version  = '0.1-6',
-  url      = 'git+http://github.com/civboot/civlua',
-  homepage = "https://lua.civboot.org#Package_vcds",
-  license  = "UNLICENSE",
+P.test = lua.test {
+  src = 'test.lua',
+  dep = { 'civ:lib/vcds' },
 }
-P.vcds = lua {
-  srcs = { 'vcds.lua' },
-}
+
+return P

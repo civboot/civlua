@@ -19,9 +19,9 @@ return function(cc)
   if #cc.hdr > 0 then out.include = cc.hdr               end
 
   return Target {
+    kind = 'build', run = 'sys:cc/build.lua',
     src = cc.src,
     out = out,
-    build = 'sys:cc/build.lua',
     tag = cc.tag,
   }
 end

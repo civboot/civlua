@@ -1,27 +1,20 @@
-summary"text markup for civilization"
-import {
-  "lua     ~> 5.3",
-  "pkg     ~> 0.1",
-  "civtest ~> 0.1",
-  "ds      ~> 0.1",
-  "pegl    ~> 0.1",
-  "metaty  ~> 0.1",
-  "shim    ~> 0.1",
-}
+local lua = import'sys:lua.luk'
 
-pkg {
-  name    = 'cxt',
-  version = '0.1-0',
-  url     = 'git+http://github.com/civboot/civlua',
-  doc      = 'README.cxt',
-  homepage = "https://lua.civboot.org#Package_cxt",
-  license  = "UNLICENSE",
-}
+local P = { summary = "text markup for civilization" }
 
 P.cxt = lua {
+  mod = 'cxt',
   src = {
     'cxt.lua',
-    'cxt/term.lua',
-    'cxt/html.lua',
+    'term.lua',
+    'html.lua',
   },
+  dep = { "civ:lib" },
 }
+
+P.test = lua.test {
+  src = 'test.lua',
+  dep = { 'civ:cmd/cxt' },
+}
+
+return P

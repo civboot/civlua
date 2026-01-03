@@ -11,7 +11,6 @@ M.Example  = require'metaty''Example'{
 }
 M.Example.method = function() end
 
-local pkglib = require'pkglib'
 local mty = require'metaty'
 local fmt = require'fmt'
 local pth = require'ds.path'
@@ -20,7 +19,7 @@ local doc = require'doc'
 
 T.eq(mod.__newindex, getmetatable(M.Example).__newindex)
 T.eq('doc_test.Example',    PKG_NAMES[M.Example])
-T.eq('cmd/doc/test.lua:11', PKG_LOC[M.Example])
+T.matches('.*cmd/doc/test.lua:11', PKG_LOC[M.Example])
 
 local rmPaths = function(str) return str:gsub('(/.-):%d+', '%1:000') end
 T.eq('blah blah foo/bar.baz:000 blah blah',
@@ -114,9 +113,9 @@ another line\
 + [$doc_test.Example.__index] | \\[Ty<Example>\\] ([{path=cmd/doc/test.lua:000}src])\
 ]\
 [*Methods: ] [{table}\
-+ [$doc_test.Example.__fmt] | \\[function\\] ([{path=lib/metaty/metaty.lua:000}src])\
-+ [$doc_test.Example.__newindex] | \\[function\\] ([{path=lib/metaty/metaty.lua:000}src])\
-+ [$doc_test.Example.__tostring] | \\[function\\] ([{path=lib/metaty/metaty.lua:000}src])\
++ [$doc_test.Example.__fmt] | \\[function\\] ([{path=.civ/lua/metaty.lua:000}src])\
++ [$doc_test.Example.__newindex] | \\[function\\] ([{path=.civ/lua/metaty.lua:000}src])\
++ [$doc_test.Example.__tostring] | \\[function\\] ([{path=.civ/lua/metaty.lua:000}src])\
 + [$doc_test.Example.method] | \\[function\\] ([{path=cmd/doc/test.lua:000}src])\
 ]",
     doFmt(doc.fmtDoc, res))

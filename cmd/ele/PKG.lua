@@ -1,22 +1,33 @@
-summary'ele: the extendable lua editor'
+local lua = import'sys:lua.luk'
 
-pkg {
-  name    = 'ele',
-  version = '0.1-0',
-  url     = 'git+http://github.com/civboot/civlua',
-  homepage = "https://lua.civboot.org#Package_ele",
-  doc     = 'README.cxt',
-}
+local P = { summary = "ele: the extendable lua editor" }
 
 P.ele = lua {
+  mod = 'ele',
   src = {
     'ele.lua',
-    'ele/types.lua',
-    'ele/bindings.lua',
-    'ele/edit.lua',
-    'ele/actions.lua',
-    'ele/Editor.lua',
-    'ele/Session.lua',
-    'ele/testing.lua',
+    'types.lua',
+    'bindings.lua',
+    'edit.lua',
+    'actions.lua',
+    'Editor.lua',
+    'Session.lua',
+    'testing.lua',
   },
+  dep = { "civ:lib" },
 }
+
+P.test = lua.test {
+  src = {
+    'tests/test_actions.lua',
+    'tests/test_bindings.lua',
+    'tests/test_session.lua',
+    'tests/test_term.lua',
+  },
+  dep = {
+    'civ:lib#testing',
+    'civ:cmd/ele',
+  }
+}
+
+return P
