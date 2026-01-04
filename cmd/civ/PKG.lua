@@ -1,4 +1,5 @@
 local lua = import'sys:lua.luk'
+local doc = import'civ:doc.luk'
 
 local P = { summary = "civ build system and developer software stack" }
 
@@ -28,6 +29,14 @@ P.test = lua.test {
     'civ:cmd/civ',
   }
 }
+
+-- FIXME
+-- P.civ_doc = doc.lua {
+--   mod = 'civ',
+--   src = 'README.cxt',
+--   lua = { 'civ:cmd/civ' },
+--   tag = { cmd = 'civ.Args' },
+-- }
 
 -- local FILE = 'https://github.com/civboot/civlua/blob/main/'
 -- local FILE_LINE = FILE..'%s#L%s'

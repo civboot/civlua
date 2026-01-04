@@ -1,3 +1,5 @@
+local doc = import'civ:doc.luk'
+
 local P = {}
 
 -- The entire civ:lib.
@@ -32,5 +34,30 @@ P.testing = Target {
     'civ:lib/pod/testing',
   },
 }
+
+local function libdoc(mod, readme)
+  P['doc_'..mod] = doc.lua {
+    mod = mod,
+    src = readme and mod..'/README.cxt',
+    lua = { 'civ:lib/'..mod },
+  }
+end
+-- libdoc('acsyntax', true) -- FIXME
+libdoc('asciicolor', true)
+libdoc('civix', true)
+libdoc('civtest', true)
+libdoc('ds', true)
+libdoc('fd', true)
+libdoc('fmt', true)
+libdoc('lap', true)
+libdoc('lines')
+libdoc('lson', true)
+libdoc('luk')
+libdoc('metaty', true)
+libdoc('pegl', true)
+libdoc('pod', true)
+libdoc('shim', true)
+libdoc('vcds')
+libdoc('vt100', true)
 
 return P

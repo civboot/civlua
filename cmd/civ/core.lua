@@ -74,7 +74,7 @@ local function tgtnameSplit(str) --> pkgname, name
 end
 M.tgtnameSplit = tgtnameSplit
 
-local function tgtnameFix(tgtname)
+function M.tgtname(tgtname)
   local pkgname, name = tgtnameSplit(tgtname)
   return sfmt('%s#%s', pkgname, name)
 end
@@ -100,6 +100,8 @@ M.Target = pod(mty'Target' {
   'dir [str]: directory of src files',
   'src {key: str}: list of input source files (strings).',
   'dep {str}: list of input Target objects (dependencies).',
+  'extra [builtin]: arbitrary value, used by run command',
+  'api [table]: the lang-specific exported import paths.',
   'depIds {int}: list of dependency target ids. Populated for Worker.',
  [[out [table]: POD table output segregated by language.[+
      * t: PoD in a k/v table, can be used to configure downstream targets.
@@ -122,7 +124,7 @@ getmetatable(M.Target).__call = function(T, t)
   t.tag = t.tag or {}
   if t.tag.builder ~= 'bootstrap' then push(t.dep, 'civ:cmd/civ') end
   for i, dep in ipairs(t.dep) do
-    t.dep[i] = tgtnameFix(dep)
+    t.dep[i] = M.tgtname(dep)
   end
   return mty.construct(T, t)
 end
@@ -235,20 +237,22 @@ function M.Civ:expand(pat) --> targets
   self:load(pkgnames)
   local tgtnames = {}
   if tgtpat == '' then 
-    for _, pkg in ipairs(pkgnames) do push(tgtnames, tgtnameFix(pkg)) end
-    return tgtnames
-  end
-  tgtpat = tgtpat:sub(2) -- remove '#'
-  if tgtpat == '' then tgtpat = '.' end
-  for _, pkgname in ipairs(pkgnames) do
-    local pkg = self.pkgs[pkgname]
-    for _, tgt in pairs(pkg) do
-      if mty.ty(tgt) ~= M.Target then goto continue end
-      if tmatch(tgt.name, tgtpat) then push(tgtnames, tgt:tgtname()) end
-      ::continue::
+    for _, pkg in ipairs(pkgnames) do push(tgtnames, M.tgtname(pkg)) end
+  else
+    tgtpat = tgtpat:sub(2) -- remove '#'
+    if tgtpat == '' then tgtpat = '.' end
+    for _, pkgname in ipairs(pkgnames) do
+      local pkg = self.pkgs[pkgname]
+      for _, tgt in pairs(pkg) do
+        if mty.ty(tgt) ~= M.Target then goto continue end
+        if tmatch(tgt.name, tgtpat) then push(tgtnames, tgt:tgtname()) end
+        ::continue::
+      end
     end
   end
-  return ds.sort(tgtnames)
+  tgtnames = ds.sort(tgtnames)
+  assertf(#tgtnames > 0, '%q did not resolve to any targets', pat)
+  return tgtnames
 end
 
 --- Given a list of hub:foo/.*#.* patterns, expand them.
@@ -358,7 +362,7 @@ function M.Civ:targetDepMap(tgts, depMap)
   end
 end
 
-function M.Civ:run(tgtname, script, ids)
+function M.Civ:run(stage, tgtname, script, ids)
   local cmd = {
     script,
     '--config='..self.cfg.path,
@@ -366,7 +370,7 @@ function M.Civ:run(tgtname, script, ids)
     ENV=self.ENV, rc = true,
   }
   for _, id in ipairs(ids) do push(cmd, tostring(id)) end
-  info('Civ:run %q', cmd)
+  info('%s cmd: %q', stage, cmd)
   local rc = select(3, ix.sh(cmd)):rc()
   if rc ~= 0 then
     error(ds.Error{msg=sfmt('%s failed with rc=%s', tgtname, rc)})
@@ -374,7 +378,7 @@ function M.Civ:run(tgtname, script, ids)
 end
 
 --- Build the target.
-function M.Civ:build(tgts)
+function M.Civ:build(tgts) --> ordered, tgtsCache
   info('Civ.build: %q', tgts)
   local depMap = {}; self:targetDepMap(tgts, depMap)
   local ordered, cycle = ds.dagSort(tgts, depMap)
@@ -393,7 +397,6 @@ function M.Civ:build(tgts)
   local cfgArg    = '--config='..assert(self.cfg.path)
   local tgtsDbArg = '--tgtsDb='..tgtsDbPath
   local tgtFile = assert(File { path = tgtsDbPath, mode = 'w' })
-  info('Civ.build args: %s %s', cfgArg, tgtsDbArg)
   ix.mkDirs(self.cfg.buildDir..'bin/')
   for id, tgtname in ipairs(ordered) do
     local tgt = self:target(tgtname)
@@ -414,7 +417,7 @@ function M.Civ:build(tgts)
       dofile(script); G.MAIN = nil
     else -- build in a separate process
       assertf(not G.BOOTSTRAP, '%s not tagged as bootstrap', tgtname)
-      self:run(tgtname, script, {id})
+      self:run('build', tgtname, script, {id})
     end
     ::skip::
   end
@@ -446,7 +449,7 @@ function M.Civ:test(tgtnames, ordered, tgtsCache)
       info('test direct: %q', script)
       dofile(script); G.MAIN = nil
     else
-      self:run(tgtname, script, {id})
+      self:run('test', tgtname, script, {id})
     end
     push(ran, tgtname)
     ::continue::

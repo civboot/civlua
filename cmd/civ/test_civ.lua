@@ -36,6 +36,7 @@ local METATY_PKG = core.Target {
   dir = pth.abs(D.."lib/metaty/"),
   src={"metaty.lua"},
   out={lua={"metaty.lua"}},
+  api={'metaty'},
   tag={builder='bootstrap'},
   kind='build', run=LUA_BUILD,
 }
@@ -49,6 +50,7 @@ local FMT_PKG = core.Target {
     'fmt.lua',
     ['binary.lua'] = 'fmt/binary.lua',
   }},
+  api={'fmt', 'fmt.binary'},
   tag={builder='bootstrap'},
   kind='build', run=LUA_BUILD,
 }

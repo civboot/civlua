@@ -5,7 +5,6 @@ P.summary = "asciicolor syntax highlighting"
 
 P.acsyntax = lua {
   mod = 'acsyntax',
-  src = 'acsyntax.lua',
   dep = {
     'civ:lib/civix',
     'civ:lib/pegl',

@@ -180,7 +180,7 @@ end
 --- Construct a metaty-like object from args.
 ---
 --- If [$Args.subcmd] is truthy then treats it as a table of
---- subcmds. Looks for a subcmd at args[1], removes it and
+--- subcmds. Looks for a subcmd at [$args[1]], removes it and
 --- constructs that subcmd, returning a table with the subcmd
 --- key set.
 ---
@@ -213,6 +213,10 @@ M.init = function(Args, args)
   local a, err = M.construct(Args, args)
   M.runSetup(a or {})
   return assert(a, err)
+end
+
+M.run = function(Args, args)
+  return M.init(Args, args)()
 end
 
 return M

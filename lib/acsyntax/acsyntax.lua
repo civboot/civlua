@@ -72,5 +72,4 @@ M.Highlighter.highlight = function(hl, lf) --> fgLf, bgLf
   return fgPath, bgPath
 end
 
-
 return M

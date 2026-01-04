@@ -135,9 +135,10 @@ end
 -- general functions and constants
 M.DEPTH_ERROR = '{!max depth reached!}'
 
-M.ty = function(o) --> Type: string or metatable
-  local t = type(o)
-  return t == 'table' and getmt(o) or t
+--- Get the type of the value.
+M.ty = function(v) --> type: string or metatable
+  local t = type(v)
+  return t == 'table' and getmt(v) or t
 end
 
 --- Given a type return it's name

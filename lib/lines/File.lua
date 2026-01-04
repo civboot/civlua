@@ -63,7 +63,10 @@ getmetatable(File).__call = function(T, t) --> File?, errmsg?
   trace('%s.init%q', mty.tyName(T), t)
   local f, err, idx, fstat, xstat -- FIXME: remove fstat/xstat
   if not t.path then
-    f, err   = io.tmpfile();    if not f   then return nil, err end
+    if t.tmp then f = t.tmp; t.tmp = nil
+    else
+      f, err = io.tmpfile();    if not f   then return nil, err end
+    end
     idx, err = U3File:create(); if not idx then return nil, err end
     T._initnew(f, idx)
   elseif type(t.path) == 'string' then

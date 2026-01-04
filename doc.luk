@@ -1,0 +1,29 @@
+--- Documentation build rules for civ.
+local M = {}
+
+local LuaDoc = record'LuaDoc' {
+  'mod [string]',
+  'src {path}: raw cxt files (i.e. README.cxt)',
+  'lua {tgtname}: lua module targets to document',
+}
+
+M.lua = function(l)
+  assert(l.mod, 'must set mod')
+  l.src = type(l.src)=='string' and {l.src} or l.src or {}
+  l.lua = l.lua or {}
+  local dep = extend(l.dep or {}, l.lua)
+  push(dep, 'civ:cmd/doc')
+  l = LuaDoc(l)
+  return Target {
+    src = l.src, dep = dep,
+    extra = { lua = l.lua },
+    out = {
+      doc = {
+        lua = { l.mod..'.cxt' },
+      },
+    },
+    kind = 'build', run = 'civ:cmd/doc/build.lua',
+  }
+end
+
+return M

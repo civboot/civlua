@@ -9,9 +9,12 @@ P.doc = lua {
     'lua.lua',
   },
   dep = {
-    "civ:lib",
+    "civ:lib/lines",
+    "civ:lib/civtest",
+    "civ:lib/pegl",
     "civ:cmd/cxt",
   },
+  link = {['lua/doc.lua'] = 'bin/luadoc'},
 }
 
 P.test = lua.test {

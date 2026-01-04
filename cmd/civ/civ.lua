@@ -120,12 +120,11 @@ function M.Init:__call()
   io.fmt:styled('notify', 'Feel free to customize it as-needed.', '\n')
 end
 
-local function build(cv, tgtnames)
+function M.build(cv, tgtnames)
   assert(cv.cfg.buildDir, 'must set buildDir')
   -- TODO: check timestamps/etc instead of just deleting everything.
   ix.rmRecursive(cv.cfg.buildDir)
   ix.mkDirs(cv.cfg.buildDir)
-  tgtnames = cv:expandAll(tgtnames)
   local out = cv:build(tgtnames)
   local f = io.fmt
   f:styled('notify', 'targets built', '\n')
@@ -135,16 +134,8 @@ local function build(cv, tgtnames)
   return out
 end
 
-function M.Build:__call()
-  info('build %q', self)
-  build(core.Civ{cfg=core.Cfg:load(self.config)}, self)
-end
-
-function M.Test:__call()
-  info('test %q', self)
-  local cv = core.Civ{cfg=core.Cfg:load(self.config)}
-  local tgtnames = cv:expandAll(self)
-  local ordered = build(cv, tgtnames)
+function M.test(cv, tgtnames)
+  local ordered = M.build(cv, tgtnames)
   local ran = cv:test(tgtnames, ordered)
   local f = io.fmt
   f:styled('good', #ran..' tests passed:', '\n')
@@ -152,6 +143,19 @@ function M.Test:__call()
     f:write'  '; f:styled('good', tgtname, '\n')
   end
   f:styled('notify', 'civ test: complete', '\n')
+end
+
+
+function M.Build:__call()
+  info('build %q', self)
+  local cv = core.Civ{cfg=core.Cfg:load(self.config)}
+  return M.build(cv, cv:expandAll(self))
+end
+
+function M.Test:__call()
+  info('test %q', self)
+  local cv = core.Civ{cfg=core.Cfg:load(self.config)}
+  return M.test(cv, cv:expandAll(self))
 end
 
 function M.Install:__call()
@@ -171,7 +175,7 @@ function M.Install:__call()
   end
   io.fmt:styled('notify', 'installing in ')
   io.fmt:styled('path', D, '\n')
-  build(cv, tgtnames)
+  M.build(cv, tgtnames)
   ix.rmRecursive(cv.cfg.installDir)
   ix.cpRecursive(cv.cfg.buildDir, cv.cfg.installDir)
   io.fmt:styled('notify', 'Installed in '); io.fmt:styled('path', D, '\n')
@@ -189,7 +193,7 @@ M.main = function(args)
   local a = shim.init(M.Args, shim.parse(args))
   assert(io.fmt and io.user)
   io.fmt:styled('notify', 'Running civ '..a.subcmd, '\n')
-  a[a.subcmd]()
+  return a[a.subcmd]()
 end
 
 if MAIN == M then return ds.main(M.main, arg) end

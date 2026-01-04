@@ -1,6 +1,8 @@
+#!/usr/bin/env -S lua
 local mty = require'metaty'
 
 --- Get documentation for lua types and syntax.
+---
 --- Examples: [{## lang=lua}
 --- doc{string.find}
 --- doc'for'
@@ -8,36 +10,55 @@ local mty = require'metaty'
 --- ]##
 local M = mty.mod'doc'
 
-local G = mty.G
-G.MAIN = G.MAIN or M
+--- Compile documentation for one or more lua objects.
+---
+--- Usage: [{## lang=lua}
+---  doc{'path.of.object'}
+--- ]##
+---
+M.Main = mty'Args' {
+  __cmd = 'luadoc',
+  'cmd  [symbol]: symbol to document as the command. Command documentation is first',
+  'raw  {path}: any number of (raw cxt) paths to put before API documentation',
+  'expand [int|bool]: expand to depth (expand=true means expand=10)', expand=1,
+  'to   [path]: the output. If this ends in .html then',
+ [[html [cxt.HtmlConfig]: html configuration.]],
+}
+
+local G = mty.G; G.MAIN = G.MAIN or M
 
 local shim = require'shim'
 local mty  = require'metaty'
-local fd = require'fd'
+local fd   = require'fd'
 local fmt  = require'fmt'
 local ds   = require'ds'
 local log  = require'ds.log'
-local pod = require'pod'
-local pth = require'ds.path'
+local pth  = require'ds.path'
 local Iter = require'ds.Iter'
+local ix   = require'civix'
+local pod  = require'pod'
 local lines = require'lines'
-local cxt = require'cxt'
+local cxt  = require'cxt'
 
 local escape = cxt.escape
 local sfmt, srep = string.format, string.rep
 local push, concat = table.insert, table.concat
 local update = table.update
+local assertf = fmt.assertf
 
 local sfmt = string.format
 
 local INTERNAL = '(internal)'
-local COMMAND_NAME = 'when executed directly'
 
 --- Find the object or name
-M.find = function(obj) --> Object
+M.tryfind = function(obj) --> any?
   if type(obj) ~= 'string' then return obj end
   return PKG_LOOKUP[obj] or M.getpath(obj)
       or ds.rawgetp(G, ds.dotpath(obj))
+end
+
+M.find = function(obj)
+  return assertf(M.tryfind(obj), '%q could not be found', obj)
 end
 
 local objTyStr = function(obj)
@@ -93,6 +114,7 @@ getmetatable(M.Doc).__call = _construct
 M.Doc.__tostring = function(d) return sfmt('Doc%q', d.name) end
 
 M.DocItem = mty'DocItem' {
+  'parent [string]',
   'obj [any]',
   'name', 'ty [string]', 'docTy [string]',
   'path [string]',
@@ -105,10 +127,11 @@ M.DocItem.__tostring = function(di) return sfmt('DocItem%q', di.name) end
 --- return the object's "document type"
 M.type = function(obj)
   return type(obj) == 'function' and 'Function'
+      or (type(obj) ~= 'table')  and 'Value'
       or mty.isMod(obj)          and 'Module'
+      or rawget(obj, '__cmd')    and 'Command'
       or mty.isRecord(obj)       and 'Record'
-      or (type(obj) == 'table')  and 'Table'
-      or 'Value'
+      or                             'Table'
 end
 
 --- get a Doc or DocItem. If expand is true then recurse.
@@ -122,9 +145,17 @@ getmetatable(M._Construct).__call = function(T, t)
   return mty.construct(T, {done={}})
 end
 
+function M._Construct:write(f, obj, expand, name) --> obj
+  obj = M.find(obj)
+  name = name or (type(obj) == 'string') and obj or nil
+  M.fmt(f, self(obj, name, expand))
+  f:write'\n'
+end
+
 --- get fields as DocItems removing from t
 local setFields = function(d, t)
   d.fields = rawget(d.obj, '__fields'); if not d.fields then return end
+  log.info('!! fields start %q', d.fields)
   d.fields = update({}, d.fields)
   local npre = d.name..'.'
   local fdocs = rawget(d.obj, '__docs') or {}
@@ -133,7 +164,8 @@ local setFields = function(d, t)
     local ty = d.fields[field]
     ty = type(ty) == 'string' and M.cleanFieldTy(ty) or nil
     d.fields[field] = M.DocItem {
-      name=npre..field, ty=ty, default=rawget(d.obj, field),
+      parent = d.name,
+      name=field, ty=ty, default=rawget(d.obj, field),
       docTy = 'Field',
       doc = fdocs[field] and cxt.checkParse(fdocs[field], field),
     }
@@ -181,6 +213,7 @@ M._Construct.__call = function(c, obj, key, expand, lvl) --> Doc | DocItem
   for k, v in pairs(t) do
     local key = kpre..k
     if type(v) == 'function' then
+      -- FIXME: this doen't seem right...
       if PKG_NAMES[v] then d.fns[key] = v; t[k] = nil end
       -- else keep as "value"
     elseif mty.isMod(v)     then d.mods[key]   = v; t[k] = nil
@@ -281,7 +314,7 @@ M.getpath = function(path)
   for i=1,#path do
     local v = obj and ds.rawgetp(obj, ds.slice(path, i))
     if v then return v end
-    obj = require(table.concat(path, '.', 1, i))
+    obj = ds.want(table.concat(path, '.', 1, i))
   end
   return obj
 end
@@ -310,6 +343,7 @@ M.fmtAttr = function(f, name, attr)
   if not attr or not next(attr) then return end
   local docs, dis = {}, {}
   for _, k in ipairs(attr) do
+    log.info('!! k %q', k)
     if mty.ty(attr[k]) == M.Doc then push(docs, k)
     else push(dis, k) end -- DocItem and values
   end
@@ -348,13 +382,12 @@ end
 M.fmtDoc = function(f, d)
   local path = d.path and sfmt(' ([{i path=%s}src])', escape(pth.nice(d.path))) or ''
   local name = d.name
-  local hname = name and sfmt('[:%s]', name) or '(unnamed)'
+  local hname = name and sfmt('[:%s]', d.name) or '(unnamed)'
   if d.fnsig then hname = hname..cxt.code(d.fnsig) end
   f:write(sfmt('[{h%s}%s%s%s]',
           M.docHeader(d.docTy, d.lvl),
           d.docTy == 'Package' and '' or (assert(d.docTy)..' '),
-          (d.docTy == 'Command') and COMMAND_NAME or hname,
-          path))
+          hname, path))
   if d.meta then M.fmtMeta(f, d.meta) end
   if d.comments then
     for i, l in ipairs(d.comments) do f:write('\n', l) end
@@ -374,6 +407,7 @@ M.fmtDoc = function(f, d)
   if d.fields then
     M.fmtAttr(f, d.docTy == 'Command' and 'Named Args' or 'Fields', d.fields)
   end
+  if d.docTy == 'Command' then return end
   if d.values then M.fmtAttr(f, 'Values',  d.values) end
   if d.tys    then M.fmtAttr(f, 'Records', d.tys) end
   if d.fns then
@@ -395,42 +429,41 @@ M.fmt = function(f, d)
   return f
 end
 
---- Get documentation for an object or package. Usage: [{## lang=lua}
----  help 'path.of.object'
---- ]##
----
---- If no path is given shows all available packages.
-M.Args = mty'Args' {
-  'help [bool]: get help',
-  'to   [path]: the output. If ends in [$.html] then auto-converts to html',
-  'expand [int|bool]: expand to depth (expand=true means expand=10)', expand=1,
-  'local [bool]: if true only unpacks local mods',
-}
-
-M.main = function(args)
-  args = M.Args(shim.parseStr(args))
-  if args.help then return M.styleHelp(io.fmt, M.Args) end
-  require'doc.lua' -- ensure it is loaded
-  local obj, expand = args[1], args.expand == true and 10 or args.expand
-  assert(obj, 'arg[1] must be the item to find')
-  local to = args.to and shim.file(args.to) or nil
-  local f, c = fmt.Fmt{to=to}, M._Construct{}
-  for _, obj in ipairs(args) do
-    if type(obj) == 'string' then
-      obj = M.find(obj) or error('could not find obj: '..obj)
-    end
-    local name = (type(obj) == 'string') and obj or nil
-    M.fmt(f, c(obj, name, expand))
-    f:write'\n'
+function M.Main:__call()
+  self.raw = shim.list(self.raw)
+  log.info('doc %q', self)
+  local out, to = nil, self.to and shim.file(self.to)
+  if self.html then
+    out, to = to, assert(io.tmpfile())
   end
-  if to then to:flush(); to:close()
-  else
+
+  require'doc.lua' -- ensure it is loaded
+  local expand = self.expand == true and 10 or self.expand
+  local f, c = fmt.Fmt{to=to}, M._Construct{}
+  for _, obj in ipairs(self.raw or {}) do
+    log.info('raw %q', obj)
+    ix.cp(obj, f)
+  end
+  if self.cmd then
+    local o = M.find(self.cmd)
+    c:write(f, o, expand, 'bin/'..o.__cmd)
+  end
+  for _, obj in ipairs(self) do
+    c:write(f, obj, expand)
+  end
+  if to then to:flush() end
+  if self.html then
+    to:seek'set'
+    local lf = require'lines.File'{tmp=to}
+    require'cxt.html'.convert(lf, fmt.Fmt{to=out or io.stdout})
+  elseif not self.to then
     require'cxt.term'{table.concat(f), out=io.fmt}
   end
 end
-getmetatable(M).__call = function(_, args) return M.main(args) end
 
-if M == MAIN then
-  M.main(shim.parse(arg)); os.exit(0)
+if M == MAIN then return ds.main(shim.run, M.Main, shim.parse(arg)) end
+
+getmetatable(M).__call = function(_, args)
+  return M.Main(shim.parseStr(args))()
 end
 return M

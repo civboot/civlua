@@ -250,7 +250,8 @@ M.cp = function(from, to)
   if type(to)   == 'string' then td = assert(io.open(to, 'w')); tc = 1
                             else td = to end
   M.fdWrite(td, fd)
-  if fc then fd:close() end; if tc then td:close() end
+  if fc then fd:close() end
+  if tc then td:close() end
 end
 
 --- swap paths a <-> b

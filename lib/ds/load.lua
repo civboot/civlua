@@ -40,7 +40,7 @@ M.ENV = {
   format=fmt.format,
   insert=table.insert, push=ds.push,
   sort=ds.sort,
-  update=ds.update, merge=ds.merge,
+  extend=ds.extend, update=ds.update, merge=ds.merge,
   concat=table.concat,
   tostring=tostring, tointeger=math.tointeger,
   tonumber=tonumber,

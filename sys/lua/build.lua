@@ -9,7 +9,6 @@ G.MAIN = M
 local w = require'civ.Worker':get()
 local info = require'ds.log'.info
 
-
 for _, id in ipairs(w.ids) do
   local tgt = w:target(id)
   info('building %q', tgt:tgtname())

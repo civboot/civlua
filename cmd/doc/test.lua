@@ -101,7 +101,7 @@ document a metaty\
 another line\
 \
 [*Fields: ] [{table}\
-+ [$doc_test.Example.a] | \\[int\\] = [$4]\
++ [$a]             | \\[int\\] = [$4]\
 ]\
 [*Values: ] [{table}\
 + [$doc_test.Example.__docs] | \\[table\\] \

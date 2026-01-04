@@ -10,7 +10,7 @@ module documentation.
 Documentation for A
 
 [*Fields: ] [{table}
-+ [$docfake.A.a1]  | \[string\] 
++ [$a1]            | \[string\] 
   a1 docs
   are the best docs
 ]

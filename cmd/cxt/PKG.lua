@@ -9,7 +9,11 @@ P.cxt = lua {
     'term.lua',
     'html.lua',
   },
-  dep = { "civ:lib" },
+  dep = {
+    "civ:lib/lines",
+    "civ:lib/civtest",
+    "civ:lib/pegl",
+  },
 }
 
 P.test = lua.test {

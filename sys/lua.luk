@@ -7,7 +7,6 @@ local M = {}
 local MOD_INVALID = '[^%w_.]+' -- lua mod name.
 local EMPTY = {}
 
-
 --- Creating a [$lua { ... }] Target.
 local Lua = record'Lua' {
   'mod {string}: the base modname, i.e. "ds" or "ds.testing"',
@@ -24,6 +23,7 @@ function M.__call(l)
   assert(not mod:find(MOD_INVALID),
     'mod name must have only characters [%%w_.]: %s', mod)
   l = Lua(l)
+  local api = {}
 
   local t = Target {
     kind = 'build',
@@ -34,16 +34,7 @@ function M.__call(l)
   }
   if not t.tag.builder then t.tag.builder = 'direct' end
 
-  if l.lib then
-    -- local expect = 'lib'..mod
-    -- local libo = assert(l.lib.out.lib,
-    --   "lib doesn't export out.lib (is it a cc/iA/etc target?)")
-    -- local lib = l.lib:match'^(.*)%.%w+$'
-    -- assert(expect == l.lib,
-    --   'library for %s must have name %s but is %s (%s)',
-    --   mod, expect, l.lib)
-    push(t.dep, l.lib)
-  end
+  if l.lib then push(t.dep, l.lib) end
 
   local luaOut = {}
   local O = mod:gsub('%.', '/')..'/' -- output dir
@@ -61,6 +52,7 @@ function M.__call(l)
     if 1 == smod:find(mod, 1, true) then
       smod = smod:sub(#mod+1):match'^%.?(.*)'
     end
+    push(api, smod=='' and mod or format('%s.%s', mod, smod))
     local out
     if smod == '' then out = O:sub(1,-2)..ext
     else               out = O..smod:gsub('%.', '/')..ext end
@@ -70,6 +62,7 @@ function M.__call(l)
   end
   assert(not isEmpty(luaOut), 'src is empty')
   t.out = { lua = luaOut }
+  t.api = api
   t.link = l.link
   return t
 end
