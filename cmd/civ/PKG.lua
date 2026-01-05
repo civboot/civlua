@@ -19,7 +19,7 @@ P.civ = lua {
     'civ:lib/lines',
     'civ:lib/civtest',
   },
-  tag = { builder = 'bootstrap' },
+  tag = { builder = 'bootstrap', cmd = 'civ.Args' },
   link = {['lua/civ.lua'] = 'bin/civ'},
 }
 

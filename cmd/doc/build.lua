@@ -34,7 +34,7 @@ local function build(id)
   for i, src in ipairs(tgt.src) do raw[i] = tgt.dir..src end
 
   local cmd = {
-    raw = raw,
+    raw = raw, expand=2,
     cmd = tgt.tag.cmd or nil,
     to  = O..ds.only(assert(ds.getp(tgt, outp))),
   }

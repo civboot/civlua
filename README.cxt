@@ -1,16 +1,14 @@
-[!you can see a rendered version of this document in [/API.html]!]
+[!go to https://civboot.org for a rendered version of this document]
 
-civlua: a minimalist, self-documenting and public domain tech stack.
+[{h1}Civstack]
 
-["You are reading the developer documentation. Tutorial-style documentation is
-  planned in the future for both absolute beginners and knowledge experts,
-  but has not yet been started.]
+This is the documentation for the Civstack: a self-contained developer tech
+stack for learning and user-power in the public domain.
 
 [{:h2}Installation]
 Install Lua with [$apt-get install lua], [$brew lua] or however you normally
-install software, or follow directions at [<https://lua.org/start.html>]. You
-also need standard build tools (i.e. [$make], [$gcc]) and [$rcs] (for [$merge]
-etc, required for [<#pvc>]).
+install software, or follow directions at [<https://lua.org/start.html>].
+You will also need a C compiler.
 
 ["on NetBSD you must have Lua installed via pkgsrc
  (aka [$pkgin install lua5.4]) as base Lua doesn't link pthread.
@@ -19,44 +17,24 @@ etc, required for [<#pvc>]).
 Then run the following (or equivalent):
 
 [{## lang=sh}
-# build lua
-cd path/to/civlua/
-make build LUA_VERSION=lua5.3  # or your lua version
+export LOGLEVEL=INFO
+lua bootstrap.lua init         # create .civconfig.lua
+lua bootstrap.lua boot-test    # run tests for your system
 
-# add these lines to .bashrc
-cat >> ~/.bashrc << EOF
-export LUA_PATH="$PWD/lib/pkg/?.lua"
-export LUA_PKGS="$PWD/"
+# !-- IMPORTANT: run then do what it says for PATH vars --!
+lua bootstrap.lua install civ:cmd/civ  # install civ
+source ~/.bashrc
 
-# use your lua version (or even full path)
-alias civ="lua5.3 $PWD/civ.lua"
-EOF
-
-source ~/.bashrc     # reload your config
+civ test civ:.#                # test all targets
+civ install civ:#full          # install main civ software
 ]##
 
-You should now be able to run any civlua script with [$civ <cmd>], i.e.
-[$civ doc string.find].
-
-I also add [$alias ,=civ] to my bashrc, allowing for i.e. [$, help ff]. Note
-that [$civ.lua] can load and run ANY lua module in your [$LUA_PKGS] (not just
-civlua ones), so this is a nice shortcut for your personal scripts.
-
-["See [<#pkg-install>] for more details regarding [$PKG.lua] dependencies,
-  especially if you are not calling the [$civ.lua] loader.
-]
-
-[{:h3}Testing]
-After installation, it's a good idea to run the tests to make sure civlua is
-appropriate for your platform. You can use the command below, which also
-enables logging:
-[{## lang=sh}
-LOGLEVEL=INFO make test LUA_VERSION=lua5.3
-]##
+By default, civ software will be put in [$~/.local/civ/]. You can
+modify this by changing [$.civconfig].
 
 [{:h2 name=why}Why?]
-Civlua is an entire "Developer Tech Stack" from scratch, written in Lua
-(and a few small C-extensions). First of all, what is a "Developer Tech Stack"?
+Civstack is an entire "Developer Tech Stack" from scratch, written in Lua (and
+a few small C-extensions). First of all, what is a "Developer Tech Stack"?
 
 Besides the compiler and build system, a software developer only truly depends
 on a few terminal-based tools for development. These are their text editor,
@@ -88,15 +66,19 @@ The following are packaged directly in this repository as subdirectories.
 [{h3}Commands]
 These can all be called directly in bash with [$./civ.lua <cmd> ...]. You can view
 their command documentation with [$./civ.lua help <cmd>]. [+
-* [{*href=#Package_pvc}pvc]: patch version control -- like git but in ~1k LoC.
+* [{*href=lua/civ.html}civ]: the civ build system. Modeled off of blaze, it is
+  simpler than Make but [,much] more ergonomic and powerful. All of the
+  [$PKG.lua] files exist for the civ build system.
 
-* [{*href=#Package_ele}Ele]: Extendable Lua Editor and Lua-first shell --
+* [{*href=lua/pvc.html}pvc]: patch version control -- like git but in ~1k LoC.
+
+* [{*href=lua/ele.html}Ele]: Extendable Lua Editor and Lua-first shell --
   still in development.
 
-* [{*href=#Package_doc}doc]: get help on any package or lua object as cxt or rendered
+* [{*href=lua/doc.html}doc]: get help on any package or lua object as cxt or rendered
   with color on the terminal.
 
-* [{*href=#Package_cxt}cxt]: this document and all code documentation is written in
+* [{*href=lua/cxt.html}cxt]: this document and all code documentation is written in
   [*cxt], a powerful ultra-simple markup language which is designed to be as
   easy as possible to parse (for computers [,and] humans) while still using as
   few characters as possible to express format for common cases. Commands: [+
@@ -104,7 +86,7 @@ their command documentation with [$./civ.lua help <cmd>]. [+
   * [$cxt.term]: render a cxt document on the terminal
   ]
 
-* [{*href=#Package_ff}ff]: find and fix utility, like a superchanged find+grep from unix
+* [{*href=lua/ff.html}ff]: find and fix utility, like a superchanged find+grep from unix
   land.
 ]
 
@@ -112,283 +94,57 @@ their command documentation with [$./civ.lua help <cmd>]. [+
 The following are the "core libraries" and represent the "batteries included"
 of Civlua. They maintain minimalism but enable ergonomic programming, powerful
 scripting, asynchronous file access and other goodies. [+
-* [{*href=#Package_pkg}pkg]: enables self-documenting code and cleaner dependency
-  management. Defines the PKG protocol to enable self-documenting modules
-  as well as fix Lua's biggest wart (implicit globals).
-
-* [{*href=#Package_shim}shim]: write scripts for Lua, execute from shell. Think
+* [{*href=lua/shim.html}shim]: write scripts for Lua, execute from shell. Think
   python's [$argparse] but cleaner and allows for Lua OR shell execution.
 
-* [{*href=#Package_metaty}metaty]: enable typosafe, self documenting records (aka
+* [{*href=lua/metaty.html}metaty]: enable typosafe, self documenting records (aka
   structs) which utilize Lua metatables.
 
-* [{*href=#Package_fmt}fmt]: format strings and lua nested types with an (optional)
+* [{*href=lua/fmt.html}fmt]: format strings and lua nested types with an (optional)
   style interface.
 
-* [{*href=#Package_ds}ds]: Data Structures and algnorithms. This module is
+* [{*href=lua/ds.html}ds]: Data Structures and algnorithms. This module is
   packed with tons of tiny functions, types and interfaces which enable ergonomic
   scripting as well as creating applications such as editors and version
   control systems in pure Lua.
 
-* [{*href=#Package_lines}lines]: treat files like tables of lines and apply
+* [{*href=lua/lines.html}lines]: treat files like tables of lines and apply
   algorithms for that interface. The [$lines.File] and [$lines.EdFile] are
   especially worth checking out.
 
-* [{*href=#Package_civix}civix]: unix system interface: ergonomic unix [$sh],
+* [{*href=lua/civix.html}civix]: unix system interface: ergonomic unix [$sh],
   time and file modification are here.
 
-* [{*href=#Package_civtest}civtest]: no batteries would be complete without a testing
-  library.  civtest is minimal but gets the job done.
-
-* [{*href=#Package_lap}lap]: Lua Asynchronous Protocol, for advanced users who want
+* [{*href=lua/lap.html}lap]: Lua Asynchronous Protocol, for advanced users who want
   concurrency in pure-lua.
 
-* [{*href=#Package_fd}fd]: file-descriptor library for async files and other file
+* [{*href=lua/fd.html}fd]: file-descriptor library for async files and other file
   operations.
 
-* [{*href=#Package_pegl}pegl]: general-purpose PEG-like parser library, used
+* [{*href=lua/pegl.html}pegl]: general-purpose PEG-like parser library, used
   for [<#Package_cxt>cxt] and will help provide syntax-highlighting in ele.
 
-* [{*href=#Package_lson}lson]: implements de/serialization of arbitrary
+* [{*href=lua/lson.html}lson]: implements de/serialization of arbitrary
   concrete data (including tables) to/from JSON and an extension called LSON.
 ]
-
-[{h3 name=civ-runner}Writing (and running) your own commands]
-After following [<#Installation>] you can run your own commands.
-This is because [$civ.lua] (after some minor setup) simply runs the
-following:
-
-[{## lang=lua}
-require(cmd).main(shim.parse(arg))
-]##
-
-So it directly calls your module/package's [$main] function.
-See [<#Package_shim>] for full documentation on writing your own
-scripts.
-
-You can then run your package's main function (with arguments pre-parsed into a
-table) by adding it to [$LUA_PKGS] and calling [$civ mypackage].
 
 [{h3}Styling]
 The following define an interface to enable color output across any device,
 including: normal terminal, Ele (the civlua text editor) and html syntax
 highlighting: [+
-* [{*href=#Package_asciicolor}asciicolor]: specify color and styles using
+* [{*href=lua/asciicolor.html}asciicolor]: specify color and styles using
   ascii characters, i.e. [$"BW"] is bold+underlined black text on white
   background.
 
-* [{*href=#Package_vt100}vt100]: defines common VT100 (aka standard unix)
+* [{*href=lua/vt100.html}vt100]: defines common VT100 (aka standard unix)
   terminal input and output.
 ]
-
-[{h3}Data Management]
-Civlua aims to implement a simple version control (similar to git) while also
-enabling CivbootOS's configuration and data storage needs (aka network config,
-simple databases, maybe a spreadsheet program, etc): [+
-* [{*href=#Package_luck}luck]: lua-like configuration language with imports.
-  Think [<https://bazel.build/>bazel] but only for data -- though you could
-  make a build system on top!
-
-* [{*href=#Package_tv}tv]: tabbed-values. Similar in spirit to TSV
-  (tab-separated-values) but with an actual spec and the ability to define a
-  header with types.
-
-* [{*href=#Package_vcds}vcds]: version-control data structures. Diffs, cherry
-  picks, etc.
-]
-
-[{:h3}Luarocks]
-The [{*href=#Package_pkgrock}pkgrock] script enables converting [$PKG.lua]
-files to [<https://luarocks.org/>] specs, as well as running the magical git
-incantations necessary for luarocks to find the version.
 
 [{:h2 name=references}Shoutouts and Inspiration] [+
 * [<https://duskos.org>] which inspired Civboot and which this software
   eventually hopes to use as (one of) its target operating systems
 * [<https://lua.org>] for creating an awesome and minimal programming langauge
 * [<https://civboot.org>]
-]
-
-
-[{:h1}civ build system (and eventual package manager)]
-Civboot aims to be a full developer tech stack and one of the core components
-of this is it's build system, named the "civ build system" or just "civ".
-
-A "build system" is fundamentally a mechanism to convert a set of files and
-configuration (a package) into a runnable (and testable) software that a user
-can run in whole or in part. A package system is then a way to upload and
-depend on other packages.
-
-A [,good] build system has two other primary features: [+
-* ergonomics: package specification is complete and easy to both read and write.
-* hermetic: each built component [,can] be isolated from the rest of the system
-  and deterministically built.
-]
-
-[{:h2}civ directory structure]
-To configure a directory to be built, tested and packaged by [$civ], all
-you must do is define: [+
-* [$HUB.lua]: Your [$HUB.lua] should be at the root of packages you are writing
-  and acts to tie them all together. It specifies a small amount of metadata
-  (like where to find [$PKG.lua] files), and will eventually be the root of how
-  packages are distributed to others.
-
-* [$PKG.lua]: each package should have a [$PKG.lua] in it's directory. This
-  defines the [*targets] the pkg is exporting, how to build them and how other
-  pkgs can include them as a dependency.
-
-  In addition, the [$PKG.lua] doubles as the primary import mechanism for
-  [*pkgrequire] (civlua's [$require] function).
-]
-
-[{:h3}HUB.lua]
-The [$HUB.lua] file contains a relatively small amount of metadata.
-The major functional piece is the [$subdir{ ... }] function call, which
-tells both the civ build-system and lua's [$pkgrequire] how to find
-sub-packages from your hub.
-
-[{## lang=lua}
-name'civ'  -- name of this hub
-summary'civboot lua software'
-version'1.4.3'
-subdir {
-  'path/to/a/subpkg/',
-  'path/to/another/subpkg/',
-}
-]##
-
-[{:h3}PKG.lua]
-The [$PKG.lua] file is much more involved and is how you specify how to build
-a package and what is exported from that package. Below is an example one which
-we will walk though. Before we do, a few notes: [+
-* This file is 100% pure lua except with different builtin globals.
-* Noteablly none of lua's builtins are available, and instead there are several
-  functions for specifying package information such as bundling lua files
-  and specifying how to build C code.
-* Calling [$pkg] (along with a few helpers like [$summary] and [$import])
-  initializes the file and provides metadata needed to determine the build
-  graph as well as display debugging information to the user.
-]
-
-Example [$PKG.lua]:
-[{## lang=lua}
-summary'Does foo and some bar'
-
--- import for civ build system:
---  * on first execution will store the imports and throw an error.
---  * on second execution will set globals to tables returned by
---    the requested imports.
-import {
-  bar  = 'somehub:bar',
-  time = 'unix:systemtime',
-}
-
--- Set up metadata for this PKG.lua file, this must be
--- returned at the end with the targets and PoD to provide
--- clients.
---
--- This also creates the global `P` value, which is the data
--- (build information) exported by this file.
-pkg {
-  name = 'foo',
-  version = '1.4.3',
-}
-
--- The `cc{...}` function specifies C source files and dependencies.
-P.libfoo = cc {
-  hdr = { 'foo.h' },
-  src = { 'foo.c' },
-  dep = {
-    bar.lib,   -- bar.h, libbar.so
-    time.lib,  -- systemtime.h, libsystemtime.so (note it was aliased)
-  },
-}
-
--- The `lua{...}` function specifies a target including lua
--- sources and and native libraries.
--- It should be called just after `pkg{...}`. pkgrequire executes
--- this file until `lua{...}` to get the lua module structure.
---
--- The name can be overriden, but is otherwise the name given
--- to the target.
-P.foo = lua {
-  -- specify the lua source files.
-  src = {
-   'foo.lua',     -- require'foo'
-   'baz.lua',     -- require'foo.baz'
-   'bar/bla.lua', -- require'foo.bar.bla',
-  },
-  dep = {
-    P.libfoo,
-    time.time, -- lua library in time
-  },
-  -- exporting dynamic library.
-  -- note: the C library must be named "libfoo" and define a luaopen_foo_lib
-  --       function.
-  -- see: https://www.lua.org/manual/5.4/manual.html#pdf-package.searchers
-  lib = {
-    lib = P.libfoo, -- require'foo.lib'
-  },
-  -- or just
-  lib = P.libfoo,   -- require'foo.lib'
-}
-]##
-
-[{:h3 name=civ-target}Target records]
-The fundamental "goal" of a [$PKG.lua] file is to create "Target" objects,
-which are the only type of object allowed to be assigned to the global [$P]
-variable (except under [$P.a] which can contain arbitrary concrete PoD
-attributes). A target is just a record with the following fields:
-
-[*Target]: [+
-* [*name]: name of target within the pkg ([$P.name]).
-* [*fullname]: full target name [$hub:pkg.target].
-* [*src]: list of input source files (strings).
-* [*dep]: list of input Target objects (dependencies).
-* [*out]: POD outputs segregated by language.
-  * t: PoD in a k/v table, can be used to configure downstream targets.
-  * data: list of raw files.
-  * hdr: header file paths for native code (C/iA).
-  * lib: dynamic library files (i.e. libfoo.so)
-  * bin: executable binaries
-  * lua: lua files
-* [*a]: arbitrary attributes like test, testonly, etc.
-* [*build]: lua script (file) on how to build target.
-* [*run]: lua script (file) on how to run target.
-* [*builddep]: build-only dependencies, typically used only by library rules
-  (i.e. [$cc]).
-]
-
-The build system will then construct a directed acyclic graph (DAG) to determine
-the order to build the targets. It then executes the [$build] scripts sequentially,
-putting the outputs in the [<#civ-out>.out/civ/] output directories.
-
-[{:h3 name=civ-out}civ output directory]
-By default, Civbuild puts files in [$.out/civ/]. Wherever it puts it's output
-(whether during build or installation), the output structure under that directory
-is as follows: [+
-* [$bin/]: executable binaries/scripts segregated by pkg, i.e.
-  [$bin/pkgname_foo]. Also contains soft-links for binaries with unique names
-  to conform with [$PATH], i.e. [$bin/foo].
-
-* [$lua/]: contains all [$mod.lua] files, and the sub-module files under
-  [$mod/sub.lua]. This conforms with
-  [<https://www.lua.org/manual/5.4/manual.html#pdf-package.searchpath>package.searchpath],
-  which allows the normal lua loader to load these packages with [$LUA_PATH]
-  set to [$.../civ/lua/].
-
-* [$data/]: contains arbitrary data files segregated by pkg, i.e. [$pkgname/path/to/data.txt].
-
-* [$lib/]: all library files in a flat directory, all of which must start with
-  [$lib] i.e. [$libfoo.so]. This is to conform with the envornment variables
-  [$LUA_CPATH, LD_LIBRARY_PATH], etc as well as the [$cc -l] flag.
-
-* [$include/]: header files, both [$.h] and [$.iH] (iA header) for linking
-  dynamic libraries during compilation.
-
-* [$log/]: contains metadata about what each target installed, i.e. [$log/mypkg/foo.files] used
-  by the build system for incremental builds as well as by installation system to remove
-  files during uninstall.
 ]
 
 [{:h2}LICENSE]

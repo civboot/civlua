@@ -10,75 +10,43 @@ local shim = require'shim'
 local T = require'civtest'
 local push, sfmt = table.insert, string.format
 local ds    = require'ds'
+local info = require'ds.log'.info
 local lines = require'lines'
 local LFile = require'lines.File'
 
 local concat = table.concat
 local split = ds.split
 
-M.htmlHead = [[<style>
-body {
-  font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
-  font-size: 16px;
-  line-height: 1.5;
-  word-wrap: break-word;
-}
-h1 { margin-top: 0.5em; margin-bottom: 0.3em; border-bottom: 2px solid }
-h2 { margin-top: 0.3em; margin-bottom: 0.2em; border-bottom: 1px solid }
-h3 { margin-top: 0.2em; margin-bottom: 0.1em; border-bottom: 1px solid silver }
-h4 { margin-top: 0.1em; margin-bottom: 0.05em; }
-
-p  { margin-top: 0.3em; margin-bottom: 0.0em; }
-ul { margin-top: 0.1em; margin-bottom: 0.5em; }
-li { margin-top: 0.1em; margin-bottom: 0.0em; }
-blockquote {
-  border: 1px solid #999;  border-radius: 0.1em;
-  padding: 2px;            background-color: mintcream;
-}
-code {
-  background-color: whitesmoke;
-  border: 1px solid #999;  border-radius: 0.3em;
-  font-family: Monaco, monospace;
-  font-size: 16px;
-  padding: 0px;
-  white-space: pre
-}
-.block {
-  margin-top: 0.1em;
-  background-color: snow;  display: block;
-  padding: 5px;
-}
-table, th, td {
-    vertical-align: top;
-    text-align: left;
-    border-collapse: collapse;
-    border: 1px solid grey;
-    margin: 0.05em 0.05em;
-    padding: 3px 5px;
-}
-table { min-width: 400px;         }
-th    { background-color: LightCyan; }
-</style>]]
-
 local function nodeKind(n)
   if type(n) == 'string' or mty.ty(n) == pegl.Token then
     return 'token' end
+  if n.block                 then return 'block' end
   if n.code                  then return 'code'  end
+  if n.quote                 then return 'quote' end
   if n.table                 then return 'table' end
   if n.list                  then return 'ul'    end
   if n.br                    then return 'br'    end
 end
 
 local preNameAttrs = {'h1', 'h2', 'h3', 'h4', 'h5'}
-local fmtAttrs = {'quote', 'b', 'i', 'u'}
-local cxtRename = {quote='blockquote', name='id'}
+local fmtAttrs = {'b', 'i', 'u'}
+local nodeStart = {
+  quote = 'div class=info',
+  block = 'div class=code-block',
+  code  = 'span class=code',
+  table = 'div class=table><table',
+}
+local nodeEnd = {
+  quote = 'div',
+  block = 'div',
+  code  = 'span',
+  table = 'table></div',
+}
 
 local function addAttr(attrs, k, v)
   -- TODO: html encode
   push(attrs, sfmt('%s="%s"', k, v))
 end
-
-local noPKind = ds.Set{'ul', 'blockquote'}
 
 local function addLine(w, line, noNl)
   w.to:write(concat(line), noNl and '' or '\n')
@@ -86,7 +54,7 @@ end
 
 local function startFmt(w, n, kind, line)
   for _, f in ipairs(preNameAttrs) do
-    if n[f] then push(line, '<'..(cxtRename[f] or f)..'>') end
+    if n[f] then push(line, '<'..f..'>') end
   end
   if n.name then
     local id = n.name:gsub('%s+', '-')
@@ -105,35 +73,43 @@ local function startFmt(w, n, kind, line)
     push(line, '<a '); addAttr(line, 'href', w.config.pathUrl(n.path)); push(line, '>')
   end
   for _, f in ipairs(fmtAttrs) do
-    if n[f] then push(line, '<'..(cxtRename[f] or f)..'>') end
+    if n[f] then push(line, '<'..f..'>') end
   end
 end
 local function endFmt(n, line)
   for _, f in ds.ireverse(preNameAttrs) do
-    if n[f] then push(line, '</'..(cxtRename[f] or f)..'>') end
+    if n[f] then push(line, '</'..f..'>') end
   end
   for _, f in ds.ireverse(fmtAttrs) do
-    if n[f] then push(line, '</'..(cxtRename[f] or f)..'>') end
+    if n[f] then push(line, '</'..f..'>') end
   end
   if n.href then push(line, '</a>') end
   if n.path then push(line, '</a>') end
   if n.name then push(line, '</a>') end
 end
 local function startNode(n, kind, line)
-  if kind then
-    push(line, '<'..kind)
-    if n.block then push(line, ' class="block"')         end
-    push(line, '>')
-  end
+  if not kind then return end
+  push(line, '<')
+  push(line, nodeStart[kind] or kind)
+  push(line, '>')
 end
 local function endNode(n, kind, line)
   if not kind then return end
-  push(line, '</'..kind..'>');
+  push(line, '</')
+  push(line, nodeEnd[kind] or kind)
+  push(line, '>')
 end
 
-local CODE_REPL = {
-  ['<'] = '&lt;',   ['>']  = '&gt;',
+local HTML_ENCODE = {
+  ['<'] = '&lt;',    ['>']  = '&gt;',  ['&'] = '&amp;',
+  ['\n'] = '<br>\n', ['\t'] = '&#9;',
 }
+function M.htmlEncode(s)
+  s = s:gsub('[&<>\n\t]', HTML_ENCODE)
+  s = s:gsub('^ ', '&nbsp;'):gsub('\n ', '\n&nbsp;')
+       :gsub('  ', ' &nbsp;')
+  return s
+end
 
 local function _serialize(w, line, node) --> line
   local kind = nodeKind(node)
@@ -181,7 +157,7 @@ local function _serialize(w, line, node) --> line
     s = concat(s)
     if s:sub(1, 1) == '\n' then s = s:sub(2)    end
     if s:sub(-1)   == '\n' then s = s:sub(1,-2) end
-    s = s:gsub('[&<>]', CODE_REPL)
+    s = M.htmlEncode(s)
     if s:find'\n' then -- multi-line code block
       local lvl = w.to:level(); w.to:level(-lvl)
       push(line, s); addLine(w, line)
@@ -211,11 +187,11 @@ M.serialize = function(w, node)
   end
 end
 M.serializeDoc = function(w, node, head)
-  addLine(w, {'<!DOCTYPE html>\n<html><body>'})
-  if head == nil then head = M.htmlHead end
-  if head then addLine(w, {'<head>\n', head, '\n</head>'}) end
+  addLine(w, {'<!DOCTYPE html>\n<html>'})
+  if head then addLine(w, {head}) end
+  addLine(w, {'<body><div class=doc>'})
   M.serialize(w, node)
-  addLine(w, {'</body></html>'})
+  addLine(w, {'</div></body>\n</html>'})
 end
 
 M.convert = function(dat, to, config)

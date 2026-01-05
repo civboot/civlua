@@ -52,7 +52,7 @@ M.Install = mty.extend(M.Base, 'Install', {
 
 --- civ cmdline tool arguments.
 M.Args = {
-  subcmd=true,
+  __cmd='civ', subcmd=true,
   init    = M.Init,
   build   = M.Build,
   test    = M.Test,

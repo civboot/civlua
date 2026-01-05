@@ -28,6 +28,7 @@ G.LAP_TRACE     = G.LAP_TRACE or {}
 G.LAP_CORS      = G.LAP_CORS or ds.WeakKV{}
 G.LAP_ASYNC     = G.LAP_ASYNC or false
 
+--- Clear all lap globals.
 M.reset = function()
   assert(not LAP_ASYNC, "don't clear while still running")
   G.LAP_READY, G.LAP_TRACE = {}, {}
@@ -241,6 +242,7 @@ getmetatable(M.Any).__call = function(T, fns)
   return mty.construct(T, self)
 end
 M.Any.ignore = function(self) self.cor = nil end
+
 --- ensure all fns are scheduled
 M.Any.schedule = function(self) --> self
   for i in pairs(self.done) do self:restart(i) end

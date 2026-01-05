@@ -129,6 +129,7 @@ M.type = function(obj)
   return type(obj) == 'function' and 'Function'
       or (type(obj) ~= 'table')  and 'Value'
       or mty.isMod(obj)          and 'Module'
+      or rawget(obj, 'subcmd')   and 'Commands'
       or rawget(obj, '__cmd')    and 'Command'
       or mty.isRecord(obj)       and 'Record'
       or                             'Table'
@@ -155,7 +156,6 @@ end
 --- get fields as DocItems removing from t
 local setFields = function(d, t)
   d.fields = rawget(d.obj, '__fields'); if not d.fields then return end
-  log.info('!! fields start %q', d.fields)
   d.fields = update({}, d.fields)
   local npre = d.name..'.'
   local fdocs = rawget(d.obj, '__docs') or {}
@@ -232,6 +232,7 @@ M._Construct.__call = function(c, obj, key, expand, lvl) --> Doc | DocItem
   if d.fields and #d.fields == 0 then d.fields = nil end
   finish'values'; finish'tys'; finish'mods'
   finish('fns', (d.docTy == 'Record' or d.docTy == 'Table') and 1 or nil)
+
   return d
 end
 
@@ -343,7 +344,6 @@ M.fmtAttr = function(f, name, attr)
   if not attr or not next(attr) then return end
   local docs, dis = {}, {}
   for _, k in ipairs(attr) do
-    log.info('!! k %q', k)
     if mty.ty(attr[k]) == M.Doc then push(docs, k)
     else push(dis, k) end -- DocItem and values
   end
@@ -364,7 +364,10 @@ M.fmtAttr = function(f, name, attr)
   end
 end
 
-local HEADERS = {Package=1, Module=2, Record=3, Table=3, Command=2, Value=4}
+local HEADERS = {
+  Package=1,  Module=2, Record=3, Table=3, Value=4,
+  Commands=1, Command=2,
+}
 M.docHeader = function(docTy, lvl)
   if docTy == 'Function' then return 3 + (lvl or 0) end
   return assert(HEADERS[docTy], docTy)
@@ -407,9 +410,12 @@ M.fmtDoc = function(f, d)
   if d.fields then
     M.fmtAttr(f, d.docTy == 'Command' and 'Named Args' or 'Fields', d.fields)
   end
-  if d.docTy == 'Command' then return end
-  if d.values then M.fmtAttr(f, 'Values',  d.values) end
-  if d.tys    then M.fmtAttr(f, 'Records', d.tys) end
+  if d.docTy == 'Command' then
+    return
+  end
+  if d.values then M.fmtAttr(f, 'Values', d.values) end
+  if d.tys    then M.fmtAttr(f, 'Records', d.tys)   end
+  if d.docTy == 'Commands' then return end
   if d.fns then
     local name = (d.docTy == 'Record') and 'Methods' or 'Functions'
     M.fmtAttr(f, name, d.fns)
@@ -432,10 +438,14 @@ end
 function M.Main:__call()
   self.raw = shim.list(self.raw)
   log.info('doc %q', self)
-  local out, to = nil, self.to and shim.file(self.to)
   if self.html then
-    out, to = to, assert(io.tmpfile())
+    local from = require'lines.File'{path=ds.only(self.raw)}
+    local to = fmt.Fmt{to=assert(io.open(self.to, 'w'))}
+    require'cxt.html'.convert(from, to, self.html)
+    to:flush()
+    return
   end
+  local to = self.to and assert(shim.file(self.to))
 
   require'doc.lua' -- ensure it is loaded
   local expand = self.expand == true and 10 or self.expand
@@ -452,11 +462,7 @@ function M.Main:__call()
     c:write(f, obj, expand)
   end
   if to then to:flush() end
-  if self.html then
-    to:seek'set'
-    local lf = require'lines.File'{tmp=to}
-    require'cxt.html'.convert(lf, fmt.Fmt{to=out or io.stdout})
-  elseif not self.to then
+  if not self.to then
     require'cxt.term'{table.concat(f), out=io.fmt}
   end
 end

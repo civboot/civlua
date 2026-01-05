@@ -33,7 +33,7 @@ to the terminal, web-pages and the civlua editor.
 * [$write(...)]: write like a normal file
 
 * [$styled(style, text, ...)]: style [$text] and [$write(...)] using a
-  provided styler (i.e. [<#asciicolor.style.Styler])
+  provided styler (i.e. [<#asciicolor.style.Styler>])
 
 * [$level(add)] to increase/decrease the indentation level.
 ]

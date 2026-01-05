@@ -2,3 +2,6 @@
 .civ/
 .pvc/
 .out/
+
+# TODO: remove this
+lua/

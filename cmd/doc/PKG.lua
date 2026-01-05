@@ -1,4 +1,5 @@
 local lua = import'sys:lua.luk'
+local doc = import'civ:doc.luk'
 
 local P = { summary = "Print and export documentation." }
 
@@ -20,6 +21,12 @@ P.doc = lua {
 P.test = lua.test {
   src = 'test.lua',
   dep = { 'civ:cmd/doc' },
+}
+
+P.doc_doc = doc.lua {
+  mod = 'doc',
+  src = 'README.cxt',
+  lua = { 'civ:cmd/doc' },
 }
 
 return P

@@ -1,4 +1,5 @@
 local lua = import'sys:lua.luk'
+local doc = import'civ:doc.luk'
 
 local P = { summary = "ele: the extendable lua editor" }
 
@@ -28,6 +29,12 @@ P.test = lua.test {
     'civ:lib#testing',
     'civ:cmd/ele',
   }
+}
+
+P.doc_ele = doc.lua {
+  mod = 'ele',
+  src = 'README.cxt',
+  lua = { 'civ:cmd/ele' },
 }
 
 return P

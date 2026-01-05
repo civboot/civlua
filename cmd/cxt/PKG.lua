@@ -1,4 +1,5 @@
 local lua = import'sys:lua.luk'
+local doc = import'civ:doc.luk'
 
 local P = { summary = "text markup for civilization" }
 

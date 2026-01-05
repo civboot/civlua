@@ -1,4 +1,4 @@
-cxt: text markup for civilization
+[{h1}cxt: text markup for civilization]
 
 It should not take more than a few minutes to know how to read and write
 documentation.
@@ -272,9 +272,11 @@ header is named [<#Demos>Demos].
 
 [{h3}Escaping \[brackets\]]
 [##
-You can \[escape\] brackets to render them directly. You can also escape '\\'.
+You can \[escape\] brackets to render them directly.
+You can also escape '\\'.
 ]## [+
-* You can \[escape\] brackets to render them directly. You can also escape '\\'.
+* You can \[escape\] brackets to render them directly.
+  You can also escape '\\'.
 ]
 
 [{h2}UNLICENSE]

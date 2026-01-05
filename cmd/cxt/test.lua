@@ -282,6 +282,21 @@ see [@N_2], I like [<@N_2>links]
   })
 end
 
+T.htmlEncode = function()
+  local he = html.htmlEncode
+  T.eq('foo',                         he'foo')
+  T.eq('foo bar',                     he'foo bar')
+  T.eq('foo &nbsp;bar',               he'foo  bar')
+  T.eq('&nbsp;foo &nbsp;bar',         he' foo  bar')
+  T.eq('&nbsp; foo &nbsp;bar',        he'  foo  bar')
+  T.eq('&nbsp; &nbsp;foo &nbsp;bar',  he'   foo  bar')
+  T.eq('&nbsp; code &nbsp; &nbsp;inline',
+     he'  code    inline')
+
+  T.eq('<br>\n&nbsp; &nbsp;$ &nbsp; &nbsp; &nbsp;shortcut',
+     he'\n   $      shortcut')
+end
+
 T.html = function()
   html.assertHtml('hi <b>there</b> bob\n', 'hi [*there] bob')
   html.assertHtml(
@@ -311,7 +326,7 @@ listing:[+
 
   html.assertHtml(
 [[
-<table>
+<div class=table><table>
   <tr>
     <th><b>h</b>1</th>
     <th>h2</th>
@@ -327,7 +342,7 @@ listing:[+
     <td>r2.2</td>
     <td>r2.3</td>
   </tr>
-</table>
+</table></div>
 ]],
 [[
 [{table}
@@ -339,9 +354,9 @@ listing:[+
 
   html.assertHtml(
 [[
-Some <code>inline code</code> and: <code class="block">code 1
+Some <span class=code>inline code</span> and: <div class=code-block>code 1<br>
 code 2
-</code>
+</div>
 next line.
 ]],
 [[
@@ -354,9 +369,9 @@ next line.
 
   html.assertHtml(
 [[
-Code block: <code class="block">echo "foo bar"  # does baz
+Code block: <div class=code-block>echo "foo bar" &nbsp;# does baz<br>
 echo "blah blah"
-</code>
+</div>
 end of code block.
 ]],
 [[
@@ -371,9 +386,9 @@ end of code block.
 [[
 list <ul>
   <li>code:
-  <code class="block">some code
+  <div class=code-block>some code<br>
 more code
-</code></li>
+</div></li>
 </ul>
 ]],
 [[

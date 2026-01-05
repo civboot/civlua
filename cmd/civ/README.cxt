@@ -1,2 +1,96 @@
-The civ build system.
+[{:h1}civ build system and pkg manager]
+Civstack is a full developer tech stack, and the bedrock of that is the build
+system -- which is this package ([$civ]).
+
+A "build system" is fundamentally a mechanism to convert a set of files and
+configuration (a package) into a runnable (and testable) software. A package
+manager is then a way to upload and depend on other packages.
+
+A [,good] build system has two other primary features: [+
+* ergonomics: package specification is complete and easy to both read and write.
+* hermetic: each built component [,can] be isolated from the rest of the system
+  and deterministically built.
+]
+
+[{:h3}PKG.lua]
+The [$PKG.lua] file is is how you specify how to build a package and what is
+exported from that package. Below is an example one which we will walk though.
+Before we do, a few notes:
+[+
+* This file is 100% pure lua except with different builtin globals.
+* Noteablly none of lua's builtins are available, and instead there are several
+  functions for importing luk files (which we will get to).
+]
+
+Example [$PKG.lua]:
+[{## lang=lua}
+local P = { summary = "Does foo and some bar" }
+
+--- Imports a function to help us create Target
+local cc  = import'sys:cc.luk'  -- C build targets
+local lua = import'sys:lua.luk' -- Lua build targets
+
+-- Set up metadata for this PKG.lua file, this must be
+-- returned at the end with the targets and PoD to provide
+-- clients.
+--
+-- This also creates the global `P` value, which is the data
+-- (build information) exported by this file.
+P.foo = lua {
+  mod = 'foo',
+  dep = {
+    'civ:lib',
+    'myhub:foo#libfoo',  -- the next target
+  },
+}
+
+-- test rule
+P.test = lua.test {
+  src = 'test.lua',
+  dep = { 'myhub:foo',
+}
+
+-- C build target
+P.libfoo = cc {
+  hdr = { 'foo.h' },
+  src = { 'foo.c' },
+  dep = {
+    'myhub:bar#libbar',
+  },
+}
+
+return P
+]##
+
+["Every value assigned to [$P] must be either a concrete type or a
+  [<#pvc.Target>].
+]
+
+[{:h3 name=civ-out}civ output directory]
+By default, [$civ build] puts files in [$.out/civ/]. Wherever it puts it's output
+(whether during build or installation), the output structure under that directory
+is as follows: [+
+* [$bin/]: executable binaries/scripts segregated by pkg, i.e.
+  [$bin/pkgname_foo]. Also contains soft-links for binaries with unique names
+  to conform with [$PATH], i.e. [$bin/foo].
+
+* [$lua/]: contains all [$mod.lua] files, and the sub-module files under
+  [$mod/sub.lua]. This conforms with
+  [<https://www.lua.org/manual/5.4/manual.html#pdf-package.searchpath>package.searchpath],
+  which allows the normal lua loader to load these packages with [$LUA_PATH]
+  set to [$.../civ/lua/].
+
+* [$data/]: contains arbitrary data files defined by targets.
+
+* [$lib/]: all library files in a flat directory, all of which must start with
+  [$lib] i.e. [$libfoo.so]. This is to conform with the envornment variables
+  [$LUA_CPATH, LD_LIBRARY_PATH], etc as well as the [$cc -l] flag.
+
+* [$include/]: header files, both [$.h] and [$.iH] (iA header) for linking
+  dynamic libraries during compilation.
+
+* [$log/]: contains metadata about what each target installed, i.e. [$log/mypkg/foo.files] used
+  by the build system for incremental builds as well as by installation system to remove
+  files during uninstall.
+]
 
