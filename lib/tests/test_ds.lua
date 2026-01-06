@@ -878,3 +878,12 @@ T.load = function()
   T.eq(env, {global_ = 'global value'})
 end
 
+T.want = function()
+  T.eq(ds,          ds.want'ds')
+  T.eq(nil,         ds.want'lkja;lskjdflksajdf')
+  T.eq(ds,          ds.wantpath'ds')
+  T.eq(ds.wantpath, ds.wantpath'ds.wantpath')
+  T.eq(mty,         ds.wantpath'metaty')
+  T.eq(true,        ds.wantpath'metaty.CONCRETE.boolean')
+end
+

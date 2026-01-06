@@ -1280,10 +1280,8 @@ end
 
 --- Helper function for running commands as "main".
 M.main = function(fn, ...) --> errno?
-  local ok, err = M.try(fn, ...)
-  if ok then return nil end
-  io.fmt(err)
-  return 1
+  local ok, err = M.try(fn, ...); if ok then return nil end
+  (io.fmt or print)(err); os.exit(1)
 end
 
 --- Same as coroutine.resume except uses a ds.Error object for errors
@@ -1317,6 +1315,19 @@ end
 M.want = function(mod) --> module?
   local ok, m = pcall(function() return require(mod) end)
   if ok then return m end
+end
+
+--- Try to get any [$string.to.path] by trying all possible combinations of
+--- requiring the prefixes and getting the postfixes.
+M.wantpath = function(path) --> value?
+  path = type(path) == 'string' and M.splitList(path, '%.') or path
+  local obj
+  for i=1,#path do
+    local v = obj and M.rawgetp(obj, M.slice(path, i))
+    if v then return v end
+    obj = M.want(table.concat(path, '.', 1, i))
+  end
+  return obj
 end
 
 --- indexrequire: [$R.foo] is same as [$require'foo']

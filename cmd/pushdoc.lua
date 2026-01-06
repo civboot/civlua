@@ -58,6 +58,12 @@ local ROOT_NAV = [[
 </nav>
 ]]
 
+local function export(cxtFile, htmlFile, header)
+  local to = assert(io.open(htmlFile, 'w'))
+  to:write(header); to:write'\n'
+  return cxt.Html { cxtFile, to=to }()
+end
+
 function M.Main:__call()
   local D = pth.abs(pth.toDir(self.dir))
   local luaDir = D..'lua/'
@@ -65,7 +71,7 @@ function M.Main:__call()
   ix.mkDirs(luaDir)
   local cv = core.Civ{cfg=core.Cfg:load(self.config)}
   local tgtnames = cv:expandAll(self.pat)
-  local cfg = cxt.Config{header=HEAD:format('../styles.css')..LUA_NAV}
+  local header = HEAD:format('../styles.css')..LUA_NAV
   local nav = {}
   civ.build(cv, tgtnames)
   for _, tgtname in ipairs(tgtnames) do
@@ -74,11 +80,11 @@ function M.Main:__call()
     local nameCxt = ds.only(tgt.out.doc.lua)
     local name = assert(nameCxt:gsub('(%.cxt)$', ''))
     push(nav, name)
-    doc {
-      raw={cv.cfg.buildDir..'doc/lua/'..nameCxt},
-      to=luaDir..name..'.html',
-      html = cfg,
-    }
+    export(
+      cv.cfg.buildDir..'doc/lua/'..nameCxt,
+      luaDir..name..'.html',
+      header
+    )
   end
   local indexPath = cv.cfg.buildDir..'doc/lua/index.cxt'
   local f = io.open(indexPath, 'w')
@@ -87,11 +93,10 @@ function M.Main:__call()
     f:write(sfmt('* [<%s>%s]\n', n..'.html', n))
   end
   f:write']\n'; f:flush(); f:close()
-  doc { raw={indexPath}, to=luaDir..'index.html', html=cfg }
-
+  export(indexPath, luaDir..'index.html', header)
   if self.main then
-    cfg.header = HEAD:format('styles.css')..ROOT_NAV
-    doc { raw={self.main}, to=D..'index.html', html=cfg }
+    export(self.main, D..'index.html',
+           HEAD:format('styles.css')..ROOT_NAV)
   end
 end
 

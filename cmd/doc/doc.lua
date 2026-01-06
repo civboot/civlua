@@ -1,475 +1,241 @@
 #!/usr/bin/env -S lua
 local mty = require'metaty'
 
---- Get documentation for lua types and syntax.
+--- Builds on metaty to add the ability to extract and format documentation.
 ---
---- Examples: [{## lang=lua}
---- doc{string.find}
---- doc'for'
---- doc'myMod.myFunction'
---- ]##
+--- Also offers the Cmd and Cmds types for documenting shell commands.
 local M = mty.mod'doc'
 
---- Compile documentation for one or more lua objects.
----
---- Usage: [{## lang=lua}
----  doc{'path.of.object'}
---- ]##
----
-M.Main = mty'Args' {
-  __cmd = 'luadoc',
-  'cmd  [symbol]: symbol to document as the command. Command documentation is first',
-  'raw  {path}: any number of (raw cxt) paths to put before API documentation',
-  'expand [int|bool]: expand to depth (expand=true means expand=10)', expand=1,
-  'to   [path]: the output. If this ends in .html then',
- [[html [cxt.HtmlConfig]: html configuration.]],
-}
-
 local G = mty.G; G.MAIN = G.MAIN or M
-
 local shim = require'shim'
-local mty  = require'metaty'
-local fd   = require'fd'
-local fmt  = require'fmt'
-local ds   = require'ds'
-local log  = require'ds.log'
-local pth  = require'ds.path'
-local Iter = require'ds.Iter'
-local ix   = require'civix'
-local pod  = require'pod'
-local lines = require'lines'
-local cxt  = require'cxt'
+local ds = require'ds'
+local fmt = require'fmt'
+local pod = require'pod'
+local info = require'ds.log'.info
+local warn = require'ds.log'.warn
 
-local escape = cxt.escape
 local sfmt, srep = string.format, string.rep
-local push, concat = table.insert, table.concat
-local update = table.update
+local push = ds.push
 local assertf = fmt.assertf
 
-local sfmt = string.format
+local EMPTY = {}
 
-local INTERNAL = '(internal)'
-
---- Find the object or name
-M.tryfind = function(obj) --> any?
+--- Find the object/name or return nil.
+function M.tryfind(obj) --> any?
   if type(obj) ~= 'string' then return obj end
-  return PKG_LOOKUP[obj] or M.getpath(obj)
-      or ds.rawgetp(G, ds.dotpath(obj))
+  return G.PKG_LOOKUP[obj] or ds.wantpath(obj)
 end
 
-M.find = function(obj)
+--- Find the object/name.
+function M.find(obj) --> any
   return assertf(M.tryfind(obj), '%q could not be found', obj)
 end
 
-local objTyStr = function(obj)
-  local ty = type(obj)
-  return (ty == 'table') and mty.tyName(mty.ty(obj)) or ty
-end
-local isBuiltin = function(obj)
-  return pod.isConcrete(obj) or (obj == nil) or (getmetatable(obj) == nil)
-end
-
-local _construct = function(T, d)
-  assert(d.name, 'must set name')
-  assert(d.docTy, 'must set docTy')
-  return mty.construct(T, d)
+--- Given a list of comment lines strip the '---' from them.
+local function stripComments(c)
+  if #c == 0 then return c end
+  local ind = c[1]:match'^%-%-%-(%s+)' or ''
+  local pat = '^%-%-%-'..string.rep('%s?', #ind)..'(.*)%s*'
+  for i, ln in ipairs(c) do c[i] = ln:match(pat) or ln end
+  return c
 end
 
---- extract the function signature from the code
-local fnsig = function(code) --> string
-  if not code or not code[1] then return end
-  local         s, r = code[1]:match'(%b()).*%-%->%s*(.*)'
-  if not s then s, r = code[1]:match'(%b{}).*%-%->%s*(.*)' end
-  if not s then
-    s, r = code[1]:match'function(%b()).*return%s*(.-)%s*end'
-  end
-  if not s then return end
-  if s and (not r or #r == 0) then r = 'nil' end
-  return (s or '(...)')..(r and sfmt(' -> %s', r) or '')
-end
-
-
---- Documentation on a single type
---- These pull together the various sources of documentation
---- from the PKG and META_TY specs into a single object.
+--- Object passed to __doc methods.
+--- Aids in writing cxt.
 M.Doc = mty'Doc' {
-  'obj [any]: the object being documented',
-  'name[string]',
-  'ty [Type]: type, can be string', 'docTy [string]',
-  'path [str]',
-  'main [Doc]: main Args, mostly used for PKG',
-  'meta [table]: metadata, mostly used for PKG',
-  'comments [lines]: comments above item',
-  'fnsig  [string]: function signature',
-  'code   [lines]: code which defines the item',
-  'call   [function]',
-  'fields [table{name=DocItem}]: (for metatys)',
-  'values [table]: raw values that are not the other types',
-  'tys    [table]: table of values',
-  'fns    [table]: methods or functions',
-  'mods   [table]: sub modules (for PKG)',
-  'lvl    [int]: level inside another type (nil or 1)',
+  'to [file]: file to write to.',
+  'indent [string]', indent = '  ',
+  '_hdr      [int]', _hdr   = 1,
+  '_level    [int]', _level = 0,
+  '_nl [string]',    _nl    = '\n',
 }
-getmetatable(M.Doc).__call = _construct
-M.Doc.__tostring = function(d) return sfmt('Doc%q', d.name) end
 
-M.DocItem = mty'DocItem' {
-  'parent [string]',
-  'obj [any]',
-  'name', 'ty [string]', 'docTy [string]',
-  'path [string]',
-  'fnsig  [string]: function signature',
-  'default [any]', 'doc [string]',
-}
-getmetatable(M.DocItem).__call = _construct
-M.DocItem.__tostring = function(di) return sfmt('DocItem%q', di.name) end
+M.Doc.level  = fmt.Fmt.level
+M.Doc._write = fmt.Fmt._write
+M.Doc.write  = fmt.Fmt.write
+M.Doc.flush  = fmt.Fmt.flush
+M.Doc.close  = fmt.Fmt.close
 
---- return the object's "document type"
-M.type = function(obj)
-  return type(obj) == 'function' and 'Function'
-      or (type(obj) ~= 'table')  and 'Value'
-      or mty.isMod(obj)          and 'Module'
-      or rawget(obj, 'subcmd')   and 'Commands'
-      or rawget(obj, '__cmd')    and 'Command'
-      or mty.isRecord(obj)       and 'Record'
-      or                             'Table'
+function M.Doc:bold(text) self:write(sfmt('[*%s]', text)) end
+function M.Doc:code(code) self:write(sfmt('[{## code}%s]##', code)) end
+
+function M.Doc:link(link, text)
+  if text then self:write(sfmt('[<%s>%s]', link, text))
+  else         self:write(sfmt('[<%s>]', link)) end
 end
 
---- get a Doc or DocItem. If expand is true then recurse.
-M.construct = function(obj, key, expand, lvl) return M._Construct{}(obj, key, expand, lvl) end
-
---- internal type to construct Doc and DocItems
-M._Construct = mty'_Construct' {
-  'done [table]: objects already documented',
-}
-getmetatable(M._Construct).__call = function(T, t)
-  return mty.construct(T, {done={}})
+function M.Doc:hdrlevel(add) --> int
+  if add then
+    self._hdr = self._hdr + add
+    assert(self._hdr > 0, 'hdr must be > 0')
+  end
+  return self._hdr
 end
 
-function M._Construct:write(f, obj, expand, name) --> obj
-  obj = M.find(obj)
-  name = name or (type(obj) == 'string') and obj or nil
-  M.fmt(f, self(obj, name, expand))
-  f:write'\n'
-end
-
---- get fields as DocItems removing from t
-local setFields = function(d, t)
-  d.fields = rawget(d.obj, '__fields'); if not d.fields then return end
-  d.fields = update({}, d.fields)
-  local npre = d.name..'.'
-  local fdocs = rawget(d.obj, '__docs') or {}
-  for i, field in ipairs(d.fields) do
-    t[field] = nil
-    local ty = d.fields[field]
-    ty = type(ty) == 'string' and M.cleanFieldTy(ty) or nil
-    d.fields[field] = M.DocItem {
-      parent = d.name,
-      name=field, ty=ty, default=rawget(d.obj, field),
-      docTy = 'Field',
-      doc = fdocs[field] and cxt.checkParse(fdocs[field], field),
-    }
+function M.Doc:header(content, name)
+  if name then
+    self:write(sfmt('[{h%s name="%s"}%s]\n', self._hdr, name, content))
+  else
+    self:write(sfmt('[{h%s}%s]\n', self._hdr, content))
   end
 end
 
-M._Construct.__call = function(c, obj, key, expand, lvl) --> Doc | DocItem
-  assert(obj ~= nil, key)
-  expand = expand or 0
-  local docTy = assert(M.type(obj))
-  local name, path = M.modinfo(obj)
-  local d = {
-    obj=obj, path=path, docTy=docTy,
-    name=assert(key or name),
-    ty=objTyStr(obj),
-  }
-  if c.done[obj] then return M.DocItem(d) end
-  c.done[obj] = true
-  local comments, code = M.findcode(path)
-  d.fnsig = fnsig(code)
-  if comments then
-    M.stripComments(comments)
-    if #comments == 0 then comments = nil
-    else cxt.checkParse(comments, pth.nice(path)) end
-  end
-  if code     and #code == 0     then code = nil end
-  if expand <= 0 then return M.DocItem(d) end
-  d.lvl, d.comments, d.code = lvl, comments, code
-  d = M.Doc(d)
-  if type(obj) ~= 'table' or docTy == 'Table' or docTy == 'Value' then
-    return d
-  end
-  local mt = getmetatable(obj)
-  if mt ~= nil and type(mt) ~= 'table' then return d end
-
-  d.call = mty.getmethod(obj, '__call')
-  local t = update({}, obj) -- we will remove from t as we go
-  setmetatable(t, nil)
-
-  setFields(d, t)
-
-  -- get other buckets
-  local kpre = d.name..'.'
-  d.fns, d.tys, d.mods, d.values = {}, {}, {}, {}
-  for k, v in pairs(t) do
-    local key = kpre..k
-    if type(v) == 'function' then
-      -- FIXME: this doen't seem right...
-      if PKG_NAMES[v] then d.fns[key] = v; t[k] = nil end
-      -- else keep as "value"
-    elseif mty.isMod(v)     then d.mods[key]   = v; t[k] = nil
-    elseif mty.isRecord(v)  then d.tys[key]    = v; t[k] = nil
-    else                         d.values[key] = v
-    end
-  end
-
-  local function finish(attr, lvl)
-    local t = d[attr]; ds.pushSortedKeys(t, fmt.cmpDuck)
-    if #t == 0 then d[attr] = nil; return end
-    for _, k in ipairs(t) do
-      t[k] = c(t[k], k, expand - 1, lvl)
-    end
-  end
-  if d.fields and #d.fields == 0 then d.fields = nil end
-  finish'values'; finish'tys'; finish'mods'
-  finish('fns', (d.docTy == 'Record' or d.docTy == 'Table') and 1 or nil)
-
-  return d
-end
-
---- compare so items with [$.] come last in a sort
-local function modcmp(a, b)
-  if a:find'%.' then
-    if not b:find'%.' then return false end -- b is first
-  elseif b:find'%.'   then return true  end -- a is first
-  return a < b
-end
-
-M._Construct.main = function(c, obj) --> Doc
-  local d = c(obj, nil, 1)
-  return M.Doc {
-    name = d.name, docTy = 'Command',
-    comments = d.comments, fields = d.fields,
-  }
-end
-
----------------------
--- Helpers
-
-local VALID = {['function']=true, table=true}
-
-M.modinfo = function(obj) --> (name, loc)
-  if type(obj) == 'function' then return mty.fninfo(obj) end
-  if isBuiltin(obj)          then return type(obj), nil end
-  local name, loc = PKG_NAMES[obj], PKG_LOC[obj]
-  name = name or (type(obj) == 'table') and rawget(obj, '__name')
-  if loc and loc:find'%[' then loc = INTERNAL end
-  return name, loc
-end
-
-M.findcode = function(loc) --> (commentLines, codeLines)
-  if not loc or loc == INTERNAL then return end
-  if type(loc) ~= 'string' then loc = select(2, M.modinfo(loc)) end
+function M.Doc:extractCode(loc) --> (commentLines, codeLines)
+  if not loc then return end
+  if type(loc) ~= 'string' then loc = select(2, mty.anyinfo(loc)) end
   if not loc or loc:find'%[' then return end
   local path, locLine = loc:match'(.*):(%d+)'
   if not path then error('loc path invalid: '..loc) end
   local l, lines, locLine = 1, ds.Deq{}, tonumber(locLine)
   local l, lines = 1, ds.Deq{}
-  for line in io.lines(path) do
+  for line in io.lines(path) do -- starting line with 256 lines above.
     lines:push(line); if #lines > 256 then lines:pop() end
     if l == locLine then break end
     l = l + 1
   end
   assert(l == locLine, 'file not long enough')
+  -- move the lines to a normal (non Deq) table and put in reverse order.
   lines = ds.reverse(table.move(lines, lines.left, lines.right, 1, {}))
-  local code, comments = {}, {}
+  -- find where the code ends, then get all '---' comments.
+  local code, cmts = {}, {}
   for l, line in ipairs(lines) do
-    if line:find'^%w[^-=]+=' then
+    if line:find'^function' or line:find'^%w[^-=]+=' then
       table.move(lines, 1, l, 1, code); break
     end
   end
   for l=#code+1, #lines+1 do local
     line = lines[l]
+    -- FIXME: handle leading whitespace
     if not line or not line:find'^%-%-%-' then
-      table.move(lines, #code+1, l-1, 1, comments); break
+      table.move(lines, #code+1, l-1, 1, cmts); break
     end
   end
-  return ds.reverse(comments), ds.reverse(code)
-end
-
-M.cleanFieldTy = function(ty)
-  return ty:match'^%[.*%]$' and ty:sub(2,-2) or ty
-end
-
-M.stripComments = function(com)
-  if #com == 0 then return end
-  local ind = com[1]:match'^%-%-%-(%s+)' or ''
-  local pat = '^%-%-%-'..string.rep('%s?', #ind)..'(.*)%s*'
-  for i, l in ipairs(com) do com[i] = l:match(pat) or l end
-end
-
---- get any path with [$.] in it. This is mostly used by help/etc functions
-M.getpath = function(path)
-  require'doc.lua' -- ensure that builtins are included
-  path = type(path) == 'string' and ds.splitList(path, '%.') or path
-  local obj
-  for i=1,#path do
-    local v = obj and ds.rawgetp(obj, ds.slice(path, i))
-    if v then return v end
-    obj = ds.want(table.concat(path, '.', 1, i))
+  cmts = stripComments(ds.reverse(cmts))
+  while #cmts > 0 and not cmts[#cmts]:match'%S' do
+    cmts[#cmts] = nil
   end
-  return obj
+  return cmts, ds.reverse(code)
 end
 
----------------------
--- Format to CXT
-
-M.fmtDocItem = function(f, di)
-  local name = di.name and sfmt('[$%s]', escape(di.name or '(unnamed)'))
-  local ty = di.fnsig and sfmt('\\[%s\\]', cxt.code(di.fnsig))
-          or di.ty and sfmt('\\[%s\\]', escape(di.ty)) or ''
-  local path = di.path and sfmt('([{path=%s}src])', escape(pth.nice(di.path)))
-  local default = di.default and ('= '..cxt.code(fmt(di.default)))
-  if path and default then path = '\n'..path end
-  path, default = path or '', default or ''
-  if path:sub(1,1) == '\n' or (di.doc and di.doc ~= '') then
-    f:level(1)
-    f:write(sfmt('%-16s | %s %s%s\n%s', name, ty, default, path, di.doc))
-    f:level(-1)
-  else
-    f:write(sfmt('%-16s | %s %s%s', name, ty, default, path))
+--- Extract the function signature from the lines of code.
+function M.Doc:fnsig(code) --> (string, isMethod)
+  if not code or not code[1] then return end
+  code = code[1]
+  local         s, r = code:match'(%b()).*%-%->%s*(.*)'
+  if not s then s, r = code:match'(%b{}).*%-%->%s*(.*)' end
+  if not s then
+    s, r = code:match'function(%b()).*return%s*(.-)%s*end'
   end
+  if not s then s    = code:match'function.*(%b())' end
+  if not s then return end
+  local sig = (s or '(...)')..(r and sfmt(' -> %s', r) or '')
+  return sig, code:match'function[^(]+:' and true
 end
 
-M.fmtAttr = function(f, name, attr)
-  if not attr or not next(attr) then return end
-  local docs, dis = {}, {}
-  for _, k in ipairs(attr) do
-    if mty.ty(attr[k]) == M.Doc then push(docs, k)
-    else push(dis, k) end -- DocItem and values
-  end
-  if #dis > 0 then
-    f:write(sfmt('\n[*%s: ] [{table}', name))
-    for i, k in ipairs(dis) do
-      local v = attr[k]
-      f:write'\n+ '
-      if mty.ty(v) == M.DocItem then M.fmtDocItem(f, v)
-      else f:write(sfmt('[*%s] | %s', k, cxt.code(fmt(v)))) end
-    end
-    f:write'\n]'
-  end
-  if #docs > 0 then
-    for i, k in ipairs(docs) do
-      f:write'\n'; M.fmtDoc(f, attr[k])
+--- Document the function. cmts=true also includes comments
+--- on new line.
+function M.Doc:fn(fn, cmts, name, id) --> (cmt, sig, isMethod)
+  local pname, loc  = mty.anyinfo(fn)
+  local cmt, code   = self:extractCode(loc)
+  local sig, isMeth = self:fnsig(code)
+  name = name or pname
+  self:code((isMeth and ':' or '')..name..(sig or '()'))
+  if cmts and cmt and #cmt > 0 then
+    self:write'\n'
+    for i, c in ipairs(cmt) do
+      self:write(c); if i < #cmt then self:write'\n' end
     end
   end
+  return cmt, sig, isMeth
 end
 
-local HEADERS = {
-  Package=1,  Module=2, Record=3, Table=3, Value=4,
-  Commands=1, Command=2,
+--- Document the module.
+function M.Doc:mod(m)
+  local name, loc = mty.anyinfo(m)
+  local cmts, code = self:extractCode(loc)
+  self:header(m.__name, m.__name)
+  self:hdrlevel(1)
+  for _, c in ipairs(cmts or EMPTY) do
+    self:write(c); self:write'\n'
+  end
+
+  local names = {}
+  local fns, tys, oth = {}, {}, {}
+  for _, k in ipairs(m.__attrs) do
+    if k:match'^_' then goto continue end
+    local v = rawget(m, k);
+    if v == nil then
+      warn('%s.%s is in __attrs but no longer exists', m.__name, k)
+      goto continue
+    end
+    names[v] = k
+    if     type(v) == 'function'                     then push(fns, v)
+    elseif type(v) == 'table' and rawget(v, '__doc') then push(tys, v)
+    else push(oth, v) end
+    ::continue::
+  end
+
+  if #tys > 0 then
+    self:write'\n'; self:bold'Types'; self:write' [+\n'; 
+    for _, ty in ipairs(tys) do
+      self:write'* '; self:level(1)
+      -- TODO: make a link.
+      self:bold(sfmt('%s.%s', m.__name, names[ty]))
+      self:level(-1); self:write'\n'
+    end
+    self:write']\n'
+  end
+
+  if #fns > 0 then
+    self:write'\n'; self:bold'Functions'; self:write' [+\n'; 
+    for _, fn in ipairs(fns) do
+      self:write'* '; self:level(1)
+      self:fn(fn, true, names[fn], sfmt('%s.%s', m.__name, names[fn]))
+      self:level(-1); self:write'\n'
+    end
+    self:write']\n'
+  end
+
+  for _, ty in ipairs(tys) do
+    self:write'\n'; rawget(ty, '__doc')(ty, self)
+  end
+  self:hdrlevel(-1)
+end
+
+function M.Doc:__call(name, obj, cmts)
+  local ty = type(obj)
+  if ty == 'function' then return self:fn(obj, true) end
+  if ty == 'table' and rawget(obj, '__doc') then
+    info('!! calling __doc %q', obj)
+    return rawget(obj, '__doc')(obj, self)
+  end
+  local name, loc = mty.anyinfo(obj)
+  local cmt, code = self:extractCode(loc)
+  self:bold(name); self:write': raw '; self:code(ty) self:write'\n'
+  if cmts and cmt and #cmt > 0 then
+    for _, c in ipairs(cmts) do self:write(c) self:write'\n' end
+  end
+end
+
+--- Get cxt documentation for symbol.
+M.Main = mty'Main'{
+  __cmd='doc',
+  'to [string|file]: where to write output.',
 }
-M.docHeader = function(docTy, lvl)
-  if docTy == 'Function' then return 3 + (lvl or 0) end
-  return assert(HEADERS[docTy], docTy)
-end
 
-M.fmtMeta = function(f, m)
-  f:write'[{table}'
-  if m.summary then f:write(sfmt('\n+ [*summary] | %s', m.summary)) end
-  f:write(sfmt('\n+ [*version] | [$%s]', m.version or '(no version)'))
-  if m.homepage then f:write(sfmt('\n+ [*homepage] | [<%s>]', m.homepage)) end
-  if m.repo     then f:write(sfmt('\n+ [*repo] | [<%s>]', m.repo)) end
-  f:write'\n]'
-end
-
-M.fmtDoc = function(f, d)
-  local path = d.path and sfmt(' ([{i path=%s}src])', escape(pth.nice(d.path))) or ''
-  local name = d.name
-  local hname = name and sfmt('[:%s]', d.name) or '(unnamed)'
-  if d.fnsig then hname = hname..cxt.code(d.fnsig) end
-  f:write(sfmt('[{h%s}%s%s%s]',
-          M.docHeader(d.docTy, d.lvl),
-          d.docTy == 'Package' and '' or (assert(d.docTy)..' '),
-          hname, path))
-  if d.meta then M.fmtMeta(f, d.meta) end
-  if d.comments then
-    for i, l in ipairs(d.comments) do f:write('\n', l) end
-  end
-  if d.main then
-    M.fmtDoc(f, d.main)
-  end
-  if d.docTy == 'Table' or d.docTy == 'Value' then
-    if d.code and #d.code > 1 then
-      f:write(cxt.codeblock('\n'..concat(d.code, '\n')..'\n', 'lua'))
-    end
-    return
-  end
-
-  local any = d.fields or d.values or d.tys or d.fns
-  if any or d.mods then f:write'\n' end
-  if d.fields then
-    M.fmtAttr(f, d.docTy == 'Command' and 'Named Args' or 'Fields', d.fields)
-  end
-  if d.docTy == 'Command' then
-    return
-  end
-  if d.values then M.fmtAttr(f, 'Values', d.values) end
-  if d.tys    then M.fmtAttr(f, 'Records', d.tys)   end
-  if d.docTy == 'Commands' then return end
-  if d.fns then
-    local name = (d.docTy == 'Record') and 'Methods' or 'Functions'
-    M.fmtAttr(f, name, d.fns)
-  end
-  if d.mods then
-    if any then f:write'\n' end
-    for _, m in ipairs(d.mods) do
-      f:write'\n'; M.fmt(f, d.mods[m])
-    end
-  end
-end
-
-M.fmt = function(f, d)
-  if     mty.ty(d) == M.Doc     then M.fmtDoc(f, d)
-  elseif mty.ty(d) == M.DocItem then M.fmtDocItem(f, d)
-  else error'not a Doc or DocItem' end
-  return f
-end
-
+--- usage: [$doc{'any.symbol', '--to=optionalOutput.cxt'}]
 function M.Main:__call()
-  self.raw = shim.list(self.raw)
-  log.info('doc %q', self)
-  if self.html then
-    local from = require'lines.File'{path=ds.only(self.raw)}
-    local to = fmt.Fmt{to=assert(io.open(self.to, 'w'))}
-    require'cxt.html'.convert(from, to, self.html)
-    to:flush()
-    return
-  end
-  local to = self.to and assert(shim.file(self.to))
-
-  require'doc.lua' -- ensure it is loaded
-  local expand = self.expand == true and 10 or self.expand
-  local f, c = fmt.Fmt{to=to}, M._Construct{}
-  for _, obj in ipairs(self.raw or {}) do
-    log.info('raw %q', obj)
-    ix.cp(obj, f)
-  end
-  if self.cmd then
-    local o = M.find(self.cmd)
-    c:write(f, o, expand, 'bin/'..o.__cmd)
-  end
-  for _, obj in ipairs(self) do
-    c:write(f, obj, expand)
-  end
-  if to then to:flush() end
-  if not self.to then
-    require'cxt.term'{table.concat(f), out=io.fmt}
+  info('doc %q', self)
+  assert(#self > 0, 'usage: doc any.symbol')
+  local d = M.Doc{to=assert(shim.file(self.to, io.stderr))}
+  for _, name in ipairs(self) do
+    local obj = M.find(name)
+    d(name, obj); d:write'\n'
   end
 end
-
-if M == MAIN then return ds.main(shim.run, M.Main, shim.parse(arg)) end
 
 getmetatable(M).__call = function(_, args)
   return M.Main(shim.parseStr(args))()
 end
+if MAIN == M then return ds.main(shim.run, M.Main, shim.parse(arg)) end
 return M

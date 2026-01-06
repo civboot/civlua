@@ -1,6 +1,11 @@
 
 [{h1}TODO list for CXT]
 
+Bugs: [+
+* [##this doesn't parse right]##
+]
+
+
 [{h2}Whitespace aware quote block]
 I would like to allow the following to strip preceeding whitespace
 and FAIL if anything exists in said whitespace

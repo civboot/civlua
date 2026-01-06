@@ -236,7 +236,7 @@ M.main = function(args)
   shim.runSetup()
   M.iter(args):run()
 end
-if G.MAIN == M then M.main(G.arg) end
+if G.MAIN == M then M.main(shim.parse(G.arg)) end
 
 getmetatable(M).__call = function(_, args) --> list of paths
   return M.iter(args):keysTo()

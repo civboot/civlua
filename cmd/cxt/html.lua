@@ -1,6 +1,5 @@
 --- Serialize cxt nodes as html
 local M = mod and mod'cxt.html' or setmetatable({}, {})
-MAIN = MAIN or M
 
 local mty  = require'metaty'
 local fmt  = require'fmt'
@@ -209,23 +208,4 @@ M.assertHtml = function(expectedHtml, cxtDat, dbg)
   T.eq(expectedHtml, concat(w.to))
 end
 
-M.main = function(args)
-  args = shim.parseStr(args)
-  if #args < 2 then
-    print'Usage: cxt path/to/file.cxt path/to/file.html'
-    return 1
-  end
-  print('cxt.html', args[1], '-->', args[2])
-  local inp = LFile{path=args[1]}
-  local to  = fmt.Fmt{to=assert(io.open(args[2], 'w'))}
-  if args.config then
-    args.config = cxt.Config(require'ds.load'(args.config).html)
-  end
-  M.convert(inp, to, args.config)
-  inp:close(); to:flush(); to:close()
-  return 0
-end
-
-getmetatable(M).__call = function(_, args) return M.main(args) end
-if M == MAIN then os.exit(M.main(arg)) end
 return M

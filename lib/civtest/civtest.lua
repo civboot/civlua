@@ -29,6 +29,13 @@ local function fail(name)
   error(sfmt('Failed %s', name), 2)
 end
 
+M.printName = function(name, path)
+  name = name..M.SUBNAME
+  rawset(M, 'NAME', name);
+  io.fmt:styled('h2', sfmt('## Test %-32s', name), ' ')
+  io.fmt:styled('path', pth.nice(path), '\n')
+end
+
 --- Run the test, printing information to the terminal.
 ---
 --- This function computes name=[$name..civtest.SUBNAME]
@@ -39,11 +46,8 @@ end
 ---   a key to the civtest module, which has __newindex()
 ---   overriden to call this function.
 --- ]
-M.runTest = function(name, fn, path)
-  name = name..M.SUBNAME
-  rawset(M, 'NAME', name);
-  io.fmt:styled('h2', sfmt('## Test %-32s', name), ' ')
-  io.fmt:styled('path', pth.nice(path), '\n')
+M.runTest = function(name, fn, path) -- TODO: delete this
+  M.printName(name, path)
   return fn()
 end
 
@@ -160,8 +164,13 @@ M.path = function(path, expect)
   for k, v in pairs(expect) do M.path(pth.concat{path, k}, v) end
 end
 
+getmetatable(M).__call = function(_, name)
+  return M.printName(name, ds.shortloc(1))
+end
+
 getmetatable(M).__newindex = function(m, name, fn)
   return m.runTest(name, fn, select(2, mty.fninfo(fn)))
 end
+
 
 return M

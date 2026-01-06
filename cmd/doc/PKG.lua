@@ -15,6 +15,7 @@ P.doc = lua {
     "civ:lib/pegl",
     "civ:cmd/cxt",
   },
+  tag = { builder = 'bootstrap' },
   link = {['lua/doc.lua'] = 'bin/luadoc'},
 }
 

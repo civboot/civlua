@@ -1,7 +1,12 @@
--- TODO: see TODO.cxt
+#!/usr/bin/env -S lua
+local mty = require'metaty'
+
+--- TODO: see TODO.cxt
 local M = mod and mod'cxt' or {}
 
+local G = mty.G; G.MAIN = G.MAIN or M
 local mty = require'metaty'
+local shim = require'shim'
 local fmt = require'fmt'
 local ds  = require'ds'
 local lines = require'lines'
@@ -483,4 +488,28 @@ end
 M.Writer.__len = function(w) error'Writer.len not supported' end
 M.Writer.level = function(w, add) return w.to:level(add) end
 
+--- Convert cxt to HTML.
+M.Html = mty'Html'{
+  __cmd='cxt html',
+  'to [string|file]: where to write output.',
+}
+
+M.Main = {
+  __cmd='cxt', subcmd=true,
+  html = M.Html,
+}
+function M.Html:__call()
+  local LFile = require'lines.File'
+  local html = require'cxt.html'
+  assert(#self == 1, 'TODO')
+  local to = assert(shim.file(self.to, io.stdout))
+  local inp, to = LFile{path=self[1]}, fmt.Fmt{to=to}
+  html.convert(inp, to)
+  inp:close(); to:flush(); to:close()
+end
+
+if MAIN == M then return ds.main(shim.run, M.Main, shim.parse(arg)) end
+getmetatable(M).__call = function(_, args)
+  return shim.run(M.Main, shim.parseStr(args))
+end
 return M

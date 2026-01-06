@@ -105,21 +105,21 @@ Fmt.level = function(f, add) --> int: current level
   return l
 end
 
-Fmt.flush = function(f) if f.to then f.to:flush() end; return true end
-Fmt.close = function(f) if f.to then f.to:close() end; return true end
 Fmt._write = function(f, str)
   if f.to then f.to:write(str) else rawset(f, #f + 1, str) end
 end
 --- Same as [$file:write].
-Fmt.write = function(f, ...)
+function Fmt:write(...)
   local str = concat{...}
   local doIndent = false
   for _, line in split(str, '\n') do
-    if doIndent then f:_write(f._nl) end
-    f:_write(line); doIndent = true
+    if doIndent then self:_write(self._nl) end
+    self:_write(line); doIndent = true
   end
-  return f
+  return self
 end
+function Fmt:flush() if self.to then self.to:flush() end; return true end
+function Fmt:close() if self.to then self.to:close() end; return true end
 
 --- Call [$to:styled(...)] if it is enabled, else simply [$f:write(text, ...)].
 --- This allows for configurable styling of output, both for objects as well

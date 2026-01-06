@@ -1,13 +1,13 @@
 #!/usr/bin/env -S lua
-local G = G or _G
 local mty = require'metaty'
 
 --- The civ build system command.
-local M = mty.mod'civ'
-G.MAIN = G.MAIN or M
+local M = mty.mod'civ';
 
+local G = mty.G; G.MAIN = G.MAIN or M
 local shim = require'shim'
 local ds = require'ds'
+local fmt = require'fmt'
 local pth = require'ds.path'
 local info = require'ds.log'.info
 local ix = require'civix'
@@ -15,6 +15,7 @@ local core = require'civ.core'
 
 local sfmt = string.format
 local push = ds.push
+local assertf = fmt.assertf
 
 local function tgtnamesSplit(args) --> pkgnames, tgtnames
   local pkgnames, tgtnames = {}, {}
@@ -45,6 +46,10 @@ M.Build   = mty.extend(M.Base, 'Build', {})
 --- Usage: [$civ test hub:tgt#name]
 M.Test   = mty.extend(M.Build, 'Test', {})
 
+--- Usage: [$civ run hub:tgt#name -- ...args]
+--- Build+run a single build target which has a single bin output.
+M.Run    = mty.extend(M.Build, 'Run', {})
+
 --- Usage: [$civ install hub:tgt#name]
 M.Install = mty.extend(M.Base, 'Install', {
   "force [bool]: do not confirm deletion of files.",
@@ -56,6 +61,7 @@ M.Args = {
   init    = M.Init,
   build   = M.Build,
   test    = M.Test,
+  run     = M.Run,
   install = M.Install,
 }
 
@@ -156,6 +162,29 @@ function M.Test:__call()
   info('test %q', self)
   local cv = core.Civ{cfg=core.Cfg:load(self.config)}
   return M.test(cv, cv:expandAll(self))
+end
+
+function M.Run:__call()
+  info('run %q', self)
+  local cmd = shim.popRaw(self)
+  assert(#self == 1, 'usage: civ run hub:tgtname')
+  local cv = core.Civ{cfg=core.Cfg:load(self.config)}
+  local tgtnames = cv:expandAll(self)
+  assertf(#tgtnames == 1, 'must run a single target, expanded to: %q',
+         tgtnames)
+  local tgt = cv:target(tgtnames[1])
+  local bin = tgt.out.bin
+  if not bin then bin = tgt.link end
+  assertf(bin and ds.pairlen(bin) == 1,
+    '%s must have exatly one bin/ output: %q', tgtnames[1], tgt.out)
+  bin = select(2, next(bin))
+  assertf(bin:match'^bin/', '%s is not in bin/', bin)
+
+  M.build(cv, tgtnames)
+  table.insert(cmd, 1, cv.cfg.buildDir..bin)
+  info('running: %q', cmd)
+  cmd.ENV = cv.ENV
+  return ix.sh(cmd)
 end
 
 function M.Install:__call()

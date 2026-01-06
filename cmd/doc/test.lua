@@ -1,140 +1,133 @@
-local M = mod'doc_test'
-
---- document a fn
---- another line
-M.exampleFn = function() return end
-
---- document a metaty
---- another line
-M.Example  = require'metaty''Example'{
-  'a [int]', a=4,
-}
-M.Example.method = function() end
-
 local mty = require'metaty'
-local fmt = require'fmt'
-local pth = require'ds.path'
+--- Example module
+local Tm = mty.mod'TestMod'
+--- Example function documentation.
+Tm.exampleFn = function(a) --> b
+end
+--- Example record documentation.
+Tm.A = mty'A' {
+  'a [int]: example field doc',
+}
+--- Example method documentation.
+function Tm.A:exampleMeth(b) --> c
+end
+
+local M = require'doc'
 local T = require'civtest'
-local doc = require'doc'
+local ds = require'ds'
 
-T.eq(mod.__newindex, getmetatable(M.Example).__newindex)
-T.eq('doc_test.Example',    PKG_NAMES[M.Example])
-T.matches('.*cmd/doc/test.lua:11', PKG_LOC[M.Example])
+local Dc = M.Doc
 
-local rmPaths = function(str) return str:gsub('(/.-):%d+', '%1:000') end
-T.eq('blah blah foo/bar.baz:000 blah blah',
-  rmPaths('blah blah foo/bar.baz:100 blah blah'))
-T.eq('a b c/cmd/doc/test.lua:000 def',
-  rmPaths('a b c/cmd/doc/test.lua:11 def'))
+local concat = table.concat
 
-local doFmt = function(fn, obj)
-  local f = fmt.Fmt{}
-  fn(f, obj)
-  return rmPaths(table.concat(f))
+T'find' do
+  T.eq(M,         M.tryfind'doc')
+  T.eq(M.tryfind, M.tryfind'doc.tryfind')
 end
 
+T'fnsig' do
+  local d = Dc{}
+  T.eq({'(a) -> b'},       {d:fnsig{'M.a = function(a) --> b'}})
+  T.eq({'(a) -> b'},       {d:fnsig{'function M.a(a) --> b'}})
+  T.eq({'(a) -> b', true}, {d:fnsig{'function M:a(a) --> b'}})
+end
 
--- This was used to craft the for documentation
-T.pairs = function()
-  local function rawipairs(t, i)
-    i = i + 1
-    if i > #t then return nil end
-    return i, t[i]
+T'extractCode' do
+  local d = Dc{}
+  local cmt, code = d:extractCode(M.find)
+  T.eq({'Find the object/name.'},        cmt)
+  T.eq({"function M.find(obj) --> any"}, code)
+  T.eq('(obj) -> any', d:fnsig(code))
+
+  local cmt, code = d:extractCode(d.extractCode)
+  T.eq({}, cmt)
+  T.eq({"function M.Doc:extractCode(loc) --> (commentLines, codeLines)"},
+       code)
+  T.eq({"(loc) -> (commentLines, codeLines)", true}, {d:fnsig(code)})
+
+  local cmt, code = d:extractCode(Dc.hdrlevel)
+  T.eq({"function M.Doc:hdrlevel(add) --> int"}, code)
+  T.eq({'(add) -> int', true}, {d:fnsig(code)})
+end
+
+T'Doc' do
+  local d = Dc{}
+  local function testDc(expect)
+    T.eq(expect, concat(d)); ds.clear(d)
   end
-
-  local function ipairs_(t)
-    return rawipairs, t, 0
-  end
-
-  local e = {1, 2, 10, a=8, hello='hi'}
-  local r = {}; for i, v in ipairs_(e) do r[i] = v end
-  assert(#r == 3)
-  assert(r[1] == 1); assert(r[2] == 2); assert(r[3] == 10);
-
-  local function pairs_(t) return next, t, nil end
-  r = {}; for k, v in pairs_(e) do r[k] = v end
-  assert(#r == 3)
-  assert(r[1] == 1); assert(r[2] == 2); assert(r[3] == 10);
-  assert(r.a == 8);  assert(r.hello == 'hi')
+  d:link'foo.com';          testDc'[<foo.com>]'
+  d:link('foo.com', 'foo'); testDc'[<foo.com>foo]'
+  d:code('blah.blah');      testDc'[$blah.blah]'
 end
 
-T.findcode = function()
-  local com, code = doc.findcode(M.exampleFn)
-  T.eq({"--- document a fn", "--- another line"}, com)
-  T.eq({"M.exampleFn = function() return end"}, code)
+local Dc_DOC = [=[
+[{h1 name="doc.Doc"}Record Doc]
+[+
+* [*to] [$file]:
+  file to write to.
+* [*indent] [$string]
+]
+Object passed to __doc methods.
+Aids in writing cxt.
 
-  com, code = doc.findcode(M.Example)
-  T.eq('--- document a metaty', com[1])
-  T.eq('--- another line',      com[2])
-  T.eq([[M.Example  = require'metaty''Example'{]], code[1])
-  T.eq([[  'a [int]', a=4,]], code[2])
-  T.eq('}', code[3])
+[*Methods] [+
+* [*level(f, add) -> int: current level]
+  Add to the indent level and get the new value
+  call with [$add=nil] to just get the current level
+* [*:write(...)]
+  Same as [$file:write].
+* [*:flush()]
+* [*:close()]
+* [*:bold('[*%s]', text)]
+* [*:code('[$%s]', code)]
+* [*:link(link, text)]
+* [*:hdrlevel(add) -> int]
+* [*:header(content, name)]
+* [*:extractCode(loc) -> (commentLines, codeLines)]
+* [*:fnsig(code) -> (string, isMethod)]
+  Extract the function signature from the lines of code.
+* [*:fn(fn, cmts, name, id) -> (cmt, sig, isMethod)]
+  Document the function. cmts=true also includes comments
+  on new line.
+* [*:mod(m)]
+  Document the module.
+]
+]=]
+
+T'record_doc' do
+  local d = Dc{}
+  Dc:__doc(d) -- write docs of itself
+  T.eq(Dc_DOC, concat(d))
 end
 
+local Tm_DOC = [[
+[{h1 name="TestMod"}TestMod]
+Example module
 
-T.doc_fn = function()
-  local res = doc.construct(M.exampleFn, nil, 0)
-  T.eq(
-    "[$doc_test.exampleFn] | \\[[$() -> nil]\\] ([{path=cmd/doc/test.lua:000}src])",
-    doFmt(doc.fmtDocItem, res))
+[*Types] [+
+* [*TestMod.A]
+]
 
-  local res = doc.construct(M.exampleFn, nil, 1)
-  T.eq('Function', res.docTy)
-  T.eq(
-"[{h3}Function [:doc_test.exampleFn][$() -> nil] ([{i path=cmd/doc/test.lua:000}src])]\
-document a fn\
-another line",
-    doFmt(doc.fmtDoc, res))
-end
+[*Functions] [+
+* [*exampleFn(a) -> b]
+  Example function documentation.
+]
 
+[{h2 name="TestMod.A"}Record A]
+[+
+* [*a] [$int]:
+  example field doc
+]
+Example record documentation.
 
-T.doc_ty = function()
-  local res = doc.construct(M.Example, nil, 0)
-  T.eq(
-    "[$doc_test.Example] | \\[Ty<Example>\\] ([{path=cmd/doc/test.lua:000}src])",
-    doFmt(doc.fmtDocItem, res))
+[*Methods] [+
+* [*:exampleMeth(b) -> c]
+  Example method documentation.
+]
+]]
 
-  local res = doc.construct(M.Example, nil, 1)
-  T.eq(
-"[{h3}Record [:doc_test.Example] ([{i path=cmd/doc/test.lua:000}src])]\
-document a metaty\
-another line\
-\
-[*Fields: ] [{table}\
-+ [$a]             | \\[int\\] = [$4]\
-]\
-[*Values: ] [{table}\
-+ [$doc_test.Example.__docs] | \\[table\\] \
-+ [$doc_test.Example.__fieldIds] | \\[table\\] \
-+ [$doc_test.Example.__fields] | \\[table\\] \
-+ [$doc_test.Example.__name] | \\[string\\] \
-]\
-[*Records: ] [{table}\
-+ [$doc_test.Example.__index] | \\[Ty<Example>\\] ([{path=cmd/doc/test.lua:000}src])\
-]\
-[*Methods: ] [{table}\
-+ [$doc_test.Example.__fmt] | \\[function\\] ([{path=.civ/lua/metaty.lua:000}src])\
-+ [$doc_test.Example.__newindex] | \\[function\\] ([{path=.civ/lua/metaty.lua:000}src])\
-+ [$doc_test.Example.__tostring] | \\[function\\] ([{path=.civ/lua/metaty.lua:000}src])\
-+ [$doc_test.Example.method] | \\[function\\] ([{path=cmd/doc/test.lua:000}src])\
-]",
-    doFmt(doc.fmtDoc, res))
-end
-
-T.doc_module = function()
-  local dir = 'cmd/doc/test/'
-  local fm = dofile(dir..'docfake.lua')
-
-  local comments, code = doc.findcode(fm)
-  T.eq({
-    "--- fake lua module for testing doc.",
-    "---",
-    "--- module documentation.",
-  }, comments)
-
-  local res = doFmt(doc.fmtDoc, doc.construct(fm, nil, 5))
-  res = res..'\n'
-  pth.write(dir..'docfake.cxt', res) -- uncomment to update, then check diff!
-  local cxt = pth.read(dir..'docfake.cxt')
-  T.eq(cxt, res)
+T'mod_doc' do
+  local d = Dc{}
+  d:mod(Tm)
+  T.eq(Tm_DOC, concat(d))
 end

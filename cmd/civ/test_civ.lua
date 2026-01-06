@@ -69,7 +69,7 @@ T.loadPkg = function()
   local metatyPkg = c:loadPkg'civ:lib/metaty'
   T.eq(luk.Table{
     pkgname="civ:lib/metaty",
-    summary="Simple but effective Lua type system using metatables",
+    summary="Simple but effective Lua type system.",
     metaty=METATY_PKG,
   }, metatyPkg)
 

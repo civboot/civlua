@@ -10,6 +10,13 @@ local _G = _G
 rawset(_G, 'LUA_OPT', rawget(_G, 'LUA_OPT')
                    or tonumber(os.getenv'LUA_OPT' or 1))
 
+local CONCRETE = {
+  ['nil']=true, bool=true, boolean=true,
+  number=true,  string=true,
+}
+local BUILTIN = {table=true}
+for k,v in pairs(CONCRETE) do BUILTIN[k] = v end
+
 local G = setmetatable({}, {
   __name='G(init globals)',
   __index    = function(_, k)    return rawget(_G, k)    end,
@@ -29,17 +36,15 @@ local srcloc = function(level)
   return loc:sub(2)..':'..info.currentline
 end
 
--- set of concrete types
-local CONCRETE = {['nil']=1, bool=1, number=1, string=1}
-
 local mod; mod = {
   __name = 'Mod',
   __index = function(m, k) error('mod does not have: '..k, 2) end,
-  __newindex = function(t, k, v)
-    rawset(t, k, v)
+  __newindex = function(m, k, v)
+    rawset(m, k, v)
     if type(k) ~= 'string' then return end
-    local n = rawget(t, '__name')
-    mod.save(t.__name..'.'..k, v)
+    push(m.__attrs, k)
+    local n = rawget(m, '__name')
+    mod.save(m.__name..'.'..k, v)
   end,
 }
 
@@ -56,10 +61,15 @@ setmetatable(mod, {
   __name='Mod',
   __call=function(T, name)
     assert(type(name) == 'string', 'must provide name str')
-    local m = setmetatable({__name=name}, {
+    local m = setmetatable({
+      __name=name,
+      __attrs={}, -- ordered attributes added after
+      __doc=function(self, d) d:mod(self) end,
+    }, {
       __name=sfmt('Mod<%s>', name),
       __index=mod.__index,
       __newindex=mod.__newindex,
+      __tostring=function(m) return m.__name end
     })
     mod.save(name, m)
     return m
@@ -78,7 +88,6 @@ M.G = G
 --
 -- usage: [$local M = mod'name']
 M.mod = mod
-
 M.isMod = function(t) --> boolean
   if type(t) ~= 'table' then return false end
   local mt = getmetatable(t)
@@ -107,6 +116,13 @@ end
 
 local update = function(t, update)
   for k, v in pairs(update) do t[k] = v end; return t
+end
+
+-- set of concrete types
+M.CONCRETE, M.BUILTIN = CONCRETE, BUILTIN
+M.isConcrete = function(v) return CONCRETE[type(v)] end
+M.isBuiltin = function(obj)
+  return M.isConcrete(obj) or (obj == nil) or (getmetatable(obj) == nil)
 end
 
 ---------------
@@ -180,7 +196,8 @@ M.validKey = function(s) --> boolean: s=value is valid syntax
          or s:find'[^_%w]')
 end
 
-M.fninfo = function(fn)
+--- Extract name,loc from function value.
+M.fninfo = function(fn) --> name, loc
   local info
   local name = PKG_NAMES[fn]; if not name then
     info = debug.getinfo(fn)
@@ -193,6 +210,16 @@ M.fninfo = function(fn)
     else loc = nil end
   end
   return name or 'function', loc
+end
+
+--- Extract name,loc from any value (typically mod/type/function).
+function M.anyinfo(v) --> name, loc
+  if type(v) == 'function' then return M.fninfo(v) end
+  if M.isBuiltin(v)        then return type(v), nil end
+  local name, loc = PKG_NAMES[v], PKG_LOC[v]
+  name = name or M.name(v)
+  if loc and loc:find'%[' then loc = nil end
+  return name, loc
 end
 
 --- You probably want split instead.
@@ -231,6 +258,60 @@ M.fmt = function(self, f)
           multi and (len>0) and (#fields>0) and f.listEnd)
   f:keyvals(self, fields)
   f:level(-1); f:write(multi and f.tableEnd or '}')
+end
+
+local function cleanupFieldTy(tyStr)
+  return tyStr:match'%[(.*)%]' or tyStr
+end
+
+--- The default __doc method.
+---
+--- ["d is of type [$doc.Documenter].
+---   Tests are in cmd/doc/test.lua ]
+M.doc = function(R, d)
+  local name, loc = M.anyinfo(R)
+  local cmt, code = d:extractCode(loc)
+  d:header('Record '..R.__name, name)
+  local fields = {}
+  for _, fname in ipairs(R.__fields or EMPTY) do
+    if not fname:match'^_' then push(fields, fname) end
+  end
+  if #fields > 0 then
+    d:write'[+\n'; 
+    for _, fname in ipairs(fields) do
+      d:write'* '; d:level(1)
+      d:bold(fname); d:write' '
+      local ty = fields[fname]; if type(ty) == 'string' then
+        d:code(cleanupFieldTy(ty))
+      end
+      local doc = R.__docs[fname]; if doc then
+        d:write':\n'; d:write(doc)
+      end
+      d:level(-1); d:write'\n'
+    end
+    d:write']\n'
+  end
+  for _, c in ipairs(cmt or EMPTY) do
+    d:write(c); d:write'\n'
+  end
+  local methods = {}
+  for _, k in ipairs(R.__attrs) do
+    if k:match'^_' then goto continue end
+    local v = rawget(R, 'k')
+    if M.callable(v) then
+      push(methods, k); methods[k] = v
+    end
+    ::continue::
+  end
+  if #methods > 0 then
+    d:write'\n'; d:bold'Methods'; d:write' [+\n'; 
+    for _, name in ipairs(methods) do
+      d:write'* '; d:level(1)
+      d:fn(methods[name], true, name, sfmt('%s.%s', R.__name, name))
+      d:level(-1); d:write'\n'
+    end
+    d:write']\n'
+  end
 end
 
 --- The default __tostring method.
@@ -323,18 +404,18 @@ M.extendFields = function(fields, ids, docs, R)
     local spec = rawget(R, i); rawset(R, i, nil)
     -- name [type] : some docs, but [type] and ':' are optional.
     local name, tyname, fdoc =
-        spec:match'^([%w_]+)%s*(%b[])%s*:?%s*(.*)$'
+        spec:match'^([%w_]+)%s*(%b[])%s*:?%s*(.-)%s*$'
     if not name then -- check for {type}
       name, tyname, fdoc =
-        spec:match'^([%w_]+)%s*(%b{})%s*:?%s*(.*)$'
+        spec:match'^([%w_]+)%s*(%b{})%s*:?%s*(.*)%s*$'
     end
     if not name then
-      name, fdoc = spec:match'^([%w_]+)%s*:?%s*(.*)$'
+      name, fdoc = spec:match'^([%w_]+)%s*:?%s*(.-)%s*$'
     end
-    assert(name,      'invalid spec')
-    assert(#name > 0, 'empty name')
+    if not name then error('invalid spec: '..spec) end
+    if #name==0 then error('empty name: '..spec) end
     push(fields, name); fields[name] = tyname or true
-    local id, iddoc = fdoc:match'^%s*#(%d+)%s*:?%s*(.*)$'
+    local id, iddoc = fdoc:match'^%s*#(%d+)%s*:?%s*(.*)%s*$'
     if id then
       id = tonumber(id); fdoc = iddoc
       if ids[id] or ids[name] then
@@ -354,20 +435,22 @@ M.namedRecord = function(name, R, loc)
   end; R.reserved = nil
   R.__fields, R.__fieldIds, R.__docs = M.extendFields({}, fieldIds, {}, R)
   R.__fmt      = rawget(R, '__fmt')      or M.fmt
+  R.__doc      = rawget(R, '__doc')      or M.doc
   R.__tostring = rawget(R, '__tostring') or M.tostring
   R.__index    = rawget(R, '__index')    or R
-  local mt = {
+  R.__attrs    = rawget(R, '__attrs')    or {}
+  local mtR = {
     __name     = 'Ty<'..R.__name..'>',
     __newindex = mod and mod.__newindex,
     __tostring = function() return R.__name end,
   }
-  local R = setmetatable(R, mt)
+  local R = setmetatable(R, mtR)
   if G.LUA_OPT <= 2 then
-    mt.__call    = M.constructChecked
-    mt.__index   = M.index
+    mtR.__call    = M.constructChecked
+    mtR.__index   = M.index
     rawset(R, '__newindex', rawget(R, '__newindex') or M.newindex)
   else
-    mt.__call = M.constructUnchecked
+    mtR.__call = M.constructUnchecked
   end
   return R
 end

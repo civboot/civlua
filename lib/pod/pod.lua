@@ -7,6 +7,12 @@ local push = table.insert
 local mtype = math.type
 local sfmt = string.format
 
+local CONCRETE, BUILTIN = mty.CONCRETE, mty.BUILTIN
+
+-- FIXME: remove
+M.isConcrete = mty.isConcrete
+M.isBuiltin = mty.isBuiltin
+
 local lib, ser, deser
 if not G.NOLIB then
   lib = require'pod.lib'
@@ -28,11 +34,6 @@ M.Pod = mty'Pod'{
 }
 local Pod = M.Pod
 Pod.DEFAULT = Pod{}
-local CONCRETE = { boolean=true, number=true, string=true }
-local BUILTIN = table.update(table.update({}, CONCRETE), {
-  ['nil']=true, table=true
-})
-M.isConcrete = function(v) return CONCRETE[type(v)] end
 
 -- return true if the value is "plain old data".
 --
@@ -103,7 +104,7 @@ BUILTIN_PODDER.int = BUILTIN_PODDER.integer
 BUILTIN_PODDER.str = BUILTIN_PODDER.string
 
 for k, p in pairs(BUILTIN_PODDER) do M[k] = p end
-M['nil'], M.nil_ = nil, BUILTIN_PODDER['nil']
+M.nil_ = BUILTIN_PODDER['nil']
 
 --- Handles concrete non-nil types (boolean, number, string)
 M.key = mty'key' {}

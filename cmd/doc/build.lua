@@ -7,6 +7,7 @@ assert(not G.MAIN, 'must be run as main')
 G.MAIN = M
 
 local ds = require'ds'
+local pth = require'ds.path'
 local info = require'ds.log'.info
 local ix = require'civix'
 local doc = require'doc'
@@ -30,14 +31,12 @@ local function build(id)
     tgts[tgt:tgtname()] = tgt
   end
 
-  local raw = {}
-  for i, src in ipairs(tgt.src) do raw[i] = tgt.dir..src end
+  local to = assert(io.open(O..ds.only(assert(ds.getp(tgt, outp))), 'w'))
+  for i, src in ipairs(tgt.src) do
+    ix.cp(tgt.dir..src, to); to:write'\n'
+  end
 
-  local cmd = {
-    raw = raw, expand=2,
-    cmd = tgt.tag.cmd or nil,
-    to  = O..ds.only(assert(ds.getp(tgt, outp))),
-  }
+  local cmd = { to  = to }
   for _, modtgt in ipairs(tgt.extra.lua) do
     ds.extend(cmd, tgts[core.tgtname(modtgt)].api)
   end
