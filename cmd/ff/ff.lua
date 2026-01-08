@@ -43,7 +43,7 @@ local fmtMatch, fmtSub
 --- ]
 ---
 --- Note that all directories/ always end with [$/]
-M.Main = mty'Main' {
+M.FF = mty'FF' {
   'root [list] [$r:path1 r:path2]: list of root paths',
   'pat  [list] [$any.+pat1 pat2]: list of patterns to find',
   'nopat [list] [$-notpat]: list of (file-wide) pattern exclusions',
@@ -54,14 +54,20 @@ M.Main = mty'Main' {
   'sub [string]: the subsitution string to use with pat',
   'mut [bool]: mutate files (used with sub)',
   'dirs [bool]: show all non-excluded directories',
+  'content [bool]: if false do not show content (only show paths)',
+    content=true,
+ [[pathsub [string]: the substitution string to rename the path.
+   Note: this implies content=false and cannot be used with sub
+ ]],
 }
 
 
 --- find patterns in path.
 --- If there is a match then the path is logged to [$io.stdout] and the matches
 --- to [$io.fmt].
-M.find = function(path, pats, sub) --> boolean
+function M.FF:find(path, pats, sub) --> boolean
   local f, sf = io.fmt, vt100.Fmt{to=io.stdout}
+  local onlypath = not self.content
   if not civix.exists(path) then
     sf:styled('error', 'Does not exist: '..path, '\n')
     return false
@@ -70,6 +76,16 @@ M.find = function(path, pats, sub) --> boolean
   for line in io.lines(path, 'L') do
     l, ms, me, pi, pat = l + 1, find(line, pats)
     if ms then
+      if onlypath then
+        local path, fs, fe, fi, fpat = path..'\n', find(path, self.path)
+        assert(fs)
+        fmtMatch(f, nil, path, fs, fe)
+        if self.pathsub then
+          local after = assert(gsub(path, fpat, self.pathsub))
+          fmtSub(f, path, after)
+        end
+        return true
+      end
       if not found then
         sf:styled('path', nice(path), '\n'); sf:flush()
         found = true
@@ -85,12 +101,10 @@ M.find = function(path, pats, sub) --> boolean
 end
 
 --- perform replacement of [$pats] with [$sub], writing to [$to]
-M.replace = function(path, to, pats, sub)
+function M.FF:replace(path, to, pats, sub)
   local find, ms, me, pi, pat = ds.find
   for line in io.lines(path, 'L') do
     ms, me, pi, pat = find(line, pats)
-    if ms then
-    end
     to:write(ms and gsub(line, pat, sub) or line)
   end
 end
@@ -99,20 +113,26 @@ end
 ---
 --- ["WARNING: this also writes to io.fmt and io.stdout]
 M.iter = function(args) --> Iter
-  args = M.Main(args)
-  if #args.root == 0 then args.root[1] = pth.cwd() end
-  log.info('ff %q', args)
+  local m = M.FF(args)
+  if m.pathsub then
+    m.content = false
+    assert(m.path, 'must set path pattern with path pathsub')
+  else m.content = shim.bool(m.content) end
+  if not m.content and #m.pat == 0 then m.pat = {''} end
+  assert(not (m.sub and m.pathsub), 'must set only one: sub pathsub')
+  if #m.root == 0 then m.root[1] = pth.cwd() end
+  log.info('ff %q', m)
   local sf = vt100.Fmt{to=io.stdout}
 
-  local w = civix.Walk(args.root)
-  local it, ffind, finds = Iter{w}, M.find, ds.find
+  local w = civix.Walk(m.root)
+  local it, finds = Iter{w}, ds.find
   -- check nopath patterns
-  if #args.nopath > 0 then; it:map(function(p, pty)
-    if not finds(p, args.nopath) then return p, pty end
+  if #m.nopath > 0 then; it:map(function(p, pty)
+    if not finds(p, m.nopath) then return p, pty end
     if pty == 'dir' then w:skip() end
   end); end
   -- show/no-show dirs
-  if args.dirs then;   it:map(function(p, pty)
+  if m.dirs then;   it:map(function(p, pty)
       if pty == 'dir' then sf:styled('path', nice(p), '\n') end
       return p, pty
     end)
@@ -120,12 +140,12 @@ M.iter = function(args) --> Iter
     it:map(function(p, pty) if pty ~= 'dir' then return p, pty end end)
   end
   -- check path patterns
-  if #args.path > 0 then;   it:map(function(p, pty)
-    if (pty == 'dir') or finds(p, args.path) then return p, pty end
+  if #m.path > 0 then;   it:map(function(p, pty)
+    if (pty == 'dir') or finds(p, m.path) then return p, pty end
   end); end
   -- check for nopat
-  if #args.nopat > 0 then
-    local nopat = args.nopat
+  if #m.nopat > 0 then
+    local nopat = m.nopat
     it:map(function(p, pty)
       if pty == 'dir' then return p, pty end
       for l in io.lines(p) do
@@ -135,16 +155,15 @@ M.iter = function(args) --> Iter
   end
 
   -- find pattern or sub in file
-  local pat, sub = args.pat, args.sub
+  local pat, sub = m.pat, m.sub
   if #pat > 0 then
     it:map(function(p, pty)
-      if (pty == 'dir') or ffind(p, pat, sub) then return p, pty end
+      if (pty == 'dir') or m:find(p, pat, sub) then return p, pty end
     end)
   end
 
   -- perform actual replacement mutation
-  if sub and args.mut then
-    local replace = M.replace
+  if sub and m.mut then
     it:map(function(p, pty)
       if pty == 'file' then
         local subPath = p..'.SUB'
@@ -152,11 +171,19 @@ M.iter = function(args) --> Iter
         if to:seek'end' ~= 0 then error(sfmt(
           '%s already exists', subPath
         ))end
-        replace(p, to, pat, sub)
+        m:replace(p, to, pat, sub)
         to:flush(); to:close();
         civix.mv(subPath, p)
       end
       return p, pty
+    end)
+  end
+
+  if m.pathsub and m.mut then
+    it:map(function(p, pty)
+      local p, fs, fe, fi, fpat = p..'\n', find(p, self.path)
+      assert(fs)
+      civix.forceMv(p, gsub(p, fpat, self.pathsub))
     end)
   end
   return it
@@ -166,7 +193,7 @@ end
 -- Parsing Utils
 
 -- construct main from args
-getmetatable(M.Main).__call = function(T, args)
+getmetatable(M.FF).__call = function(T, args)
   args = shim.parseStr(args)
   for _, k in ipairs{'root', 'pat', 'nopat', 'path', 'nopath'} do
     args[k] = shim.list(args[k])
@@ -199,7 +226,6 @@ end
 local linenum = function(l) return sfmt('% 6i ', l) end
 local AFTER = '   --> '
 
-
 local splitMatch = function(str, ms, me) --> beg, mat, end_
   local beg, mat = str:sub(1,ms-1), str:sub(ms,me)
   local end_     = str:sub(me+1)
@@ -213,7 +239,7 @@ end
 
 M.fmtMatch = function(f, l, str, ms, me)
   local beg, mat, end_ = splitMatch(str, ms, me)
-  f:styled('line',  linenum(l))
+  f:styled('line',  l and linenum(l) or '       ')
   f:styled(nil,     beg)
   f:styled('match', mat)
   f:styled(nil,     end_, '\n')

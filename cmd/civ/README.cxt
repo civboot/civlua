@@ -2,9 +2,11 @@
 Civstack is a full developer tech stack, and the bedrock of that is the build
 system -- which is this package ([$civ]).
 
+
 A "build system" is fundamentally a mechanism to convert a set of files and
 configuration (a package) into a runnable (and testable) software. A package
 manager is then a way to upload and depend on other packages.
+
 
 A [,good] build system has two other primary features: [+
 * ergonomics: package specification is complete and easy to both read and write.
@@ -17,9 +19,10 @@ The [$PKG.lua] file is is how you specify how to build a package and what is
 exported from that package. Below is an example one which we will walk though.
 Before we do, a few notes:
 [+
-* This file is 100% pure lua except with different builtin globals.
-* Noteablly none of lua's builtins are available, and instead there are several
-  functions for importing luk files (which we will get to).
+* This file is 100% pure lua except with different builtin globals, hence the
+  different file extension ([$.luk])
+* Noteablly very few of lua's builtin functions or modules are available.
+  Instead there are several functions for importing non-PKG luk files.
 ]
 
 Example [$PKG.lua]:
@@ -38,9 +41,10 @@ local lua = import'sys:lua.luk' -- Lua build targets
 -- (build information) exported by this file.
 P.foo = lua {
   mod = 'foo',
+  src = { 'foo.lua' },
   dep = {
-    'civ:lib',
-    'myhub:foo#libfoo',  -- the next target
+    'civ:lib',           -- depend on entire civ lib
+    'myhub:foo#libfoo',  -- depend on next target
   },
 }
 
@@ -52,10 +56,10 @@ P.test = lua.test {
 
 -- C build target
 P.libfoo = cc {
-  hdr = { 'foo.h' },
-  src = { 'foo.c' },
+  hdr = { 'foo.h' },  -- C headers
+  src = { 'foo.c' },  -- C source files
   dep = {
-    'myhub:bar#libbar',
+    'myhub:bar#libbar', -- depend on another target
   },
 }
 
@@ -63,7 +67,7 @@ return P
 ]$
 
 ["Every value assigned to [$P] must be either a concrete type or a
-  [<#pvc.Target>].
+  [<#civ.Target>].
 ]
 
 [{:h3 name=civ-out}civ output directory]

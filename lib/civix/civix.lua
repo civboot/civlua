@@ -480,8 +480,15 @@ end
 
 --- write [$text] to [$path], creating the directory structure if necessary.
 M.forceWrite = function(path, text)
-  M.rmRecursive(path); M.mkDirs( (pth.last(path)) )
+  M.rm(path); M.mkDirs( (pth.last(path)) )
   pth.write(path, text)
+end
+
+--- Force move a file or directory, creating directory structure
+--- if necessary.
+M.forceMv = function(old, new)
+  M.mkDirs( (pth.last(path)) )
+  M.cp(old, new)
 end
 
 --- mkTree(tree) builds a tree of files and dirs at `dir` [+

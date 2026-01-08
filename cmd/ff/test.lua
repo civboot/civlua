@@ -46,17 +46,17 @@ local function simpleSub(fmt, subfmt)
   return table.concat(t, '\n')..'\n'
 end
 
-T.ff_Main = function()
-  local m = ff.Main{'a', 'p:b/c', '-b', '-p:%.ef', 'r:r1/', '--', 'r2/'}
-  T.eq(mty.construct(ff.Main, {
+T.ff_FF = function()
+  local m = ff.FF{'a', 'p:b/c', '-b', '-p:%.ef', 'r:r1/', '--', 'r2/'}
+  T.eq(mty.construct(ff.FF, {
     root={'r2/', 'r1/'},
     pat={'a'},    nopat={'b'},
     path={'b/c'}, nopath={'%.ef'},
   }), m)
 
-  local m = ff.Main(shim.parse{'a', '--sub=b', 'p:dir/',
+  local m = ff.FF(shim.parse{'a', '--sub=b', 'p:dir/',
                                 '--', 'root/', '--weird'})
-  T.eq(mty.construct(ff.Main, {
+  T.eq(mty.construct(ff.FF, {
     root={'root/', '--weird'},
     pat={'a'},    nopat={},
     path={'dir/'}, nopath=NOPATH,
