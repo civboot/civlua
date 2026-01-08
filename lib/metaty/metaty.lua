@@ -321,7 +321,7 @@ M.doc = function(R, d)
     d:bold'Methods'; d:write' [+\n'; 
     for _, name in ipairs(methods) do
       d:write'* '; d:level(1)
-      d:fn(methods[name], true, name, sfmt('%s.%s', R.__name, name))
+      d:declfn(methods[name], name, sfmt('%s.%s', R.__name, name))
       d:level(-1); d:write'\n'
     end
     d:write']\n'

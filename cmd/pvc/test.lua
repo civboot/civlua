@@ -36,7 +36,6 @@ end
 T.empty = function()
   local d = initPvc()
   local diff = pvc.diff(D)
-  info('!! empty diff: %q', diff)
   T.eq(pvc.Diff{
     dir1=D..'.pvc/main/commit/00/0.snap/', dir2=D,
     equal={".pvcpaths"}, deleted={},

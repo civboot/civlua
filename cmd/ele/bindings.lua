@@ -240,7 +240,6 @@ M.changeEol = function(keySt, evsend)
   M.delete(keySt)
   local ev = ds.popk(keySt, 'event')
   ev.move, ev.mode, keySt.keep = 'eol', 'insert', nil
-  log.info('!! changeEol returns', ev)
   return ev
 end
 

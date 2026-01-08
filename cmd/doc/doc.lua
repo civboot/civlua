@@ -137,18 +137,16 @@ function M.Doc:fnsig(code) --> (string, isMethod)
   return sig, code:match'function[^(]+:' and true
 end
 
---- Document the function. cmts=true also includes comments
---- on new line.
-function M.Doc:fn(fn, cmts, name, id) --> (cmt, sig, isMethod)
+--- Declare the function definition
+function M.Doc:declfn(fn, name, id) --> (cmt, sig, isMethod)
   local pname, loc  = mty.anyinfo(fn)
   local cmt, code   = self:extractCode(loc)
   local sig, isMeth = self:fnsig(code)
   name = (isMeth and 'fn:' or 'fn ')..(name or pname)
-  info('!! fn %s id=%q', name, id)
   if id then self:write(sfmt('[{*name=%s}%s]', id, name))
   else       self:bold(name) end
   if sig and sig ~= '' then self:code(sig) end
-  if cmts and cmt and #cmt > 0 then
+  if cmt and #cmt > 0 then
     self:write'[{br}]\n'
     for i, c in ipairs(cmt) do
       self:write(c); if i < #cmt then self:write'\n' end
@@ -197,7 +195,7 @@ function M.Doc:mod(m)
     self:bold'Functions'; self:write' [+\n'; 
     for _, fn in ipairs(fns) do
       self:write'* '; self:level(1)
-      self:fn(fn, true, names[fn], sfmt('%s.%s', m.__name, names[fn]))
+      self:declfn(fn, names[fn], sfmt('%s.%s', m.__name, names[fn]))
       self:level(-1); self:write'\n'
     end
     self:write']\n'
@@ -211,9 +209,8 @@ end
 
 function M.Doc:__call(name, obj, cmts)
   local ty = type(obj)
-  if ty == 'function' then return self:fn(obj, true) end
+  if ty == 'function' then return self:declfn(obj) end
   if ty == 'table' and rawget(obj, '__doc') then
-    info('!! calling __doc %q', obj)
     return rawget(obj, '__doc')(obj, self)
   end
   local name, loc = mty.anyinfo(obj)

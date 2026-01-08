@@ -14,7 +14,7 @@ local extend, splitList = ds.extend, ds.splitList
 local clear             = ds.clear
 
 --- read file at path or throw error
-M.read = function(path) --!!> string
+M.read = function(path) --!> string
   local f, err, out = io.open(path, 'r'); if not f then error(sfmt(
     "open %q mode=r: %s", path, err
   ))end
@@ -24,7 +24,7 @@ M.read = function(path) --!!> string
 end
 
 --- write string to file at path or throw error
-M.write = function(path, text) --!!> nil
+M.write = function(path, text) --!> nil
   local f, err, out = io.open(path, 'w'); if not f then error(sfmt(
     "open %q mode=w: %s", path, err
   ))end

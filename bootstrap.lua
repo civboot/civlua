@@ -7,7 +7,7 @@ local io_open = io.open
 local src = debug.getinfo(1).source
 local D = src:match'@?(.*)bootstrap%.lua$'
 print(sfmt('running bootstrap.lua in dir %q', D))
-assert(not os.execute'ls lua*.core', 'lua.*core file found!!')
+assert(not os.execute'ls lua*.core', 'lua.*core file found!')
 
 assert(not MAIN, 'bootstrap.lua must not be used as a library')
 MAIN = {}

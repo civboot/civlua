@@ -371,7 +371,7 @@ M.rawat = function(P, branch, id)
 end
 
 --- get or set where the working id is at.
-M.at = function(P, nbr,nid) --!!> branch?, id?
+M.at = function(P, nbr,nid) --!> branch?, id?
   -- c=current, n=next
   local cbr, cid = M.rawat(P); if not nbr then return cbr, cid end
   local npath = M.branchDir(P, nbr)
@@ -526,9 +526,7 @@ M.commit = function(P, desc) --> snap/, id
   local bsnap = M.snapshot(P, br,id)
   local patchf = M.patchPath(bp, cid)
   local diff = M.Diff:of(bsnap, P)
-  info('!! diff %q', diff)
   if not diff:hasDiff() then
-    info('!! no diff')
     error('invalid commit: no differences detected')
   end
   if M.calcPatchDepth(cid) > M.depth(bp) then M.deepen(bp) end
@@ -610,7 +608,7 @@ FAILED MERGE
 change: %s
  ERROR: %s]]
 
-M.merge = function(tdir, bdir, cdir) --!!>
+M.merge = function(tdir, bdir, cdir) --!>
   trace('pvc.merge to=%s base=%s change=%s', tdir, bdir, cdir)
   local paths, conflicts = {}, false
   mapPvcPaths(bdir, cdir, function(bpath, cpath)
@@ -702,7 +700,7 @@ M.rebase = function(P, branch, id) --> backup/dir/
 end
 
 --- Grow [$to] by copying patches [$from]
-M.grow = function(P, to, from) --!!>
+M.grow = function(P, to, from) --!>
   local fbr, fdir = assert(from, 'must set from'), M.branchDir(P, from)
   local ftip = M.rawtip(fdir)
   local bbr, bid = M.getbase(fdir)

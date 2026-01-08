@@ -121,15 +121,12 @@ end
 -----------------
 -- Mutations: these update the changes in the buffer
 M.Edit.changeStart = function(e)
-  log.info('!! changeStart', {e.l, e.c})
   e.buf:changeStart(e.l, e.c)
 end
 
 M.Edit.changeUpdate2 = function(e)
   local b = e.buf
-  log.info('!! changeUpdate2', {e.l, e.c})
   if b:changed() then
-    log.info('!! changed')
     local ch = assert(e.buf:getStart())
     ch.l2, ch.c2 = e.l, e.c
   end

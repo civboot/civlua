@@ -202,11 +202,9 @@ end
 -- Exceptions:
 -- * lines=0 removes a single line (also supports times)
 M.remove = function(ed, ev)
-  log.info('!! actions.remove start', ev)
   local mode = ds.popk(ev, 'mode') -- cache, we handle at end
   local e = ed.edit; e:changeStart()
   if ev.lines == 0 then
-    log.info('!! remove lines=0')
     local t = ev.times; local l2 = (t and (t - 1)) or 0
     log.info('remove lines(0) %s:%s', e.l, e.l + l2)
     e:remove(e.l, e.l + l2)
@@ -265,9 +263,7 @@ getmetatable(M.nav).__call = function(_, ed, ev, evsend)
   e:changeStart()
   assertf(M.DO_NAV[ev.nav], 'unknown nav: %q', ev.nav)(ed, e1, e)
   e:changeUpdate2()
-  log.info'!! ending nav'
   ed:handleStandard(ev)
-  log.info'!! nav done'
 end
 
 local nav = M.nav
@@ -432,7 +428,6 @@ nav.doExpand = function(b, l, times, ls)
   local line, en = b:get(l), nil
   local path = getFocus(line) or select(3, getEntry(line))
   if not path or not pth.isDir(path) then return end
-  log.info('!! expanding entry %i: %q', l, path)
   ::expand::
   ls = ls or ix.ls
   local numEntries = nav.expandEntry(b, l, ls)

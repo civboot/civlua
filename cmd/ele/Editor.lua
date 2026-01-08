@@ -118,9 +118,7 @@ end
 
 --- Get or create a named buffer (NOT a path).
 Editor.namedBuffer = function(ed, name, path)
-  log.info('!! namedBuffer %q %q', name, path)
   local b = ed.namedBuffers[name]; if b then return b end
-  log.info'!!   namedBuffer not found'
   b = ed:buffer(path)
   b.name                = name
   ed.namedBuffers[name] = b
@@ -167,9 +165,7 @@ end
 --- Handle standard event fields.
 --- Currently this only handles the [$mode] field.
 Editor.handleStandard = function(ed, ev)
-  log.info('!! standard %s ->', ed.mode, ev)
   local m = ev.mode; if m and ed.mode ~= m then
-    log.info('!! umm... mode')
     local err = et.checkMode(ed, m); if err then
       return ed.error('%s has invalid mode', ev, m)
     end
