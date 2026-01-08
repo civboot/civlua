@@ -15,8 +15,8 @@ present) accepts both [$write] (like a file) and
 [<$Package_asciicolor>asciicolor] library (or your own library!) to provide
 user-configurable colors for specific styles which integrate with the
 [<#Package_vt100>vt100] library and the [<#Package_cxt>cxt] libraries. This
-is used throughout civlua to provide user-configurable (and optional) color
-to the terminal, web-pages and the civlua editor.
+is used throughout civstack to provide user-configurable (and optional) color
+to the terminal, web-pages and the civstack editor.
 
 [{h2}API / Architecture]
 

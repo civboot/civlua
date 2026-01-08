@@ -10,8 +10,8 @@ documentation (such as missing links). Please be patient.
 
 You can see previous rendered Developer/API documentation by going to
 **[this link][rendered]** or by downloading this repository and going to
-`file:///home/path/to/civlua/README.html` directly in your browser.
+`file:///home/path/to/civstack/README.html` directly in your browser.
 
-[rendered]: https://html-preview.github.io/?url=https://github.com/civboot/civlua/main/README.html
+[rendered]: https://html-preview.github.io/?url=https://github.com/civboot/civstack/main/README.html
 
 

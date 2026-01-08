@@ -250,8 +250,8 @@ sub-lists: [$$$
 * A hidden named block: "[{!:href=http://civboot.org}Civboot]"
 ]
 
-[$$A visible named block: [{:href=https://github.com/civboot/civlua}civlua]] [+
-* A visible named block: [{:href=https://github.com/civboot/civlua}civlua]
+[$$A visible named block: [{:href=https://github.com/civboot/civstack}civstack]] [+
+* A visible named block: [{:href=https://github.com/civboot/civstack}civstack]
 ]$
 
 [$$[@Civboot] clones the hidden block (removing the [$clone] attribute)] [+

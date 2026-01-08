@@ -5,7 +5,7 @@ Besides the compiler and build system, a software developer only truly depends
 on a few terminal-based tools for development. These are their text editor,
 shell (and/or repl), version control, a means to query documentation, and a few
 other situational tools (i.e. find/replace text). These encompase the
-"Developer Tech Stack". civlua aims to provide this tech stack in a "small"
+"Developer Tech Stack". civstack aims to provide this tech stack in a "small"
 amount of code that is well documented and easy for a single developer to
 understand and modify within a few months.
 

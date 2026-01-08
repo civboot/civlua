@@ -66,7 +66,7 @@ Usecases of pod are:[+
 * database schema: The primary intended usecase of pod is to be used in
   [@civdb] -- each "row" is simply a pod record.
 
-  ["This is likely the only usecase civlua will use]
+  ["This is likely the only usecase civstack will use]
 
 * general data storage: use [@pod.load] and [@pod.dump] to de/serialize
   values to/from a file.
@@ -90,5 +90,5 @@ languages to read/write pod's binary serialization format.
 At this time, support for other languages has not started -- but the design of
 pod is meant to mimick protobuf as much as possible so that such a goal can be
 met in the future. Work on supporting multiple languages will likely not be
-part of the civlua project but the civlua project will support such work.
+part of the civstack project but the civstack project will support such work.
 

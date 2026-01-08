@@ -7,9 +7,9 @@
 
 [{:h3 name=pvc-install}Installation]
 
-Simply follow civlua's [<#Installation>] and add the following to your [$.bashrc]
+Simply follow civstack's [<#Installation>] and add the following to your [$.bashrc]
 [$$
-alias pvc="civlua pvc"
+alias pvc="civstack pvc"
 ]$
 
 [{:h2 name=pvc-about}About]
@@ -132,15 +132,15 @@ directories. A common pvc ignore file might look like:
 [{h3 name=pvc-git}Use with git]
 pvc is still in early development, so there is no hosting service which
 ergonomically supports backing-up development. The following is how pvc
-(and civlua) itself is developed and seems to work well.
+(and civstack) itself is developed and seems to work well.
 
 Basically, we are going to have two git repositories. I will use
-civlua as the example:[+
-* [<https://github.com/civboot/civlua>]: your "main" one that hosts your released
+civstack as the example:[+
+* [<https://github.com/civboot/civstack>]: your "main" one that hosts your released
   versions and documentation. This should NOT contain any [$.pvc/] files (but
   should contain i.e.  [$.pvcpaths]).
 
-* [<https://github.com/vitiral/civlua.pvc/commits/main/>]: is literally the git
+* [<https://github.com/vitiral/civstack.pvc/commits/main/>]: is literally the git
   repository for your [$.pvc/] directory. While developing we can push
   commits/branches/whatever here.
 ]

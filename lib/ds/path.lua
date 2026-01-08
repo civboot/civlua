@@ -209,7 +209,7 @@ M.dir = function(path)
 end
 
 --- return whether the path looks like a dir.
---- Note: civlua tries to make all ftype='dir' paths end in '/'
+--- Note: civstack tries to make all ftype='dir' paths end in '/'
 ---   but other libraries or APIs may not conform to this.
 M.isDir = function(path) return path:sub(-1) == '/' end
 local isDir = M.isDir

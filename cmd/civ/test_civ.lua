@@ -135,7 +135,7 @@ T.buildDs = function()
   T.eq(core.Target{
     pkgname="civ:lib/ds",
     name="dslib",
-    dir="/home/rett/projects/civlua/lib/ds/",
+    dir="/home/rett/projects/civstack/lib/ds/",
     src={"ds.c"},
     dep={},
     out={

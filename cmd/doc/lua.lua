@@ -7,7 +7,7 @@ doc module requires global `mod` function/class, such as one of:
   mod = require'pkg'.mod
 
 See lib/pkg/README.md for details
-https://github.com/civboot/civlua/tree/main/lib/pkg
+https://github.com/civboot/civstack/tree/main/lib/pkg
 
 Note: also requires PKG_LOC and PKG_NAMES globals to be defined.
 ]]
