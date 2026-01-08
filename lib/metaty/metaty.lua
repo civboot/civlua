@@ -283,7 +283,7 @@ M.doc = function(R, d)
     if not fname:match'^_' then push(fields, fname) end
   end
   if #fields > 0 then
-    d:bold'Fields:'; d:write'[+'; 
+    d:bold'Fields:'; d:write'[+\n'; 
     for _, fname in ipairs(fields) do
       d:write'* '; d:level(1)
       d:write(sfmt('[{*name=%s.%s}.%s]', name, fname, fname))

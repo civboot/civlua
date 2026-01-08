@@ -69,25 +69,21 @@ local Tm_DOC =
 "[{h1 name=TestMod}Mod TestMod]\
 Example module\
 \
-[*Types] [+\
-* [*TestMod.A]\
-]\
+[*Types: ][<#TestMod.A>A] \
 \
 [*Functions] [+\
-* [{*name=TestMod.exampleFn}fn exampleFn][$(a) -> b]\
+* [{*name=TestMod.exampleFn}fn exampleFn][$(a) -> b][{br}]\
   Example function documentation.\
 ]\
 \
 [{h2 name=TestMod.A}Record A]\
-[+\
-* [{*name=TestMod.A.a}.a] [$=\"default\"]:\
-  example field doc\
+Example record documentation.\
+[*Fields:][+\
+* [{*name=TestMod.A.a}.a] [$=\"default\"]example field doc\
 * [{*name=TestMod.A.b}.b]\
 ]\
-Example record documentation.\
-\
 [*Methods] [+\
-* [{*name=A.exampleMeth}fn:exampleMeth][$(b) -> c]\
+* [{*name=A.exampleMeth}fn:exampleMeth][$(b) -> c][{br}]\
   Example method documentation.\
 ]\
 "
