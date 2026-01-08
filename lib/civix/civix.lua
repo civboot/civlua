@@ -487,7 +487,8 @@ end
 --- Force move a file or directory, creating directory structure
 --- if necessary.
 M.forceMv = function(old, new)
-  M.mkDirs( (pth.last(path)) )
+  log.info('@@forceMv %q -> %q', old, new)
+  M.mkDirs( (pth.last(new)) )
   M.cp(old, new)
 end
 

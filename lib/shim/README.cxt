@@ -26,5 +26,5 @@ if M == MAIN then os.exit(M.main(G.arg)) end
 return M -- return as library
 ]$
 
-Then in [$PKG.lua] add [$main = 'myCmdName.Main'] to enable better
+Then in [$PKG.luk] add [$main = 'myCmdName.Main'] to enable better
 documentation formatting. Get documentation with [$doc 'myCmdName'].

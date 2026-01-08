@@ -229,7 +229,7 @@ function M.Civ:expand(pat) --> targets
   end
   for path, ftype in dirs do
     if ftype == 'dir' and path:match(pkgpat)
-        and ix.exists(pth.concat{path, 'PKG.lua'}) then
+        and ix.exists(pth.concat{path, 'PKG.luk'}) then
       path = pth.rmleft(pth(path), hublist)
       push(pkgnames, sfmt('%s:%s', hub, pth.toNonDir(pth.concat(path))))
     end
@@ -309,7 +309,7 @@ function M.Civ:loadPkg(pkgname)
 
   local pkgfile = pkgname
   if not pkgname:sub(-1) ~= ':' then pkgfile = pkgfile..'/' end
-  pkgfile = pkgfile..'PKG.lua'
+  pkgfile = pkgfile..'PKG.luk'
   pkg = assert(self.luk:import(pkgfile))
   assertf(mty.ty(pkg) == luk.Table,
     '%q did not return a table', pkgfile)

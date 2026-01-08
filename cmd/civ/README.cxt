@@ -14,8 +14,8 @@ A [,good] build system has two other primary features: [+
   and deterministically built.
 ]
 
-[{:h3}PKG.lua]
-The [$PKG.lua] file is is how you specify how to build a package and what is
+[{:h3}PKG.luk]
+The [$PKG.luk] file is is how you specify how to build a package and what is
 exported from that package. Below is an example one which we will walk though.
 Before we do, a few notes:
 [+
@@ -25,7 +25,7 @@ Before we do, a few notes:
   Instead there are several functions for importing non-PKG luk files.
 ]
 
-Example [$PKG.lua]:
+Example [$PKG.luk]:
 [{$$ lang=lua}
 local P = { summary = "Does foo and some bar" }
 
@@ -33,7 +33,7 @@ local P = { summary = "Does foo and some bar" }
 local cc  = import'sys:cc.luk'  -- C build targets
 local lua = import'sys:lua.luk' -- Lua build targets
 
--- Set up metadata for this PKG.lua file, this must be
+-- Set up metadata for this PKG.luk file, this must be
 -- returned at the end with the targets and PoD to provide
 -- clients.
 --

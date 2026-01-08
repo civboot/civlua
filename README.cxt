@@ -43,7 +43,7 @@ documentation using [$luadoc <cmd>].
 [+
   * [{*href=lua/civ.html}civ]: the civ build system. Modeled off of
     [<https://bazel.build>bazel], it is simpler than Make but [,much] more
-    ergonomic and powerful. All of the [$PKG.lua] files exist for the civ build
+    ergonomic and powerful. All of the [$PKG.luk] files exist for the civ build
     system.
 
   * [{*href=lua/pvc.html}pvc]: patch version control -- like git but in ~1k LoC.

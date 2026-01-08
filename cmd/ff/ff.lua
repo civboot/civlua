@@ -79,10 +79,10 @@ function M.FF:find(path, pats, sub) --> boolean
       if onlypath then
         local path, fs, fe, fi, fpat = path..'\n', find(path, self.path)
         assert(fs)
-        fmtMatch(f, nil, path, fs, fe)
+        fmtMatch(f, nil, path..'\n', fs, fe)
         if self.pathsub then
           local after = assert(gsub(path, fpat, self.pathsub))
-          fmtSub(f, path, after)
+          fmtSub(f, path..'\n', after..'\n')
         end
         return true
       end
@@ -181,9 +181,9 @@ M.iter = function(args) --> Iter
 
   if m.pathsub and m.mut then
     it:map(function(p, pty)
-      local p, fs, fe, fi, fpat = p..'\n', find(p, self.path)
+      local fs, fe, fi, fpat = ds.find(p, m.path)
       assert(fs)
-      civix.forceMv(p, gsub(p, fpat, self.pathsub))
+      civix.forceMv(p, gsub(p, fpat, m.pathsub))
     end)
   end
   return it
