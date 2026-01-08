@@ -1,0 +1,20 @@
+local lua = import'sys:lua.luk'
+local doc = import'civ:doc.luk'
+
+local P = { summary  = "intermediate Assembly programming language" }
+
+P.iA = lua {
+  mod = 'iA',
+  src = {
+    'iA.lua',
+    'iA/parse.lua',
+  },
+}
+
+P.doc_iA = doc.lua {
+  mod = 'iA',
+  src = 'README.cxt',
+  lua = { 'civ:cmd/iA' },
+}
+
+return P

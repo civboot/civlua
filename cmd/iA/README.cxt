@@ -1,0 +1,389 @@
+[{h1}iA: intermediate Assembly programming language]
+
+["WARNING: this library is in the design phase and is
+  not even remotely useable.]
+
+iA (intermediate Assembly) is a programming language for writing (and
+dis-assembling) straightforward cross-platform assembly. It exists as a kind of
+"typed assembly", something more useful/powerful than traditional assembly but
+less powerful than a language like C. It's primary design goal is to directly
+and straightfowardly map to assembly while still helping the programmer avoid
+most footguns.
+
+
+It does this with the following features: [+
+* Type safety including structs, pointers, arrays and mutability.
+* Protection from "corrupted" registers.
+* Implicit and efficient stack de/construction for function calls.
+* Is implemented as a "Lua library", allowing limitless meta-programming
+  capabilities (aka macros).
+]
+
+[{h2 :core-concepts}Core Concepts]
+
+[{h3}Registers and values]
+iA operates directly on registers, which are letters between A - T
+(20 registers).  It can also operate on local values (V) which are stored
+on the return stack, and "universal" values (U) which are on the heap.
+W, X, Y and Z are reserved for future use (probably thread-local values and
+flags).
+
+
+Any value can be declared "corruptable" (aka mutable) with $, which means that
+it can be modified within the scope declared. If it is ever declared
+"uncorruptable" (without $) then it cannot be modified within that scope.
+
+You can declare a named variable and its type with:
+[{$$ lang=iA}
+const answer: Int = 42  \ a constant, not stored anywhere.
+
+ A val1: Int = 41     \ register A, pre-initialized with 41, non-mutable
+$B val2: Int = answer \ register B, pre-initialized with const, mutable
+$V val3: Int = val1   \ mutable local value, increases return stack size
+$U val4: Int = 0      \ mutable universal value, stored on heap
+]$
+
+[{h3 :iA-fn}Functions]
+iA supports defining functions. Unlike many languages, function arguments must
+specify exactly what registers the function will be operating on (or V) and
+which registers should be considered "return" values of the function. Functions
+cannot return local values (but can modify passed-in pointers or arrays).
+
+
+The simplest way to specify a function is via the #auto attribute.
+
+[{$$ lang=iA}
+\        name  inputs      outputs
+#auto fn fib  (V i: Int) -> Int    do
+  ... expr1 or multi-assiment statements ...
+end
+]$
+
+This function declares the following: [+
+* The name of the function, [$fib] in this case.
+* The inputs you must pass it when calling it
+* The output types of the function.
+]
+
+If the fn is #auto then the whole function must never specify specific
+registers (only use V inputs and locals). iA will automatically convert these
+to [@iA-reg-common] standards and may replace other V used with registers for
+optimizations.
+
+Some notes: [+
+* #auto can be replaced with #link, which uses the platform-defined
+  calling convention instead of iA standards, which carries several
+  performance and usability disadvantages.
+* only #auto or #link functions can be stored as a pointer and called.
+]
+
+Without #auto, you may specify the specific registers to use and whether
+they are corruptable:
+[{$$ lang=iA}
+\  name  inputs        outputs   corrupts
+fn fib  ($A i: Int) -> C: Int    $$BD     do
+  ... expr1 or multi-assignment statements ...
+end
+]$
+
+A few notes: [+
+* The output registers will use the default ordering (C D A B) if
+  unspecified.
+]
+
+[{h3}Expressions]
+There are 3 types of what are called "single expressions" (expr1): [+
+* [*val]: a named variable [$var] or literal value such as 42, 0x4F, "string",
+  c"counted", etc
+
+* [*eq1] single-assignment [$expr1 = expr1], i.e. [$A val1: Int = 4]. The
+  register and type are optional if [$val1] is already defined.
+  i.e. [$$A val1: Int = 41] declares it in register A and of type Int.[+
+  * the right-hand expression can be _ (an underscore), which does the
+    operation with itself.
+  * [$expr1 += expr1] where an operation is after = is also eq1.
+]
+
+* [*fn1]: [$fn foo(...) -> Int], calls to functions which return a single
+  register.
+]
+
+expr1's effectively "return" their leftmost value, so you can write something
+like below. Note that you can be explicit about the registers like below,
+or they can be inferred.
+
+
+All expressions are evaluate from right to left (TODO: I think this will be
+changed to left->right and an optional [$>>] left-to-right assignment operator
+will be added, stay tuned). Once a variable is assigned as a function input it
+is considered "locked" and attempts to mutate it will result in a corruption
+error.
+
+[{$$ lang=iA}
+(a=10) += (C c: Int = foo($A a=5, $B b = bar($A a=6)))
+]$
+In the example above the A register is modified twice but is not locked until
+[$a=5], so the above code compiles. The above code is very explicit with
+what registers are modified and could be rewritten as:
+
+[{$$ lang=iA}
+(a=10) += foo(5, bar(a))
+]$
+
+An example of a corruption error is below. Register B is locked with
+[$b=3] (remember, right-to-left evaluation) and then is corrupted
+by [$bar(a=1, b=2)].
+
+[{$$ lang=iA}
+foo(a=bar(a=1, b=2), b=3)
+]$
+From the above you can see the general rule when calling functions in iA:
+the functions called must be progressively simpler as they go from right to
+left, since more registers will be locked.
+
+[{h3}Types]
+iA supports the following native types: [+
+* Int: processor-defined integer with the width of one register.
+
+* UInt: processor-defined unsigned integer with the width of one register.
+
+* I1 I2 I4 I8: signed integer of a specific byte-width.
+
+* U1 U2 U4 U8: unsigned integer of a specific byte-width.
+
+* [$&Type]: pointer to Type. [$&&Type] is a double-pointer, etc.
+
+* [$$[Type]]$: array of Type, which is len and capacity U4 values directly
+  followed by the data (the data itself, NOT a pointer). Used for function
+  arguments or when allocating on the heap.
+
+* [$$[Type, 16]]$: array of Type with a declared maximum capacity of 16 (the
+  capacity is still stored in a slot though), used for declaring array
+  variables on the local stack.
+
+* CStr: counted string. A byte length and byte capacity followed by 0-254 bytes
+  of binary data and a 0 byte. Commonly used for efficient storage of names and
+  many cases where long strings are not necessary.
+]
+
+["Note that a conventional Str is just [$$[U1]]$.]
+
+In addition, users can define enums (named integer values) and structs composed
+of known-size typed fields.
+
+[{h2}Lua Metaprogramming]
+iA is implemented as a Lua library and it can be extended by other Lua
+libraries.
+
+
+iA code can be defined in one of two types of files: [+
+* If ending in [$.iA] it is 100% iA syntax. It should define
+  the modules it requires and use iA syntax to define functions,
+  globals, etc. It can call to Lua code via $macros
+
+* If ending in [$.lua] it is a Lua file which can directly compile
+  iA code, but also extend the iA compiler with macros or inspect
+  previously compiled code to perform other operations (such as converting
+  it into a target platforms actual assembly).
+]
+
+Symbols prefixed with # such as #auto are considered "macros". They are defined
+in Lua and are passed a single expression (which can be (inside, parens)). They
+are executed from right -> left, so [$#mymacro #auto fn myFn()] would first
+execute #auto and then execute #mymacro.
+
+
+Macros modify the AST directly, including: adding flags or debugigng info,
+reorganizing nodes, changing operations, re-organizing registers, etc. A
+common use for macros is to inline code.  Macro expansion happens before type
+or corruption checking, but all macros must be valid code.
+
+[{h3}iA package API]
+Use [$local iA = require"iA"] to get the iA Lua package. It has the following
+methods and values: [+
+* [$S: State] is the current compilation state. It has builtin symbols and
+  modules (builtin and user-defined) attached to it.
+
+* [$M: Mod] the current module being compiled. This is where new functions and
+  globals are automatically added.
+
+* [$F: Fn] the current function being compiled. This is where locals are defined
+  and compiled statements are written to.
+
+* [$function compile(str) --> Block]: compiles the string expression to
+  a Block instance, which contains any defined locals and compiled nodes.
+  Note that these are NOT added to the [$F] instance (you must call
+  [$F:add(block)]).
+]
+
+It also has the following types: [+
+* [*Var] encapsulates a variable (register, local, etc).
+* [*Expr1] encapsulates a single-assignment expression.
+* [*Multi] encapsulates a multi-assignment function call expression.
+* [*Fn] encapsulates a function (inputs, outputs, body, etc).
+* [*Mod] encapsulates a module.
+* [*State] encapsulates the total compilation state.
+]
+
+[{h3}Building]
+When building your iA project, you typically specify the dependencies you
+need, which will include both Lua and iA dependencies. On the Lua side,
+the architecture is roughly thus: [+
+* All dependencies use the Lua dependency system, see [@Package_pkglib].
+* In Lua, when you want to use the iA code from a Lua package you
+  simply do the normal [$local somePkg = require"somePkg"], then in your
+  [$function iA(p)] you call [$somePkg:iA()].
+* In iA when you want to use iA code from a package you simply do
+  [$require"somePkg"], which will automatically call [$:iA()] as well.
+]
+
+Basically, iA is built by calling the top-most [$pkg:iA()], which recursively
+calls the rest. This is handed to the build-script, which converts the
+intermediate assembly to actual machine bytecode and packages it into a binary
+depending on the configuration.
+
+[{h2}Code]
+Overview of writing iA code.
+
+[{h3}Operations]
+iA supports the following builtin assignment operations which
+modify only val. All names are expr1. [+
+* [$val = v] direct assignment
+* [$val += add] addition, val will be the result of [$val + add]
+* [$val -= sub] subtraction, val will be result of [$val - sub]
+* [$val %= mod] modulo (remainder), [$val % mod]
+* [$val ~= not] bitwise NOT.
+* [$val |= or] bitwise OR.
+* [$val &= and] bitwise AND.
+* [$val <<= shl] shift left.
+* [$val >>= shr] shift right
+* ... to be continued
+]
+
+["See also [@iA-reg-common] for the integer multiply and division
+  operations.]
+
+iA supports the following compare operations, which evaluate
+two expressions as a boolean, which can be assigned to
+a register or used for control flow: [+
+* [$a == b] equal.
+* [$a ~= b] not equal.
+* [$a < b], [$a <= b] less than, less than equal.
+* [$a > b], [$a >= b] greater than, greater than equal.
+* [$not a] [$a or b] [$a and b]: logical operations
+]
+
+[{h3}Control Flow]
+
+These are used in control flow structures. For each, the last statement is
+evaluated for a non-zero value to determine when to jump.
+[{$$ lang=iA}
+
+::my_location:: \ define a location
+
+\ jump to my_location
+goto my_location; 
+
+\ jump to my_location if a < b
+if a < b goto my_location;
+
+\ if-elif-else blocks
+if   a == 4 do
+  ...
+elif B b = foo(1, 2); c <= bar(b) do
+  ...
+else
+  ...
+end
+
+\ Similar to a C++ for loop, loops from 0 - 9
+\    init,  op before end,  loop condition
+loop $I i=0 then i+=1       until i<10 do
+  ...
+end
+
+\ Similar to C++ while loop.
+until i<10 do ... end
+
+\ infinite loop
+loop do ... end
+
+
+\ similar to C switch-case.
+switch i
+case 0..15 do
+  ...
+  goto next; // explicit fallthrough
+case 16    do
+  ...
+else
+  ...
+end
+]$
+
+[{h2 :iA-reg-common}Register Common Practice]
+Below are the registers and their common usage. Note that although iA allows
+specifying any register as corruptable or saved; sticking to the below
+conventions for your public API will help most code behave faster and more
+cleanly.
+
+
+[*Input/output corruptable registers] A B C D. By convention these
+registers are used for both inputs and outputs of functions,
+and will therefore be corrupted.
+
+
+A B D: inputs should use these registers, in this order, then non-corruptable
+registers or local values.
+
+
+Outputs should use C A B D (in that order). These are the only registers that
+can be function outputs (unless the platform is constrained), additional
+outputs must be represented as mutable pointer inputs.
+
+
+Additionally, these registers should be chosen to work with the following: [+
+* [$A low: int, D high: int = mul($A a: int, V b: int)] defines
+  cross-platform multiplication.
+
+* [$A quot: int, D rem: int = div($D high: int, $A low: int, V div: int)]
+  defines cross-platform division.
+
+* [$A] should be the "accumulator" register, or the most common result of
+  arithmetic operations.
+
+* [$C] should be the "count" register capable of jumping based on its
+  value (i.e. JRCXZ in x86-64).  Many programs return a value in C where zero
+  represents something special (i.e. null, ok, etc), so having it be the most
+  common output reduces cmp instructions.
+
+* [$S] and [$T] should be used for memory instrutions like memcpy. Note that T
+  is "to" (aka destination) and S is "source".
+]
+["Note: On some supported architectures like the Z80 there are only 4 general
+  purpose registers, so the rest of these will be converted to V]
+
+E F G H: corruptable registers, commonly used as additional function
+inputs after A B D.
+
+
+I J K L M N O P: non-corruptable registers for general use. I J K are
+very common for loop registers.
+
+
+Q R S T: corruptable registers, typically used for temporary values.
+
+
+[*Other registers]: the following are special registers and cannot be assigned
+to a variable name. However, they can be accessed directly.
+[+
+* sp: holds the "top" of the stack (at low memory). Local variables are
+  referenced by offseting from this value and the return address is stored
+  above them in memory. You should not typically reference or modify this
+  register. If you do modify it, local values are not permitted in the
+  function.
+
+* fs: the floating point stack, used for floating point operations. Typically
+  you should call the relevant function-like macros instead of using this
+  directly.
+]
