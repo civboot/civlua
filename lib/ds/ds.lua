@@ -1256,7 +1256,10 @@ M.Error.__tostring = function(e) return fmt(e) end
 --- create the error from the arguments.
 --- tb can be one of: [$coroutine|string|table]
 M.Error.from = function(msg, tb, cause) --> Error
-  if mty.ty(msg) == M.Error then return msg end
+  local cause
+  if mty.ty(msg) == M.Error then
+    cause, msg = msg, '(rethrown)'
+  end
   tb = (type(tb) == 'thread') and traceback(tb) or tb
   return M.Error{
     msg=msg:match'^%S+/%S+:%d+: (.*)' or msg, -- remove line number

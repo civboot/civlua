@@ -96,11 +96,11 @@ Fmt.pretty = function(F, t) return F(t):toPretty() end
 
 --- Add to the indent level and get the new value
 --- call with [$add=nil] to just get the current level
-Fmt.level = function(f, add) --> int: current level
-  local l = f._level
+function Fmt:level(add) --> int: current level
+  local l = self._level
   if add then
     l = l + add; assert(l >= 0, 'fmt._level cannot be negative')
-    f._level, f._nl = l, '\n'..srep(f.indent, l)
+    self._level, self._nl = l, '\n'..srep(self.indent, l)
   end
   return l
 end
@@ -193,12 +193,12 @@ Fmt.items = function(f, t, hasKeys, listEnd)
   if listEnd then f:styled('meta', listEnd, '') end
 end
 
---- format key/vals in table "map"
+--- format key/vals in table "map".
 Fmt.keyvals = function(f, t, keys)
   local klen, kset, kend = #keys, f.keySet, f.keyEnd
   for i, k in ipairs(keys) do
-    f:tableKey(k); f:write(kset)
     local v = t[k]
+    f:tableKey(k); f:write(kset)
     if rawequal(t, v) then f:styled('keyword', 'self', '')
     else                   f(v) end
     if i < klen then f:styled('meta', kend, '') end

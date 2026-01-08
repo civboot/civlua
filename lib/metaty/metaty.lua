@@ -269,42 +269,56 @@ end
 --- ["d is of type [$doc.Documenter].
 ---   Tests are in cmd/doc/test.lua ]
 M.doc = function(R, d)
+  local fmt = require'fmt'
   local name, loc = M.anyinfo(R)
   local cmt, code = d:extractCode(loc)
   d:header('Record '..R.__name, name)
+  -- Comments
+  for _, c in ipairs(cmt or EMPTY) do
+    d:write(c); d:write'\n'
+  end
+  -- Fields
   local fields = {}
   for _, fname in ipairs(R.__fields or EMPTY) do
     if not fname:match'^_' then push(fields, fname) end
   end
   if #fields > 0 then
-    d:write'[+\n'; 
+    d:bold'Fields:'; d:write'[+'; 
     for _, fname in ipairs(fields) do
       d:write'* '; d:level(1)
-      d:bold(fname); d:write' '
+      d:write(sfmt('[{*name=%s.%s}.%s]', name, fname, fname))
       local ty = fields[fname]; if type(ty) == 'string' then
-        d:code(cleanupFieldTy(ty))
+        d:write' '; d:code(cleanupFieldTy(ty))
+      end
+      local default = rawget(R, fname); if default ~= nil then
+        d:write' '
+        if PKG_NAMES[default] then
+          d:code('='..PKG_NAMES[default])
+        else
+          local dstr = fmt(default)
+          d:code('='..(#dstr <= 16 and dstr
+                    or (M.name(default)..'() instance')))
+        end
       end
       local doc = R.__docs[fname]; if doc then
-        d:write':\n'; d:write(doc)
+        d:write(doc)
       end
       d:level(-1); d:write'\n'
     end
     d:write']\n'
   end
-  for _, c in ipairs(cmt or EMPTY) do
-    d:write(c); d:write'\n'
-  end
+  -- Methods
   local methods = {}
   for _, k in ipairs(R.__attrs) do
     if k:match'^_' then goto continue end
-    local v = rawget(R, 'k')
+    local v = rawget(R, k)
     if M.callable(v) then
       push(methods, k); methods[k] = v
     end
     ::continue::
   end
   if #methods > 0 then
-    d:write'\n'; d:bold'Methods'; d:write' [+\n'; 
+    d:bold'Methods'; d:write' [+\n'; 
     for _, name in ipairs(methods) do
       d:write'* '; d:level(1)
       d:fn(methods[name], true, name, sfmt('%s.%s', R.__name, name))

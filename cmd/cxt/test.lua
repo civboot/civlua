@@ -38,6 +38,7 @@ T.code = function()
 
   T.eq('[$some [code]]', M.code'some [code]')
   T.eq('[#some [code]#', M.code'some [code')
+  T.eq('[#some [code]#', M.code'some [code')
 end
 
 T.simple = function()
@@ -58,6 +59,8 @@ T.simple = function()
     '.    ',
     {'balanced[brackets] are allowed', code=true},
   })
+
+  M.assertParse('[##code]##.', { {'code', code=true}, '.'})
 
   M.assertParse('multiple\n [_lines]\n\n  with [*break]', {
     'multiple\n', {'lines', u=true},
@@ -299,6 +302,10 @@ end
 
 T.html = function()
   html.assertHtml('hi <b>there</b> bob\n', 'hi [*there] bob')
+  html.assertHtml('code <span class=code>code</span>.\n', 'code [##code]##.')
+  html.assertHtml(
+    'name <a id="named" href="#named" class=anchor><b>thing</b></a>\n',
+    'name [{*name=named}thing]')
   html.assertHtml(
     'hi <b>there</b>\n'
   ..'newline\n',

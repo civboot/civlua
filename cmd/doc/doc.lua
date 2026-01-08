@@ -13,6 +13,7 @@ local fmt = require'fmt'
 local pod = require'pod'
 local info = require'ds.log'.info
 local warn = require'ds.log'.warn
+local cxt = require'cxt'
 
 local sfmt, srep = string.format, string.rep
 local push = ds.push
@@ -57,7 +58,7 @@ M.Doc.flush  = fmt.Fmt.flush
 M.Doc.close  = fmt.Fmt.close
 
 function M.Doc:bold(text) self:write(sfmt('[*%s]', text)) end
-function M.Doc:code(code) self:write(sfmt('[{## code}%s]##', code)) end
+function M.Doc:code(code) self:write(cxt.code(code))      end
 
 function M.Doc:link(link, text)
   if text then self:write(sfmt('[<%s>%s]', link, text))
@@ -72,9 +73,13 @@ function M.Doc:hdrlevel(add) --> int
   return self._hdr
 end
 
+function M.Doc:named(name, id)
+  self:write(sfmt('[{name=%s}%s]', id or name, assert(name)))
+end
+
 function M.Doc:header(content, name)
   if name then
-    self:write(sfmt('[{h%s name="%s"}%s]\n', self._hdr, name, content))
+    self:write(sfmt('[{h%s name=%s}%s]\n', self._hdr, name, content))
   else
     self:write(sfmt('[{h%s}%s]\n', self._hdr, content))
   end
@@ -138,10 +143,13 @@ function M.Doc:fn(fn, cmts, name, id) --> (cmt, sig, isMethod)
   local pname, loc  = mty.anyinfo(fn)
   local cmt, code   = self:extractCode(loc)
   local sig, isMeth = self:fnsig(code)
-  name = name or pname
-  self:code((isMeth and ':' or '')..name..(sig or '()'))
+  name = (isMeth and 'fn:' or 'fn ')..(name or pname)
+  info('!! fn %s id=%q', name, id)
+  if id then self:write(sfmt('[{*name=%s}%s]', id, name))
+  else       self:bold(name) end
+  if sig and sig ~= '' then self:code(sig) end
   if cmts and cmt and #cmt > 0 then
-    self:write'\n'
+    self:write'[{br}]\n'
     for i, c in ipairs(cmt) do
       self:write(c); if i < #cmt then self:write'\n' end
     end
@@ -153,7 +161,7 @@ end
 function M.Doc:mod(m)
   local name, loc = mty.anyinfo(m)
   local cmts, code = self:extractCode(loc)
-  self:header(m.__name, m.__name)
+  self:header('Mod '..m.__name, m.__name)
   self:hdrlevel(1)
   for _, c in ipairs(cmts or EMPTY) do
     self:write(c); self:write'\n'
@@ -176,18 +184,17 @@ function M.Doc:mod(m)
   end
 
   if #tys > 0 then
-    self:write'\n'; self:bold'Types'; self:write' [+\n'; 
+    self:write'\n'; self:bold'Types: ';
     for _, ty in ipairs(tys) do
-      self:write'* '; self:level(1)
-      -- TODO: make a link.
-      self:bold(sfmt('%s.%s', m.__name, names[ty]))
-      self:level(-1); self:write'\n'
+      self:level(1)
+      self:link(sfmt('#%s.%s', m.__name, names[ty]), names[ty])
+      self:level(-1); self:write' '
     end
-    self:write']\n'
+    self:write'\n\n'
   end
 
   if #fns > 0 then
-    self:write'\n'; self:bold'Functions'; self:write' [+\n'; 
+    self:bold'Functions'; self:write' [+\n'; 
     for _, fn in ipairs(fns) do
       self:write'* '; self:level(1)
       self:fn(fn, true, names[fn], sfmt('%s.%s', m.__name, names[fn]))

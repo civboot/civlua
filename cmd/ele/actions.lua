@@ -80,7 +80,6 @@ M.keyinput = function(ed, ev, evsend)
     ed.error('%s -> invalid keys: %s', ki, err)
   end
 end
-M.hotkey = M.keyinput
 
 ----------------------------------
 -- UTILITY

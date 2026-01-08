@@ -9,6 +9,7 @@ local mty = require'metaty'
 local shim = require'shim'
 local fmt = require'fmt'
 local ds  = require'ds'
+local log = require'ds.log'
 local lines = require'lines'
 local T = require'civtest'
 
@@ -320,7 +321,7 @@ M.content = function(p, node, isRoot, altEnd)
   elseif ctrl == RAW then
     local c1, c2 = p.line:find('^#+', p.c)
     assert(c2)
-    p.c, raw = c2 + 1, c2 - c1 + 1
+    p.c, raw = c2, c2 - c1 + 1
   end
   p.c = p.c + 1
   local sub = {}
@@ -357,9 +358,12 @@ end
 local function extractNamed(node, named)
   if rawget(node, 'name') then
     if named[node.name] then
-      local l, c = table.unpack(named[node.name].pos)
-      error(sfmt('ERROR node %q is named twice: %s.%s and %s.%s',
-        node.name, l, c, table.unpack(node.pos)))
+      -- FIXME:
+      local l, c   = table.unpack(named[node.name].pos)
+      local l2, c2 = table.unpack(node.pos)
+      log.warn('Node %q is named twice: %s.%s and %s.%s',
+               node.name, l, c, l2, c2)
+      return
     end
     named[node.name] = node
   end

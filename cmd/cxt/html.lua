@@ -57,7 +57,7 @@ local function startFmt(w, n, kind, line)
   end
   if n.name then
     local id = n.name:gsub('%s+', '-')
-    push(line, sfmt('<a id="%s" href="#%s">', id, id))
+    push(line, sfmt('<a id="%s" href="#%s" class=anchor>', id, id))
     if #n == 0 then push(n, n.name) end
   end
   if n.href then
@@ -122,7 +122,7 @@ local function _serialize(w, line, node) --> line
     return line
   elseif node.hidden  then return line
   elseif kind == 'br' then
-    push(line, '<p>'); addLine(w, line)
+    push(line, '<br>'); addLine(w, line)
     return {}
   end
   startFmt(w, node, kind, line)

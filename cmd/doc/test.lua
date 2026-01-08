@@ -7,6 +7,8 @@ end
 --- Example record documentation.
 Tm.A = mty'A' {
   'a [int]: example field doc',
+    a = 'default',
+  'b',
 }
 --- Example method documentation.
 function Tm.A:exampleMeth(b) --> c
@@ -52,79 +54,43 @@ end
 
 T'Doc' do
   local d = Dc{}
-  local function testDc(expect)
-    T.eq(expect, concat(d)); ds.clear(d)
+  local function testDc(cxt, html)
+    T.eq(cxt, concat(d)); ds.clear(d)
+    if html then
+      error'todo'
+    end
   end
   d:link'foo.com';          testDc'[<foo.com>]'
   d:link('foo.com', 'foo'); testDc'[<foo.com>foo]'
   d:code('blah.blah');      testDc'[$blah.blah]'
 end
 
-local Dc_DOC = [=[
-[{h1 name="doc.Doc"}Record Doc]
-[+
-* [*to] [$file]:
-  file to write to.
-* [*indent] [$string]
-]
-Object passed to __doc methods.
-Aids in writing cxt.
-
-[*Methods] [+
-* [*level(f, add) -> int: current level]
-  Add to the indent level and get the new value
-  call with [$add=nil] to just get the current level
-* [*:write(...)]
-  Same as [$file:write].
-* [*:flush()]
-* [*:close()]
-* [*:bold('[*%s]', text)]
-* [*:code('[$%s]', code)]
-* [*:link(link, text)]
-* [*:hdrlevel(add) -> int]
-* [*:header(content, name)]
-* [*:extractCode(loc) -> (commentLines, codeLines)]
-* [*:fnsig(code) -> (string, isMethod)]
-  Extract the function signature from the lines of code.
-* [*:fn(fn, cmts, name, id) -> (cmt, sig, isMethod)]
-  Document the function. cmts=true also includes comments
-  on new line.
-* [*:mod(m)]
-  Document the module.
-]
-]=]
-
-T'record_doc' do
-  local d = Dc{}
-  Dc:__doc(d) -- write docs of itself
-  T.eq(Dc_DOC, concat(d))
-end
-
-local Tm_DOC = [[
-[{h1 name="TestMod"}TestMod]
-Example module
-
-[*Types] [+
-* [*TestMod.A]
-]
-
-[*Functions] [+
-* [*exampleFn(a) -> b]
-  Example function documentation.
-]
-
-[{h2 name="TestMod.A"}Record A]
-[+
-* [*a] [$int]:
-  example field doc
-]
-Example record documentation.
-
-[*Methods] [+
-* [*:exampleMeth(b) -> c]
-  Example method documentation.
-]
-]]
+local Tm_DOC =
+"[{h1 name=TestMod}Mod TestMod]\
+Example module\
+\
+[*Types] [+\
+* [*TestMod.A]\
+]\
+\
+[*Functions] [+\
+* [{*name=TestMod.exampleFn}fn exampleFn][$(a) -> b]\
+  Example function documentation.\
+]\
+\
+[{h2 name=TestMod.A}Record A]\
+[+\
+* [{*name=TestMod.A.a}.a] [$=\"default\"]:\
+  example field doc\
+* [{*name=TestMod.A.b}.b]\
+]\
+Example record documentation.\
+\
+[*Methods] [+\
+* [{*name=A.exampleMeth}fn:exampleMeth][$(b) -> c]\
+  Example method documentation.\
+]\
+"
 
 T'mod_doc' do
   local d = Dc{}
