@@ -5,7 +5,7 @@ methods to serialize/deserialize those types to/from bytes. In Lua, the 5
 supported types considered "plain old data" are: nil, boolean, integer, string
 and any table of only these types.
 
-[{## lang=lua}
+[{$$ lang=lua}
 local M = mod'mymod'
 local mty = require'metaty'
 local pod = require'pod'
@@ -29,7 +29,7 @@ M.Schedule = pod(mty'Schedule' {
 
 local serialized = pod.ser(M.Worker{...})   -- convert to string
 local worker = pod.de(serialized, M.Worker) -- convert from string
-]##
+]$
 
 Explanation of above:[+
 * [$metaty.enum] are already plain-old-data (no need to call [$pod()] on them).

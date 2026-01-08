@@ -215,14 +215,14 @@ M._async.all, M._sync.all = ayAll, syAll
 -- Call [$any:ignore()] to stop the child threads from resuming
 -- the current thread. This does NOT stop the child threads.
 --
--- Example which handles multiple fns running simultaniously: [{## lang=lua}
+-- Example which handles multiple fns running simultaniously: [{$$ lang=lua}
 -- local any = lap.Any{fn1, fn2}:schedule()
 -- while true do
 --   local i = any:yield()
 --   -- do something related to index i
 --   any:restart(i) -- restart i to run again
 -- end
--- ]##
+-- ]$
 M.Any = mty'Any'{
   'cor[thread]', 'fns[table]',
   'done[table]',
@@ -296,7 +296,7 @@ local LAP_UPDATE = {
 
 --- A single lap of the executor loop
 ---
---- Example [{## lang=lua}
+--- Example [{$$ lang=lua}
 ---   -- schedule your main fn, which may schedule other fns
 ---   lap.schedule(myMainFn)
 ---
@@ -312,7 +312,7 @@ local LAP_UPDATE = {
 ---     end
 ---     -- do other things in your application's executor loop
 ---   end
---- ]##
+--- ]$
 M.Lap = mty'Lap' {
   'sleepFn [function]',
   'monoFn  [function]',

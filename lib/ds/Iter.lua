@@ -1,7 +1,7 @@
 local mty = require'metaty'
 --- Fluent iterator
 ---
---- [{## lang=lua}
+--- [{$$ lang=lua}
 --- isNumber = function(v) return type(v) == 'number' end
 --- t = {4, 5, 'six', 7}
 --- T.eq(
@@ -10,7 +10,7 @@ local mty = require'metaty'
 ---     :filterV(isNumber) -- only numbers
 ---     :mapV(tostring)    -- convert to string
 ---     :valsTo())         -- collect list of values (drops keys)
---- ]##
+--- ]$
 local Iter = mty'Iter' {
   '_li [int]: left index of fns (stored at negative index)', _li = 0,
   '_nextK [any]: next key when [$iter()]ated',
@@ -32,11 +32,11 @@ local swapKV = function(k, v) return v, k end
 -- Constructors
 
 --- construct from table of [${nextFn, state, startK}] (see [$help 'for']).
---- Examples: [{## lang=lua}
+--- Examples: [{$$ lang=lua}
 ---   it = Iter{pairs(t)}  -- recommendation: use It:of(t) instead
 ---   it = Iter{ipairs(t)} -- recommendation: use It:ofList(t) instead
 ---   it = Iter{myIterFn}
---- ]##
+--- ]$
 getmetatable(Iter).__call = function(T, t)
   t._nextK = t[3]; return setmetatable(t, T)
 end

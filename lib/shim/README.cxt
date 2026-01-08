@@ -1,7 +1,7 @@
 write scripts for Lua, execute from shell. This is a tiny Lua module that makes
 it easy to write utilities that work from either bash or Lua.
 
-Example script (see also: [<#pkg-script>]) [{## lang=lua}
+Example script (see also: [<#pkg-script>]) [{$$ lang=lua}
 #!/usr/bin/env -S lua -e "require'pkglib'()"
 local G = G or _G -- typosafe globals
 
@@ -24,7 +24,7 @@ end
 
 if M == MAIN then os.exit(M.main(G.arg)) end
 return M -- return as library
-]##
+]$
 
 Then in [$PKG.lua] add [$main = 'myCmdName.Main'] to enable better
 documentation formatting. Get documentation with [$doc 'myCmdName'].

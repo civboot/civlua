@@ -23,7 +23,7 @@ Before we do, a few notes:
 ]
 
 Example [$PKG.lua]:
-[{## lang=lua}
+[{$$ lang=lua}
 local P = { summary = "Does foo and some bar" }
 
 --- Imports a function to help us create Target
@@ -60,7 +60,7 @@ P.libfoo = cc {
 }
 
 return P
-]##
+]$
 
 ["Every value assigned to [$P] must be either a concrete type or a
   [<#pvc.Target>].

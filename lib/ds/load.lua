@@ -10,9 +10,9 @@ local mty = require'metaty'
 ---
 --- [{:h2}loading]
 --- To perform the load, call this module with:
---- [##
+--- [$$
 ---   (path, env={}, envMeta=ds.load.ENV) -> ok, result
---- ]##
+--- ]$
 --- inputs: [+
 --- * path: path to load (lua-syntax file).
 --- * env: global environment.

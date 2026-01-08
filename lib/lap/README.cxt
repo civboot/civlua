@@ -29,7 +29,7 @@ The LAP protocol has two components: [+
 ]
 Library authors can fully support the protocol by following the
 Yielding Protocol below and copy/pasting the following:
-[{## lang=lua}
+[{$$ lang=lua}
 LAP_FNS_SYNC  = LAP_FNS_SYNC  or {}
 LAP_FNS_ASYNC = LAP_FNS_ASYNC or {}
 
@@ -38,7 +38,7 @@ table.insert(LAP_FNS_SYNC,  function() ... end)
 table.insert(LAP_FNS_ASYNC, function() ... end)
 
 // implement your asynchronous functions by following the protocol.
-]##
+]$
 
 Library authors should make their default API [*synchronous] (blocking) by
 default, except for items that cannot be used synchronously.
@@ -91,7 +91,7 @@ The sync/async tables allows a user to write code in a blocking style yet it
 can be run asynchronously, such as the following. You can even switch back and
 forth so that tests can be run in both modes.
 
-[{## lang=lua}
+[{$$ lang=lua}
 function getLines(path, fn)
   local lines = {}
   for line in io.lines(path) do
@@ -99,7 +99,7 @@ function getLines(path, fn)
   end
   return lines
 end
-]##
+]$
 
 ["Recomendation: use [<#lap.async>] and [<#lap.sync>] to switch modes]
 

@@ -8,9 +8,9 @@
 [{:h3 name=pvc-install}Installation]
 
 Simply follow civlua's [<#Installation>] and add the following to your [$.bashrc]
-[##
+[$$
 alias pvc="civlua pvc"
-]##
+]$
 
 [{:h2 name=pvc-about}About]
 [*pvc] is a version control system similar to git or mercurial, but is ultra
@@ -117,7 +117,7 @@ The [$.pvcignore] file should contain a line-separated list of [<#string.find>]
 patterns that should be ignored. Items ending in [$/] will apply to whole
 directories. A common pvc ignore file might look like:
 
-[##
+[$$
 # directories
 %.git/
 %.out/
@@ -127,7 +127,7 @@ directories. A common pvc ignore file might look like:
 
 # binary files
 %./path/to/some_binary
-]##
+]$
 
 [{h3 name=pvc-git}Use with git]
 pvc is still in early development, so there is no hosting service which
@@ -146,9 +146,9 @@ civlua as the example:[+
 ]
 
 [*First], put [$.pvc/] in your main repo's [$.gitignore]
-[##
+[$$
 echo .pvc >> .gitignore
-]##
+]$
 
 [*Second], follow the [<#pvc-init>] section above. This should include adding
 all your files to pvc and making your first pvc commit.
@@ -157,14 +157,14 @@ all your files to pvc and making your first pvc commit.
 directory]. This will literally track your patch files themselves. Use the
 following as your [$.pvc/.gitignore]. You may also want to add a [$README.md]
 directing folks to your main git repo.
-[##
+[$$
 # .pvc/.gitignore
 **/*.snap/
 backup/
-]##
+]$
 
 Finally, add the following to your [$.bashrc]
-[{## lang=sh}
+[{$$ lang=sh}
 # Note: you must also have pvc aliased
 function pvcp() {
   desc="$(pvc at): $(pvc desc --full)"
@@ -173,7 +173,7 @@ function pvcp() {
     git commit -am "$desc" &&
     git push origin main)
 }
-]##
+]$
 
 Now you can hack using [$pvc commit] etc and push to your [$repo.pvc] by
 simply calling [$pvcp]. Your git commit log will be your current [$at]

@@ -25,15 +25,15 @@ A parser is a way to convert text into structured node objects so that the text
 can be compiled or annotated by a program. For example you might want to convert
 some source code like:
 
-[{## lang=lua}
+[{$$ lang=lua}
 x = 1 + 2
-]##
+]$
 
 Into something like:
 
-[{## lang=lua}
+[{$$ lang=lua}
 {'x', '=', {'1', '+', '2', kind='op'}, kind='assign'}
-]##
+]$
 
 A recursive descent parser does so via hand-rolled functions which typically
 [,recurse] into eachother. Each function attempts to parse from the current
@@ -46,7 +46,7 @@ in a (pure Lua) syntax similar to PEG, while still being able to easily fallback
 to hand-rolled recursive descent when needed.
 
 Most traditional PEG parsers (as well as other parsers) struggle with
-complicated syntax such as Lua's [#[===[raw string syntax]===]]#, python's
+complicated syntax such as Lua's [$$[===[raw string syntax]===]]$, python's
 whitespace denoted syntax or C's lookahead requirements ([$(U2)*c**h] --
 recursive descent can solve a lot of these problems relatively easily and
 performantly.  However, recursive descent parsers can be very verbose and
@@ -57,7 +57,7 @@ implementation.
 [{h3}Examples]
 
 [*PEG]: most concise but harder to fallback to hand-rolled recursive descent
-[##
+[$$
 grammar = [[
 num    <- '%d'
 name   <- '%w'
@@ -65,13 +65,13 @@ setVar <- num '=' name
 expr   <- setVar / ... other valid expressions
 ]]
 p:parse(grammar)
-]##
+]$
 
 [*PEGL]: very concise and easy to fallback to hand-rolled recursive descent.
 Things like `kind` and `name` make debug printing easier. Simply name your
 specs, putting them together into a root spec and parsing:
 
-[{## lang=lua}
+[{$$ lang=lua}
 num    = Pat{'%d+', kind='num'} -- kind=num sets the node name
 name   = Pat{'%w+', kind='name'}
 -- Note: UNPIN and PIN are used for when errors should be raised
@@ -87,7 +87,7 @@ p:parse(expr)
   [$block { single }].
 ]
 
-[*Recursive Descent]: not very concise, harder to debug. [{## lang=lua}
+[*Recursive Descent]: not very concise, harder to debug. [{$$ lang=lua}
 -- Note: p=parser, an object which tracks the current position
 -- in it's `state`
 
@@ -118,6 +118,6 @@ function expression(p)
 end
 
 expression(p)
-]##
+]$
 
 See [<#pegl.Seq>] for the basic API of parsing specs.

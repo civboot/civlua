@@ -5030,7 +5030,7 @@ p:parse(expr)
   [$block { single }].
 ]
 
-[*Recursive Descent]: not very concise, harder to debug. [{## lang=lua}
+[*Recursive Descent]: not very concise, harder to debug. [{$$ lang=lua}
 -- Note: p=parser, an object which tracks the current position
 -- in it's `state`
 
@@ -6976,13 +6976,13 @@ The following attributes and shortcuts are supported
   #...    any number of # characters create a "raw" block that must
           have the same number of # characters closing it.
 
-          [##
+          [$$
           some code
-          ]##
+          ]$
 
-          [{## code=html}
+          [{$$ code=html}
           &lt;b&gt;example html&lt;/b&gt;
-          ]##
+          ]$
 
   href    hyper reference, aka a url.
   &lt;href&gt;
@@ -7031,11 +7031,11 @@ is invalid.</blockquote>
 <p>
 <h3>Code block:</h3>
 <p>
-Writing this: <code class="block">[{## lang=lua}
+Writing this: <code class="block">[{$$ lang=lua}
 function example()
   print'Hello world'
 end
-]##
+]$
 </code>
 <p>
 Will create a formatted code block: <code class="block">function example()
@@ -7062,11 +7062,11 @@ Lists are started with <code>+</code>, each items is deliniated by <code>*</code
 
     sub item.
   * inner code block
-    [##
+    [$$
     function example()
       print'example inner block'
     end
-    ]##
+    ]$
   * final sub
 ]
 * final item
@@ -7136,11 +7136,11 @@ sub-lists: <code class="block">[{table}
 
   Even includes new line!
 | long row 1.3
-  [{## code=lua}
+  [{$$ code=lua}
   function example()
     return "code block"
   end
-  ]##
+  ]$
 + row 2.1
 | row 2.2
 | row 2.3
@@ -7319,7 +7319,7 @@ The writer contains: <ul>
 <h3>Function <a id="cxt.code" href="#cxt.code">cxt.code</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/cxt/cxt.lua#L53"><i>src</i></a>)</h3>
 create <code>[$inline code]</code>
 <h3>Function <a id="cxt.codeblock" href="#cxt.codeblock">cxt.codeblock</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/cxt/cxt.lua#L46"><i>src</i></a>)</h3>
-create a <code>[##code block]##</code>
+create a <code>[$$code block]$</code>
 <h3>Function <a id="cxt.content" href="#cxt.content">cxt.content</a> (<a href="https://github.com/civboot/civlua/blob/main/cmd/cxt/cxt.lua#L351"><i>src</i></a>)</h3>
 parse normal content, adding to node
 <h3>Function <a id="cxt.escape" href="#cxt.escape">cxt.escape</a><code>(str) -&gt; str:gsub('([\\%[%]])', '\\%1')</code> (<a href="https://github.com/civboot/civlua/blob/main/cmd/cxt/cxt.lua#L26"><i>src</i></a>)</h3>

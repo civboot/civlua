@@ -342,7 +342,7 @@ local function _walk(base, ftypeFns, maxDepth, depth)
 end
 
 --- TODO: remove this, use Walk instead.
---- walk the paths up to depth, calling [$ftypeFns[ftype]] for
+--- walk the paths up to depth, calling [$$ftypeFns[ftype]]$ for
 --- each item encountered.
 ---
 --- If depth is nil/false then the depth is infinite.
@@ -488,7 +488,7 @@ end
 --- * Dirs  are tables.
 --- * Files are string or fd -- which are read+closed.
 --- ]
---- Example: [{## lang=lua}
+--- Example: [{$$ lang=lua}
 --- tree = {
 ---   a = {
 ---     ['a1.txt'] = 'stuff in a1.txt',
@@ -498,13 +498,13 @@ end
 ---     }
 ---   }
 --- }
---- ]##
+--- ]$
 ---
---- Builds a tree like [#
+--- Builds a tree like [$
 --- a/a1.txt    # content: stuff in a1.txt
 --- a/a2.txt    # content: stuff in a2.txt
 --- a/a3/a4.txt # content: stuff in a3.txt
---- ]#
+--- ]
 M.mkTree = function(dir, tree, parents) --!> nil
   M.mkDir(dir, parents)
   for name, v in pairs(tree) do
@@ -644,12 +644,12 @@ end
 ---
 --- if cmd is a table, the following keys are treated as special. If you need any
 --- of these then you must use M.Sh directly (recommendation: use Plumb) [+
---- * [$stdin[string|file]] the process's stdin. If string it will be sent to stdin.
---- * [$stdout[file]] the process's stdout. out will be nil if this is set
---- * [$stderr[file]] the process's stderr (default=io.stderr)
---- * [$ENV [table]] the process's environment.
---- * [$CWD [table]] the process's current directory.
---- * [$rc [bool]] if true allow non-zero return codes (else throw error).
+--- * [$$stdin[string|file]]$ the process's stdin. If string it will be sent to stdin.
+--- * [$$stdout[file]]$ the process's stdout. out will be nil if this is set
+--- * [$$stderr[file]]$ the process's stderr (default=io.stderr)
+--- * [$$ENV [table]]$ the process's environment.
+--- * [$$CWD [table]]$ the process's current directory.
+--- * [$$rc [bool]]$ if true allow non-zero return codes (else throw error).
 ---   You can get the rc with [$sh:rc()] (method on 3rd return argument).
 --- ]
 ---

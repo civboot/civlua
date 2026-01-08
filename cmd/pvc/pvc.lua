@@ -134,10 +134,10 @@ local postCmd = {
 ---
 --- These must be given near the top of the patch file, before the first
 --- [$---].  Supported commands (arguments are actually tab separated):
---- [##
+--- [$$
 --- ! rename before  after
 --- ! swap   first   second
---- ]##
+--- ]$
 ---
 --- If reverse is given it does the opposite; also this should be called BEFORE
 --- calling [$patch(reverse=true)]

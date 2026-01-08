@@ -5,7 +5,7 @@ typo-safe Lua record-types which can be formatted.
 
 [" Turn off typo checking by setting the global [$LUA_OPT=3] or higher.]
 
-[{## lang=lua}
+[{$$ lang=lua}
 local G = G or _G
 --- module documentation
 local M = G.mod and mod'myMod' or {} -- (see pkg)
@@ -20,11 +20,11 @@ M.Pos = mty'Pos' {
 
 local p1 = Pos{x=4}
 local p1 = Pos{x=4, y=3, z=5} -- error if checking turned on
-]##
+]$
 
 The above expands to the following. Note that the "typosafe" elements
 are removed when [$LUA_OPT > 3]
-[{## lang=lua}
+[{$$ lang=lua}
 local M = {}
 local metaty = require'metaty'
 
@@ -47,12 +47,12 @@ Pos.__index = Pos
 PKG_LOCS[M.myFn]         = 'path/to/file.lua:123'
 PKG_NAMES[M.myFn]        = 'mymod.Pos'
 PKG_LOOKUP['myMod.Pos'] = M.Pos
-]##
+]$
 
 [{h3 name=metaty-API}API] [+
 * [$ty(v)] return the metaty of [$v]. For tables this is [$getmetatable(v)],
   else it is [$type(v)].
-* [$metaty'name' {'field1[type] documentation', 'field2[type]'}]
+* [$$metaty'name' {'field1[type] documentation', 'field2[type]'}]$
   creates a documented and typo-safe record type (see examples) [+
     * the [$[type]] field can also be in the form [${type}] for a list
       of the type or [${string: type}] for a map of the type.
@@ -103,11 +103,11 @@ In addition, there is runtime type specification defined below.
 ["Note: Runtime typo checking has a cost and can be disabled with
   LUA_OPT=3 or higher.]
 
-You can override the typo-checking behavior of a single type with [{## lang=lua}
+You can override the typo-checking behavior of a single type with [{$$ lang=lua}
 getmetatable(MyType).__call  = myConstructor
 getmetatable(MyType).__index = myIndex
 MyType.__newindex            = myNewIndex
-]##
+]$
 
 [{h3 name=lua_opt}LUA_OPT]
 [$LUA_OPT] is an integer from 0-3 which is intended to have the following

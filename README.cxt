@@ -16,7 +16,7 @@ You will also need a C compiler.
 
 Then run the following (or equivalent):
 
-[{## lang=sh}
+[{$$ lang=sh}
 export LOGLEVEL=INFO
 lua bootstrap.lua init         # create .civconfig.lua
 lua bootstrap.lua boot-test    # run tests for your system
@@ -27,7 +27,7 @@ source ~/.bashrc
 
 civ test civ:.#                # test all targets
 civ install civ:#full          # install main civ software
-]##
+]$
 
 By default, civ software will be put in [$~/.local/civ/]. You can
 modify this by changing [$.civconfig].

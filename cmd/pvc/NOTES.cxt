@@ -4,14 +4,14 @@ One problem normally associated with using patches for VCS is that there is no w
 metadata in the commit. Flux solves this problem by requiring a COMMIT file
 to be modifed for every commit. In order to commit, the user must edit the
 COMMIT file by prepending data in the following form:
-[##
+[$$
 One line description: the next line MUST be blank.
 
 Freeform description, commonly in CXT format. Can be any number
 of lines, but must be followed by a blank line.
 
 ATTRIBUTE=arbitrary one-line attributes in a block at end.
-]##
+]$
 
 ["The tool requires that all changes to COMMIT are prepended so that conflicts
   on rebasing are impossible, since rebases are always applied to the end of
@@ -19,11 +19,11 @@ ATTRIBUTE=arbitrary one-line attributes in a block at end.
 ]
 
 Flux then automatically adds the following lines to the patch:
-[##
+[$$
 AUTHOR=<username>
 SIGNATURE=<cryptographic signature of patch>
 HASH=<sha256 hash of repo, excluding COMMIT>
-]##
+]$
 
 ["The HASH always dictates the end of a COMMIT record.]
 
@@ -45,10 +45,10 @@ A branch is "archived" as a single file for transmission or storage by:[+
 [{h3 n=pvc.collapse}Collapsing Patches]
 One advantage over pvc's simplisitic model is that it allows the
 maintainer to collapse patches. For example, say you have the
-following tags: [##
+following tags: [$$
 443 0.1.3
 551 0.1.4
-]##
+]$
 
 Say you no longer need the specific changes that occured between [$[444, 551]]
 and just want the diffs between the tagged versions. Flux can create (and

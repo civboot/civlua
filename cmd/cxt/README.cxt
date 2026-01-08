@@ -18,24 +18,29 @@ cxt is designed to: [+
 ]
 
 CXT contains only three special characters for deliniating formatting controls: [+
-* the two bracket characters [$[]]
-* a way to escape brackets and itself [$\\], [{# code}\[]# and [{# code}\]]#
+* the two bracket characters [$$[]]$
+* a way to escape brackets and itself [$\\], [$$\[]$ and [$$\]]$
 ]
 
 There are two ways to specify attributes for a block: [+
-* short: [$[*bold text]] where [$*] can be any of the shortcuts below
-* full: [$[{*_ attr1 attr2=value}bold underlined with attr 1 and 2]]
+* short: [$$[*bold text]]$ where [$*] can be any of the shortcuts below
+* full: [$$[{*_ attr1 attr2=value}bold underlined with attr 1 and 2]]$
 ]
 
 The following attributes and shortcuts are supported
-[###
+[$$$
   b i u   bold (*), italic (,) and underlined (_)
   * , _   Example: [*bold] [,italic] [_underlined]
                    [{*,_}bold italic and underlined]
 
   code    inline or block code (depending on whether newlines exist)
    $      shortcut: [$inline code]
-   #...   See also: '[#... ]#...' which sets the code attribute.
+   $$...  shortcut: [$$inline code]$  (close is one less than open)
+
+          Can also use inside {} to require extra $ to close:
+          [{$$ code=html}
+          <b>example html</b>
+          ]$
 
   quote   create a quote block
    "      Example: ["quote block]
@@ -53,17 +58,6 @@ The following attributes and shortcuts are supported
 
   hidden  hidden block, used for comments and/or assigning attributes
    !      Example: [!hidden block]
-
-  #...    any number of # characters create a "raw" block that must
-          have the same number of # characters closing it.
-
-          [##
-          some code
-          ]##
-
-          [{## code=html}
-          <b>example html</b>
-          ]##
 
   href    hyper reference, aka a url.
   <href>
@@ -96,48 +90,54 @@ The following attributes and shortcuts are supported
    \]    literal ]
    \\    literal \
    \*    literal \*, where * is any other character
-]###
+]$$
 
 [" Note:
    Any value after a bracket besides [$ {...} b i u * , _ $ " + ! / : v @ ]
-   is invalid.]
+   is invalid.
+]
 
 [{:h2}Demos]
 
 [{h3}Inline Code:]
 
-[{# lang=cxt}[$inline code]. Note that [$balanced[brackets] are allowed]]# [+
-* [$inline code]. Note that [$balanced[brackets] are allowed]
+[{$$$ lang=cxt}[$inline code]. Note that [$$ [brackets] need ]$]$$
+[+
+* [$inline code]. Note that [$$ [brackets] need ]$
+]
+
+["The number of [{$}$] at the end of a code block is one less
+  than the number used to open it.
 ]
 
 [{h3}Code block:]
 
-Writing this: [{### lang=cxt}
-[{## lang=lua}
+Writing this: [{$$$ lang=cxt}
+[{$$ lang=lua}
 function example()
   print'Hello world'
 end
-]##
-]###
+]$
+]$$
 
-Will create a formatted code block: [{## lang=lua}
+Will create a formatted code block: [{$$ lang=lua}
 function example()
   print'Hello world'
 end
-]##
+]$
 
 [{h3}Text Formatting]
-[{# lang=cxt}[*bold], [,italic] and [_underlined]]# [+
+[{$$ lang=cxt}[*bold], [,italic] and [_underlined]]$ [+
 * [*bold], [,italic] and [_underlined]
 ]
 
 [{h3}Linking]
-[{# lang=cxt}[{b i href=http://civboot.org}bold italic link]]# [+
+[{$$ lang=cxt}[{b i href=http://civboot.org}bold italic link]]$ [+
 * [{b i href=http://civboot.org}bold italic link]
 ]
 
 [{h3}List]
-Lists are started with [$+], each items is deliniated by [$*]: [{### lang=cxt}
+Lists are started with [$+], each items is deliniated by [$*]: [{$$$ lang=cxt}
 A list of stuff: [+
 * example list
 * with sub list:[+
@@ -146,16 +146,16 @@ A list of stuff: [+
 
     sub item.
   * inner code block
-    [##
+    [$$
     function example()
       print'example inner block'
     end
-    ]##
+    ]$
   * final sub
 ]
 * final item
 ]
-]###
+]$$
 
 A list of stuff: [+
 * example list
@@ -165,18 +165,18 @@ A list of stuff: [+
 
     sub item.
   * inner code block
-    [##
+    [$$
     function example()
       print'example inner block'
     end
-    ]##
+    ]$
   * final sub
 ]
 * final item
 ]
 
 [{h3}Hidden]
-[{# lang=cxt}Hidden block: "[! this is hidden]"]# [+
+[{$$ lang=cxt}Hidden block: "[! this is hidden]"]$ [+
 * Hidden block: "[! this is hidden]"
 ]
 
@@ -185,13 +185,13 @@ A table is created by the 'table' attribute. We also set the [$head], [$row]
 and [$col] to the defaults for demonstration (they can be excluded). The
 [$row] and [$head] deliminters are only recognized at the start of a line.
 
-[{## lang=cxt}
+[{$$ lang=cxt}
 A table: [{table head=# row=+ col=|}
 # col 1      | col 2   | col 3
 + row [*1.1] | row 1.2 | row 1.3
 + row [*1.1] | row 1.2 | row 1.3
 ]
-]##
+]$
 
 A table: [{table head=# row=+ col=|}
 # col 1      | col 2   | col 3
@@ -201,7 +201,7 @@ A table: [{table head=# row=+ col=|}
 
 [{h3}Table with large columns]
 For very large or multi-lined columns, you can organize them similar to
-sub-lists: [###
+sub-lists: [$$$
 [{table}
 # 1st header column
 | 2nd header column
@@ -211,16 +211,16 @@ sub-lists: [###
 
   Even includes new line!
 | long row 1.3
-  [{## code=lua}
+  [{$$ code=lua}
   function example()
     return "code block"
   end
-  ]##
+  ]$
 + row 2.1
 | row 2.2
 | row 2.3
 ]
-]###
+]$$
 
 [{table}
 # 1st header column
@@ -231,11 +231,11 @@ sub-lists: [###
 
   Even includes new line!
 | long row 1.3
-  [{## code=lua}
+  [{$$ code=lua}
   function example()
     return "code block"
   end
-  ]##
+  ]$
 + row 2.1
 | row 2.2
 | row 2.3
@@ -243,38 +243,38 @@ sub-lists: [###
 
 [{h3}Named Nodes and Values]
 [" [*Note]: all visible named blocks have a ☍ link next to them and serve dual
-   purpose of being referenced within the cxt file using [$[@name]] and by
-   local and external links ([$href=#name]) ]
+   purpose of being referenced within the cxt file using [$$[@name]]$ and by
+   local and external links ([$$href=#name]$) ]
 
-[$A hidden named block: "[{!:href=http://civboot.org}Civboot]"] [+
+[$$A hidden named block: "[{!:href=http://civboot.org}Civboot]"]$ [+
 * A hidden named block: "[{!:href=http://civboot.org}Civboot]"
 ]
 
-[$A visible named block: [{:href=https://github.com/civboot/civlua}civlua]] [+
+[$$A visible named block: [{:href=https://github.com/civboot/civlua}civlua]] [+
 * A visible named block: [{:href=https://github.com/civboot/civlua}civlua]
-]
+]$
 
-[$[@Civboot] clones the hidden block (removing the [$clone] attribute)] [+
+[$$[@Civboot] clones the hidden block (removing the [$clone] attribute)] [+
 * [@Civboot] clones the hidden block (removing the [$clone] attribute)
-]
+]$
 
-[$[<@Civboot>Civboot Project] has [$href=http://civboot.org].][+
+[$$[<@Civboot>Civboot Project] has [$href=http://civboot.org].][+
 * [<@Civboot>Civboot Project] has [$href=http://civboot.org].
-]
+]$
 
-[##
+[$$
 You can also link to named blocks with [$href=#name], for instance the "Demos"
 header is named [<#Demos>Demos].
-]## [+
+]$ [+
 * You can also link to named blocks with [$href=#name], for instance the "Demos"
   header is named [<#Demos>Demos].
 ]
 
 [{h3}Escaping \[brackets\]]
-[##
+[$$
 You can \[escape\] brackets to render them directly.
 You can also escape '\\'.
-]## [+
+]$ [+
 * You can \[escape\] brackets to render them directly.
   You can also escape '\\'.
 ]

@@ -71,7 +71,7 @@ M.type = type--(val) --> string
 --- Sets the metatable on the table which can get gotten with
 --- [$getmetatable] and affects the behavior of operators.
 ---
---- All metamethods: [##
+--- All metamethods: [$$
 --- __index    (i.e. t[k])     NOTE: these are only called
 --- __newindex (i.e. t[k] = v)       when key is missing!
 ---
@@ -89,7 +89,7 @@ M.type = type--(val) --> string
 --- __eq      __lt     __le     __len    __concat
 ---
 --- __name
---- ]##
+--- ]$
 ---
 --- [" See also metaty metamethods: __fields   __fmt]
 M.setmetatable = setmetatable-->(t, mt) -> t
@@ -124,12 +124,12 @@ M['string.concat'] = string.concat--(sep, ...) --> string
 --- returns the si (start index), ei (end index) and match groups
 --- (see [<#string.match>]).
 ---
---- [{## lang=lua}
+--- [{$$ lang=lua}
 --- T.eq({2, 4},       {find('%w+', ' bob is nice')})
 --- T.eq({2, 7, 'is'}, {find(' bob is nice', '%w+ (%w+)')})
---- ]##
+--- ]$
 ---
---- Character classes for matching specific sets: [##
+--- Character classes for matching specific sets: [$$
 ---   .   all characters
 ---   %a  letters
 ---   %c  control characters
@@ -141,10 +141,10 @@ M['string.concat'] = string.concat--(sep, ...) --> string
 ---   %w  alphanumeric characters
 ---   %x  hexadecimal digits
 ---   %z  the character with representation 0
---- ]##
+--- ]$
 ---
 --- Magic characters, [$.] indicates one character, more indicates many
---- [##
+--- [$$
 ---   %.     selects a character class or escapes a magic char
 ---   (...)  create a group
 ---   [...]  create your own character class
@@ -155,7 +155,7 @@ M['string.concat'] = string.concat--(sep, ...) --> string
 ---   ^...   if at pat[1], match only beggining of text
 ---   ...$   if at pat[#pat], match only end of text
 ---   %1-9   matches the previously matched group index EXACTLY
---- ]##
+--- ]$
 M['string.find'] = string.find--(subj, pat, index=1) --> (si, ei, ...matches)
 
 --- Return the capture groups of pat or the whole match if no capture groups.
@@ -202,9 +202,9 @@ M['string.gsub'] = string.gsub--(subj, pat, repl, index=1) --> string
 ---   + [$%s] | string
 --- ]
 ---
---- Directive control structure (ignore spaces): [##
+--- Directive control structure (ignore spaces): [$$
 ---   % (specifier width)? directive
---- ]##
+--- ]$
 ---
 --- Where [$width] is an integer and [$specifier] can be one of [{table}
 ---   + [$+] | right justify to width (the default)
@@ -214,13 +214,13 @@ M['string.gsub'] = string.gsub--(subj, pat, repl, index=1) --> string
 ---   + [$0] | left-pad a number with zeros
 --- ]
 ---
---- Examples: [{## lang=lua}
+--- Examples: [{$$ lang=lua}
 ---   sfmt = string.format
 ---   T.eq('age: 42',    sfmt('%s: %i',   'age', 42))
 ---   T.eq('age:    42', sfmt('%s: %5i',  'age', 42))
 ---   T.eq('age: 42   ',     sfmt('%s: %-5i', 'age', 42))
 ---   T.eq('age: 00042', sfmt('%s: %05i', 'age', 42)
---- ]##
+--- ]$
 M['string.format'] = string.format--(fmt: str, ...) --> str
 
 --- Get ASCII (integer) codes for [$s[si:ei]]
@@ -252,9 +252,9 @@ M['string.rep'] = string.rep-- rep(str, n, sep) -> string
 ---   + [$ j J n  ] | lua Integer / Unsigned / Number
 --- ]
 ---
---- Example: [{## lang=lua}
+--- Example: [{$$ lang=lua}
 --- T.eq(string.pack('>i2i2', 0x1234, 0x5678) == '\x12\x34\x56\x78')]
---- ]##
+--- ]$
 M['string.pack'] = string.pack--(strtys, ...values) -> string
 
 --- See [@string.pack] for the fmt
@@ -276,13 +276,13 @@ for k, v in pairs(undocumented'string') do M[k] = v end
 --- You can access the keys with [$t[key]] or if they are a string without
 --- special characters with [$t.key].
 ---
---- Examples: [{## lang=lua}
+--- Examples: [{$$ lang=lua}
 --- t = {'first', 'second', 'third', key='hi'}
 --- T.eq('first', t[1])
 --- T.eq('third', t[3])
 --- T.eq('hi',    t.key)
 --- T.eq(#t, 3) -- the length of the "list" part
---- ]##
+--- ]$
 ---
 --- [" WARNING: A table's length is defined as ANY index who's next value
 ---   is [$nil`]. That means using a table as a list with "holes" likely
@@ -297,11 +297,11 @@ M['table.update'] = table.update--(to, from) --> to
 
 --- concatenate a table of strings with optional separator.
 ---
---- Examples: [{## lang=lua}
+--- Examples: [{$$ lang=lua}
 --- concat = table.concat
 --- T.eq(1..' = '..3, concat{1, ' = ', 3})
 --- T.eq('1, 2, 3',   concat({1, 2, 3}, ', ')
---- ]##
+--- ]$
 M['table.concat'] = table.concat--(t, sep='') --> string
 
 --- remove an item from a table, returning it.
@@ -314,7 +314,7 @@ M['table.sort'] = table.sort--(list, cmp=lt) --> nil
 
 --- insert or push to table (list-like)
 ---
---- Example: [{## lang=lua}
+--- Example: [{$$ lang=lua}
 --- local push = table.insert
 --- local t = {}
 ---
@@ -326,19 +326,19 @@ M['table.sort'] = table.sort--(list, cmp=lt) --> nil
 --- table.insert(t, 'b', 1) -- {'b', 'd', 'e'}
 --- table.insert(t, 'c', 2) -- {'b', 'c', 'd', 'e'}
 --- T.eq({'b', 'c', 'd', 'e'}, t)
---- ]##
+--- ]$
 M['table.insert'] = table.insert
 
 --- Move values from one list to another.
 --- Note that [$si=startIndex] and [$ei=endIndex] (inclusive).
 ---
 --- Equivalent to the following, though done in a way
---- that will properly handle overlapping data: [{## lang=lua}
+--- that will properly handle overlapping data: [{$$ lang=lua}
 --- ti = siTo
 --- for fi=siFrom,eiFrom do
 ---   to[ti] = from[fi]; ti = ti + 1
 --- end
---- ]##
+--- ]$
 M['table.move'] = table.move --(from, siFrom, eiFrom, siTo, to=from) -> to
 
 -------------------------------
@@ -421,10 +421,10 @@ M.os = os
 ---   * "exit":  always literal "exit" if command completed
 ---   * rc:      the return code of the command
 --- ]
---- [{## lang=lua}
+--- [{$$ lang=lua}
 ---   os.execute'shell command' -> (ok, "exit", rc)
 ---   os.execute()              -> isShellAvailable
---- ]##
+--- ]$
 ---
 --- Prints whatever was executed. There are no ways to
 --- redirect the output besides piping in the command
@@ -469,7 +469,7 @@ for k, v in pairs(undocumented'math') do M[k] = v end
 
 --- for is a looping construct with two forms:
 ---
---- Numeric: [{## lang=lua}
+--- Numeric: [{$$ lang=lua}
 ---   for i=si,ei,period do -- period=1 by default
 ---     ... do something with i
 ---   end
@@ -479,9 +479,9 @@ for k, v in pairs(undocumented'math') do M[k] = v end
 ---   while i <= ei do i = i + si
 ---     ... do something with i
 ---   end
---- ]##
+--- ]$
 ---
---- Generic: [{## lang=lua}
+--- Generic: [{$$ lang=lua}
 ---   for i, v, etc in (nextfn, state, _index) do
 ---     .. do something with i, v, ...
 ---   end
@@ -493,12 +493,12 @@ for k, v in pairs(undocumented'math') do M[k] = v end
 ---     _index = i -- note: C internal, _index from lua doesn't change
 ---     ... code using i, v, etc here
 ---   end
---- ]##
+--- ]$
 ---
 --- The goal in writing a stateless iterator function is to match this
 --- loop's API as much as possible.
 ---
---- Example rewriting ipairs: [{## lang=lua}
+--- Example rewriting ipairs: [{$$ lang=lua}
 ---   local function rawipairs(t, i)
 ---     i = i + 1
 ---     if i > #t then return nil end
@@ -510,16 +510,16 @@ for k, v in pairs(undocumented'math') do M[k] = v end
 ---   for i, v in myipairs{5, 6, 7} do
 ---     iterates through (1, 5) -> (2, 6) -> (3, 7)
 ---   end
---- ]##
+--- ]$
 ---
---- Example rewriting pairs using [$next(t, key)]: [{## lang=lua}
+--- Example rewriting pairs using [$next(t, key)]: [{$$ lang=lua}
 ---   function mypairs(t)
 ---     return next, t, nil
 ---   end
 ---   for k, v in mypairs{a=1, b=2, c=3} do
 ---     iterates through ('a', 1) -> ('b', 2) -> ('c', 3)
 ---   end
---- ]##
+--- ]$
 ---
 --- See also: [@metaty.split] is a more complex example.
 M['for'] = function() end

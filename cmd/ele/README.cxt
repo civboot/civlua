@@ -26,7 +26,7 @@ Ele is architected using the MVI (model-view-intent) architecture, also
 known as the "React architecture" from the web library of the same
 name.
 
-[##
+[$$
    ,_____________________________________________
    | intent(): keyboard, timer, executor, etc    |
    `~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
@@ -35,7 +35,7 @@ name.
   ,__________________   Data + scheduled ,____________________________
   | view(): paint    | <================ | model(): keybind, actions  |
   `~~~~~~~~~~~~~~~~~~'                   `~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-]##
+]$
 
 In practice, this is accomplished in four coroutines spawned
 by [/ele.lua]'s [$main] function: [+
@@ -76,10 +76,10 @@ entries are where you will find the default modes. For instance,
 the following will insert the expected text at the cursor position
 from command mode:
 
-[{## lang=lua}
+[{$$ lang=lua}
 local B = require'ele.bindings'
 B.command['y y'] = {action='insert', 'Why oh why did I bind this?\n'},
-]##
+]$
 
 To write your own action you must: [+
 * Add a callable to [@ele.actions] which implements the intended behavior. The

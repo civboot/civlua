@@ -2,7 +2,7 @@
 [{h1}TODO list for CXT]
 
 Bugs: [+
-* [##this doesn't parse right]##
+* [$$this doesn't parse right]$
 ]
 
 
@@ -10,18 +10,18 @@ Bugs: [+
 I would like to allow the following to strip preceeding whitespace
 and FAIL if anything exists in said whitespace
 
-[###
+[$$$
 
 [+
   * This is a normal list item
   * This is a list item with some code:
-    [##
+    [$$
     This is a bit of code
     for the above
-    ]##
+    ]$
   * Another normal list item
 ]
-]###
+]$$
 
 The code block above should NOT have any preceeding whitespace.
 
@@ -30,11 +30,11 @@ whitespace for [$raw] blocks and check+strip them.
 
 [{h2}Html]
 First of all I need to handle special characters:
-[##
+[$$
  &   &amp;
  <   &lt;
  >   &gt;
-]##
+]$
 
 Inline code for html is a bit more complicated. I should use 'samp' (sample)
 instead of 'code' or 'pre', since 'samp' works for inline code and I already
@@ -44,7 +44,7 @@ Also: all spaces should become '&nbsp;' and all newlines become '<br>'
 
 So a before and after:
 
-[###
+[$$$
 CXT:
 function foo()
   a   = "hi"
@@ -60,7 +60,7 @@ function <b>foo</b>()<br>
 &nbsp; return a .. abc<br>
 end<br>
 </samp>
-]###
+]$$
 
 It's not pretty... but it just goes to show how HTML is not pretty. Also, I
 threw in the [$<b>foo</b>] to show that you can still add formatting in code

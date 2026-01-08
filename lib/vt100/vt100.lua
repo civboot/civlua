@@ -1,11 +1,11 @@
 local G = G or _G
 --- Civboot vt100 Terminal library that supports LAP protocol.
 --- Module for interacting with the vt100 via keys and AsciiColors.
---- [##
+--- [$$
 --- License CC0 / UNLICENSE
 --- Originally written 2022 Phil Leblanc, modified 2023 Rett Berg (Civboot.org)
 --- Authorized for relicense in: http://github.com/philanc/plterm/issues/4
---- ]##
+--- ]$
 local M = G.mod and mod'vt100' or setmetatable({}, {})
 G.MAIN = G.MAIN or M
 
@@ -78,7 +78,7 @@ M.Term.__fmt = function(tm, fmt) return tm.text:__fmt(fmt) end
 -- Escape Sequences
 local ESC,  LETO, LETR, LBR = 27, byte'O', byte'R', byte'['
 local LET0, LET9, LETSC = byte'0', byte'9', byte';'
---- valid input sequences following [#<esc>[]#
+--- valid input sequences following [$$ <esc>[ ]$
 M.INP_SEQ = {
   ['A'] = 'up',    ['B'] = 'down',  ['C'] = 'right', ['D'] = 'left',
   ['2~'] = 'ins',  ['3~'] = 'del',  ['5~'] = 'pgup', ['6~'] = 'pgdn',
@@ -96,7 +96,7 @@ M.INP_SEQ = {
   -- xterm
   ['H'] = 'home', ['F'] = 'end',
 }
---- valid input sequences following [#<esc>O]#
+--- valid input sequences following [$$ <esc>O ]$
 M.INP_SEQO = {
   -- xterm
   P = 'f1', Q = 'f2', R = 'f3', S = 'f4',
@@ -133,11 +133,11 @@ M.LITERALS = {
   ['caret']     = '^',
 }
 
---- Convert any key to it's literal form [#
+--- Convert any key to it's literal form [$
 ---   literal'a'       -> 'a'
 ---   literal'enter'   -> '\n'
 ---   literal'esc'     -> nil
---- ]#
+--- ]
 M.literal = function(key) --> literalstring?
   return (1 == ulen(key)) and key or M.LITERALS[key]
 end

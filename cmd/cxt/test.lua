@@ -31,15 +31,17 @@ T.code = function()
   T.eq(true, hub'['); T.eq(true, hub']')
   T.eq(true, hub'[]]')
 
-  local hashes = M._codeHashes
-  T.eq(nil, hashes'foo bar')
-  T.eq(0,   hashes'foo]bar')
-  T.eq(1,   hashes'[###foo]#bar')
+  local dollars = M._endDollars
+  T.eq(0, dollars'foo bar')
+  T.eq(1, dollars'foo]bar')
+  T.eq(2, dollars'[$$$foo]$bar')
 
-  T.eq('[$some [code]]', M.code'some [code]')
-  T.eq('[#some [code]#', M.code'some [code')
-  T.eq('[#some [code]#', M.code'some [code')
+  T.eq(1,     dollars'some [code]')
+  T.eq('[$$some [code]]$', M.code'some [code]')
+  T.eq('[$some [code]',    M.code'some [code')
+  T.eq('[$$some []code]$', M.code'some []code')
 end
+
 
 T.simple = function()
   M.assertParse('hi there', {'hi there'})
@@ -49,18 +51,13 @@ T.simple = function()
   M.assertParse('The [$inline code]', {
     'The ', {'inline code', code=true},
   })
-  M.assertParse('For [$inline], [$balanced[brackets] are okay]', {
+  M.assertParse('For [$inline], [$$any [brackets] need money]$', {
     'For ', {code=true, 'inline'}, ', ', { code=true,
-      'balanced[brackets] are okay'
+      'any [brackets] need money'
     },
   })
-  M.assertParse('[$inline code].    [$balanced[brackets] are allowed]', {
-    {'inline code', code=true},
-    '.    ',
-    {'balanced[brackets] are allowed', code=true},
-  })
 
-  M.assertParse('[##code]##.', { {'code', code=true}, '.'})
+  M.assertParse('[$$code]$.', { {'code', code=true}, '.'})
 
   M.assertParse('multiple\n [_lines]\n\n  with [*break]', {
     'multiple\n', {'lines', u=true},
@@ -76,15 +73,17 @@ T.simple = function()
   })
 
   M.assertParse('empty [{}block works].', {'empty ', {'block works'}, '.'})
+  M.assertThrows('[$ unclosed',    'Got EOF, expected')
+  M.assertThrows('[$$ unclosed ]', 'Got EOF, expected')
 end
 
 T.block = function()
   M.assertParse([[
 Some code:
-[##
+[$$
 This is a bit
   of code.
-]##
+]$
 ]], {
     "Some code:\n",
     {"\nThis is a bit\n  of code.\n", code=true, block=true},
@@ -164,16 +163,16 @@ A list:[+
   M.assertParse([[
 A list:[+
 *
-  [#
+  [$
   one block
-  ]#
+  ]
 * second block:
 
-  [#
+  [$
   start
     two block
   end
-  ]#
+  ]
 ]
 ]], {
     "A list:", { list=true,
@@ -201,9 +200,9 @@ T.nested = function()
 [+
 * list item
 
-  [##
+  [$$
   with inner code
-  ]##
+  ]$
 ]
 ]],
   {
@@ -302,7 +301,7 @@ end
 
 T.html = function()
   html.assertHtml('hi <b>there</b> bob\n', 'hi [*there] bob')
-  html.assertHtml('code <span class=code>code</span>.\n', 'code [##code]##.')
+  html.assertHtml('code <span class=code>code</span>.\n', 'code [$$code]$.')
   html.assertHtml(
     'name <a id="named" href="#named" class=anchor><b>thing</b></a>\n',
     'name [{*name=named}thing]')
@@ -367,25 +366,25 @@ code 2
 next line.
 ]],
 [[
-Some [$inline code] and: [##
+Some [$inline code] and: [$$
 code 1
 code 2
-]##
+]$
 next line.
 ]])
 
   html.assertHtml(
 [[
 Code block: <div class=code-block>echo "foo bar" &nbsp;# does baz<br>
-echo "blah blah"
+echo "blah $$$ blah"
 </div>
 end of code block.
 ]],
 [[
-Code block: [{## lang=sh}
+Code block: [{$$ lang=sh}
 echo "foo bar"  # does baz
-echo "blah blah"
-]##
+echo "blah $$$ blah"
+]$
 end of code block.
 ]])
 
@@ -401,10 +400,10 @@ more code
 [[
 list [+
 * code:
-  [#
+  [$
   some code
   more code
-  ]#
+  ]
 ]
 ]])
 end
@@ -421,9 +420,9 @@ Some text
 ... more text
 
 Code:
-[{## lang=lua}
+[{$$ lang=lua}
 function foo() return 'hello world' end
-]##
+]$
 
 [*bold] [,italic] [/path/to/thing] [+
   * item 1

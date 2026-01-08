@@ -238,11 +238,11 @@ end
 
 --- split the subj by pattern. [$ctx] has two keys: [$si] (start index) and
 --- [$ei] (end index)
---- [{## lang=lua}
+--- [{$$ lang=lua}
 --- for ctx, line in split(text, '\n') do -- split lines
 ---   ... do something with line
 --- end
---- ]##
+--- ]$
 M.split = function(subj, pat--[[%s+]], index--[[1]]) --> (cxt, str) iter
   return M.rawsplit, subj, {pat or '%s+', index or 1}
 end
@@ -574,7 +574,7 @@ end
 --- on functions can be equally as good -- see the example below.
 ---
 --- [{h2}Example]
---- [{### lang=lua}
+--- [{$$$ lang=lua}
 --- M.Job = enum'Job' {
 ---   OWNER   = 1,
 ---   MANAGER = 2,
@@ -609,7 +609,7 @@ end
 ---
 --- -- call in your own function like:
 --- doJob[job](my, args)
---- ]###
+--- ]$$
 ---
 M.enum = function(name)
   assert(type(name) == 'string' and #name > 0,

@@ -13,6 +13,7 @@ local log = require'ds.log'
 local lines = require'lines'
 local T = require'civtest'
 
+local I = log.info
 local sconcat, sfmt, srep = string.concat, string.format, string.rep
 local add, pop = table.insert, table.remove
 local update   = table.update
@@ -24,7 +25,8 @@ local Token, Empty, Eof, PIN, UNPIN
 local EMPTY, common
 local pegl = ds.auto'pegl'
 
-local RAW = '#'
+local RAW = '$'
+local RAWP = '%$'
 
 --- escape the string so it renders literally
 M.escape = function(str) return str:gsub('([\\%[%]])', '\\%1') end
@@ -37,23 +39,18 @@ M._hasUnbalancedBrackets = function(str)
   end
   return c ~= 0
 end
-M._codeHashes = function(str)
-  local n; for m in str:gmatch'%]#*' do n = max(n or 0, #m-1) end
-  return n
-end
---- create a [$[##code block]##]
-M.codeblock = function(str, lang)
-  local hs = srep('#', (M._codeHashes(str) or 0) + 1)
-  return lang and sfmt('[{%s lang=%s}%s]%s', hs, lang, str, hs)
-               or (str:sub(1,1)=='#') and sfmt('[{%s}%s]%s', hs, str, hs)
-               or sfmt('[%s%s]%s', hs, str, hs)
+M._endDollars = function(str)
+  local n; for m in str:gmatch'%](%$*)' do n = max(0, #m+1) end
+  return n or 0
 end
 
---- create [$[$inline code]]
+--- create [$$ [$inline code] ]$
 M.code = function(str, lang)
-  return M._hasUnbalancedBrackets(str) and M.codeblock(str, lang)
-      or lang and sfmt('[{$ lang=%s}%s]', lang, str)
-      or sfmt('[$%s]', str)
+  local n = M._endDollars(str)
+  local hs, he = srep(RAW, n+1), srep(RAW, n)
+  return lang and sfmt('[{%s lang=%s}%s]%s', hs, lang, str, he)
+               or (str:sub(1,1)=='$') and sfmt('[{%s}%s]%s', hs, str, he)
+               or sfmt('[%s%s]%s', hs, str, he)
 end
 
 ------------------------
@@ -71,7 +68,7 @@ M.keyval = {kind='keyval',
   Pat'[_.%-%w]+',
   Maybe{'=', Pat'[^%s{}]+', kind='value'},
 }
-M.attr  = Or{Pat{RAW..'+', kind='raw'}, M.attrSym, M.keyval}
+M.attr  = Or{Pat{RAWP..'+', kind='raw'}, M.attrSym, M.keyval}
 M.attrs =   {PIN, Many{M.attr}, '}', kind='attrs'}
 
 local function addToken(p, node, l1, c1, l2, c2)
@@ -91,18 +88,17 @@ local function nodeText(p, node, errNode)
   return table.concat(txt)
 end
 
---- find the end of a [$[##raw block]##]
+--- find the end of a [$$ [$raw block] ]$
 local function bracketedStrRaw(p, node, raw, startCol)
   node.code = node.code or (node.lang and true)
   local ws, w1 = p.line:find'^%s+' -- leading whitespace
   ws = ws and (w1 + 1 == startCol) and p.line:sub(ws, w1) or nil
 
-  local l, c, closePat = p.l, p.c, '%]'..srep(RAW, raw)
-  local closePatStart = '^'..closePat
+  local l, c, closePat = p.l, p.c, '%]'..srep(RAWP, raw-1)
   if p.c > #p.line then p:incLine() end
   while true do
     if p:isEof() then return p:error(sfmt(
-      "Got EOF, expected %q", closePat:sub(2)
+      "Got EOF, expected %q", closePat:gsub('%%', '')
     ))end
     if ws and p.c == 1 then -- strip leading whitespace
       addToken(p, node, l, c, p.l, p.c - 1)
@@ -111,6 +107,8 @@ local function bracketedStrRaw(p, node, raw, startCol)
       end
       l, c, p.c = p.l, w2+1, w2+1
     end
+    
+    I('!! line=%q pat=%q', p.line:sub(p.c), closePat)
     local c1, c2 = p.line:find(closePat, p.c)
     if c2 then
       p.c = c2 + 1; local lt, ct = p.l, c1 - 1
@@ -144,7 +142,7 @@ local fmtAttr = {
   [':'] = 'name', -- both here and txtCtrl. This sets node.name=true
 }
 local strAttr = {
-  ['!'] = 'hidden',   ['$'] = 'code',
+  ['!'] = 'hidden',
 }
 local txtCtrl = {[':'] = 'name', ['@'] = 'clone', ['/'] = 'path'}
 local shortAttrs = {n='name', v='value'}
@@ -163,7 +161,7 @@ local function parseAttrs(p, node)
     else
       fmt.assertf(attr.kind == 'raw', 'kind: %s', attr.kind)
       if raw then
-        p.l, p.c = l, c; return p:error'multiple raw (##...) attributes'
+        p.l, p.c = l, c; return p:error'multiple raw ($$...) attributes'
       end
       local _, c1, _, c2 = attr:span()
       raw = c2 - c1 + 1
@@ -319,7 +317,7 @@ M.content = function(p, node, isRoot, altEnd)
   if ctrl == '' then
     return p:error("expected control char after '['")
   elseif ctrl == RAW then
-    local c1, c2 = p.line:find('^#+', p.c)
+    local c1, c2 = p.line:find('^$+', p.c)
     assert(c2)
     p.c, raw = c2, c2 - c1 + 1
   end
@@ -449,6 +447,12 @@ M.assertParse = function(dat, expected, dbg) --> node
   node = M.parsedStrings(p, node)
   T.eq(expected, node)
   return node
+end
+
+M.assertThrows = function(dat, err, dbg)
+  T.throws(err, function()
+    M.parse(dat, dbg)
+  end)
 end
 
 M.fmtAttr = fmtAttr

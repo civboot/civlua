@@ -274,14 +274,14 @@ end
 --- * removes leading whitespace equal to the first
 ---   line (or second line if first line has no indent)
 --- ]
---- Example: [{## lang=lua}
+--- Example: [{$$ lang=lua}
 --- local s = require'ds'.simplestr
 --- local mystr = s[[
 ---   this is
 ---     a string.
 --- ]]
 --- T.eq('this is\n  a string.', mystr)
---- ]##
+--- ]$
 M.simplestr = function(s)
   local i, out, iden, spcs = 1, {}, nil
   for _, line in M.split(s, '\n') do
@@ -551,10 +551,10 @@ M.rmleft = function(t, rm, eq--[[ds.eq]]) --> t (mutated)
   return t
 end
 
---- used with ds.getp and ds.setp. Example [{## lang=lua}
+--- used with ds.getp and ds.setp. Example [{$$ lang=lua}
 ---   local dp = require'ds'.dotpath
 ---   ds.getp(t, dp'a.b.c')
---- ]##
+--- ]$
 M.dotpath = function(dots) --> list split by '.'
   local p = {}; for v in dots:gmatch'[^%.]+' do push(p, v) end
   return p
@@ -562,10 +562,10 @@ end
 
 --- get the value at the path or nil if the value or any
 --- intermediate table is missing.
---- [{## lang=lua}
+--- [{$$ lang=lua}
 ---   get(t, {'a', 2, 'c'})  -> t.a?[2]?.c?
 ---   get(t, dotpath'a.b.c') -> t.a?.b?.c?
---- ]##
+--- ]$
 M.getp = function(t, path) --> value? at path
   for _, k in ipairs(path) do
     t = t[k]; if t == nil then return nil end
@@ -583,9 +583,9 @@ end
 
 --- set the value at path using newFn (default=ds.newTable) to create
 --- missing intermediate tables.
---- [{## lang=lua}
+--- [{$$ lang=lua}
 --- set(t, dotpath'a.b.c', 2) -- t.a?.b?.c = 2
---- ]##
+--- ]$
 M.setp = function(d, path, value, newFn) --> nil
   newFn = newFn or M.emptyTable
   local len = #path; assert(len > 0, 'empty path')
@@ -1079,10 +1079,10 @@ end
 --- [$Deq() -> Deq], a deque
 --- Use as a first in/out with [$deq:push(v)/deq()]
 ---
---- Main methods: [##
+--- Main methods: [$$
 ---   pushLeft()  pushRight()
 ---   popLeft()   popRight()
---- ]##
+--- ]$
 --- Calling it is the same as popLeft (use as iterator)
 M.Deq = mty'Deq'{
   'right [number]',

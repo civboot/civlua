@@ -32,10 +32,10 @@ local fmtMatch, fmtSub
 --- * [$-p:a_path.*pattern]: same as [$--nopath=some/dir]
 --- ]
 ---
---- Examples:[{## sh}
+--- Examples:[{$$ sh}
 --- ff some.*pattern  # search recursively in local dir
 --- ff r:some/dir/ some.*pat -not.*pat p:some%.path -p:not%.path]
---- ]##
+--- ]$
 ---
 --- ff's replacing functionality is intended to be used incrementally:[+
 --- * use [$--sub=whatever] to see what changes will happen

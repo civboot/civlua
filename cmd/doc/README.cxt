@@ -5,7 +5,7 @@ in the lua stdlibrary.
 
 Making a library's types self-documenting is easy:
 
-[{## lang=lua}
+[{$$ lang=lua}
 local G = G or _G
 -- My module docs
 local M = G.mod and mod'myModName' or {}
@@ -14,7 +14,7 @@ local M = G.mod and mod'myModName' or {}
 M.myFn = function(a, b) --> string
   -- do stuff
 end
-]##
+]$
 
 See [@Package_pkg] and [@Package_cxt] for more details.
 

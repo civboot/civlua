@@ -499,9 +499,9 @@ end
 --- Parse the [$dat] with the [$spec], asserting the resulting "string tokens"
 --- are identical to [$expect].
 ---
---- the input is a table of the form: [{# lang=lua}
+--- the input is a table of the form: [{$ lang=lua}
 ---   {dat, spec, expect, dbg=nil, config=default} --> nil
---- ]#
+--- ]
 M.assertParse = function (t) --> result, node, parser
   assert(t.dat, 'dat'); assert(t.spec, 'spec')
   local config = (t.config and ds.copy(t.config)) or M.Config{}

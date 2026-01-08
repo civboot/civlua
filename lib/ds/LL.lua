@@ -7,22 +7,22 @@ local mty = require'metaty'
 ---   * u indicates "unused" and is necessary for lua's syntax
 --- ]
 ---
---- '+' is "add value" operator, it returns the added node [{## lang=lua}
+--- '+' is "add value" operator, it returns the added node [{$$ lang=lua}
 ---   t = LL(3) + 4 -- (  3 -> t=4)
 ---   h = t:head()  -- (h=3 -> t=4)
 --- ]#
 ---
 --- '-' is "link nodes" operator, it puts the nodes on the right
---- and returns the first node [{## lang=lua}
+--- and returns the first node [{$$ lang=lua}
 ---   u = t - (LL(5) + 6) -- (h=3 -> t=4 -> 5 -> 6)
 ---   t = t:tail()        -- (h=3 -> 4   -> 5 -> t=6)
 ---   h1 = h.r - LL(3.1)  -- (h=3 -> h1=3.1 -> 4 -> 5 -> t=6)
---- ]##
+--- ]$
 ---
---- ':extend' puts a list of values as nodes at onto tail [{## lang=lua}
+--- ':extend' puts a list of values as nodes at onto tail [{$$ lang=lua}
 ---   h = (LL(3) + 4 + 5):head() -- (h=3 -> 4 -> 5)
 ---   h:extend{6, 7, 8}          -- (h=3 -> 4 -> 5 -> 6 -> 7 -> 8)
---- ]##
+--- ]$
 local LL = mty'LL' {
   'l [&LL]: left node', 'r [&LL]: right node', 'v [any]: value',
 }
@@ -99,10 +99,10 @@ end
 --- Note: This is for convienience and expressiveness of small lists.
 ---       Use link() or insert() if performance matters.
 ---
---- Example: [{## lang=lua}
+--- Example: [{$$ lang=lua}
 ---   l6     = LL(3) - (LL(4) + 5) - L(6) ==> (3 -> 4 -> 5 -> 6)
 ---   l3tail = l1 - l2 - l3
---- ]##
+--- ]$
 LL.__sub = function(l, r)
   local t = r:tail()
   l, r = l:tail(), r:head()
