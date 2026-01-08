@@ -10,6 +10,7 @@ local lower = string.lower
 G.LUA_SETUP = G.LUA_SETUP or os.getenv'LUA_SETUP' or 'ds'
 
 local ENV_VALS = {['true'] = true, ['1'] = true }
+local EMPTY = {}
 
 --- Parse either a string or list and convert them to key=value table.
 --- v can be either a list of [${'strings', '--option=foo'}]
@@ -186,14 +187,15 @@ end
 --- For example:
 --- [$construct({foo=Foo, bar=Bar}, {'foo', 'ding', zing=true})]
 --- returns a {foo=Foo{'ding', zing=true}}.
-M.construct = function(Args, args) --> ok, err?
-  assert(Args and args, 'must provide (Args,args)')
-  if type(Args) == 'table' and rawget(Args, 'subcmd') then
-    local v = {}; for k in pairs(Args) do
+M.construct = function(Cmd, args) --> ok, err?
+  args = M.parseStr(args)
+  assert(Cmd and args, 'must provide (Cmd,args)')
+  if type(Cmd) == 'table' and rawget(Cmd, 'subcmd') then
+    local v = {}; for k in pairs(Cmd) do
       if k ~= 'subcmd' then push(v, k) end
     end
     local sc = args[1]
-    if not sc or not Args[sc] then
+    if not sc or not Cmd[sc] then
       return nil, sfmt(
         'invalid subcmd %q, valid subcommands are: %s',
         sc or '', table.concat(v, ' '))
@@ -201,19 +203,20 @@ M.construct = function(Args, args) --> ok, err?
     table.remove(args, 1)
     return {
       subcmd = sc,
-      [sc]=M.construct(Args[sc], args),
+      [sc]=M.construct(Cmd[sc], args),
     }
   end
-  return Args(args)
+  return mty.construct(Cmd, args)
 end
 
---- Convienience function to perform common setup and run a command-like object.
-M.init = function(Args, args)
-  local a, err = M.construct(Args, args)
+--- FIXME delete
+M.init = function(Cmd, args)
+  local a, err = M.construct(Cmd, args)
   M.runSetup(a or {})
   return assert(a, err)
 end
 
+-- FIXME delete
 M.run = function(Args, args)
   return M.init(Args, args)()
 end
@@ -221,18 +224,36 @@ end
 --- Return whether a record was created with [@shim.cmd]
 M.isCmd = function(R) return rawget(R, '__cmd') and true end
 
+--- The [$getmt(Cmd).__call]
+function M._constructCall(Cmd, args)
+  require'ds.log'.info('@@ cmd:__call %q', args)
+  return Cmd:new(args)()
+end
+
+--- [$Cmd:main()] constructor and runner.
+M._main = function(Cmd, args)
+  local self, err = Cmd:new(args)
+  M.runSetup(self or {})
+  assert(self, err)
+  return self()
+end
+
 --- for [$cmd.__doc]
 M._doc = function(R, d, pre)
   local name, loc, cmt, code = d:anyExtract(R)
   pre = ((pre and (pre..' ')) or '')..R.__name
-  d:header('Command '..pre, name)
+  d:header('Command '..pre, R.__name)
   -- Comments
-  for _, c in ipairs(cmt or EMPTY) do d:write(c); d:write'\n' end
-  mty._docFields(R, d, name)
+  if cmt then
+    for _, c in ipairs(cmt) do d:write(c); d:write'\n' end
+    d:write'\n\n'
+  end
+  mty._docFields(R, d, name, 'Arguments')
+  mty._docMethods(R, d, name)
 end
 
 --- for [$subcmds.__doc]
-M._subdoc = function(R, d, pre)
+M._subsdoc = function(R, d, pre)
   local name, loc, cmt, code = d:anyExtract(R)
   pre = ((pre and (pre..' ')) or '')..R.__name
   d:header('Command '..pre, name)
@@ -247,6 +268,18 @@ M._subdoc = function(R, d, pre)
   d:endmod(R)
 end
 
+local function namedCmd(name, R)
+  R.new    = R.new    or M.construct
+  R.main   = R.main   or M._main
+  R.__doc  = R.__doc  or M._doc
+  R.__cmd  = R.__cmd  or name
+  R = mty.namedRecord(name, R)
+  getmetatable(R).__call = M._constructCall
+  io.stderr:write('@@cmd name=', R.__name, '\n')
+  G.MAIN = G.MAIN or R
+  return R
+end
+
 --- Create a new command as your module.
 ---
 --- [{$$ lang=lua}
@@ -256,13 +289,13 @@ end
 ---   'to [path|file]: where to write output',
 --- }
 --- -- ... rest of your module.
---- M:runIfMain()
+--- if shim.isMain(M) then os.exit(M:main(arg)) end
 --- return M
 --- ]$
 M.cmd = function(name)
   return function(R)
-    local R = metaty.namedRecord('Cmd', R)
-    R.__cmd, R.__doc = name, M._doc
+    namedCmd(name, R)
+    mod.save(name, R)
     return R
   end
 end
@@ -270,10 +303,14 @@ end
 --- Create a command composed of subcommands.
 M.subcmds = function(name)
   return function(R)
-    local R = metaty.namedRecord(name, R)
-    R.__cmd, R.__doc = name, M._subdoc
+    R.__doc = R.__doc or M._subsdoc
+    namedCmd(name, R)
+    mod.save(name, R)
     return R
   end
 end
+
+--- Usage: [$if shim.isMain(M) then os.exit(M:main(arg)) end]
+function M.isMain(cmd) return G.MAIN == cmd end
 
 return M

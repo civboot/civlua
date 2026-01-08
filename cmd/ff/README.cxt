@@ -1,0 +1,26 @@
+ff: the find-fix utility.
+
+
+[$ff] is a utility command-line tool (and lua library) to find and optionally
+replace lua patterns. It searches for file patterns, file content, or both.  It
+can also rename files and modify the content using [$--sub] with [$--mut].
+
+ff uses an easy to learn shorthand for many operations, displayed below:
+
+[{table}
+# syntax                   | equivalent
++ [$some_pat] (no prefix)  | [$--pat=some_pat]
++ [$r:some/dir/]           | [$--root=some/dir]
++ [$p:path.*pattern]       | [$--path=path.*pattern]
++ [$-p:%.so$]              | [$--nopath=%.so$]
+]
+
+Examples:[{$$ lang=sh}
+ff 'some.*pattern'       # search for some.*pattern
+ff r:some/root/ pat      # search for pat in root
+ff find --sub=fix        # replace 'find' with 'fix' (display)
+ff find --sub=fix --mut  # actually replace 'find' with 'fix'
+]$
+
+Note: all [$directories/] always end with [$/] which you can
+use to include/exclude them.

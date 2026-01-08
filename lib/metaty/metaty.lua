@@ -52,8 +52,8 @@ local mod; mod = {
 -- save v with name to PKG variables
 mod.save = function(name, v)
   if CONCRETE[type(v)] then return end
-  PKG_LOC[v]  = PKG_LOC[v]  or srcloc(2)
-  PKG_NAMES[v] = PKG_NAMES[v] or name
+  PKG_LOC[v]       = PKG_LOC[v]       or srcloc(2)
+  PKG_NAMES[v]     = PKG_NAMES[v]     or name
   PKG_LOOKUP[name] = PKG_LOOKUP[name] or v
 end
 
@@ -270,14 +270,14 @@ local function cleanupFieldTy(tyStr)
   return tyStr:match'%[(.*)%]' or tyStr
 end
 
-M._docFields = function(R, d, name)
+M._docFields = function(R, d, name, kind)
   local fmt = require'fmt'
   local fields = {}
   for _, fname in ipairs(R.__fields or EMPTY) do
     if not fname:match'^_' then push(fields, fname) end
   end
   if #fields > 0 then
-    d:bold'Fields:'; d:write'[+\n'; 
+    d:bold(kind..':'); d:write'[+\n'; 
     for _, fname in ipairs(fields) do
       d:write'* '; d:level(1)
       d:write(sfmt('[{*name=%s.%s}.%s]', name, fname, fname))
@@ -295,7 +295,7 @@ M._docFields = function(R, d, name)
         end
       end
       local doc = R.__docs[fname]; if doc then
-        d:write(doc)
+        d:write'\n'; d:write(doc)
       end
       d:level(-1); d:write'\n'
     end
@@ -336,7 +336,7 @@ M.doc = function(R, d)
   for _, c in ipairs(cmt or EMPTY) do
     d:write(c); d:write'\n'
   end
-  M._docFields(R, d, name)
+  M._docFields(R, d, name, 'Fields')
   M._docMethods(R, d, name)
 end
 

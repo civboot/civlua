@@ -86,8 +86,9 @@ function M.Doc:header(content, name)
 end
 
 function M.Doc:anyExtract(obj) --> name, loc, cmt, code
-  local name, loc = mty.anyinfo(R)
-  return name, loc, d:extractCode(loc)
+  local name, loc = mty.anyinfo(obj)
+  info('@@ anyExtract name=%q loc=%q', name, loc)
+  return name, loc, self:extractCode(loc)
 end
 
 function M.Doc:extractCode(loc) --> (commentLines, codeLines)

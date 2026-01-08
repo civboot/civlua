@@ -42,3 +42,18 @@ T.duck = function()
   T.eq(false, M.boolean'false')
   T.eq(nil, M.boolean(nil))
 end
+
+T'cmd' do
+  local A = M.cmd'A' { 'a' }
+  local v
+  function A:__call() v = (self.a or 0) + 1; return self.a end
+  T.eq(42, A{a=42})
+  T.eq(43, v)
+  T.eq('32', A'--a=32')
+
+  function A.new(T, self)
+    self.a = M.number(self.a)
+    return M.construct(T, self)
+  end
+  T.eq(77, A{a='77'})
+end
