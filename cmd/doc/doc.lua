@@ -85,6 +85,11 @@ function M.Doc:header(content, name)
   end
 end
 
+function M.Doc:anyExtract(obj) --> name, loc, cmt, code
+  local name, loc = mty.anyinfo(R)
+  return name, loc, d:extractCode(loc)
+end
+
 function M.Doc:extractCode(loc) --> (commentLines, codeLines)
   if not loc then return end
   if type(loc) ~= 'string' then loc = select(2, mty.anyinfo(loc)) end
@@ -164,7 +169,11 @@ function M.Doc:mod(m)
   for _, c in ipairs(cmts or EMPTY) do
     self:write(c); self:write'\n'
   end
+  return self:endmod(m, name)
+end
 
+--- Document the end (not header+comments) of module.
+function M.Doc:endmod(m)
   local names = {}
   local fns, tys, oth = {}, {}, {}
   for _, k in ipairs(m.__attrs) do

@@ -260,24 +260,18 @@ M.fmt = function(self, f)
   f:level(-1); f:write(multi and f.tableEnd or '}')
 end
 
+--- The default __tostring method.
+M.tostring = function(self)
+  local mt = getmt(self)
+  return sfmt('%s@%p', rawget(mt, '__name'), self)
+end
+
 local function cleanupFieldTy(tyStr)
   return tyStr:match'%[(.*)%]' or tyStr
 end
 
---- The default __doc method.
----
---- ["d is of type [$doc.Documenter].
----   Tests are in cmd/doc/test.lua ]
-M.doc = function(R, d)
+M._docFields = function(R, d, name)
   local fmt = require'fmt'
-  local name, loc = M.anyinfo(R)
-  local cmt, code = d:extractCode(loc)
-  d:header('Record '..R.__name, name)
-  -- Comments
-  for _, c in ipairs(cmt or EMPTY) do
-    d:write(c); d:write'\n'
-  end
-  -- Fields
   local fields = {}
   for _, fname in ipairs(R.__fields or EMPTY) do
     if not fname:match'^_' then push(fields, fname) end
@@ -307,7 +301,9 @@ M.doc = function(R, d)
     end
     d:write']\n'
   end
-  -- Methods
+end
+
+M._docMethods = function(R, d, name)
   local methods = {}
   for _, k in ipairs(R.__attrs) do
     if k:match'^_' then goto continue end
@@ -328,10 +324,20 @@ M.doc = function(R, d)
   end
 end
 
---- The default __tostring method.
-M.tostring = function(self)
-  local mt = getmt(self)
-  return sfmt('%s@%p', rawget(mt, '__name'), self)
+--- The default __doc method.
+---
+--- ["d is of type [$doc.Documenter].
+---   Tests are in cmd/doc/test.lua ]
+M.doc = function(R, d)
+  local name, loc = M.anyinfo(R)
+  local cmt, code = d:extractCode(loc)
+  d:header('Record '..R.__name, name)
+  -- Comments
+  for _, c in ipairs(cmt or EMPTY) do
+    d:write(c); d:write'\n'
+  end
+  M._docFields(R, d, name)
+  M._docMethods(R, d, name)
 end
 
 -----------------------------
@@ -469,6 +475,8 @@ M.namedRecord = function(name, R, loc)
   return R
 end
 
+--- Start a new record.
+--- Alternatively, call the metaty module directly.
 M.record = function(name)
   assert(type(name) == 'string' and #name > 0,
          'must set name to string')

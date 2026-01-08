@@ -13,8 +13,6 @@ local info = require'ds.log'.info
 local push = require'ds'.push
 local w = require'civ.Worker':get()
 
-io.stderr:write('Running sys/lua/test.lua on '..#w.ids..' ids\n')
-
 local function main()
   for _, id in ipairs(w.ids) do
     local tgt = w:target(id); if tgt.kind ~= 'test' then goto continue end

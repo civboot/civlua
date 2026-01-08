@@ -2,13 +2,12 @@ local mty = require'metaty'
 
 --- shim: use a lua module in lua OR in the shell.
 local M = mty.mod'shim'
+local G = mty.G
 
 local push, sfmt = table.insert, string.format
 local lower = string.lower
 
-rawset(_G, 'LUA_SETUP', rawget(_G, 'LUA_SETUP')
-                     or os.getenv'LUA_SETUP'
-                     or 'ds')
+G.LUA_SETUP = G.LUA_SETUP or os.getenv'LUA_SETUP' or 'ds'
 
 local ENV_VALS = {['true'] = true, ['1'] = true }
 
@@ -217,6 +216,64 @@ end
 
 M.run = function(Args, args)
   return M.init(Args, args)()
+end
+
+--- Return whether a record was created with [@shim.cmd]
+M.isCmd = function(R) return rawget(R, '__cmd') and true end
+
+--- for [$cmd.__doc]
+M._doc = function(R, d, pre)
+  local name, loc, cmt, code = d:anyExtract(R)
+  pre = ((pre and (pre..' ')) or '')..R.__name
+  d:header('Command '..pre, name)
+  -- Comments
+  for _, c in ipairs(cmt or EMPTY) do d:write(c); d:write'\n' end
+  mty._docFields(R, d, name)
+end
+
+--- for [$subcmds.__doc]
+M._subdoc = function(R, d, pre)
+  local name, loc, cmt, code = d:anyExtract(R)
+  pre = ((pre and (pre..' ')) or '')..R.__name
+  d:header('Command '..pre, name)
+  -- Comments
+  for _, c in ipairs(cmt or EMPTY) do d:write(c); d:write'\n' end
+  d:hdrlevel(1)
+  for _, sub in ipairs(R.__attrs) do
+    local S = rawget(R, sub)
+    if M.isDoc(S) then rawget(cmd, '__doc'):__doc(d, pre) end
+  end
+  d:hdrlevel(-1)
+  d:endmod(R)
+end
+
+--- Create a new command as your module.
+---
+--- [{$$ lang=lua}
+--- local M = shim.cmd'mycmd' {
+---   '...: argument documentation',
+---   'foo: some paramater',
+---   'to [path|file]: where to write output',
+--- }
+--- -- ... rest of your module.
+--- M:runIfMain()
+--- return M
+--- ]$
+M.cmd = function(name)
+  return function(R)
+    local R = metaty.namedRecord('Cmd', R)
+    R.__cmd, R.__doc = name, M._doc
+    return R
+  end
+end
+
+--- Create a command composed of subcommands.
+M.subcmds = function(name)
+  return function(R)
+    local R = metaty.namedRecord(name, R)
+    R.__cmd, R.__doc = name, M._subdoc
+    return R
+  end
 end
 
 return M
