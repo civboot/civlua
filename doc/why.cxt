@@ -1,0 +1,26 @@
+Civstack is an entire "Developer Tech Stack" from scratch, written in Lua (and
+a few small C-extensions). First of all, what is a "Developer Tech Stack"?
+
+Besides the compiler and build system, a software developer only truly depends
+on a few terminal-based tools for development. These are their text editor,
+shell (and/or repl), version control, a means to query documentation, and a few
+other situational tools (i.e. find/replace text). These encompase the
+"Developer Tech Stack". civlua aims to provide this tech stack in a "small"
+amount of code that is well documented and easy for a single developer to
+understand and modify within a few months.
+
+Software is complex. Some of the complexity is to serve goals like performance
+and scaleability; which can be good for large-scale collaboration. However,
+the core tools of a developer such as their editor, shell, utilities and
+documentation should should be completely [,knowable] and [,hackable].
+How can our tech stack be knowable when all the core tools are so bloated?
+The [$Python/] directory in  [<https://github.com/python/cpython>CPython] is
+124k lines (and [$Lib] is 790k). [<code.commonmark.org>CommonMark], which just
+renders markdown files, is 20 thousand lines alone!
+
+The [<https://lua.org>Lua] language is only 20k lines of C and this library
+(~15k lines) will soonish implement an entire tech stack that a small team of
+developers or students could use to cooperate and hack. Technology is much more
+joyful when it is at this size and complexity. That is the goal of this
+project, and that is the goal of [<https://civboot.org>], which this project is
+a part of.
