@@ -1,8 +1,7 @@
 #!/usr/bin/env -S lua
 local shim = require'shim'
 
---- When called in lua, returns a list of paths which matched
---- all requirements.
+--- Usage: [$ff find_this or_this]
 local FF = shim.cmd'ff' {
   'root   {paths}: list of root paths, i.e. [$r:path1/ r:path2]',
   'pat    {pat}: list of patterns to find',

@@ -61,7 +61,7 @@ local ROOT_NAV = [[
 local function export(cxtFile, htmlFile, header)
   local to = assert(io.open(htmlFile, 'w'))
   to:write(header); to:write'\n'
-  return cxt.Html { cxtFile, to=to }()
+  return cxt.html { cxtFile, to=to }
 end
 
 function M.Main:__call()

@@ -1,12 +1,17 @@
 #!/usr/bin/env -S lua
+local shim = require'shim'
 local mty = require'metaty'
 
 --- TODO: see TODO.cxt
-local M = mod and mod'cxt' or {}
+local cxt = shim.subcmds'cxt' {}
+
+--- Convert cxt to HTML.
+cxt.html = shim.cmd'html'{
+  __cmd='cxt html',
+  'to [string|file]: where to write output.',
+}
 
 local G = mty.G; G.MAIN = G.MAIN or M
-local mty = require'metaty'
-local shim = require'shim'
 local fmt = require'fmt'
 local ds  = require'ds'
 local log = require'ds.log'
@@ -29,9 +34,9 @@ local RAW = '$'
 local RAWP = '%$'
 
 --- escape the string so it renders literally
-M.escape = function(str) return str:gsub('([\\%[%]])', '\\%1') end
+cxt.escape = function(str) return str:gsub('([\\%[%]])', '\\%1') end
 
-M._hasUnbalancedBrackets = function(str)
+cxt._hasUnbalancedBrackets = function(str)
   local c = 0; for m in str:gmatch'[%[%]]' do
     if m == '[' then c = c + 1
     elseif           c == 0 then return true
@@ -39,14 +44,14 @@ M._hasUnbalancedBrackets = function(str)
   end
   return c ~= 0
 end
-M._endDollars = function(str)
+cxt._endDollars = function(str)
   local n; for m in str:gmatch'%](%$*)' do n = max(0, #m+1) end
   return n or 0
 end
 
 --- create [$$ [$inline code] ]$
-M.code = function(str, lang)
-  local n = M._endDollars(str)
+cxt.code = function(str, lang)
+  local n = cxt._endDollars(str)
   local hs, he = srep(RAW, n+1), srep(RAW, n)
   return lang and sfmt('[{%s lang=%s}%s]%s', hs, lang, str, he)
                or (str:sub(1,1)=='$') and sfmt('[{%s}%s]%s', hs, str, he)
@@ -59,17 +64,17 @@ end
 -- that is whitespace agnostic.  Otherwise whitespace is VERY important
 -- in cxt, and handling whitespace in PEGL would be a complete hack.
 
-M.attrSym = Key{kind='attrSym', {
+cxt.attrSym = Key{kind='attrSym', {
   '!',             -- hidden
   '*', '/', '_',   -- bold, italic, underline
   ':',             -- define node name
 }}
-M.keyval = {kind='keyval',
+cxt.keyval = {kind='keyval',
   Pat'[_.%-%w]+',
   Maybe{'=', Pat'[^%s{}]+', kind='value'},
 }
-M.attr  = Or{Pat{RAWP..'+', kind='raw'}, M.attrSym, M.keyval}
-M.attrs =   {PIN, Many{M.attr}, '}', kind='attrs'}
+cxt.attr  = Or{Pat{RAWP..'+', kind='raw'}, cxt.attrSym, cxt.keyval}
+cxt.attrs =   {PIN, Many{cxt.attr}, '}', kind='attrs'}
 
 local function addToken(p, node, l1, c1, l2, c2)
   if l2 >= l1 and (l2>l1 or c2>=c1) then
@@ -149,7 +154,7 @@ local shortAttrs = {n='name', v='value'}
 
 local function parseAttrs(p, node)
   local l, c, raw = p.l, p.c, nil
-  local attrs = p:parse(M.attrs)
+  local attrs = p:parse(cxt.attrs)
   for _, attr in ds.islice(attrs, 1, #attrs-1) do
     if attr.kind == 'attrSym' then
       local attr = p:tokenStr(attr)
@@ -197,7 +202,7 @@ local function parseList(p, list)
   end
   while true do
     local item = {}
-    local r = M.content(p, item, false, altEnd)
+    local r = cxt.content(p, item, false, altEnd)
     if r then
       addToken(p, item, r[1], r[2], p.l, p.c - 1)
       local c1, c2 = p.line:find(ipat, p.c)
@@ -229,7 +234,7 @@ local function parseTable(p, tbl)
   local r, content, row = 1
   repeat
     if p:isEof() then return p:error'Expected a table got EOF' end
-    local col = {}; content = M.content(p, col, false, altEnd)
+    local col = {}; content = cxt.content(p, col, false, altEnd)
     if not content then
       if row and #col > 0 then add(row, col) end
       break
@@ -278,7 +283,7 @@ end
 local CONTENT_SPEC = {kind='cxt'}
 
 --- parse normal content, adding to node
-M.content = function(p, node, isRoot, altEnd)
+cxt.content = function(p, node, isRoot, altEnd)
   local l, c = p.l, p.c
   p:dbgEnter(CONTENT_SPEC)
   ::loop::
@@ -338,7 +343,7 @@ M.content = function(p, node, isRoot, altEnd)
   if raw           then bracketedStr(p, sub, raw, c2)
   elseif sub.table then parseTable(p, sub)
   elseif sub.list  then parseList(p, sub)
-  else                  M.content(p, sub) end
+  else                  cxt.content(p, sub) end
   -- clean up attributes
   local txtAttr = txtCtrl[ctrl] or (sub.name == true) and 'name'
   if txtAttr then
@@ -403,18 +408,18 @@ local function resolveFetches(p, node, named)
   return node
 end
 
-M.parse = function(dat, dbg)
+cxt.parse = function(dat, dbg)
   local p = pegl.Parser:new(dat, pegl.Config{dbg=dbg})
   skipWs(p)
   local config, named = {}, {}
-  M.content(p, config, true)
+  cxt.content(p, config, true)
   extractNamed(config, named)
   resolveFetches(p, config, named)
   return config, p
 end
 
-M.checkParse = function(dat, context) --> dat
-  local ok, config, p = pcall(M.parse, dat); if ok then
+cxt.checkParse = function(dat, context) --> dat
+  local ok, config, p = pcall(cxt.parse, dat); if ok then
     if p.l <= #p.dat then error(sfmt(
       '%s: parse stopped before end\n%s.%s: %s', context, p.l, p.c, p.line
     ))end
@@ -429,36 +434,36 @@ end
 -- Testing Helpers
 
 local SKIP_FOR_STR = ds.Set{'pos', 'raw'}
-M.parsedStrings = function(p, node)
+cxt.parsedStrings = function(p, node)
   if type(node) ~= 'table' then return node end
   if mty.ty(node) == Token then return p:tokenStr(node) end
   local n = {}
   for k, v in pairs(node) do
     if not SKIP_FOR_STR[k] then
-      v = M.parsedStrings(p, v)
+      v = cxt.parsedStrings(p, v)
       n[k] = v
     end
   end
   return n
 end
 
-M.assertParse = function(dat, expected, dbg) --> node
-  local node, p = M.parse(dat, dbg)
-  node = M.parsedStrings(p, node)
+cxt.assertParse = function(dat, expected, dbg) --> node
+  local node, p = cxt.parse(dat, dbg)
+  node = cxt.parsedStrings(p, node)
   T.eq(expected, node)
   return node
 end
 
-M.assertThrows = function(dat, err, dbg)
+cxt.assertThrows = function(dat, err, dbg)
   T.throws(err, function()
-    M.parse(dat, dbg)
+    cxt.parse(dat, dbg)
   end)
 end
 
-M.fmtAttr = fmtAttr
-M.htmlFmt  = ds.Set{'b', 'i', 'u'}
+cxt.fmtAttr = fmtAttr
+cxt.htmlFmt  = ds.Set{'b', 'i', 'u'}
 
-M.Config = mty'Config' {
+cxt.Config = mty'Config' {
   'header [string]: typically used for html header',
   'pathUrl [function(path) -> url]', pathUrl=ds.iden,
 }
@@ -469,44 +474,34 @@ M.Config = mty'Config' {
 --- * The src lines and token decoder for getting pegl.Token values.
 --- * The destination lines and current indent level.
 --- ]
-M.Writer = mty'Writer' {
+cxt.Writer = mty'Writer' {
   'src', 'to',
-  'config [Config]', config=M.Config{}
+  'config [Config]', config=cxt.Config{}
 }
-M.Writer.fromParser = function(ty_, p, to)
+cxt.Writer.fromParser = function(ty_, p, to)
   return ty_{src=p.dat, to=to or fmt.Fmt{}}
 end
-M.Writer.tokenStr = function(w, t)
+cxt.Writer.tokenStr = function(w, t)
   return (type(t) == 'string') and t or t:decode(w.src)
 end
-M.Writer.eqStr = function(w, t, str)
+cxt.Writer.eqStr = function(w, t, str)
   if type(t) == 'string' then return t == str end
   return (mty.ty(t) == Token) and (w:tokenStr(t) == str)
 end
-M.Writer.__index = function(w, l)
+cxt.Writer.__index = function(w, l)
   local m = getmetatable(w)[l]; if m then return m end
   if type(l) ~= 'number' then return end
   fmt.errorf('index cxt.Writer: %s', l)
 end
 
-M.Writer.__newindex = function(w, l, line)
+cxt.Writer.__newindex = function(w, l, line)
   if type(l) == 'string' then return rawset(w, l, line) end
   error"don't set index"
 end
-M.Writer.__len = function(w) error'Writer.len not supported' end
-M.Writer.level = function(w, add) return w.to:level(add) end
+cxt.Writer.__len = function(w) error'Writer.len not supported' end
+cxt.Writer.level = function(w, add) return w.to:level(add) end
 
---- Convert cxt to HTML.
-M.Html = mty'Html'{
-  __cmd='cxt html',
-  'to [string|file]: where to write output.',
-}
-
-M.Main = {
-  __cmd='cxt', subcmd=true,
-  html = M.Html,
-}
-function M.Html:__call()
+function cxt.html:__call()
   local LFile = require'lines.File'
   local html = require'cxt.html'
   assert(#self == 1, 'TODO')
@@ -516,8 +511,5 @@ function M.Html:__call()
   inp:close(); to:flush(); to:close()
 end
 
-if MAIN == M then return ds.main(shim.run, M.Main, shim.parse(arg)) end
-getmetatable(M).__call = function(_, args)
-  return shim.run(M.Main, shim.parseStr(args))
-end
-return M
+if shim.isMain(cxt) then cxt:main(arg) end
+return cxt

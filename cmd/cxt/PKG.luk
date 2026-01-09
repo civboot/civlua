@@ -15,6 +15,7 @@ P.cxt = lua {
     "civ:lib/civtest",
     "civ:lib/pegl",
   },
+  link = {['lua/cxt.lua'] = 'bin/cxt'},
 }
 
 P.test = lua.test {

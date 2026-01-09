@@ -27,6 +27,7 @@ Example module\
 \
 [{h4 name=TestMod.A}Record A]\
 Example record documentation.\
+\
 [*Fields:][+\
 * [{*name=TestMod.A.a}a] [$=\"default\"]\
   example field doc\
