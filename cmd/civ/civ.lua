@@ -1,11 +1,10 @@
 #!/usr/bin/env -S lua
-local mty = require'metaty'
-
---- The civ build system command.
-local M = mty.mod'civ';
-
-local G = mty.G; G.MAIN = G.MAIN or M
 local shim = require'shim'
+
+--- civ command
+local civ = shim.subcmds'civ' {}
+
+local mty = require'metaty'
 local ds = require'ds'
 local fmt = require'fmt'
 local pth = require'ds.path'
@@ -13,6 +12,7 @@ local info = require'ds.log'.info
 local ix = require'civix'
 local core = require'civ.core'
 
+local G = mty.G
 local sfmt = string.format
 local push = ds.push
 local assertf = fmt.assertf
@@ -30,40 +30,35 @@ local function tgtnamesSplit(args) --> pkgnames, tgtnames
   return pkgnames, tgtnames
 end
 
+
+function civ._pre()
+  assert(not ix.isRoot(), "Do not run this command as root")
+end
+
+civ._Base = shim.cmd'_Base' {
+  'config [string]: path to civ config.', config=core.DEFAULT_CONFIG,
+}
+
 --- civ init arguments.
-M.Init = mty'Init' {
+civ.init = shim.cmd'init' {
   'out [string]: path to output config.lua', out=core.DEFAULT_CONFIG,
   'base [string]: base config to copy from',
 }
 
-M.Base = mty'Base' {
-  'config [string]: path to civ config.', config=core.DEFAULT_CONFIG,
-}
-
 --- Usage: [$civ build hub:tgt#name]
-M.Build   = mty.extend(M.Base, 'Build', {})
+civ.build   = mty.extend(civ._Base, 'build', {})
 
 --- Usage: [$civ test hub:tgt#name]
-M.Test   = mty.extend(M.Build, 'Test', {})
+civ.test   = mty.extend(civ.build, 'test', {})
 
 --- Usage: [$civ run hub:tgt#name -- ...args]
 --- Build+run a single build target which has a single bin output.
-M.Run    = mty.extend(M.Build, 'Run', {})
+civ.run    = mty.extend(civ.build, 'run', {})
 
 --- Usage: [$civ install hub:tgt#name]
-M.Install = mty.extend(M.Base, 'Install', {
+civ.install = mty.extend(civ._Base, 'install', {
   "force [bool]: do not confirm deletion of files.",
 })
-
---- civ cmdline tool arguments.
-M.Args = {
-  __cmd='civ', subcmd=true,
-  init    = M.Init,
-  build   = M.Build,
-  test    = M.Test,
-  run     = M.Run,
-  install = M.Install,
-}
 
 local CONFIG_TMPL = [[
 -- holds the config table, returned at end.
@@ -104,7 +99,8 @@ export LUA_CPATH="$LUA_CPATH;$CIV/lib/lib?.so"
 export LUA_SETUP=vt100
 ]]
 
-function M.Init:__call()
+function civ.init:__call()
+  civ._pre()
   info('civ init', self)
   local cfg
   if G.BOOTSTRAP then
@@ -126,7 +122,7 @@ function M.Init:__call()
   io.fmt:styled('notify', 'Feel free to customize it as-needed.', '\n')
 end
 
-function M.build(cv, tgtnames)
+function civ._build(cv, tgtnames)
   assert(cv.cfg.buildDir, 'must set buildDir')
   -- TODO: check timestamps/etc instead of just deleting everything.
   ix.rmRecursive(cv.cfg.buildDir)
@@ -140,8 +136,8 @@ function M.build(cv, tgtnames)
   return out
 end
 
-function M.test(cv, tgtnames)
-  local ordered = M.build(cv, tgtnames)
+function civ._test(cv, tgtnames)
+  local ordered = civ._build(cv, tgtnames)
   local ran = cv:test(tgtnames, ordered)
   local f = io.fmt
   f:styled('good', #ran..' tests passed:', '\n')
@@ -152,19 +148,22 @@ function M.test(cv, tgtnames)
 end
 
 
-function M.Build:__call()
+function civ.build:__call()
+  civ._pre()
   info('build %q', self)
   local cv = core.Civ{cfg=core.Cfg:load(self.config)}
-  return M.build(cv, cv:expandAll(self))
+  return civ._build(cv, cv:expandAll(self))
 end
 
-function M.Test:__call()
+function civ.test:__call()
+  civ._pre()
   info('test %q', self)
   local cv = core.Civ{cfg=core.Cfg:load(self.config)}
-  return M.test(cv, cv:expandAll(self))
+  return civ._test(cv, cv:expandAll(self))
 end
 
-function M.Run:__call()
+function civ.run:__call()
+  civ._pre()
   info('run %q', self)
   local cmd = shim.popRaw(self)
   assert(#self == 1, 'usage: civ run hub:tgtname')
@@ -180,14 +179,15 @@ function M.Run:__call()
   bin = select(2, next(bin))
   assertf(bin:match'^bin/', '%s is not in bin/', bin)
 
-  M.build(cv, tgtnames)
+  civ._build(cv, tgtnames)
   table.insert(cmd, 1, cv.cfg.buildDir..bin)
   info('running: %q', cmd)
   cmd.ENV = cv.ENV
   return ix.sh(cmd)
 end
 
-function M.Install:__call()
+function civ.install:__call()
+  civ._pre()
   info('install %q', self)
   local cv = core.Civ{cfg=core.Cfg:load(self.config)}
   local tgtnames = cv:expandAll(self)
@@ -204,7 +204,7 @@ function M.Install:__call()
   end
   io.fmt:styled('notify', 'installing in ')
   io.fmt:styled('path', D, '\n')
-  M.build(cv, tgtnames)
+  civ._build(cv, tgtnames)
   ix.rmRecursive(cv.cfg.installDir)
   ix.cpRecursive(cv.cfg.buildDir, cv.cfg.installDir)
   io.fmt:styled('notify', 'Installed in '); io.fmt:styled('path', D, '\n')
@@ -217,13 +217,5 @@ function M.Install:__call()
   io.fmt:styled('code', BASH_ADD:format(pth.toNonDir(d)), '\n')
 end
 
-M.main = function(args)
-  assert(not ix.isRoot(), "Do not run this command as root")
-  local a = shim.init(M.Args, shim.parse(args))
-  assert(io.fmt and io.user)
-  io.fmt:styled('notify', 'Running civ '..a.subcmd, '\n')
-  return a[a.subcmd]()
-end
-
-if MAIN == M then return ds.main(M.main, arg) end
-return M
+if shim.isMain(civ) then return os.exit(civ:main(arg)) end
+return civ

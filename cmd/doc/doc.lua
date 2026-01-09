@@ -46,10 +46,15 @@ end
 M.Doc = mty'Doc' {
   'to [file]: file to write to.',
   'indent [string]', indent = '  ',
+  'done [table]: already documented items',
   '_hdr      [int]', _hdr   = 1,
   '_level    [int]', _level = 0,
   '_nl [string]',    _nl    = '\n',
 }
+getmetatable(M.Doc).__call = function(R, self)
+  self.done = self.done or {}
+  return mty.construct(R, self)
+end
 
 M.Doc.level  = fmt.Fmt.level
 M.Doc._write = fmt.Fmt._write
@@ -68,7 +73,7 @@ end
 function M.Doc:hdrlevel(add) --> int
   if add then
     self._hdr = self._hdr + add
-    assert(self._hdr > 0, 'hdr must be > 0')
+    assertf(self._hdr > 0, 'hdrlevel (%s) must be > 0', self._hdr)
   end
   return self._hdr
 end
@@ -180,6 +185,7 @@ function M.Doc:endmod(m)
   for _, k in ipairs(m.__attrs) do
     if k:match'^_' then goto continue end
     local v = rawget(m, k);
+    if self.done[v] then goto continue end
     if v == nil then
       warn('%s.%s is in __attrs but no longer exists', m.__name, k)
       goto continue

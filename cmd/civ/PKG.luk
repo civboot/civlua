@@ -30,13 +30,6 @@ P.test = lua.test {
   }
 }
 
--- FIXME
--- P.civ_doc = doc.lua {
---   mod = 'civ',
---   src = 'README.cxt',
---   lua = { 'civ:cmd/civ' },
---   tag = { cmd = 'civ.Args' },
--- }
 
 -- local FILE = 'https://github.com/civboot/civstack/blob/main/'
 -- local FILE_LINE = FILE..'%s#L%s'

@@ -329,6 +329,7 @@ end
 --- ["d is of type [$doc.Documenter].
 ---   Tests are in cmd/doc/test.lua ]
 M.doc = function(R, d)
+  d.done[R] = true
   local name, loc = M.anyinfo(R)
   local cmt, code = d:extractCode(loc)
   d:header('Record '..R.__name, name)

@@ -187,6 +187,7 @@ end
 --- For example:
 --- [$construct({foo=Foo, bar=Bar}, {'foo', 'ding', zing=true})]
 --- returns a {foo=Foo{'ding', zing=true}}.
+-- FIXME: remove
 M.construct = function(Cmd, args) --> ok, err?
   args = M.parseStr(args)
   assert(Cmd and args, 'must provide (Cmd,args)')
@@ -205,6 +206,25 @@ M.construct = function(Cmd, args) --> ok, err?
       subcmd = sc,
       [sc]=M.construct(Cmd[sc], args),
     }
+  end
+  return mty.construct(Cmd, args)
+end
+
+M.constructNew = function(Cmd, args) --> ok, err?
+  args = M.parseStr(args)
+  assert(Cmd and args, 'must provide (Cmd,args)')
+  if type(Cmd) == 'table' and rawget(Cmd, 'subcmd') then
+    local v = {}; for k in pairs(Cmd) do
+      if k ~= 'subcmd' then push(v, k) end
+    end
+    local sc = args[1]
+    if not sc or not Cmd[sc] then
+      return nil, sfmt(
+        'invalid subcmd %q, valid subcommands are: %s',
+        sc or '', table.concat(v, ' '))
+    end
+    table.remove(args, 1)
+    return M.constructNew(Cmd[sc], args)
   end
   return mty.construct(Cmd, args)
 end
@@ -231,18 +251,27 @@ function M._constructCall(Cmd, args)
 end
 
 --- [$Cmd:main()] constructor and runner.
+---
+--- This is intended to take care of doing everything needed to
+--- run [@shim.cmd] or [@shim.subcmds] from the commandline.
+---
+--- Usage: [{$$ lang=lua}
+---   if shim.isMain(mycmd) then mycmd:main(G.arg) end
+--- ]$
 M._main = function(Cmd, args)
-  local self, err = Cmd:new(args)
+  local self, err = Cmd:new(M.parse(args))
   M.runSetup(self or {})
   assert(self, err)
-  return self()
+  require'ds.log'.info('@@ main() %q', self)
+  self()
 end
 
 --- for [$cmd.__doc]
 M._doc = function(R, d, pre)
+  d.done[R] = true
   local name, loc, cmt, code = d:anyExtract(R)
-  pre = ((pre and (pre..' ')) or '')..R.__name
-  d:header('Command '..pre, R.__name)
+  local hname = R.__name
+  d:header((pre and 'Subcmd ' or 'Command ')..R.__name, R.__name)
   -- Comments
   if cmt then
     for _, c in ipairs(cmt) do d:write(c); d:write'\n' end
@@ -261,15 +290,18 @@ M._subsdoc = function(R, d, pre)
   for _, c in ipairs(cmt or EMPTY) do d:write(c); d:write'\n' end
   d:hdrlevel(1)
   for _, sub in ipairs(R.__attrs) do
+    if sub:match'^_' then goto continue end
     local S = rawget(R, sub)
-    if M.isDoc(S) then rawget(cmd, '__doc'):__doc(d, pre) end
+    if type(S) == 'table' and rawget(S, '__doc') then
+      rawget(S, '__doc')(S, d, pre)
+    end
+    ::continue::
   end
-  d:hdrlevel(-1)
   d:endmod(R)
 end
 
 local function namedCmd(name, R)
-  R.new    = R.new    or M.construct
+  R.new    = R.new    or M.constructNew
   R.main   = R.main   or M._main
   R.__doc  = R.__doc  or M._doc
   R.__cmd  = R.__cmd  or name
@@ -304,6 +336,7 @@ end
 M.subcmds = function(name)
   return function(R)
     R.__doc = R.__doc or M._subsdoc
+    R.subcmd = true  -- FIXME: rename?
     namedCmd(name, R)
     mod.save(name, R)
     return R

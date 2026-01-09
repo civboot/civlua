@@ -73,7 +73,7 @@ function M.Main:__call()
   local tgtnames = cv:expandAll(self.pat)
   local header = HEAD:format('../styles.css')..LUA_NAV
   local nav = {}
-  civ.build(cv, tgtnames)
+  civ._build(cv, tgtnames)
   for _, tgtname in ipairs(tgtnames) do
     info('pushdoc %q', tgtname)
     local tgt = cv:target(tgtname)
