@@ -280,7 +280,7 @@ M._docFields = function(R, d, name, kind)
     d:bold(kind..':'); d:write'[+\n'; 
     for _, fname in ipairs(fields) do
       d:write'* '; d:level(1)
-      d:write(sfmt('[{*name=%s.%s}.%s]', name, fname, fname))
+      d:write(sfmt('[{*name=%s.%s}%s]', name, fname, fname))
       local ty = fields[fname]; if type(ty) == 'string' then
         d:write' '; d:code(cleanupFieldTy(ty))
       end
@@ -334,8 +334,11 @@ M.doc = function(R, d)
   local cmt, code = d:extractCode(loc)
   d:header(d.tyHeader, 'Record '..R.__name, name)
   -- Comments
-  for _, c in ipairs(cmt or EMPTY) do
-    d:write(c); d:write'\n'
+  if cmt and #cmt > 0 then
+    for _, c in ipairs(cmt or EMPTY) do
+      d:write(c); d:write'\n'
+    end
+    d:write'\n'
   end
   M._docFields(R, d, name, 'Fields')
   M._docMethods(R, d, name)
@@ -482,6 +485,16 @@ M.record = function(name)
   assert(type(name) == 'string' and #name > 0,
          'must set name to string')
   return function(R) return M.namedRecord(name, R) end
+end
+
+--- Start a new record which acts as a lua module (i.e. the file doesn't use
+--- [$metaty.mod])
+M.recordMod = function(name)
+  return function(R)
+    R = M.namedRecord(name, R)
+    mod.save(R.__name, R)
+    return R
+  end
 end
 
 M.isRecord = function(t)

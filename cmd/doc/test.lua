@@ -28,9 +28,9 @@ Example module\
 [{h4 name=TestMod.A}Record A]\
 Example record documentation.\
 [*Fields:][+\
-* [{*name=TestMod.A.a}.a] [$=\"default\"]\
+* [{*name=TestMod.A.a}a] [$=\"default\"]\
   example field doc\
-* [{*name=TestMod.A.b}.b]\
+* [{*name=TestMod.A.b}b]\
 ]\
 [*Methods] [+\
 * [{*name=A.exampleMeth}fn:exampleMeth][$(b) -> c][{br}]\

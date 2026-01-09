@@ -1,11 +1,11 @@
 [{:h1}civ build system and pkg manager]
 Civstack is a full developer tech stack, and the bedrock of that is the build
-system -- which is this package ([$civ]).
+system -- which is this command ([$civ]).
 
 
 A "build system" is fundamentally a mechanism to convert a set of files and
-configuration (a package) into a runnable (and testable) software. A package
-manager is then a way to upload and depend on other packages.
+configuration (a package) into runnable (and testable) software. A package
+manager is then a way to depend on other packages.
 
 
 A [,good] build system has two other primary features: [+
@@ -67,7 +67,7 @@ return P
 ]$
 
 ["Every value assigned to [$P] must be either a concrete type or a
-  [<#civ.Target>].
+  [<#civ.core.Target>].
 ]
 
 [{:h3 name=civ-out}civ output directory]

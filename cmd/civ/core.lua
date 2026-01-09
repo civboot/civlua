@@ -1,6 +1,10 @@
 local mty = require'metaty'
 
---- Core civ (build system) types and functions.
+--- [*civ.core] contains types used by the civ build system.[{br}]
+---
+--- ["If you are just a user of civ this is likely not useful. This library is
+---   useful primarily for those who want to extend civ and/or write their own
+---   build/test macros.]
 local M = mty.mod'civ.core'
 local G = mty.G
 G.MAIN = G.MAIN or M
@@ -28,7 +32,7 @@ local assertf = fmt.assertf
 local EMPTY = {}
 local MOD_INVALID = '[^%w_.]+' -- lua mod name.
 
-M.DIR = pth.canonical( (pth.last(ds.srcdir() or '')) )
+M.DIR = pth.canonical( (pth.last(pth.last(ds.srcdir() or ''))) )
 M.LIB_EXT = '.so'
 M.DEFAULT_CONFIG = '.civconfig.lua'
 M.HOME_CONFIG = pth.concat{pth.home(), '.config/civ.lua'}

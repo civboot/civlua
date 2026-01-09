@@ -39,23 +39,27 @@ civ._Base = shim.cmd'_Base' {
   'config [string]: path to civ config.', config=core.DEFAULT_CONFIG,
 }
 
---- civ init arguments.
+--- Usage: [$civ init --config=.civconfig.lua][{br}]
+--- Initialize the repository. This should be run when starting a new repo.
 civ.init = shim.cmd'init' {
-  'out [string]: path to output config.lua', out=core.DEFAULT_CONFIG,
+  'config [string]: path to config.lua to output', config=core.DEFAULT_CONFIG,
   'base [string]: base config to copy from',
 }
 
---- Usage: [$civ build hub:tgt#name]
+--- Usage: [$civ build hub:tgt#name][{br}]
+--- Build targets which match the pattern.
 civ.build   = mty.extend(civ._Base, 'build', {})
 
---- Usage: [$civ test hub:tgt#name]
+--- Usage: [$civ test hub:tgt#name][{br}]
+--- Test targets which match the pattern.
 civ.test   = mty.extend(civ.build, 'test', {})
 
---- Usage: [$civ run hub:tgt#name -- ...args]
---- Build+run a single build target which has a single bin output.
+--- Usage: [$civ run hub:tgt#name -- ...args][{br}]
+--- Build+run a single build target which has a single bin or link output.
 civ.run    = mty.extend(civ.build, 'run', {})
 
---- Usage: [$civ install hub:tgt#name]
+--- Usage: [$civ install hub:tgt#name][{br}]
+--- Install targets which match the pattern.
 civ.install = mty.extend(civ._Base, 'install', {
   "force [bool]: do not confirm deletion of files.",
 })
@@ -108,17 +112,17 @@ function civ.init:__call()
        or sfmt(CONFIG_TMPL, ix.OS, core.DIR, core.DIR..'sys/')
   else
     cfg = self.base or core.HOME_CONFIG
-    cfg = assert(dload(cfg)) and pth.read(cfg)
+    cfg = assert(require'ds.load'(cfg)) and pth.read(cfg)
   end
   if not ix.exists(core.HOME_CONFIG) then
     pth.write(core.HOME_CONFIG, cfg)
     io.fmt:styled('notify', 'Wrote base config to: ')
     io.fmt:styled('path', core.HOME_CONFIG, '\n')
   end
-  pth.write(self.out, cfg)
+  pth.write(self.config, cfg)
 
   io.fmt:styled('notify', 'Local config is at: ')
-  io.fmt:styled('path', self.out, '\n')
+  io.fmt:styled('path', self.config, '\n')
   io.fmt:styled('notify', 'Feel free to customize it as-needed.', '\n')
 end
 

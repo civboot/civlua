@@ -20,10 +20,13 @@ local EMPTY = {}
 
 local SINGLETON -- single instance
 
---- civ Worker object.
---- Parses the arguments passed during [$civ build]/etc and
---- allows deserializing any referenced targets by id from an indexed file.
-local Worker = mty'civ.Worker' {
+--- [*civ.Worker] encapsulates a single civ worker, i.e. the
+--- process which actually performs build/test actions.[{br}]
+---
+--- ["If you are just a user of civ this is likely not useful. This library is
+---   useful primarily for those who want to extend civ and/or write their own
+---   build/test macros.]
+local Worker = mty.recordMod'civ.Worker' {
   'ids {int}: the target ids to work on.',
   'cfg [civ.core.Cfg]',
   'tgtsDb [lines.File]: indexed line-file of targets by id',
