@@ -332,7 +332,7 @@ M.doc = function(R, d)
   d.done[R] = true
   local name, loc = M.anyinfo(R)
   local cmt, code = d:extractCode(loc)
-  d:header('Record '..R.__name, name)
+  d:header(d.tyHeader, 'Record '..R.__name, name)
   -- Comments
   for _, c in ipairs(cmt or EMPTY) do
     d:write(c); d:write'\n'

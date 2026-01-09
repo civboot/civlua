@@ -14,6 +14,31 @@ Tm.A = mty'A' {
 function Tm.A:exampleMeth(b) --> c
 end
 
+local Tm_DOC =
+"[{h3 name=TestMod}Mod TestMod]\
+Example module\
+\
+[*Types: ][<#TestMod.A>A] \
+\
+[*Functions] [+\
+* [{*name=TestMod.exampleFn}fn exampleFn][$(a) -> b][{br}]\
+  Example function documentation.\
+]\
+\
+[{h4 name=TestMod.A}Record A]\
+Example record documentation.\
+[*Fields:][+\
+* [{*name=TestMod.A.a}.a] [$=\"default\"]\
+  example field doc\
+* [{*name=TestMod.A.b}.b]\
+]\
+[*Methods] [+\
+* [{*name=A.exampleMeth}fn:exampleMeth][$(b) -> c][{br}]\
+  Example method documentation.\
+]\
+"
+
+
 local M = require'doc'
 local T = require'civtest'
 local ds = require'ds'
@@ -47,9 +72,9 @@ T'extractCode' do
        code)
   T.eq({"(loc) -> (commentLines, codeLines)", true}, {d:fnsig(code)})
 
-  local cmt, code = d:extractCode(Dc.hdrlevel)
-  T.eq({"function M.Doc:hdrlevel(add) --> int"}, code)
-  T.eq({'(add) -> int', true}, {d:fnsig(code)})
+  local cmt, code = d:extractCode(Dc.fnsig)
+  T.eq({"function M.Doc:fnsig(code) --> (string, isMethod)"}, code)
+  T.eq({"(code) -> (string, isMethod)", true}, {d:fnsig(code)})
 end
 
 T'Doc' do
@@ -64,30 +89,6 @@ T'Doc' do
   d:link('foo.com', 'foo'); testDc'[<foo.com>foo]'
   d:code('blah.blah');      testDc'[$blah.blah]'
 end
-
-local Tm_DOC =
-"[{h1 name=TestMod}Mod TestMod]\
-Example module\
-\
-[*Types: ][<#TestMod.A>A] \
-\
-[*Functions] [+\
-* [{*name=TestMod.exampleFn}fn exampleFn][$(a) -> b][{br}]\
-  Example function documentation.\
-]\
-\
-[{h2 name=TestMod.A}Record A]\
-Example record documentation.\
-[*Fields:][+\
-* [{*name=TestMod.A.a}.a] [$=\"default\"]\
-  example field doc\
-* [{*name=TestMod.A.b}.b]\
-]\
-[*Methods] [+\
-* [{*name=A.exampleMeth}fn:exampleMeth][$(b) -> c][{br}]\
-  Example method documentation.\
-]\
-"
 
 T'mod_doc' do
   local d = Dc{}

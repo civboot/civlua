@@ -47,9 +47,11 @@ M.Doc = mty'Doc' {
   'to [file]: file to write to.',
   'indent [string]', indent = '  ',
   'done [table]: already documented items',
-  '_hdr      [int]', _hdr   = 1,
-  '_level    [int]', _level = 0,
+  '_level    [int]', _level = 0, -- FIXME: rename _indent
   '_nl [string]',    _nl    = '\n',
+
+  'modHeader [int]: mod header lvl',         modHeader = 3,
+  'tyHeader  [int]: type/record header lvl', tyHeader = 4,
 }
 getmetatable(M.Doc).__call = function(R, self)
   self.done = self.done or {}
@@ -70,23 +72,16 @@ function M.Doc:link(link, text)
   else         self:write(sfmt('[<%s>]', link)) end
 end
 
-function M.Doc:hdrlevel(add) --> int
-  if add then
-    self._hdr = self._hdr + add
-    assertf(self._hdr > 0, 'hdrlevel (%s) must be > 0', self._hdr)
-  end
-  return self._hdr
-end
-
 function M.Doc:named(name, id)
   self:write(sfmt('[{name=%s}%s]', id or name, assert(name)))
 end
 
-function M.Doc:header(content, name)
+function M.Doc:header(lvl, content, name)
+  assertf(1 <= lvl and lvl <= 6, 'header lvl %s must be [1-6]', lvl)
   if name then
-    self:write(sfmt('[{h%s name=%s}%s]\n', self._hdr, name, content))
+    self:write(sfmt('[{h%s name=%s}%s]\n', lvl, name, content))
   else
-    self:write(sfmt('[{h%s}%s]\n', self._hdr, content))
+    self:write(sfmt('[{h%s}%s]\n', lvl, content))
   end
 end
 
@@ -170,8 +165,7 @@ end
 function M.Doc:mod(m)
   local name, loc = mty.anyinfo(m)
   local cmts, code = self:extractCode(loc)
-  self:header('Mod '..m.__name, m.__name)
-  self:hdrlevel(1)
+  self:header(3, 'Mod '..m.__name, m.__name)
   for _, c in ipairs(cmts or EMPTY) do
     self:write(c); self:write'\n'
   end
@@ -220,7 +214,6 @@ function M.Doc:endmod(m)
   for _, ty in ipairs(tys) do
     self:write'\n'; rawget(ty, '__doc')(ty, self)
   end
-  self:hdrlevel(-1)
 end
 
 function M.Doc:__call(name, obj, cmts)

@@ -271,7 +271,7 @@ M._doc = function(R, d, pre)
   d.done[R] = true
   local name, loc, cmt, code = d:anyExtract(R)
   local hname = R.__name
-  d:header((pre and 'Subcmd ' or 'Command ')..R.__name, R.__name)
+  d:header(d.tyHeader, (pre and 'Subcmd ' or 'Command ')..R.__name, R.__name)
   -- Comments
   if cmt then
     for _, c in ipairs(cmt) do d:write(c); d:write'\n' end
@@ -285,10 +285,9 @@ end
 M._subsdoc = function(R, d, pre)
   local name, loc, cmt, code = d:anyExtract(R)
   pre = ((pre and (pre..' ')) or '')..R.__name
-  d:header('Command '..pre, name)
+  d:header(d.modHeader, 'Command '..pre, name)
   -- Comments
   for _, c in ipairs(cmt or EMPTY) do d:write(c); d:write'\n' end
-  d:hdrlevel(1)
   for _, sub in ipairs(R.__attrs) do
     if sub:match'^_' then goto continue end
     local S = rawget(R, sub)
