@@ -36,6 +36,16 @@ local Base = shim.cmd'_base' {
   '_dir [string]: directory to execute in',
 }
 
+-- Constructor which pops dir and sets to _dir.
+function Base.new(T, args)
+  info('@@ Base.new[%q]:(%q)', T, args)
+  args = shim.parseStr(args)
+  local dir = pk(args, 'dir')
+  local cmd = shim.constructNew(T, args)
+  cmd._dir = dir and toDir(dir) or pth.cwd()
+  return cmd
+end
+
 --- Usage: [$pvc init dir --branch=main]
 pvc.init = mty.extend(Base, 'init', {
   'branch [string]: the initial branch name',
@@ -141,15 +151,6 @@ pvc.export = mty.extend(Base, 'export', {})
 ---
 --- The snapshot contains a copy of files at that commit.
 pvc.snap = mty.extend(Base, 'snap', {})
-
--- Constructor which pops dir and sets to _dir.
-function Base.new(T, args)
-  args = shim.parseStr(args)
-  local dir = pk(args, 'dir')
-  local cmd = shim.constructNew(T, args)
-  cmd._dir = dir and toDir(dir) or pth.cwd()
-  return cmd
-end
 
 M.DOT = '.pvc/'
 M.PVC_DONE = 'PVC_DONE'
