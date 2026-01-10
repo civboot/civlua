@@ -64,7 +64,7 @@ local patchArgs = function(cwd, path)
 end
 
 --- forward patch
-M.patch = function(cwd, path)
+M._patch = function(cwd, path)
   cwd = pth.toDir(cwd)
   local args = patchArgs(cwd, path); push(args, '-N')
   trace('sh%q', args)

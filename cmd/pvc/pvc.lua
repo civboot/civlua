@@ -1,8 +1,12 @@
+local shim  = require'shim'
+
+--- Usage: [$pvc <subcmd> --help]
+-- local pvc = shim.subcmds'pvc' {}
+
 local G = G or _G
 local M = G.mod and mod'pvc2' or setmetatable({}, {})
 MAIN = G.MAIN or M
 
-local shim  = require'shim'
 local mty   = require'metaty'
 local ds    = require'ds'
 local pth   = require'ds.path'
@@ -141,7 +145,7 @@ local postCmd = {
 ---
 --- If reverse is given it does the opposite; also this should be called BEFORE
 --- calling [$patch(reverse=true)]
-M.patchPost = function(dir, patch, reverse)
+M._patchPost = function(dir, patch, reverse)
   for line in io.lines(patch) do
     if line:sub(1,3) == '---' then break end -- stop after first diff
     if line:sub(1,1) == '!' then
@@ -153,14 +157,14 @@ M.patchPost = function(dir, patch, reverse)
 end
 
 --- forward patch, applying diff to dir
-M.patch = function(dir, diff)
+M._patch = function(dir, diff)
   pu.patch(dir, diff)
-  M.patchPost(dir, diff)
+  M._patchPost(dir, diff)
 end
 
 --- reverse patch, applying diff to dir
 M.rpatch = function(dir, diff)
-  M.patchPost(dir, diff, true)
+  M._patchPost(dir, diff, true)
   pu.rpatch(dir, diff)
 end
 
@@ -260,7 +264,7 @@ M.rawtip = function(bdir, id)
 end
 M.depth = function(bdir) return readInt(toDir(bdir)..'commit/depth') end
 
-M.patchPath = function(bdir, id, last, depth) --> string?
+M._patchPath = function(bdir, id, last, depth) --> string?
   depth = depth or M.depth(bdir)
   if M.calcPatchDepth(id) > depth then return end
   local dirstr = tostring(id):sub(1,-3)
@@ -274,7 +278,7 @@ end
 
 --- Get the snap/ path regardless of whether it exists
 M.snapDir = function(bdir, id) --> string?
-  return M.patchPath(bdir, id, '.snap/')
+  return M._patchPath(bdir, id, '.snap/')
 end
 
 local function initSnap0(snap)
@@ -291,7 +295,7 @@ local function initBranch(bdir, id)
     tip=tostring(id), commit = {depth=tostring(depth)},
   }, true)
   if id ~= 0 then return bdir end
-  local ppath = M.patchPath(bdir, id, '', depth)
+  local ppath = M._patchPath(bdir, id, '', depth)
   initSnap0(ppath..'.snap/')
 end
 
@@ -312,14 +316,14 @@ M.snapshot = function(P, br,id) --> .../id.snap/
   local fsnap, fid -- find the snap/id to patch from
   local idl, idr = id-1, id+1
   while (bid <= idl) or (idr <= tip) do
-    snap = M.patchPath(bdir, idl, '.snap/PVC_DONE')
+    snap = M._patchPath(bdir, idl, '.snap/PVC_DONE')
     if ix.exists(snap) then
       fsnap, fid = M.snapDir(bdir,idl), idl; break
     end
     if bid == idl then
       fsnap, fid = M.snapshot(P, bbr,bid), idl; break
     end
-    snap = M.patchPath(bdir, idr, '.snap/PVC_DONE')
+    snap = M._patchPath(bdir, idr, '.snap/PVC_DONE')
     if ix.exists(snap) then
       fsnap, fid = M.snapDir(bdir,idr), idr; break
     end
@@ -335,7 +339,7 @@ M.snapshot = function(P, br,id) --> .../id.snap/
   local inc   = (fid <= id) and 1       or -1
   fid = fid + inc
   while true do
-    local ppath = M.patchPath(bdir, fid)
+    local ppath = M._patchPath(bdir, fid)
     trace('patching %s with %s', tsnap, ppath)
     patch(tsnap, ppath)
     if fid == id then break end
@@ -494,7 +498,7 @@ M.init = function(P, branch)
 end
 
 --- Create a patch file from two branch arguments (see resolve2).
-M.patch = function(P, br1, br2) --> string, s1, s2
+M._patch = function(P, br1, br2) --> string, s1, s2
   return M.Diff:of(M.resolve2(P, br1, br2)):patch()
 end
 
@@ -524,7 +528,7 @@ M.commit = function(P, desc) --> snap/, id
 
   -- b=base c=change
   local bsnap = M.snapshot(P, br,id)
-  local patchf = M.patchPath(bp, cid)
+  local patchf = M._patchPath(bp, cid)
   local diff = M.Diff:of(bsnap, P)
   if not diff:hasDiff() then
     error('invalid commit: no differences detected')
@@ -676,10 +680,10 @@ M.rebase = function(P, branch, id) --> backup/dir/
     assert(tid <= ttip)
     local bsnap = M.snapshot(P, cbr,bid)
     pth.write(tdir..'rebase', tostring(cid))
-    local desc = M.desc(M.patchPath(cdir, cid))
+    local desc = M.desc(M._patchPath(cdir, cid))
     M.merge(tsnap, bsnap, M.snapshot(P, cbr,cid))
     tprev = tprev or M.snapshot(P, tbr,tid-1)
-    local tpatch = M.patchPath(tdir,tid)
+    local tpatch = M._patchPath(tdir,tid)
     trace('writing patch %s', tpatch)
     ix.forceWrite(tpatch,
       concat(desc, '\n')..'\n'..M.Diff:of(tprev, tsnap):patch())
@@ -720,9 +724,9 @@ M.grow = function(P, to, from) --!>
   if M.diff(P):hasDiff() then error'local changes detected' end
   -- TODO(sig): check signature
   for id=bid+1, M.rawtip(fdir) do
-    local tpath = M.patchPath(tdir, id)
+    local tpath = M._patchPath(tdir, id)
     assert(not ix.exists(tpath))
-    local fpath = M.patchPath(fdir, id)
+    local fpath = M._patchPath(fdir, id)
     info('copying: %s -> %s', fpath, tpath)
     ix.forceCp(fpath, tpath)
   end
@@ -762,14 +766,14 @@ M.squash = function(P, br, bot,top)
   M.at(P, br,top)
   local back = M.backupDir(P, br..'-squash'); ix.mkDirs(back)
   local desc = {}
-  local last = M.patchPath(bdir, tip)
+  local last = M._patchPath(bdir, tip)
   if not ix.exists(last) then error(last..' does not exist') end
 
   local patch = M.Diff:of(M.snapshot(P, br,bot-1), M.snapshot(P, br,top))
     :patch()
   -- move [bot,top] commits to backup/ and remove their .snap/ directories.
   for i=bot,top do
-    local path = M.patchPath(bdir, i)
+    local path = M._patchPath(bdir, i)
     ds.extend(desc, M.desc(path))
     local bpatch = back..i..'.p'
     ix.mv(path, bpatch)
@@ -777,7 +781,7 @@ M.squash = function(P, br, bot,top)
     ix.rmRecursive(M.snapDir(bdir, i))
   end
   -- write the squashed patch file
-  local f = io.open(M.patchPath(bdir, bot), 'w')
+  local f = io.open(M._patchPath(bdir, bot), 'w')
   for _, line in ipairs(desc) do f:write(line, '\n') end
   f:write(patch); f:close()
 
@@ -787,8 +791,8 @@ M.squash = function(P, br, bot,top)
   local bi = bot
   for i=top+1, tip do; bi = bi + 1
     ix.rmRecursive(M.snapDir(bdir, i))
-    local botPat = M.patchPath(bdir, bi)
-    local topPat = M.patchPath(bdir, i)
+    local botPat = M._patchPath(bdir, bi)
+    local topPat = M._patchPath(bdir, i)
     io.fmt:styled('notify', sfmt('mv %s %s', topPat, botPat), '\n')
     ix.mv(topPat, botPat)
   end
@@ -924,7 +928,7 @@ M.main.show = function(args)
       br, dir = bbr, M.branchDir(D, bbr)
       bbr, bid = M.getbase(dir)
     end
-    local ppath = M.patchPath(dir, i)
+    local ppath = M._patchPath(dir, i)
     local desc = M.desc(ppath, not full and 1 or nil)
     io.user:styled('notify', sfmt('%s#%s:', br,i), '')
     io.user:level(1)
@@ -947,7 +951,7 @@ M.main.desc = function(args)
   local desc = shim.popRaw(args)
   if desc        then desc = concat(desc, ' ')
   elseif args[2] then desc = pth.read(args[2]) end
-  local oldp = M.patchPath(bdir, id)
+  local oldp = M._patchPath(bdir, id)
   local olddesc = concat(M.desc(oldp), '\n')
   if not desc then return print(olddesc) end
   -- Write new description
@@ -1030,7 +1034,7 @@ M.main.prune = function(args)
     local d = M.depth(bdir)
     local undo = {}
     for i=id,tip do
-      local from = M.patchPath(bdir,id, d)
+      local from = M._patchPath(bdir,id, d)
       local to   = sfmt('%s%s.p', back, id)
       ix.mv(from, to)
       push(undo, sfmt('mv %s %s', to, from))
@@ -1064,7 +1068,7 @@ M.main.export = function(args) --> to
   if bbr then pth.write(bdir..'base', sfmt('%s#%s', bbr,bid)) end
   -- Note: if base then first id isn't there
   for id=bbr and (bid+1) or bid, tip do
-    ix.forceCp(M.patchPath(bdir,id, M.patchPath(to,id)))
+    ix.forceCp(M._patchPath(bdir,id, M._patchPath(to,id)))
   end
   io.fmt:styled('notify', sfmt('exported %s to %s', bdir, to))
   return to

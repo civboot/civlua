@@ -22,7 +22,7 @@ T.internal = function()
 end
 
 T.patchPath = function()
-  T.eq('foo/commit/00/1.p', pvc.patchPath('foo', 1, '.p', 2))
+  T.eq('foo/commit/00/1.p', pvc._patchPath('foo', 1, '.p', 2))
 end
 
 local initPvc = function(d) --> projDir
@@ -143,7 +143,7 @@ local function workflow() -- FIXME: broken on linux
   ..STORY_PATCH1;
 
   local br, id = pvc.commit(D, 'desc1')
-  local p1 = pvc.patchPath(Bm, id, '.p')
+  local p1 = pvc._patchPath(Bm, id, '.p')
   T.path(p1, DIFF1)
   T.eq({'desc1'}, pvc.desc(p1))
   pvc.main.desc{'--', 'desc1', '-', 'edited', dir=D}
