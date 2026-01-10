@@ -142,14 +142,13 @@ pvc.export = mty.extend(Base, 'export', {})
 --- The snapshot contains a copy of files at that commit.
 pvc.snap = mty.extend(Base, 'snap', {})
 
--- Constructor which pops dir and sets on subcmds.
--- Might update shim to do this auto-magically...
-function pvc.new(T, args)
+-- Constructor which pops dir and sets to _dir.
+function Base.new(T, args)
   args = shim.parseStr(args)
   local dir = pk(args, 'dir')
-  local subcmd = shim.constructNew(T, args)
-  subcmd._dir = dir or pth.cwd()
-  return subcmd
+  local cmd = shim.constructNew(T, args)
+  cmd._dir = dir and toDir(dir) or pth.cwd()
+  return cmd
 end
 
 M.DOT = '.pvc/'
@@ -607,18 +606,6 @@ M._diff = function(P, branch1, branch2) --> Diff
   return M.Diff:of(M.resolve2(P, branch1, branch2))
 end
 
-M._init = function(P, branch)
-  P, branch = toDir(P), branch or 'main'
-  local dot = P..'.pvc/';
-  if ix.exists(dot) then error(dot..' already exists') end
-  ix.mkTree(dot, {backup = {}}, true)
-  initBranch(M.branchDir(P, branch), 0)
-  pth.write(P..M.PVCPATHS, M.INIT_PVCPATHS)
-  pth.write(P..'.pvcignore', '')
-  M._rawat(P, branch, 0)
-  io.fmt:styled('notice', 'initialized pvc repo '..dot, '\n')
-end
-
 --- Create a patch file from two branch arguments (see resolve2).
 M._patch = function(P, br1, br2) --> string, s1, s2
   return M.Diff:of(M.resolve2(P, br1, br2)):patch()
@@ -930,11 +917,6 @@ end
 
 M.main = G.mod and G.mod'pvc.main' or setmetatable({}, {})
 
---- [$init dir]: initialize the [$dir] (default=CWD) for PVC.
-M.main.init = function(args) --> nil
-  M._init(popdir(args), args[1] or 'main')
-end
-
 --- [$diff branch1 branch2 --full]: get the difference (aka the patch) between
 --- [$branch1] (default=[$at]) and [$branch2] (default=local). Each value can be
 --- either a branch name or a directory which contains a [$.pvcpaths] file.
@@ -1198,6 +1180,21 @@ M.main.snap = function(args) --> snap/
   local snap = M.snapshot(P, br, id)
   io.stdout:write(snap, '\n')
   return pth.nice(snap)
+end
+
+-----------------------
+---- NEW HOTNESS
+
+function pvc.init:__call()
+  local P = self._dir
+  local dot = P..'.pvc/';
+  if ix.exists(dot) then error(dot..' already exists') end
+  ix.mkTree(dot, {backup = {}}, true)
+  initBranch(M.branchDir(P, self.branch), 0)
+  pth.write(P..M.PVCPATHS, M.INIT_PVCPATHS)
+  pth.write(P..'.pvcignore', '')
+  M._rawat(P, self.branch, 0)
+  io.fmt:styled('notice', 'initialized pvc repo '..dot, '\n')
 end
 
 getmetatable(M).__call = getmetatable(M.main).__call
