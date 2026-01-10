@@ -552,7 +552,7 @@ M.nameId = function(P, branch,id) --> br,id
   return br, id or bid or M._rawtip(M.branchDir(P, br))
 end
 
-M.branch = function(P, name, fbr,fid) --> bdir, id
+M._branch = function(P, name, fbr,fid) --> bdir, id
   local fpath = M.branchDir(P, fbr)
   if not ix.exists(fpath) then error(fpath..' does not exist') end
   fid = fid or M._rawtip(fpath)
@@ -668,7 +668,7 @@ M.rebase = function(P, branch, id) --> backup/dir/
     cid   = toint(pth.read(tdir..'rebase'))
     tsnap = M.snapDir(tdir, ttip)
   else
-    M.branch(P, tbr, bbr,id)
+    M._branch(P, tbr, bbr,id)
     pth.write(tdir..'op', op)
     tsnap = M.snapDir(tdir, ttip); ix.mkDirs(tsnap)
     cpPaths(M.snapshot(P, bbr,id), tsnap)
@@ -890,7 +890,7 @@ M.main.branch = function(args)
   if fbr and fbr:find'/' then return M.graft(D, name, fbr) end
   if fbr then fbr, fid = M._parseBranch(fbr)
   else        fbr, fid = M._rawat(D) end
-  local bpath, id = M.branch(D, name, fbr,fid)
+  local bpath, id = M._branch(D, name, fbr,fid)
   M.atId(D, name)
 end
 

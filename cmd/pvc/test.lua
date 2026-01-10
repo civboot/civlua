@@ -208,7 +208,7 @@ local function workflow() -- FIXME: broken on linux
   local EXPECT3d = ds.copy(EXPECT2)
     EXPECT3d['story.txt'] = STORY3d
 
-  pvc.branch(D, 'dev', 'main'); pvc.atId(D, 'dev')
+  pvc._branch(D, 'dev', 'main'); pvc.atId(D, 'dev')
   T.eq({'dev', 'main'}, pvc.branches(D))
   local Bd = D..'.pvc/dev/'
   T.path(D, EXPECT2);
