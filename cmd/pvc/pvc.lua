@@ -508,7 +508,7 @@ local isPatchLike = function(line)
       or line:sub(1,3) == '+++'
       or line:sub(1,2) == '!!'
 end
-M.commit = function(P, desc) --> snap/, id
+M._commit = function(P, desc) --> snap/, id
   assert(desc, 'commit must provide description')
   for _, line in ds.split(desc, '\n') do
     assert(not isPatchLike(line),
@@ -850,7 +850,7 @@ M.main.commit = function(args)
   local desc = shim.popRaw(args)
   if desc then desc = concat(desc, ' ')
   else         desc = pth.read(P..'COMMIT') end
-  M.commit(P, desc)
+  M._commit(P, desc)
 end
 
 --- [$at [branch]]: if [$branch] is empty then return the active
@@ -986,7 +986,7 @@ M.main.squash = function(args)
     top     = toint(assert(args[2], 'must set endId'))
   else -- local commits
     br, bot = M.atId(P); top = bot + 1
-    M.commit(P, '')
+    M._commit(P, '')
   end
   M.squash(P, br, bot,top)
 end

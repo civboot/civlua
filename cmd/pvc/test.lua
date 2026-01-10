@@ -43,12 +43,12 @@ T.empty = function()
   }, diff)
   T.eq(false, diff:hasDiff())
   T.throws('no differences detected', function()
-    pvc.commit(d, 'empty repo')
+    pvc._commit(d, 'empty repo')
   end)
   pth.write(d..'empty.txt', '')
   pth.append(d..'.pvcpaths', 'empty.txt')
   T.throws('has a size of 0', function()
-    pvc.commit(d, 'commit empty.txt')
+    pvc._commit(d, 'commit empty.txt')
   end)
 end
 
@@ -59,7 +59,7 @@ T.binary = function()
   pth.write(bpath, BIN)
   pth.append(P..'.pvcpaths', 'bin')
   T.throws('Binary files /dev/null and bin differ', function()
-    pvc.commit(P, 'commit binary file')
+    pvc._commit(P, 'commit binary file')
   end)
 end
 
@@ -68,7 +68,7 @@ T.missingPath = function()
   local P = initPvc()
   pth.append(P..'.pvcpaths', 'file.dne')
   T.throws('but does not exist', function()
-    pvc.commit(P, 'commit path dne')
+    pvc._commit(P, 'commit path dne')
   end)
 end
 
@@ -142,7 +142,7 @@ local function workflow() -- FIXME: broken on linux
   ..'\n'
   ..STORY_PATCH1;
 
-  local br, id = pvc.commit(D, 'desc1')
+  local br, id = pvc._commit(D, 'desc1')
   local p1 = pvc._patchPath(Bm, id, '.p')
   T.path(p1, DIFF1)
   T.eq({'desc1'}, pvc.desc(p1))
@@ -179,7 +179,7 @@ local function workflow() -- FIXME: broken on linux
   }, pvc.diff(D, 'main#1'))
 
   T.throws('ERROR: working id is not at tip.', function()
-    pvc.commit(D, 'desc error')
+    pvc._commit(D, 'desc error')
   end)
 
   -- go forwards
@@ -199,7 +199,7 @@ local function workflow() -- FIXME: broken on linux
   EXPECT2[pvc.PVCPATHS] = '.pvcpaths\nstory.txt\n'
   T.path(D, EXPECT2)
 
-  pvc.commit(D, 'desc2')
+  pvc._commit(D, 'desc2')
   T.path(Bm, { tip = '2' }); T.eq({'main', 2}, {pvc.atId(D)})
   T.path(D, EXPECT2); T.path(Bm..'commit/00/2.snap/', EXPECT2)
 
@@ -214,7 +214,7 @@ local function workflow() -- FIXME: broken on linux
   T.path(D, EXPECT2);
   T.eq(Bm..'commit/00/2.snap/', pvc.snapshot(D, 'dev', 2))
   pth.write(D..'story.txt', STORY3d); T.path(D, EXPECT3d)
-  pvc.commit(D, 'desc3d')
+  pvc._commit(D, 'desc3d')
   T.path(Bd, { tip = '3' }); T.eq({'dev', 3}, {pvc.atId(D)})
   T.eq({'main', 2}, {pvc._getbase(Bd, 'dev')})
 
@@ -223,7 +223,7 @@ local function workflow() -- FIXME: broken on linux
   local EXPECT4d = ds.copy(EXPECT3d, {
     ['story.txt'] = STORY4d
   })
-  pvc.commit(D, 'desc4d')
+  pvc._commit(D, 'desc4d')
 
   pvc.atId(D, 'main',2)
   T.path(Bm, { tip = '2' }); T.eq({'main', 2}, {pvc.atId(D)})
@@ -234,7 +234,7 @@ local function workflow() -- FIXME: broken on linux
   local EXPECT3m = ds.copy(EXPECT2, {['story.txt'] = STORY3m})
 
   pth.write(D..'story.txt', STORY3m); T.path(D, EXPECT3m)
-  pvc.commit(D, 'desc3')
+  pvc._commit(D, 'desc3')
 
   -- just test checkout a few times
   pvc.atId(D, 'dev',3);  T.path(D, EXPECT3d)
