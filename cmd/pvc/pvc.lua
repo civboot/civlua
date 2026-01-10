@@ -170,7 +170,7 @@ end
 
 --- calculate necessary directory depth.
 --- Example: 01/23/12345.p has dirDepth=4
-M.calcPatchDepth = function(id)
+M._calcPatchDepth = function(id)
   local len = #tostring(id); if len <= 2 then return 0 end
   return len - (2 - (len % 2))
 end
@@ -253,12 +253,12 @@ M.branchDir = function(P, branch, dot)
   return pth.concat{P, dot or '.pvc', branch, '/'}
 end
 
-M.getbase = function(bdir, br) --> br, id
+M._getbase = function(bdir, br) --> br, id
   local bpath = bdir..'base'
   if ix.exists(bpath) then return M.parseBranch(pth.read(bpath))
   else return br, 0 end
 end
-M.rawtip = function(bdir, id)
+M._rawtip = function(bdir, id)
   if id then pth.write(toDir(bdir)..'tip', tostring(id))
   else return readInt(toDir(bdir)..'tip') end
 end
@@ -266,7 +266,7 @@ M.depth = function(bdir) return readInt(toDir(bdir)..'commit/depth') end
 
 M._patchPath = function(bdir, id, last, depth) --> string?
   depth = depth or M.depth(bdir)
-  if M.calcPatchDepth(id) > depth then return end
+  if M._calcPatchDepth(id) > depth then return end
   local dirstr = tostring(id):sub(1,-3)
   dirstr = srep('0', depth - #dirstr)..dirstr -- zero padded
   local path = {bdir, 'commit'}; for i=1,#dirstr,2 do
@@ -289,7 +289,7 @@ end
 local function initBranch(bdir, id)
   assert(id >= 0)
   assertf(not ix.exists(bdir), '%s already exists', bdir)
-  local depth = M.calcPatchDepth(id + 1000)
+  local depth = M._calcPatchDepth(id + 1000)
   trace('initbranch %s', bdir)
   ix.mkTree(bdir, {
     tip=tostring(id), commit = {depth=tostring(depth)},
@@ -308,11 +308,11 @@ M.snapshot = function(P, br,id) --> .../id.snap/
   local snap = M.snapDir(bdir, id)
   if ix.exists(snap) then return snap, id end
   if id == 0 then return initSnap0(snap) end
-  local bbr,bid = M.getbase(bdir, br)
+  local bbr,bid = M._getbase(bdir, br)
   if id == bid then return M.snapshot(P, bbr,bid) end
   trace('findSnap %s id=%s with base %s#%s', bdir, id, bbr,bid)
 
-  local tip      = M.rawtip(bdir)
+  local tip      = M._rawtip(bdir)
   local fsnap, fid -- find the snap/id to patch from
   local idl, idr = id-1, id+1
   while (bid <= idl) or (idr <= tip) do
@@ -351,7 +351,7 @@ M.snapshot = function(P, br,id) --> .../id.snap/
 end
 
 --- increase the depth of branch by 2, adding a [$00/] directory.
-M.deepen = function(bdir)
+M._deepen = function(bdir)
   local depth, pp, zz = M.depth(bdir), bdir..'commit/', bdir..'00/'
   ix.mv(pp, zz); ix.mkDir(pp) ix.mv(zz, pp)
   pth.write(pp..'depth', tostring(depth + 2))
@@ -380,7 +380,7 @@ M.at = function(P, nbr,nid) --!> branch?, id?
   local cbr, cid = M.rawat(P); if not nbr then return cbr, cid end
   local npath = M.branchDir(P, nbr)
 
-  nid = nid or M.rawtip(npath)
+  nid = nid or M._rawtip(npath)
   trace('at %s#%i -> %s#%i', cbr, cid, nbr, nid)
   local csnap  = M.snapshot(P, cbr,cid)
   local nsnap  = M.snapshot(P, nbr,nid)
@@ -469,7 +469,7 @@ M.resolveSnap = function(P, branch) --> snap/, br, id, bdir
   if branch:find'/' then return branch end -- directory
   if branch == 'local' then return P end
   local br, id, bdir = M.resolve(P, branch)
-  return M.snapshot(P, br, id or M.rawtip(bdir)), br, id, bdir
+  return M.snapshot(P, br, id or M._rawtip(bdir)), br, id, bdir
 end
 
 --- resolve two branches into their branch directories. Defaults:[+
@@ -519,7 +519,7 @@ M.commit = function(P, desc) --> snap/, id
   local br, id = M.rawat(P)
   local bp, cid = M.branchDir(P, br), id+1
   trace('start commit %s/%s', br, cid)
-  if id ~= M.rawtip(bp) then error(s[[
+  if id ~= M._rawtip(bp) then error(s[[
     ERROR: working id is not at tip. Solutions:
     * stash -> at tip -> unstash -> commit
     * prune: move or delete downstream changes.
@@ -533,14 +533,14 @@ M.commit = function(P, desc) --> snap/, id
   if not diff:hasDiff() then
     error('invalid commit: no differences detected')
   end
-  if M.calcPatchDepth(cid) > M.depth(bp) then M.deepen(bp) end
+  if M._calcPatchDepth(cid) > M.depth(bp) then M._deepen(bp) end
   ix.forceWrite(patchf,
     sconcat('\n', desc, diff:patch()))
   local csnap = M.snapshot(P, br,cid)
   for path in io.lines(P..M.PVCPATHS) do
     T.pathEq(P..path, csnap..path)
   end
-  M.rawtip(bp, cid); M.rawat(P, br, cid)
+  M._rawtip(bp, cid); M.rawat(P, br, cid)
   io.fmt:styled('notify', sfmt('commited %s#%s to %s', br, cid, patchf), '\n')
   return csnap, cid
 end
@@ -549,13 +549,13 @@ end
 M.nameId = function(P, branch,id) --> br,id
   local br,bid; if not branch then br,bid = M.at(P)
   else                             br,bid = M.parseBranch(branch) end
-  return br, id or bid or M.rawtip(M.branchDir(P, br))
+  return br, id or bid or M._rawtip(M.branchDir(P, br))
 end
 
 M.branch = function(P, name, fbr,fid) --> bdir, id
   local fpath = M.branchDir(P, fbr)
   if not ix.exists(fpath) then error(fpath..' does not exist') end
-  fid = fid or M.rawtip(fpath)
+  fid = fid or M._rawtip(fpath)
   local npath = M.branchDir(P, name)
   initBranch(npath, fid)
   pth.write(npath..'base', sfmt('%s#%s', fbr,fid))
@@ -580,14 +580,14 @@ end
 
 M.checkBranch = function(P, name, checks, dir)
   dir = dir or P..name
-  local bbr,bid = M.getbase(dir, nil)
-  local tip     = M.rawtip(dir)
+  local bbr,bid = M._getbase(dir, nil)
+  local tip     = M._rawtip(dir)
   if tip <= bid then error(sfmt('tip %i <= baseid %i'..tip, bid)) end
   -- TODO: check that patch files exist, etc.
 
   if checks.base and not bbr then error(from..' does not have base') end
   if bbr then
-    local bt = M.rawtip(M.branchDir(P, bbr))
+    local bt = M._rawtip(M.branchDir(P, bbr))
     if bid > bt then error(sfmt(
       '%s base.id %s > %s tip of %i', from, bid, bbr, bt
     ))end
@@ -645,26 +645,26 @@ M.rebase = function(P, branch, id) --> backup/dir/
   --- process: repeatedly use merge on the (new) branch__rebase branch.
   --- the final result will be in to's last snapshot id
   local cpath = M.branchDir(P, cbr)
-  local bbr, bid = M.getbase(cpath, cbr)
+  local bbr, bid = M._getbase(cpath, cbr)
   M.at(P, bbr,bid) -- checkout base to ensure cleaner checkout at end
 
   if bbr == cbr then error('the base of '..cbr..' is itself') end
   if id == bid then return end
   local bdir = M.branchDir(P, bbr)
-  local btip  = M.rawtip(bdir)
+  local btip  = M._rawtip(bdir)
   if id > btip then error(id..' is > tip of '..btip) end
 
   local cdir, cid = M.branchDir(P, cbr), bid + 1
-  local ctip       = M.rawtip(cdir)
+  local ctip       = M._rawtip(cdir)
   local tbr        = cbr..'__rebase'
   local tdir      = M.branchDir(P, tbr)
-  local ttip       = id + M.rawtip(cdir) - bid
+  local ttip       = id + M._rawtip(cdir) - bid
 
   local op = sfmt('rebase %s %s', cbr, bid)
   local tsnap; if ix.exists(tdir) then
     assert(ix.exists(tsnap))
     T.pathEq(tdir..'op', op)
-    T.eq({bbr,bid}, M.getbase(tdir))
+    T.eq({bbr,bid}, M._getbase(tdir))
     cid   = toint(pth.read(tdir..'rebase'))
     tsnap = M.snapDir(tdir, ttip)
   else
@@ -696,7 +696,7 @@ M.rebase = function(P, branch, id) --> backup/dir/
   io.fmt:styled('notify',
     sfmt('pvc: rebase %s to %s#%s done. Backup at %s', cbr, bbr, id, backup),
     '\n')
-  M.rawtip(tdir, ttip)
+  M._rawtip(tdir, ttip)
   ix.rm(tdir..'op'); ix.rm(tdir..'rebase')
   ix.mv(tdir, cdir)
   M.at(P, cbr,ttip)
@@ -706,14 +706,14 @@ end
 --- Grow [$to] by copying patches [$from]
 M.grow = function(P, to, from) --!>
   local fbr, fdir = assert(from, 'must set from'), M.branchDir(P, from)
-  local ftip = M.rawtip(fdir)
-  local bbr, bid = M.getbase(fdir)
+  local ftip = M._rawtip(fdir)
+  local bbr, bid = M._getbase(fdir)
   local tbr = to or M.rawat(P)
   if bbr ~= tbr then error(sfmt(
     'the base of %s is %s, not %s', from, bbr, tbr
   ))end
   local tdir = M.branchDir(P, tbr)
-  local ttip = M.rawtip(tdir)
+  local ttip = M._rawtip(tdir)
   if bid ~= ttip then error(sfmt(
     'rebase required (%s tip=%s, %s base id=%s)', tbr, ttip, bbr, bid
   ))end
@@ -723,14 +723,14 @@ M.grow = function(P, to, from) --!>
   M.at(P, tbr,ttip)
   if M.diff(P):hasDiff() then error'local changes detected' end
   -- TODO(sig): check signature
-  for id=bid+1, M.rawtip(fdir) do
+  for id=bid+1, M._rawtip(fdir) do
     local tpath = M._patchPath(tdir, id)
     assert(not ix.exists(tpath))
     local fpath = M._patchPath(fdir, id)
     info('copying: %s -> %s', fpath, tpath)
     ix.forceCp(fpath, tpath)
   end
-  M.rawtip(tdir, ftip)
+  M._rawtip(tdir, ftip)
   local back = M.backupDir(P, fbr)
   io.fmt:styled('notify',
     sfmt('deleting %s (mv %s -> %s)', fbr, fdir, back), '\n')
@@ -760,7 +760,7 @@ M.squash = function(P, br, bot,top)
     return
   end
   local bdir = M.branchDir(P, br)
-  local tip, bbr, bid = M.rawtip(bdir), M.getbase(P, br)
+  local tip, bbr, bid = M._rawtip(bdir), M._getbase(P, br)
   if bot <= bid then error(sfmt('bottom %i <= base id %s', top, bid)) end
   if top >  tip then error(sfmt('top %i > tip %i', top, tip)) end
   M.at(P, br,top)
@@ -797,7 +797,7 @@ M.squash = function(P, br, bot,top)
     ix.mv(topPat, botPat)
   end
 
-  M.rawat(P, br,bot); M.rawtip(bdir,bi)
+  M.rawat(P, br,bot); M._rawtip(bdir,bi)
   io.fmt:styled('notify',
     sfmt('squashed [%s - %s] into %s. New tip=%i', bot, top, bot, bi), '\n')
 end
@@ -870,7 +870,7 @@ end
 M.main.tip = function(args) --> string
   local P = popdir(args)
   local out = sfmt('%s#%s',
-    M.rawtip(M.branchDir(P, args[1] or M.rawat(P))))
+    M._rawtip(M.branchDir(P, args[1] or M.rawat(P))))
   print(out); return out
 end
 
@@ -909,7 +909,7 @@ M.main.show = function(args)
     for _, br in ipairs(M.branches(D)) do
       if full then
         local bdir = M.branchDir(D, br)
-        local tip, base,bid = M.rawtip(bdir), M.getbase(bdir, nil)
+        local tip, base,bid = M._rawtip(bdir), M._getbase(bdir, nil)
         io.user:styled('notify', sfmt('%s\ttip=%s%s',
           br, tip, base and sfmt('\tbase=%s#%s', base,bid) or ''), '\n')
       else io.user:styled('notify', br, '\n') end
@@ -920,13 +920,13 @@ M.main.show = function(args)
   if not br or br == 'at' then br, id = M.rawat(D) end
 
   local num, dir = toint(args.num or 10), M.branchDir(D, br)
-  if not id then id = M.rawtip(dir) end
-  local bbr, bid = M.getbase(dir)
+  if not id then id = M._rawtip(dir) end
+  local bbr, bid = M._getbase(dir)
   for i=id,id-num+1,-1 do
     if i <= 0 then break end
     if i == bid then
       br, dir = bbr, M.branchDir(D, bbr)
-      bbr, bid = M.getbase(dir)
+      bbr, bid = M._getbase(dir)
     end
     local ppath = M._patchPath(dir, i)
     local desc = M.desc(ppath, not full and 1 or nil)
@@ -1007,8 +1007,8 @@ end
 M.main.rebase = function(args) --> string
   local P = popdir(args)
   local br = args[1] ~= '' and args[1] or M.rawat(P)
-  local base = M.getbase(M.branchDir(P,br))
-  M.rebase(P, br, M.rawtip(M.branchDir(P, base)))
+  local base = M._getbase(M.branchDir(P,br))
+  M.rebase(P, br, M._rawtip(M.branchDir(P, base)))
 end
 
 --- [$grow from --to=at]: grow [$to] (default=[$at]) using branch from.
@@ -1030,7 +1030,7 @@ M.main.prune = function(args)
   local back = M.backupDir(D, br); ix.mkDirs(back)
   local id = args[2]
   if id then
-    id = toint(id); local tip = M.rawtip(bdir)
+    id = toint(id); local tip = M._rawtip(bdir)
     local d = M.depth(bdir)
     local undo = {}
     for i=id,tip do
@@ -1060,7 +1060,7 @@ M.main.export = function(args) --> to
   if ix.exists(to) then error('to/ directory already exists: '..to) end
 
   local bdir = M.branchDir(D, br)
-  local tip, bbr,bid = M.rawtip(bdir), M.getbase(bdir,nil)
+  local tip, bbr,bid = M._rawtip(bdir), M._getbase(bdir,nil)
 
   ix.mkDirs(to..'commit/')
   pth.write(bdir..'tip', tip)

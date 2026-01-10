@@ -16,9 +16,9 @@ fd.ioStd()
 
 --- test some basic internal functions
 T.internal = function()
-  T.eq(0, pvc.calcPatchDepth(1))
-  T.eq(0, pvc.calcPatchDepth(10))
-  T.eq(2, pvc.calcPatchDepth(101))
+  T.eq(0, pvc._calcPatchDepth(1))
+  T.eq(0, pvc._calcPatchDepth(10))
+  T.eq(2, pvc._calcPatchDepth(101))
 end
 
 T.patchPath = function()
@@ -216,7 +216,7 @@ local function workflow() -- FIXME: broken on linux
   pth.write(D..'story.txt', STORY3d); T.path(D, EXPECT3d)
   pvc.commit(D, 'desc3d')
   T.path(Bd, { tip = '3' }); T.eq({'dev', 3}, {pvc.at(D)})
-  T.eq({'main', 2}, {pvc.getbase(Bd, 'dev')})
+  T.eq({'main', 2}, {pvc._getbase(Bd, 'dev')})
 
   local STORY4d = pth.read(TD..'story.txt.4d')
   pth.write(D..'story.txt', STORY4d)
@@ -245,8 +245,8 @@ local function workflow() -- FIXME: broken on linux
   -- perform rebase
   pvc.rebase(D, 'dev',3)
   T.eq({'dev', 5}, {pvc.rawat(D)})
-  T.eq(3, pvc.rawtip(Bm))
-  T.eq(5, pvc.rawtip(Bd))
+  T.eq(3, pvc._rawtip(Bm))
+  T.eq(5, pvc._rawtip(Bd))
   T.eq({'desc4d'}, pvc.desc(Bd..'commit/00/5.p'))
 
   local EXPECT5 = ds.copy(EXPECT2, {
@@ -263,7 +263,7 @@ local function workflow() -- FIXME: broken on linux
   T.path(D, EXPECT4)
 
   pvc.grow(D, 'main', 'dev')
-  T.eq(5, pvc.rawtip(Bm))
+  T.eq(5, pvc._rawtip(Bm))
   T.eq({'main', 5}, {pvc.at(D)})
   assert(not ix.exists(Bd))
   T.path(pvc.snapshot(D, 'main', 5), EXPECT5)
@@ -271,7 +271,7 @@ local function workflow() -- FIXME: broken on linux
 
   -- Squash main commit and first dev commit
   pvc.squash(D, 'main', 3,4)
-  T.eq(4, pvc.rawtip(Bm))
+  T.eq(4, pvc._rawtip(Bm))
   T.path(pvc.snapshot(D, 'main', 2), EXPECT2)
   T.path(pvc.snapshot(D, 'main', 3), EXPECT4)
   pvc.at(D, 'main',2); T.path(D, EXPECT2)
