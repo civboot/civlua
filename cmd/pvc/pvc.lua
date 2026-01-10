@@ -1,11 +1,13 @@
 local shim  = require'shim'
 
 --- Usage: [$pvc <subcmd> --help]
--- local pvc = shim.subcmds'pvc' {}
+local pvc = shim.subcmds'pvc' {}
 
 local G = G or _G
 local M = G.mod and mod'pvc2' or setmetatable({}, {})
 MAIN = G.MAIN or M
+
+M.pvc = pvc
 
 local mty   = require'metaty'
 local ds    = require'ds'
@@ -29,6 +31,19 @@ local toDir, pconcat = pth.toDir, pth.concat
 local pk = ds.popk
 
 local assertf = require'fmt'.assertf
+
+--- Usage: [$pvc init dir --branch=main]
+pvc.init = shim.cmd'init' {
+  'branch [string]: the initial branch name',
+    branch = 'main',
+}
+
+--- Usage: [$pvc diff branch1 branch2]
+pvc.diff = shim.cmd'diff' {}
+
+--- Usage: [$pvc commit -- my message]
+pvc.commit = shim.cmd'commit' {}
+
 
 M.DOT = '.pvc/'
 M.PVC_DONE = 'PVC_DONE'
@@ -806,17 +821,7 @@ local popdir = function(args)
   return pth.toDir(pk(args, 'dir') or pth.cwd())
 end
 
-local HELP = [=[[+
-* sh usage:  [$pvc <cmd> [args]]
-* lua usage: [$pvc{'cmd', ...}]
-]
-
-See README for details.
-]=]
 M.main = G.mod and G.mod'pvc.main' or setmetatable({}, {})
-
-  --- [$help [cmd]]: get help
-M.main.help = function(args) print(HELP) end
 
 --- [$init dir]: initialize the [$dir] (default=CWD) for PVC.
 M.main.init = function(args) --> nil
