@@ -919,18 +919,8 @@ local popdir = function(args)
 end
 
 M.main = G.mod and G.mod'pvc.main' or setmetatable({}, {})
+-- M.main.commit = function(args)
 
---- [$commit]: add changes to the current branch as a patch and move [$at]
---- forward. The commit message can be written to the COMMIT file or be
---- specified after the [$--] argument, where multiple arguments are space
---- separated.
-M.main.commit = function(args)
-  local P = popdir(args)
-  local desc = shim.popRaw(args)
-  if desc then desc = concat(desc, ' ')
-  else         desc = pth.read(P..'COMMIT') end
-  M._commit(P, desc)
-end
 
 --- [$at [branch]]: if [$branch] is empty then return the active
 --- [$branch#id].
@@ -1196,7 +1186,13 @@ function pvc.diff:__call()
   return d
 end
 
--- pv
+function pvc.commit:__call()
+  local P = self._dir
+  local desc = shim.popRaw(self)
+  if desc then desc = concat(desc, ' ')
+  else         desc = pth.read(P..'COMMIT') end
+  return M._commit(P, desc)
+end
 
 getmetatable(M).__call = getmetatable(M.main).__call
 
