@@ -920,48 +920,9 @@ end
 
 M.main = G.mod and G.mod'pvc.main' or setmetatable({}, {})
 -- M.main.commit = function(args)
-
-
---- [$at [branch]]: if [$branch] is empty then return the active
---- [$branch#id].
----
---- If [$branch] is set then this sets the active [$branch#id], causing the
---- local directory to be updated (default id=tip).
---- ["git equivalent: [$checkout]]
-M.main.at = function(args) --> string
-  local D, branch = popdir(args), args[1]
-  if branch then return M.atId(D, M._parseBranch(branch)) end
-  branch = sfmt('%s#%s', M._rawat(D))
-  print(branch); return branch
-end
-
---- [$tip [branch]]: get the highest branch#id for branch (default=at).
-M.main.tip = function(args) --> string
-  local P = popdir(args)
-  local out = sfmt('%s#%s',
-    M._rawtip(M.branchDir(P, args[1] or M._rawat(P))))
-  print(out); return out
-end
-
---- [$branch name [from]]: start a new branch of name [$name]. The optional
---- [$from] (default=[$at]) argument can specify a local [$branch#id] or an
---- (external) [$path/to/dir] to __graft onto the pvc tree.
----
---- ["the [$from/dir] is commonly used by maintainers to accept patches from
---- contributors.
---- ]
-M.main.branch = function(args)
-  local D = popdir(args)
-  local name = assert(args[1], 'must provide branch name')
-  assert(not name:find'/', "branch name must not include '/'")
-
-  local fbr,fid = args[2]
-  if fbr and fbr:find'/' then return M.__graft(D, name, fbr) end
-  if fbr then fbr, fid = M._parseBranch(fbr)
-  else        fbr, fid = M._rawat(D) end
-  local bpath, id = M._branch(D, name, fbr,fid)
-  M.atId(D, name)
-end
+-- M.main.at = function(args) --> string
+-- M.main.tip = function(args) --> string
+-- M.main.branch = function(args)
 
 --- [$pvc show [branch#id] --num=10 --full]
 ---
@@ -1192,6 +1153,35 @@ function pvc.commit:__call()
   if desc then desc = concat(desc, ' ')
   else         desc = pth.read(P..'COMMIT') end
   return M._commit(P, desc)
+end
+
+function pvc.at:__call()
+  local D, branch = self._dir, self[1]
+  if branch then return M.atId(D, M._parseBranch(branch)) end
+  branch = sfmt('%s#%s', M._rawat(D))
+  print(branch)
+  return branch
+end
+
+function pvc.tip:__call()
+  local P = self._dir
+  local out = sfmt('%s#%s',
+    M._rawtip(M.branchDir(P, args[1] or M._rawat(P))))
+  print(out)
+  return out
+end
+
+function pvc.branch:__call()
+  local D = self._dir
+  local name = assert(self[1], 'must provide branch name')
+  assert(not name:find'/', "branch name must not include '/'")
+
+  local fbr,fid = self[2]
+  if fbr and fbr:find'/' then return M.__graft(D, name, fbr) end
+  if fbr then fbr, fid = M._parseBranch(fbr)
+  else        fbr, fid = M._rawat(D) end
+  local bpath, id = M._branch(D, name, fbr,fid)
+  M.atId(D, name)
 end
 
 getmetatable(M).__call = getmetatable(M.main).__call

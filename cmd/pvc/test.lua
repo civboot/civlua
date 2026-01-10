@@ -159,7 +159,7 @@ local function workflow() -- FIXME: broken on linux
     ['.pvc'] = { at = 'main#1' }
   })
   T.path(Bm, { tip = '1' })
-  T.eq({'main', 1}, {M.atId(D)})
+  T.eq({'main', 1}, {pvc.at{d=D}})
   T.eq(M.Diff{
     dir1=D..'.pvc/main/commit/00/1.snap/', dir2=D,
     equal={'.pvcpaths', 'hello/hello.lua', 'story.txt'},
@@ -167,7 +167,7 @@ local function workflow() -- FIXME: broken on linux
   }, pvc.diff{dir=D, paths=true})
 
   -- go backwards
-  M.atId(D, 'main', 0)
+  pvc.at{d=D, 'main#0'}
   assert(not ix.exists(D..'story.txt'))
   assert(not ix.exists(D..'hello/hello.lua'))
   T.path(D..'.pvcpaths', '.pvcpaths\n')
@@ -209,7 +209,8 @@ local function workflow() -- FIXME: broken on linux
   local EXPECT3d = ds.copy(EXPECT2)
     EXPECT3d['story.txt'] = STORY3d
 
-  M._branch(D, 'dev', 'main'); M.atId(D, 'dev')
+  pvc.branch{dir=D, 'dev', 'main'}
+  M.atId(D, 'dev')
   T.eq({'dev', 'main'}, M.branches(D))
   local Bd = D..'.pvc/dev/'
   T.path(D, EXPECT2);
@@ -246,8 +247,8 @@ local function workflow() -- FIXME: broken on linux
   -- perform rebase
   M.rebase(D, 'dev',3)
   T.eq({'dev', 5}, {M._rawat(D)})
-  T.eq(3, M._rawtip(Bm))
-  T.eq(5, M._rawtip(Bd))
+  T.eq(3, pvc.tip{dir=Bm})
+  T.eq(5, pvc.tip{dir=Bd})
   T.eq({'desc4d'}, M._desc(Bd..'commit/00/5.p'))
 
   local EXPECT5 = ds.copy(EXPECT2, {
