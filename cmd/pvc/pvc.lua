@@ -1182,11 +1182,6 @@ function pvc.init:__call()
   io.fmt:styled('notice', 'initialized pvc repo '..dot, '\n')
 end
 
---- [$diff branch1 branch2 --full]: get the difference (aka the patch) between
---- [$branch1] (default=[$at]) and [$branch2] (default=local). Each value can be
---- either a branch name or a directory which contains a [$.pvcpaths] file.
----
--- M.main.diff = function(args) --> Diff
 function pvc.diff:__call()
   trace('diff%q', self)
   local P = self._dir
@@ -1200,6 +1195,8 @@ function pvc.diff:__call()
   io.fmt:write'\n'
   return d
 end
+
+-- pv
 
 getmetatable(M).__call = getmetatable(M.main).__call
 
