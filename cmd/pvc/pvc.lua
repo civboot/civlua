@@ -47,7 +47,7 @@ local toint = math.tointeger
 M._backupId = function() return tostring(ix.epoch():asSeconds()) end
 
 --- reserved branch names
-M.RESERVED_NAMES = { ['local']=1, at=1, tip=1, }
+M._RESERVED_NAMES = { ['local']=1, at=1, tip=1, }
 
 -----------------------------------
 -- Utilities
@@ -163,9 +163,9 @@ M._patch = function(dir, diff)
 end
 
 --- reverse patch, applying diff to dir
-M.rpatch = function(dir, diff)
+M._rpatch = function(dir, diff)
   M._patchPost(dir, diff, true)
-  pu.rpatch(dir, diff)
+  pu._rpatch(dir, diff)
 end
 
 --- calculate necessary directory depth.
@@ -249,7 +249,7 @@ end
 --- return the branch path in project regardless of whether it exists
 M.branchDir = function(P, branch, dot)
   assert(branch, 'branch is nil')
-  assert(not M.RESERVED_NAMES[branch], 'branch name is reserved')
+  assert(not M._RESERVED_NAMES[branch], 'branch name is reserved')
   return pth.concat{P, dot or '.pvc', branch, '/'}
 end
 
@@ -335,7 +335,7 @@ M.snapshot = function(P, br,id) --> .../id.snap/
   if ix.exists(tsnap) then ix.rmRecursive(tsnap) end
   ix.mkDir(tsnap)
   cpPaths(fsnap, tsnap)
-  local patch = (fid <= id) and pu.patch or pu.rpatch
+  local patch = (fid <= id) and pu.patch or pu._rpatch
   local inc   = (fid <= id) and 1       or -1
   fid = fid + inc
   while true do
