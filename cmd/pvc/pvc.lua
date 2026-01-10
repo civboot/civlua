@@ -485,7 +485,7 @@ M._diff = function(P, branch1, branch2) --> Diff
   return M.Diff:of(M.resolve2(P, branch1, branch2))
 end
 
-M.init = function(P, branch)
+M._init = function(P, branch)
   P, branch = toDir(P), branch or 'main'
   local dot = P..'.pvc/';
   if ix.exists(dot) then error(dot..' already exists') end
@@ -820,7 +820,7 @@ M.main.help = function(args) print(HELP) end
 
 --- [$init dir]: initialize the [$dir] (default=CWD) for PVC.
 M.main.init = function(args) --> nil
-  M.init(popdir(args), args[1] or 'main')
+  M._init(popdir(args), args[1] or 'main')
 end
 
 --- [$diff branch1 branch2 --full]: get the difference (aka the patch) between

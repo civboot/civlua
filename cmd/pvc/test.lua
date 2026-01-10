@@ -28,7 +28,7 @@ end
 local initPvc = function(d) --> projDir
   d = d or D
   ix.rmRecursive(d);
-  pvc.init(d)
+  pvc._init(d)
   return d
 end
 
@@ -98,7 +98,7 @@ local STORY_PATCH1 = [[
 local function workflow() -- FIXME: broken on linux
   ix.rmRecursive(D);
   -- initialize PVC
-  pvc.init(D)
+  pvc._init(D)
   T.eq({'main'}, pvc.branches(D))
   T.path(D, {
     ['.pvcpaths'] = '.pvcpaths\n',
