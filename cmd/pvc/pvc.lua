@@ -578,7 +578,7 @@ M.branches = function(P) --> list
   return entries
 end
 
-M.checkBranch = function(P, name, checks, dir)
+M._checkBranch = function(P, name, checks, dir)
   dir = dir or P..name
   local bbr,bid = M._getbase(dir, nil)
   local tip     = M._rawtip(dir)
@@ -598,10 +598,10 @@ M.checkBranch = function(P, name, checks, dir)
   end
 end
 
-M.graft = function(P, name, from)
+M.__graft = function(P, name, from)
   local ndir = P..name
   if ix.exists(ndir) then error(ndir..' already exists') end
-  M.checkBranch(P, name, {base=1}, from)
+  M._checkBranch(P, name, {base=1}, from)
   ix.cpRecursive(from, ndir)
 end
 
@@ -612,7 +612,7 @@ FAILED MERGE
 change: %s
  ERROR: %s]]
 
-M.merge = function(tdir, bdir, cdir) --!>
+M._merge = function(tdir, bdir, cdir) --!>
   trace('pvc.merge to=%s base=%s change=%s', tdir, bdir, cdir)
   local paths, conflicts = {}, false
   mapPvcPaths(bdir, cdir, function(bpath, cpath)
@@ -681,7 +681,7 @@ M.rebase = function(P, branch, id) --> backup/dir/
     local bsnap = M.snapshot(P, cbr,bid)
     pth.write(tdir..'rebase', tostring(cid))
     local desc = M.desc(M._patchPath(cdir, cid))
-    M.merge(tsnap, bsnap, M.snapshot(P, cbr,cid))
+    M._merge(tsnap, bsnap, M.snapshot(P, cbr,cid))
     tprev = tprev or M.snapshot(P, tbr,tid-1)
     local tpatch = M._patchPath(tdir,tid)
     trace('writing patch %s', tpatch)
@@ -704,7 +704,7 @@ M.rebase = function(P, branch, id) --> backup/dir/
 end
 
 --- Grow [$to] by copying patches [$from]
-M.grow = function(P, to, from) --!>
+M._grow = function(P, to, from) --!>
   local fbr, fdir = assert(from, 'must set from'), M.branchDir(P, from)
   local ftip = M._rawtip(fdir)
   local bbr, bid = M._getbase(fdir)
@@ -876,7 +876,7 @@ end
 
 --- [$branch name [from]]: start a new branch of name [$name]. The optional
 --- [$from] (default=[$at]) argument can specify a local [$branch#id] or an
---- (external) [$path/to/dir] to graft onto the pvc tree.
+--- (external) [$path/to/dir] to __graft onto the pvc tree.
 ---
 --- ["the [$from/dir] is commonly used by maintainers to accept patches from
 --- contributors.
@@ -887,7 +887,7 @@ M.main.branch = function(args)
   assert(not name:find'/', "branch name must not include '/'")
 
   local fbr,fid = args[2]
-  if fbr and fbr:find'/' then return M.graft(D, name, fbr) end
+  if fbr and fbr:find'/' then return M.__graft(D, name, fbr) end
   if fbr then fbr, fid = M._parseBranch(fbr)
   else        fbr, fid = M._rawat(D) end
   local bpath, id = M._branch(D, name, fbr,fid)
@@ -1018,7 +1018,7 @@ end
 --- ]
 M.main.grow = function(args)
   local P = popdir(args)
-  return M.grow(P, args.to, args[1])
+  return M._grow(P, args.to, args[1])
 end
 
 --- [$prune branch [id]] delete branch by moving it to backup directory.

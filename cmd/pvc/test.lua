@@ -262,7 +262,7 @@ local function workflow() -- FIXME: broken on linux
   })
   T.path(D, EXPECT4)
 
-  pvc.grow(D, 'main', 'dev')
+  pvc._grow(D, 'main', 'dev')
   T.eq(5, pvc._rawtip(Bm))
   T.eq({'main', 5}, {pvc.atId(D)})
   assert(not ix.exists(Bd))

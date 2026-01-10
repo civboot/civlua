@@ -43,7 +43,7 @@ Builtin cmds:[+
 
 * [$branch name [from]]: start a new branch of name [$name]. The optional
   [$from] (default=[$at]) argument can specify a local [$branch#id] or an
-  (external) [$path/to/dir] to graft onto the pvc tree.
+  (external) [$path/to/dir] to __graft onto the pvc tree.
 
   ["the [$from/dir] is commonly used by maintainers to accept patches from
     contributors.
