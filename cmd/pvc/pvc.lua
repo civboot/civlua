@@ -53,7 +53,9 @@ pvc.init = mty.extend(Base, 'init', {
 })
 
 --- Usage: [$pvc diff branch1 branch2]
-pvc.diff = mty.extend(Base, 'diff', {})
+pvc.diff = mty.extend(Base, 'diff', {
+  'paths [bool]: show only changed paths',
+})
 
 --- Usage: [$pvc commit -- my message]
 pvc.commit = mty.extend(Base, 'commit', {})
@@ -918,24 +920,6 @@ end
 
 M.main = G.mod and G.mod'pvc.main' or setmetatable({}, {})
 
---- [$diff branch1 branch2 --full]: get the difference (aka the patch) between
---- [$branch1] (default=[$at]) and [$branch2] (default=local). Each value can be
---- either a branch name or a directory which contains a [$.pvcpaths] file.
----
-M.main.diff = function(args) --> Diff
-  trace('diff%q', args)
-  local P = popdir(args)
-  local d = M._diff(P, args[1], args[2])
-  d:format(io.fmt, args.full)
-  if not args.full then
-    for _, path in ipairs(untracked(P)) do
-      io.user:styled('notify', path, '\n')
-    end
-  end
-  io.fmt:write'\n'
-  return d
-end
-
 --- [$commit]: add changes to the current branch as a patch and move [$at]
 --- forward. The commit message can be written to the COMMIT file or be
 --- specified after the [$--] argument, where multiple arguments are space
@@ -1196,6 +1180,25 @@ function pvc.init:__call()
   pth.write(P..'.pvcignore', '')
   M._rawat(P, self.branch, 0)
   io.fmt:styled('notice', 'initialized pvc repo '..dot, '\n')
+end
+
+--- [$diff branch1 branch2 --full]: get the difference (aka the patch) between
+--- [$branch1] (default=[$at]) and [$branch2] (default=local). Each value can be
+--- either a branch name or a directory which contains a [$.pvcpaths] file.
+---
+-- M.main.diff = function(args) --> Diff
+function pvc.diff:__call()
+  trace('diff%q', self)
+  local P = self._dir
+  local d = M._diff(P, self[1], self[2])
+  d:format(io.fmt, not self.paths)
+  if self.paths then
+    for _, path in ipairs(untracked(P)) do
+      io.user:styled('notify', path, '\n')
+    end
+  end
+  io.fmt:write'\n'
+  return d
 end
 
 getmetatable(M).__call = getmetatable(M.main).__call

@@ -36,7 +36,7 @@ end
 --- test empty files
 T.empty = function()
   local d = initPvc()
-  local diff = M._diff(D)
+  local diff = pvc.diff{dir=d, paths=true}
   T.eq(M.Diff{
     dir1=D..'.pvc/main/commit/00/0.snap/', dir2=D,
     equal={".pvcpaths"}, deleted={},
@@ -128,7 +128,7 @@ local function workflow() -- FIXME: broken on linux
     dir1=D..'.pvc/main/commit/00/0.snap/', dir2=D,
     equal={}, deleted={},
     changed={'.pvcpaths'}, created={'hello/hello.lua', 'story.txt'},
-  }, M.diff(D))
+  }, pvc.diff{dir=D, paths=true})
 
   local DIFF1 = s[[
   desc1
@@ -164,7 +164,7 @@ local function workflow() -- FIXME: broken on linux
     dir1=D..'.pvc/main/commit/00/1.snap/', dir2=D,
     equal={'.pvcpaths', 'hello/hello.lua', 'story.txt'},
     deleted={}, changed={}, created={},
-  }, M.diff(D))
+  }, pvc.diff{dir=D, paths=true})
 
   -- go backwards
   M.atId(D, 'main', 0)
@@ -177,7 +177,7 @@ local function workflow() -- FIXME: broken on linux
     deleted={'hello/hello.lua', 'story.txt'},
     changed={'.pvcpaths'},
     created={},
-  }, M.diff(D, 'main#1'))
+  }, pvc.diff{dir=D, paths=true, 'main#1'})
 
   T.throws('ERROR: working id is not at tip.', function()
     M._commit(D, 'desc error')
