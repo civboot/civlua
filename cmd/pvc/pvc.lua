@@ -32,17 +32,21 @@ local pk = ds.popk
 
 local assertf = require'fmt'.assertf
 
---- Usage: [$pvc init dir --branch=main]
-pvc.init = shim.cmd'init' {
-  'branch [string]: the initial branch name',
-    branch = 'main',
+local Base = shim.cmd'_base' {
+  '_dir [string]: directory to execute in',
 }
 
+--- Usage: [$pvc init dir --branch=main]
+pvc.init = mty.extend(Base, 'init', {
+  'branch [string]: the initial branch name',
+    branch = 'main',
+})
+
 --- Usage: [$pvc diff branch1 branch2]
-pvc.diff = shim.cmd'diff' {}
+pvc.diff = mty.extend(Base, 'diff', {})
 
 --- Usage: [$pvc commit -- my message]
-pvc.commit = shim.cmd'commit' {}
+pvc.commit = mty.extend(Base, 'commit', {})
 
 --- Usage: [$pvc at branchId --hard][{br}]
 --- If [$branchId] is not given, just returns current branch#id.
@@ -51,15 +55,15 @@ pvc.commit = shim.cmd'commit' {}
 --- directory to be updated to be that content.
 --- This will , this will fail (unless [$force=true]) if it would
 --- cause any local changes to be overwritten.
-pvc.at = shim.cmd'at' {
+pvc.at = mty.extend(Base, 'at', {
  [[force [bool]: overwrite local changes.
    If given without [$branch], resets to current commit
  ]],
-}
+})
 
 --- Usage: [$$pvc tip [branch]]$[{br}]
 --- Get the tip id of branch (default=current)
-pvc.tip = shim.cmd'tip' {}
+pvc.tip = mty.extend(Base, 'tip', {})
 
 --- Usage: [$$pvc branch name [from=current]]$[{br}]
 --- Start new branch [$name] branching off of [$from].
@@ -67,27 +71,26 @@ pvc.tip = shim.cmd'tip' {}
 --- If [$from] is a [$path/to/dir] then it will graft
 --- those changes into the local repo as the named [$branch].
 --- (often used by maintainers to accept patches).
-pvc.branch = shim.cmd'branch' {}
+pvc.branch = mty.extend(Base, 'branch', {})
 
 -- Usage: [$$pvc show [branch#id] --before=10]$[{br}]
 -- Show the commits before/after [$branch#id].
 --
 -- If [$branch#id] is not given, print all branches.
-pvc.show = shim.cmd'show' {
+pvc.show = mty.extend(Base, 'show', {
   'before [int]: number of records before id to show',
     num=10,
   'after [int]: number of records after id to show',
     num=5,
  [[full [bool]: show the full commit message.]],
-}
+})
 
 --- Usage: [$$pvc desc branch#id=current [$to/new.cxt]]$[{br}]
 --- Get or set the description for a single branch id.
 ---
 --- The new description can be passed via [$to/new.cxt] or
 --- after [$--] (like commit).
-pvc.desc = shim.cmd'desc' {}
-
+pvc.desc = mty.extend(Base, 'desc', {})
 
 --- Usage: [$$pvc squash [name#id]]$[{br}]
 --- Combine changes and descriptions from 
@@ -98,32 +101,32 @@ pvc.desc = shim.cmd'desc' {}
 --- This enables making lots of small commits and then
 --- "squashing" them into a single commit once they are
 --- in a good state.
-pvc.squash = shim.cmd'squash' {
+pvc.squash = mty.extend(Base, 'squash', {
   'branch [string]: the branch to squash',
     branch='current',
-}
+})
 
 --- Usage: [$$rebase --branch=name#id <to>]$[{br}]
 --- Change the base of [$branch] to [$to].
-pvc.rebase = shim.cmd'rebase' {
+pvc.rebase = mty.extend(Base, 'rebase', {
   'branch [string]: the branch to mutate',
     branch='current',
-}
+})
 
 --- Usage: [$$grow --branch=current [from]]$[{br}]
 --- grow [$to] (default=[$at]) off of branch from.
 ---
 --- ["In other version control systems this is called a
 ---   "fast forward merge"]
-pvc.grow = shim.cmd'grow' {
+pvc.grow = mty.extend(Base, 'grow', {
   'branch [string]: the branch to mutate',
-}
+})
 
 --- Usage: [$prune branch#id][+
 --- * if [$#id]: delete ids [$id -> tip] (inclusive).
 --- * else: delete branch
 --- ]
-pvc.prune = shim.cmd'prune' {}
+pvc.prune = mty.extend(Base, 'prune', {})
 
 --- Usage: [$export branch to/][{br}]
 --- Copy all patch files in the branch to [$to/].
@@ -131,13 +134,13 @@ pvc.prune = shim.cmd'prune' {}
 ---   [$tar -zcvf branch.tar.gz path/] and then [$branch.tar.gz] sent to a
 ---   maintainer to be merged.
 --- ]
-pvc.export = shim.cmd'export' {}
+pvc.export = mty.extend(Base, 'export', {})
 
 --- Usage: [$$snap [branch#id=current]]$[{br}]
 --- Get the snapshot directory of branch#id.
 ---
 --- The snapshot contains a copy of files at that commit.
-pvc.snap = shim.cmd'snap' {}
+pvc.snap = mty.extend(Base, 'snap', {})
 
 M.DOT = '.pvc/'
 M.PVC_DONE = 'PVC_DONE'
