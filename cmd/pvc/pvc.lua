@@ -142,6 +142,16 @@ pvc.export = mty.extend(Base, 'export', {})
 --- The snapshot contains a copy of files at that commit.
 pvc.snap = mty.extend(Base, 'snap', {})
 
+-- Constructor which pops dir and sets on subcmds.
+-- Might update shim to do this auto-magically...
+function pvc.new(T, args)
+  args = shim.parseStr(args)
+  local dir = pk(args, 'dir')
+  local subcmd = shim.constructNew(T, args)
+  subcmd._dir = dir or pth.cwd()
+  return subcmd
+end
+
 M.DOT = '.pvc/'
 M.PVC_DONE = 'PVC_DONE'
 M.PVCPATHS = '.pvcpaths' -- file
