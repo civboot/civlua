@@ -36,13 +36,13 @@ function civ._pre()
 end
 
 civ._Base = shim.cmd'_Base' {
-  'config [string]: path to civ config.', config=core.DEFAULT_CONFIG,
+  'config [string]: path to civ config.',
 }
 
 --- Usage: [$civ init --config=.civconfig.lua][{br}]
 --- Initialize the repository. This should be run when starting a new repo.
 civ.init = shim.cmd'init' {
-  'config [string]: path to config.lua to output', config=core.DEFAULT_CONFIG,
+  'config [string]: path to config.lua to output',
   'base [string]: base config to copy from',
 }
 
@@ -155,14 +155,14 @@ end
 function civ.build:__call()
   civ._pre()
   info('build %q', self)
-  local cv = core.Civ{cfg=core.Cfg:load(self.config)}
+  local cv = core.Civ:load(self.config)
   return civ._build(cv, cv:expandAll(self))
 end
 
 function civ.test:__call()
   civ._pre()
   info('test %q', self)
-  local cv = core.Civ{cfg=core.Cfg:load(self.config)}
+  local cv = core.Civ:load(self.config)
   return civ._test(cv, cv:expandAll(self))
 end
 
@@ -171,7 +171,7 @@ function civ.run:__call()
   info('run %q', self)
   local cmd = shim.popRaw(self)
   assert(#self == 1, 'usage: civ run hub:tgtname')
-  local cv = core.Civ{cfg=core.Cfg:load(self.config)}
+  local cv = core.Civ:load(self.config)
   local tgtnames = cv:expandAll(self)
   assertf(#tgtnames == 1, 'must run a single target, expanded to: %q',
          tgtnames)
@@ -193,7 +193,7 @@ end
 function civ.install:__call()
   civ._pre()
   info('install %q', self)
-  local cv = core.Civ{cfg=core.Cfg:load(self.config)}
+  local cv = core.Civ:load(self.config)
   local tgtnames = cv:expandAll(self)
   local D = cv.cfg.installDir
   assert(D, 'must set config.installDir')
@@ -221,5 +221,5 @@ function civ.install:__call()
   io.fmt:styled('code', BASH_ADD:format(pth.toNonDir(d)), '\n')
 end
 
-if shim.isMain(civ) then return os.exit(civ:main(arg)) end
+if shim.isMain(civ) then civ:main(arg) end
 return civ

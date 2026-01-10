@@ -433,6 +433,17 @@ M._WalkDir.__call = function(wd, walk) --> path, ftype
   return path, ftype
 end
 
+--- Find the filename path going backwards.
+M.findBack = function(name, dir) --> path
+  dir = dir or pth.cwd()
+  while true do
+    local path = pth.concat{dir, name}
+    if M.exists(path) then return path end
+    if dir == '/'       then return      end
+    dir = pth.dir(dir)
+  end
+end
+
 --- recursively copy [$from/] to new [$to/] directory.
 M.cpRecursive = function(from, to, except)
   assert(M.isDir(from),    'from must be a directory')
@@ -487,7 +498,6 @@ end
 --- Force move a file or directory, creating directory structure
 --- if necessary.
 M.forceMv = function(old, new)
-  log.info('@@forceMv %q -> %q', old, new)
   M.mkDirs( (pth.last(new)) )
   M.cp(old, new)
 end

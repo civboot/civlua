@@ -39,18 +39,17 @@ Example record documentation.\
 ]\
 "
 
-
-local M = require'doc'
+local doc = require'doc'
 local T = require'civtest'
 local ds = require'ds'
 
-local Dc = M.Doc
+local Dc = doc.Doc
 
 local concat = table.concat
 
 T'find' do
-  T.eq(M,         M.tryfind'doc')
-  T.eq(M.tryfind, M.tryfind'doc.tryfind')
+  T.eq(doc,         doc.tryfind'doc')
+  T.eq(doc.tryfind, doc.tryfind'doc.tryfind')
 end
 
 T'fnsig' do
@@ -62,19 +61,19 @@ end
 
 T'extractCode' do
   local d = Dc{}
-  local cmt, code = d:extractCode(M.find)
+  local cmt, code = d:extractCode(doc.find)
   T.eq({'Find the object/name.'},        cmt)
-  T.eq({"function M.find(obj) --> any"}, code)
+  T.eq({"function doc.find(obj) --> any"}, code)
   T.eq('(obj) -> any', d:fnsig(code))
 
   local cmt, code = d:extractCode(d.extractCode)
   T.eq({}, cmt)
-  T.eq({"function M.Doc:extractCode(loc) --> (commentLines, codeLines)"},
+  T.eq({"function doc.Doc:extractCode(loc) --> (commentLines, codeLines)"},
        code)
   T.eq({"(loc) -> (commentLines, codeLines)", true}, {d:fnsig(code)})
 
   local cmt, code = d:extractCode(Dc.fnsig)
-  T.eq({"function M.Doc:fnsig(code) --> (string, isMethod)"}, code)
+  T.eq({"function doc.Doc:fnsig(code) --> (string, isMethod)"}, code)
   T.eq({"(code) -> (string, isMethod)", true}, {d:fnsig(code)})
 end
 

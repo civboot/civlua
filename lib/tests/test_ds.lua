@@ -27,7 +27,7 @@ local Set, Duration, Epoch
 local M = M.auto'ds'
 local d8 = require'ds.utf8'
 local dp = M.dotpath
-local path = require'ds.path'
+local pth = require'ds.path'
 local s = M.simplestr
 local LL = require'ds.LL'
 
@@ -390,17 +390,17 @@ end
 
 local function assertPath(fn, expect, p)
   T.eq(expect, fn(p))       -- pass in string
-  T.eq(expect, fn(path(p))) -- pass in table
+  T.eq(expect, fn(pth(p))) -- pass in table
 end
 T.ds_path = function()
-  T.eq({'a', 'b', 'c'},  path('a/b/c'))
-  T.eq({'/', 'b', 'c'},  path('/b/c'))
-  T.eq({'a', 'b', 'c/'}, path('a/b/c/'))
-  T.eq({},               path'')
-  T.eq({'a', 'b', 'c'},  path{'a', 'b', 'c'})
-  T.eq({'/', 'b', 'c'},  path{'/', 'b', 'c'})
+  T.eq({'a', 'b', 'c'},  pth('a/b/c'))
+  T.eq({'/', 'b', 'c'},  pth('/b/c'))
+  T.eq({'a', 'b', 'c/'}, pth('a/b/c/'))
+  T.eq({},               pth'')
+  T.eq({'a', 'b', 'c'},  pth{'a', 'b', 'c'})
+  T.eq({'/', 'b', 'c'},  pth{'/', 'b', 'c'})
 
-  local pc = path.concat
+  local pc = pth.concat
   T.eq('foo/bar',   pc{'foo/', 'bar'})
   T.eq('/foo/bar',  pc{'/foo/', 'bar'})
   T.eq('/foo/bar/', pc{'/foo/', 'bar/'})
@@ -410,7 +410,7 @@ T.ds_path = function()
   T.eq('a/b',       pc{'a', '', 'b'})
   T.eq('a/b',       pc{'a/', '', 'b'})
 
-  local pr = path.resolve
+  local pr = pth.resolve
   T.eq('/.a',      pr('/.a'))
   T.eq('/..a',     pr('/..a'))
   T.eq('/a.',      pr('/a.'))
@@ -428,23 +428,23 @@ T.ds_path = function()
   T.throws('before root', function() pr('/a/../..') end)
   T.throws('before root', function() pr('/a/../../') end)
 
-  assert(#path.cwd() ~= 1, path.cwd())
-  T.eq(path.abs'', path.cwd())
-  T.eq(path.abs{}, path(path.cwd()))
+  assert(#pth.cwd() ~= 1, pth.cwd())
+  T.eq(pth.abs'', pth.cwd())
+  T.eq(pth.abs{}, pth(pth.cwd()))
 
-  local pn = path.nice
+  local pn = pth.nice
   T.eq('./',        pn('a/..'))
   T.eq('/a/b/',     pn('..', '/a/b/c/'))
   T.eq('d/e',       pn('/a/b/c/d/e',  '/a/b/c'))
   T.eq('d/e/',      pn('/a/b/c/d/e/', '/a/b/c'))
   T.eq('a',         pn('./a'))
 
-  local pe = path.ext
+  local pe = pth.ext
   assertPath(pe, 'foo', 'coo.foo')
   assertPath(pe, 'foo', 'a/b/c.foo')
   assertPath(pe, 'bar', 'a/b.c/d.foo.bar')
 
-  local pf = path.first
+  local pf = pth.first
   T.eq({'/',  'a/b/c/'}, {pf'/a/b/c/'})
   T.eq({'a',  'b/c/'},   {pf'a/b/c/'})
   T.eq({'/',  'a/b/'},   {pf'/a/b/'})
@@ -454,31 +454,37 @@ T.ds_path = function()
   T.eq({'/',  'b/'},     {pf'/b/'})
   T.eq({'/',  ''},       {pf'/'})
 
-  local pl = path.last
-  T.eq({'/a/b/', 'c/'}, {pl'/a/b/c/'})
-  T.eq({'a/b/', 'c/'},  {pl'a/b/c/'})
-  T.eq({'/a/', 'b/'},   {pl'/a/b/'})
-  T.eq({'/a/', 'b'},    {pl'/a/b'})
-  T.eq({'', '/b'},      {pl'/b'})
-  T.eq({'', 'b'},       {pl'b'})
-  T.eq({'', '/b/'},     {pl'/b/'})
-  T.eq({'', '/'},       {pl'/'})
+  local function plast(expect, p)
+    T.eq(expect,    {pth.last(p)})
+    T.eq(expect[1], pth.dir(p))
+  end
+  plast({'/a/b/', 'c/'}, '/a/b/c/')
+  plast({'a/b/', 'c/'},  'a/b/c/')
+  plast({'/a/', 'b/'},   '/a/b/')
+  plast({'/a/', 'b'},    '/a/b')
+  plast({'/',  'b'},     '/b')
+  plast({'./', 'b'},     'b')
+  plast({'/',  'b/'},    '/b/')
+  plast({nil,  '/'},     '/')
 
-  T.eq(true, path.isDir('/'))
-  T.eq('/',  path.toDir('/'))
-  T.eq('a/', path.toDir('a'))
-  T.eq('a',  path.toNonDir('a'))
-  T.eq('a',  path.toNonDir('a/'))
+  T.eq(true, pth.isDir('/'))
+  T.eq('/',  pth.toDir('/'))
+  T.eq('a/', pth.toDir('a'))
+  T.eq('a',  pth.toNonDir('a'))
+  T.eq('a',  pth.toNonDir('a/'))
 
   T.eq({'y', 'z/z', 'a/', 'a/b/'},
-    M.sort({'a/', 'a/b/', 'z/z', 'y'}, path.cmpDirsLast))
+    M.sort({'a/', 'a/b/', 'z/z', 'y'}, pth.cmpDirsLast))
 
-  local rel = path.relative
+  local rel = pth.relative
   T.eq('a/b',        rel('',   'a/b'))
   T.eq('../a/b',     rel('c/', 'a/b'))
   T.eq('../bin/foo', rel('lua/foo.lua', 'bin/foo'))
-  T.eq(rel('/foo/bar',  '/foo/baz/bob'), 'baz/bob')
-  T.eq(rel('/foo/bar/', '/foo/baz/bob'), '../baz/bob')
+  T.eq('baz/bob', rel('/foo/bar',  '/foo/baz/bob'))
+  T.eq('../baz/bob', rel('/foo/bar/', '/foo/baz/bob'))
+  T.eq('../baz/bob', rel('/foo/bar/', '/foo/baz/bob'))
+  T.eq('../baz/bob', rel('/foo/bar/', '/foo/baz/bob'))
+  T.eq('bar/baz/', rel('/foo/', '/foo/bar/baz/'))
 end
 
 local heap = require'ds.heap'

@@ -246,7 +246,6 @@ M.isCmd = function(R) return rawget(R, '__cmd') and true end
 
 --- The [$getmt(Cmd).__call]
 function M._constructCall(Cmd, args)
-  require'ds.log'.info('@@ cmd:__call %q', args)
   return Cmd:new(args)()
 end
 
@@ -262,7 +261,6 @@ M._main = function(Cmd, args)
   local self, err = Cmd:new(M.parse(args))
   M.runSetup(self or {})
   assert(self, err)
-  require'ds.log'.info('@@ main() %q', self)
   self()
 end
 
@@ -306,7 +304,6 @@ local function namedCmd(name, R)
   R.__cmd  = R.__cmd  or name
   R = mty.namedRecord(name, R)
   getmetatable(R).__call = M._constructCall
-  io.stderr:write('@@cmd name=', R.__name, '\n')
   G.MAIN = G.MAIN or R
   return R
 end

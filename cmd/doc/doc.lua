@@ -1,13 +1,13 @@
 #!/usr/bin/env -S lua
-local mty = require'metaty'
-
---- Builds on metaty to add the ability to extract and format documentation.
----
---- Also offers the Cmd and Cmds types for documenting shell commands.
-local M = mty.mod'doc'
-
-local G = mty.G; G.MAIN = G.MAIN or M
 local shim = require'shim'
+
+--- Usage: [$doc some.symbol]
+local doc = shim.cmd'doc-cmd' {
+  __cmd='doc',
+  'to [string|file]: where to write output.',
+}
+
+local mty = require'metaty'
 local ds = require'ds'
 local fmt = require'fmt'
 local pod = require'pod'
@@ -22,14 +22,14 @@ local assertf = fmt.assertf
 local EMPTY = {}
 
 --- Find the object/name or return nil.
-function M.tryfind(obj) --> any?
+function doc.tryfind(obj) --> any?
   if type(obj) ~= 'string' then return obj end
   return G.PKG_LOOKUP[obj] or ds.wantpath(obj)
 end
 
 --- Find the object/name.
-function M.find(obj) --> any
-  return assertf(M.tryfind(obj), '%q could not be found', obj)
+function doc.find(obj) --> any
+  return assertf(doc.tryfind(obj), '%q could not be found', obj)
 end
 
 --- Given a list of comment lines strip the '---' from them.
@@ -43,7 +43,7 @@ end
 
 --- Object passed to __doc methods.
 --- Aids in writing cxt.
-M.Doc = mty'Doc' {
+doc.Doc = mty'Doc' {
   'to [file]: file to write to.',
   'indent [string]', indent = '  ',
   'done [table]: already documented items',
@@ -53,30 +53,30 @@ M.Doc = mty'Doc' {
   'modHeader [int]: mod header lvl',         modHeader = 3,
   'tyHeader  [int]: type/record header lvl', tyHeader = 4,
 }
-getmetatable(M.Doc).__call = function(R, self)
+getmetatable(doc.Doc).__call = function(R, self)
   self.done = self.done or {}
   return mty.construct(R, self)
 end
 
-M.Doc.level  = fmt.Fmt.level
-M.Doc._write = fmt.Fmt._write
-M.Doc.write  = fmt.Fmt.write
-M.Doc.flush  = fmt.Fmt.flush
-M.Doc.close  = fmt.Fmt.close
+doc.Doc.level  = fmt.Fmt.level
+doc.Doc._write = fmt.Fmt._write
+doc.Doc.write  = fmt.Fmt.write
+doc.Doc.flush  = fmt.Fmt.flush
+doc.Doc.close  = fmt.Fmt.close
 
-function M.Doc:bold(text) self:write(sfmt('[*%s]', text)) end
-function M.Doc:code(code) self:write(cxt.code(code))      end
+function doc.Doc:bold(text) self:write(sfmt('[*%s]', text)) end
+function doc.Doc:code(code) self:write(cxt.code(code))      end
 
-function M.Doc:link(link, text)
+function doc.Doc:link(link, text)
   if text then self:write(sfmt('[<%s>%s]', link, text))
   else         self:write(sfmt('[<%s>]', link)) end
 end
 
-function M.Doc:named(name, id)
+function doc.Doc:named(name, id)
   self:write(sfmt('[{name=%s}%s]', id or name, assert(name)))
 end
 
-function M.Doc:header(lvl, content, name)
+function doc.Doc:header(lvl, content, name)
   assertf(1 <= lvl and lvl <= 6, 'header lvl %s must be [1-6]', lvl)
   if name then
     self:write(sfmt('[{h%s name=%s}%s]\n', lvl, name, content))
@@ -85,13 +85,12 @@ function M.Doc:header(lvl, content, name)
   end
 end
 
-function M.Doc:anyExtract(obj) --> name, loc, cmt, code
+function doc.Doc:anyExtract(obj) --> name, loc, cmt, code
   local name, loc = mty.anyinfo(obj)
-  info('@@ anyExtract name=%q loc=%q', name, loc)
   return name, loc, self:extractCode(loc)
 end
 
-function M.Doc:extractCode(loc) --> (commentLines, codeLines)
+function doc.Doc:extractCode(loc) --> (commentLines, codeLines)
   if not loc then return end
   if type(loc) ~= 'string' then loc = select(2, mty.anyinfo(loc)) end
   if not loc or loc:find'%[' then return end
@@ -129,7 +128,7 @@ function M.Doc:extractCode(loc) --> (commentLines, codeLines)
 end
 
 --- Extract the function signature from the lines of code.
-function M.Doc:fnsig(code) --> (string, isMethod)
+function doc.Doc:fnsig(code) --> (string, isMethod)
   if not code or not code[1] then return end
   code = code[1]
   local         s, r = code:match'(%b()).*%-%->%s*(.*)'
@@ -144,7 +143,7 @@ function M.Doc:fnsig(code) --> (string, isMethod)
 end
 
 --- Declare the function definition
-function M.Doc:declfn(fn, name, id) --> (cmt, sig, isMethod)
+function doc.Doc:declfn(fn, name, id) --> (cmt, sig, isMethod)
   local pname, loc  = mty.anyinfo(fn)
   local cmt, code   = self:extractCode(loc)
   local sig, isMeth = self:fnsig(code)
@@ -162,7 +161,7 @@ function M.Doc:declfn(fn, name, id) --> (cmt, sig, isMethod)
 end
 
 --- Document the module.
-function M.Doc:mod(m)
+function doc.Doc:mod(m)
   local name, loc = mty.anyinfo(m)
   local cmts, code = self:extractCode(loc)
   self:header(3, 'Mod '..m.__name, m.__name)
@@ -173,7 +172,7 @@ function M.Doc:mod(m)
 end
 
 --- Document the end (not header+comments) of module.
-function M.Doc:endmod(m)
+function doc.Doc:endmod(m)
   local names = {}
   local fns, tys, oth = {}, {}, {}
   for _, k in ipairs(m.__attrs) do
@@ -216,7 +215,7 @@ function M.Doc:endmod(m)
   end
 end
 
-function M.Doc:__call(name, obj, cmts)
+function doc.Doc:__call(name, obj, cmts)
   local ty = type(obj)
   if ty == 'function' then return self:declfn(obj) end
   if ty == 'table' and rawget(obj, '__doc') then
@@ -230,25 +229,16 @@ function M.Doc:__call(name, obj, cmts)
   end
 end
 
---- Get cxt documentation for symbol.
-M.Main = mty'Main'{
-  __cmd='doc',
-  'to [string|file]: where to write output.',
-}
-
 --- usage: [$doc{'any.symbol', '--to=optionalOutput.cxt'}]
-function M.Main:__call()
+function doc:__call()
   info('doc %q', self)
   assert(#self > 0, 'usage: doc any.symbol')
-  local d = M.Doc{to=assert(shim.file(self.to, io.stderr))}
+  local d = doc.Doc{to=assert(shim.file(self.to, io.stderr))}
   for _, name in ipairs(self) do
-    local obj = M.find(name)
+    local obj = doc.find(name)
     d(name, obj); d:write'\n'
   end
 end
 
-getmetatable(M).__call = function(_, args)
-  return M.Main(shim.parseStr(args))()
-end
-if MAIN == M then return ds.main(shim.run, M.Main, shim.parse(arg)) end
-return M
+if shim.isMain(doc) then doc:main(arg) end
+return doc

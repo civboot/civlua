@@ -193,6 +193,10 @@ end
 fin = true;
 end ---------------- end tests()
 
+T'findBack' do
+  T.eq('./HUB.luk', M.findBack('HUB.luk', 'lib/tests/'))
+end
+
 if not G.NOLIB then
 local fd = require'fd'
 local ixt = require'civix.testing'

@@ -87,7 +87,7 @@ local libfd_out = {
 
 T.loadFd = function()
   local l = newCiv()
-  l:load{'civ:lib/fd'}
+  l:loadPkgs{'civ:lib/fd'}
   T.eq(METATY_PKG.out, l.pkgs['civ:lib/metaty'].metaty.out)
   local fdpkg = l.pkgs['civ:lib/fd']
   T.eq(fd_out,    fdpkg.fd.out)
@@ -97,7 +97,7 @@ end
 
 T.loadLinesTesting = function()
   local l = newCiv()
-  l:load{'civ:lib/lines/testing'}
+  l:loadPkgs{'civ:lib/lines/testing'}
   T.eq({
     lua = { ['testing.lua'] = 'lines/testing.lua' },
   }, l.pkgs['civ:lib/lines/testing'].testing.out)
@@ -117,7 +117,7 @@ end
 
 T.buildMetaty = function()
   local l = newCiv()
-  l:load{'civ:lib/metaty'}
+  l:loadPkgs{'civ:lib/metaty'}
   l:build{'civ:lib/metaty'}
   T.path('.out/civ/', {
     ['lua/'] = {
@@ -128,7 +128,7 @@ end
 
 T.buildDs = function()
   local l = newCiv()
-  l:load{'civ:lib/ds'}
+  l:loadPkgs{'civ:lib/ds'}
   local dsPkg = l.pkgs['civ:lib/ds']
   T.eq({"civ:lib/metaty#metaty", "civ:lib/fmt#fmt", "civ:lib/ds#dslib"},
        dsPkg.ds.dep)
@@ -156,7 +156,7 @@ end
 
 T.buildCiv = function()
   local l = newCiv()
-  l:load{'civ:cmd/civ'}
+  l:loadPkgs{'civ:cmd/civ'}
   l:build{'civ:cmd/civ'}
 end
 
@@ -164,6 +164,6 @@ T.testMetaty = function()
   local l = newCiv()
   local p = 'civ:lib/tests'
   local t = p..'#test_metaty'
-  l:load{p}
+  l:loadPkgs{p}
   l:test({t}, l:build{t})
 end

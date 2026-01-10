@@ -1,4 +1,5 @@
 
 * I don't think civix.sh is passing stdout through. That should happen by
   default.
+* I need io.open/etc to respect G.PWD
 

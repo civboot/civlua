@@ -150,6 +150,12 @@ end
 -- # Civ
 -- The Civ object and it's configuration.
 
+--- A hub configuration
+M.Hub = mty'Hub' {
+  'name [string]: the name of the hub', name='this',
+}
+
+--- Cfg.builder settings
 M.CfgBuilder = mty'CfgBuilder' {
  [[direct [bool]: prefer building directly
    (running build scripts w/ dofile).
@@ -167,7 +173,9 @@ M.Cfg = mty'Cfg' {
   'builder [CfgBuilder]: builder settings',
 }
 M.Cfg.load = function(T, path)
-  local ok, t = dload(path or M.DEFAULT_CONFIG, {HOME=pth.home()})
+  path = path or M.DEFAULT_CONFIG
+  info('cfgPath=%q', path)
+  local ok, t = dload(path, {HOME=pth.home()})
   assert(ok, t)
   t.path = path
   for h, d in pairs(t.hubs) do t.hubs[h] = pth.abs(d) end
@@ -179,6 +187,7 @@ end
 --- processing civ build graphs (pkgname graphs).
 M.Civ = mty'Civ' {
   'cfg [Cfg]: the user config',
+  'thisHub [string]', 'thisPkg [string]',
   'hubs: table of hub -> dir (cfg.hubs)',
   'pkgs: table of pkgname -> pkg',
   'luk [luk.Luk]',
@@ -203,9 +212,31 @@ getmetatable(M.Civ).__call = function(T, self)
     'LUA_SETUP='      ..LUA_SETUP,
     'LOGLEVEL='       ..G.LOGLEVEL,
   }, self.ENV or {})
+  if ix.exists'HUB.luk' then
+    local hdir = pth.dir(pth.abs'HUB.luk')
+    info('local hub %s', hdir)
+    local ok, h = dload'HUB.luk'; assert(ok, h)
+    self.thisHub = M.Hub(h).name
+    self.hubs[self.thisHub] = hdir
+  end
   self = mty.construct(T, self)
   self.luk.pathFn = function(p) return self:abspath(p) end
   return self
+end
+
+function M.Civ.load(T, cfgPath)
+  info('Civ:load(cfgPath=%q)', cfgPath)
+  if cfgPath then cfgPath = pth.abs(cfgPath) end
+  local self = {}
+  local hpath, hdir, cwd = ix.findBack'HUB.luk'
+  if hpath then
+    cwd, hdir = pth.cwd(), pth.dir(hpath)
+    self.thisPkg = pth.toNonDir(pth.relative(hdir, cwd))
+    info('thisPkg=%q', self.thisPkg)
+    pth.cd(hdir)
+  end
+  self.cfg = M.Cfg:load(cfgPath)
+  return T(self)
 end
 
 local function tmatch(tgt, pat)
@@ -216,6 +247,10 @@ end
 --- Expand a pattern to it's targets.
 --- This has the side effect of loading all related packages.
 function M.Civ:expand(pat) --> targets
+  if pat:sub(1,1) == ':' then pat = self.thisHub..pat end
+  if not pat:find':' then
+    pat = sfmt('%s:%s%s', self.thisHub, pth.toDir(self.thisPkg), pat)
+  end
   local hub, pkgpat = pat:match'^([%w_]+):(.*)$'
   assertf(hub, 'invalid pkg pat: %q', pat)
   local hubdir = assertf(self.hubs[hub], 'unknown hub: %s', hub)
@@ -238,7 +273,7 @@ function M.Civ:expand(pat) --> targets
       push(pkgnames, sfmt('%s:%s', hub, pth.toNonDir(pth.concat(path))))
     end
   end
-  self:load(pkgnames)
+  self:loadPkgs(pkgnames)
   local tgtnames = {}
   if tgtpat == '' then 
     for _, pkg in ipairs(pkgnames) do push(tgtnames, M.tgtname(pkg)) end
@@ -350,7 +385,7 @@ function M.Civ:loadPkg(pkgname)
 end
 
 --- Load the pkgs and update self.pkgs with values.
-function M.Civ:load(pkgnames)
+function M.Civ:loadPkgs(pkgnames)
   for _, pn in ipairs(pkgnames) do self:loadPkg(pn) end
 end
 

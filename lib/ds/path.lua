@@ -60,10 +60,18 @@ M.pathenv = function(var, alt)
   return d
 end
 
---- get/set current working directory
-M.cwd = function(path)
-  if path then G.PWD = path; return end
-  return M.pathenv('PWD', 'CD')
+-- FIXME: stop setting dir here.
+--- get the current working directory
+M.cwd = function(dir) --> /...cwd/
+  if dir then return M.cd(dir)
+  else        return M.pathenv('PWD', 'CD') end
+end
+
+--- Set the CWD, changing the result of [@ds.cwd].
+M.cd = function(dir)
+  if not M.isDir(dir) then error(dir..' must be a dir/') end
+  M.PWD = M.abs(dir)
+  return M.PWD
 end
 
 --- get the user's home directory
@@ -197,14 +205,19 @@ M.first = function(path)
   return a, b
 end
 
---- [$first/middle/last -> ("first/middle", "last")]
+--- [$first/middle/last -> ("first/middle/", "last")]
 M.last = function(path)
   local a, b = path:match('^(.*/)(.+)$')
-  if not a or a == '/' or b == '' then return '', path end
+  if not a or b == '' then
+    if path:sub(1,1) ~= '/' then a = './' end
+    return a, path
+  end
   return a, b
 end
 
+--- Get the directory of the path or nil if it is root.
 M.dir = function(path)
+  if path == '/' then return end
   return path:match'^(.*/)(.+)$' or './'
 end
 
@@ -237,10 +250,12 @@ M.relative = function(from, to, wd)
   -- find index they have shared root (si=shared index)
   local si=1; for i=2,#from do
     si = i
-    if from[i] ~= to[i] then
+    if M.toDir(from[i]) ~= M.toDir(to[i]) then
       si=i-1; break
     end
   end
+  require'ds.log'.info('@@ from=%q to=%q', from, to)
+  print('si=', si, 'from=', #from)
   for _=si+1,#from do push(rel, '..')  end -- get from down to same root
   for i=si+1,#to   do push(rel, to[i]) end -- push remaing to path
   return inpTy == 'string' and M.concat(rel) or rel
