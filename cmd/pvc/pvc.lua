@@ -94,7 +94,7 @@ pvc.show = mty.extend(Base, 'show', {
     num=10,
   'after [int]: number of records after id to show',
     num=5,
- [[full [bool]: show the full commit message.]],
+ [[paths [bool]: show only paths.]],
 })
 
 --- Usage: [$$pvc desc branch#id=current [$to/new.cxt]]$[{br}]
@@ -923,50 +923,7 @@ M.main = G.mod and G.mod'pvc.main' or setmetatable({}, {})
 -- M.main.at = function(args) --> string
 -- M.main.tip = function(args) --> string
 -- M.main.branch = function(args)
-
---- [$pvc show [branch#id] --num=10 --full]
----
---- If no branch is specified: show branches. [$full] also displays
---- the base and tip.
----
---- Else show branch#id and the previous [$num] commit messages.
---- With [$full] show the full commit message, else show only
---- the first line.
-M.main.show = function(args)
-  local D = popdir(args)
-  local full = args.full
-  if not args[1] then -- just show all branches
-    for _, br in ipairs(M.branches(D)) do
-      if full then
-        local bdir = M.branchDir(D, br)
-        local tip, base,bid = M._rawtip(bdir), M._getbase(bdir, nil)
-        io.user:styled('notify', sfmt('%s\ttip=%s%s',
-          br, tip, base and sfmt('\tbase=%s#%s', base,bid) or ''), '\n')
-      else io.user:styled('notify', br, '\n') end
-    end
-    return
-  end
-  local br, id = M._parseBranch(args[1])
-  if not br or br == 'at' then br, id = M._rawat(D) end
-
-  local num, dir = toint(args.num or 10), M.branchDir(D, br)
-  if not id then id = M._rawtip(dir) end
-  local bbr, bid = M._getbase(dir)
-  for i=id,id-num+1,-1 do
-    if i <= 0 then break end
-    if i == bid then
-      br, dir = bbr, M.branchDir(D, bbr)
-      bbr, bid = M._getbase(dir)
-    end
-    local ppath = M._patchPath(dir, i)
-    local desc = M._desc(ppath, not full and 1 or nil)
-    io.user:styled('notify', sfmt('%s#%s:', br,i), '')
-    io.user:level(1)
-    io.user:write(full and '\n' or ' ', concat(desc, '\n'))
-    io.user:level(-1)
-    io.user:write'\n'
-  end
-end
+-- M.main.show = function(args)
 
 --- [$pvc desc branch [$path/to/new]]
 --- get or set the description for a single branch id.
@@ -1182,6 +1139,44 @@ function pvc.branch:__call()
   else        fbr, fid = M._rawat(D) end
   local bpath, id = M._branch(D, name, fbr,fid)
   M.atId(D, name)
+end
+
+--- [$pvc show [branch#id] --num=10 --full]
+function pvc.show:__call()
+  local D = self._dir
+  local full = not self.paths
+  if not self[1] then -- just show all branches
+    local branches = M.branches(D)
+    for _, br in ipairs(branches) do
+      if full then
+        local bdir = M.branchDir(D, br)
+        local tip, base,bid = M._rawtip(bdir), M._getbase(bdir, nil)
+        io.user:styled('notify', sfmt('%s\ttip=%s%s',
+          br, tip, base and sfmt('\tbase=%s#%s', base,bid) or ''), '\n')
+      else io.user:styled('notify', br, '\n') end
+    end
+    return branches
+  end
+  local br, id = M._parseBranch(self[1])
+  if not br or br == 'at' then br, id = M._rawat(D) end
+
+  local num, dir = toint(self.num or 10), M.branchDir(D, br)
+  if not id then id = M._rawtip(dir) end
+  local bbr, bid = M._getbase(dir)
+  for i=id,id-num+1,-1 do
+    if i <= 0 then break end
+    if i == bid then
+      br, dir = bbr, M.branchDir(D, bbr)
+      bbr, bid = M._getbase(dir)
+    end
+    local ppath = M._patchPath(dir, i)
+    local desc = M._desc(ppath, not full and 1 or nil)
+    io.user:styled('notify', sfmt('%s#%s:', br,i), '')
+    io.user:level(1)
+    io.user:write(full and '\n' or ' ', concat(desc, '\n'))
+    io.user:level(-1)
+    io.user:write'\n'
+  end
 end
 
 getmetatable(M).__call = getmetatable(M.main).__call
