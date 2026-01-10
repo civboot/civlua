@@ -439,7 +439,7 @@ M.atId = function(P, nbr,nid) --!> branch?, id?
 end
 
 --- update paths file (path) with the added and removed items
-M.pathsUpdate = function(P, add, rm)
+M._pathsUpdate = function(P, add, rm)
   local pfile = pth.concat{P, M.PVCPATHS}
   local paths = assert(lines.load(pfile), pfile)
   if add then ds.extend(paths, add) end
@@ -481,7 +481,7 @@ M.resolve2 = function(P, br1, br2) --> branch1/ branch2/
           M.resolveSnap(P, br2 or 'local')
 end
 
-M.diff = function(P, branch1, branch2) --> Diff
+M._diff = function(P, branch1, branch2) --> Diff
   return M.Diff:of(M.resolve2(P, branch1, branch2))
 end
 
@@ -524,7 +524,7 @@ M.commit = function(P, desc) --> snap/, id
     * stash -> at tip -> unstash -> commit
     * prune: move or delete downstream changes.
   ]])end
-  M.pathsUpdate(P) -- sort unique
+  M._pathsUpdate(P) -- sort unique
 
   -- b=base c=change
   local bsnap = M.snapshot(P, br,id)
@@ -721,7 +721,7 @@ M.grow = function(P, to, from) --!>
     "rebase not required: %s base is equal to it's tip (%s)", fbr, bid
   ))end
   M.atId(P, tbr,ttip)
-  if M.diff(P):hasDiff() then error'local changes detected' end
+  if M._diff(P):hasDiff() then error'local changes detected' end
   -- TODO(sig): check signature
   for id=bid+1, M._rawtip(fdir) do
     local tpath = M._patchPath(tdir, id)
@@ -830,7 +830,7 @@ end
 M.main.diff = function(args) --> Diff
   trace('diff%q', args)
   local P = popdir(args)
-  local d = M.diff(P, args[1], args[2])
+  local d = M._diff(P, args[1], args[2])
   d:format(io.fmt, args.full)
   if not args.full then
     for _, path in ipairs(untracked(P)) do

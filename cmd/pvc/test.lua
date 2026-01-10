@@ -35,7 +35,7 @@ end
 --- test empty files
 T.empty = function()
   local d = initPvc()
-  local diff = pvc.diff(D)
+  local diff = pvc._diff(D)
   T.eq(pvc.Diff{
     dir1=D..'.pvc/main/commit/00/0.snap/', dir2=D,
     equal={".pvcpaths"}, deleted={},
@@ -195,7 +195,7 @@ local function workflow() -- FIXME: broken on linux
   local STORY2 = pth.read(TD..'story.txt.2')
   pth.write(D..'story.txt', STORY2); EXPECT2['story.txt'] = STORY2
   ix.rmRecursive(D..'hello/');       EXPECT2.hello = nil
-  pvc.pathsUpdate(D, nil, --[[rm=]]{'hello/hello.lua'})
+  pvc._pathsUpdate(D, nil, --[[rm=]]{'hello/hello.lua'})
   EXPECT2[pvc.PVCPATHS] = '.pvcpaths\nstory.txt\n'
   T.path(D, EXPECT2)
 
