@@ -174,7 +174,8 @@ end
 --- The default is to use ds.setup.
 M.runSetup = function(args, force)
   mty.setup()
-  require(rawget(_G, 'LUA_SETUP') or os.getenv'LUA_SETUP' or 'ds').setup(args, force)
+  require(G.LUA_SETUP or os.getenv'LUA_SETUP' or 'ds')
+    .setup(args, force)
 end
 
 --- Construct a metaty-like object from args.
@@ -258,6 +259,7 @@ end
 ---   if shim.isMain(mycmd) then mycmd:main(G.arg) end
 --- ]$
 M._main = function(Cmd, args)
+  io.stderr:write'@@ running shim._main\n'
   local self, err = Cmd:new(M.parse(args))
   M.runSetup(self or {})
   assert(self, err)
@@ -317,7 +319,7 @@ end
 ---   'to [path|file]: where to write output',
 --- }
 --- -- ... rest of your module.
---- if shim.isMain(M) then os.exit(M:main(arg)) end
+--- if shim.isMain(M) then M:main(arg) end
 --- return M
 --- ]$
 M.cmd = function(name)

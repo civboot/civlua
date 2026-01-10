@@ -103,6 +103,7 @@ local function bootTest()
 
   dofile(D..'cmd/civ/test_civ.lua')
   io.fmt:styled('notify', 'boot-test done', '\n')
+  io.fmt:flush()
 end
 
 local function main()

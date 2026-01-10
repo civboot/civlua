@@ -24,4 +24,4 @@ local function main()
   end
 end
 
-os.exit(ds.main(main))
+ds.main(main)

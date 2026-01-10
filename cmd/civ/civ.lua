@@ -187,6 +187,7 @@ function civ.run:__call()
   table.insert(cmd, 1, cv.cfg.buildDir..bin)
   info('running: %q', cmd)
   cmd.ENV = cv.ENV
+  cmd.stdout = io.stdout
   return ix.sh(cmd)
 end
 

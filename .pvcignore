@@ -1,18 +1,3 @@
-# directories
-%.git/
-%.out/
-bin/
-experiment/
-cmd/pvc/testdata/0.snap/
-
-# extensions
-%.rock$
-%.rockspec$
-%.o$
-%.so$
-%.gch$
-%.html$
-
-# binaries
-lib/smol/smol_test
-
+.git/
+.civ/
+.out/

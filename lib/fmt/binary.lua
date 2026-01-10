@@ -96,5 +96,5 @@ M.main = function(args)
 end
 local main = M.main
 
-if M == MAIN then os.exit(main(shim.parse(G.arg))) end
+if M == MAIN then error'TODO: migrate to shim' end
 return M

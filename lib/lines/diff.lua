@@ -259,5 +259,5 @@ M.main = function(args)
 end
 
 getmetatable(M).__call = function(_, args) return M.main(args) end
-if M == MAIN then os.exit(M.main(require'shim'.parse(G.arg))) end
+if M == MAIN then error'TODO: migrate to shim' end
 return M

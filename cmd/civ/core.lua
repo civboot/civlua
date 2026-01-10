@@ -259,19 +259,27 @@ function M.Civ:expand(pat) --> targets
   pkgpat, pkgroot = pkgpat or '', pkgroot or ''
   local pkgnames = {}
   local hublist = pth(hubdir)
-  local dirs; if pkgpat == '' then
+  local w, dirs; if pkgpat == '' then
     -- no regex in pkgdir, only look in root directory
     dirs = Iter:of{[pth.concat{hubdir, pkgroot}]='dir'}
   else
     -- walk the directory
-    dirs = ix.Walk{pth.concat{hubdir, pkgroot}}
+    w = ix.Walk{pth.concat{hubdir, pkgroot}}
+    dirs = w
   end
   for path, ftype in dirs do
+    if w and ftype=='dir' and
+        select(2, pth.last(path)):match'^%.' then
+      log.info('skipping dir %q', path)
+      w:skip()
+      goto continue;
+    end
     if ftype == 'dir' and path:match(pkgpat)
         and ix.exists(pth.concat{path, 'PKG.luk'}) then
       path = pth.rmleft(pth(path), hublist)
       push(pkgnames, sfmt('%s:%s', hub, pth.toNonDir(pth.concat(path))))
     end
+    ::continue::
   end
   self:loadPkgs(pkgnames)
   local tgtnames = {}
@@ -406,7 +414,7 @@ function M.Civ:run(stage, tgtname, script, ids)
     script,
     '--config='..self.cfg.path,
     sfmt('--tgtsDb=%stargets.json', self.cfg.buildDir),
-    ENV=self.ENV, rc = true,
+    ENV=self.ENV, rc = true, stdout = io.stdout,
   }
   for _, id in ipairs(ids) do push(cmd, tostring(id)) end
   info('%s cmd: %q', stage, cmd)
@@ -478,6 +486,7 @@ function M.Civ:test(tgtnames, ordered, tgtsCache)
   G.MAIN = nil
   local ran = {}
   for _, tgtname in ipairs(tgtnames) do
+    info('Civ:test %q', tgtname)
     local tgt = assert(self:target(tgtname))
     if tgt.kind ~= 'test' then goto continue end
     local id = assert(tgtId[tgt:tgtname()])
@@ -494,6 +503,7 @@ function M.Civ:test(tgtnames, ordered, tgtsCache)
     ::continue::
   end
   G.MAIN = main
+  info'Civ:test complete'
   return ran
 end
 

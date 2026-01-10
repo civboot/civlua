@@ -123,7 +123,7 @@ T.fileno_and_friends = function()
   T.eq(true,  M.isatty(2))
 
   T.eq('chr', M.ftype(io.stdin))
-  T.eq('fifo', M.ftype(io.stdout))
+  T.eq('chr', M.ftype(io.stdout))
   T.eq('file', M.ftype(io.tmpfile()))
 end
 
