@@ -680,7 +680,7 @@ M.rebase = function(P, branch, id) --> backup/dir/
     assert(tid <= ttip)
     local bsnap = M.snapshot(P, cbr,bid)
     pth.write(tdir..'rebase', tostring(cid))
-    local desc = M.desc(M._patchPath(cdir, cid))
+    local desc = M._desc(M._patchPath(cdir, cid))
     M._merge(tsnap, bsnap, M.snapshot(P, cbr,cid))
     tprev = tprev or M.snapshot(P, tbr,tid-1)
     local tpatch = M._patchPath(tdir,tid)
@@ -740,7 +740,7 @@ M._grow = function(P, to, from) --!>
 end
 
 --- return the description of ppath
-M.desc = function(ppath, num) --> {string}
+M._desc = function(ppath, num) --> {string}
   local desc = {}
   for line in io.lines(ppath) do
     if line:sub(1,2) == '!!' or line:sub(1,3) == '---'
@@ -751,7 +751,7 @@ M.desc = function(ppath, num) --> {string}
 end
 
 --- squash num commits together before br#id.
-M.squash = function(P, br, bot,top)
+M._squash = function(P, br, bot,top)
   trace('squash %s [%s %s]', br, bot,top)
   assert(br and bot and top, 'must set all args')
   assert(top > 0)
@@ -774,7 +774,7 @@ M.squash = function(P, br, bot,top)
   -- move [bot,top] commits to backup/ and remove their .snap/ directories.
   for i=bot,top do
     local path = M._patchPath(bdir, i)
-    ds.extend(desc, M.desc(path))
+    ds.extend(desc, M._desc(path))
     local bpatch = back..i..'.p'
     ix.mv(path, bpatch)
     io.fmt:styled('notify', sfmt('mv %s %s', path, bpatch), '\n')
@@ -929,7 +929,7 @@ M.main.show = function(args)
       bbr, bid = M._getbase(dir)
     end
     local ppath = M._patchPath(dir, i)
-    local desc = M.desc(ppath, not full and 1 or nil)
+    local desc = M._desc(ppath, not full and 1 or nil)
     io.user:styled('notify', sfmt('%s#%s:', br,i), '')
     io.user:level(1)
     io.user:write(full and '\n' or ' ', concat(desc, '\n'))
@@ -952,7 +952,7 @@ M.main.desc = function(args)
   if desc        then desc = concat(desc, ' ')
   elseif args[2] then desc = pth.read(args[2]) end
   local oldp = M._patchPath(bdir, id)
-  local olddesc = concat(M.desc(oldp), '\n')
+  local olddesc = concat(M._desc(oldp), '\n')
   if not desc then return print(olddesc) end
   -- Write new description
   local newp = sconcat('', bdir, tostring(id))
@@ -988,7 +988,7 @@ M.main.squash = function(args)
     br, bot = M.atId(P); top = bot + 1
     M._commit(P, '')
   end
-  M.squash(P, br, bot,top)
+  M._squash(P, br, bot,top)
 end
 
 getmetatable(M.main).__call = function(_, args)

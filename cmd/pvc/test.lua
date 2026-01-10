@@ -145,9 +145,9 @@ local function workflow() -- FIXME: broken on linux
   local br, id = pvc._commit(D, 'desc1')
   local p1 = pvc._patchPath(Bm, id, '.p')
   T.path(p1, DIFF1)
-  T.eq({'desc1'}, pvc.desc(p1))
+  T.eq({'desc1'}, pvc._desc(p1))
   pvc.main.desc{'--', 'desc1', '-', 'edited', dir=D}
-  T.eq({'desc1 - edited'}, pvc.desc(p1))
+  T.eq({'desc1 - edited'}, pvc._desc(p1))
 
   local STORY1 = pth.read(TD..'story.txt.1')
   local HELLO1 = pth.read(TD..'hello.lua.1')
@@ -247,7 +247,7 @@ local function workflow() -- FIXME: broken on linux
   T.eq({'dev', 5}, {pvc._rawat(D)})
   T.eq(3, pvc._rawtip(Bm))
   T.eq(5, pvc._rawtip(Bd))
-  T.eq({'desc4d'}, pvc.desc(Bd..'commit/00/5.p'))
+  T.eq({'desc4d'}, pvc._desc(Bd..'commit/00/5.p'))
 
   local EXPECT5 = ds.copy(EXPECT2, {
     ['story.txt'] = pth.read(TD..'story.txt.5')
@@ -270,7 +270,7 @@ local function workflow() -- FIXME: broken on linux
   T.path(pvc.snapshot(D, 'main', 4), EXPECT4)
 
   -- Squash main commit and first dev commit
-  pvc.squash(D, 'main', 3,4)
+  pvc._squash(D, 'main', 3,4)
   T.eq(4, pvc._rawtip(Bm))
   T.path(pvc.snapshot(D, 'main', 2), EXPECT2)
   T.path(pvc.snapshot(D, 'main', 3), EXPECT4)
