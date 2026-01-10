@@ -158,7 +158,7 @@ local function workflow() -- FIXME: broken on linux
     ['.pvc'] = { at = 'main#1' }
   })
   T.path(Bm, { tip = '1' })
-  T.eq({'main', 1}, {pvc.at(D)})
+  T.eq({'main', 1}, {pvc.atId(D)})
   T.eq(pvc.Diff{
     dir1=D..'.pvc/main/commit/00/1.snap/', dir2=D,
     equal={'.pvcpaths', 'hello/hello.lua', 'story.txt'},
@@ -166,7 +166,7 @@ local function workflow() -- FIXME: broken on linux
   }, pvc.diff(D))
 
   -- go backwards
-  pvc.at(D, 'main', 0)
+  pvc.atId(D, 'main', 0)
   assert(not ix.exists(D..'story.txt'))
   assert(not ix.exists(D..'hello/hello.lua'))
   T.path(D..'.pvcpaths', '.pvcpaths\n')
@@ -183,7 +183,7 @@ local function workflow() -- FIXME: broken on linux
   end)
 
   -- go forwards
-  pvc.at(D, 'main', 1)
+  pvc.atId(D, 'main', 1)
   local EXPECT1 = {
     ['.pvcpaths'] = '.pvcpaths\nhello/hello.lua\nstory.txt\n',
     ['story.txt'] = STORY1, hello = { ['hello.lua'] = HELLO1 },
@@ -200,7 +200,7 @@ local function workflow() -- FIXME: broken on linux
   T.path(D, EXPECT2)
 
   pvc.commit(D, 'desc2')
-  T.path(Bm, { tip = '2' }); T.eq({'main', 2}, {pvc.at(D)})
+  T.path(Bm, { tip = '2' }); T.eq({'main', 2}, {pvc.atId(D)})
   T.path(D, EXPECT2); T.path(Bm..'commit/00/2.snap/', EXPECT2)
 
   -- Create divergent branch which both modify story.txt
@@ -208,14 +208,14 @@ local function workflow() -- FIXME: broken on linux
   local EXPECT3d = ds.copy(EXPECT2)
     EXPECT3d['story.txt'] = STORY3d
 
-  pvc.branch(D, 'dev', 'main'); pvc.at(D, 'dev')
+  pvc.branch(D, 'dev', 'main'); pvc.atId(D, 'dev')
   T.eq({'dev', 'main'}, pvc.branches(D))
   local Bd = D..'.pvc/dev/'
   T.path(D, EXPECT2);
   T.eq(Bm..'commit/00/2.snap/', pvc.snapshot(D, 'dev', 2))
   pth.write(D..'story.txt', STORY3d); T.path(D, EXPECT3d)
   pvc.commit(D, 'desc3d')
-  T.path(Bd, { tip = '3' }); T.eq({'dev', 3}, {pvc.at(D)})
+  T.path(Bd, { tip = '3' }); T.eq({'dev', 3}, {pvc.atId(D)})
   T.eq({'main', 2}, {pvc._getbase(Bd, 'dev')})
 
   local STORY4d = pth.read(TD..'story.txt.4d')
@@ -225,8 +225,8 @@ local function workflow() -- FIXME: broken on linux
   })
   pvc.commit(D, 'desc4d')
 
-  pvc.at(D, 'main',2)
-  T.path(Bm, { tip = '2' }); T.eq({'main', 2}, {pvc.at(D)})
+  pvc.atId(D, 'main',2)
+  T.path(Bm, { tip = '2' }); T.eq({'main', 2}, {pvc.atId(D)})
   T.path(D, EXPECT2)
 
   -- diverge main from dev
@@ -237,10 +237,10 @@ local function workflow() -- FIXME: broken on linux
   pvc.commit(D, 'desc3')
 
   -- just test checkout a few times
-  pvc.at(D, 'dev',3);  T.path(D, EXPECT3d)
-  pvc.at(D, 'dev',2);  T.path(D, EXPECT2)
-  pvc.at(D, 'main',3); T.path(D, EXPECT3m)
-  pvc.at(D, 'dev',4);  T.path(D, EXPECT4d)
+  pvc.atId(D, 'dev',3);  T.path(D, EXPECT3d)
+  pvc.atId(D, 'dev',2);  T.path(D, EXPECT2)
+  pvc.atId(D, 'main',3); T.path(D, EXPECT3m)
+  pvc.atId(D, 'dev',4);  T.path(D, EXPECT4d)
 
   -- perform rebase
   pvc.rebase(D, 'dev',3)
@@ -253,8 +253,8 @@ local function workflow() -- FIXME: broken on linux
     ['story.txt'] = pth.read(TD..'story.txt.5')
   })
   T.path(Bd..'commit/00/5.snap/', EXPECT5)
-  pvc.at(D, 'main',3); T.path(D, EXPECT3m)
-  pvc.at(D, 'dev',4);
+  pvc.atId(D, 'main',3); T.path(D, EXPECT3m)
+  pvc.atId(D, 'dev',4);
 
   -- dev4 has main3's changes.
   local EXPECT4 = ds.copy(EXPECT3d, {
@@ -264,7 +264,7 @@ local function workflow() -- FIXME: broken on linux
 
   pvc.grow(D, 'main', 'dev')
   T.eq(5, pvc._rawtip(Bm))
-  T.eq({'main', 5}, {pvc.at(D)})
+  T.eq({'main', 5}, {pvc.atId(D)})
   assert(not ix.exists(Bd))
   T.path(pvc.snapshot(D, 'main', 5), EXPECT5)
   T.path(pvc.snapshot(D, 'main', 4), EXPECT4)
@@ -274,7 +274,7 @@ local function workflow() -- FIXME: broken on linux
   T.eq(4, pvc._rawtip(Bm))
   T.path(pvc.snapshot(D, 'main', 2), EXPECT2)
   T.path(pvc.snapshot(D, 'main', 3), EXPECT4)
-  pvc.at(D, 'main',2); T.path(D, EXPECT2)
-  pvc.at(D, 'main',3); T.path(D, EXPECT4)
-  pvc.at(D, 'main',4); T.path(D, EXPECT5)
+  pvc.atId(D, 'main',2); T.path(D, EXPECT2)
+  pvc.atId(D, 'main',3); T.path(D, EXPECT4)
+  pvc.atId(D, 'main',4); T.path(D, EXPECT5)
 end

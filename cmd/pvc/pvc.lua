@@ -375,7 +375,7 @@ M._rawat = function(P, branch, id)
 end
 
 --- get or set where the working id is at.
-M.at = function(P, nbr,nid) --!> branch?, id?
+M.atId = function(P, nbr,nid) --!> branch?, id?
   -- c=current, n=next
   local cbr, cid = M._rawat(P); if not nbr then return cbr, cid end
   local npath = M.branchDir(P, nbr)
@@ -547,7 +547,7 @@ end
 
 --- get the conventional brName, id for a branch,id pair
 M.nameId = function(P, branch,id) --> br,id
-  local br,bid; if not branch then br,bid = M.at(P)
+  local br,bid; if not branch then br,bid = M.atId(P)
   else                             br,bid = M._parseBranch(branch) end
   return br, id or bid or M._rawtip(M.branchDir(P, br))
 end
@@ -646,7 +646,7 @@ M.rebase = function(P, branch, id) --> backup/dir/
   --- the final result will be in to's last snapshot id
   local cpath = M.branchDir(P, cbr)
   local bbr, bid = M._getbase(cpath, cbr)
-  M.at(P, bbr,bid) -- checkout base to ensure cleaner checkout at end
+  M.atId(P, bbr,bid) -- checkout base to ensure cleaner checkout at end
 
   if bbr == cbr then error('the base of '..cbr..' is itself') end
   if id == bid then return end
@@ -699,7 +699,7 @@ M.rebase = function(P, branch, id) --> backup/dir/
   M._rawtip(tdir, ttip)
   ix.rm(tdir..'op'); ix.rm(tdir..'rebase')
   ix.mv(tdir, cdir)
-  M.at(P, cbr,ttip)
+  M.atId(P, cbr,ttip)
   return backup
 end
 
@@ -720,7 +720,7 @@ M.grow = function(P, to, from) --!>
   if ftip == bid then error(sfmt(
     "rebase not required: %s base is equal to it's tip (%s)", fbr, bid
   ))end
-  M.at(P, tbr,ttip)
+  M.atId(P, tbr,ttip)
   if M.diff(P):hasDiff() then error'local changes detected' end
   -- TODO(sig): check signature
   for id=bid+1, M._rawtip(fdir) do
@@ -736,7 +736,7 @@ M.grow = function(P, to, from) --!>
     sfmt('deleting %s (mv %s -> %s)', fbr, fdir, back), '\n')
   ix.mkDirs(pth.last(back)); ix.mv(fdir, back)
   io.fmt:styled('notify', sfmt('grew %s tip to %s', tbr, ftip), '\n')
-  M.at(P, tbr,ftip)
+  M.atId(P, tbr,ftip)
 end
 
 --- return the description of ppath
@@ -763,7 +763,7 @@ M.squash = function(P, br, bot,top)
   local tip, bbr, bid = M._rawtip(bdir), M._getbase(P, br)
   if bot <= bid then error(sfmt('bottom %i <= base id %s', top, bid)) end
   if top >  tip then error(sfmt('top %i > tip %i', top, tip)) end
-  M.at(P, br,top)
+  M.atId(P, br,top)
   local back = M.backupDir(P, br..'-squash'); ix.mkDirs(back)
   local desc = {}
   local last = M._patchPath(bdir, tip)
@@ -861,7 +861,7 @@ end
 --- ["git equivalent: [$checkout]]
 M.main.at = function(args) --> string
   local D, branch = popdir(args), args[1]
-  if branch then return M.at(D, M._parseBranch(branch)) end
+  if branch then return M.atId(D, M._parseBranch(branch)) end
   branch = sfmt('%s#%s', M._rawat(D))
   print(branch); return branch
 end
@@ -891,7 +891,7 @@ M.main.branch = function(args)
   if fbr then fbr, fid = M._parseBranch(fbr)
   else        fbr, fid = M._rawat(D) end
   local bpath, id = M.branch(D, name, fbr,fid)
-  M.at(D, name)
+  M.atId(D, name)
 end
 
 --- [$pvc show [branch#id] --num=10 --full]
@@ -985,7 +985,7 @@ M.main.squash = function(args)
     br, bot = M.resolve(P, args[1])
     top     = toint(assert(args[2], 'must set endId'))
   else -- local commits
-    br, bot = M.at(P); top = bot + 1
+    br, bot = M.atId(P); top = bot + 1
     M.commit(P, '')
   end
   M.squash(P, br, bot,top)
