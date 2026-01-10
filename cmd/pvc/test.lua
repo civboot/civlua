@@ -244,7 +244,7 @@ local function workflow() -- FIXME: broken on linux
 
   -- perform rebase
   pvc.rebase(D, 'dev',3)
-  T.eq({'dev', 5}, {pvc.rawat(D)})
+  T.eq({'dev', 5}, {pvc._rawat(D)})
   T.eq(3, pvc._rawtip(Bm))
   T.eq(5, pvc._rawtip(Bd))
   T.eq({'desc4d'}, pvc.desc(Bd..'commit/00/5.p'))

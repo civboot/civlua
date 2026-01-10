@@ -255,7 +255,7 @@ end
 
 M._getbase = function(bdir, br) --> br, id
   local bpath = bdir..'base'
-  if ix.exists(bpath) then return M.parseBranch(pth.read(bpath))
+  if ix.exists(bpath) then return M._parseBranch(pth.read(bpath))
   else return br, 0 end
 end
 M._rawtip = function(bdir, id)
@@ -360,7 +360,7 @@ end
 -----------------
 -- Project Methods
 
-M.parseBranch = function(str, bdefault, idefault) --> branch, id
+M._parseBranch = function(str, bdefault, idefault) --> branch, id
   local i = str:find'#'
   if i              then return str:sub(1,i-1), toint(str:sub(i+1))
   elseif toint(str) then return bdefault,       toint(str)
@@ -368,16 +368,16 @@ M.parseBranch = function(str, bdefault, idefault) --> branch, id
 end
 
 --- get or hard set the current branch/id
-M.rawat = function(P, branch, id)
+M._rawat = function(P, branch, id)
   local apath = pth.concat{P, '.pvc/at'}
   if branch then pth.write(apath, sfmt('%s#%s', branch, id))
-  else    return M.parseBranch(pth.read(apath)) end
+  else    return M._parseBranch(pth.read(apath)) end
 end
 
 --- get or set where the working id is at.
 M.at = function(P, nbr,nid) --!> branch?, id?
   -- c=current, n=next
-  local cbr, cid = M.rawat(P); if not nbr then return cbr, cid end
+  local cbr, cid = M._rawat(P); if not nbr then return cbr, cid end
   local npath = M.branchDir(P, nbr)
 
   nid = nid or M._rawtip(npath)
@@ -434,7 +434,7 @@ M.at = function(P, nbr,nid) --!> branch?, id?
     trace('checkout rm: %s', path)
     ix.rmRecursive(P..path)
   end
-  M.rawat(P, nbr,nid)
+  M._rawat(P, nbr,nid)
   io.fmt:styled('notify', sfmt('pvc: at %s#%s', nbr,nid), '\n')
 end
 
@@ -457,10 +457,10 @@ end
 --- * Special: at
 --- ]
 M.resolve = function(P, branch) --> br, id, bdir
-  local br, id = M.parseBranch(branch)
+  local br, id = M._parseBranch(branch)
   if not br then error('unknown branch: '..branch) end
   if br == 'local' then error('local not valid here') end
-  if br == 'at'  then br, id = M.rawat(P) end
+  if br == 'at'  then br, id = M._rawat(P) end
   return br, id, M.branchDir(P, br)
 end
 
@@ -493,7 +493,7 @@ M.init = function(P, branch)
   initBranch(M.branchDir(P, branch), 0)
   pth.write(P..M.PVCPATHS, M.INIT_PVCPATHS)
   pth.write(P..'.pvcignore', '')
-  M.rawat(P, branch, 0)
+  M._rawat(P, branch, 0)
   io.fmt:styled('notice', 'initialized pvc repo '..dot, '\n')
 end
 
@@ -516,7 +516,7 @@ M.commit = function(P, desc) --> snap/, id
     .." at the start of a line: +++, ---, !!")
   end
 
-  local br, id = M.rawat(P)
+  local br, id = M._rawat(P)
   local bp, cid = M.branchDir(P, br), id+1
   trace('start commit %s/%s', br, cid)
   if id ~= M._rawtip(bp) then error(s[[
@@ -540,7 +540,7 @@ M.commit = function(P, desc) --> snap/, id
   for path in io.lines(P..M.PVCPATHS) do
     T.pathEq(P..path, csnap..path)
   end
-  M._rawtip(bp, cid); M.rawat(P, br, cid)
+  M._rawtip(bp, cid); M._rawat(P, br, cid)
   io.fmt:styled('notify', sfmt('commited %s#%s to %s', br, cid, patchf), '\n')
   return csnap, cid
 end
@@ -548,7 +548,7 @@ end
 --- get the conventional brName, id for a branch,id pair
 M.nameId = function(P, branch,id) --> br,id
   local br,bid; if not branch then br,bid = M.at(P)
-  else                             br,bid = M.parseBranch(branch) end
+  else                             br,bid = M._parseBranch(branch) end
   return br, id or bid or M._rawtip(M.branchDir(P, br))
 end
 
@@ -708,7 +708,7 @@ M.grow = function(P, to, from) --!>
   local fbr, fdir = assert(from, 'must set from'), M.branchDir(P, from)
   local ftip = M._rawtip(fdir)
   local bbr, bid = M._getbase(fdir)
-  local tbr = to or M.rawat(P)
+  local tbr = to or M._rawat(P)
   if bbr ~= tbr then error(sfmt(
     'the base of %s is %s, not %s', from, bbr, tbr
   ))end
@@ -797,7 +797,7 @@ M.squash = function(P, br, bot,top)
     ix.mv(topPat, botPat)
   end
 
-  M.rawat(P, br,bot); M._rawtip(bdir,bi)
+  M._rawat(P, br,bot); M._rawtip(bdir,bi)
   io.fmt:styled('notify',
     sfmt('squashed [%s - %s] into %s. New tip=%i', bot, top, bot, bi), '\n')
 end
@@ -861,8 +861,8 @@ end
 --- ["git equivalent: [$checkout]]
 M.main.at = function(args) --> string
   local D, branch = popdir(args), args[1]
-  if branch then return M.at(D, M.parseBranch(branch)) end
-  branch = sfmt('%s#%s', M.rawat(D))
+  if branch then return M.at(D, M._parseBranch(branch)) end
+  branch = sfmt('%s#%s', M._rawat(D))
   print(branch); return branch
 end
 
@@ -870,7 +870,7 @@ end
 M.main.tip = function(args) --> string
   local P = popdir(args)
   local out = sfmt('%s#%s',
-    M._rawtip(M.branchDir(P, args[1] or M.rawat(P))))
+    M._rawtip(M.branchDir(P, args[1] or M._rawat(P))))
   print(out); return out
 end
 
@@ -888,8 +888,8 @@ M.main.branch = function(args)
 
   local fbr,fid = args[2]
   if fbr and fbr:find'/' then return M.graft(D, name, fbr) end
-  if fbr then fbr, fid = M.parseBranch(fbr)
-  else        fbr, fid = M.rawat(D) end
+  if fbr then fbr, fid = M._parseBranch(fbr)
+  else        fbr, fid = M._rawat(D) end
   local bpath, id = M.branch(D, name, fbr,fid)
   M.at(D, name)
 end
@@ -916,8 +916,8 @@ M.main.show = function(args)
     end
     return
   end
-  local br, id = M.parseBranch(args[1])
-  if not br or br == 'at' then br, id = M.rawat(D) end
+  local br, id = M._parseBranch(args[1])
+  if not br or br == 'at' then br, id = M._rawat(D) end
 
   local num, dir = toint(args.num or 10), M.branchDir(D, br)
   if not id then id = M._rawtip(dir) end
@@ -1006,7 +1006,7 @@ end
 --- (default branch=current, id=branch base's tip)
 M.main.rebase = function(args) --> string
   local P = popdir(args)
-  local br = args[1] ~= '' and args[1] or M.rawat(P)
+  local br = args[1] ~= '' and args[1] or M._rawat(P)
   local base = M._getbase(M.branchDir(P,br))
   M.rebase(P, br, M._rawtip(M.branchDir(P, base)))
 end
