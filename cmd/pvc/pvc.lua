@@ -44,7 +44,7 @@ M.INIT_PATCH = [[
 local toint = math.tointeger
 
 --- this exists for tests to override
-M.backupId = function() return tostring(ix.epoch():asSeconds()) end
+M._backupId = function() return tostring(ix.epoch():asSeconds()) end
 
 --- reserved branch names
 M.RESERVED_NAMES = { ['local']=1, at=1, tip=1, }
@@ -632,7 +632,7 @@ end
 --- return a backup directory (uses the timestamp)
 M.backupDir = function(P, name) --> string
   for _=1,10 do
-    local b = sfmt('%s.pvc/backup/%s-%s/', P, name, M.backupId())
+    local b = sfmt('%s.pvc/backup/%s-%s/', P, name, M._backupId())
     if ix.exists(b) then ix.sleep(0.01) else return b end
   end
   error('could not find empty backup')
