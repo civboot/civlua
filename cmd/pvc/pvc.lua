@@ -125,7 +125,7 @@ pvc.rebase = mty.extend(Base, 'rebase', {
 })
 
 --- Usage: [$$grow --branch=current [from]]$[{br}]
---- grow [$to] (default=[$at]) off of branch from.
+--- grow [$branch] to be same as branch [$from]
 ---
 --- ["In other version control systems this is called a
 ---   "fast forward merge"]
@@ -931,88 +931,11 @@ M.main = G.mod and G.mod'pvc.main' or setmetatable({}, {})
 -- M.main.show = function(args)
 -- M.main.desc = function(args)
 -- M.main.squash = function(args)
-
---- [$rebase [branch [id]]]: change the base of branch to id.
---- (default branch=current, id=branch base's tip)
-M.main.rebase = function(args) --> string
-end
-
---- [$grow from --to=at]: grow [$to] (default=[$at]) using branch from.
----
---- ["In other version control systems this is called a
----   "fast forward merge"
---- ]
-M.main.grow = function(args)
-  local P = popdir(args)
-  return M._grow(P, args.to, args[1])
-end
-
---- [$prune branch [id]] delete branch by moving it to backup
---- directory.
-M.main.prune = function(args)
-  local D = popdir(args)
-  local br = assert(args[1], 'must specify branch')
-  local bdir = M.branchDir(D, br)
-  assert(ix.exists(bdir), bdir..' does not exist')
-  local back = M.backupDir(D, br); ix.mkDirs(back)
-  local id = args[2]
-  if id then
-    id = toint(id); local tip = M._rawtip(bdir)
-    local d = M.depth(bdir)
-    local undo = {}
-    for i=id,tip do
-      local from = M._patchPath(bdir,id, d)
-      local to   = sfmt('%s%s.p', back, id)
-      ix.mv(from, to)
-      push(undo, sfmt('mv %s %s', to, from))
-    end
-    pth.write(back..'UNDO', table.concat(undo, '\n'))
-    io.fmt:styled('notify', sfmt('pruned [%s -> %s]. Undo with %s',
-      id, tip, back..'UNDO'))
-  else
-    ix.mv(bdir, back)
-    io.fmt:styled('notify', sfmt('moved %s -> %s', bdir, back))
-  end
-end
-
---- [$export branch to/]: copy all patch files in the branch to [$to/].
----
---- ["the resulting directory is commonly sent to [$tar -zcvf branch.tar.gz path/]
----   and then [$branch.tar.gz] sent to a maintainer to be merged
---- ]
-M.main.export = function(args) --> to
-  local D = popdir(args)
-  local br = assert(args[1], 'must specify branch')
-  local to = pth.toDir(assert(args[2], 'must specify to/ directory'))
-  if ix.exists(to) then error('to/ directory already exists: '..to) end
-
-  local bdir = M.branchDir(D, br)
-  local tip, bbr,bid = M._rawtip(bdir), M._getbase(bdir,nil)
-
-  ix.mkDirs(to..'commit/')
-  pth.write(bdir..'tip', tip)
-  ix.cp(bdir..'commit/depth', to..'commit/depth')
-  if bbr then pth.write(bdir..'base', sfmt('%s#%s', bbr,bid)) end
-  -- Note: if base then first id isn't there
-  for id=bbr and (bid+1) or bid, tip do
-    ix.forceCp(M._patchPath(bdir,id, M._patchPath(to,id)))
-  end
-  io.fmt:styled('notify', sfmt('exported %s to %s', bdir, to))
-  return to
-end
-
---- [$snap [branch#id]] get the snapshot directory of branch#id
---- (default=at).
---- 
---- The snapshot contains a copy of files at that commit and
---- should not be modified.
-M.main.snap = function(args) --> snap/
-  local P = popdir(args)
-  local br, id = M.resolve(P, args[1] or 'at')
-  local snap = M.snapshot(P, br, id)
-  io.stdout:write(snap, '\n')
-  return pth.nice(snap)
-end
+-- M.main.rebase = function(args) --> string
+-- M.main.grow = function(args)
+-- M.main.prune = function(args)
+-- M.main.export = function(args) --> to
+-- M.main.snap = function(args) --> snap/
 
 -----------------------
 ---- NEW HOTNESS
@@ -1168,6 +1091,67 @@ function pvc.rebase:__call()
   self.id = shim.number(self.id)
   local base = M._getbase(M.branchDir(P,br))
   M._rebase(P, br, self.id or M._rawtip(M.branchDir(P, base)))
+end
+
+function pvc.grow:__call()
+  return M._grow(self._dir, self.branch, self[1])
+end
+
+function pvc.prune:__call()
+  local D = self._dir
+  local br, id = M.resolve(assert(self[1], 'must specify branch'))
+  local bdir = M.branchDir(D, br)
+  assert(ix.exists(bdir), bdir..' does not exist')
+  local back = M.backupDir(D, br); ix.mkDirs(back)
+  if id then
+    id = toint(id); local tip = M._rawtip(bdir)
+    local d = M.depth(bdir)
+    local undo = {}
+    for i=id,tip do
+      local from = M._patchPath(bdir,id, d)
+      local to   = sfmt('%s%s.p', back, id)
+      ix.mv(from, to)
+      push(undo, sfmt('mv %s %s', to, from))
+    end
+    pth.write(back..'UNDO', table.concat(undo, '\n'))
+    io.fmt:styled('notify', sfmt('pruned [%s -> %s]. Undo with %s',
+      id, tip, back..'UNDO'))
+  else
+    ix.mv(bdir, back)
+    io.fmt:styled('notify', sfmt('moved %s -> %s', bdir, back))
+  end
+end
+
+function pvc.export:__call()
+  local D = self._dir
+  local br = assert(self[1], 'must specify branch')
+  local to = pth.toDir(assert(self[2],
+             'must specify to/ directory'))
+  if ix.exists(to) then
+    error('to/ directory already exists: '..to)
+  end
+
+  local bdir = M.branchDir(D, br)
+  local tip, bbr,bid = M._rawtip(bdir), M._getbase(bdir,nil)
+
+  ix.mkDirs(to..'commit/')
+  pth.write(bdir..'tip', tip)
+  ix.cp(bdir..'commit/depth', to..'commit/depth')
+  if bbr then pth.write(bdir..'base', sfmt('%s#%s', bbr,bid)) end
+  -- Note: if base then first id isn't there
+  for id=bbr and (bid+1) or bid, tip do
+    ix.forceCp(M._patchPath(bdir,id, M._patchPath(to,id)))
+  end
+  io.fmt:styled('notify', sfmt('exported %s to %s', bdir, to))
+  return to
+end
+
+function pvc.snap:__call()
+  local P = self._dir
+  local br, id = M.resolve(P, self[1] or 'at')
+  local snap = M.snapshot(P, br, id)
+  io.stdout:write(snap, '\n')
+  return pth.nice(snap)
 end
 
 getmetatable(M.main).__call = function(_, args)
