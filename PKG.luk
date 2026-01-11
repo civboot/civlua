@@ -4,6 +4,7 @@ local P = {}
 P.full = Target {
   dep = {
     'civ:cmd/civ',
+    'civ:cmd/pvc',
     'civ:cmd/ff',
     'civ:cmd/cxt',
     'civ:cmd/doc',

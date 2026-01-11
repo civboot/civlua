@@ -10,6 +10,7 @@ P.pvc = lua {
     'unix.lua'
   },
   dep = { 'civ:lib' },
+  link = {['lua/pvc.lua'] = 'bin/pvc'},
 }
 
 P.test = lua.test {
