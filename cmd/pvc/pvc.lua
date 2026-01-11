@@ -340,7 +340,7 @@ pvc.Diff.format = function(d, fmt, full)
       else fmt:write(line, '\n') end
     end
   else
-    if not d:hasDiff() then return s('bold', 'No Difference') end
+    if not d:hasDiff() then return s('bold', 'No Difference', '\n') end
     s('bold', 'Diff:', ' ', d.dir1, ' --> ', d.dir2, '\n')
     for _,path in ipairs(d.deleted) do s('base',   '-'..path, '\n') end
     for _,path in ipairs(d.created) do s('change', '+'..path, '\n') end
