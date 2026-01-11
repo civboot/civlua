@@ -243,13 +243,10 @@ T'workflow' do
   pvc.atId(D, 'dev',4);  T.path(D, EXPECT4d)
 
   -- perform rebase
-  require'ds.log'.err'FIXME: need to fix rebase'
-  goto skip;
   pvc.rebase{dir=D, 'dev', 3}
-  ds.yeet'ok'
   T.eq({'dev', 5}, {pvc._rawat(D)})
-  T.eq(3, pvc.tip{dir=Bm})
-  T.eq(5, pvc.tip{dir=Bd})
+  T.eq('main#3', pvc.tip{dir=D, 'main'})
+  T.eq('dev#5',  pvc.tip{dir=D})
   T.eq({'desc4d'}, pvc._desc(Bd..'commit/00/5.p'))
 
   local EXPECT5 = ds.copy(EXPECT2, {

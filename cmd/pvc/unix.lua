@@ -11,6 +11,7 @@ local pth = require'ds.path'
 local push = table.insert
 local sfmt = string.format
 local trace = require'ds.log'.trace
+local info = require'ds.log'.info
 local NULL = '/dev/null'
 
 local EMPTY_DIFF = [[
@@ -84,7 +85,12 @@ M.merge = function(to, base, change) --> ok, err
   assert(to, 'must provide to')
   base, change = base or NULL, change or NULL
   trace('merging t:%s b:%s c:%s', to, base, change)
-  local o, e, sh = ix.sh{'merge', '-A', to, base, change, rc=true}
+  local cmd = {
+    'merge', '-A', to, base, change,
+    rc=true,
+  }
+  info('unix.merge %q', cmd)
+  local o, e, sh = ix.sh(cmd)
   trace('merge rc=%i', sh:rc())
   if sh:rc() == 0 then return true end
   return nil, e

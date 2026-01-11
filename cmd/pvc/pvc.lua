@@ -23,6 +23,7 @@ local trace = require'ds.log'.trace
 local s = ds.simplestr
 local construct = mty.construct
 local toDir, pconcat = pth.toDir, pth.concat
+local nice = pth.nice
 local pk = ds.popk
 
 local assertf = require'fmt'.assertf
@@ -377,7 +378,7 @@ pvc._getbase = function(bdir, br) --> br, id
   if ix.exists(bpath) then return pvc._parseBranch(pth.read(bpath))
   else return br, 0 end
 end
-pvc._rawtip = function(bdir, id)
+pvc._rawtip = function(bdir, id) --> id
   if id then pth.write(toDir(bdir)..'tip', tostring(id))
   else return readInt(toDir(bdir)..'tip') end
 end
@@ -729,7 +730,9 @@ pvc._merge = function(tdir, bdir, cdir) --!>
     local ok, err = pu.merge(to, base, change)
     if not ok then
       io.fmt:styled('error', sfmt(
-        FAILED_MERGE, to, base, change, err), '\n')
+        FAILED_MERGE,
+        nice(to), nice(base), nice(change),
+        err), '\n')
       conflicts = true
     end
   end)
@@ -961,10 +964,12 @@ function pvc.at:__call()
   return branch
 end
 
-function pvc.tip:__call()
+function pvc.tip:__call() --> 'branch#tip'
   local P = self._dir
-  local out = sfmt('%s#%s',
-    pvc._rawtip(pvc.branchDir(P, args[1] or pvc._rawat(P))))
+  local br = self[1] or pvc._rawat(P)
+  local bdir = pvc.branchDir(P, br)
+  local tip = pvc._rawtip(bdir)
+  local out = sfmt('%s#%s', br, tip)
   print(out)
   return out
 end

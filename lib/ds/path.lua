@@ -254,8 +254,6 @@ M.relative = function(from, to, wd)
       si=i-1; break
     end
   end
-  require'ds.log'.info('@@ from=%q to=%q', from, to)
-  print('si=', si, 'from=', #from)
   for _=si+1,#from do push(rel, '..')  end -- get from down to same root
   for i=si+1,#to   do push(rel, to[i]) end -- push remaing to path
   return inpTy == 'string' and M.concat(rel) or rel
