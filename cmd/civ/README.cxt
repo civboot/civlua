@@ -71,18 +71,16 @@ return P
 ]
 
 [{:h3 name=civ-out}civ output directory]
-By default, [$civ build] puts files in [$.out/civ/]. Wherever it puts it's output
+By default, [$civ build] puts files in [$.civ/]. Wherever it puts it's output
 (whether during build or installation), the output structure under that directory
 is as follows: [+
-* [$bin/]: executable binaries/scripts segregated by pkg, i.e.
-  [$bin/pkgname_foo]. Also contains soft-links for binaries with unique names
-  to conform with [$PATH], i.e. [$bin/foo].
+* [$bin/]: executables (and links to them) go here and must not conflict.
 
 * [$lua/]: contains all [$mod.lua] files, and the sub-module files under
   [$mod/sub.lua]. This conforms with
   [<https://www.lua.org/manual/5.4/manual.html#pdf-package.searchpath>package.searchpath],
   which allows the normal lua loader to load these packages with [$LUA_PATH]
-  set to [$.../civ/lua/].
+  set to [$.../civ/lua/?.lua].
 
 * [$data/]: contains arbitrary data files defined by targets.
 
@@ -97,4 +95,3 @@ is as follows: [+
   by the build system for incremental builds as well as by installation system to remove
   files during uninstall.
 ]
-
