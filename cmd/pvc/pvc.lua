@@ -118,11 +118,10 @@ pvc.squash = mty.extend(Base, 'squash', {
     branch='current',
 })
 
---- Usage: [$$rebase --branch=name#id <to>]$[{br}]
---- Change the base of [$branch] to [$to].
+--- Usage: [$$rebase [branch=current] --id=10 ]$[{br}]
+--- Change the base of [$branch] to [$id].
 pvc.rebase = mty.extend(Base, 'rebase', {
-  'branch [string]: the branch to mutate',
-    branch='current',
+  'id [int]: the id of base to change to',
 })
 
 --- Usage: [$$grow --branch=current [from]]$[{br}]
@@ -282,7 +281,7 @@ end
 
 --- forward patch, applying diff to dir
 M._patch = function(dir, diff)
-  pu.patch(dir, diff)
+  pu._patch(dir, diff)
   M._patchPost(dir, diff)
 end
 
@@ -459,7 +458,7 @@ M.snapshot = function(P, br,id) --> .../id.snap/
   if ix.exists(tsnap) then ix.rmRecursive(tsnap) end
   ix.mkDir(tsnap)
   cpPaths(fsnap, tsnap)
-  local patch = (fid <= id) and pu.patch or pu._rpatch
+  local patch = (fid <= id) and pu._patch or pu._rpatch
   local inc   = (fid <= id) and 1       or -1
   fid = fid + inc
   while true do
@@ -751,7 +750,7 @@ M.backupDir = function(P, name) --> string
 end
 
 --- rebase the branch (current branch) to make it's baseid=id
-M.rebase = function(P, branch, id) --> backup/dir/
+M._rebase = function(P, branch, id) --> backup/dir/
   local cbr = branch
 
   --- process: repeatedly use merge on the (new) branch__rebase branch.
@@ -926,17 +925,11 @@ M.main = G.mod and G.mod'pvc.main' or setmetatable({}, {})
 -- M.main.branch = function(args)
 -- M.main.show = function(args)
 -- M.main.desc = function(args)
-
----- [$pvc squash [branch#id endId]]
 -- M.main.squash = function(args)
 
 --- [$rebase [branch [id]]]: change the base of branch to id.
 --- (default branch=current, id=branch base's tip)
 M.main.rebase = function(args) --> string
-  local P = popdir(args)
-  local br = args[1] ~= '' and args[1] or M._rawat(P)
-  local base = M._getbase(M.branchDir(P,br))
-  M.rebase(P, br, M._rawtip(M.branchDir(P, base)))
 end
 
 --- [$grow from --to=at]: grow [$to] (default=[$at]) using branch from.
@@ -1162,6 +1155,14 @@ function pvc.squash:__call()
     M._commit(P, '')
   end
   M._squash(P, br, bot,top)
+end
+
+function pvc.rebase:__call()
+  local P = self._dir
+  local br = self[1] or M._rawat(P)
+  self.id = shim.number(self.id)
+  local base = M._getbase(M.branchDir(P,br))
+  M._rebase(P, br, self.id or M._rawtip(M.branchDir(P, base)))
 end
 
 getmetatable(M.main).__call = function(_, args)

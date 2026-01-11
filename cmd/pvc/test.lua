@@ -95,11 +95,11 @@ local STORY_PATCH1 = [[
 ]]
 
 --- This test is large but does an entire "common" workflow
--- T.workflow = function()
-local function workflow() -- FIXME: broken on linux
+T'workflow' do
+  info('@@ started workflow D=%q', D)
   ix.rmRecursive(D);
   -- initialize PVC
-  pvc.init{D}
+  pvc.init{dir=D}
   T.eq({'main'}, M.branches(D))
   T.path(D, {
     ['.pvcpaths'] = '.pvcpaths\n',
@@ -147,7 +147,7 @@ local function workflow() -- FIXME: broken on linux
   local p1 = M._patchPath(Bm, id, '.p')
   T.path(p1, DIFF1)
   T.eq({'desc1'}, M._desc(p1))
-  M.main.desc{'--', 'desc1', '-', 'edited', dir=D}
+  pvc.desc{dir=D, '--', 'desc1', '-', 'edited'}
   T.eq({'desc1 - edited'}, M._desc(p1))
 
   local STORY1 = pth.read(TD..'story.txt.1')
@@ -159,7 +159,7 @@ local function workflow() -- FIXME: broken on linux
     ['.pvc'] = { at = 'main#1' }
   })
   T.path(Bm, { tip = '1' })
-  T.eq({'main', 1}, {pvc.at{d=D}})
+  T.eq({'main#1'}, {pvc.at{dir=D}})
   T.eq(M.Diff{
     dir1=D..'.pvc/main/commit/00/1.snap/', dir2=D,
     equal={'.pvcpaths', 'hello/hello.lua', 'story.txt'},
@@ -167,7 +167,7 @@ local function workflow() -- FIXME: broken on linux
   }, pvc.diff{dir=D, paths=true})
 
   -- go backwards
-  pvc.at{d=D, 'main#0'}
+  pvc.at{dir=D, 'main#0'}
   assert(not ix.exists(D..'story.txt'))
   assert(not ix.exists(D..'hello/hello.lua'))
   T.path(D..'.pvcpaths', '.pvcpaths\n')
@@ -245,7 +245,8 @@ local function workflow() -- FIXME: broken on linux
   M.atId(D, 'dev',4);  T.path(D, EXPECT4d)
 
   -- perform rebase
-  M.rebase(D, 'dev',3)
+  pvc.rebase{dir=D, 'dev', 3}
+  ds.yeet'ok'
   T.eq({'dev', 5}, {M._rawat(D)})
   T.eq(3, pvc.tip{dir=Bm})
   T.eq(5, pvc.tip{dir=Bd})
