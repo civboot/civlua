@@ -1,4 +1,4 @@
-
+General
 * I don't think civix.sh is passing stdout through. That should happen by
   default.
 * I need io.open/etc to respect G.PWD
@@ -6,3 +6,23 @@
   Check for stuff in pvc, especially merge (install rcs).
 * The cxt info boxes are rendering very far away from the next
   element, i.e. in pvc.at
+
+Review Docs
+* civix
+* civtest
+* cxt
+* doc
+* ds
+* fd
+* fmt
+* iA
+* lap
+* lines
+* lson
+* luk
+* metaty
+* pegl
+* pod
+* shim
+* vcds
+* vt100

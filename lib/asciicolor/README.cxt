@@ -1,12 +1,86 @@
-encode text color and style with a two ascii characters.
+[{h1}AsciiColor: encode color in ASCII]
+asciicolor is a library and protocol which encodes text color in terminals and
+(in future) elsewhere using only a single ascii character: i.e. [$b] for black,
+[$w] for white and [$n] for navy blue, etc. Capitalizing the character encodes
+a style (bold for foreground, underlined for background).
 
-asciicolor is a protocol which encodes text color in terminals and (in future)
-elsewhere using only a single ascii character: i.e. [$b] for black, [$w] for
-white and [$n] for navy blue, etc. Capitalizing the character encodes a style
-(bold for foreground, underlined for background).
 
-See [<#asciicolor.Color>] for all codes.
+[<#asciicolor.style.Styler>] enables [<fmt.html>] to function ergonomically you
+can color text by simply writing [$io.fmt:styled('error', 'some error message')]
+and it will automatically load the user's configuration (see [<shim.html>] for
+details on how).
 
-The color codes are used by [<#asciicolor.style.Styler>] to style text
-using an [$AcWriter]. See [<#vt100.AcWriter>] for the reference spec.
+[{:h2}Codes]
+The codes are as follows and are specified as two characters (foreground +
+background), captial means bold/underline. Additionally, [$'z'] [$' '] [$'']
+all mean "zero", aka the default code. [$z] can be capitalized to mean default
+with bold/underline.
 
+[{* name=codes}Codes]: [{table}
+  # dark              | light
+  + [$b] - black       | [$w] - white
+  + [$d] - darkgrey    | [$l] - lightgrey
+  + [$r] - red         | [$p] - pink
+  + [$y] - yellow      | [$h] - honey
+  + [$g] - green       | [$t] - tea
+  + [$c] - cyan        | [$a] - aqua
+  + [$n] - navy        | [$s] - sky -- blue
+  + [$m] - magenta     | [$f] - fuschia
+]
+Examples:[+
+  * [$zl]: foreground default, background lightgrey.
+  * [$Rc] foreground bold-red, background cyan
+  * [$yP] foreground yellow, background underlined-pink.
+]
+
+[{:h2}Styles]
+The following are the builtin styles and their descriptions, which
+are intended for a "darkmode" black-background terminal. These can
+be overriden by (TODO: allow override again).
+
+[{* name=codes}Codes]: [{table}
+  # [*Name] | [*Description]
+  + bg      | special: defines the default background color.
+
+  #         | Tools/Loggers/etc
+  + path    | file/dir path
+  + match   | search match
+  + line    | line number / etc
+  + meta    | Meta=metadata such as description of ops, etc
+  + info    | info box, i.e. editor overlay.
+  + notify  | make very visible
+  + good    | tell the user something was positive.
+  + error   | tell the user of an error.
+  + warn    | warn the use.
+  + base    | The base when comparing text (aka removed text)
+  + basel   | The base line number (use with base)
+  + change  | The change when comparing (aka added text)
+  + changel | The change line number (use with change)
+  + empty   | Denote that something is empty.
+  + ref     | Denote a reference (i.e. to code, docs, etc)
+
+  #                | Document Styles
+  + code           | code
+  + bold           | bold text
+  + ul             | underlined text
+  + boldul         | bold-underlined text
+  + h1, h2, h3, h4 | headers
+
+  #            | Code Syntax
+  + api        | api, i.e. public function/class name
+  + type       | type signature
+  + var        | variable name
+  + keyword    | for while do etc
+  + symbol     | = [$+ . { }] etc
+  + builtin    | builtin fns/mods/names: io sys self etc
+  + commentbox | start/end of comment: -- [$// /**/] etc
+  + comment    | content of comment:  [$/*content*/]
+  + stringbox  | start/end of string: [$$'' "" [[]]]$ etc
+  + string     | content of string inside quotes
+  + key        | key in map/struct/etc
+  + char       | single character: [$'c']
+  + num        | float or integer: [$0 1.0 0xFF] etc
+  + literal    | other literal: null, bool, date, regex, etc
+  + call       | function call: [$foo()]
+  + dispatch   | object.method called: [$obj.foo()], [$obj:foo()] }
+]
