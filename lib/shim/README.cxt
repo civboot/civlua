@@ -22,7 +22,7 @@ M.main = function(args)
   print('Hello '..args.name..'!')
 end
 
-if M == MAIN then os.exit(M.main(G.arg)) end
+if M == MAIN then M.main(G.arg) end
 return M -- return as library
 ]$
 

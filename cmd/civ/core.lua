@@ -406,7 +406,7 @@ function M.Civ:run(stage, tgtname, script, ids)
     script,
     '--config='..self.cfg.path,
     sfmt('--tgtsDb=%stargets.json', self.cfg.buildDir),
-    ENV=self.ENV, rc = true,
+    ENV=self.ENV, rc = true, stdout = io.stdout,
   }
   for _, id in ipairs(ids) do push(cmd, tostring(id)) end
   info('%s cmd: %q', stage, cmd)
@@ -478,6 +478,7 @@ function M.Civ:test(tgtnames, ordered, tgtsCache)
   G.MAIN = nil
   local ran = {}
   for _, tgtname in ipairs(tgtnames) do
+    info('Civ:test %q', tgtname)
     local tgt = assert(self:target(tgtname))
     if tgt.kind ~= 'test' then goto continue end
     local id = assert(tgtId[tgt:tgtname()])
@@ -494,6 +495,7 @@ function M.Civ:test(tgtnames, ordered, tgtsCache)
     ::continue::
   end
   G.MAIN = main
+  info'Civ:test complete'
   return ran
 end
 

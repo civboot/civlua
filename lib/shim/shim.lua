@@ -319,7 +319,7 @@ end
 ---   'to [path|file]: where to write output',
 --- }
 --- -- ... rest of your module.
---- if shim.isMain(M) then os.exit(M:main(arg)) end
+--- if shim.isMain(M) then M:main(arg) end
 --- return M
 --- ]$
 M.cmd = function(name)
