@@ -864,15 +864,16 @@ end
 
 --- squash num commits together before br#id.
 M._squash = function(P, br, bot,top)
+  assert(br and bot, 'must set br + bot')
+  local bdir = M.branchDir(P, br)
+  local tip, bbr, bid = M._rawtip(bdir), M._getbase(P, br)
+  top = top or tip
   trace('squash %s [%s %s]', br, bot,top)
-  assert(br and bot and top, 'must set all args')
   assert(top > 0)
   if top - bot <= 0 then
     io.fmt:styled('error', sfmt('squashing ids [%s - %s] is a noop', bot, top), '\n')
     return
   end
-  local bdir = M.branchDir(P, br)
-  local tip, bbr, bid = M._rawtip(bdir), M._getbase(P, br)
   if bot <= bid then error(sfmt('bottom %i <= base id %s', top, bid)) end
   if top >  tip then error(sfmt('top %i > tip %i', top, tip)) end
   M.atId(P, br,top)
@@ -924,70 +925,10 @@ M.main = G.mod and G.mod'pvc.main' or setmetatable({}, {})
 -- M.main.tip = function(args) --> string
 -- M.main.branch = function(args)
 -- M.main.show = function(args)
+-- M.main.desc = function(args)
 
---- [$pvc desc branch [$path/to/new]]
---- get or set the description for a single branch id.
---- The default branch is [$at].
----
---- The new description can be passed via [$path/to/new] or
---- after [$--] (like commit).
-M.main.desc = function(args)
-  local P = popdir(args)
-  local br, id, bdir = M.resolve(P,
-    args[1] == '--' and 'at' or args[1] or 'at')
-  local desc = shim.popRaw(args)
-  if desc        then desc = concat(desc, ' ')
-  elseif args[2] then desc = pth.read(args[2]) end
-  local oldp = M._patchPath(bdir, id)
-  local olddesc = concat(M._desc(oldp), '\n')
-  if not desc then return print(olddesc) end
-  -- Write new description
-  local newp = sconcat('', bdir, tostring(id))
-  local n = assert(io.open(newp, 'w'))
-  n:write(desc, '\n')
-  local o = assert(io.open(oldp, 'r'))
-  for line in o:lines() do -- skip old desc
-    if isPatchLike(line) then n:write(line, '\n'); break end
-  end
-  for line in o:lines() do n:write(line, '\n') end
-  n:close(); o:close()
-  local back = M.backupDir(P, sfmt('%s#%s', br, id)); ix.mkDirs(back)
-  back = back..id..'.p'
-  ix.mv(oldp, back)
-  io.fmt:styled('notify', sfmt('moved %s -> %s', oldp, back), '\n')
-  io.fmt:styled('notify', 'Old description (deleted):', '\n', olddesc, '\n')
-  ix.mv(newp, oldp)
-  io.fmt:styled('notify', 'updated desc of '..oldp, '\n')
-end
-
---- [$pvc squash [branch#id endId]]
---- squash branch id -> endId (inclusive) into a single patch at [$id].
----
---- You can then edit the description by using [$pvc desc branch#id].
-M.main.squash = function(args)
-  trace('squash%q', args)
-  local P = popdir(args)
-  local br, bot,top
-  if args[1] then
-    br, bot = M.resolve(P, args[1])
-    top     = toint(assert(args[2], 'must set endId'))
-  else -- local commits
-    br, bot = M.atId(P); top = bot + 1
-    M._commit(P, '')
-  end
-  M._squash(P, br, bot,top)
-end
-
-getmetatable(M.main).__call = function(_, args)
-  trace('pvc%q', args)
-  local cmd = table.remove(args, 1)
-  local fn = rawget(M.main, cmd); if not fn then
-    io.fmt:styled('error',
-      cmd and (cmd..' is not recognized') or 'Must provide sub command', '\n')
-    return M.main.help()
-  end
-  return fn(args)
-end
+---- [$pvc squash [branch#id endId]]
+-- M.main.squash = function(args)
 
 --- [$rebase [branch [id]]]: change the base of branch to id.
 --- (default branch=current, id=branch base's tip)
@@ -1141,7 +1082,7 @@ function pvc.branch:__call()
   M.atId(D, name)
 end
 
---- [$pvc show [branch#id] --num=10 --full]
+-- TODO: need tests
 function pvc.show:__call()
   local D = self._dir
   local full = not self.paths
@@ -1177,6 +1118,61 @@ function pvc.show:__call()
     io.user:level(-1)
     io.user:write'\n'
   end
+end
+
+-- TODO: need tests
+function pvc.desc:__call()
+  local P = self._dir
+  local br, id, bdir = M.resolve(P,
+    self[1] == '--' and 'at' or self[1] or 'at')
+  local desc = shim.popRaw(self)
+  if desc        then desc = concat(desc, ' ')
+  elseif self[2] then desc = pth.read(self[2]) end
+  local oldp = M._patchPath(bdir, id)
+  local olddesc = concat(M._desc(oldp), '\n')
+  if not desc then return print(olddesc) end
+  -- Write new description
+  local newp = sconcat('', bdir, tostring(id))
+  local n = assert(io.open(newp, 'w'))
+  n:write(desc, '\n')
+  local o = assert(io.open(oldp, 'r'))
+  for line in o:lines() do -- skip old desc
+    if isPatchLike(line) then n:write(line, '\n'); break end
+  end
+  for line in o:lines() do n:write(line, '\n') end
+  n:close(); o:close()
+  local back = M.backupDir(P, sfmt('%s#%s', br, id)); ix.mkDirs(back)
+  back = back..id..'.p'
+  ix.mv(oldp, back)
+  io.fmt:styled('notify', sfmt('moved %s -> %s', oldp, back), '\n')
+  io.fmt:styled('notify', 'Old description (deleted):', '\n', olddesc, '\n')
+  ix.mv(newp, oldp)
+  io.fmt:styled('notify', 'updated desc of '..oldp, '\n')
+end
+
+function pvc.squash:__call()
+  trace('squash%q', self)
+  local P = self._dir
+  local br, bot,top
+  if self[1] then
+    br, bot = M.resolve(P, self[1])
+    top     = self[2] and toint(self[2])
+  else -- local commits
+    br, bot = M.atId(P); top = bot + 1
+    M._commit(P, '')
+  end
+  M._squash(P, br, bot,top)
+end
+
+getmetatable(M.main).__call = function(_, args)
+  trace('pvc%q', args)
+  local cmd = table.remove(args, 1)
+  local fn = rawget(M.main, cmd); if not fn then
+    io.fmt:styled('error',
+      cmd and (cmd..' is not recognized') or 'Must provide sub command', '\n')
+    return M.main.help()
+  end
+  return fn(args)
 end
 
 getmetatable(M).__call = getmetatable(M.main).__call
