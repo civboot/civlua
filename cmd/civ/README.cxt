@@ -51,7 +51,7 @@ P.foo = lua {
 -- test rule
 P.test = lua.test {
   src = 'test.lua',
-  dep = { 'myhub:foo',
+  dep = { 'myhub:foo' },
 }
 
 -- C build target
