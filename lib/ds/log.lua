@@ -39,6 +39,12 @@ local LEVEL = ds.Checked{
 M.CRIT, M.ERROR, M.WARN = LEVEL.CRIT, LEVEL.ERROR, LEVEL.WARN
 M.INFO, M.TRACE = LEVEL.INFO, LEVEL.TRACE
 
+local STYLES = {
+  [M.WARN]  = 'warn',
+  [M.ERROR] = 'error',
+  [M.INFO]  = 'info',
+}
+
 local SHORT = ds.Checked{'C', 'E', 'W', 'I', 'T'}
 function M.levelInt(lvl)
   local lvl = tonumber(lvl) or M.LEVEL[lvl]
@@ -52,10 +58,12 @@ M.setLevel = function(lvl)
 end
 M.setLevel(G.LOGLEVEL)
 
+
 function M.logFn(lvl, loc, fmt, ...)
   if LOGLEVEL < lvl then return end
   local f, lasti, i, args, nargs = io.fmt, 1, 0, {...}, select('#', ...)
-  f:write(sfmt('%s %s %s: ', SHORT[lvl], M.time(), loc)); f:flush()
+  f:styled(STYLES[lvl], sfmt('%s %s %s',
+    SHORT[lvl], M.time(), loc), ': ')
   f:level(1)
   local nargs, i = select('#', ...), f:format(fmt, ...)
   if i == (nargs - 1) then f:write' '; f(args[i + 1]) -- data

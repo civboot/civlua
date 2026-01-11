@@ -755,30 +755,35 @@ M._rebase = function(P, branch, id) --> backup/dir/
 
   --- process: repeatedly use merge on the (new) branch__rebase branch.
   --- the final result will be in to's last snapshot id
+  --- Nomenclature: b=base c=current t=to
   local cpath = M.branchDir(P, cbr)
   local bbr, bid = M._getbase(cpath, cbr)
   M.atId(P, bbr,bid) -- checkout base to ensure cleaner checkout at end
 
   if bbr == cbr then error('the base of '..cbr..' is itself') end
-  if id == bid then return end
+  if id == bid then
+    io.user:styled('notify', 'base is already '..id, '\n')
+    return
+  end
   local bdir = M.branchDir(P, bbr)
-  local btip  = M._rawtip(bdir)
+  local btip = M._rawtip(bdir)
   if id > btip then error(id..' is > tip of '..btip) end
 
   local cdir, cid = M.branchDir(P, cbr), bid + 1
-  local ctip       = M._rawtip(cdir)
-  local tbr        = cbr..'__rebase'
+  local ctip      = M._rawtip(cdir)
+  local tbr       = cbr..'__rebase'
   local tdir      = M.branchDir(P, tbr)
-  local ttip       = id + M._rawtip(cdir) - bid
+  local ttip      = id + M._rawtip(cdir) - bid
 
   local op = sfmt('rebase %s %s', cbr, bid)
   local tsnap; if ix.exists(tdir) then
+    -- rebase 'to' branch already exists, continue existing rebase.
     assert(ix.exists(tsnap))
     T.pathEq(tdir..'op', op)
     T.eq({bbr,bid}, M._getbase(tdir))
     cid   = toint(pth.read(tdir..'rebase'))
     tsnap = M.snapDir(tdir, ttip)
-  else
+  else -- create new 'to' branch for rebase branch
     M._branch(P, tbr, bbr,id)
     pth.write(tdir..'op', op)
     tsnap = M.snapDir(tdir, ttip); ix.mkDirs(tsnap)
