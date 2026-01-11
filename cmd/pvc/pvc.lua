@@ -3,12 +3,6 @@ local shim  = require'shim'
 --- Usage: [$pvc <subcmd> --help]
 local pvc = shim.subcmds'pvc' {}
 
-local G = G or _G
-local M = G.mod and mod'pvc2' or setmetatable({}, {})
-MAIN = G.MAIN or M
-
-M.pvc = pvc
-
 local mty   = require'metaty'
 local ds    = require'ds'
 local pth   = require'ds.path'
@@ -1165,6 +1159,5 @@ getmetatable(pvc.main).__call = function(_, args)
   return fn(args)
 end
 
-getmetatable(M).__call = getmetatable(pvc.main).__call
-
-return M
+if shim.isMain(pvc) then pvc:main(arg) end
+return pvc

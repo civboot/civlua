@@ -1,14 +1,12 @@
 
+local pvc = require'pvc'
 local T = require'civtest'
-
-local M = require'pvc'.pvc
 local ds = require'ds'
 local info = require'ds.log'.info
 local pth = require'ds.path'
 local fd = require'fd'
 local ix = require'civix'
 
-local pvc = M
 local TD, D = 'cmd/pvc/testdata/', '.out/pvc/'
 local pc = pth.concat
 local s = ds.simplestr
