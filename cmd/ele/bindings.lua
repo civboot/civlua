@@ -21,7 +21,7 @@ local add = ds.add
 
 -- space-separated keys to a list, asserting valid keys
 M.chord = function(str) --> keylist
-  local checkKey = et.term.checkKey
+  local checkKey = et._term.checkKey
   local keys = {}; for k in str:gmatch'%S+' do
     push(keys, assert(checkKey(k)))
   end
@@ -29,7 +29,7 @@ M.chord = function(str) --> keylist
 end
 
 M.literal = function(key)
-  return fmt.assertf(et.term.literal(key),
+  return fmt.assertf(et._term.literal(key),
     'invalid literal: %q', key)
 end
 M.chordstr = function(chord)
@@ -82,7 +82,7 @@ getmetatable(M.KeyBindings).__call = function(T, t)
   return mty.constructUnchecked(T, b)
 end
 getmetatable(M.KeyBindings).__index = function(G, k)
-  assert(et.term.checkKey(k))
+  assert(et._term.checkKey(k))
 end
 M.KeyBindings.__newindex = function(kb, k, v)
   if M.KeyBindings.__fields[k] then
@@ -98,7 +98,7 @@ M.KeyBindings.__newindex = function(kb, k, v)
   if k == 'fallback' then return rawset(kb,k, v) end
   k = M.chord(k); assert(#k > 0, 'empty chord')
   for i=1,#k-1 do
-    local key = k[i]; assert(et.term.checkKey(key))
+    local key = k[i]; assert(et._term.checkKey(key))
     if not rawget(kb,key) then
       rawset(kb,key, M.KeyBindings{
         name=table.concat(ds.slice(k, 1,i), ' '),
@@ -107,7 +107,7 @@ M.KeyBindings.__newindex = function(kb, k, v)
     kb = rawget(kb,key)
   end
   local key = k[#k]
-  assert(et.term.checkKey(key))
+  assert(et._term.checkKey(key))
   rawset(kb,key, v)
 end
 

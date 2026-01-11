@@ -4,7 +4,7 @@ local mty    = require'metaty'
 local ds     = require'ds'
 local fmt    = require'fmt'
 local log    = require'ds.log'
-M.term       = require'vt100'
+M._term      = require'vt100'
 local assertf = fmt.assertf
 local sfmt = string.format
 local push, pop, concat = table.insert, table.remove, table.concat
@@ -99,7 +99,7 @@ M.checkBindings = function(btable, path)
     '%s: bindings must be only tables and callables', concat(path)
   ))end
 
-  local keyError, err = M.term.keyError
+  local keyError, err = M._term.keyError
   for k, b in pairs(btable) do
     path[#path] = k
     if k == 'fallback' then

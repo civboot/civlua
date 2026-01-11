@@ -69,10 +69,9 @@ function ele:__call()
     vt.stop(io.stdout, savedmode)
     io.stderr = iostderr
     io.fmt    = iofmt
-
   end)
   return s, l
 end
 
 if shim.isMain(ele) then ele:main(arg) end
-return M
+return ele

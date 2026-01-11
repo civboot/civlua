@@ -1,24 +1,11 @@
 [{h1}Ele: Extendable Lua Editor]
 
-Ele is an (**In Development**) [*E]xtendable [*L]ua [*E]ditor.
+Ele is an ([*In Development]) [*E]xtendable [*L]ua [*E]ditor written to be easy
+to understand, extend and modify. It is the primary editor and shell for the
+[@Civstack] project, and also the core framework for the devleopment of
+Civstack's text-based learning games.
 
-Ele's primary goals are: [+
-* Implemented in a minimal amount of understandable code. It is the main editor
-  for [@Civboot]
-* Enjoyable and extendable for developers to fit their workflow [+
-  * undo/redo, syntax highlighting, plugins, user-configurable bindings
-    (supports vim/emacs style), etc.
-]
-* Implements a lua shell (zsh competitor)
-* Can handle any size text file
-* Cross platform (currently vt100-only protocol, which should run anywhere)
-]
-
-Non-goals of Ele are: [+
-* Focusing on performance against the other goals. It should be fast enough
-  to be an editor and should not choke on large files -- otherwise performance
-  is not important.
-]
+To install: follow [<civ.html#install>], ele will be installed by default.
 
 [{h1}Architecture]
 
@@ -83,11 +70,11 @@ B.command['y y'] = {action='insert', 'Why oh why did I bind this?\n'},
 
 To write your own action you must: [+
 * Add a callable to [@ele.actions] which implements the intended behavior. The
-  signature is: [$fn(Editor, event, Channel[event])]. You may modify the Editor
-  in the appropriate way for your action.  You are recommended to handle
-  [$event.times] to do your action multiple times (if that makes sense for your
-  action). Note that you are free to throw errors -- any errors will be caught
-  and logged.
+  signature is: [$$fn(Editor, event, Channel[event])]$. You may
+  modify the Editor in the appropriate way for your action.  You are
+  recommended to handle [$event.times] to do your action multiple times (if
+  that makes sense for your action). Note that you are free to throw errors --
+  any errors will be caught and logged.
 
 * Add a binding to an editor mode. The binding can either be a plain table,
   which is the event that will be generated, or a [$fn(KeySt) -> ev?] callable.
@@ -113,8 +100,8 @@ folks will care about are: [+
   the current one.
 ]
 
-Most plugins will simply get [$edit] and then insert/remove/search
-its [$buf] data using its APIs and/or change its [$l,c] (line,column) values.
-They are free to use any lua API to do so, but should avoid large amounts
+Most plugins will simply get [$edit] and then insert/remove/search its [$buf]
+data using its APIs and/or change its [$l,c] (line,column) values. They are
+free to use any lua API to do so, but should avoid large amounts
 of work as much as possible.
 
