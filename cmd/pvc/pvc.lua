@@ -53,12 +53,22 @@ pvc.init = mty.extend(Base, 'init', {
     branch = 'main',
 })
 
---- Usage: [$pvc diff branch1 branch2]
+--- Usage: [$pvc diff branch1=at branch2=local][{br}]
+--- Show the difference between two branches.  The default is [$at] (the
+--- current commit) vs [$local] (the local working directory).[{br}]
+---
+--- This command accepts either [$branch#id] names or [$paths/to/dir/], where
+--- that dir/ has a [$.pvcpaths] file.
 pvc.diff = mty.extend(Base, 'diff', {
   'paths [bool]: show only changed paths',
 })
 
---- Usage: [$pvc commit -- my message]
+--- Usage: [$pvc commit -- my message][{br}]
+--- Commit local changes to the current branch, creating
+--- a new id.
+---
+--- If no message is given this uses the COMMIT file
+--- for the message, if it exists.
 pvc.commit = mty.extend(Base, 'commit', {})
 
 --- Usage: [$pvc at branchId --hard][{br}]
@@ -68,14 +78,17 @@ pvc.commit = mty.extend(Base, 'commit', {})
 --- directory to be updated to be that content.
 --- This will , this will fail (unless [$force=true]) if it would
 --- cause any local changes to be overwritten.
+---
+--- ["[$at branch] is called a "checkout" in other version
+---   control systems.]
 pvc.at = mty.extend(Base, 'at', {
  [[force [bool]: overwrite local changes.
    If given without [$branch], resets to current commit
  ]],
 })
 
---- Usage: [$$pvc tip [branch]]$[{br}]
---- Get the tip id of branch (default=current)
+--- Usage: [$$pvc tip [branch=current]]$[{br}]
+--- Get the tip id of branch.
 pvc.tip = mty.extend(Base, 'tip', {})
 
 --- Usage: [$$pvc branch name [from=current]]$[{br}]
@@ -87,7 +100,7 @@ pvc.tip = mty.extend(Base, 'tip', {})
 pvc.branch = mty.extend(Base, 'branch', {})
 
 --- Usage: [$$pvc show [branch#id] --before=10]$[{br}]
---- Show the commits before/after [$branch#id].
+--- Show the commits before/after [$branch#id].[{br}]
 ---
 --- If [$branch#id] is not given, print all branches.
 pvc.show = mty.extend(Base, 'show', {
@@ -99,16 +112,15 @@ pvc.show = mty.extend(Base, 'show', {
 })
 
 --- Usage: [$$pvc desc branch#id=current [$to/new.cxt]]$[{br}]
---- Get or set the description for a single branch id.
+--- Get or set the description for a single branch id.[{br}]
 ---
 --- The new description can be passed via [$to/new.cxt] or
 --- after [$--] (like commit).
 pvc.desc = mty.extend(Base, 'desc', {})
 
 --- Usage: [$$pvc squash [name#id]]$[{br}]
---- Combine changes and descriptions from 
---- [$branch id -> endId] (inclusive) into a single commit.
---- You can then edit the description using
+--- Combine changes and descriptions from [$branch id -> endId] (inclusive)
+--- into a single commit. You can then edit the description using
 --- [$pvc desc branch#id].[{br}]
 ---
 --- This enables making lots of small commits and then
@@ -119,15 +131,18 @@ pvc.squash = mty.extend(Base, 'squash', {
     branch='current',
 })
 
---- Usage: [$$rebase [branch=current] --id=10 ]$[{br}]
---- Change the base of [$branch] to [$id].
+--- Usage: [$$rebase [branch=current] --id=10]$[{br}]
+--- Change the base of [$branch] to [$id].[{br}]
+---
+--- Rebase is a fundamental operation. It allows you to make or accept changes
+--- on your "main" branch while you work on development branches which are
+--- behind the main. See [<#basic>] for more details.
 pvc.rebase = mty.extend(Base, 'rebase', {
   'id [int]: the id of base to change to',
 })
 
 --- Usage: [$$grow --branch=current [from]]$[{br}]
---- grow [$branch] to be same as branch [$from]
----
+--- Copy changes in [$from] onto [$branch].
 --- ["In other version control systems this is called a
 ---   "fast forward merge"]
 pvc.grow = mty.extend(Base, 'grow', {

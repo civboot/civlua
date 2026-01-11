@@ -4,4 +4,5 @@
 * I need io.open/etc to respect G.PWD
 * Have good way to check if sh command exists.
   Check for stuff in pvc, especially merge (install rcs).
-
+* The cxt info boxes are rendering very far away from the next
+  element, i.e. in pvc.at

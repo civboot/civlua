@@ -1,18 +1,37 @@
 [$pvc <cmd>]: patch version control command line utility.
 ["NOTICE: pvc now works but will have bugs and the API is subject to change.
   Use at your own risk and always back up work that you are using pvc
-  to track (aka use [<#pvc-git>git and pvc together]).
+  to track (aka use [<#git>git and pvc together]).
 ]
 
-[{:h2 name=pvc-about}About]
+[{:h2 name=about}About]
 [*pvc] is a version control system similar to git or mercurial, but is ultra
 simple: branches are simply a [$base] followed by a set of unix patches with
 incrementing id. The only fundamental disadvantage (or advantage) of using pvc
 instead of git is that pvc supports only fast-forward merges, which are the
 cleanest and simplest to understand.
 
-[{h2 name=pvc-init}Initiaize your pvc repo]
-["You may also want to see [<#pvc-git>] to use git for backups]
+[{h2 name=basic}Basic Operation]
+The [$pvc] command works very similar to git:[+
+* [<#init>initialize your repo] with [@pvc.init].
+* Whenever you have modified files you add them to
+  [$.pvcpaths] (so they are tracked) and commit them
+  to the current branch with [@pvc.commit].
+* When doing experimental changes, you create a branch
+  with [@pvc.branch].
+* When you are ready to merge changes from your dev branch
+  onto your main branch:[+
+  * [@pvc.squash] the changes to a single commit (or a few
+    commits).
+  * [@pvc.rebase] so your branch's base is the same as main.
+  * [@pvc.grow] to merge the changes in.
+  ]
+]
+["In the future civstack will offer tutorials for using
+  all the development tools.
+]
+[{h2 name=init}Initiaize your pvc repo]
+["You may also want to see [<#git>] to use git for backups]
 
 With [$civ install .#] you will have pvc installed.
 
@@ -49,7 +68,7 @@ directories. A common pvc ignore file might look like:
 %./path/to/some_binary
 ]$
 
-[{h3 name=pvc-git}Use with git]
+[{h3 name=git}Use with git]
 pvc is still in early development, so there is no hosting service which
 ergonomically supports backing-up development. The following is how pvc
 (and civstack) itself is developed and seems to work well.
@@ -70,7 +89,7 @@ civstack as the example:[+
 echo .pvc >> .gitignore
 ]$
 
-[*Second], follow the [<#pvc-init>] section above. This should include adding
+[*Second], follow the [<#init>] section above. This should include adding
 all your files to pvc and making your first pvc commit.
 
 [*Third], [$cd .pvc/] and create your git repository [,inside the .pvc/
@@ -101,7 +120,7 @@ location followed by the commit message. When you want to push your
 documentation or releases to git, simply do so -- your main commit log
 won't be polluted by commiting pvc files.
 
-[{h1 name=pvc-arch}Architecture]
+[{h1 name=arch}Architecture]
 This architecture is given both so users can debug or fix any errors as well as
 to make it easier to create other implementations of pvc (i.e. in bash).
 

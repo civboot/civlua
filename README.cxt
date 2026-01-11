@@ -10,9 +10,10 @@ to supercharge their personal development stack.
 The Civstack is a complete and well documented software development tech stack
 built from scratch. It encompases an [<lua/ele.html>editor],
 [<lua/pvc.html>version control], [<lua/civ.html>build system and package
-manager] and [<lua/cxt.html>documentation language]. Soon it will have
+manager], and [<lua/cxt.html>documentation language]. Soon it will have
 educational games and tutorials, a custom assembly language, and its own
-implementation of Lua, which all of the high-level software is implemented in.
+implementation of Lua -- which civstack's high-level software is implemented
+in.
 
 [{:h3 name=install}Installation]
 [*First], install Lua5.4 with [$apt-get install lua] (Ubuntu), [$brew lua]
