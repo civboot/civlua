@@ -402,7 +402,7 @@ end
 
 local function initSnap0(snap)
   ix.forceWrite(snap..pvc.PVCPATHS, pvc.INIT_PVCPATHS)
-  ix.forceWrite(snap..'PVC_DONE', '')
+  ix.forceWrite(snap..'PVC_DONE', '\n')
 end
 
 local function initBranch(bdir, id)

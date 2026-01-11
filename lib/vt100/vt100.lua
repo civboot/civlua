@@ -415,11 +415,16 @@ M.stop = function(fd, savedmode)
   M.restoremode(savedmode)
 end
 
+local function isatty(f)
+  if G.NOLIB then return fmt.TTY[f] end
+  return require'fd'.isatty(f)
+end
+
 --- create a Fmt with sensible defaults from the config
 M.Fmt = function(t)
   assert(t.to, 'must set to = the output')
   if t.style == nil then t.style = shim.getEnvBool'COLOR' end
-  if t.style or (t.style==nil) and fmt.TTY[t.to] then
+  if t.style or (t.style==nil) and isatty(t.to) then
     t.style, t.to = true, ac.Styler {
       acwriter = require'vt100.AcWriter'{f=t.to},
       style = ac.loadStyle(),
@@ -445,8 +450,6 @@ M.main = function(args)
   M.stop()
   print'^c stopped, done'
 end
-
-
 
 --- The recommended setup function, enables color in the terminal in civstack
 --- libraries (and those that adhere to them).
