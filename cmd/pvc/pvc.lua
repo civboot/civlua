@@ -1,7 +1,9 @@
 #!/usr/bin/env -S lua
 local shim  = require'shim'
 
---- Usage: [$pvc <subcmd> --help]
+--- Usage: [$pvc <subcmd> --help][{br}]
+--- This is the [$pvc] command-line tool which can also be called directly from
+--- Lua.
 local pvc = shim.subcmds'pvc' {}
 
 local mty   = require'metaty'
@@ -43,7 +45,9 @@ end
 Base.new = new
 pvc.new  = new
 
---- Usage: [$pvc init dir --branch=main]
+--- Usage: [$pvc init dir --branch=main][{br}]
+--- Initialize the current directory as a pvc directory.
+--- This will create [$.pvc/] and [$.pvcpaths]
 pvc.init = mty.extend(Base, 'init', {
   'branch [string]: the initial branch name',
     branch = 'main',
@@ -153,7 +157,13 @@ pvc.snap = mty.extend(Base, 'snap', {})
 pvc.DOT = '.pvc/'
 pvc.PVC_DONE = 'PVC_DONE'
 pvc.PVCPATHS = '.pvcpaths' -- file
-pvc.INIT_PVCPATHS = '.pvcpaths\n' -- initial contents
+pvc.PVCIGNORE = '.pvcignore' -- file
+pvc.INIT_PVCPATHS = '.pvcpaths\n.pvcignore\n'
+pvc.INIT_PVCIGNORE = [[
+%.git/
+%.civ/
+%.out/
+]]
 pvc.INIT_PATCH = [[
 # initial patch
 --- /dev/null
@@ -185,7 +195,9 @@ end
 
 local loadIgnore = function(P) --> list
   local ignore = {'%./%.pvc/'}
-  for line in io.lines(P..'.pvcignore') do
+  local path = P..'.pvcignore'
+  if not ix.exists(path) then return ignore end
+  for line in io.lines(path) do
     if line == '' or line:sub(1,1) == '#' then --ignore
     else push(ignore, line)
     end
@@ -217,7 +229,8 @@ end
 
 local untracked = function(P) --> list[string]
   trace('untracked %s', P)
-  local out, paths, ignore = {}, ds.Set(loadPaths(P)), loadIgnore(P)
+  local out, paths = {}, ds.Set(loadPaths(P))
+  local ignore = loadIgnore(P)
   local w = ix.Walk{P}
   for path, fty in w do
     path = path:sub(#P+1)
@@ -402,7 +415,7 @@ pvc.snapDir = function(bdir, id) --> string?
 end
 
 local function initSnap0(snap)
-  ix.forceWrite(snap..pvc.PVCPATHS, pvc.INIT_PVCPATHS)
+  ix.forceWrite(snap..pvc.PVCPATHS, '.pvcpaths\n')
   ix.forceWrite(snap..'PVC_DONE', '\n')
 end
 
@@ -929,7 +942,7 @@ function pvc.init:__call()
   ix.mkTree(dot, {backup = {}}, true)
   initBranch(pvc.branchDir(P, self.branch), 0)
   pth.write(P..pvc.PVCPATHS, pvc.INIT_PVCPATHS)
-  pth.write(P..'.pvcignore', '')
+  pth.write(P..pvc.PVCIGNORE, pvc.INIT_PVCIGNORE)
   pvc._rawat(P, self.branch, 0)
   io.fmt:styled('notice', 'initialized pvc repo '..dot, '\n')
 end

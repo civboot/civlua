@@ -102,9 +102,9 @@ documentation or releases to git, simply do so -- your main commit log
 won't be polluted by commiting pvc files.
 
 [{h1 name=pvc-arch}Architecture]
-
 This architecture is given both so users can debug or fix any errors as well as
 to make it easier to create other implementations of pvc (i.e. in bash).
+
 
 pvc is composed of the following components: [+
 * [*repo]: the pvc repo (repository) is stored in the [$.pvc/] directory inside of
@@ -161,7 +161,7 @@ pvc is composed of the following components: [+
 * [*checkout (action)]: to "checkout a commit" means to make the local project
   directory the same as the commit. This is performed by finding the closest
   [*snapshot] and applying commit patches (either forwards or backwards) in
-  order to make the snapshot reflect the commits state.
+  order to make the snapshot reflect the commit's state.
 
 * [*rebase (action)]: to "rebase a branch" means to increase the id of it's
   [*base]. This is accomplished by making a copy of the new id's snapshot and

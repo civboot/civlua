@@ -37,6 +37,16 @@ T.empty = function()
   local diff = pvc.diff{dir=d, paths=true}
   T.eq(pvc.Diff{
     dir1=D..'.pvc/main/commit/00/0.snap/', dir2=D,
+    equal={}, deleted={},
+    changed={'.pvcpaths'}, created={'.pvcignore'},
+  }, diff)
+  T.eq(true, diff:hasDiff())
+
+  pth.write(D..'.pvcpaths', '.pvcpaths\n')
+  ix.rm(D..'.pvcignore')
+  diff = pvc.diff{dir=d, paths=true}
+  T.eq(pvc.Diff{
+    dir1=D..'.pvc/main/commit/00/0.snap/', dir2=D,
     equal={".pvcpaths"}, deleted={},
     changed={}, created={},
   }, diff)
@@ -44,6 +54,7 @@ T.empty = function()
   T.throws('no differences detected', function()
     pvc.commit{dir=d, '--', 'empty repo'}
   end)
+
   pth.write(d..'empty.txt', '')
   pth.append(d..'.pvcpaths', 'empty.txt')
   T.throws('has a size of 0', function()
@@ -100,7 +111,8 @@ T'workflow' do
   pvc.init{dir=D}
   T.eq({'main'}, pvc.branches(D))
   T.path(D, {
-    ['.pvcpaths'] = '.pvcpaths\n',
+    ['.pvcpaths'] = '.pvcpaths\n.pvcignore\n',
+    ['.pvcignore'] = pvc.INIT_PVCIGNORE,
     ['.pvc'] = {
       at = 'main#0', main = { tip = '0' },
     },
@@ -121,20 +133,31 @@ T'workflow' do
 
   pth.append(D..'.pvcpaths', 'story.txt')
   pth.append(D..'.pvcpaths', 'hello/hello.lua')
-  T.path(D..'.pvcpaths', '.pvcpaths\nstory.txt\nhello/hello.lua\n')
+  T.path(D..'.pvcpaths',
+    '.pvcpaths\n.pvcignore\nstory.txt\nhello/hello.lua\n')
   T.eq(pvc.Diff{
     dir1=D..'.pvc/main/commit/00/0.snap/', dir2=D,
     equal={}, deleted={},
-    changed={'.pvcpaths'}, created={'hello/hello.lua', 'story.txt'},
+    changed={'.pvcpaths'},
+    created={'.pvcignore', 'hello/hello.lua', 'story.txt'},
   }, pvc.diff{dir=D, paths=true})
 
   local DIFF1 = s[[
   desc1
   --- .pvcpaths
   +++ .pvcpaths
-  @@ -1,0 +2,2 @@
+  @@ -0,0 +1 @@
+  +.pvcignore
+  @@ -1,0 +3,2 @@
   +hello/hello.lua
   +story.txt
+
+  --- /dev/null
+  +++ .pvcignore
+  @@ -0,0 +1,3 @@
+  +%.git/
+  +%.civ/
+  +%.out/
 
   ]]
   ..HELLO_PATCH1
@@ -152,7 +175,7 @@ T'workflow' do
   local HELLO1 = pth.read(TD..'hello.lua.1')
 
   T.path(D, {
-    ['.pvcpaths'] = '.pvcpaths\nhello/hello.lua\nstory.txt\n',
+    ['.pvcpaths'] = '.pvcignore\n.pvcpaths\nhello/hello.lua\nstory.txt\n',
     ['story.txt'] = STORY1, hello = {['hello.lua'] = HELLO1},
     ['.pvc'] = { at = 'main#1' }
   })
@@ -160,7 +183,7 @@ T'workflow' do
   T.eq({'main#1'}, {pvc.at{dir=D}})
   T.eq(pvc.Diff{
     dir1=D..'.pvc/main/commit/00/1.snap/', dir2=D,
-    equal={'.pvcpaths', 'hello/hello.lua', 'story.txt'},
+    equal={'.pvcignore', '.pvcpaths', 'hello/hello.lua', 'story.txt'},
     deleted={}, changed={}, created={},
   }, pvc.diff{dir=D, paths=true})
 
@@ -172,7 +195,7 @@ T'workflow' do
   T.eq(pvc.Diff{
     dir1=D..'.pvc/main/commit/00/1.snap/', dir2=D,
     equal={},
-    deleted={'hello/hello.lua', 'story.txt'},
+    deleted={'.pvcignore', 'hello/hello.lua', 'story.txt'},
     changed={'.pvcpaths'},
     created={},
   }, pvc.diff{dir=D, paths=true, 'main#1'})
@@ -184,7 +207,7 @@ T'workflow' do
   -- go forwards
   pvc.atId(D, 'main', 1)
   local EXPECT1 = {
-    ['.pvcpaths'] = '.pvcpaths\nhello/hello.lua\nstory.txt\n',
+    ['.pvcpaths'] = '.pvcignore\n.pvcpaths\nhello/hello.lua\nstory.txt\n',
     ['story.txt'] = STORY1, hello = { ['hello.lua'] = HELLO1 },
   }
   T.path(D, EXPECT1)
@@ -195,7 +218,7 @@ T'workflow' do
   pth.write(D..'story.txt', STORY2); EXPECT2['story.txt'] = STORY2
   ix.rmRecursive(D..'hello/');       EXPECT2.hello = nil
   pvc._pathsUpdate(D, nil, --[[rm=]]{'hello/hello.lua'})
-  EXPECT2[pvc.PVCPATHS] = '.pvcpaths\nstory.txt\n'
+  EXPECT2[pvc.PVCPATHS] = '.pvcignore\n.pvcpaths\nstory.txt\n'
   T.path(D, EXPECT2)
 
   pvc.commit{dir=D, '--', 'desc2'}
