@@ -16,6 +16,7 @@ P.ele = lua {
     'testing.lua',
   },
   dep = { "civ:lib" },
+  link = {['lua/ele.lua'] = 'bin/ele'},
 }
 
 P.test = lua.test {

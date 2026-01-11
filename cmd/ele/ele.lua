@@ -1,9 +1,10 @@
--- extendable lua editor
-local M = mod'ele'
-MAIN = MAIN or M
-CWD = CWD or os.getenv'PWD' or os.getenv'CD'
-
+#!/usr/bin/env -S lua
 local shim = require'shim'
+
+--- Usage: [$ele path/to/file.txt][{br}]
+--- The ele commandline editor.
+local ele = shim.cmd'ele' {}
+
 local lap = require'lap'
 local fd = require'fd'
 local ds = require'ds'
@@ -15,13 +16,10 @@ local ioopen = io.open
 local iostdout, iostderr = io.stdout, io.stderr
 local sysprint = G.print
 
--- shim exe function
-M.main = function(args)
-  args = shim.parseStr(args)
+function ele:__call()
   local savedmode
-  log.info('ele exe', args)
-  -- TODO: handle args besides paths
-  local s = args.session or require'ele.Session':user{}
+  log.info('ele exe', self)
+  local s = require'ele.Session':user{}
   local keysend = s.keys:sender()
   local iofmt   = io.fmt
 
@@ -45,18 +43,18 @@ M.main = function(args)
       s:draw()
     end)
     log.info'ele: started'
-    if #args > 0 then
-      for _, path in ipairs(args) do
+    if #self > 0 then
+      for _, path in ipairs(self) do
         log.info('arg path: %q', path)
         s.ed:buffer(path)
       end
-      s.ed:focus(args[1])
+      s.ed:focus(self[1])
     end
     log.info'ele: end of setup'
   end,
   function() lap.async() -- setup: change to async()
     io.stderr = assert(ioopen('/tmp/ele.err', 'w'))
-    io.fmt = require'civ'.Fmt{to=io.stderr}
+    io.fmt = require'vt100'.Fmt{to=io.stderr}
     savedmode = vt.start()
 
     fd.ioAsync()
@@ -76,8 +74,5 @@ M.main = function(args)
   return s, l
 end
 
-if M == MAIN then
-  M.main(shim.parse(arg)); os.exit(0)
-end
-
+if shim.isMain(ele) then ele:main(arg) end
 return M

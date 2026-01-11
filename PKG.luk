@@ -8,6 +8,7 @@ P.full = Target {
     'civ:cmd/ff',
     'civ:cmd/cxt',
     'civ:cmd/doc',
+    'civ:cmd/ele',
   }
 }
 
