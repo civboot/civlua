@@ -244,7 +244,7 @@ T'workflow' do
 
   -- perform rebase
   require'ds.log'.err'FIXME: need to fix rebase'
-  goto skip;
+  -- goto skip;
   pvc.rebase{dir=D, 'dev', 3}
   ds.yeet'ok'
   T.eq({'dev', 5}, {pvc._rawat(D)})

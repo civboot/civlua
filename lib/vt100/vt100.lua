@@ -457,6 +457,7 @@ M.setup = function(args)
   -- io.fmt  = M.Fmt{to=assert(shim.file(rawget(args, 'log'), io.stderr))}
   io.fmt  = M.Fmt{to=io.stderr}
   G.IS_SETUP = true
+  log.info'vt100 setup done'
 end
 
 return M

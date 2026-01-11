@@ -1,3 +1,4 @@
+#!/usr/bin/env -S lua
 local shim  = require'shim'
 
 --- Usage: [$pvc <subcmd> --help]
@@ -31,14 +32,15 @@ local Base = shim.cmd'_base' {
 }
 
 -- Constructor which pops dir and sets to _dir.
-function Base.new(T, args)
-  info('@@ Base.new[%q]:(%q)', T, args)
+local function new(T, args)
   args = shim.parseStr(args)
   local dir = pk(args, 'dir')
   local cmd = shim.constructNew(T, args)
   cmd._dir = dir and toDir(dir) or pth.cwd()
   return cmd
 end
+Base.new = new
+pvc.new  = new
 
 --- Usage: [$pvc init dir --branch=main]
 pvc.init = mty.extend(Base, 'init', {
@@ -917,23 +919,6 @@ local popdir = function(args)
   return pth.toDir(pk(args, 'dir') or pth.cwd())
 end
 
-pvc.main = G.mod and G.mod'pvc.main' or setmetatable({}, {})
--- pvc.main.commit = function(args)
--- pvc.main.at = function(args) --> string
--- pvc.main.tip = function(args) --> string
--- pvc.main.branch = function(args)
--- pvc.main.show = function(args)
--- pvc.main.desc = function(args)
--- pvc.main.squash = function(args)
--- pvc.main.rebase = function(args) --> string
--- pvc.main.grow = function(args)
--- pvc.main.prune = function(args)
--- pvc.main.export = function(args) --> to
--- pvc.main.snap = function(args) --> snap/
-
------------------------
----- NEW HOTNESS
-
 function pvc.init:__call()
   local P = self._dir
   local dot = P..'.pvc/';
@@ -999,6 +984,7 @@ end
 
 -- TODO: need tests
 function pvc.show:__call()
+  assert(self._dir)
   local D = self._dir
   local full = not self.paths
   if not self[1] then -- just show all branches
@@ -1146,17 +1132,6 @@ function pvc.snap:__call()
   local snap = pvc.snapshot(P, br, id)
   io.stdout:write(snap, '\n')
   return pth.nice(snap)
-end
-
-getmetatable(pvc.main).__call = function(_, args)
-  trace('pvc%q', args)
-  local cmd = table.remove(args, 1)
-  local fn = rawget(pvc.main, cmd); if not fn then
-    io.fmt:styled('error',
-      cmd and (cmd..' is not recognized') or 'Must provide sub command', '\n')
-    return pvc.main.help()
-  end
-  return fn(args)
 end
 
 if shim.isMain(pvc) then pvc:main(arg) end
