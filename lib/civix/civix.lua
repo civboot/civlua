@@ -33,8 +33,8 @@ local lib, fd, fdType, fmodeName, mkdir
 --- civix.B (bootstrap) instead in that case.
 ---
 --- Clients should typically not use civix.B.
-M.B = G.mod and G.mod'civix.B' or {}
-local B = M.B
+M._B = G.mod and G.mod'civix.B' or {}
+local B = M._B
 
 B.EEXIST = 17
 
@@ -134,37 +134,37 @@ if G.NOLIB then
   M.exists = B.exists
   M.pathtype = B.pathtype
 else
-  lib  = require'civix.lib'
-  fd   = require'fd'
-  fdType = fd.type
-  fmodeName = fd.FMODE.name
+lib  = require'civix.lib'
+fd   = require'fd'
+fdType = fd.type
+fmodeName = fd.FMODE.name
 
-  M.EEXIST = lib.EEXIST
-  M.mkdir = lib.mkdir
+M.EEXIST = lib.EEXIST
+--- make a new directory, the parent must exist.
+M.mkdir = lib.mkdir --(dir)
 
-  --- Stat object with mode() and modified() functions
-  M.Stat = lib.Stat
+--- Stat object with mode() and modified() functions
+M.Stat = lib.Stat
 
-
-  --- list entires in directory.
-  M.dir = function(dir) --> iter[entry]
-    return lib.dir(pth.canonical(dir))
-  end
-
-  --- remove empty directory
-  M.rmdir = lib.rmdir -- (path) --> ok, errmsg, errno
-
-  --- return whether path exists.
-  M.exists = lib.exists -- (path) --> bool
-
-  --- return path type (i.e. M.FILE, M.DIR, etc).
-  --- if path DNE then return (nil, errmsg).
-  M.pathtype = function(path) --> str?, err
-    local stat, err = lib.stat(path)
-    if not stat then return nil, err end
-    return fmodeName(lib.S_IFMT & stat:mode())
-  end
+--- list entires in directory.
+M.dir = function(dir) --> iter[entry]
+  return lib.dir(pth.canonical(dir))
 end
+
+--- remove empty directory
+M.rmdir = lib.rmdir -- (path) --> ok, errmsg, errno
+
+--- return whether path exists.
+M.exists = lib.exists -- (path) --> bool
+
+--- return path type (i.e. M.FILE, M.DIR, etc).
+--- if path DNE then return (nil, errmsg).
+M.pathtype = function(path) --> str?, err
+  local stat, err = lib.stat(path)
+  if not stat then return nil, err end
+  return fmodeName(lib.S_IFMT & stat:mode())
+end
+end -- END else NOLIB
 
 mkdir = M.mkdir
 
@@ -209,9 +209,6 @@ end
 M.modifiedEq = function(a, b)
   return M.statModifiedEq(M.stat(a), M.stat(b))
 end
-
--- TODO: actually implement
-M.getpagesize = function() return 4096 end
 
 --- Return the entries in a dir as a list.
 --- They are sorted to put the directories first.
@@ -372,6 +369,17 @@ end
 --- * Note: all [$ftype=='dir'] paths end in [$/].
 --- * Warning: you may want to handle [$ftype=='error']
 --- ]
+---
+--- [*Usage:][{$$ lang=lua}
+--- local ix = require'civix'
+--- local w = ix.Walk{'path/', 'path2/', 'file.txt'}
+--- for path, pathTy in w do
+---   if pathTy == 'dir' and path:match'skipMe' do
+---     w:skip() -- skips the rest in this directory.
+---   end
+---   -- ... do something with each path.
+--- end
+--- ]$
 M.Walk = mty'Walk' {
   'maxDepth [int]: maximum depth to walk (default=infinite)',
   'pi [int]: the current (root) path index being walked', pi = 0,
@@ -464,10 +472,12 @@ local RM_FNS = {
   default = function(p) assert(M.rm(p))    end,
   dirDone = function(p) assert(M.rmdir(p)) end,
 }
+--- Recursively (force) remove the directory and all children.
 M.rmRecursive = function(path)
   if not M.exists(path) then return end
   M.walk({path}, RM_FNS, nil)
 end
+--- Recursively (force) create the directory and any missing children.
 M.mkDirs = function(path)
   if type(path) == 'string' then path = pth(path) end
   local dir = ''; for _, c in ipairs(path) do
@@ -478,6 +488,7 @@ M.mkDirs = function(path)
                     dir, errmsg) end
   end
 end
+--- Create a single directory. The parent must exist.
 M.mkDir = function(path, parents) --!> nil
   if parents then M.mkDirs(pth(path))
   else fmt.assertf(mkdir(path), "mkdir failed: %s", path) end
@@ -536,6 +547,8 @@ M.mkTree = function(dir, tree, parents) --!> nil
   end
 end
 
+--- civix's implementation of [@lap.Lap], enabling asynchronous file
+--- reading/writing and async shell operations using pure lua coroutines.
 M.Lap = function() return lap.Lap {
   sleepFn=M.sleep, monoFn=M.monoSec, pollList=fd.PollList(),
 }end
@@ -552,8 +565,8 @@ M.Lap = function() return lap.Lap {
 ---        io.stdout/etc.]
 ---
 --- Examples (see civix.sh for more examples): [{table}
---- # Lua                                                  | Bash
---- + [$Sh({'ls', 'foo/bar'}, {stdout=io.stdout}):start()] | [$ls foo/bar]
+--- # Lua                                                   | Bash
+--- + [$Sh({'ls', 'foo/bar'}, {stdout=io.stdout}):start()]  | [$ls foo/bar]
 --- + [$v = Sh{'ls foo/bar', stdout=true}:start():read'a']  | [$v=$(ls foo/bar)]
 --- ]
 M.Sh = mty'Sh' {
@@ -607,11 +620,12 @@ M.Sh.wait = function(sh) --> int
   return sh:rc()
 end
 
-
+--- Argument for [<#civix.Sh.finish>].
 M.ShFin = mty'ShFin'{
   'stdin [file]', 'stdout [file]', 'stderr [file]',
   "input [string]: write to then close stdin (either self's or shell's)",
 }
+
 --- finish files (in sh or other) by writing other.input to stdin and reading
 --- stdout/stderr.  All processes are done asynchronously
 M.Sh.finish = function(sh, other) --> out, err
@@ -673,7 +687,7 @@ end
 ---
 --- Note: use [$Plumb{...}:run()] if you want to pipe multiple shells together.
 --- [{table}
---- # Command                               Bash
+--- # Lua                                  | Bash
 --- + [$sh'ls foo/bar']                    | [$ls foo/bar]
 --- + [$sh{'ls', 'foo/bar', 'dir w spc/'}] | [$ls foo/bar "dir w spc/"]
 --- + [$sh{stdin='sent to stdin', 'cat'}]  | [$echo "sent to stdin" | cat]

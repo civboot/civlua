@@ -5,7 +5,7 @@ local Iter = require'ds.Iter'
 local T = require'civtest'
 
 local M  = require'civix'
-local B  = M.B -- bootstrapped
+local B  = M._B -- bootstrapped
 local D = 'lib/civix/'
 local O = '.out/'
 local push = table.insert

@@ -1,18 +1,8 @@
-Civboot's unix system library
-
+[{h1}civix: unix system library for Civstack]
 Civix contains standard unix functions that exist in most language's "sys"
-library such as [$sleep], [$epoch] etc. It also contains a powerful [$Sh{}] type
-and convieience [$sh()] function for executing system shell commands, either
-synchronously or asynchronously using the LAP protocol (see [<#Package_lap>].
+library such as [$sleep], [$epoch] etc. It also contains a powerful [$Sh{}]
+type and convieience [$sh()] function for executing system shell commands,
+either synchronously or asynchronously using the LAP protocol (see
+[<lap.html>].
 
-[$$
-$ lua
-> sh = require'civix'.sh
-> print(sh'ls some/path')
-> -- cat /var/log/syslog | grep "netgroup: version"
-> out = sh{stdin=io.open'/var/log/syslog', 'grep', 'netgroup: version'}
-> for line in require'ds'.lines(out) do ... something per line ... end
-]$
-
-["Civix depends on the [<#Package_fd>] library for async file descriptors and
-  other filedescriptor functionality.]
+["TODO: better docs to come once the ele shell is finished]
