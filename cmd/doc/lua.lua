@@ -107,7 +107,7 @@ M.tostring = tostring--(v) --> string
 --- string literal values can use [+
 ---   * [$'single quotes']
 ---   * [$"double quotes"]
----   * [$[==[raw string with any number of = symbols ]==]]
+---   * [$$[==[raw string with any number of = symbols ]==]]$
 --- ]
 ---
 --- [$\] characters can be used to escape special characters,
@@ -223,7 +223,7 @@ M['string.gsub'] = string.gsub--(subj, pat, repl, index=1) --> string
 --- ]$
 M['string.format'] = string.format--(fmt: str, ...) --> str
 
---- Get ASCII (integer) codes for [$s[si:ei]]
+--- Get ASCII (integer) codes for [$$s[si:ei]]$.
 ---
 --- Example: [$T.eq({98, 99}, {string.byte('abcd', 2, 3)})]
 M['string.byte'] = string.byte--(str, si=1, ei=si) --> ...ints
@@ -273,7 +273,7 @@ for k, v in pairs(undocumented'string') do M[k] = v end
 --- Tables act as BOTH a map (of keys -> values) and a list (ordered values
 --- starting at index=1).
 ---
---- You can access the keys with [$t[key]] or if they are a string without
+--- You can access the keys with [$$t[key]]$ or if they are a string without
 --- special characters with [$t.key].
 ---
 --- Examples: [{$$ lang=lua}
@@ -347,12 +347,12 @@ M['table.move'] = table.move --(from, siFrom, eiFrom, siTo, to=from) -> to
 --- the builtin lua io (input/output) module
 ---
 --- Module Functions: [{table}
---- + [$ input(file=nil)  ->  file  ] |  get/set stdin
---- + [$ output(file=nil) ->  file  ] |  get/set stdout
---- + [$ tmpfile() -> file          ] |  note: removed on program exit
---- + [$ popen()   -> file          ] |  see io.popen
---- + [$ lines(path or file) -> iter] |  close when done, fail=error
---- + [$ type(f) -> "[closed ]file" ] |  get whether f is a file
+--- + [$ input(file=nil)  ->  file  ]   |  get/set stdin
+--- + [$ output(file=nil) ->  file  ]   |  get/set stdout
+--- + [$ tmpfile() -> file          ]   |  note: removed on program exit
+--- + [$ popen()   -> file          ]   |  see io.popen
+--- + [$ lines(path or file) -> iter]   |  close when done, fail=error
+--- + [$$ type(f) -> "[closed ]file" ]$ |  get whether f is a file
 --- ]
 ---
 --- File Methods: [{table}

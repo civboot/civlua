@@ -32,7 +32,7 @@ local function addKV(t, k, v)
 end
 
 --- parses the string by splitting via whitespace.
---- Asserts the string contains no special chars: [$'"[]]
+--- Asserts the string contains no special chars: [$$'"[]]$
 --- This is for convinience, use a table if it's not enough.
 ---
 --- Note: if the input is already a table it just returns it.
@@ -181,7 +181,7 @@ end
 --- Construct a metaty-like object from args.
 ---
 --- If [$Args.subcmd] is truthy then treats it as a table of
---- subcmds. Looks for a subcmd at [$args[1]], removes it and
+--- subcmds. Looks for a subcmd at [$$args[1]]$, removes it and
 --- constructs that subcmd, returning a table with the subcmd
 --- key set.
 ---

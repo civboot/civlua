@@ -228,7 +228,7 @@ end
 --- Make metaty type convertable to/from plain-old-data
 ---
 --- Typically this is called by calling the module itself,
---- i.e. [$pod(mty'myType'{'field [int]#1'})]
+--- i.e. [$$pod(mty'myType'{'field [int]#1'})]$
 M.implPod = function(T, tys)
   tys = tys or {}
   local errs, podders, podder = {}, {}, nil

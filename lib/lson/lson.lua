@@ -215,7 +215,7 @@ local DE_FNS = {
 end
 
 --- [$De(string or lines) -> value-iter]
---- [$for val in De'["my", "lson"]' do ... end]
+--- [$$for val in De'["my", "lson"]' do ... end]$
 M.De = mty'De' {
   'dat [lines]: lines-like data to parse',
   'null [any]: value to use for null', null=none,

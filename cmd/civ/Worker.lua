@@ -70,7 +70,7 @@ function Worker:target(id) --> Target
   return tgt
 end
 
---- Copy output files from [$tgt.out[outKey]].
+--- Copy output files from [$$tgt.out[outKey]]$.
 function Worker:copyOut(tgt, outKey)
   if not tgt.out[outKey] then return nil, 'missing out: '..outKey end
   local F, T = tgt.dir, self.cfg.buildDir..outKey..'/'

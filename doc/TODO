@@ -6,11 +6,9 @@ General
   Check for stuff in pvc, especially merge (install rcs).
 * The cxt info boxes are rendering very far away from the next
   element, i.e. in pvc.at
+* civtest shows two "pathEq" because two variables are assigned it. Fix that behavior.
 
 Review Docs
-* civtest
-* cxt
-* doc
 * ds
 * fd
 * fmt

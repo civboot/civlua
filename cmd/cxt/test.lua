@@ -19,6 +19,7 @@ local testing, EMPTY, EOF
 local pegl = ds.auto'pegl'
 
 local KW, N, NUM, HEX; ds.auto(testing)
+local s = ds.simplestr
 
 T.escape = function()
   T.eq('foo \\[bar\\] \\\\ baz', M.escape'foo [bar] \\ baz')
@@ -75,6 +76,7 @@ T.simple = function()
   M.assertParse('empty [{}block works].', {'empty ', {'block works'}, '.'})
   M.assertThrows('[$ unclosed',    'Got EOF, expected')
   M.assertThrows('[$$ unclosed ]', 'Got EOF, expected')
+  M.assertThrows('[$a[]]', "Unopened ']' found")
 end
 
 T.block = function()
@@ -464,7 +466,6 @@ local _, node, p = term.convert(
   + __name       string\9 "
   T.eq(expect, tostring(f))
 end
-
 
 T.doc = function()
   -- local d = require'doc'.docstr(Mt.A)

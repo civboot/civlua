@@ -176,10 +176,11 @@ end
 --- The table given to [$Key] forms a Trie which is extremely performant. Key depends
 --- strongly on the [$tokenizer] passed to Config.
 ---
---- Example: [$Key{{'myKeword', ['+']={'+'=true}}, kind='kw'}] will match tokens "myKeyword"
---- and "+" followed by "+" (but not "+" not followed by "+").
+--- Example: [$$Key{{'myKeword', ['+']={'+'=true}}, kind='kw'}]$ will match
+--- tokens "myKeyword" and "+" followed by "+" (but not "+" not followed by
+--- "+").
 ---
---- To also match "+" use [$['+']={true, '+'=true}]
+--- To also match "+" use [$$['+']={true, '+'=true}]$
 ---
 --- ["Note: The `Key` constructor converts all list items into
 ---         [$value=true], so [${'a', 'b'}] is converted to [${a=true, b=true}]]

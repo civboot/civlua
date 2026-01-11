@@ -54,7 +54,7 @@ PKG_LOOKUP['myMod.Pos'] = M.Pos
   else it is [$type(v)].
 * [$$metaty'name' {'field1[type] documentation', 'field2[type]'}]$
   creates a documented and typo-safe record type (see examples) [+
-    * the [$[type]] field can also be in the form [${type}] for a list
+    * the [$$[type]]$ field can also be in the form [${type}] for a list
       of the type or [${string: type}] for a map of the type.
     * [$@<decimal>] (i.e. [$@2]) can be put after the type to specify the
       decimal value to use for the field when de/serializing.
@@ -87,7 +87,7 @@ The following fields can optionally be set on the metatable: [+
 * [$__fields]: should contain a table of [$fieldName -> fieldtype].
   [$fieldType] can be an arbitrary string and is only for documentation, though
   future libraries/applications (type checkers) may eventually wish to consume
-  it. [$metaty] (the library) uses the format [$"fieldName [user-specified-type]"] [+
+  it. [$metaty] (the library) uses the format [$$"fieldName [user-specified-type]"]$ [+
   * This is used by formatting libraries when printing the types (so the fields
     are printed in deterministic order).
   ]

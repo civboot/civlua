@@ -159,7 +159,7 @@ end
 M.Edit.removeOff = function(e, off, l, c)
   if off == 0 then return end
   l, c = l or e.l, c or e.c;
-  local l2, c2 = lines.offset(e.buf.dat, ds.decAbs(off), l, c)
+  local l2, c2 = lines.offset(e.buf.dat, ds.absDec(off), l, c)
   if off < 0 then l, l2, c, c2 = l2, l, c2, c end
   e:remove(l, c, l2, c2)
 end

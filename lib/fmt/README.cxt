@@ -21,11 +21,11 @@ to the terminal, web-pages and the civstack editor.
 [{h2}API / Architecture]
 
 [<#fmt.Fmt>] defines the formatter which has methods/settings: [+
-* [$to [file|Styler]] (argument): where to write to. Default is to push to
+* [$$to [file|Styler]]$ (argument): where to write to. Default is to push to
   self, treating Fmt as a list of strings (which you can call [$table.concat]
   on).
 
-* [$style [boolean]] to enable/disable styling. Set to [$true] if [$to=styler]
+* [$$style [boolean]]$ to enable/disable styling. Set to [$true] if [$to=styler]
   AND you want color/etc.
 
 * [$__call(f, v)]: call with any value to use [$__fmt] method or default.

@@ -320,7 +320,7 @@ M.Goto = mty'Goto' {
 }
 
 --- [$switch of do case 0 do ... default ... end]
---- Type is [$ map[int, list[stmt]] ]
+--- Type is [$$ map[int, list[stmt]] ]$
 --- 0 - highest MUST be filled out.
 M.Switch = mty'Switch' {
   'of [list[expr1]]: last expr1 is jmp',

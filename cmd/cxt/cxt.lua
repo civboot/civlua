@@ -283,20 +283,26 @@ end
 local CONTENT_SPEC = {kind='cxt'}
 
 --- parse normal content, adding to node
+--- p is a [$pegl.Parser]. isRoot indicates
+--- it is currently parsing plain text.
 cxt.content = function(p, node, isRoot, altEnd)
   local l, c = p.l, p.c
   p:dbgEnter(CONTENT_SPEC)
   ::loop::
-  if p.line == nil then
+  if p.line == nil then -- EOF
     if not isRoot then return p:error"Expected ']' but reached end of file" end
     p:dbgLeave()
     local ll = 0; if p.l > 1 then ll = #ds.get(p.dat, p.l - 1) end
     return addToken(p, node, l, c, p.l - 1, ll) --> nil
   elseif #p.line == 0 and ds.get(p.dat, l+1) then
+    -- empty line -> break
     add(node, {pos={l}, br=true})
     p:incLine(); skipWs(p); l, c = p.l, p.c
     goto loop
-  elseif p.c > #p.line then l, c = incLine(p, node, l, c); goto loop end
+  elseif p.c > #p.line then -- done parsing line
+    l, c = incLine(p, node, l, c)
+    goto loop
+  end
   if altEnd then
     local e = altEnd(p, node, l, c); if e then
       p:dbgLeave()
@@ -304,20 +310,29 @@ cxt.content = function(p, node, isRoot, altEnd)
     end
   end
   ::refind::
-  local c1, c2 = p.line:find('\\?[%[%]\\]', p.c); if not c2 then
+  -- look for any of: [ ] \[ \]
+  local c1, c2 = p.line:find('\\?[%[%]\\]', p.c)
+  if not c2 then
     l, c = incLine(p, node, l, c)
     goto loop
   end
   p.c = c2 + 1
-  if c1 ~= c2 then -- \escaped
+  if c1 ~= c2 then -- \[ or \]
     addToken(p, node, l, c, p.l, c1-1)
     c = c2; goto loop
   end
   -- found unescaped syntax character: [ ] \
-  if p.line:sub(c2,c2) == '\\' then goto refind end -- '\*' --> '\*'
+  if p.line:sub(c2,c2) == '\\' then
+    -- '\*' --> '*' -- the loop will pick it up as raw.
+    goto refind
+  end
   addToken(p, node, l, c, p.l, c2-1)
   local posL, posC = p.l, p.c
-  if p.line:sub(c1,c2) == ']' then p:dbgLeave(); return end
+  if p.line:sub(c1,c2) == ']' then
+    if isRoot then return p:error"Unopened ']' found" end
+    p:dbgLeave()
+    return
+  end
   local raw, ctrl = nil, p.line:sub(p.c, p.c)
   if ctrl == '' then
     return p:error("expected control char after '['")
@@ -408,6 +423,7 @@ local function resolveFetches(p, node, named)
   return node
 end
 
+--- Main parsing entry point.
 cxt.parse = function(dat, dbg)
   local p = pegl.Parser:new(dat, pegl.Config{dbg=dbg})
   skipWs(p)

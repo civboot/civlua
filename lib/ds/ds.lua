@@ -30,20 +30,20 @@ M.setup = function(args)
 end
 
 --- pure-lua bootstrapped library (mainly for bootstrap.lua)
-M.B = mty.mod'M.B'
+M._B = mty.mod'M._B'
 
 --- concatenate varargs.
-M.B.string_concat = function(sep, ...) --> string
+M._B.string_concat = function(sep, ...) --> string
   return concat({...}, sep)
 end
 
 --- push v onto table, returning index.
-M.B.push = function(t, v) --> index
+M._B.push = function(t, v) --> index
   local i = #t + 1; t[i] = v; return i
 end
 
 --- return t with the key/vals of add inserted
-M.B.update = function(t, add) --> t
+M._B.update = function(t, add) --> t
   for k,v in pairs(add) do t[k] = v end
   return t
 end
@@ -57,7 +57,7 @@ local function updateRaw(t, add)
 end
 
 local lib
-if G.NOLIB then lib = M.B
+if G.NOLIB then lib = M._B
 else
   lib = require'ds.lib'
   updateRaw = lib.update
@@ -92,7 +92,7 @@ end
 
 --- insert values into list at index i.
 --- Uses [$inset] method if available.
---- rmlen, if provided, will cause [$t[i:i+rmlen]] to be removed first
+--- rmlen, if provided, will cause [$$t[i:i+rmlen]]$ to be removed first
 ---
 --- inset is like an extend but the items are insert at any place in the array.
 --- The rmlen will also remove a certain number of items.
@@ -116,16 +116,18 @@ end
 ---------------------
 -- Pseudo Types
 
+local CONCRETE_TYPES
 --- the only four non-mutable data types in lua
-local CONCRETE_TYPES = {
+M.CONCRETE_TYPES = {
   ['nil']=true, boolean=true, number=true, string=true
 }
+CONCRETE_TYPES = M.CONCRETE_TYPES
 
--- return true if the value is "plain old data".
---
--- Plain old data is defined as any concrete type or a table with no metatable
--- and who's pairs() are only POD.
-local isPod; isPod = function(v, mtFn)
+--- return true if the value is "plain old data".
+---
+--- Plain old data is defined as any concrete type or a table with no metatable
+--- and who's pairs() are only POD.
+local isPod; M.isPod = function(v, mtFn)
   local ty = type(v)
   if ty == 'table' then
     local mt = getmt(v)
@@ -139,27 +141,38 @@ local isPod; isPod = function(v, mtFn)
   end
   return CONCRETE_TYPES[ty]
 end
-M.isPod, M.CONCRETE_TYPES = isPod, CONCRETE_TYPES
+isPod = M.isPod
 
 -----------------
 -- Utility
 
 M.SKIP      = 'skip'
+--- function that does and returns nothing.
 M.noop      = function() end
+--- Function that indicates an API is not supported for a type.
+--- Throws [$error'not supported'].
 M.nosupport = function() error'not supported' end
-M.iden      = function(...) return ... end -- identity function
-M.retTrue   = function() return true  end
-M.retFalse  = function() return false end
-M.newTable  = function() return {}    end
-M.eq        = function(a, b) return a == b end
+--- identity function, return the inputs.
+M.iden      = function(...) return ... end --> ...
+--- function that always return true.
+M.retTrue   = function() return true  end --> true
+--- function that always return false.
+M.retFalse  = function() return false end --> false
+--- Function that creates a new, empty table.
+M.newTable  = function() return {}    end --> {}
+--- Function that returns [$a == b].
+M.eq        = function(a, b) return a == b end --> bool
 
 local retTrue = M.retTrue
 
+--- Get the source location of wherever this is called
+--- (or at a higher [$level]).
 M.srcloc = function(level) --> "/path/to/dir/file.lua:10"
   local info = debug.getinfo(2 + (level or 0), 'Sl')
   local loc = info.source; if loc:sub(1,1) ~= '@' then return end
   return loc:sub(2)..':'..info.currentline
 end
+--- Same as srcloc but shortens to only the parent dir.
 M.shortloc = function(level) --> "dir/file.lua:10"
   local info = debug.getinfo(2 + (level or 0), 'Sl')
   local loc = info.source; if loc:sub(1,1) ~= '@' then return end
@@ -167,10 +180,13 @@ M.shortloc = function(level) --> "dir/file.lua:10"
   loc = loc:match'^@.-([^/]*/[^/]+)$' or loc:sub(2)
   return loc..':'..info.currentline
 end
+--- Same as srcloc but removes the [$file:linenum]
 M.srcdir = function(level) --> "/path/to/dir/"
   return M.srcloc(1 + (level or 0)):match'^(.*/)[^/]+$'
 end
 
+--- Create an error message for the coroutine which includes
+--- it's traceback.
 M.coroutineErrorMessage = function(cor, err) --> string
   return sconcat('',
     'Coroutine error: ', debug.stacktraceback(cor, err), '\n',
@@ -179,27 +195,36 @@ end
 
 ---------------------
 -- Order checking functions
+
+--- Return whether [$min <= v <= max].
 M.isWithin = function(v, min, max) --> bool
-  local out = (min <= v) and (v <= max)
-  return out
+  return (min <= v) and (v <= max)
 end
-M.lt  = function(a, b) return a < b end
-M.gt  = function(a, b) return a > b end
-M.lte = function(a, b) return a <= b end
+--- Return [$a < b].
+M.lt  = function(a, b) return a < b  end --> bool
+--- Return [$a > b].
+M.gt  = function(a, b) return a > b  end --> bool
+--- Return [$a <= b].
+M.lte = function(a, b) return a <= b end --> bool
 local lte = M.lte
-M.bound = function(v, min, max) --> value within [min,max]
+--- Return value within [$$[min,max]]$ (inclusive).
+M.bound = function(v, min, max) --> int
   return ((v>max) and max) or ((v<min) and min) or v
 end
+--- Return the two passed-in values in sorted order.
 M.sort2 = function(a, b) --> (small, large)
   if a <= b then return a, b end; return b, a
 end
-M.repr = function(v) return sfmt('%q', v) end
 
 ---------------------
 -- Number Functions
+--- Return whether value is even.
 M.isEven = function(a) return a % 2 == 0 end --> bool
+--- Return whether value is odd.
 M.isOdd  = function(a) return a % 2 == 1 end --> bool
-M.decAbs = function(v) --> number
+--- Moves the absolute value of [$v] towards [$0] by [$1].
+--- If [$v==0] then do nothing.
+M.absDec = function(v) --> number
   if v == 0 then return 0 end
   return ((v > 0) and v - 1) or v + 1
 end
@@ -207,15 +232,14 @@ end
 ---------------------
 -- String Functions
 
--- Concatenate all values in ..., calling tostring on them
--- if necessary.
--- This has several differences than table.concat:[+
--- * it does not require allocating a table to be called.
--- * it automatically calls tostring on the arguments.
--- ]
---
--- This function is most useful if you have a known number
--- of arguments or ... which you want to concatenate.
+--- Concatenate all values in [$...], calling tostring on them if necessary.
+--- This has several differences than table.concat:[+
+--- * it does not require allocating a table to be called.
+--- * it automatically calls tostring on the arguments.
+--- ]
+---
+--- This function is most useful if you have a known number
+--- of arguments or ... which you want to concatenate.
 M.concat = string.concat--(sep, ...) --> string
 
 --- return the string if it is only uppercase letters
@@ -224,12 +248,20 @@ M.isupper = function(c) return c:match'^%u+$' end --> string?
 --- return the string if it is only lowercase letters
 M.islower = function(c) return c:match'^%l+$' end --> string?
 
-M.trim = function(subj, pat, index) --> string
+--- Remove [$pat] (default=[$%s], aka whitespace) from the front and back
+--- of the string.
+M.trim = function(subj, pat, si) --> string
   pat = pat and ('^'..pat..'*(.-)'..pat..'*$') or '^%s*(.-)%s*$'
+  return subj:match(pat, si)
+end
+
+--- Trim the end of the string by removing pat (default=[$%s])
+M.trimEnd = function(subj, pat, index) --> string
+  pat = pat and ('^(.-)'..pat..'*$') or '^(.-)%s*$'
   return subj:match(pat, index)
 end
 
---- find any of a list of patterns. Return the match [$start, end] as well as
+--- Find any of a list of patterns. Return the match [$start, end] as well as
 --- the [$index, pat] of the pattern matched.
 M.find = function(subj, pats, si, plain) --> (ms, me, pi, pat)
   si = si or 1
@@ -239,20 +271,15 @@ M.find = function(subj, pats, si, plain) --> (ms, me, pi, pat)
   end
 end
 
---- split strings
 M.split = mty.split         --(s, sep) --> strIter
+
+--- Perform a split but returning a list instead of a string.
 M.splitList = function(...) --(s, sep) --> list
   local t = {}; for _, v in mty.split(...) do push(t, v) end
   return t
 end
 
---- trim the end of the string by removing pat (default='%s')
-M.trimEnd = function(subj, pat, index) --> string
-  pat = pat and ('^(.-)'..pat..'*$') or '^(.-)%s*$'
-  return subj:match(pat, index)
-end
-
---- Squash a string: convert all whitespace to repl (default=' ').
+--- Squash a string: convert all whitespace to repl (default=single-space).
 M.squash = function(s, repl) return s:gsub('%s+', repl or ' ') end --> string
 
 --- utf8 sub. If len is pre-computed you can pass it in for better performance.
@@ -320,23 +347,26 @@ end
 ---------------------
 -- Table Functions
 
---- [$t[k]] if t is a raw table, else [$getmetatable(t).get(t, k)]
+--- [$$t[k]]$ if t is a raw table, else [$getmetatable(t).get(t, k)]
 ---
---- This lets many types be substitutable for raw-tables in some APIs (i.e. lines).
+--- This lets many types be substitutable for raw-tables in some APIs (i.e.
+--- lines).
 M.get = function(t, k) --> value
   if getmt(t) then return t:get(k) end
   return t[k]
 end
 local get = M.get
 
---- [$t[k] = v] if t is a raw table, else [$getmetatable(t).set(t, k, v)]
+--- [$$t[k] = v]$ if t is a raw table, else [$getmetatable(t).set(t, k, v)]
 ---
---- This lets many types be substitutable for raw-tables in some APIs (i.e. lines).
+--- This lets many types be substitutable for raw-tables in some APIs (i.e.
+--- lines).
 M.set = function(t, k, v)
   if getmt(t) then return t:set(k, v) end
   t[k] = v
 end
 
+--- Return whether [$t] is nil or the result of [$next(t)] is nil.
 M.isEmpty = function(t) return t == nil or next(t) == nil end
 
 --- the full length of all pairs
@@ -345,8 +375,7 @@ M.pairlen = function(t) --> int
   local l = 0; for _ in pairs(t) do l = l + 1 end; return l
 end
 
---- sort table and return it.
---- Eventually this may use the [$__sort] metamethod
+--- Sort table and return it. Eventually this may use the [$__sort] metamethod.
 M.sort = function(t, fn) sort(t, fn); return t end --> t
 
 --- sort t and remove anything where [$rmFn(v1, v2)]
@@ -369,6 +398,8 @@ end
 M.geti = function(t, i) --> t[i]
   return (i >= 0) and t[i] or t[#t + i + 1]
 end
+
+--- get the last value of a list-like table.
 M.last = function(t) return t[#t] end
 
 --- get the first (and assert only) element of the list
@@ -383,7 +414,7 @@ M.values = function(t) --> list
   return vals
 end
 
--- get only the keys of pairs(t) as a list
+--- get only the keys of [$pairs(t)] as a list.
 M.keys = function(t) --> list
   local keys = {}; for k in pairs(t) do push(keys, k) end
   return keys
@@ -401,44 +432,42 @@ end
 --- ipairs reversed
 M.ireverse = function(t) return M.iprev, t, #t + 1 end --> iter
 
+--- ["You probably want islice instead.]
+--- Usage: [$for i, v in rawislice, {t, ei}, si do ... end][{br}]
+--- where [$si, ei] is the start/end indexes.
 M.rawislice = function(state, i) --> (i+1, v)
   i = i + 1; if i > state[2] then return end
   return i, state[1][i]
 end
 
--- islice(t, starti, endi=#t): iterate over slice.
---   Unlike other i* functions, this ignores length
---   except as the default value of endi
-M.islice = function(t, starti, endi) --> iter[starti:endi]
+--- Usage: [$for i,v in islice(t, starti, endi)][{br}
+--- The default endi is [$#t], otherwise this ignores the list's length
+--- ([$v] may be [$nil] for some [$i] values).
+M.islice = function(t, starti, endi) --> iter
   if endi then
     return M.rawislice, {t, endi}, (starti or 1) - 1
   end
   return inext, t, (starti or 1) - 1
 end
 
-M.slice = function(t, starti, endi) --> list[starti:endi]
+--- Get a new list of indexes si-ei (inclusive).[{br}]
+--- Defaults: [$si=1, ei=#t].
+M.slice = function(t, si, ei) --> list
   local sl = {}
-  for i=starti or 1,endi or #t do push(sl, t[i]) end
+  for i=si or 1,ei or #t do push(sl, t[i]) end
   return sl
 end
 
---- iend(t, starti, endi=-1): get islice from the end.
----   starti and endi must be negative.
----
---- Example: [$iend({1, 2, 3, 4, 5}, -3, -2) -> 3, 4]
-M.ilast = function(t, starti, endi) --> iter[starti:endi]
-  local len = #t; endi = endi and min(len, len + endi + 1) or len
-  return M.rawislice, {t, endi}, min(len - 1, len + starti)
-end
-
---- Return true if two list-like tables are equal.
+--- Return true if two list-like tables are equal.[{br}]
+--- Note that this only compares integer keys and ignores
+--- others.
 M.ieq = function(a, b)
   if #a ~= #b then return false end
   for i=1,#a do if a[i] ~= b[i] then return false end end
   return true
 end
 
---- reverse a list-like table in-place
+--- reverse a list-like table in-place (mutating it).
 M.reverse = function(t) --> t (reversed)
   local l = #t; for i=1, l/2 do
     t[i], t[l-i+1] = t[l-i+1], t[i]
@@ -446,11 +475,20 @@ M.reverse = function(t) --> t (reversed)
   return t
 end
 
-M.extend = function(t, l) --> t: move vals to end of t
+--- Extend [$t] with list-like values from [$l].
+--- This mutates [$t].
+M.extend = function(t, l) --> t
   if getmt(t) then return t:extend(l) end
   return move(l, 1, #l, #t + 1, t)
 end
 local extend = M.extend
+
+--- This is used by types implementing [$:extend].
+--- It uses their [$get] and [$set] methods to implement
+--- extend in a for loop.
+---
+--- ["types do this if they may [$yield] in their get/set, which
+---   is not allowed through a C boundary like [$table.move]]
 M.defaultExtend = function(r, l) --> r
   local rset = getmt(r) and assert(r.set) or rawset
   local lget = getmt(l) and assert(l.get) or rawget
@@ -477,7 +515,7 @@ M.replace = function(t, r) --> t
   return move(r, 1, max(#t, #r), 1, t)
 end
 --- return t with the key/vals of add inserted
-M.update = M.B.update
+M.update = M._B.update
 --- return new list which contains all elements inserted in order
 M.flatten = function(...)
   local t, len = {}, select('#', ...)
@@ -603,7 +641,7 @@ M.indexOfPat = function(strs, pat) --> int
   for i, s in ipairs(strs) do if s:find(pat) then return i end end
 end
 
---- popit (aka pop-index-top) will return the value at [$t[i]], replacing it
+--- popit (aka pop-index-top) will return the value at [$$t[i]]$, replacing it
 --- with the value at the end (aka top) of the list.
 ---
 --- if [$i > #t] returns nil and doesn't affect the size of the list.
@@ -656,6 +694,7 @@ M.icopy = function(t) --> list
   return move(t, 1, #t, 1, {})
 end
 
+--- For types implementing [$:copy()] method.
 M.defaultICopy = function(r)
   local t = {}; for i=1,#r do t[i] = r:get(i) end
   return t
@@ -987,8 +1026,8 @@ local function _bs(t, v, cmp, si, ei)
 end
 
 --- Search the sorted table, return i such that: [+
---- * [$cmp(t[i], v)] returns true  for indexes <= i
---- * [$cmp(t[i], v)] returns false for indexes >  i
+--- * [$$cmp(t[i], v)]$ returns true  for indexes <= i
+--- * [$$cmp(t[i], v)]$ returns false for indexes >  i
 --- ]
 --- If you want a value perfectly equal then check equality
 --- on the resulting index.
@@ -1050,9 +1089,10 @@ end
 ---------------------
 -- BiMap
 
+-- CXT HERE BAD
 --- Bidirectional Map.
 --- Maps both [$key -> value] and [$value -> key].
---- Must use [$:remove] (instead of [$bm[k] = nil] to handle deletions.
+--- Must use [$:remove] (instead of [$$bm[k] = nil]$ to handle deletions.
 ---
 --- Note that [$pairs()] will return BOTH directions (in an unspecified order)
 M.BiMap = mty'BiMap'{}
@@ -1103,7 +1143,7 @@ end
 M.Deq.pushLeft = function(deq, val) --> nil
   local l = deq.left - 1;  deq[l] = val; deq.left = l
 end
---- extend deq to left ([$vals[1]] is left-most)
+--- extend deq to left ([$$vals[1]]$ is left-most)
 M.Deq.extendLeft = function(deq, vals) --> nil
   local vlen = #vals
   deq.left = deq.left - vlen

@@ -29,28 +29,27 @@ local function fail(name)
   error(sfmt('Failed %s', name), 2)
 end
 
-M.printName = function(name, path)
+M._printName = function(name, path)
   name = name..M.SUBNAME
   rawset(M, 'NAME', name);
   io.fmt:styled('h2', sfmt('## Test %-32s', name), ' ')
   io.fmt:styled('path', pth.nice(path), '\n')
 end
 
+--- ["Note: you probably want to do [$T'name'] instead.
+---   See [<#usage>].]
 --- Run the test, printing information to the terminal.
 ---
 --- This function computes name=[$name..civtest.SUBNAME]
 --- and sets civtest.NAME to the new name, which can be
 --- used in the test.
----
---- ["Note: normally this is called when the user sets
----   a key to the civtest module, which has __newindex()
----   overriden to call this function.
---- ]
 M.runTest = function(name, fn, path) -- TODO: delete this
-  M.printName(name, path)
+  M._printName(name, path)
   return fn()
 end
 
+--- Write the diff of strings a vs b to the [@fmt.Fmt] [$f].
+--- Typically, you want to call [<#civtest.eq>] instead.
 M.showDiff = function(f, a, b)
   f:styled('error', '\n!! EXPECT:', '\n');   f(a)
   f:styled('error', '\n!! RESULT:', '\n');   f(b)
@@ -68,13 +67,15 @@ M.showDiff = function(f, a, b)
 end
 local showDiff = M.showDiff
 
---- Assert that [$a] equals [$b] (according to [<#metaty.eq>].
+--- Assert that [$a] equals [$b] (according to [<#metaty.eq>]
+--- and print a diff if not.
 M.eq = function(a, b)
   if mty.eq(a, b) then return end
   showDiff(io.fmt, a, b); fail'Test.eq'
 end
 
--- binary equal
+--- Same as eq but for binary strings. Shows a very clear
+--- diff for binary.
 M.binEq = function(e, r)
   assert(type(e) == 'string', 'expect must be string')
   assert(type(r) == 'string', 'result must be string')
@@ -86,7 +87,7 @@ M.binEq = function(e, r)
   fail'Test.binEq'
 end
 
---- assert [$subj:find(pat)]
+--- assert [$subj:find(pat)] or show a helpful error message.
 M.matches = function(pat, subj) --> !?error
   if subj:find(pat) then return end
   local f = io.fmt
@@ -99,6 +100,7 @@ M.matches = function(pat, subj) --> !?error
 end
 
 --- assert [$subj:find(pat, 1, true)] (plain find)
+--- or show a helpful error message.
 M.contains = function(plain, subj) --> !?error
   if subj:find(plain, 1, true) then return end
   local f = io.fmt
@@ -134,8 +136,8 @@ M.exists = function(path)
   )end
 end
 
---- Assert the contents at the two paths are equal
-M.pathEq = function(a, b)
+--- Assert the contents at the two paths are equal.
+M.fileEq = function(a, b)
   local at, bt = pth.read(a), pth.read(b)
   if at == bt then return end
   showDiff(io.fmt, at, bt);
@@ -143,6 +145,9 @@ M.pathEq = function(a, b)
     a, b), '\n')
   fail'Test.pathEq'
 end
+
+--- Deprecated: use fileEq instead.
+M.pathEq = M.fileEq
 
 --- Assert that path matches expect. Expect can be of type:
 --- * string: asserts the file contents match.
@@ -165,12 +170,11 @@ M.path = function(path, expect)
 end
 
 getmetatable(M).__call = function(_, name)
-  return M.printName(name, ds.shortloc(1))
+  return M._printName(name, ds.shortloc(1))
 end
 
+--- TODO: remove this.
 getmetatable(M).__newindex = function(m, name, fn)
   return m.runTest(name, fn, select(2, mty.fninfo(fn)))
 end
-
-
 return M

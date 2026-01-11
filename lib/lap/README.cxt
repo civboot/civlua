@@ -49,7 +49,7 @@ should be run at some later time (by the executor). The values are arbitrary
 (typically a string identifier for debugging).
 
 This means that a coroutine can schedule another coroutine [$cor] by simply doing
-[$LAP_READY[cor] = "my_identifier"]. This simple feature can be used for many
+[$$LAP_READY[cor] = "my_identifier"]$. This simple feature can be used for many
 purposes such as creating Channel datastructures as well as handling any/all
 behavior. See the Library section for details.
 
@@ -63,7 +63,7 @@ supported (else it will run the coroutine on the next loop). [+
 
 * [$yield(true)]: run the corroutine again as soon as possible. [+
   * Should prevent the executor loop from sleeping.
-  * Equivalent to: [$LAP_READY[coroutine.running()] = true; coroutine.yield()]
+  * Equivalent to: [$$LAP_READY[coroutine.running()] = true; coroutine.yield()]$
 ]
 * [$yield("sleep", sleepSec)]: run the coroutine again after [$sleepSec] seconds
   (a float).

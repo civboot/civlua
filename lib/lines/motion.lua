@@ -112,7 +112,7 @@ M.backword = function(s, end_, getKind) --> int
   end
 end
 
---- get the [$range[si,ei]] of whatever is at [$s[i]].
+--- get the [$$range[si,ei]]$ of whatever is at [$$s[i]]$.
 M.getRange = function(s, i, getKind) --> si,ei
   getKind = getKind or M.wordKind
   local si, ei = 1, #s; if ei < i then return nil end

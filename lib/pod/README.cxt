@@ -40,7 +40,7 @@ Explanation of above:[+
   This simply implements the [$__toPod] and [$__fromPod] methods on them --
   you can do this yourself if you prefer!
 
-* pod parses the metaty field type stanza as [$[singleType]], [${listType}] or
+* pod parses the metaty field type stanza as [$$[singleType]]$, [${listType}] or
   [${map: type}] repsecitively. The collection types are converted to
   [$pod.List] and [$pod.Map] respectively.
 ]

@@ -130,45 +130,45 @@ Iter.filterV = function(it, fn) --> it
 end
 
 
---- emit[$v, $t[k]], looking up the iter's values in the table's keys.
+--- emit[$$v, t[k]]$, looking up the iter's values in the table's keys.
 Iter.lookup = function(it, t) --> it
   return it:map(function(_, v) return v, t[v] end)
 end
 
---- emit [$t[k], v] for each non-nil [$t[k]]
+--- emit [$$t[k], v]$ for each non-nil [$$t[k]]$
 Iter.lookupK = function(it, t) --> it
   return it:map(function(k, v) return t[k], v end)
 end
 
---- emit [$k, $t[v]] for each non-nil [$t[v]]
+--- emit [$$k, $t[v]]$ for each non-nil [$$t[v]]$
 Iter.lookupV = function(it, t) --> it
   return it:map(function(k, v)
     v = t[v]; if v ~= nil then return k, v end
   end)
 end
 
---- emit [$k, v] for each non-nil [$t[k]]
+--- emit [$k, v] for each non-nil [$$t[k]]$
 Iter.keyIn = function(it, t) --> it
   return it:map(function(k, v)
     if t[k] ~= nil then return k, v end
   end)
 end
 
---- emit [$k, v] for each nil [$t[k]]
+--- emit [$k, v] for each nil [$$t[k]]$
 Iter.keyNotIn = function(it, t) --> it
   return it:map(function(k, v)
     if t[k] == nil then return k, v end
   end)
 end
 
---- emit [$k, v] for each non-nil [$t[v]]
+--- emit [$k, v] for each non-nil [$$t[v]]$
 Iter.valIn = function(it, t) --> it
   return it:map(function(k, v)
     if t[v] ~= nil then return k, v end
   end)
 end
 
---- emit [$k, v] for each nil [$t[v]]
+--- emit [$k, v] for each nil [$$t[v]]$
 Iter.valNotIn = function(it, t) --> it
   return it:map(function(k, v)
     if t[v] == nil then return k, v end

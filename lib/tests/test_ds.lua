@@ -16,7 +16,7 @@ local testing = require'lines.testing'
 
 local T = require'civtest'
 
-local bound, isWithin, sort2, decAbs
+local bound, isWithin, sort2, absDec
 local indexOf, copy, deepcopy
 local trim
 local extend, clear, replace, merge
@@ -130,7 +130,7 @@ T.imm = function()
 end
 
 T.number = function()
-  assert(0, decAbs(1)); assert(0, decAbs(-1))
+  assert(0, absDec(1)); assert(0, absDec(-1))
 
   assert(1 == bound(0, 1, 5))
   assert(1 == bound(-1, 1, 5))
@@ -225,15 +225,6 @@ T.table = function()
     function(k, v) t[k] = v end,
     function(k, v) t[k] = true end)
   T.eq({1, 2, a=3, b=9, c='hi', inner=true}, t)
-
-  t = {} for _, v in M.ilast({1, 2, 3, 4, 5}, -3, -1) do push(t, v) end
-  T.eq({3, 4, 5}, t)
-  t = {} for _, v in M.ilast({1, 2, 3, 4, 5}, -3, -2) do push(t, v) end
-  T.eq({3, 4}, t)
-  t = {} for _, v in M.ilast({1, 2, 3, 4, 5}, -2, -2) do push(t, v) end
-  T.eq({4}, t)
-  t = {} for _, v in M.ilast({1, 2, 3, 4, 5}, -2) do push(t, v) end
-  T.eq({4, 5}, t)
 
   t = M.Forget{a=4}
   T.eq(4, t.a)

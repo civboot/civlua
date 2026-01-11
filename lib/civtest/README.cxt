@@ -1,4 +1,15 @@
 Civtest: absurdly simple test library
 
 This is a no-frills test library. It simply builds on [/lib/metaty] and
-[/lib/ds] to provide the simplest possible needs for testing.
+[/lib/ds] to provide the simplest possible needs for testing. Your tests
+are just a lua file which something (i.e. [<civ.html>]) executes. This library
+provides helpers to print helpful headers for each test and provide
+superior assertions.
+
+[{:*}Usage]: [{$$ lang=lua}
+local T = require'civtest'
+
+T'my test name' do
+  T.eq('some expected\ntext', 'some actual\ntext')
+end
+]$
