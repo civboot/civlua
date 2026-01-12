@@ -639,9 +639,9 @@ M.Parser.checkPin = function(p, pin, expect)
 end
 M.Parser.error = function(p, msg)
   local lmsg = sfmt('[LINE %s.%s]', p.l, p.c)
-  local err = fmt.format("ERROR %s\n%s%s\n%s\nCause: %s\nParse stack:\n  %s",
-    rawget(p.dat, 'path') or '(rawdata)',
-    lmsg, p.line, srep(' ', #lmsg + p.c - 1)..'^',
+  local err = fmt.format("ERROR\nPath: %s\n%s%s\n%s\nCause: %s\nParse stack:\n  %s",
+    rawget(p.dat, 'path') or p.path or '(rawdata)',
+    lmsg, p.line or '(eof)', srep(' ', #lmsg + p.c - 1)..'^',
     msg, fmtStack(p))
   if not p.firstError then p.firstError = {l=p.l, c=p.c, err} end
   if not p.config.lenient then error(err) end

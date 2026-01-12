@@ -3,7 +3,7 @@ local G = G or _G
 --- Simple logging library, set i.e. LOGLEVEL=TRACE to enable logging.
 ---
 --- This module has the functions [$trace info warn err crit] with the signature:
---- [$function(fmt, ... [, data])] [+
+--- [$$function(fmt, ... [, data])]$ [+
 --- * the ... are the format args which behave like [$fmt.format] (aka [$%q]
 ---   formats tables/etc).
 --- * data is optional arbitrary data that can be serialized/formatted.

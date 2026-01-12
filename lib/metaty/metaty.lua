@@ -280,7 +280,8 @@ M._docFields = function(R, d, name, kind)
     d:bold(kind..':'); d:write'[+\n'; 
     for _, fname in ipairs(fields) do
       d:write'* '; d:level(1)
-      d:write(sfmt('[{*name=%s.%s}%s]', name, fname, fname))
+      local fullName = sfmt('%s.%s', name, fname)
+      d:write(sfmt('[{*name=%s}%s]', fullName, fname))
       local ty = fields[fname]; if type(ty) == 'string' then
         d:write' '; d:code(cleanupFieldTy(ty))
       end
@@ -295,6 +296,7 @@ M._docFields = function(R, d, name, kind)
         end
       end
       local doc = R.__docs[fname]; if doc then
+        d:check(fullName, doc)
         d:write'\n'; d:write(doc)
       end
       d:level(-1); d:write'\n'
@@ -335,7 +337,8 @@ M.doc = function(R, d)
   d:header(d.tyHeader, 'Record '..R.__name, name)
   -- Comments
   if cmt and #cmt > 0 then
-    for _, c in ipairs(cmt or EMPTY) do
+    d:check(name, cmt)
+    for _, c in ipairs(cmt) do
       d:write(c); d:write'\n'
     end
     d:write'\n'

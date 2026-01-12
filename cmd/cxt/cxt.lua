@@ -424,8 +424,9 @@ local function resolveFetches(p, node, named)
 end
 
 --- Main parsing entry point.
-cxt.parse = function(dat, dbg)
+cxt.parse = function(dat, dbg, path)
   local p = pegl.Parser:new(dat, pegl.Config{dbg=dbg})
+  p.path = path
   skipWs(p)
   local config, named = {}, {}
   cxt.content(p, config, true)

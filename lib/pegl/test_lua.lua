@@ -324,7 +324,8 @@ end
 
 
 local ERR_EXPECT = [[
-ERROR (rawdata)
+ERROR
+Path: (rawdata)
 [LINE 2.16]    x = 1 + {2 3} -- '2 3' is invalid
                           ^
 Cause: parser expected: "}"

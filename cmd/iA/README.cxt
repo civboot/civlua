@@ -98,7 +98,7 @@ There are 3 types of what are called "single expressions" (expr1): [+
 
 * [*eq1] single-assignment [$expr1 = expr1], i.e. [$A val1: Int = 4]. The
   register and type are optional if [$val1] is already defined.
-  i.e. [$$A val1: Int = 41] declares it in register A and of type Int.[+
+  i.e. [$$A val1: Int = 41]$ declares it in register A and of type Int.[+
   * the right-hand expression can be _ (an underscore), which does the
     operation with itself.
   * [$expr1 += expr1] where an operation is after = is also eq1.

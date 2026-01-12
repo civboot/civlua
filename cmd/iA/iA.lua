@@ -327,7 +327,7 @@ M.Switch = mty'Switch' {
   'default [list[stmt]]',
 }
 
---- [$while cond [atend] do block end]
+--- [$$while cond [atend] do block end]$
 --- The block is stored in the While list.
 M.While = mty'While' {
   'cond [list[expr1]]',

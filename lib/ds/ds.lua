@@ -440,7 +440,7 @@ M.rawislice = function(state, i) --> (i+1, v)
   return i, state[1][i]
 end
 
---- Usage: [$for i,v in islice(t, starti, endi)][{br}
+--- Usage: [$for i,v in islice(t, starti, endi)][{br}]
 --- The default endi is [$#t], otherwise this ignores the list's length
 --- ([$v] may be [$nil] for some [$i] values).
 M.islice = function(t, starti, endi) --> iter

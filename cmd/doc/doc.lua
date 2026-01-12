@@ -14,6 +14,7 @@ local pod = require'pod'
 local info = require'ds.log'.info
 local warn = require'ds.log'.warn
 local cxt = require'cxt'
+local lines = require'lines'
 
 local sfmt, srep = string.format, string.rep
 local push = ds.push
@@ -63,6 +64,11 @@ doc.Doc._write = fmt.Fmt._write
 doc.Doc.write  = fmt.Fmt.write
 doc.Doc.flush  = fmt.Fmt.flush
 doc.Doc.close  = fmt.Fmt.close
+
+--- Check that lines parse.
+function doc.Doc:check(name, lns)
+  cxt.parse(type(lns)=='string' and lines(lns) or lns, false, name)
+end
 
 function doc.Doc:bold(text) self:write(sfmt('[*%s]', text)) end
 function doc.Doc:code(code) self:write(cxt.code(code))      end
@@ -152,6 +158,7 @@ function doc.Doc:declfn(fn, name, id) --> (cmt, sig, isMethod)
   else       self:bold(name) end
   if sig and sig ~= '' then self:code(sig) end
   if cmt and #cmt > 0 then
+    self:check(pname, cmt)
     self:write'[{br}]\n'
     for i, c in ipairs(cmt) do
       self:write(c); if i < #cmt then self:write'\n' end
@@ -165,6 +172,7 @@ function doc.Doc:mod(m)
   local name, loc = mty.anyinfo(m)
   local cmts, code = self:extractCode(loc)
   self:header(3, 'Mod '..m.__name, m.__name)
+  self:check(name, cmts or EMPTY)
   for _, c in ipairs(cmts or EMPTY) do
     self:write(c); self:write'\n'
   end
