@@ -13,6 +13,7 @@ P.fmt = lua {
     'civ:lib/metaty',
   },
   tag = { builder = 'bootstrap' },
+  link = {['lua/fmt/binary.lua'] = 'bin/seebin'},
 }
 
 return P

@@ -67,9 +67,9 @@ T.binary = function()
      4: 68 65 72 65  | here\
      8: 20 62 6f 62  |  bob\
     12: 21           | !"
-  , bin('hi there bob!', 4))
+  , bin.bstring('hi there bob!', 4))
   T.eq(
-"     0: 68 69        | hi", bin('hi', 4))
+"     0: 68 69        | hi", bin.bstring('hi', 4))
 end
 
 T.metaty = function()

@@ -413,7 +413,7 @@ end
 T.term = function()
   local f = fmt.Fmt{}
   term{'[$code] not code', out=f}
-  T.eq('code not code\n', tostring(f))
+  T.eq('code not code\n', f:tostring())
 
   f = fmt.Fmt{}
   local _, node, p = term.convert([[
@@ -446,7 +446,7 @@ bold italic path/to/thing \
   * item 1\
   * item 2 with code\
 the end\
-", tostring(f))
+", f:tostring())
 
   f = fmt.Fmt{}
 local _, node, p = term.convert(
@@ -464,7 +464,7 @@ local _, node, p = term.convert(
   + Methods, Etc\
   + Example      Ty<Example>\9lib/doc/test.lua:11\
   + __name       string\9 "
-  T.eq(expect, tostring(f))
+  T.eq(expect, f:tostring())
 end
 
 T.doc = function()

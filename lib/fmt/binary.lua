@@ -1,29 +1,30 @@
-local G = G or _G
+#!/usr/bin/env -S lua
+local shim = require'shim'
+local FMT = '%.2x '
 
---- format binary text
---- When called directly returns the result of
---- [$binary.columns(fmt.Fmt{}, ...)]
-local M = G.mod and mod'fmt.binary' or setmetatable({}, {})
-G.MAIN = G.MAIN or M
+--- Library to format binary text.
+---
+--- Cmd usage: [$seebin path/to/file.bin][{br}]
+local M = shim.cmd'fmt.binary' {
+  'width [int]: column width in bytes',  width=16,
+  'fmt [string]: format string for hex', fmt=FMT,
+  'to [file]: file to output to',
+  'i [int]: starting index to use', i=0,
+}
 
 local mty = require'metaty'
-local shim = require'shim'
 local Fmt = require'fmt'.Fmt
 
 local concat = table.concat
 local byte, srep, sfmt = string.byte, string.rep, string.format
 local min = math.min
 
-local FMT = '%.2x '
-
---- Command: [${'path.bin', width=16, '--', 'literal binary'}]
---- Use [$-] to format stdin
-M.Args = mty'Args' {
-  'width [int]: column width in bytes',  width=16,
-  'fmt [string]: format string for hex', fmt=FMT,
-  'to [file]: (lua only) file to output to (default=stdout)',
-  'i [int]: starting index to use', i=0,
-}
+function M.new(T, self)
+  self.width = shim.number(self.width)
+  self.i     = shim.number(self.i)
+  self.to    = shim.file(self.to)
+  return shim.construct(T, self)
+end
 
 M.format = function(f, str, fmt)
   fmt = fmt or FMT
@@ -77,24 +78,26 @@ M.columns = function(f, str, width, si, fmt)
 end
 local columns = M.columns
 
-getmetatable(M).__call = function(_, ...) return concat(columns(Fmt{}, ...)) end
+--- Simple API to get the concatenated arguments as binary.
+function M.bstring(...) --> string
+  return concat(columns(Fmt{}, ...))
+end
 
-M.main = function(args)
-  args = M.Args(shim.parseStr(args))
-  assert(#args > 0, 'fmt.binary: must provide at least one argument')
-  local raw = shim.popRaw(args)
-  local fmt, width, si = args.fmt, args.width, args.i
-  local f = require'civ'.Fmt{to=args.to or io.stdout}
+function M:__call()
+  assert(#self > 0,
+    'fmt.binary: must provide at least one argument')
+  local raw = shim.popRaw(self)
+  local fmt, width, si = self.fmt, self.width, self.i
+  local f = io.fmt
   local read = require'ds.path'.read
-  for _, path in ipairs(args) do
+  for _, path in ipairs(self) do
     columns(f, (path=='-') and io.stdin:read'a' or read(path), width, si, fmt)
   end
-  if #args > 0 then f:write'\n' end
+  if #self > 0 then f:write'\n' end
   if raw then
     for _, r in ipairs(raw) do columns(f, r, width, si, fmt) f:write'\n' end
   end
 end
-local main = M.main
 
-if M == MAIN then error'TODO: migrate to shim' end
+if shim.isMain(M) then M:main(arg) end
 return M

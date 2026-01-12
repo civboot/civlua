@@ -13,7 +13,7 @@ local function test(src)
 end
 
 P.test_metaty  = lua.test { src = 'test_metaty.lua'  }
-P.test_fmt     = lua.test { src = 'test_fmt.lua'     }
+test'test_fmt.lua'
 P.test_civtest = lua.test { src = 'test_civtest.lua' }
 P.test_shim    = lua.test { src = 'test_shim.lua'    }
 P.test_lap     = lua.test { src = 'test_lap.lua'     }

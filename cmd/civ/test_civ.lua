@@ -51,6 +51,7 @@ local FMT_PKG = core.Target {
     'fmt.lua',
     ['binary.lua'] = 'fmt/binary.lua',
   }},
+  link={["lua/fmt/binary.lua"]="bin/seebin"},
   api={'fmt', 'fmt.binary'},
   tag={builder='bootstrap'},
   kind='build', run=LUA_BUILD,

@@ -259,7 +259,6 @@ end
 ---   if shim.isMain(mycmd) then mycmd:main(G.arg) end
 --- ]$
 M._main = function(Cmd, args)
-  io.stderr:write'@@ running shim._main\n'
   local self, err = Cmd:new(M.parse(args))
   M.runSetup(self or {})
   assert(self, err)
