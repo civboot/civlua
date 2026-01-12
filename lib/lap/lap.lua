@@ -1,6 +1,7 @@
 local G = G or _G
 
---- superpower your libraries run either sync or async
+--- Lua module importing the LAP protocol so that libraries can
+--- support both blocking and non-blocking IO.
 local M = G.mod and G.mod'lap' or {}
 
 local mty = require'metaty'
@@ -44,14 +45,14 @@ M.formatCorErrors = function(corErrors)
   return table.concat(f)
 end
 
---- Switch lua to synchronous mode
+--- Switch lua to synchronous (blocking) mode.
 M.sync  = function()
   if not LAP_ASYNC then return end
   for _, fn in ipairs(LAP_FNS_SYNC)  do fn() end
   assert(not LAP_ASYNC)
 end
 
---- Switch lua to asynchronous (yielding) mode
+--- Switch lua to asynchronous (yielding) mode.
 M.async = function()
   if LAP_ASYNC then return end
   for _, fn in ipairs(LAP_FNS_ASYNC) do fn() end
@@ -62,9 +63,17 @@ end
 --- * sync: noop
 --- * async: coroutine.yield
 --- ]
-M._async.yield, M._sync.yield = yield, function() end
+function M.yield() end
+M._sync.yield = M.yield
+M._async.yield = yield
 
-local aySchedule = function(fn, ...)
+--- [$schedule(fn) -> coroutine?] [+
+--- * sync:  run the fn immediately and return nil
+--- * async: create and schedule returned coroutine
+--- ]
+M.schedule = function(fn, ...) fn(...) end
+M._sync.schedule = M.schedule
+function M._async.schedule(fn, ...)
   assert(select('#', ...) == 0, 'only function supported')
   local cor = create(fn)
   LAP_READY[cor] = 'scheduled'
@@ -72,22 +81,11 @@ local aySchedule = function(fn, ...)
   log.trace('schedule %s [%q]', cor, fn)
   return cor
 end
-local sySchedule = function(fn, ...) fn(...) end
-
---- [$schedule(fn) -> coroutine?] [+
---- * sync:  run the fn immediately and return nil
---- * async: create and schedule returned coroutine
---- ]
-M._async.schedule, M._sync.schedule = aySchedule, sySchedule
 
 ----------------------------------
 -- Ch: channel sender and receiver (Send/Recv)
 
---- [$Recv() -> recv] the receive side of channel.
----
---- Is considered closed when all senders are closed.
----
---- Notes: [+
+--- Create the receive side of a channel.[+
 --- * Use [$recv:sender()] to create a sender. You can create
 ---   multiple senders.
 --- * Use [$recv:recv()] or simply [$recv()] to receive a value
@@ -106,54 +104,68 @@ M.Recv = mty'Recv'{
 getmetatable(M.Recv).__call = function(T)
   return mty.construct(T, {deq=ds.Deq(), _sends=ds.WeakKV{}})
 end
---- Close read side and all associated sends.
-M.Recv.close =
-(function(r)
-  local sends = r._sends; if not sends then return end
+--- Close read side and all associated senders.
+function M.Recv:close()
+  local sends = self._sends; if not sends then return end
   for s in pairs(update({}, sends)) do s:close() end
-  r._sends = nil
-end)
-M.Recv.__close  = M.Recv.close
-M.Recv.__len    = function(r) return #r.deq          end
-M.Recv.isClosed = function(r) return r._sends == nil end
-M.Recv.isDone = function(r)
-  return (#r.deq == 0)
-     and (not r._sends or ds.isEmpty(r._sends))
+  self._sends = nil
 end
-M.Recv.sender = function(r)
-  local s = M.Send(r)
-  assert(r._sends, 'sender on closed channel')[s] = true
+M.Recv.__close  = M.Recv.close
+function M.Recv:__len() return #self.deq          end
+function M.Recv:isClosed() --> bool
+  return self._sends == nil
+end
+--- Return false if there is no data and all senders
+--- are closed.
+function M.Recv:isDone() --> bool
+  return (#self.deq == 0)
+     and (not self._sends or ds.isEmpty(self._sends))
+end
+--- Create a new [<#lap.Sender>].
+function M.Recv:sender() --> Sender
+  local s = M.Send(self)
+  assert(self._sends, 'sender on closed channel')[s] = true
   return s
 end
-M.Recv.hasSender = function(r)
-  return r._sends and next(r._sends) and true or false
+--- Return if there is at least one sender still alive.
+function M.Recv:hasSender() --> bool
+  return self._sends and next(self._sends) and true or false
 end
-M.Recv.wait = function(r)
-  while (#r.deq == 0) and (r._sends and not ds.isEmpty(r._sends)) do
-    r.cor = coroutine.running(); yield'forget'
+--- Yield [$forget] which will cause executor to forget this coroutine.
+--- A sender will re-schedule this coroutine when sending data.
+function M.Recv:wait()
+  while (#self.deq == 0) and (self._sends and not ds.isEmpty(self._sends)) do
+    self.cor = coroutine.running(); yield'forget'
   end
 end
-M.Recv.recv = function(r) r:wait() return r.deq() end
+--- Wait for and get a value (alternatively call [$recv()] directly).
+function M.Recv:recv() --> value
+  self:wait() return self.deq()
+end
 M.Recv.__call = M.Recv.recv
---- drain the recv. This does NOT wait for new items.
-M.Recv.drain = function(r) return r.deq:drain() end
-M.Recv.__fmt = function(r, f)
+--- drain the recv of all current values it has.
+--- This does NOT wait for new items.
+function M.Recv:drain() --> list
+  return self.deq:drain()
+end
+function M.Recv:__fmt(f)
   f:write(sfmt('Recv{%s len=%s hasSender=%s}',
-    r:isClosed() and 'closed' or 'active',
-    #r.deq, r:hasSender() and 'yes' or 'no'))
+    self:isClosed() and 'closed' or 'active',
+    #self.deq, self:hasSender() and 'yes' or 'no'))
 end
 
 local function recvReady(r)
   if r.cor then LAP_READY[r.cor] = 'ch.push' end
 end
---- Sender, created through [$recv:sender()]
---- Is considered closed if the receiver is closed.  The receiver will
+--- Sender, created through [$recv:sender()][{br}]
+--- This is considered closed if the receiver is closed. The receiver will
 --- automatically close if it is garbage collected.
 M.Send = mty'Send'{'_recv[Recv]'}
 getmetatable(M.Send).__call = function(T, recv)
   return mty.construct(T, { _recv=assert(recv, 'missing Recv') })
 end
 M.Send.__mode = 'kv'
+--- Close this sender. Will also awaken the receiver coroutine.
 M.Send.close = function(send)
   local r = send._recv; if r then
     local sends = assert(r._sends)
@@ -165,20 +177,22 @@ M.Send.close = function(send)
 end
 M.Send.__close = M.Send.close
 M.Send.isClosed = function(s) return s._recv == nil end
+--- Push a value of data to the Recv.
 M.Send.push = function(send, val)
   local r = assert(send._recv, 'recv closed')
   r.deq:push(val); recvReady(r)
 end
+--- Push a list of data to the Recv.
 M.Send.extend = function(send, vals)
   local r = assert(send._recv, 'recv closed')
   r.deq:extendRight(vals); recvReady(r)
 end
--- preemtive send
+-- Preemtive send, pushing value on left.
 M.Send.pushLeft = function(send, val)
   local r = assert(send._recv, 'recv closed')
   r.deq:pushLeft(val); recvReady(r)
 end
--- put vals at left (order preserved)
+-- Preemptive extend, pushing vals on left (order preserved).
 M.Send.extendLeft = function(send, vals)
   local r = assert(send._recv, 'recv closed')
   r.deq:extendLeft(vals); recvReady(r)
@@ -194,7 +208,12 @@ end
 ----------------------------------
 -- all / Any
 
-local ayAll = function(fns)
+--- Resume when all of the functions complete.
+function M.all(fns)
+  for _, f in ipairs(fns) do f() end
+end
+M._sync.all = M.all
+function M._async.all(fns)
   local rcor, count, len = coroutine.running(), 0, #fns
   for _, fn in ipairs(fns) do
     assert(type(fn) == 'function')
@@ -206,11 +225,8 @@ local ayAll = function(fns)
   end
   yield'forget' -- forget until resumed by last completed child
 end
-local syAll = function(fns) for _, f in ipairs(fns) do f() end end
---- all(fns): resume when all of the functions complete
-M._async.all, M._sync.all = ayAll, syAll
 
--- Any(fns): handle resuming and restarting multiple fns.
+-- [$Any(fns)]: handle resuming and restarting multiple fns.
 --
 -- Call [$any:ignore()] to stop the child threads from resuming
 -- the current thread. This does NOT stop the child threads.
@@ -224,11 +240,16 @@ M._async.all, M._sync.all = ayAll, syAll
 -- end
 -- ]$
 M.Any = mty'Any'{
-  'cor[thread]', 'fns[table]',
-  'done[table]',
+  'cor  [thread]: the coroutine this is running on.',
+  'fns  {function}: the functions to schedule.',
+  'done {int}: which indexes are complete.',
 }
 getmetatable(M.Any).__call = function(T, fns)
-  local self = { cor = coroutine.running(), fns = {}, done = {} }
+  local self = {
+    cor = coroutine.running(),
+    fns = {},
+    done = {},
+  }
   for i, fn in ipairs(fns) do
     assert(type(fn) == 'function')
     push(self.fns, function()
@@ -237,10 +258,13 @@ getmetatable(M.Any).__call = function(T, fns)
         LAP_READY[self.cor] = 'any-done'
       end
     end)
-    self.done[i] = true
+    -- FIXME: I commented this because
+    -- it looked wrong.
+    -- self.done[i] = true
   end
   return mty.construct(T, self)
 end
+--- Stop running functions.
 M.Any.ignore = function(self) self.cor = nil end
 
 --- ensure all fns are scheduled
@@ -248,12 +272,12 @@ M.Any.schedule = function(self) --> self
   for i in pairs(self.done) do self:restart(i) end
 end
 
--- yield until a fn index is done
+--- yield until any fn is done
 M.Any.yield = function(self) --> fnIndex
   while not next(self.done) do yield'forget' end
   return next(self.done)
 end
--- restart fn at index
+--- restart fn at index
 M.Any.restart = function(self, i)
   LAP_READY[coroutine.create(self.fns[i])] = 'any-item'
   self.done[i] = nil
@@ -261,7 +285,7 @@ end
 
 ----------------------------------
 -- Lap
-M.lt1  = function(a, b) return a[1] < b[1] end
+local function lt1(a, b) return a[1] < b[1] end
 local LAP_UPDATE = {
   [true] = function(lap, cor) LAP_READY[cor] = true end,
   forget = ds.noop,
@@ -294,7 +318,10 @@ local LAP_UPDATE = {
   STOP = function(l) ds.clear(G.LAP_READY); l:stop() end
 }; M.LAP_UPDATE = LAP_UPDATE
 
---- A single lap of the executor loop
+--- Default implementation of an executor, see [@civix.Lap] for
+--- a more complete one.
+---
+--- "A single lap of the executor loop"
 ---
 --- Example [{$$ lang=lua}
 ---   -- schedule your main fn, which may schedule other fns
@@ -330,32 +357,74 @@ M.Lap = mty'Lap' {
 }
 M.Lap.defaultSleep = 0.01
 getmetatable(M.Lap).__call = function(T, ex)
-  ex.monoHeap = ex.monoHeap or heap.Heap{cmp = M.lt1}
+  ex.monoHeap = ex.monoHeap or heap.Heap{cmp = lt1}
   ex.pollMap  = ex.pollMap  or {}
   return mty.construct(T, ex)
 end
-M.Lap.stop  = function(l) l.pollMap, l.pollList = {}, {} end
+
+--- Stop the executor, ending all coroutines.
+function M.Lap:stop() self.pollMap, self.pollList = {}, {} end
+
+--- Main entry point, schedules a list of functions in
+--- the executor and returns when they are done.
+function M.Lap:run(fns, setup, teardown)
+  setup, teardown = setup or M.async, teardown or M.sync
+  local errors
+  assert(self:isDone(), "cannot run non-done Lap")
+  assert(not LAP_ASYNC, 'already in async mode')
+  if type(fns) == 'function' then
+    LAP_READY[coroutine.create(fns)] = 'run'
+  else
+    for i, fn in ipairs(fns) do
+      LAP_READY[coroutine.create(fn)] = 'run'
+    end
+  end
+  setup()
+  local ok, ierr = ds.try(function()
+    while not self:isDone() do
+      errors = self(); if errors then break end
+    end
+  end)
+  if not ok then
+    errors = errors or {}
+    push(errors, ierr)
+  end
+  teardown()
+  if errors then
+    errors = M.formatCorErrors(errors)
+    log.info('coroutine errors: %s', errors)
+    error(errors)
+  else log.info('Lap:run done. ready=%q, pm=%q', LAP_READY, self.pollMap) end
+  return self, errors
+end
+--- (overrideable) function to use in order to sleep.
 M.Lap.sleep = M.LAP_UPDATE.sleep
+
+--- (overrideable) function to use in order to poll
+--- file-descriptor completion status.
 M.Lap.poll  = M.LAP_UPDATE.poll
-M.Lap.execute = function(lap, cor, note) --> errstr?
+
+--- Executes a single coroutine, used inside [$:run()]
+function M.Lap:execute(cor, note) --> errstr?
   if LOGLEVEL >= TRACE and LAP_TRACE[cor] then
     log.trace("execute %s %s %q [%q]", cor, status(cor), note, LAP_CORS[cor])
   end
   local ok, kind, a, b = resume(cor)
   if not ok then return kind end -- kind=error
   local fn = LAP_UPDATE[kind]
-  if fn then return fn(lap, cor, a, b)
+  if fn then return fn(self, cor, a, b)
   elseif kind then return 'unknown kind: '..kind end
   return (status(cor) ~= 'dead')
      and 'non-dead coroutine yielded false/nil' or nil
 end
 
-M.Lap.__call = function(lap)
+--- run a single lap of the executor.
+function M.Lap:__call()
   local errors = nil
   if next(LAP_READY) then
     local ready = LAP_READY; LAP_READY = {}
     for cor, note in pairs(ready) do
-      local err = lap:execute(cor, note)
+      local err = self:execute(cor, note)
       if err then
         errors = errors or {}
         push(errors, errorFrom(err, cor))
@@ -365,10 +434,10 @@ M.Lap.__call = function(lap)
   if errors then return errors end
 
   -- Check for asleep coroutines
-  local mh = lap.monoHeap; local hpop = mh.pop
-  local now, till = lap:monoFn()
+  local mh = self.monoHeap; local hpop = mh.pop
+  local now, till = self:monoFn()
   if next(LAP_READY) then till = now -- no sleep when there are ready
-  else                    till = now + lap.defaultSleep end
+  else                    till = now + self.defaultSleep end
   while true do -- handle mono (sleep)
     -- keep popping from the minheap until it is before 'now'
     local e = hpop(mh); if not e then break end
@@ -381,8 +450,8 @@ M.Lap.__call = function(lap)
 
   -- Poll or sleep before next loop
   local sleep = math.max(0, till - now)
-  if next(lap.pollMap) then
-    local pl, pm = lap.pollList, lap.pollMap
+  if next(self.pollMap) then
+    local pl, pm = self.pollList, self.pollMap
     for _, fileno in ipairs(pl:ready(sleep)) do
       local cor = ds.popk(pm, fileno); pl:remove(fileno)
       if LOGLEVEL >= TRACE and LAP_TRACE[cor] then
@@ -390,40 +459,10 @@ M.Lap.__call = function(lap)
       end
       LAP_READY[cor] = 'poll'
     end
-  else lap.sleepFn(sleep) end
+  else self.sleepFn(sleep) end
 end
-M.Lap.isDone = function(lap)
-  return not (next(LAP_READY) or (#lap.monoHeap > 0) or next(lap.pollMap))
-end
-M.Lap.run = function(lap, fns, setup, teardown)
-  setup, teardown = setup or M.async, teardown or M.sync
-  local errors
-  assert(lap:isDone(), "cannot run non-done Lap")
-  assert(not LAP_ASYNC, 'already in async mode')
-  if type(fns) == 'function' then
-    LAP_READY[coroutine.create(fns)] = 'run'
-  else
-    for i, fn in ipairs(fns) do
-      LAP_READY[coroutine.create(fn)] = 'run'
-    end
-  end
-  setup()
-  local ok, ierr = ds.try(function()
-    while not lap:isDone() do
-      errors = lap(); if errors then break end
-    end
-  end)
-  if not ok then
-    errors = errors or {}
-    push(errors, ierr)
-  end
-  teardown()
-  if errors then
-    errors = M.formatCorErrors(errors)
-    log.info('coroutine errors: %s', errors)
-    error(errors)
-  else log.info('Lap:run done. ready=%q, pm=%q', LAP_READY, lap.pollMap) end
-  return lap, errors
+function M.Lap:isDone()
+  return not (next(LAP_READY) or (#self.monoHeap > 0) or next(self.pollMap))
 end
 
 ----------------------

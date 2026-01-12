@@ -4,7 +4,7 @@ local FMT = '%.2x '
 
 --- Library to format binary text.
 ---
---- Cmd usage: [$seebin path/to/file.bin][{br}]
+--- Cmd usage: [$seebin path/to/file.bin]
 local M = shim.cmd'fmt.binary' {
   'width [int]: column width in bytes',  width=16,
   'fmt [string]: format string for hex', fmt=FMT,

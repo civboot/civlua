@@ -1,4 +1,6 @@
-LAP: Lua Asynchronous Protocol
+[{h1}LAP: Lua Asynchronous Protocol]
+Write libraries to work for either blocking or non blocking IO.
+
 
 Lua has one of the coolest yet most underutilized asynchronous programming
 tools: the [$coroutine] module, specifically [$coroutine.yield]. Lua's [$yield]
@@ -17,9 +19,11 @@ coroutine executor. This allows users and library authors to write code that
 looks synchronous but which can be executed asynchronously at the application
 author's discression.
 
+
 This folder also contains the [$lap.lua] library, see the Library section.
 Library authors [*do not] need to depend on this library to work with the LAP
 protocol.
+
 
 The LAP protocol has two components: [+
 * yielding protocol: An ultra simple yet optionally-performant to communicate
@@ -27,6 +31,7 @@ The LAP protocol has two components: [+
 * two global tables which libraries can use to schedule coroutines ([$LAP_READY])
   and register their asynchronous API ([$LAP_FNS_ASYNC] and [$LAP_FNS_SYNC])
 ]
+
 Library authors can fully support the protocol by following the
 Yielding Protocol below and copy/pasting the following:
 [{$$ lang=lua}
@@ -43,10 +48,11 @@ table.insert(LAP_FNS_ASYNC, function() ... end)
 Library authors should make their default API [*synchronous] (blocking) by
 default, except for items that cannot be used synchronously.
 
-[{h3}[$LAP_READY] Global Table]
+[{h3}LAP_READY Global Table]
 [$LAP_READY] is a global key/value table where the keys are the coroutines which
 should be run at some later time (by the executor). The values are arbitrary
 (typically a string identifier for debugging).
+
 
 This means that a coroutine can schedule another coroutine [$cor] by simply doing
 [$$LAP_READY[cor] = "my_identifier"]$. This simple feature can be used for many
@@ -77,7 +83,6 @@ supported (else it will run the coroutine on the next loop). [+
 ]
 
 [{h4 name=lap-globals}Global Variables]
-
 There are four global variables defined by the LAP protocol: [+
 * [$LAP_READY]: contains the currently ready coroutines for the executor loop to
   resume.
@@ -94,6 +99,7 @@ forth so that tests can be run in both modes.
 [{$$ lang=lua}
 function getLines(path, fn)
   local lines = {}
+  -- File API can be configured to either block or yield.
   for line in io.lines(path) do
     table.insert(lines, line)
   end
@@ -102,18 +108,3 @@ end
 ]$
 
 ["Recomendation: use [<#lap.async>] and [<#lap.sync>] to switch modes]
-
-[{h3}[$lap.lua] Library]
-The (pure lua) [<#lap>] library implements: [+
-* [<#lap.Lap>] default implementation of a single loop (aka "lap") in an
-  executor.
-
-* [<#lap.Any>] and [<lap.all>] for interacting with lists of coroutines.
-
-* [<#lap.channel()>] which creates the [<#lap.Recv>] and [<#lap.Send>] channel types to send
-  values between coroutines.
-
-* [<#lap.async>] / [<#lap.sync>]: switches all registered libraries to
-  async/sync mode (just calls every function in [<#lap.LAP_FNS_SYNC>] or
-  [<#LAP_FNS_ASYNC>])
-]
