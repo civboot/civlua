@@ -51,14 +51,12 @@ M.sortKeys = function(t) --> list
   return keys
 end
 
---- The Fmt formatter object.
+--- The formatter object.
 ---
 --- This is the main API of this module. It enables formatting any
---- type by simply calling it's instance, appending the result to [$f] (i.e.
---- self) or (if present) writing the result to [$f.to].
----
---- If [$f.to] is not provided, you can get the resulting string by calling
---- [$tostring(f)]
+--- type by simply calling it's instance, writing the result to [$self.to] (if
+--- set) or just [$self]. For the latter, you can construct the string with
+--- [$fmter:tostring()] or just [$table.concat(fmter)].
 M.Fmt = mty'Fmt' {
   'style     [bool]: enable styling. If true, set [$to=Styler]',
   "to        [file?]: if set calls write",
@@ -280,11 +278,15 @@ Fmt.__tostring = function(f)
 end
 Fmt.tostring = Fmt.__tostring
 
+--- Similar to lua's [$tostring()] function except formats
+--- tables/types.
 M.tostring = function(v, fmt)
   fmt = fmt or Fmt{}; assert(#fmt == 0, 'non-empty Fmt')
   return concat(fmt(v))
 end
 
+--- Similar to lua's [$string.format(...)] function
+--- except [$%q] formats tables/types.
 M.format = function(fmt, ...)
   local f = Fmt{}
   assert(f:format(fmt, ...) == select('#', ...),
@@ -293,21 +295,27 @@ M.format = function(fmt, ...)
 end
 local format = M.format
 
-M.errorf  = function(...)    error(format(...), 2)             end
-M.assertf = function(a, ...) return a or error(format(...), 2) end
+--- Shortcut for [$error(fmt.format(...))]
+M.errorf  = function(...) error(format(...), 2) end
 
+--- Asserts [$a] else throws [$error(fmt.format(...))].
+M.assertf = function(a, ...) --> a
+  return a or error(format(...), 2)
+end
+
+--- Writes the formatted arguments to [$f].
 M.fprint = function(f, ...)
   assert(f, 'must set f')
-  local len = select('#', ...)
-  for i=1,len do
-    local v = select(i, ...)
+  local a = {...}
+  for i=1,select('#', ...) do
+    local v = a[i]
     if type(v) == 'string' then f:write(v) else f(v) end
     if i < len then f:write'\t' end
   end; f:write'\n'
 end
 local fprint = M.fprint
 
---- [$print(...)] but using [$io.fmt]
+--- [$print(...)] but using [$io.fmt].
 M.print  = function(...) return fprint(io.fmt, ...) end
 
 --- pretty print

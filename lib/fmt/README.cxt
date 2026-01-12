@@ -1,41 +1,20 @@
-[{h1}fmt module: format and style anything]
+[{h1}fmt: format lua types]
+The fmt module is a small module which formats arbitrary lua types as well as
+enables users to define formatting for their own [<metaty.html>metatypes] via
+the [$:__fmt(fmter)] method.
 
-The fmt module is a small (~200 lines of code) module which formats arbitrary
-lua types as well as enables users to define formatting for their own
-[<#Package_metaty>metatypes] via the [$function __fmt(self, fmter)] method.
 
 It also provides several helper methods such as [$print], [$assertf] and
 [$errorf], making it more convienent to print or format types. In addition, it
 sets [$io.fmt = io.fmt or Fmt{to=io.stderr}], providing a default hook for
-[<#ds.log>] and command line utilities to write formatted text to.
+[<ds.html#ds.log>] and command line utilities to write formatted text to.
+
 
 The [<#fmt.Fmt>] interface (which is passed to a metaty's [$__fmt] method if
-present) accepts both [$write] (like a file) and
-[$styled("style", "styled text", ..."non-styled text")], enabling the
-[<$Package_asciicolor>asciicolor] library (or your own library!) to provide
+present) accepts both [$:write(...)] (like a file) and
+[$:styled("style", "styled text", ..."non-styled text")], enabling the
+[<asciicolor.html>asciicolor] library (or your own library!) to provide
 user-configurable colors for specific styles which integrate with the
-[<#Package_vt100>vt100] library and the [<#Package_cxt>cxt] libraries. This
-is used throughout civstack to provide user-configurable (and optional) color
-to the terminal, web-pages and the civstack editor.
-
-[{h2}API / Architecture]
-
-[<#fmt.Fmt>] defines the formatter which has methods/settings: [+
-* [$$to [file|Styler]]$ (argument): where to write to. Default is to push to
-  self, treating Fmt as a list of strings (which you can call [$table.concat]
-  on).
-
-* [$$style [boolean]]$ to enable/disable styling. Set to [$true] if [$to=styler]
-  AND you want color/etc.
-
-* [$__call(f, v)]: call with any value to use [$__fmt] method or default.
-
-* [$write(...)]: write like a normal file
-
-* [$styled(style, text, ...)]: style [$text] and [$write(...)] using a
-  provided styler (i.e. [<#asciicolor.style.Styler>])
-
-* [$level(add)] to increase/decrease the indentation level.
-]
-
-See the documentation of each function for more details.
+[<vt100.html>vt100] library and the [<cxt.html>cxt] libraries. This is used
+throughout civstack to provide user-configurable (and optional) color
+to the terminal, web-pages and the [<ele.html>ele] editor.
