@@ -1,16 +1,4 @@
-General
-* I don't think civix.sh is passing stdout through. That should happen by
-  default.
-* I need io.open/etc to respect G.PWD
-* Have good way to check if sh command exists.
-  Check for stuff in pvc, especially merge (install rcs).
-* The cxt info boxes are rendering very far away from the next
-  element, i.e. in pvc.at
-* civtest shows two "pathEq" because two variables are assigned it. Fix that behavior.
-
 Review Docs
-* ds
-* fd
 * fmt
 * iA
 * lap
@@ -23,6 +11,16 @@ Review Docs
 * shim
 * vcds
 * vt100
+
+General
+* I don't think civix.sh is passing stdout through. That should happen by
+  default.
+* I need io.open/etc to respect G.PWD
+* Have good way to check if sh command exists.
+  Check for stuff in pvc, especially merge (install rcs).
+* The cxt info boxes are rendering very far away from the next
+  element, i.e. in pvc.at
+* civtest shows two "pathEq" because two variables are assigned it. Fix that behavior.
 
 Need a mty.recordmod. Use for
 * ds.Grid

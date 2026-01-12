@@ -71,8 +71,22 @@ M._sync  = mod and mod'fd(sync)'  or {} -- sync functions
 M._async = mod and mod'fd(async)' or {} -- async functions
 M.io = {}  -- io cache
 
-M.FD=S.FD;         M.FDT=S.FDT
-M.newFD = S.newFD; M.newFDT=S.newFDT
+--- Sync filedescriptor object implemented in C.[{br}]
+--- Operations will block the current program until complete.
+M.FD = S.FD
+
+--- Async filedescriptor object implemented in C.[{br}]
+--- Operations will yield if not yet complete.
+M.FDT = S.FDT
+
+--- Use to explicitly create a sync file-descriptor.
+--- Operations will block the current program until complete.
+M.newFD = S.newFD
+
+--- Use to explicitly create a async file-descriptor.
+--- Operations will yield if not yet complete.
+M.newFDT = S.newFDT
+
 M.PIPE_BUF = 512 -- POSIX.1
 
 S.FD.__close  = S.FD.__index.close
@@ -82,7 +96,7 @@ S.FDT.__close = S.FDT.__index.close
 S.FDT.__name = 'fd.FDT'
 S.FDT.__tostring = S.FD.__tostring
 
-M.finishRunning = function(fd, kind, ...)
+local function finishRunning(fd, kind, ...)
   while fd:code() == S.FD_RUNNING do yield(kind or true, ...) end
 end
 
@@ -110,7 +124,7 @@ end
 M.FDT.__index.write = function(fd, ...)
   local s = sconcat('', ...)
   while fd:_write(s) do end
-  M.finishRunning(fd, 'poll', fd:_evfileno(), S.POLLIN)
+  finishRunning(fd, 'poll', fd:_evfileno(), S.POLLIN)
   if fd:code() > 0 then return nil, fd:codestr() end
   return fd
 end
@@ -119,13 +133,13 @@ local WHENCE = { set=S.SEEK_SET, cur=S.SEEK_CUR, ['end']=S.SEEK_END }
 S.FD.__index.seek = function(fd, whence, offset)
   whence = assert(WHENCE[whence or 'cur'], 'unrecognized whence')
   while fd:_seek(offset or 0, whence) do end
-  M.finishRunning(fd, 'poll', fd:getpoll(S.POLLIN | S.POLLOUT))
+  finishRunning(fd, 'poll', fd:getpoll(S.POLLIN | S.POLLOUT))
   if(fd:code() > 0) then return nil, fd:codestr() end
   return fd:pos()
 end
 
 S.FD.__index.flush = function(fd)
-  fd:_flush(); M.finishRunning(fd, 'sleep', 1e-4)
+  fd:_flush(); finishRunning(fd, 'sleep', 1e-4)
   if fd:code() ~= 0 then return nil, fd:codestr() else return true end
 end
 
@@ -229,7 +243,7 @@ S.FDT.__index.toBlock    = function() error'invalid' end
 S.FDT.__index.isAsync    = function() return true end
 
 S.FDT.__index.close = function(fd)
-  M.finishRunning(fd, 'sleep', 1e-4)
+  finishRunning(fd, 'sleep', 1e-4)
   fd:_close();
 end
 
@@ -276,7 +290,7 @@ __index = {
 M.openWith = function(openFn, path, mode)
   mode = mode or 'r'
   local flags = mflagsInt(mode:gsub('b', ''))
-  local f = openFn(path, flags); M.finishRunning(f, 'sleep', 1e-4)
+  local f = openFn(path, flags); finishRunning(f, 'sleep', 1e-4)
   if f:code() ~= 0 then return nil, f:codestr() end
   return f
 end
@@ -287,7 +301,7 @@ M.open = function(...)
 end
 M.close   = function(fd) fd:close() end
 M.tmpfileFn = function(sysFn)
-  local f = sysFn(); M.finishRunning(f, 'sleep', 1e-4)
+  local f = sysFn(); finishRunning(f, 'sleep', 1e-4)
   if f:code() ~= 0 then return nil, f:codestr() end
   return f
 end
@@ -374,12 +388,17 @@ local function copyKeysM(keys, from, to)
 end
 copyKeysM(IO_KEYS, io, M.io)
 
+--- Switch the global [$io] module to use builtin functions.
 M.ioStd = function()
   assert(not LAP_ASYNC); copyKeysM(IO_KEYS, M.io,    io)
 end
+--- Switch the global [$io] module to use sync functions from
+--- this module.
 M.ioSync = function()
   assert(not LAP_ASYNC); copyKeysM(IO_KEYS, M._sync, io)
 end
+--- Switch the global [$io] module to use async functions from
+--- this module.
 M.ioAsync = function()
   assert(LAP_ASYNC);     copyKeysM(IO_KEYS, M._async, io)
 end

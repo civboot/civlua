@@ -1,8 +1,3 @@
-fd: synchronous and asynchronous file descriptors
-
+[{h1}fd: synchronous and asynchronous file descriptors]
 fd implements an API identical to lua's [$file] object but with support for
 async operations following the [/lib/lap] protocol.
-
-It also contains a few simple file-backed data structures ([@fd.VFile] and
-[@fd.LLFile]).
-
