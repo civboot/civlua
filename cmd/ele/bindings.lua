@@ -14,7 +14,6 @@ local vt100 = require'vt100'
 local sfmt = string.format
 local push, pop, concat = table.insert, table.remove, table.concat
 local getp, dp = ds.getp, ds.dotpath
-local add = ds.add
 
 ---------------------------
 -- Utility Functions and Callable Records

@@ -54,13 +54,13 @@ local function init(h, cmp)
   end
 end
 
---- Heap(t, cmp) binary heap using a table.
+--- [$Heap(t, cmp)] binary heap using a table.[{br}]
 --- A binary heap is a binary tree where the value of the parent always
---- satisfies `cmp(parent, child) == true`
----   Min Heap: cmp = function(p, c) return p < c end (default)
----   Max Heap: cmp = function(p, c) return p > c end
----
---- add and push take only O(log n), making it very useful for
+--- satisfies [$cmp(parent, child) == true][+
+--- * Min Heap: [$cmp = function(p, c) return p < c end] (default)
+--- * Max Heap: [$cmp = function(p, c) return p > c end]
+--- ]
+--- add and push take [$O(log n)], making it very useful for
 --- priority queues and similar problems.
 M.Heap = mty'Heap' {
   'cmp[function]: comparison function to use', cmp=ds.lt

@@ -46,7 +46,7 @@ M.LISTS = {
   M.BOOLS,
   M.STRINGS,
   M.BYTES,
-  ds.flatten(M.BOOLS, M.STRINGS, M.BYTES),
+  ds.flatten{M.BOOLS, M.STRINGS, M.BYTES},
 }
 
 M.MAPS = {
@@ -64,7 +64,9 @@ M.TABLES = {
   {[-2] = 'neg 2', [-1] = 'neg 1', [0] = 'zero', 'one', 'two'}
 }
 
-M.BUILTIN = ds.flatten(M.BOOLS, M.STRINGS, M.BYTES, M.LISTS, M.MAPS, M.TABLES)
+M.BUILTIN = ds.flatten {
+  M.BOOLS, M.STRINGS, M.BYTES, M.LISTS, M.MAPS, M.TABLES,
+}
 
 M.E = mty.enum'E' {
   FIRST  = 1,

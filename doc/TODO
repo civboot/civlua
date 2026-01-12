@@ -23,3 +23,7 @@ Review Docs
 * shim
 * vcds
 * vt100
+
+Need a mty.recordmod. Use for
+* ds.Grid
+* ds.IFile

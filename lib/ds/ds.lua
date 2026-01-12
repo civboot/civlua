@@ -450,7 +450,7 @@ M.islice = function(t, starti, endi) --> iter
   return inext, t, (starti or 1) - 1
 end
 
---- Get a new list of indexes si-ei (inclusive).[{br}]
+--- Get a new list of indexes [$$[si-ei]]$ (inclusive).[{br}]
 --- Defaults: [$si=1, ei=#t].
 M.slice = function(t, si, ei) --> list
   local sl = {}
@@ -467,8 +467,8 @@ M.ieq = function(a, b)
   return true
 end
 
---- reverse a list-like table in-place (mutating it).
-M.reverse = function(t) --> t (reversed)
+--- Reverse a list-like table in-place (mutating it).
+M.reverse = function(t) --> t
   local l = #t; for i=1, l/2 do
     t[i], t[l-i+1] = t[l-i+1], t[i]
   end
@@ -497,29 +497,20 @@ M.defaultExtend = function(r, l) --> r
   return r
 end
 
--- Clear list-like elements of table.
--- default is all of it, but you can also specify a specific
--- start index and length.
+--- Clear list-like elements of table.
+--- default is all of it, but you can also specify a specific
+--- start index and length.
 M.clear = function(t, si, len) --> t
   -- TODO: (len or #t) - si + 1
   return move(EMPTY, 1, len or #t, si or 1, t)
 end
--- append one or more values to t
-M.add = function(t, ...) --> t
-  local tend = #t
-  for i=1,select('#', ...) do t[tend + i] = select(i, ...) end
-  return t
-end
--- make t's index values the same as r's
-M.replace = function(t, r) --> t
-  return move(r, 1, max(#t, #r), 1, t)
-end
 --- return t with the key/vals of add inserted
 M.update = M._B.update
---- return new list which contains all elements inserted in order
-M.flatten = function(...)
-  local t, len = {}, select('#', ...)
-  for i=1,len do extend(t, select(i, ...)) end
+
+--- Given a list of lists return a single depth list.
+M.flatten = function(listOfLists) --> list
+  local t = {}
+  for i, l in ipairs(listOfLists) do M.extend(t, l) end
   return t
 end
 
@@ -527,12 +518,14 @@ end
 M.updateKeys = function(t, add, keys) --> t
   for _, k in ipairs(keys) do t[k] = add[k] end; return t
 end
+
+--- Get the sorted keys of t.
 M.orderedKeys = function(t, cmpFn) --> keys
   local keys = {}; for k in pairs(t) do push(keys, k) end
   sort(keys, cmpFn)
   return keys
 end
---- adds all [$key=index] to the table so the keys can
+--- Adds all [$key=index] to the table so the keys can
 --- be iterated using [$for _, k in ipairs(t)]
 M.pushSortedKeys = function(t, cmpFn) --> t
   local keys = M.orderedKeys(t, cmpFn)
@@ -542,7 +535,8 @@ end
 
 --- recursively update t with add. This will call update on inner tables as
 --- well.
---- ["Note: treats list indexes as normal keys (does not append)]
+--- ["FIXME: currently treats list indexes as normal keys
+---  (does not append)]
 M.merge = function(t, add) --> t
   for k, v in pairs(add) do
     local ex = t[k] -- existing
@@ -553,7 +547,8 @@ M.merge = function(t, add) --> t
   return t
 end
 
-M.popk = function(t, key) --> t[k]: pop key
+--- Remove key from [$t] and return it's value.
+M.popk = function(t, key) --> value
   local val = t[key]; t[key] = nil; return val
 end
 
@@ -563,15 +558,21 @@ M.drain = function(t, len--[[#t]]) --> table
   return M.reverse(out)
 end
 
+--- If the key exists, return it's value.
+--- Else return [$newFn()]
 M.getOrSet = function(t, k, newFn) --> t[k] or newFn()
   local v = t[k]; if v ~= nil then return v end
   v = newFn(t, k); t[k] = v
   return v
 end
 
-M.setIfNil = function(t, k, v) --> nil
+--- Set the key to a value if it is currently nil.
+--- Else do not change it.
+M.setIfNil = function(t, k, v)
   if t[k] == nil then t[k] = v end
 end
+
+--- Return an empty table, useful for newFn/etc in some APIs.
 M.emptyTable = function() return {} end
 
 --- remove (mutate) the left side of the table (list).
@@ -631,24 +632,16 @@ M.setp = function(d, path, value, newFn) --> nil
   d[path[len]] = value
 end
 
+--- Return the index where the value is == find.
 M.indexOf = function(t, find) --> int
   for i, v in ipairs(t) do
     if v == find then return i end
   end
 end
 
+--- Return the index where [$value:match(pat)].
 M.indexOfPat = function(strs, pat) --> int
   for i, s in ipairs(strs) do if s:find(pat) then return i end end
-end
-
---- popit (aka pop-index-top) will return the value at [$$t[i]]$, replacing it
---- with the value at the end (aka top) of the list.
----
---- if [$i > #t] returns nil and doesn't affect the size of the list.
-M.popit = function(t, i) --> t[i] and length of t is reduced by 1
-  local len = #t; if i > len then return end
-  local o = t[i]; t[i] = t[len]; t[len] = nil
-  return o
 end
 
 --- Walk the table up to depth maxDepth (or infinite if nil) [+
@@ -708,6 +701,7 @@ M.copy = function(t, add) --> new t
     , getmt(t))
 end
 
+--- Recursively copy the table.
 M.deepcopy = function(t) --> table
   local out = {}; for k, v in pairs(t) do
     if 'table' == type(v) then v = M.deepcopy(v) end
@@ -718,41 +712,18 @@ end
 
 ---------------------
 -- File Functions
+
+--- Read the full contents of the path or throw an error.
 M.readPath = function(path) --!> string
   local f, out, err = assert(io.open(path))
   out, err = f:read('a'); f:close()
   return assert(out, err)
 end
 
+--- Write text to path or throw an error.
 M.writePath = function(path, text) --!> nil
   local f = fmt.assertf(io.open(path, 'w'), 'invalid %s', path)
   local out, err = f:write(text); f:close(); assert(out, err)
-end
-
----------------------
--- Source Code Functions
-
---- convert lines-like table into chunk for eval
-M.lineschunk = function(dat) --> iter()
-  local i = 1
-  return function() -- alternates between next line and newline
-    local o = '\n'; if i < 0 then i = 1 - i
-    else  o = get(dat,i);         i =   - i end
-    if o == '' then assert(i < 0); o = '\n'; i = 1 - i end
-    return o
-  end
-end
-
---- evaluate lua code
-M.eval = function(chunk, env, name) --> (ok, ...)
-  assert(type(env) == 'table')
-  if not name then
-    local i = debug.getinfo(3)
-    name = sfmt('%s:%s', i.source, i.currentline)
-  end
-  local e, err = load(chunk, name, 't', env)
-  if err then return false, err end
-  return pcall(e)
 end
 
 ---------------------
@@ -789,7 +760,6 @@ M.Checked = setmetatable(
   },
   {__name='Ty<Checked>', __call=mty.constructUnchecked}
 )
-
 
 --- A slice of anything with start and end indexes.
 --- ["Note: This object does not hold a reference to the object being
@@ -1249,6 +1219,7 @@ M.IGNORE_TRACE = {
   ["[C]: in function 'error'"]=true,
   ["[C]: in ?"]=true,
 }
+
 --- convert the string traceback into a list
 M.tracelist = function(tbstr, level) --> {traceback}
   tbstr = tbstr or traceback(2 + (level or 0))
@@ -1258,6 +1229,7 @@ M.tracelist = function(tbstr, level) --> {traceback}
   end
   return tb
 end
+--- Get the current traceback as an indented string.
 M.traceback = function(level) --> string
   return concat(M.tracelist(nil, 1 + (level or 0)), '\n    ')
 end
@@ -1338,6 +1310,7 @@ end
 -----------------------
 -- Import helpers
 
+--- DEPRECATED: do not use this function.[{br}]
 --- auto-set nil locals using require(mod)
 --- [$local x, y, z; ds.auto'mm' -- sets x=mm.x; y=mm.y; z=mm.z]
 M.auto = function(mod, i) --> (mod, i)

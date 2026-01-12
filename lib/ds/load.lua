@@ -8,7 +8,7 @@ local mty = require'metaty'
 --- cannot access state and missing unsafe functions like getmetatable or the
 --- debug module.
 ---
---- [{:h2}loading]
+--- [{:h4}loading]
 --- To perform the load, call this module with:
 --- [$$
 ---   (path, env={}, envMeta=ds.load.ENV) -> ok, result

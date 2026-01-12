@@ -1,6 +1,6 @@
 local G = G or _G
 
---- Simple logging library, set i.e. LOGLEVEL=TRACE to enable logging.
+--- Simple logging library, set i.e. LOGLEVEL=INFO to enable logging.
 ---
 --- This module has the functions [$trace info warn err crit] with the signature:
 --- [$$function(fmt, ... [, data])]$ [+
@@ -8,9 +8,9 @@ local G = G or _G
 ---   formats tables/etc).
 --- * data is optional arbitrary data that can be serialized/formatted.
 --- ]
----
 --- To enable logging the user should set a global (or env var) LOGLEVEL
 --- to oneof: C/CRIT/1 E/ERROR/2 W/WARN/3 I/INFO/4 T/TRACE/5
+---
 ---
 --- This module also sets (if not already set) the global LOGFN to [$ds.logFn]
 --- which logs to stderr. This fn is called with signature
@@ -24,7 +24,9 @@ local push, sfmt = table.insert, string.format
 local Fmt = fmt.Fmt
 local io = io
 
-M.time = function() return os.date():match'%d%d:%d%d:%d%d' end
+--- It is intended that this be overriden with a better
+--- time function.
+M._time = function() return os.date():match'%d%d:%d%d:%d%d' end
 
 local LEVEL = ds.Checked{
   SLIENT=0, [0]='SILENT',
@@ -46,13 +48,15 @@ local STYLES = {
 }
 
 local SHORT = ds.Checked{'C', 'E', 'W', 'I', 'T'}
-function M.levelInt(lvl)
+--- Get the current log-level integer.
+function M.levelInt(lvl) --> int
   local lvl = tonumber(lvl) or M.LEVEL[lvl]
   return M.LEVEL[lvl] and lvl or error('invalid lvl: '..tostring(lvl))
 end
+--- Get the current log-level string.
 function M.levelStr(lvl) return M.LEVEL[M.levelInt(lvl)] end
 
---- set the global logging level (default=os.getenv'LOGLEVEL')
+--- Set the global logging level (default=os.getenv'LOGLEVEL')
 M.setLevel = function(lvl)
   G.LOGLEVEL = M.levelInt(lvl or os.getenv'LOGLEVEL' or 0)
 end
@@ -63,7 +67,7 @@ function M.logFn(lvl, loc, fmt, ...)
   if LOGLEVEL < lvl then return end
   local f, lasti, i, args, nargs = io.fmt, 1, 0, {...}, select('#', ...)
   f:styled(STYLES[lvl], sfmt('%s %s %s',
-    SHORT[lvl], M.time(), loc), ': ')
+    SHORT[lvl], M._time(), loc), ': ')
   f:level(1)
   local nargs, i = select('#', ...), f:format(fmt, ...)
   if i == (nargs - 1) then f:write' '; f(args[i + 1]) -- data
@@ -76,10 +80,15 @@ local function _log(lvl, fmt, ...)
   LOGFN(lvl, ds.shortloc(2), fmt, ...)
 end
 
+--- Log at level CRIT.
 function M.crit(...)  if LOGLEVEL >= 1 then _log(1, ...) end end
+--- Log at level ERROR.
 function M.err(...)   if LOGLEVEL >= 2 then _log(2, ...) end end
+--- Log at level WARN.
 function M.warn(...)  if LOGLEVEL >= 3 then _log(3, ...) end end
+--- Log at level INFO.
 function M.info(...)  if LOGLEVEL >= 4 then _log(4, ...) end end
+--- Log at level TRACE.
 function M.trace(...) if LOGLEVEL >= 5 then _log(5, ...) end end
 
 --- used in tests

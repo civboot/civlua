@@ -19,10 +19,9 @@ local T = require'civtest'
 local bound, isWithin, sort2, absDec
 local indexOf, copy, deepcopy
 local trim
-local extend, clear, replace, merge
+local extend, clear, merge
 local getOrSet, getp, setp
 local drain, reverse
-local eval
 local Set, Duration, Epoch
 local M = M.auto'ds'
 local d8 = require'ds.utf8'
@@ -231,9 +230,6 @@ T.table = function()
   t.b = 7; t[1] = 4
   T.eq(nil, t.b); T.eq(nil, t[1])
 
-  t = {4, 5, 6}
-  T.eq({4, 5, 6, 7, 8}, M.add(t, 7, 8))
-
   t = {1, a=3, b={4, 5, b1=3}, c=3}
   T.eq({2, a=4, b={4, 7, 6, b1=3, b2=4}, c=3}, merge(t, {
     2, a=4, b={[2]=7, [3]=6, b2=4},
@@ -274,10 +270,8 @@ T.list = function()
   local t = {4, 5}; extend(t, {1, 2})
   T.eq({4, 5, 1, 2}, t)
   T.eq({}, clear{1, 2, 3})
-  T.eq({1, 2}, replace({4, 5, 6}, {1, 2}))
-  T.eq({1, 2}, replace({3}, {1, 2}))
 
-  T.eq({1,2,5,7}, M.flatten({1,2},{5},{7}))
+  T.eq({1,2,5,7}, M.flatten{{1,2},{5},{7}})
 
   local l = {'a', 'b', 'c', 1, 2, 3}
   T.eq({1, 2, 3}, drain(l, 3))
@@ -294,18 +288,6 @@ T.list = function()
 
   require'ds.testing'.testInset(ds.iden)
   require'ds.testing'.testInsetStr(ds.iden)
-end
-
-T.eval = function()
-  local env = {}
-  local ok, err = eval('1+', env)
-  assert(not ok); assert(err)
-  local ok, three = eval('return 3', env)
-  assert(ok); T.eq({}, env)
-  T.eq(3, three)
-  local ok, three = eval('seven = 7', env)
-  assert(ok); T.eq({seven=7}, env)
-  assert(not G.seven) -- did not modify globals
 end
 
 T.Set = function()
