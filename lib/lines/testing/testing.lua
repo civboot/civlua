@@ -59,11 +59,11 @@ M.testLinesRemove = function(new, assertEq, assertEqRemove)
   local assertEqR = assertEqRemove or T.eq
   local assertEq = assertEq or T.eq
   local t = new''
-  lines.inset(t, 'foo bar', 1, 0)
+  lines.insert(t, 'foo bar', 1, 0)
   assertEqR({'o b'}, lines.remove(t, 1, 3, 1, 5))
   assertEq(new{'foar'}, t)
 
-  lines.inset(t, 'ab\n123', 1, 4)
+  lines.insert(t, 'ab\n123', 1, 4)
   assertEq(new{'foaab', '123r'}, t)
   assertEqR({'aab', '12'}, lines.remove(t, 1, 3, 2, 2))
   assertEq(new{'fo', '3r'}, t)

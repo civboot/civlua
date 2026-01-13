@@ -26,7 +26,7 @@ local loadIdx = require'lines.futils'.loadIdx
 local fd; if not G.NOLIB then fd = require'fd' end
 
 local trace = require'ds.log'.trace
-local largs = lines.args
+local largs = lines._args
 local push, concat = table.insert, table.concat
 local getmt = getmetatable
 local split, construct = mty.split, mty.construct

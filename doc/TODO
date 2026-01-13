@@ -1,6 +1,6 @@
 Review Docs
-* lap
 * lines
+  * at diff right now
 * lson
 * luk
 * metaty
@@ -11,8 +11,6 @@ Review Docs
 * vt100
 
 General
-* I don't think civix.sh is passing stdout through. That should happen by
-  default.
 * I need io.open/etc to respect G.PWD
 * Have good way to check if sh command exists.
   Check for stuff in pvc, especially merge (install rcs).

@@ -1,12 +1,11 @@
---- lines module, when called splits a string into lines.
----   [$require'lines'(text) -> table of lines]
----
---- sub-modules include several data structures with more performant
---- mechanisms to insert/remove/etc based on real-world workloads
---- (i.e. editor, parser, etc)
-local M = mod and mod'lines' or {}
-
 local mty = require'metaty'
+
+--- The lines module, providing a uniform API for lines-like objects.
+---
+--- ["You can also call this module directly to get a table of lines
+---   from a string]
+local M = mty.mod'lines'
+
 local ds  = require'ds'
 local push, pop = table.insert, table.remove
 local concat    = table.concat
@@ -20,39 +19,40 @@ local set, get, inset = ds.set, ds.get, ds.inset
 M.CMAX = 999
 M.CHUNK = 0x4000 -- 16KiB
 
-local new = function(_, text, index)
+getmetatable(M).__call = function(_, text, index)
   local t = {}
   for _, line in rawsplit, text, {'\n', index or 1} do
     push(t, line)
   end; return t
 end
-setmetatable(M, {__call=new})
+local new = getmetatable(M).__call
 
---- concat strings and return lines table
-M.args = function(...) --> lines
+--- Join a table of strings with newlines.
+M.join = function(t) return concat(t, '\n') end --> string
+local join = M.join
+
+M._args = function(...) --> lines
   local len = select('#', ...)
   if     len == 0 then return {}
   elseif len == 1 then return new(nil, select(1, ...))
   else                 return new(nil, concat{...}) end
 end
-local args = M.args
+local args = M._args
 
---- join a table with newlines
-M.join = function(t) return concat(t, '\n') end --> string
-local join = M.join
+local sinsert = function (s, i, v)
+  return s:sub(1, i-1)..v..s:sub(i)
+end
 
-local sinsert = function (s, i, v) return s:sub(1, i-1)..v..s:sub(i) end
-
---- insert string at l, c
+--- insert string at l, c[{br}]
 ---
---- Note: this is NOT performant (O(N)) for large tables.
---- See: lib/rebuf/gap.lua (or similar) for handling real-world workloads.
-M.inset = function(t, s, l,c) --> nil
+--- Note: this is NOT performant (O(N)) for large tables.[{br}]
+--- See: [<#Gap>] (or similar) for handling real-world workloads.
+M.insert = function(t, s, l,c) --> nil
   inset(t, l, M(sinsert(get(t, l) or '', c or 1, s)), 1)
 end
 
---- Address lines span via either (l,l2) or (l,c, l2,c2)
-local function span(l, c, l2, c2)
+--- Enables addressing lines via either (l,l2) or (l,c, l2,c2) span.
+function M.span(l, c, l2, c2) --> (l, c?, l2, c2?)
   if      l2 and c2 then return l, c, l2, c2    end --(l,c, l2,c2)
   if not (l2 or c2) then return l, nil, c, nil  end --(l,   l2)
   if not (c  or c2) and (l and l2) then
@@ -60,7 +60,7 @@ local function span(l, c, l2, c2)
   end --(l,   l2)
   error'span must be 2 or 4 indexes: (l, l2) or (l, c, l2, c2)'
 end
-M.span = span
+local span = M.span
 
 --- sort the span
 M.sort = function(...) --> l1, c1, l2, c2
@@ -95,8 +95,17 @@ local function _lsub(sub, slen, t, ...)
   return s
 end
 
-M.sub  = function(...) return _lsub(string.sub, string.len, ...) end
-M.usub = function(...) return _lsub(ds.usub,     utf8.len,   ...) end
+--- Get the sub-span of the lines.[{br}]
+--- Returns a string if the result is a single line, else a table of lines.
+M.sub  = function(l, ...) --> string | table
+  return _lsub(string.sub, string.len, l, ...)
+end
+
+--- Get the UTF8 aware sub-span of the lines.[{br}]
+--- Returns a string if the result is a single line, else a table of lines.
+M.usub = function(l, ...) --> string | table
+  return _lsub(ds.usub, utf8.len, l, ...)
+end
 
 --- create a table of lineText -> {lineNums}
 M.map = function(lines) --> table
@@ -248,7 +257,16 @@ M.remove = function(t, ...) --> string|table
   return rem
 end
 
--- return the box bounded top-left(l1,c1) and bot-right(l2,c2)
+--- return the box of the lines.
+---
+--- [$$
+--- Outside the box is not returned.
+--- ***1------------------------+**
+--- ***|l1,c1 = top left        |**
+--- ***|       bot right = l2,c2|
+--- ***+------------------------2**
+--- *So no '*' chars are returned.*
+--- ]$
 M.box = function(t, l1, c1, l2, c2, fill) --> lines
   local f = fill and assert(type(fill) == 'string') and (c2 - c1 + 1)
   local b = {}; for l=l1,l2 do

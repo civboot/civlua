@@ -8,8 +8,8 @@ local T = require'civtest'
 
 T.new = function()
   T.eq({'one', 'two 2', ''}, lines'one\ntwo 2\n')
-  T.eq({'one', 'two 2', ''}, lines.args'one\ntwo 2\n')
-  T.eq({'one', 'two 2', ''}, lines.args('one\n', 'two 2\n'))
+  T.eq({'one', 'two 2', ''}, lines._args'one\ntwo 2\n')
+  T.eq({'one', 'two 2', ''}, lines._args('one\n', 'two 2\n'))
 end
 
 T.sort = function()
@@ -56,18 +56,18 @@ end
 T.inset = function()
   local t = {''}
   T.eq(1, #t)
-  lines.inset(t, 'foo bar', 1, 0)
+  lines.insert(t, 'foo bar', 1, 0)
   T.eq('foo bar', lines.join(t))
-  lines.inset(t, 'baz ', 1, 5)
+  lines.insert(t, 'baz ', 1, 5)
   T.eq('foo baz bar', lines.join(t))
 
-  lines.inset(t, '\nand', 1, 4)
+  lines.insert(t, '\nand', 1, 4)
   T.eq('foo\nand baz bar', lines.join(t))
-  lines.inset(t, 'buz ', 2, 5)
+  lines.insert(t, 'buz ', 2, 5)
   T.eq('foo\nand buz baz bar', lines.join(t))
 
   t = {''}
-  lines.inset(t, 'foo\nbar', 1, 1)
+  lines.insert(t, 'foo\nbar', 1, 1)
   T.eq('foo\nbar', lines.join(t))
 end
 
@@ -108,24 +108,24 @@ T['Gap.inset'] = function()
   require'ds.testing'.testInsetStr(Gap)
 end
 
-T['Gap lines.inset'] = function()
+T['Gap lines.insert'] = function()
   T.eq(1, #Gap'')
   local g = Gap(); T.eq(0, #g)
-  lines.inset(g, 'foo bar', 1, 0)
+  lines.insert(g, 'foo bar', 1, 0)
   T.eq('foo bar', fmt(g))
   g:setGap(1)
   T.eq(1, #g); T.eq(1, #g.bot)
 
-  lines.inset(g, 'baz ', 1, 5)
+  lines.insert(g, 'baz ', 1, 5)
   T.eq('foo baz bar', fmt(g))
 
-  lines.inset(g, '\nand', 1, 4)
+  lines.insert(g, '\nand', 1, 4)
   T.eq('foo\nand baz bar', fmt(g))
-  lines.inset(g, 'buz ', 2, 5)
+  lines.insert(g, 'buz ', 2, 5)
   T.eq('foo\nand buz baz bar', fmt(g))
 
   g = Gap()
-  lines.inset(g, 'foo\nbar', 1, 1)
+  lines.insert(g, 'foo\nbar', 1, 1)
   T.eq('foo\nbar', fmt(g))
 end
 

@@ -14,7 +14,7 @@ local Gap = mty'Gap' {
 local ds, lines  = require'ds', require'lines'
 local pth = require'ds.path'
 local lload = lines.load
-local largs = lines.args
+local largs = lines._args
 local span = lines.span
 
 local push, pop, concat = table.insert, table.remove, table.concat
@@ -83,7 +83,7 @@ Gap.set = function(g, i, v)
 end
 Gap.__newindex = Gap.set
 
---- See lines.inset for documentation.
+--- See ds.inset for documentation.
 Gap.inset = function(g, i, values, rmlen) --> rm?
   assert(not g.readonly, 'attempt to write to readonly Gap')
   values, rmlen = values or EMPTY, rmlen or 0

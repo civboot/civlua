@@ -1,0 +1,12 @@
+[{h1}lines: view files as list of lines]
+The [$lines] library (and it's submodules) enable line-based processing of
+text. The [<#lines>] module itself exports an API that work on both a list of
+strings (aka lines) or deal with files as indexed lines (i.e. [<#lines.File>])
+
+
+[$lines] is the fundamental building block of civstack's [<ele.html>ele] editor
+and [<cxt.html>pegl>] parsers: it is much easier as a developer to think about
+human-readable text as a list of lines then as a list of bytes and this is
+especially true for an editor. [<#lines.File>] and [<#lines.EdFile>] use
+a separate index file to make reading and writing to files as lines
+actually performant for more real-world use-cases.
