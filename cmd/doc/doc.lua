@@ -176,11 +176,11 @@ function doc.Doc:mod(m)
   for _, c in ipairs(cmts or EMPTY) do
     self:write(c); self:write'\n'
   end
-  return self:endmod(m, name)
+  return self:endmod(m, 'Functions')
 end
 
 --- Document the end (not header+comments) of module.
-function doc.Doc:endmod(m)
+function doc.Doc:endmod(m, fnsName)
   local names = {}
   local fns, tys, oth = {}, {}, {}
   for _, k in ipairs(m.__attrs) do
@@ -209,7 +209,7 @@ function doc.Doc:endmod(m)
   end
 
   if #fns > 0 then
-    self:bold'Functions'; self:write' [+\n'; 
+    self:bold(fnsName); self:write' [+\n'; 
     for _, fn in ipairs(fns) do
       self:write'* '; self:level(1)
       self:declfn(fn, names[fn], sfmt('%s.%s', m.__name, names[fn]))

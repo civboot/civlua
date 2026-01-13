@@ -1,10 +1,24 @@
-local G = G or _G
+#!/usr/bin/env -S lua
+local shim = require'shim'
 
---- Diffing module and command
---- Example command: [$lines.diff{'file/path1.txt', 'file/path2.txt'}]
---- Note: the arguments can be a string (path) or list of lines.
-local M = G.mod and mod'lines.diff' or setmetatable({}, {})
-G.MAIN = G.MAIN or M
+--- Diffing module and command[{br}]
+--- Cmd Usage: [$ldiff 'file/path1.txt' 'file/path2.txt'][{br}]
+--- Lib Usage: [$io.fmt(ldiff.Diff(linesA, linesB))][{br}]
+---
+--- This library/cmd creates readable diffs using the "patience diff" alorithm.
+--- The code was written from scratch referencing only the algorithm outline
+--- below, but I want to give special thanks to James Coglan for his
+--- [<https://blog.jcoglan.com/2017/09/19/the-patience-diff-algorithm>
+---  excellent blog post].
+---
+---
+--- Fundamentals of patience diff: [+
+--- * Skip unchanged lines on both top and bottom.
+--- * Find unique lines in both sets and "align" them using "longest increasing
+---   sequence".
+--- * Repeat for each aligned section.
+--- ]
+local M = shim.cmd'lines.diff' {}
 
 local mty = require'metaty'
 local ds  = require'ds'
@@ -13,31 +27,32 @@ local clear = ds.clear
 local construct = mty.construct
 local str, sfmt = tostring, string.format
 
---- Line-based diff.
---- The default algorithm uses patience diff. Special thanks to:
---- [<https://blog.jcoglan.com/2017/09/19/the-patience-diff-algorithm>]
+--- Datastructure which holds the result of computing the difference
+--- between two lists of lines.[{br}]
 ---
---- The basic algorithm on before/after line lists: [+
---- * skip unchanged lines on both top and bottom
---- * find unique lines in both sets and "align" them with
----   using "longest increasing sequence"
---- * repeat for each aligned section
---- ]
+--- Fields [$b] and [$c] are just the original base/change lines.
 ---
---- Example: [$io.fmt(Diff(linesA, linesB))]
+--- [$noc], [$rem] and [$add] are lists of integers which represent the length
+--- of a block. For instance, if for a given index [$rem=3] and [$add=2] it
+--- means that three lines were removed from [$b] and two were added to
+--- [$c]. If [$noc=10] that means that there is a block of 10 identical lines.
 M.Diff = mty'Diff' {
-  'b [lines]: base, aka original lines',
-  'c [lines]: change, aka new lines',
-  'di [int]: len of noc/rem/add',
+  'b [lines]: base, aka raw original lines',
+  'c [lines]: change, aka raw new lines',
+ [[len [int]: len of diff blocks (aka len of below fields).
+   It's not possible to use # for below, since some values
+   are nil.
+ ]],
   'noc [ints]: nochange range (in both)',
   'rem [ints]: removed from b',
-  'add  [ints]: added from c',
+  'add [ints]: added from c',
 }
 local Diff = M.Diff
 
 --- [$c] is a table of [$lineStr -> lineNum].
 --- The first time [$lineStr] is found the line number [$l] is stored.
---- If found again, the stored line is set to false (and remains false)
+--- If found again, the stored line is set to false (and remains false),
+--- meaning it is not a unique line.
 ---
 --- The [$line] string is also pushed to [$c] so that it can be iterated
 --- in-order
@@ -47,7 +62,7 @@ local function countLine(c, l, line, pushl)
   elseif r ~= false then c[line] = false end
 end
 
---- return lists of line numbers which are unique in both [$b] and [$c],
+--- Returns lists of line numbers which are unique in both [$b] and [$c],
 --- ordered by when the appear in b.
 local uniqueMatches = function(bLines, cLines, b, b2, c, c2) --> bList, cList
   local bcount, ccount = {}, {}
@@ -73,7 +88,7 @@ local findLeftStack = function(stacks, mc, c)
   return low
 end
 
---- Get the longest increasing sequence (in reverse order)
+--- Get the longest increasing sequence (in reverse order).
 local patienceLIS = function(mb, mc) --> bList, cList
   local stacks = {}
   local prev, c, i = {}
@@ -108,23 +123,24 @@ local skipEqLinesBot = function(linesB, linesC, b, b2, c, c2) --> bi, ci
   return b2, c2
 end
 
-Diff._calc = function(d, b, b2, c, c2)
+function Diff:_calc(b, b2, c, c2)
+  local d = self
   local bSt, b2St, cSt, c2St = b, b2, c, c2
   local bNext, cNext
   b,  c  = skipEqLinesTop(d.b, d.c, b, b2, c, c2)
   b2, c2 = skipEqLinesBot(d.b, d.c, b, b2, c, c2)
   assert((c - cSt) == (b - bSt))
 
-  local di
-  if c > cSt then di = d.di + 1; d.noc[di] = c - cSt; d.di = di end
+  local len
+  if c > cSt then len = d.len + 1; d.noc[len] = c - cSt; d.len = len end
   local bl, cl = patienceLIS(uniqueMatches(d.b, d.c, b, b2, c, c2))
   if not bl or #bl == 0 then
     local rm, ad = b2 - b + 1, c2 - c + 1
     if rm == 0 and ad == 0 then -- skip
     else
-      di = d.di + 1; d.di = di
-      if rm > 0 then d.rem[di] = rm end
-      if ad > 0 then d.add[di] = ad end
+      len = d.len + 1; d.len = len
+      if rm > 0 then d.rem[len] = rm end
+      if ad > 0 then d.add[len] = ad end
     end
     goto bottom
   end
@@ -136,12 +152,15 @@ Diff._calc = function(d, b, b2, c, c2)
     d:_calc(b, bNext, c, cNext)
     if not bm then break end
     local cm = cl[i]
-    di = d.di + 1; d.noc[di], d.di = 1, di
+    len = d.len + 1; d.noc[len], d.len = 1, len
     b, c = bm + 1, cm + 1
   end
   ::bottom::
   c2 = c2 + 1 -- c2:c2St are unchanged lines (bot)
-  if c2 <= c2St then di = d.di + 1; d.noc[di], d.di = c2St - c2 + 1, di end
+  if c2 <= c2St then
+    len = d.len + 1
+    d.noc[len], d.len = c2St - c2 + 1, len
+  end
 end
 
 --- accumulate list[i] = list[i]+list[j], treating 0 as nil
@@ -151,8 +170,9 @@ local acc = function(list, i, j)
 end
 
 --- compress all like-fields together
-Diff._compress = function(d)
-  local add, rem, noc, len = d.add, d.rem, d.noc, d.di
+function Diff:_compress()
+  local d = self
+  local add, rem, noc, len = d.add, d.rem, d.noc, d.len
   -- scan the items, accumulating into i from j
   local i, j = 1, 1
   local clearj = function() add[j], rem[j], noc[j] = nil, nil, nil end
@@ -171,8 +191,11 @@ Diff._compress = function(d)
       else i = i + 1 end
     end
   end
-  d.di = i
-  i = i + 1; clear(add, i, len); clear(rem, i, len); clear(noc, i, len)
+  d.len = i
+  i = i + 1
+  clear(add, i, len)
+  clear(rem, i, len)
+  clear(noc, i, len)
 end
 
 getmetatable(Diff).__call = function(T, linesB, linesC) --> Diff
@@ -180,23 +203,24 @@ getmetatable(Diff).__call = function(T, linesB, linesC) --> Diff
   if type(linesC) == 'string' then linesC = ds.splitList(linesC, '\n') end
 
   local d = mty.construct(T, {
-    b=linesB, c=linesC, di=0, noc={}, rem={}, add={}
+    b=linesB, c=linesC, len=0, noc={}, rem={}, add={}
   })
   d:_calc(1, #linesB, 1, #linesC)
   d:_compress()
   return d
 end
 
---- iterate through nochange and change blocks, calling the functions for each
+--- Iterate through nochange and change blocks, calling the functions for each
 --- [+
 --- * [$nocFn(baseStart, numUnchanged, changeStart, numUnchanged)]
 --- * [$chgFn(baseStart, numRemoved,   changeStart, numAdded)]
 --- ]
 --- Note that the num removed/added will be nil if none were added/removed.
-Diff.map = function(d, nocFn, chgFn)
+function Diff:map(nocFn, chgFn)
+  local d = self
   local noc, add, rem = d.noc, d.add, d.rem
   local bl, cl, n, a, r = 1, 1 -- bl=base-line cl=changed-line
-  for i=1,d.di do
+  for i=1,d.len do
     n = noc[i]
     if n then -- unchanged lines
       nocFn(bl, n, cl, n)
@@ -214,7 +238,7 @@ end
 
 local function styleNoc(f, base, bl, cl)
   f:styled('line', sfmt('% 5i % 5i ', bl, cl))
-  f:styled('meta', base[bl] or '<eof>', '\n')
+  f:styled(nil   , base[bl] or '<eof>', '\n')
 end
 Diff.__fmt = function(d, f)
   local base, chan = d.b, d.c
@@ -241,8 +265,8 @@ M._toTest = {
   skipEqLinesTop = skipEqLinesTop, skipEqLinesBot = skipEqLinesBot,
 }
 
-M.main = function(args)
-  local b, c = table.unpack(require'shim'.parseStr(args))
+function M:__call() -- command
+  local b, c = table.unpack(self)
   assert(b and c, 'must provide args {base, change}')
   local paths
   if type(b) == 'string' then
@@ -258,6 +282,5 @@ M.main = function(args)
   io.fmt(M.Diff(b, c))
 end
 
-getmetatable(M).__call = function(_, args) return M.main(args) end
-if M == MAIN then error'TODO: migrate to shim' end
+if shim.isMain(M) then M:main(mty.G.arg) end
 return M

@@ -1,7 +1,7 @@
 G = G or _G
 --- module with helper methods for moving a cursor
 --- around a lines-like 2D grid.
-local M = mod and mod'rebuf.motion' or {}
+local M = mod and mod'lines.motion' or {}
 
 local mty = require'metaty'
 local ds = require'ds'

@@ -310,7 +310,8 @@ M._docMethods = function(R, d, name)
   for _, k in ipairs(R.__attrs) do
     if k:match'^_' then goto continue end
     local v = rawget(R, k)
-    if M.callable(v) then
+    if not d.done[v] and M.callable(v) then
+      d.done[v] = true
       push(methods, k); methods[k] = v
     end
     ::continue::

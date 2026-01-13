@@ -243,7 +243,9 @@ M.run = function(Args, args)
 end
 
 --- Return whether a record was created with [@shim.cmd]
-M.isCmd = function(R) return rawget(R, '__cmd') and true end
+M.isCmd = function(R)
+  return type(R) == 'table' and rawget(R, '__cmd') and true
+end
 
 --- The [$getmt(Cmd).__call]
 function M._constructCall(Cmd, args)
@@ -274,10 +276,9 @@ M._doc = function(R, d, pre)
   -- Comments
   if cmt then
     for _, c in ipairs(cmt) do d:write(c); d:write'\n' end
-    d:write'\n\n'
   end
   mty._docFields(R, d, name, 'Arguments')
-  mty._docMethods(R, d, name)
+  d:endmod(R, 'Methods and Functions')
 end
 
 --- for [$subcmds.__doc]
@@ -290,12 +291,13 @@ M._subsdoc = function(R, d, pre)
   for _, sub in ipairs(R.__attrs) do
     if sub:match'^_' then goto continue end
     local S = rawget(R, sub)
-    if type(S) == 'table' and rawget(S, '__doc') then
+    if M.isCmd(S) and not d.done[S] then
+      d.done[S] = true
       rawget(S, '__doc')(S, d, pre)
     end
     ::continue::
   end
-  d:endmod(R)
+  d:endmod(R, 'Functions')
 end
 
 local function namedCmd(name, R)
