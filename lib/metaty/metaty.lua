@@ -527,6 +527,13 @@ M.extend = function(Type, name, fields)
   return setmetatable(E, mt)
 end
 
+--- Extend the type with new name and use as a module.
+M.extendMod = function(T, name, fields)
+  T = M.extend(T, name, fields)
+  mod.save(name, T)
+  return T
+end
+
 M.enum_tostring = function(E) return E.__name end
 M.enum_toPod = function(E, pset, e)
   if pset.enumIds then return E.id(e) else return E.name(e) end

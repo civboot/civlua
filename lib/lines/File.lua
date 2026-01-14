@@ -1,14 +1,13 @@
 local mty = require'metaty'
 
---- (read|append)-only line based file (indexed and cached)
+--- Usage: [$File{path='path/to/file.txt', mode='r'}][{br}]
+--- Indexed file of lines supporting read and append.
 ---
---- Note: use EdFile if you need to do non-append edits
----
---- Initialize with File{path=path?, mode=mode?}
-local File = mty'File' {
-  'path [string]',
-  'mode [string]',
-  'f   [file]: open file',
+--- ["use EdFile instead if you need to do non-append edits]
+local File = mty.recordMod'File' {
+  'path [string]: path of this file.',
+  "mode [string]: 'r', 'a' or 'a+'",
+  'f   [file]: open (normal) file object',
   'idx [U3File]: line index of f',
   'cache [WeakV]: cache of lines',
   'loadIdxFn: default=lines.futils.loadIdx',
@@ -40,7 +39,8 @@ File.__newindex            = mty.hardNewindex
 File.IDX_DIR = pth.concat{pth.home(), '.data/lines'}
 
 File._initnew = ds.noop -- empty file: do nothing
-File._reindex = function(f, idx, l, pos) --!> nil
+function File:_reindex(idx, l, pos) --!> nil
+  local f = self
   l, pos = l or 1, pos or 0
   if f:seek'end' == 0 then return end
   assert(f:seek('set', pos))
@@ -82,30 +82,30 @@ getmetatable(File).__call = function(T, t) --> File?, errmsg?
   return construct(T, t)
 end
 
-File.close = function(lf)
-  if lf.idx then lf.idx:close()             end
-  if lf.f   then lf.f:close(); lf.f = false end
+function File:close()
+  if self.idx then self.idx:close()             end
+  if self.f   then self.f:close(); lf.f = false end
 end
-File.flush = function(lf) --> ok, errmsg?
-  local o,e = lf.idx:flush(); if not o then return o,e end
-  o,e = lf.f:flush()          if not o then return o,e end
+function File:flush() --> ok, errmsg?
+  local o,e = self.idx:flush(); if not o then return o,e end
+  o,e = self.f:flush()          if not o then return o,e end
   if not G.NOLIB then
-    local fs, e = ix.stat(lf.f); if not fs then return nil,e end
-    return ix.setModified(lf.idx.f, fs:modified())
+    local fs, e = ix.stat(self.f); if not fs then return nil,e end
+    return ix.setModified(self.idx.f, fs:modified())
   end
 end
 
 --- append to file
-File.write = function(lf, ...) --> ok, errmsg?
-  local f, idx, cache, pos, o,e = lf.f, lf.idx, lf.cache
+function File:write(...) --> ok, errmsg?
+  local f, idx, cache, pos, o,e = self.f, self.idx, self.cache
   local t = largs(...)
   local tlen = #t
   if tlen == 0 then return end
-  if lf._ln or not lf._pos then
+  if self._ln or not self._pos then
     pos,e = f:seek'end'; if not pos then return pos,e end
-    lf._ln = false
-  else pos = lf._pos end
-  lf._pos = false
+    self._ln = false
+  else pos = self._pos end
+  self._pos = false
   o,e = f:write(t[1]); if not o then return o,e end
   pos = pos + #t[1]
   local len = #idx -- start length
@@ -117,57 +117,60 @@ File.write = function(lf, ...) --> ok, errmsg?
     len = len + 1; idx:set(len, pos + 1)
     pos = pos + 1 + #line
   end
-  lf._pos = pos
+  self._pos = pos
 end
 
-File.__len = function(lf) return #lf.idx end
+function File:__len() return #self.idx end
 
 --- Get line at index
-File.get = function(lf, i) --> line
-  local cache = lf.cache
+function File:get(i) --> line
+  local cache = self.cache
   local line = cache[i]; if line then return line end
-  local f, idx, pos, err = lf.f, lf.idx, lf._pos
+  local f, idx, pos, err = self.f, self.idx, self._pos
   if i > #idx then return end -- line num OOB
-  if not pos or i ~= lf._ln then -- update file pos
-    pos = assert(lf.idx:get(i))
+  if not pos or i ~= self._ln then -- update file pos
+    pos = assert(self.idx:get(i))
     assert(f:seek('set', pos))
   end
   line = check(2, f:read'L') or ''
-  lf._pos = pos + #line
+  self._pos = pos + #line
   if line:sub(-1) == '\n' then line = line:sub(1, -2) end
-  lf._ln, cache[i] = i + 1, line
+  self._ln, cache[i] = i + 1, line
   return line
 end
 
 --- Set line at index
-File.set = function(lf, i, v)
-  local f, idx, cache, pos = lf.f, lf.idx, lf.cache, lf._pos
+function File:set(i, v)
+  local f, idx, cache, pos = self.f, self.idx, self.cache, self._pos
   local len = #idx; assert(i == len + 1, 'only append allowed')
-  if not pos or lf._ln then pos = assert(f:seek'end') end
-  lf._ln, lf._pos = false, false
+  if not pos or self._ln then pos = assert(f:seek'end') end
+  self._ln, self._pos = false, false
   if pos == 0 then
     assert(f:write(v))
-    lf._pos = pos + #v
+    self._pos = pos + #v
   else
     assert(f:write('\n', v))
-    lf._pos = pos + #v + 1
+    self._pos = pos + #v + 1
     pos = pos + 1
   end
   idx:set(i, pos); cache[i] = v
 end
 
-File.__fmt = function(lf, f)
+function File:__fmt(f)
   f:write'lines.File('
-  if lf.path then f:write(lf.path) end
+  if self.path then f:write(self.path) end
   f:write')'
 end
 
 --- Get a new read-only instance with an independent file-descriptor.
-File.reader = function(lf) --> lines.File?, err?
-  local path = assert(lf.path, 'reader only allowed on file with path')
-  local idx = lf.idx:reader()
-  local f,e = io.open(lf.path, 'r'); if not f then return nil, e end
-  local new = ds.copy(lf)
+---
+--- This allows reading the file while another coroutine writes it (via
+--- [<lap.html>]).
+function File:reader() --> lines.File?, err?
+  local path = assert(self.path, 'reader only allowed on file with path')
+  local idx = self.idx:reader()
+  local f,e = io.open(self.path, 'r'); if not f then return nil, e end
+  local new = ds.copy(self)
   new.f, new.idx, new.mode = f, idx, 'r'
   return new
 end
