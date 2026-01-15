@@ -174,7 +174,7 @@ function doc.Doc:mod(m)
   self:header(3, 'Mod '..m.__name, m.__name)
   self:check(name, cmts or EMPTY)
   for _, c in ipairs(cmts or EMPTY) do
-    self:write(c); self:write'\n'
+    self:write(c); self:write'\n\n'
   end
   return self:endmod(m, 'Functions')
 end

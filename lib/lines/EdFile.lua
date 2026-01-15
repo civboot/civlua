@@ -1,10 +1,18 @@
 local mty = require'metaty'
---- EdFile: an editable file object, optimized for indexed and consequitive
---- reads and writes
-local EdFile = mty'EdFile' {
-  'lf   [lines.File]: indexed file',
-  'dats [list]: list of Slc | Gap',
-  'lens [list]: rolling sum of dat lengths',
+--- EdFile: an editable line-based file object, optimized for
+--- indexed and consequitive reads and writes
+---
+--- [*Usage:][{$$ lang=lua}
+--- local ed = EdFile(path, mode);
+--- ed:set(1, 'first line')
+--- ed:set(2, 'second line')
+--- ed:set(1, 'changed first line')
+--- ed:close()
+--- ]$
+local EdFile = mty.recordMod'EdFile' {
+  'lf   [lines.File]: indexed append-only file.',
+  'dats [list]: list of Slc | Gap objects.',
+  'lens [list]: rolling sum of dat lengths.',
 }
 
 local ds = require'ds'
@@ -14,6 +22,7 @@ local Gap = require'lines.Gap'
 local File = require'lines.File'
 local U3File = require'lines.U3File'
 
+local info = require'ds.log'.info
 local push = table.insert
 local getmt = getmetatable
 local min, MAXINT = math.min, math.maxinteger
@@ -35,9 +44,9 @@ getmetatable(EdFile).__call = function(T, v, mode)
   })
 end
 
-EdFile._updateLens = function(ef, max)
+function EdFile:_updateLens(max)
   max = max or MAXINT
-  local lens, dats, len = ef.lens, ef.dats
+  local lens, dats, len = self.lens, self.dats
   for i=#lens+1, #dats do
     len = (lens[i - 1] or 0) + #dats[i]
     lens[i] = len
@@ -45,92 +54,88 @@ EdFile._updateLens = function(ef, max)
   end
 end
 
-EdFile.__len = function(ef)
-  ef:_updateLens()
-  local l = ef.lens; return l[#l] or 0
+function EdFile:__len()
+  self:_updateLens()
+  local l = self.lens; return l[#l] or 0
 end
 
---- get the index into dats where [$ef[i]] is located
-EdFile._datindex = function(ef, i) --> di
+--- get the index into dats where [$:get(i)] is located
+function EdFile:_datindex(i) --> di
   if i < 1 then return end
-  local lens = ef.lens; local len = lens[#lens]
-  if not len or i > len then ef:_updateLens(i) end
+  local lens = self.lens; local len = lens[#lens]
+  if not len or i > len then self:_updateLens(i) end
   if i > lens[#lens] then return end
   return binsearch(lens, i, gt) + 1
 end
 
 --- Get line at index
-EdFile.get = function(ef, i) --> line
-  local di = ef:_datindex(i); if not di then return end
-  local dat = ef.dats[di]
-  i = i - (ef.lens[di-1] or 0) -- i is now index into dat
-  return (getmt(dat) == Slc) and ef.lf:get(dat.si + i - 1)
+function EdFile:get(i) --> line
+  local di = self:_datindex(i); if not di then return end
+  local dat = self.dats[di]
+  i = i - (self.lens[di-1] or 0) -- i is now index into dat
+  return (getmt(dat) == Slc) and self.lf:get(dat.si + i - 1)
       or dat[i]
 end
 
-EdFile.write = function(ef, ...) --> self?, errmsg?
-  local dats = ef.dats
+function EdFile:write(...) --> self?, errmsg?
+  local dats = self.dats
   local last = dats[#dats]
-  ef.lens[#dats] = nil
+  self.lens[#dats] = nil
   local ok, errmsg
   if getmt(last) == Slc then
-    ok, errmsg = ef.lf:write(...)
-    last.ei = #ef.lf.idx
+    ok, errmsg = self.lf:write(...)
+    last.ei = #self.lf.idx
   else ok, errmsg = last:write(...) end
   return ok and self or nil, errmsg
 end
 
 --- Set line at index.
-EdFile.set = function(ef, i, v)
-  ef:inset(i, {v}, 1)
+function EdFile:set(i, v)
+  self:inset(i, {v}, 1)
 end
 
 --- Return a read-only view of the EdFile which shares the
 --- associated data structures.
-EdFile.reader = function(ef)
+function EdFile:reader()
   return EdFile {
-    lf=ef.lf:reader(),
-    dats=ef.dats, lens=ef.lens
+    lf=self.lf:reader(),
+    dats=self.dats, lens=self.lens
   }
 end
 
 --- Flush the .lf member (which can only be extended).
---- To write all data to disk use :dumpf()
-EdFile.flush = function(ef) return ef.lf:flush() end
+--- To write all data to disk you must call [$:dumpf()].
+function EdFile:flush() return self.lf:flush() end
 
---- Note: this does NOT necessarily flush what you expect.
-EdFile.close = function(ef) return ef.lf:close() end
+--- Note: to write all data to disk you must call [$:dumpf()].
+function EdFile:close() return self.lf:close() end
 
---- Dump EdFile to file or path
-EdFile.dumpf = function(ef, f)
-  local ef, efx = ef.lf.f, ef.lf.idx
-  for i, d in ipairs(ef.dats) do
-    if getmt(d) == Slc then
-      local sp, ep = efx:get(d.si), efx:get(d.si + 1)
-      assert(sp == ef:seek('set', sp))
-      assert(f:write(ef:read(ep and (ep - sp + 1) or nil)))
-    else
-      -- TODO: use lines.dump instead?
-      assert(f:write(concat(d, '\n')))
-      if i < #ef.dats then assert(f:write'\n') end
-    end
+--- Dump contents to file or path.
+function EdFile:dumpf(f)
+  local close = false
+  if type(f) == 'string' then
+    f = assert(io.open(f)); close = 1
   end
+  -- TODO: this is not very performant. Update to
+  --       write the whole Slc/Gap that it finds.
+  for i=1,#self do f:write(self:get(i), '\n') end
+  if close then f:flush(); f:close() end
 end
 
---- appends to lf for extend when possible.
-EdFile.extend = function(ef, values)
+--- Appends to lf for extend when possible.
+function EdFile:extend(values)
   if #values == 0 then return end
-  local dlen = #ef.dats
-  local last = ef.dats[dlen]
+  local dlen = #self.dats
+  local last = self.dats[dlen]
   if getmt(last) == Slc then
-    local lf = ef.lf
+    local lf = self.lf
     extend(lf, values); last.ei = #lf
   else extend(last, values) end
-  local lens = ef.lens
+  local lens = self.lens
   if dlen == #lens then
     lens[dlen] = lens[dlen] + #values
   end
-  return ef
+  return self
 end
 
 ----------------------------
@@ -160,7 +165,7 @@ local insetDat = function(dats, dat, i, values, rmlen)
 end
 
 --- insert into EdFile's dats.
-EdFile.inset = function(ef, i, values, rmlen) --> rm?
+function EdFile:inset(i, values, rmlen) --> rm?
   rmlen = rmlen or 0
 
   -- General algorith:
@@ -168,16 +173,16 @@ EdFile.inset = function(ef, i, values, rmlen) --> rm?
   -- * Handle Slc types by splitting them
   -- * Handle rmlen for each section individually
   -- * Handle Gaps by joining them
-  local lens, df, dl = ef.lens, ef:_datindex(i), nil
+  local lens, df, dl = self.lens, self:_datindex(i), nil
   if not df then
     -- special case: extend. This is special because it writes to the file.
-    assert(i == #ef + 1, 'i > len+1')
-    ef:extend(values)
+    assert(i == #self + 1, 'i > len+1')
+    self:extend(values)
     return
   end
 
   if rmlen > 0 then -- find last dat to remove (and in-between)
-    dl = ef:_datindex(i + rmlen - 1)
+    dl = self:_datindex(i + rmlen - 1)
     if dl then if (dl - df > 1) then
       -- update rmlen with dropped dats
       rmlen = rmlen - (lens[dl-1]-lens[df + 1])
@@ -186,7 +191,7 @@ EdFile.inset = function(ef, i, values, rmlen) --> rm?
 
   -- Note: rdats is replace dats (not rm), they
   -- are inset into dats at the end.
-  local dats, rdats, ldat = ef.dats , {}                 , nil
+  local dats, rdats, ldat = self.dats , {}                 , nil
   local first,   fi, ei   = dats[df], i - (lens[df-1] or 0)
 
   -- We handle the first and last items separately. By the end of these

@@ -1,6 +1,7 @@
 G = G or _G
---- module with helper methods for moving a cursor
---- around a lines-like 2D grid.
+--- Helper methods for moving a cursor around a lines-like 2D grid.
+--- The notation [$l.c] is used to refer to line, column where
+--- both are indexed by 1.
 local M = mod and mod'lines.motion' or {}
 
 local mty = require'metaty'
@@ -10,25 +11,26 @@ local min, max = math.min, math.max
 
 local byte, char = string.byte, string.char
 
---- decrease distance (start -> end) by 1
+--- Move [$s] closer to [$e] by 1.[{br}]
+--- If they are equal do nothing.
 M.decDistance = function(s, e) --> int
   if s == e then return e end
   return (s < e) and (e - 1) or (e + 1)
 end
 
---- return whether l.c is <= l2.c2
+--- Return whether [$l.c] is equal to or before [$l2.c2].
 M.lcLe = function(l, c, l2, c2) --> bool
   if l == l2 then return c <= c2 end
   return l < l2
 end
 
---- return whether l.c is >= l2.c2
+--- Return whether [$l.c] is equal to or after [$l2.c2]
 M.lcGe = function(l, c, l2, c2) --> bool
   if l == l2 then return c >= c2 end
   return l > l2
 end
 
---- return the top-left of two points
+--- Return the top-left (aka the minimum) of two points.
 M.topLeft = function(l, c, l2, c2) --> (l, c)
   if not c then
     assert(not c2); return sort2(l, l2), 1
@@ -38,7 +40,7 @@ M.topLeft = function(l, c, l2, c2) --> (l, c)
   return l2, c2
 end
 
--- return whether a cursor is within a range
+-- Return whether [$l.c] is between [$l1.c1 - l2.c2] (inclusive).
 M.lcWithin = function(l, c, l1, c1, l2, c2) --> bool
   if l1 > l2 then l1, c1, l2, c2 = l2, c2, l1, c1
   elseif l1 == l2 then
@@ -70,6 +72,8 @@ WordKind['['] = '[]'; WordKind[']'] = '[]'
 WordKind['{'] = '{}'; WordKind['}'] = '{}'
 WordKind['"'] = '"'   WordKind["'"] = "'"
 
+--- Given a character, return it's word-kind:
+--- ws (whitespace), sym (symbol), let (letter).
 M.wordKind = function(ch) --> ws|sym|let
   return WordKind[ch] or 'let' -- letter
 end
@@ -78,15 +82,18 @@ M.PathKind = ds.copy(M.WordKind); local PathKind = M.PathKind
 for _, c in ipairs{'/', '.', '-', ':', '#'} do
   M.PathKind[c] = nil
 end
+
+--- Given a character, return it's path-kind:
+--- ws (whitespace), sym (symbol), path (path)
 M.pathKind = function(ch) --> ws|sym|path
   return PathKind[ch] or 'path'
 end
 
---- Go forward to find the start of the next word
-M.forword = function(s, begin, getKind) --> int
-  begin, getKind = begin or 1, getKind or M.wordKind
-  local i, kStart = begin+1, getKind(s:sub(begin,begin))
-  for ch in string.gmatch(s:sub(begin+1), '.') do
+--- Get the start of the next word from si (start-index).
+M.forword = function(s, si, getKind) --> int
+  si, getKind = si or 1, getKind or M.wordKind
+  local i, kStart = si+1, getKind(s:sub(si,si))
+  for ch in string.gmatch(s:sub(si+1), '.') do
     local k = getKind(ch)
     if k ~= kStart then
       if kStart ~= 'ws' and k == 'ws' then
@@ -97,10 +104,10 @@ M.forword = function(s, begin, getKind) --> int
   end
 end
 
---- Go backward to find the start of this (or previous) word
-M.backword = function(s, end_, getKind) --> int
+--- Get the start of the previous word from ei (end-index).
+M.backword = function(s, ei, getKind) --> int
   getKind = getKind or M.wordKind
-  s = s:sub(1, end_-1):reverse()
+  s = s:sub(1, ei-1):reverse()
   local i, kStart = 2, getKind(s:sub(1,1))
   for ch in string.gmatch(s:sub(2), '.') do
     local k = getKind(ch)
@@ -128,11 +135,12 @@ M.getRange = function(s, i, getKind) --> si,ei
   return si, ei
 end
 
---- find backwards
---- this searches for the pattern and returns the LAST one found.
---- This is HORRIBLY non-performant, only use for small amounts of data
-M.findBack = function(s, pat, end_, plain) --> int
-  local s, fs, fe = s:sub(1, end_), nil, 0
+--- find backwards from ei (end index).[{br}]
+--- This searches for the pattern and returns the LAST one found.
+--- This is HORRIBLY non-performant, only use for small amounts of data (like a
+--- line).
+M.findBack = function(s, pat, ei, plain) --> int
+  local s, fs, fe = s:sub(1, ei), nil, 0
   assert(#s < 256)
   while true do
     local _fs, _fe = s:find(pat, fe + 1, plain)

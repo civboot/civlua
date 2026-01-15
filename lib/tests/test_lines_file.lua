@@ -13,8 +13,9 @@ local ix      = require'civix'
 
 local G = mty.G
 local push, icopy = table.insert, ds.icopy
+local s = ds.simplestr
 
-local O = '.out/ele/'
+local O = '.out/lines_file/'
 local TXT, IDX = O..'lines.txt', O..'lines.idx'
 local SMALL = ds.srcdir()..'data/small.txt'
 
@@ -118,7 +119,7 @@ T.File = function()
   T.eq({'one', 'two', 'three', ''}, ds.icopy(f))
   T.eq('two', f:get(2))
 
-  f = File{path=TXT, mode='w+'}
+  f = File{TXT, mode='w+'}
   f:write'line 1\nline 2\nline 3'; f:flush()
   -- FIXME: for some reason this sometimes has a HUGE number of indexes.
   -- ... are these tests running concurrently and I'm actually seeing
@@ -231,6 +232,18 @@ T.EdFile_write = function()
   T.eq(5, #ed)
   ed:set(1, 'zero 0') -- same
   T.eq(expect, ds.icopy(ed))
+
+  local f = assert(io.open(O..'ed.dump', 'w+'))
+  ed:dumpf(f)
+  f:flush(); f:seek'set'
+  T.eq(5, #ed)
+  T.eq(s[[
+    zero 0
+    one 1
+    two
+    three
+    five 5
+  ]], pth.read(O..'ed.dump'))
 end
 
 T.EdFile_big = function()

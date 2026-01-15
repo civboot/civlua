@@ -1,7 +1,7 @@
 local mty = require'metaty'
 
---- Usage: [$File{path='path/to/file.txt', mode='r'}][{br}]
---- Indexed file of lines supporting read and append.
+--- Usage: [$File{'path/to/file.txt', mode='r'}][{br}]
+--- Indexed file of lines supporting modes 'r' and 'a+'.
 ---
 --- ["use EdFile instead if you need to do non-append edits]
 local File = mty.recordMod'File' {
@@ -59,9 +59,11 @@ function File:_reindex(idx, l, pos) --!> nil
 end
 
 getmetatable(File).__call = function(T, t) --> File?, errmsg?
-  t = t and assert(type(t) == 'table') and t or {}
+  t = t or {}
+  if type(t) == 'string' then t = {path=t} end
+  if t[1]                then t.path = t[1]; t[1] = nil end
   trace('%s.init%q', mty.tyName(T), t)
-  local f, err, idx, fstat, xstat -- FIXME: remove fstat/xstat
+  local f, err, idx
   if t.tmp then
     f = t.tmp; t.tmp = nil
     idx, err = U3File:create(); if not idx then return nil, err end
@@ -84,7 +86,7 @@ end
 
 function File:close()
   if self.idx then self.idx:close()             end
-  if self.f   then self.f:close(); lf.f = false end
+  if self.f   then self.f:close(); self.f = false end
 end
 function File:flush() --> ok, errmsg?
   local o,e = self.idx:flush(); if not o then return o,e end

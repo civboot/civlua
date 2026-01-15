@@ -1,6 +1,4 @@
 Review Docs
-* lines
-  * at diff right now
 * lson
 * luk
 * metaty
@@ -11,6 +9,7 @@ Review Docs
 * vt100
 
 General
+* kev is rendering weird...
 * I need io.open/etc to respect G.PWD
 * Have good way to check if sh command exists.
   Check for stuff in pvc, especially merge (install rcs).

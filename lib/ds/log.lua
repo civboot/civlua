@@ -62,7 +62,6 @@ M.setLevel = function(lvl)
 end
 M.setLevel(G.LOGLEVEL)
 
-
 function M.logFn(lvl, loc, fmt, ...)
   if LOGLEVEL < lvl then return end
   local f, lasti, i, args, nargs = io.fmt, 1, 0, {...}, select('#', ...)

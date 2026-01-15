@@ -1,16 +1,17 @@
-local G = G or _G
+local mty = require'metaty'
+
 --- kev: "Key Equal Value" serialization format.
 ---
 --- This is an extremely common format in many unix utilities, "good enough"
 --- for a large number of configuration use cases. The format is simple: a file
 --- containing lines of [$key=value]. The input and output are a table of
---- key,val strings (though tostring is called for [$to()]). Lines which don't
---- have [$=] in them are ignored.
+--- key,val strings (though tostring is called for [$to()]). Lines which start
+--- with [$#] or don't have [$=] in them are ignored.
 ---
 --- Nested data is absolutely not supported. Spaces are treated as literal both
 --- before and after [$=]. If you want a key containing [$=] or key/value
---- containing newline then use a different format.
-local M = G.mod and mod'lines.kev' or {}
+--- containing newline then use a different format (or write your own).
+local M = mty.mod'lines.kev'
 
 local lines = require'lines'
 local split = require'ds'.split
@@ -32,7 +33,8 @@ end
 M.from = function(lines, to)
   to = to or {}
   for _, line in ipairs(lines) do
-    local i = find(line, '='); if i then
+    local i = not (line:sub(1,1)=='#') and find(line, '=')
+    if i then
       to[line:sub(1, i-1)] = line:sub(i+1)
     end
   end

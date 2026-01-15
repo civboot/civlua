@@ -1,5 +1,6 @@
 local G = G or _G
---- utilities for file loading of lines.
+--- utilities for file loading of lines. Generally users shouldn't
+--- need to use this file.
 local M = G.mod and mod'lines.futils' or {}
 
 local pth = require'ds.path'
