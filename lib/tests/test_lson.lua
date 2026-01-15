@@ -10,7 +10,7 @@ local Tm = mod'Tm'
 
 local function testString(encoded, decoded)
   local de = mty.construct(M.De, {l=1, c=1, line=encoded})
-  T.eq(decoded, M.deString(de))
+  T.eq(decoded, M._deString(de))
 end
 T.string = function()
   testString([["example string"]],     [[example string]])

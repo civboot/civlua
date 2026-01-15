@@ -1,10 +1,23 @@
+#!/usr/bin/env -S lua
+local shim = require'shim'
 
-local M = mod and mod'lson' or {}
+--- lson JSON+ command and library.
+---
+--- [*Cmd usage:] [$lson path/to/file.json][{br}]
+--- The command pretty-prints JSON+ as a lua object.
+---
+---
+--- [*Lib usage:] [$tbl = lson.decode('{1: 2}')][{br}]
+--- As a library it allows de/serialization of JSON+ to/from
+--- Lua values.
+local M = shim.cmd'lson' {}
+
 local mty = require'metaty'
 local fmt = require'fmt'
 local ds = require'ds'
 local log = require'ds.log'
 local pod = require'pod'
+local lines = require'lines'
 
 local empty = ds.empty
 local push, concat = table.insert, table.concat
@@ -34,8 +47,10 @@ M.lson = function(v, pretty) --> string
   return concat(enc(v))
 end
 
--- Decode JSON/LSON string to lua value
-M.decode = function(s, podder, pset) return De(s)(podder, pset) end --> obj
+--- Decode JSON/LSON string or lines object to a lua value.
+M.decode = function(s, podder, pset) --> value
+  return De(s)(podder, pset)
+end
 
 ------------------
 -- JSON Encoder
@@ -104,8 +119,10 @@ local ENC_BYTES = {
 local function mbytes(backs, esc)
   return rep('\\', #backs * 2)..ENC_BYTES[esc]
 end
--- encode as |bytes| instead of "string" for lson
--- You can set Enc.string = lson.bytes for this behavior
+
+--- The bytes type-encoder. Encodes as [$|bytes|] instead of [$"string"] for
+--- lson You can set [$Enc.string = lson.bytes] for this behavior (or use the
+--- Lson type).
 M.bytes = function(f, s)
   f:write('|', s:gsub('(\\*)([\\\n|n])', mbytes), '|')
 end
@@ -128,16 +145,16 @@ end
 -- Decoder
 local eval = function(s) return load('return '..s, nil, 't', empty) end
 
-M.deNull  = function(de) de:consume'^null';  return de.null end
-M.deTrue  = function(de) de:consume'^true';  return true    end
-M.deFalse = function(de) de:consume'^false'; return false   end
-M.deNumber = function(de)
+M._deNull  = function(de) de:consume'^null';  return de.null end
+M._deTrue  = function(de) de:consume'^true';  return true    end
+M._deFalse = function(de) de:consume'^false'; return false   end
+M._deNumber = function(de)
   local str = de:consume'^[^%s:,%]}]+'
   local n = de:assert(eval(str))()
   assert(type(n) == 'number')
   return n
 end
-M.deString = function(de)
+M._deString = function(de)
   local c, line, q1, c2 = de.c + 1, de.line
   while true do
     q1, c2 = line:find('\\*"', c)
@@ -153,7 +170,7 @@ local DE_BYTES = {
   ['\\\n'] = '\\\n', ['\\n'] = '\n',
   ['\\|']  = '|',    ['\\']  = '\\', ['\\\\'] = '\\',
 }
-M.deBytes = function(de) -- |binary data|
+M._deBytes = function(de) -- |binary data|
   local b, l, c, line = {}, de.l, de.c + 1, de.line
   local c1, c2 = c
   while true do
@@ -176,7 +193,7 @@ M.deBytes = function(de) -- |binary data|
   de.l, de.c, de.line = l, c, line
   return concat(b):gsub('\\[\nn|\\]?', DE_BYTES)
 end
-M.deArray = function(de)
+M._deArray = function(de)
   de.c = de.c + 1
   local arr, value, line, c = {}
   while true do
@@ -188,7 +205,7 @@ M.deArray = function(de)
   de.c = de.c + 1
   return arr
 end
-M.deObject = function(de)
+M._deObject = function(de)
   de.c = de.c + 1
   local obj, key, val, line, c = {}
   while true do
@@ -207,11 +224,11 @@ end
 
 --- starting characters indicating what to parse
 local DE_FNS = {
-  n=M.deNull, t=M.deTrue, f=M.deFalse, ['-'] = M.deNumber,
-  ['"']=M.deString, ['|']=M.deBytes,
-  ['{']=M.deObject, ['[']=M.deArray,
+  n=M._deNull, t=M._deTrue, f=M._deFalse, ['-'] = M._deNumber,
+  ['"']=M._deString, ['|']=M._deBytes,
+  ['{']=M._deObject, ['[']=M._deArray,
 }; for c=string.byte'0',string.byte'9' do
-  DE_FNS[string.char(c)] = M.deNumber
+  DE_FNS[string.char(c)] = M._deNumber
 end
 
 --- [$De(string or lines) -> value-iter]
@@ -224,7 +241,7 @@ M.De = mty'De' {
   'l [int]', 'c [int]', 'line [string]',
 }
 getmetatable(M.De).__call = function(T, dat)
-  if type(dat) == 'string' then dat = {dat} end
+  if type(dat) == 'string' then dat = lines(dat) end
   return mty.construct(T, {dat=dat, l=1, c=1, line=dat[1]})
 end
 
@@ -268,4 +285,11 @@ M.De.__call = function(de, podder, pset)
 end
 
 Json, Lson, De = M.Json, M.Lson, M.De -- locals
+
+function M:__call()
+  local lns = lines.load(assert(self[1], 'must set path'))
+  fmt.pprint(M.decode(lns))
+end
+
+if shim.isMain(M) then M:main(arg) end
 return M

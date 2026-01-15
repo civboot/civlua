@@ -5,7 +5,12 @@ local P = { summary = "JSON+ de/serializer in pure lua" }
 -- Note: tests are in lib/tests/
 P.lson = lua {
   mod = 'lson',
+  dep = {
+    'civ:lib/lines',
+    'civ:lib/pod',
+  },
   tag = { builder = 'bootstrap' },
+  link = {['lua/lson.lua'] = 'bin/lson'},
 }
 
 return P

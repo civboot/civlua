@@ -325,12 +325,13 @@ M.print  = function(...) return fprint(io.fmt, ...) end
 --- pretty print
 M.pprint = function(...)
   local f; if io.fmt then
+    -- FIXME: Whoa... I'm making copy here? Improve this...
     f = {}
-    for k,v in pairs(io.fmt) do self[k] = v end
-    setmetatable(self, getmetatable(io.fmt))
-    self:toPretty()
+    for k,v in pairs(io.fmt) do f[k] = v end
+    setmetatable(f, getmetatable(io.fmt))
+    f:toPretty()
   end
-  return M.fprint(self, ...)
+  return M.fprint(f, ...)
 end
 
 --- pretty format the value

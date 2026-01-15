@@ -18,6 +18,7 @@ local Tm_DOC =
 "[{h3 name=TestMod}Mod TestMod]\
 Example module\
 \
+\
 [*Types: ][<#TestMod.A>A] \
 \
 [*Functions] [+\
