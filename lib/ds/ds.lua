@@ -674,7 +674,7 @@ end
 --- Adding keys is always allowed but getting non-existant keys is an error.
 M.TypoSafe = mty'TypoSafe'{}
 getmt(M.TypoSafe).__call = mty.constructUnchecked
-getmt(M.TypoSafe).__index = mty.index
+getmt(M.TypoSafe).__index = mty.hardIndex
 M.TypoSafe.__newindex = nil
 
 

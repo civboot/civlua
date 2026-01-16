@@ -11,7 +11,7 @@ local U3File = mty.extendMod(IFile, 'lines.U3File', {})
 
 local pack, unpack = string.pack, string.unpack
 local sfmt = string.format
-local index, newindex = mty.index, mty.newindex
+local index, newindex = mty.hardIndex, mty.newindex
 
 local icreate, ireload, iload = IFile.create, IFile.reload, IFile.load
 local getbytes, setbytes = IFile.getbytes, IFile.setbytes

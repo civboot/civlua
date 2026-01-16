@@ -84,10 +84,10 @@ local M = mod'metaty'
 --- Calling [$metaty.setup()] makes non-G globals typosafe.
 M.G = G
 
--- mod: create typosafe mod.
---
--- usage: [$local M = mod'name']
+--- Usage: [$local M = mty.mod'name'][{br}]
+--- Create typosafe module.
 M.mod = mod
+--- Return whether the value is a module.
 M.isMod = function(t) --> boolean
   if type(t) ~= 'table' then return false end
   local mt = getmetatable(t)
@@ -120,7 +120,9 @@ end
 
 -- set of concrete types
 M.CONCRETE, M.BUILTIN = CONCRETE, BUILTIN
+--- Return whether v is a nil, boolean, number or string.
 M.isConcrete = function(v) return CONCRETE[type(v)] end
+--- Return whether v is concrete or a table with no metatable.
 M.isBuiltin = function(obj)
   return M.isConcrete(obj) or (obj == nil) or (getmetatable(obj) == nil)
 end
@@ -131,18 +133,19 @@ local IS_ENV = { ['true']=true,   ['1']=true,
                  ['false']=false, ['0']=false, ['']=false }
 local EMPTY = {}
 
---- isEnv: returns boolean for below values, else nil
+--- Given a string return whether os.getenv returns 'true' or '1'.
 M.isEnv = function(var)
   var = os.getenv(var); if var then return IS_ENV[var] end
 end
+--- Same as isEnv but first checks globals.
 M.isEnvG = function(var) -- is env or globals
-  local e = M.isEnv(var); if e ~= nil then return e end
-  return G[var]
+  if G[var] ~= nil then return G[var] end
+  return M.isEnv(var)
 end
 
---- get method of table if it exists.
---- This first looks for the item directly on the table, then the item
---- in the table's metatable. It does NOT use the table's normal [$__index].
+--- Get method of table if it exists.[{br}]
+--- This first looks for the item directly on the table, then the item in the
+--- table's metatable. It does NOT use the table's normal [$__index].
 M.getmethod = function(t, method)
   return rawget(t, method) or rawget(getmt(t) or EMPTY, method)
 end
@@ -151,13 +154,14 @@ end
 -- general functions and constants
 M.DEPTH_ERROR = '{!max depth reached!}'
 
---- Get the type of the value.
-M.ty = function(v) --> type: string or metatable
+--- Get the type of the value which is either the values metatable or the
+--- string result of [$type(v)].
+M.ty = function(v) --> type
   local t = type(v)
   return t == 'table' and getmt(v) or t
 end
 
---- Given a type return it's name
+--- Given a type return it's name.
 M.tyName = function(T, default) --> string
   local Tty = type(T)
   return Tty == 'string' and T
@@ -166,7 +170,7 @@ M.tyName = function(T, default) --> string
 end
 
 --- Given an object (function, table, userdata) return its name.
---- return nil if it's not one of the above types
+--- Return it's string type if it's not one of the above types.
 M.name = function(o)
   local ty = type(o)
   return ty == 'function' and M.fninfo(o)
@@ -175,12 +179,13 @@ M.name = function(o)
       or ty
 end
 
-M.callable = function(obj) --> bool: return if obj is callable
+--- Return whether obj is callable (function or has [$mt.__call]).
+M.callable = function(obj) --> bool
   if type(obj) == 'function' then return true end
   local m = getmt(obj)
   return m and rawget(m, '__call') and true
 end
-M.metaget = function(t, k)   return rawget(getmt(t), k) end
+local function metaget(t, k)   return rawget(getmt(t), k) end
 
 --- keywords https://www.lua.org/manual/5.4/manual.html
 M.KEYWORD = {}; for kw in string.gmatch([[
@@ -190,7 +195,9 @@ local     nil       not       or        repeat    return
 then      true      until     while
 ]], '%w+') do M.KEYWORD[kw] = true end
 
-M.validKey = function(s) --> boolean: s=value is valid syntax
+--- Return whether s can be used directly as a key
+--- in syntax.
+M.validKey = function(s) --> boolean
   return type(s) == 'string' and
     not (M.KEYWORD[s] or tonumber(s)
          or s:find'[^_%w]')
@@ -350,21 +357,10 @@ end
 
 -----------------------------
 -- Equality
-M.nativeEq = function(a, b) return a == b end
-local NATIVE_TY_EQ = {
-  number   = rawequal,   boolean = rawequal, string = rawequal,
-  userdata = M.nativeEq, thread  = M.nativeEq,
-  ['nil']  = rawequal,   ['function'] = rawequal,
-  ['table'] = function(a, b)
-    if a == b then return true end
-    local mt = getmt(a)
-    if type(mt) == 'table' and rawget(mt, '__eq') then
-      return false -- true equality already tested
-    end
-    return M.eqDeep(a, b)
-  end,
-}
-M.eqDeep = function(a, b)
+
+local function nativeEq(a, b) return a == b end
+
+local function eqDeep(a, b)
   if rawequal(a, b)     then return true   end
   if M.ty(a) ~= M.ty(b) then return false  end
   local aLen, eq = 0, M.eq
@@ -379,39 +375,65 @@ M.eqDeep = function(a, b)
   return aLen == bLen
 end
 
---- compare tables or anything else
+local NATIVE_TY_EQ = {
+  number   = rawequal,   boolean = rawequal, string = rawequal,
+  userdata = nativeEq,   thread  = nativeEq,
+  ['nil']  = rawequal,   ['function'] = rawequal,
+  ['table'] = function(a, b)
+    if a == b then return true end
+    local mt = getmt(a)
+    if type(mt) == 'table' and rawget(mt, '__eq') then
+      return false -- true equality already tested
+    end
+    return eqDeep(a, b)
+  end,
+}
+
+--- Compare two values (any values) for equality. This will
+--- recursively check tables for equality.
 M.eq = function(a, b) return NATIVE_TY_EQ[type(a)](a, b) end --> bool
 
 -----------------------
 -- record
-M.indexError = function(R, k, lvl) -- note: can use directly as mt.__index
+
+--- Throws a formatted index error when called.
+M.indexError = function(R, k, lvl)
   error(sfmt('%q is not a field of %s', k, R.__name), lvl or 2)
 end
 
+--- Usage: [$getmetable(MyType).__index = mty.index][{br}]
+--- Allows integers to be insert into your value. This is the default __index.
 M.index = function(R, k) -- Note: R is record's metatable
   if type(k) == 'string' and not rawget(R, '__fields')[k] then
     M.indexError(R, k, 3)
   end
 end
+--- Usage: [$getmetable(MyType).__index = mty.index][{br}]
+--- Allows nothing except your type's fields to be insert into
+--- your value.
 M.hardIndex = function(R, k)
   if type(k) ~= 'string' or not rawget(R, '__fields')[k] then
     M.indexError(R, k, 3)
   end
 end
+--- Usage: [$MyType.__newindex = mty.newindex][{br}]
+--- This allows non-string keys to always be insert and is the default.
 M.newindex = function(r, k, v)
-  if type(k) == 'string' and not M.metaget(r, '__fields')[k] then
+  if type(k) == 'string' and not metaget(r, '__fields')[k] then
     M.indexError(getmt(r), k, 3)
   end
   rawset(r, k, v)
 end
+--- Usage: [$MyType.__newindex = mty.hardNewindex][{br}]
+--- This allows only registered fields to be insert.
 M.hardNewindex = function(r, k, v)
-  if type(k) ~= 'string' or not M.metaget(r, '__fields')[k] then
+  if type(k) ~= 'string' or not metaget(r, '__fields')[k] then
     M.indexError(getmt(r), k, 3)
   end
   rawset(r, k, v)
 end
 
-M.fieldsCheck = function(T, fields, t)
+local function fieldsCheck(T, fields, t)
   local tkey; while true do
     tkey = next(t, tkey); if not tkey then return end
     if type(tkey) == 'string' and not fields[tkey] then
@@ -419,15 +441,26 @@ M.fieldsCheck = function(T, fields, t)
     end
   end
 end
+
+--- Usage: [$getmetatable(MyType).__call = mty.constructChecked]
+---
+--- Check type with field typochecking. This is the default when
+--- [$LUA_OPT <= 2]
 M.constructChecked = function(T, t)
-  M.fieldsCheck(T, rawget(T, '__fields'), t)
+  fieldsCheck(T, rawget(T, '__fields'), t)
   return setmetatable(t, T)
 end
+--- Usage: [$getmetatable(MyType).__call = mty.constructUnchecked]
+---
+--- Check type with field typochecking. This is the default when
+--- [$LUA_OPT >= 3].
 M.constructUnchecked = function(T, t)
   return setmetatable(t, T)
 end
+--- [$constructChecked] or [$constructUnchecked] depending on [$LUA_OPT].
 M.construct = (G.LUA_OPT <= 2 and M.constructChecked) or M.constructUnchecked
-M.extendFields = function(fields, ids, docs, R)
+
+local function extendFields(fields, ids, docs, R)
   for i=1,#R do
     local spec = rawget(R, i); rawset(R, i, nil)
     -- name [type] : some docs, but [type] and ':' are optional.
@@ -456,12 +489,12 @@ M.extendFields = function(fields, ids, docs, R)
   return fields, ids, docs
 end
 
-M.namedRecord = function(name, R, loc)
+M._namedRecord = function(name, R, loc)
   rawset(R, '__name', name)
   local fieldIds = {}; for id in ipairs(R.reserved or {}) do
     fieldIds[id] = id
   end; R.reserved = nil
-  R.__fields, R.__fieldIds, R.__docs = M.extendFields({}, fieldIds, {}, R)
+  R.__fields, R.__fieldIds, R.__docs = extendFields({}, fieldIds, {}, R)
   R.__fmt      = rawget(R, '__fmt')      or M.fmt
   R.__doc      = rawget(R, '__doc')      or M.doc
   R.__tostring = rawget(R, '__tostring') or M.tostring
@@ -483,30 +516,33 @@ M.namedRecord = function(name, R, loc)
   return R
 end
 
---- Start a new record.
---- Alternatively, call the metaty module directly.
+--- Usage: [$$record'name'{ 'field [type]: documentation' }]$
+---
+--- Start a new record. See module documentation for details.
 M.record = function(name)
   assert(type(name) == 'string' and #name > 0,
          'must set name to string')
-  return function(R) return M.namedRecord(name, R) end
+  return function(R) return M._namedRecord(name, R) end
 end
 
---- Start a new record which acts as a lua module (i.e. the file doesn't use
---- [$metaty.mod])
+--- Start a new record which acts as a lua module (i.e. the file returns it).
 M.recordMod = function(name)
   return function(R)
-    R = M.namedRecord(name, R)
+    R = M._namedRecord(name, R)
     mod.save(R.__name, R)
     return R
   end
 end
 
+--- Return true if [$t] is a record value.
 M.isRecord = function(t)
   if type(t) ~= 'table' then return false end
   local mt = getmt(t)
   return mt and mt.__name and mt.__name:find'^Ty<'
 end
 
+--- Usage: [$mty.extend(MyBase, 'NewName', {...new fields...})]
+---
 --- Extend the Type with (optional) new name and (optional) additional fields.
 M.extend = function(Type, name, fields)
   assert(type(Type) == 'table' and getmt(Type), 'arg 1 must be Type')
@@ -517,7 +553,7 @@ M.extend = function(Type, name, fields)
   E.__index = E
   E.__fields   = update({}, E.__fields);
   E.__fieldIds = update({}, E.__fieldIds);
-  E.__fields, E.__fieldIds, E.__docs = M.extendFields(
+  E.__fields, E.__fieldIds, E.__docs = extendFields(
     update({}, E.__fields),
     update({}, E.__fieldIds),
     update({}, E.__docs),
@@ -534,12 +570,12 @@ M.extendMod = function(T, name, fields)
   return T
 end
 
-M.enum_tostring = function(E) return E.__name end
-M.enum_toPod = function(E, pset, e)
+local enum_tostring = function(E) return E.__name end
+local enum_toPod = function(E, pset, e)
   if pset.enumIds then return E.id(e) else return E.name(e) end
 end
-M.enum_fromPod = function(E, pset, e) return E.name(e) end
-M.enum_partialMatcher = function(E, fnMap)
+local enum_fromPod = function(E, pset, e) return E.name(e) end
+local enum_partialMatcher = function(E, fnMap)
   for name, fn in pairs(fnMap) do
     if not E.__names[name] then error(name..' is not in enum '..E.__name) end
     if not M.callable(fn) then error(name ..'is not callable') end
@@ -549,7 +585,7 @@ M.enum_partialMatcher = function(E, fnMap)
   end
   return fnMap
 end
-M.enum_matcher = function(E, fnMap)
+local enum_matcher = function(E, fnMap)
   local missing = {}
   for name in pairs(E.__names) do
     if not fnMap[name] then push(missing, name) end
@@ -562,7 +598,7 @@ M.enum_matcher = function(E, fnMap)
 end
 
 local ENUM_INVALID = {id=1, name=1, matcher=1, partialMatcher=2}
-M.namedEnum = function(ename, nameIds)
+local function namedEnum(ename, nameIds)
   local names, ids = {}, {}
   for name, id in pairs(nameIds) do
     assert(type(name) == 'string' and #name > 0,
@@ -582,11 +618,11 @@ M.namedEnum = function(ename, nameIds)
                        or error(tostring(v)..errmsg) end,
     id = function(v) return ids[v]
                      or error(tostring(v)..errmsg) end,
-    __tostring = M.enum_tostring,
-    matcher = M.enum_matcher, partialMatcher = M.enum_partialMatcher,
+    __tostring = enum_tostring,
+    matcher = enum_matcher, partialMatcher = enum_partialMatcher,
   }
   for name in pairs(nameIds) do E[name] = name end
-  E.__toPod, E.__fromPod = M.enum_toPod, M.enum_fromPod
+  E.__toPod, E.__fromPod = enum_toPod, enum_fromPod
   return setmetatable(E, {
     __name = ename, __tostring = E.__tostring,
     __index = function(k) error(sfmt(
@@ -595,59 +631,12 @@ M.namedEnum = function(ename, nameIds)
   })
 end
 
---- Create an enum type which can convert between string and integers.
----
---- This "type" is mainly to allow typosafe enums, both when creating the variant
---- (i.e. [$v = MyEnum.VARIANT]) and when matching using the [$matcher] method below.
---- It also allows using checked enums in [$ds.pod].
----
---- One of the main benefits of using an enum is to ensure that when you are
---- matching you don't make a typo mistake (i.e. WOKER instead of WORKER). In
---- lua there is no native [$switch] statement (or similar), but table lookup
---- on functions can be equally as good -- see the example below.
----
---- [{h2}Example]
---- [{$$$ lang=lua}
---- M.Job = enum'Job' {
----   OWNER   = 1,
----   MANAGER = 2,
----   COOK    = 3,
----   WAITER  = 4,
---- }
----
---- assert('OWNER', M.Job.OWNER)
----
---- -- either string or id will return string
---- assert('OWNER', M.Job.name(1))
---- assert('OWNER', M.Job.name('OWNER'))
----
---- -- either string or id will return id
---- assert(1, M.Job.id(1))
---- assert(1, M.Job.id('OWNER'))
----
---- -- create a table that converts a variant (name or id) -> function.
---- local doJob = M.Job:matcher {
----   OWNER   = function() print'tell them to get to work' end,
----   MANAGER = function() print'get to work!'             end,
----   COOK    = function() print'order up!'                end,
----   WAITER  = function() print'they want spam and eggs'  end,
----
----   -- Removing any of the above will cause an error that not all variants
----   -- are covered. You can use :partialMatcher if you want to
----   -- return nil instead.
----   --
----   -- Below will cause an error: no variant DISHWASHER
----   DISHWASHER = function() end
---- }
----
---- -- call in your own function like:
---- doJob[job](my, args)
---- ]$$
----
+--- Usage: [$mty.enum'name' { A = 1, B = 2, ... }][{br}]
+--- Create an enum type. See module documentation.
 M.enum = function(name)
   assert(type(name) == 'string' and #name > 0,
         'must name the enum using a string')
-  return function(nameIds) return M.namedEnum(name, nameIds) end
+  return function(nameIds) return namedEnum(name, nameIds) end
 end
 
 getmt(M).__call = function(T, name) return M.record(name) end

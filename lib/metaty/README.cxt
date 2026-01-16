@@ -1,29 +1,81 @@
-simple but effective Lua type system using metatables
-
-Metatype is a library and specification for creating performant, documented, and
-typo-safe Lua record-types which can be formatted.
+[{h1}metaty: typosafe types using Lua metatables]
+Metatype is a library and specification for creating performant, documented,
+and typo-safe Lua record-types which can be formatted.
 
 [" Turn off typo checking by setting the global [$LUA_OPT=3] or higher.]
 
-[{$$ lang=lua}
-local G = G or _G
---- module documentation
-local M = G.mod and mod'myMod' or {} -- (see pkg)
+[{h2 name=record}Mod and Record]
+Below is a simple example using [$metaty.mod] to create a module and calling
+metatype directly to create a record (the same as [$metaty.record]).
 
+[{$$ lang=lua}
 local mty = require'metaty'
 
--- Documentation for Pos (position)
+--- module documentation
+local M = mty.mod'myMod'
+
+--- Documentation for Pos (position)
 M.Pos = mty'Pos' {
+  -- fields are a string of form "name[type]: documentation",
   'x[int]: x coordinate',
   'y[int]: y coordinate', y = 0,
 }
 
 local p1 = Pos{x=4}
-local p1 = Pos{x=4, y=3, z=5} -- error if checking turned on
+local p1 = Pos{x=4, y=3, z=5} -- ERROR: does not have field z
 ]$
 
-The above expands to the following. Note that the "typosafe" elements
-are removed when [$LUA_OPT > 3]
+[{h2 name=enum}Enum Type]
+Metaty also supports creating typosafe enum types with
+[$metaty.enum]. An enum is typosafe both when creating the variant
+(i.e. [$v = MyEnum.VARIANT]) and when matching using the [$matcher] method
+below. It also allows using checked enums in [<pod.html>].
+
+One of the main benefits of using an enum is to ensure that when you are
+matching you don't make a typo mistake (i.e. WOKER instead of WORKER). In
+lua there is no native [$switch] statement (or similar), but table lookup
+on functions can be equally as good -- see the example below.
+
+[{$$$ lang=lua}
+M.Job = enum'Job' {
+  OWNER   = 1,
+  MANAGER = 2,
+  COOK    = 3,
+  WAITER  = 4,
+}
+
+assert('OWNER', M.Job.OWNER)
+
+-- string or id input returns string
+assert('OWNER', M.Job.name(1))
+assert('OWNER', M.Job.name('OWNER'))
+
+-- string or id input returns id
+assert(1, M.Job.id(1))
+assert(1, M.Job.id('OWNER'))
+
+-- create a table that converts a variant (name or id) -> function.
+local doJob = M.Job:matcher {
+  OWNER   = function() print'tell them to get to work' end,
+  MANAGER = function() print'get to work!'             end,
+  COOK    = function() print'order up!'                end,
+  WAITER  = function() print'they want spam and eggs'  end,
+
+  -- Removing any of the above will cause an error that not all variants
+  -- are covered. You can use :partialMatcher if you want to
+  -- return nil instead.
+  --
+  -- Below will cause an error: no variant DISHWASHER
+  DISHWASHER = function() end
+}
+
+-- call in your own function like:
+doJob[job](my, args)
+]$$
+
+[{:h2}Record Equivalent]
+The example in [<#record>] expands to the following. Note that the "typosafe"
+elements are removed when [$LUA_OPT > 3].
 [{$$ lang=lua}
 local M = {}
 local metaty = require'metaty'
@@ -65,9 +117,7 @@ PKG_LOOKUP['myMod.Pos'] = M.Pos
   ]
 ]
 
-See also: [<#Package_fmt>]
-
-[{h3 name=metaty-why}Why?]
+[{h2 name=metaty-why}Why?]
 
 Lua is a fast and fun language. However it often lacks the ability to express
 intent when it comes to the structure of data. Also, not only is it not
@@ -78,7 +128,7 @@ unit-test suite.
 Checking for typos incurrs a small performance cost, so it is disabled by
 default. However, it is well-worth the cost in your unit tests.
 
-[{h3 name=metaty-spec}Spec]
+[{h2 name=metaty-spec}Spec]
 For a type to be considered a "metaty" the only requirement is that it has a
 metatable set and that metatable has a [$__name] field.
 
@@ -99,7 +149,7 @@ The following fields can optionally be set on the metatable: [+
 
 In addition, there is runtime type specification defined below.
 
-[{h3 name=metaty-typoe-check}Runtime typo checking (optional)]
+[{h2 name=metaty-typoe-check}Runtime typo checking (optional)]
 ["Note: Runtime typo checking has a cost and can be disabled with
   LUA_OPT=3 or higher.]
 
@@ -109,7 +159,7 @@ getmetatable(MyType).__index = myIndex
 MyType.__newindex            = myNewIndex
 ]$
 
-[{h3 name=lua_opt}LUA_OPT]
+[{h2 name=lua_opt}LUA_OPT]
 [$LUA_OPT] is an integer from 0-3 which is intended to have the following
 semantic meanings: [+
 * [$4]: may be used for more optimization of certain library functions with

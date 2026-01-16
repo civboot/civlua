@@ -305,7 +305,7 @@ local function namedCmd(name, R)
   R.main   = R.main   or M._main
   R.__doc  = R.__doc  or M._doc
   R.__cmd  = R.__cmd  or name
-  R = mty.namedRecord(name, R)
+  R = mty._namedRecord(name, R)
   getmetatable(R).__call = M._constructCall
   G.MAIN = G.MAIN or R
   return R

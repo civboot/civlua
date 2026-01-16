@@ -29,7 +29,7 @@ local largs = lines._args
 local push, concat = table.insert, table.concat
 local getmt = getmetatable
 local split, construct = mty.split, mty.construct
-local index, newindex = mty.index, mty.newindex
+local index, newindex = mty.hardIndex, mty.newindex
 local check, WeakV = ds.check, ds.WeakV
 local get, set = ds.get, ds.set
 
