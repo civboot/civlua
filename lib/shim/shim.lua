@@ -1,6 +1,6 @@
 local mty = require'metaty'
 
---- shim: use a lua module in lua OR in the shell.
+--- shim: command line library for lua.
 local M = mty.mod'shim'
 local G = mty.G
 
@@ -99,15 +99,16 @@ local TOSTR = {
 --- Duck type: always return a string
 --- This is useful for some APIs where you want to convert
 --- number/true/false to strings
---- Converts nil to ''
+--- ["Converts nil to '']
 M.string = function(v)
   local f = TOSTR[type(v)]; if f then return f(v) end
   error('invalid type for shim.string: '..type(v))
 end
 
--- Duck type: always return a list.
--- default controls val==nil
--- empty   controls val==''
+--- Duck type: always return a list.[+
+--- * default controls val==nil
+--- * empty   controls val==''
+--- ]
 M.list = function(val, default, empty)
   if val == nil then val = default or {} end
   if empty and val == '' then return empty end
@@ -151,7 +152,7 @@ M.expand = function(args)
 end
 
 
--- return nil if env var does not exist, else boolean (true for 'true' or '1')
+--- return nil if env var does not exist, else boolean (true for 'true' or '1')
 M.getEnvBool = function(k)
   local v = os.getenv(k); if not v then return v end
   return ENV_VALS[lower(v)] or false

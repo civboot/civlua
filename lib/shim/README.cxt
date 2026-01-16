@@ -1,30 +1,22 @@
-write scripts for Lua, execute from shell. This is a tiny Lua module that makes
-it easy to write utilities that work from either bash or Lua.
+[{h1}shim: command line library for lua.]
+Write scripts as Lua libraries, execute them in the shell.
 
-Example script (see also: [<#pkg-script>]) [{$$ lang=lua}
+
+This is a tiny Lua module that makes it easy to write utilities
+that work from either bash or Lua.
+
+[*Usage:] [{$$ lang=lua}
 #!/usr/bin/env -S lua -e "require'pkglib'()"
-local G = G or _G -- typosafe globals
-
---- module documentation
-local M = G.mod and mod'myCmdName' or {} -- self-documenting module
-G.MAIN = G.MAIN or M
-
-local mty = require'metaty'
 local shim = require'shim'
 
---- Comamnd documentation
-M.Args = mty'Args' {
-  'name [string]: the name to say hello to', name='World',
+local M = shim.cmd'myModName' {
+  'arg [type]: documentation',
+    arg = 'default-value',
 }
 
-M.main = function(args)
-  args = M.Args(shim.parseStr(args))
-  print('Hello '..args.name..'!')
-end
+-- ... nomral lua module
+function M.someFunction() ... end
 
-if M == MAIN then M.main(G.arg) end
+if shim.isMain(M) then M:main(arg) end
 return M -- return as library
 ]$
-
-Then in [$PKG.luk] add [$main = 'myCmdName.Main'] to enable better
-documentation formatting. Get documentation with [$doc 'myCmdName'].
