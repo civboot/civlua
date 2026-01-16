@@ -350,7 +350,7 @@ end
 function M.Civ:loadPkg(pkgname)
   pkgnameValidate(pkgname)
   local pkg, err = self.pkgs[pkgname]; if pkg then return pkg end
-  luk.checkCycle(self.cycle, pkgname)
+  luk._checkCycle(self.cycle, pkgname)
   info('loading pkg %q', pkgname)
   push(self.cycle, pkgname); self.cycle[pkgname] = 1
 

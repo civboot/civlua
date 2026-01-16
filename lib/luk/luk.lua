@@ -1,6 +1,6 @@
 local mty = require'metaty'
 
---- luk: lua config language.
+--- luk: lua config language.[{br}]
 local M = mty.mod'luk'
 
 local fmt = require'fmt'
@@ -15,7 +15,7 @@ local getmt = getmetatable
 
 M.ENV = dload.ENV
 
-function M.checkCycle(cycle, path)
+function M._checkCycle(cycle, path)
   if cycle[path] then
     push(cycle, path)
     error('cycle detected:\n  '
@@ -23,7 +23,11 @@ function M.checkCycle(cycle, path)
   end
 end
 
---- A luk table object
+--- A normal table except if you set [$__call] it will make
+--- the table callable (since luk doesn't support setmetatable).
+---
+--- In addition, this will likely be frozen (made immutable)
+--- after being returned from a luk module.
 M.Table = mty'Table' {}
 getmt(M.Table).__call = function(T, self)
   for k, v in pairs(self) do
@@ -42,13 +46,16 @@ M.Table.__newindex = nil
 getmt(M.Table).__index = nil
 M.Table.__fmt = fmt.table
 
---- Convert value to luk-value
+--- Convert value to luk-value. This is mostly used internally,
+--- but feel free to use it as well.
 function M.value(v)
   return type(v) == 'table' and not getmt(v) and M.Table(v)
       or v
 end
 
---- The luk loader.
+--- Usage: [$Luk{}:import'path/to/file.luk'][{br}]
+--- The luk loader. Allows (recursively) importing a luk
+--- module. Keeps a cache of already imported paths files.
 M.Luk = mty'Luk' {
   'imported {string: pod}: table of ipath -> imported luk',
   'imports {string: {string}}: table of ipath to its imports for dependency analysis.',
@@ -78,7 +85,7 @@ function M.Luk:import(path, wd) --> lukMod?, ds.Error?
   path = self:resolve(path, wd)
   local lk = self.imported[path]; if lk then return lk end
   info('loading luk: %q', path)
-  M.checkCycle(self.cycle, path)
+  M._checkCycle(self.cycle, path)
   push(self.cycle, path); self.cycle[path] = 1
   self.imports[path] = {}
   local pathWd, env = pth.dir(path), {}

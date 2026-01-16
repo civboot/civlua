@@ -1,0 +1,29 @@
+[{h1}Luk: Lua Konfig Language]
+Luk is a config language written in Lua... actually it [,is] lua, just with
+different globals!
+
+Most of luk's globals come from [@ds.dload]. In addition to those globals, Luk
+provides an (overrideable) [$import'name'] function which can import other Luk
+files (by path).
+
+[*Usage:][{$$ lang=lua}
+local flowers = import'path/to/flowers.luk'
+
+-- Do normal lua stuff.
+local count = {}
+for _, flower in pairs(flowers) do
+  count[flower.kind] = (count[flower.kind] or 0) + 1
+end
+
+return {
+  name = 'flower metrics',
+  kind_count = count,
+}
+]$
+
+Each luk module runs in it's [,own hermetic environment] - that means it cannot
+access globals from other modules, though it can of course see the table they
+return.
+
+Note that in the future, luk will likely force all values returned by a luk
+module to also be immutable, meaning you won't be able to change them.
