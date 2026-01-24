@@ -9,10 +9,9 @@ local IFile = mty'ds.IFile' {
   'sz [int]: the size of each value',
 }
 
-local mtype = math.type
-local pack, unpack = string.pack, string.unpack
-local sfmt = string.format
-local info = require'ds.log'.info
+local mtype              = math.type
+local sfmt, pack, unpack = mty.from(string, 'format,pack,unpack')
+local info               = mty.from('ds.log  info')
 
 getmetatable(IFile).__index = mty.hardIndex
 IFile.__newindex            = mty.hardNewindex

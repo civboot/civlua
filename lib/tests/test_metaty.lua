@@ -188,6 +188,12 @@ test('enum', function()
   assert(not M.eq(T{i=3}, T{i=3, e=E.A}))
 end)
 
+test('from', function()
+  local record, enum = mty.from'metaty record,enum'
+  assertEq(mty.record, record)
+  assertEq(mty.enum,   enum)
+end)
+
 -- test('fmtFile', function()
 --   local f = Fmt{file=io.open('.out/TEST', 'w+')}
 --   f:fmt{1, 2, z='bob', a='hi'}

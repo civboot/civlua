@@ -639,6 +639,33 @@ M.enum = function(name)
   return function(nameIds) return namedEnum(name, nameIds) end
 end
 
+--- like require but returns nil if not found.
+M.want = function(mod) --> module?
+  local ok, m = pcall(function() return require(mod) end)
+  if ok then return m end
+end
+
+--- Usage: [$local bar, baz = mty.from'foo bar,baz'][{br}]
+--- Usage: [$local sfmt, srep = mty.from(string, 'format,rep')][{br}]
+--- Shortcut for: [{$$ lang=lua}
+--- local foo = require'foo'
+--- local bar, baz = foo.bar, foo.baz
+--- ]$
+M.from = function(a, b)
+  local m, str -- mod and str to split
+  if b then
+    m = type(a)=='string' and assert(require(a), a) or a
+    str = b
+  else
+    m = assert(require(a:match'[^%s,]+'))
+    str = a:match'[^%s,]+[%s,]*(.*)'
+  end
+  local o = {}; for _, s in M.split(str, '[%s,]+') do
+    push(o, ( assert(m[s], s) ))
+  end
+  return table.unpack(o)
+end
+
 getmt(M).__call = function(T, name) return M.record(name) end
 assert(M.setup)
 return M

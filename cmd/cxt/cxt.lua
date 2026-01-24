@@ -17,6 +17,7 @@ local ds  = require'ds'
 local log = require'ds.log'
 local lines = require'lines'
 local T = require'civtest'
+local pegl = require'pegl'
 
 local I = log.info
 local sconcat, sfmt, srep = string.concat, string.format, string.rep
@@ -24,11 +25,10 @@ local add, pop = table.insert, table.remove
 local update   = table.update
 local max      = math.max
 
-local Key
-local Pat, Or, Not, Many, Maybe
-local Token, Empty, Eof, PIN, UNPIN
-local EMPTY, common
-local pegl = ds.auto'pegl'
+local Key                            = mty.from('pegl  Key')
+local Pat, Or, Not, Many, Maybe      = mty.from('pegl  Pat, Or, Not, Many, Maybe')
+local Token, Empty, Eof, PIN, UNPIN  = mty.from('pegl  Token, Empty, Eof, PIN, UNPIN')
+local EMPTY, common                  = mty.from('pegl  EMPTY, common')
 
 local RAW = '$'
 local RAWP = '%$'

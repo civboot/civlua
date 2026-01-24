@@ -858,8 +858,8 @@ T.load = function()
 end
 
 T.want = function()
-  T.eq(ds,          ds.want'ds')
-  T.eq(nil,         ds.want'lkja;lskjdflksajdf')
+  T.eq(ds,          mty.want'ds')
+  T.eq(nil,         mty.want'lkja;lskjdflksajdf')
   T.eq(ds,          ds.wantpath'ds')
   T.eq(ds.wantpath, ds.wantpath'ds.wantpath')
   T.eq(mty,         ds.wantpath'metaty')

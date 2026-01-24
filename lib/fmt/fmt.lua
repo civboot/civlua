@@ -5,12 +5,11 @@ local M = G.mod and G.mod'fmt' or setmetatable({}, {})
 
 local mty = require'metaty'
 
-local getmt = getmetatable
-local sfmt, srep = string.format, string.rep
-local push, concat = table.insert, table.concat
-local sort = table.sort
-local mathtype = math.type
-local split = mty.split
+local getmt              = getmetatable
+local sfmt, srep         = mty.from(string, 'format,rep')
+local push, concat, sort = mty.from(table, 'insert,concat,sort')
+local mathtype           = math.type
+local split              = mty.split
 
 local DEPTH_ERROR = '{!max depth reached!}'
 

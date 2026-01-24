@@ -7,14 +7,12 @@ local G = mty.G
 local fmt = require'fmt'
 local shim = require'shim'
 
-local next = G.next
-local getmt = G.getmetatable
-local push, pop, sfmt    = table.push, table.remove, string.format
-local sfind = string.find
-local move, sort, unpack = table.move, table.sort, table.unpack
-local concat             = table.concat
-local ulen, uoff     = utf8.len, utf8.offset
-local min, max = math.min, math.max
+local next, getmt        = mty.from(G,      'next,getmetatable')
+local push, pop, concat  = mty.from(table,  'insert,remove,concat')
+local move, sort, unpack = mty.from(table,  'move,sort,unpack')
+local sfmt, sfind        = mty.from(string, 'format,find')
+local ulen, uoff         = mty.from(utf8,   'len,offset')
+local min, max           = mty.from(math,   'min,max')
 local xpcall, traceback = xpcall, debug.traceback
 local resume = coroutine.resume
 local getmethod = mty.getmethod
@@ -1327,12 +1325,6 @@ M.auto = function(mod, i) --> (mod, i)
   return mod, i
 end
 
---- like require but returns nil
-M.want = function(mod) --> module?
-  local ok, m = pcall(function() return require(mod) end)
-  if ok then return m end
-end
-
 --- Try to get any [$string.to.path] by trying all possible combinations of
 --- requiring the prefixes and getting the postfixes.
 M.wantpath = function(path) --> value?
@@ -1341,7 +1333,7 @@ M.wantpath = function(path) --> value?
   for i=1,#path do
     local v = obj and M.rawgetp(obj, M.slice(path, i))
     if v then return v end
-    obj = M.want(table.concat(path, '.', 1, i))
+    obj = mty.want(table.concat(path, '.', 1, i))
   end
   return obj
 end
