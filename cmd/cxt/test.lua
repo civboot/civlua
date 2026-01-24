@@ -62,7 +62,7 @@ T.simple = function()
 
   M.assertParse('multiple\n [_lines]\n\n  with [*break]', {
     'multiple\n', {'lines', u=true},
-    '\n', {br=true},
+    '\n', {p=true},
     'with ', {'break', b=true},
   })
   M.assertParse('has \\[ and \\] in it\n\\and \\\\foo', {
@@ -128,7 +128,7 @@ A quote:
     { quote=true,
       "We work with being,\n",
       "but non-being is what we use.\n",
-      {br=true},
+      {p=true},
       "-- Tao De Ching, Stephen Mitchel\n",
     },
     '\n',
@@ -154,7 +154,7 @@ A list:[+
         "second item:", { list=true,
           {"sub first"}, {"sub second"},
         },
-        "",
+        "\n", {p=true},
       },
       {"third item"},
     }, "\n"
@@ -185,7 +185,7 @@ A list:[+
         }, "",
       },
       {
-        'second block:\n', {br=true},
+        'second block:\n', {p=true},
         { code=true, block=true,
           '\n',
           'start\n', '  two block\n', 'end\n',
@@ -211,7 +211,7 @@ T.nested = function()
     { list=true,
       {
         "list item\n",
-        {br=true},
+        {p=true},
         { block=true, code=true,
           "\n", "with inner code\n",
         }, ""

@@ -29,7 +29,7 @@ local KIND_ORDER = ds.BiMap {
   'table', 'list', 'quote',
 
   'h1', 'h2', 'h3', 'h4',
-  'br', 'code', 'block', 'name', 'path', 'clone',
+  'p', 'br', 'code', 'block', 'name', 'path', 'clone',
   'b', 'u', 'class',
 }
 
@@ -64,6 +64,7 @@ end
 local SER_KIND = {
   hidden = ds.noop,
   token = function(w, node) w.to:write(w:tokenStr(node)) end,
+  p     = function(w, node) w.to:write'\n'               end,
   br    = function(w, node) w.to:write'\n'               end,
   table = function(w, node)
     if #node == 0 then return end

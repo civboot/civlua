@@ -295,8 +295,8 @@ cxt.content = function(p, node, isRoot, altEnd)
     local ll = 0; if p.l > 1 then ll = #ds.get(p.dat, p.l - 1) end
     return addToken(p, node, l, c, p.l - 1, ll) --> nil
   elseif #p.line == 0 and ds.get(p.dat, l+1) then
-    -- empty line -> break
-    add(node, {pos={l}, br=true})
+    -- empty line -> p (paragraph)
+    add(node, {pos={l}, p=true})
     p:incLine(); skipWs(p); l, c = p.l, p.c
     goto loop
   elseif p.c > #p.line then -- done parsing line

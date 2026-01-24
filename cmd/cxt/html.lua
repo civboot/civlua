@@ -24,6 +24,7 @@ local function nodeKind(n)
   if n.quote                 then return 'quote' end
   if n.table                 then return 'table' end
   if n.list                  then return 'ul'    end
+  if n.p                     then return 'p'     end
   if n.br                    then return 'br'    end
 end
 
@@ -121,6 +122,7 @@ local function _serialize(w, line, node) --> line
     else push(line, s) end
     return line
   elseif node.hidden  then return line
+  elseif kind == 'p'  then addLine(w, line); return {'<p>'}
   elseif kind == 'br' then
     push(line, '<br>'); addLine(w, line)
     return {}
