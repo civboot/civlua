@@ -2,6 +2,9 @@
 Metatype is a library and specification for creating performant, documented,
 and typo-safe Lua record-types which can be formatted.
 
+The [<#metaty.freeze>] module allows making types immutable (after calling
+[$freeze] on them) and making tables immutable.
+
 [" Turn off typo checking by setting the global [$LUA_OPT=3] or higher.]
 
 [{h2 name=record}Mod and Record]

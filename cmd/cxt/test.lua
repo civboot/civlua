@@ -1,12 +1,5 @@
 local mty = require'metaty'
 local fmt = require'fmt'
-local Mt = mod'Mt'
---- Example docs
-Mt.A = mty'A' {
-  'a1 [string]: docs for a1'
-  ..'more docs for a1',
-}
-
 local ds  = require'ds'
 local Writer = require'lines.Writer'
 local M = require'cxt'
@@ -77,6 +70,12 @@ T.simple = function()
   M.assertThrows('[$ unclosed',    'Got EOF, expected')
   M.assertThrows('[$$ unclosed ]', 'Got EOF, expected')
   M.assertThrows('[$a[]]', "Unopened ']' found")
+
+  M.assertParse('p1\n\np2\n  \np3', {
+    'p1\n',
+    {p=true}, 'p2\n',
+    {p=true}, 'p3',
+  })
 end
 
 T.block = function()
@@ -118,7 +117,7 @@ end
 T.quote = function()
   M.assertParse([[
 A quote:
-["We work with being,
+["We work with being,[{br}]
   but non-being is what we use.
 
   -- Tao De Ching, Stephen Mitchel
@@ -126,7 +125,7 @@ A quote:
 ]], {
     'A quote:\n',
     { quote=true,
-      "We work with being,\n",
+      "We work with being,", {br=true}, "\n",
       "but non-being is what we use.\n",
       {p=true},
       "-- Tao De Ching, Stephen Mitchel\n",
@@ -304,6 +303,7 @@ end
 T.html = function()
   html.assertHtml('hi <b>there</b> bob\n', 'hi [*there] bob')
   html.assertHtml('code <span class=code>code</span>.\n', 'code [$$code]$.')
+  html.assertHtml('p1\n\n<p>p2\n\n<p>p3\n', 'p1\n\np2\n  \np3')
   html.assertHtml(
     'name <a id="named" href="#named" class=anchor><b>thing</b></a>\n',
     'name [{*name=named}thing]')
@@ -465,9 +465,4 @@ local _, node, p = term.convert(
   + Example      Ty<Example>\9lib/doc/test.lua:11\
   + __name       string\9 "
   T.eq(expect, f:tostring())
-end
-
-T.doc = function()
-  -- local d = require'doc'.docstr(Mt.A)
-  -- M.parse(d)
 end

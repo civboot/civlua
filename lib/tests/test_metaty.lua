@@ -194,6 +194,36 @@ test('from', function()
   assertEq(mty.enum,   enum)
 end)
 
+test('freeze', function()
+  local freeze = require'metaty.freeze'
+  local t = {1, 2, a=true, b=2, t={c='c3'}}
+  local function assertGet()
+    assertEq(true, t.a)
+    assertEq(2,    t.b)
+    assertEq('c3', t.t.c)
+    assertEq(nil,  t.d)
+    assertEq(2,    #t)
+    local o = {}; for k, v in pairs(t) do o[k] = v end
+    assertEq({1, 2, a=true, b=2, t=t.t}, o)
+  end
+  assertEq({next, t}, {pairs(t)})
+  assertGet()
+  assert(not freeze.FROZEN[t])
+  freeze(t)
+  assert(freeze.FROZEN[t])
+  assertEq({freeze.frozenNext, t}, {pairs(t)})
+  assertGet()
+  assertErrorPat('"d" to frozen value', function()
+    t.d = 'foo'
+  end)
+  assertErrorPat('"a" to frozen value', function()
+    t.a = 'foo'
+  end)
+  assertErrorPat('"c" to frozen value', function()
+    t.t.c = 'foo'
+  end)
+end)
+
 -- test('fmtFile', function()
 --   local f = Fmt{file=io.open('.out/TEST', 'w+')}
 --   f:fmt{1, 2, z='bob', a='hi'}

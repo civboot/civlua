@@ -36,9 +36,9 @@ local LUA_BUILD = "sys:lua/build.lua"
 local METATY_PKG = core.Target {
   pkgname="civ:lib/metaty", name="metaty",
   dir = pth.abs(D.."lib/metaty/"),
-  src={"metaty.lua"},
-  out={lua={"metaty.lua"}},
-  api={'metaty'},
+  src={"metaty.lua", "freeze.lua"},
+  out={lua={"metaty.lua", ['freeze.lua'] = 'metaty/freeze.lua'}},
+  api={'metaty', 'metaty.freeze'},
   tag={builder='bootstrap'},
   kind='build', run=LUA_BUILD,
 }

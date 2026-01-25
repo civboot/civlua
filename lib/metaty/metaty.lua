@@ -4,7 +4,8 @@ local getmt, type, rawget = getmetatable, type, rawget
 local srep = string.rep
 local sfmt = string.format
 local push = table.insert
-local rawget, rawset = rawget, rawset
+local rawget, rawset       = rawget, rawset
+local next, pairs          = next, pairs
 local _G = _G
 
 rawset(_G, 'LUA_OPT', rawget(_G, 'LUA_OPT')
@@ -160,6 +161,7 @@ M.ty = function(v) --> type
   local t = type(v)
   return t == 'table' and getmt(v) or t
 end
+local getTy = M.ty
 
 --- Given a type return it's name.
 M.tyName = function(T, default) --> string
@@ -174,7 +176,7 @@ end
 M.name = function(o)
   local ty = type(o)
   return ty == 'function' and M.fninfo(o)
-      or ty == 'table'    and M.tyName(M.ty(o))
+      or ty == 'table'    and M.tyName(getTy(o))
       or ty == 'userdata' and M.tyName(getmt(o), 'userdata')
       or ty
 end
@@ -362,7 +364,7 @@ local function nativeEq(a, b) return a == b end
 
 local function eqDeep(a, b)
   if rawequal(a, b)     then return true   end
-  if M.ty(a) ~= M.ty(b) then return false  end
+  if getTy(a) ~= getTy(b) then return false  end
   local aLen, eq = 0, M.eq
   for aKey, aValue in pairs(a) do
     local bValue = b[aKey]
@@ -416,8 +418,9 @@ M.hardIndex = function(R, k)
     M.indexError(R, k, 3)
   end
 end
+
 --- Usage: [$MyType.__newindex = mty.newindex][{br}]
---- This allows non-string keys to always be insert and is the default.
+--- (record default) this allows non-string keys to always be insert.
 M.newindex = function(r, k, v)
   if type(k) == 'string' and not metaget(r, '__fields')[k] then
     M.indexError(getmt(r), k, 3)
@@ -638,6 +641,7 @@ M.enum = function(name)
         'must name the enum using a string')
   return function(nameIds) return namedEnum(name, nameIds) end
 end
+
 
 --- like require but returns nil if not found.
 M.want = function(mod) --> module?

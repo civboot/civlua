@@ -5,12 +5,17 @@ local Tm = mty.mod'TestMod'
 Tm.exampleFn = function(a) --> b
 end
 --- Example record documentation.
+---
+--- Has multiple lines.
 Tm.A = mty'A' {
   'a [int]: example field doc',
     a = 'default',
   'b',
 }
---- Example method documentation.
+--- Example method documentation,
+--- over multiple initial lines.
+---
+--- Next paragraph.
 function Tm.A:exampleMeth(b) --> c
 end
 
@@ -29,6 +34,8 @@ Example module\
 [{h4 name=TestMod.A}Record A]\
 Example record documentation.\
 \
+Has multiple lines.\
+\
 [*Fields:][+\
 * [{*name=TestMod.A.a}a] [$=\"default\"]\
   example field doc\
@@ -36,7 +43,10 @@ Example record documentation.\
 ]\
 [*Methods] [+\
 * [{*name=A.exampleMeth}fn:exampleMeth][$(b) -> c][{br}]\
-  Example method documentation.\
+  Example method documentation,\
+  over multiple initial lines.\
+  \
+  Next paragraph.\
 ]\
 "
 

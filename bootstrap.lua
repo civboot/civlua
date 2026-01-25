@@ -26,6 +26,7 @@ end
 print'[[load]]'
   preload('metaty', 'lib/metaty/metaty.lua')
   require'metaty'.setup()
+  preload('metaty.freeze', 'lib/metaty/freeze.lua')
 
   -- needed for civtest and related tests
   preload('shim', 'lib/shim/shim.lua')

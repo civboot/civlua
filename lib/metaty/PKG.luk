@@ -5,6 +5,10 @@ local P = { summary = "Simple but effective Lua type system." }
 -- Note: tests are in lib/tests/
 P.metaty = lua {
   mod = 'metaty',
+  src = {
+    'metaty.lua',
+    'freeze.lua',
+  },
   tag = {builder = 'bootstrap'},
 }
 
