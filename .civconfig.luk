@@ -1,0 +1,10 @@
+-- This file extends the base config (at ~/.config/civ.luk by default).
+local C = {} -- config
+
+-- Additional hubs for this project (local)
+C.hubs = {}
+
+-- The directory where `civ build` and `civ test` puts files.
+C.buildDir = '.civ/'
+
+return C

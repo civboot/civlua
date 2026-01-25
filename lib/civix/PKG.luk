@@ -1,9 +1,8 @@
 local P = {}
 P.summary = "Unix sys library"
-local cc  = import'sys:cc.luk'
 local lua = import'sys:lua.luk'
 
-P.civixlib = cc {
+P.civixlib = lua.cc {
   lib = 'civix',
   src = 'civix.c',
   tag = { builder = 'bootstrap', }

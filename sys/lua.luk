@@ -4,6 +4,8 @@
 --- target.
 local M = {}
 
+local cc = import'sys:cc.luk'
+
 local MOD_INVALID = '[^%w_.]+' -- lua mod name.
 local EMPTY = {}
 
@@ -74,5 +76,8 @@ function M.test(l)
   l.kind, l.run = 'test', l.run or 'sys:lua/test.lua'
   return Target(l)
 end
+
+-- C target linked with system lua.
+function M.cc(c) return cc(merge(c, {flag=CFG.builder.lua.cc})) end
 
 return M

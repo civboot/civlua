@@ -1,11 +1,13 @@
--- TODO: pass cfg into this and use for lib.ext
-
 --- Creating a [$cc{ ... }] Target.
 local CC = record'CC' {
   'lib [string]: output library name.',
   'hdr {string}: input header/s.',
   'src {string}: input src file/s.',
-  'tag',
+ [[flag {string}: arbitrary flags to pass to cc.
+   Build rules that add these should allow configuration
+   from civconfig.luk
+ ]],
+  'tag [table]',
 }
 
 return function(cc)
@@ -21,6 +23,7 @@ return function(cc)
   return Target {
     kind = 'build', run = 'sys:cc/build.lua',
     src = cc.src,
+    extra = type(cc.flag) == 'string' and {cc.flag} or cc.flag,
     out = out,
     tag = cc.tag,
   }

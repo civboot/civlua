@@ -30,7 +30,6 @@ Example [$PKG.luk]:
 local P = { summary = "Does foo and some bar" }
 
 --- Imports a function to help us create Target
-local cc  = import'sys:cc.luk'  -- C build targets
 local lua = import'sys:lua.luk' -- Lua build targets
 
 -- Set up metadata for this PKG.luk file, this must be
@@ -54,8 +53,8 @@ P.test = lua.test {
   dep = { 'myhub:foo' },
 }
 
--- C build target
-P.libfoo = cc {
+-- C build target with lua linked.
+P.libfoo = lua.cc {
   hdr = { 'foo.h' },  -- C headers
   src = { 'foo.c' },  -- C source files
   dep = {

@@ -12,7 +12,7 @@ local push, pop, concat  = mty.from(table,  'insert,remove,concat')
 local move, sort, unpack = mty.from(table,  'move,sort,unpack')
 local sfmt, sfind        = mty.from(string, 'format,find')
 local ulen, uoff         = mty.from(utf8,   'len,offset')
-local min, max           = mty.from(math,   'min,max')
+local mathty, min, max   = mty.from(math,   'type,min,max')
 local xpcall, traceback = xpcall, debug.traceback
 local resume = coroutine.resume
 local getmethod = mty.getmethod
@@ -531,15 +531,16 @@ M.pushSortedKeys = function(t, cmpFn) --> t
   return t
 end
 
---- recursively update t with add. This will call update on inner tables as
---- well.
---- ["FIXME: currently treats list indexes as normal keys
----  (does not append)]
-M.merge = function(t, add) --> t
-  for k, v in pairs(add) do
-    local ex = t[k] -- existing
-    if type(ex) == 'table' and type(v) == 'table' then
-      M.merge(ex, v)
+--- Recursively merge m into t, overriding existing values.
+--- List (integer) indexes are [,extended] instead of overwritten.
+M.merge = function(t, m) --> t
+  local len = #m
+  if len > 0 then move(m, 1, len, #t + 1, t) end -- extend
+  for k, v in pairs(m) do
+    if mathty(k) == 'integer' then
+      assert(k <= len, 'merge table has integer keys > len')
+    elseif type(t[k]) == 'table' and type(v) == 'table' then
+      M.merge(t[k], v)
     else t[k] = v end
   end
   return t

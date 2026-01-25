@@ -1,9 +1,8 @@
-local cc  = import'sys:cc.luk'
 local lua = import'sys:lua.luk'
 
 local P = {summary = "filedescriptor interfaces"}
 
-P.libfd = cc {
+P.libfd = lua.cc {
   lib = 'fd', -- libfd.so
   hdr = 'fd.h',
   src = 'fd.c',

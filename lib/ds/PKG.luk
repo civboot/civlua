@@ -1,12 +1,12 @@
 local P = {}
 P.summary = "Tiny data structures and algorithms for lua."
-local cc  = import'sys:cc.luk'
 local lua = import'sys:lua.luk'
 
-P.dslib = cc {
+P.dslib = lua.cc {
   lib = 'ds',
   hdr = 'ds.h',
   src = 'ds.c',
+  flags = lua.ccFlags,
   tag = { builder = 'bootstrap', }
 }
 

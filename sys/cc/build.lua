@@ -10,6 +10,7 @@ local ix = require'civix'
 local T  = require'civtest'
 
 local push = ds.push
+local EMPTY = {}
 
 local w = require'civ.Worker':get()
 
@@ -24,15 +25,15 @@ end
 
 for _, id in ipairs(w.ids) do
   local tgt = w:target(id)
+  local extra = tgt.extra or EMPTY
   ix.mkDirs(w.cfg.buildDir..'lib')
   w:copyOut(tgt, 'include')
   local lib = tgt.out.lib; if lib then
     local cmd = {'cc'}
-    for _, src in ipairs(tgt.src) do push(cmd, tgt.dir..src) end
-    -- TODO: needs to come from sys:lua.
-    push(cmd, '-llua')
+    for _, src  in ipairs(tgt.src) do push(cmd, tgt.dir..src) end
+    for _, flag in ipairs(tgt.extra or EMPTY) do push(cmd, flag) end
     ds.extend(cmd, {'-fPIC', '-I'..w.cfg.buildDir..'include'})
-    for _, dep in ipairs(tgt.dep or EMPTY) do pushLibs(cmd, dep) end
+    for _, dep  in ipairs(tgt.dep or EMPTY) do pushLibs(cmd, dep) end
     push(cmd, '-shared')
     lib = w.cfg.buildDir..'lib/'..lib
     ds.extend(cmd, {'-o', lib})

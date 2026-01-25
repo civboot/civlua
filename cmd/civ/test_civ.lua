@@ -24,10 +24,11 @@ return {
 }
 ]]):format(O, D, D..'sys/')
 
+local cfg = core.Cfg:load(CFG_PATH)
 local function newCiv()
   ix.rmRecursive(O); ix.mkDirs(O)
   pth.write(CFG_PATH, CFG)
-  return core.Civ{cfg=core.Cfg:load(CFG_PATH)}
+  return core.Civ{cfg=cfg}
 end
 
 local LUA_BUILD = "sys:lua/build.lua"
@@ -139,6 +140,7 @@ T.buildDs = function()
     name="dslib",
     dir="/home/rett/projects/civstack/lib/ds/",
     src={"ds.c"},
+    extra=cfg.builder.lua.cc,
     dep={},
     out={
       include={"ds.h"},

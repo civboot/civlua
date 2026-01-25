@@ -34,12 +34,10 @@ local MOD_INVALID = '[^%w_.]+' -- lua mod name.
 
 M.DIR = pth.canonical( (pth.last(pth.last(ds.srcdir() or ''))) )
 M.LIB_EXT = '.so'
-M.DEFAULT_CONFIG = '.civconfig.lua'
-M.HOME_CONFIG = pth.concat{pth.home(), '.config/civ.lua'}
+M.DEFAULT_CONFIG = '.civconfig.luk'
+M.BASE_CONFIG = os.getenv'CIV_BASE' or pth.concat{pth.home(), '.config/civ.luk'}
 M.DEFAULT_OUT = '.civ/'
 
-M.ENV = ds.copy(luk.ENV)
-M.ENV.__index = M.ENV
 
 -- #####################
 -- # Target
@@ -103,10 +101,10 @@ M.Target = pod(mty'Target' {
   'kind [str]: the kind of target: build, test, executable',
   'dir [str]: directory of src files',
   'src {key: str}: list of input source files (strings).',
-  'dep {str}: list of input Target objects (dependencies).',
   'extra [builtin]: arbitrary value, used by run command',
-  'api [table]: the lang-specific exported import paths.',
+  'dep {str}: list of input Target objects (dependencies).',
   'depIds {int}: list of dependency target ids. Populated for Worker.',
+  'api [table]: the lang-specific exported import paths.',
  [[out [table]: POD table output segregated by language.[+
      * t: PoD in a k/v table, can be used to configure downstream targets.
      * data: list of raw files.
@@ -117,10 +115,8 @@ M.Target = pod(mty'Target' {
  ] ]],
   'link {str: str}: link outputs from -> to',
   'tag [table]: arbitrary attributes like test, testonly, etc.',
-  'ENV [table]: the environment that scripts run in.',
   'run [str]: executable script which performs the operation kind.',
 })
-M.ENV.Target = M.Target
 getmetatable(M.Target).__call = function(T, t)
   if type(t.src) == 'string' then t.src = {t.src} end
   if type(t.dep) == 'string' then t.dep = {t.dep} end
@@ -155,32 +151,48 @@ M.Hub = mty'Hub' {
   'name [string]: the name of the hub', name='this',
 }
 
---- Cfg.builder settings
-M.CfgBuilder = mty'CfgBuilder' {
- [[direct [bool]: prefer building directly
-   (running build scripts w/ dofile).
- ]],
-}
-
 --- The user configuration, typically at ./.civconfig.lua
 M.Cfg = mty'Cfg' {
   'path [string]: the path to this config file.',
+  'basePath [string]: the base path of this config file.',
  [[host_os [string]: the operating system of this computer.'
     Typically equal to civix.OS]],
   'hubs {string: string}: table of hubname -> /absolute/dir/path',
   'buildDir [string]: directory to put build/test files.',
   'installDir [string]: directory to install files to.',
-  'builder [CfgBuilder]: builder settings',
+  'builder [BuilderCfg]: builder settings',
 }
+M.Cfg.__newindex = nil
+getmetatable(M.Cfg).__call = function(T, self)
+  for h, d in pairs(self.hubs) do self.hubs[h] = pth.abs(d) end
+  self.builder = M.BuilderCfg(self.builder or {})
+  return mty.construct(T, self)
+end
+
+--- Cfg.builder settings
+M.BuilderCfg = mty'BuilderCfg' {
+ [[direct [bool]: prefer building directly
+   (running build scripts w/ dofile).
+ ]],
+}
+M.BuilderCfg.__newindex = nil
+getmetatable(M.BuilderCfg).__index = nil
+getmetatable(M.BuilderCfg).__call = mty.constructUnchecked
+
+local CFG_ERROR = 'No config exists at %s\nRecommended: ./bootstrap.lua init'
 M.Cfg.load = function(T, path)
-  path = path or M.DEFAULT_CONFIG
-  info('cfgPath=%q', path)
-  local ok, t = dload(path, {HOME=pth.home()})
-  assert(ok, t)
-  t.path = path
-  for h, d in pairs(t.hubs) do t.hubs[h] = pth.abs(d) end
-  t.builder = M.CfgBuilder(t.builder or {})
-  return M.Cfg(t)
+  local base, path = M.BASE_CONFIG, path or M.DEFAULT_CONFIG
+  assertf(ix.exists(base), CFG_ERROR, base)
+  assertf(ix.exists(path), CFG_ERROR, path)
+  info('basePath=%q', base)
+  local ok, cfg = dload(base, {HOME=pth.home()}); assert(ok, cfg)
+  do
+    info('cfgPath=%q', path)
+    local ok, t = dload(path, {HOME=pth.home()});   assert(ok, t)
+    ds.merge(cfg, t)
+  end
+  cfg.basePath, cfg.path = base, path
+  return M.Cfg(cfg)
 end
 
 --- Holds top-level data structures and algorithms for
@@ -201,7 +213,15 @@ getmetatable(M.Civ).__call = function(T, self)
   B = pth.abs(B); cfg.buildDir = B
   self.hubs = cfg.hubs
   self.pkgs = self.pkgs or {}
-  self.luk  = self.luk or luk.Luk{envMeta=M.ENV}
+
+  if not self.luk then
+    local lukEnv = ds.update(ds.copy(luk.ENV), {
+      Target = M.Target,
+    })
+    lukEnv.__index = lukEnv
+    self.luk  = luk.Luk{envMeta=lukEnv}
+  end
+  self.luk.envMeta.CFG = cfg
   self.cycle = self.cycle or {}
   self.ENV = ds.update({
     'HOME='..pth.home(),
