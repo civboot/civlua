@@ -230,10 +230,12 @@ T.table = function()
   t.b = 7; t[1] = 4
   T.eq(nil, t.b); T.eq(nil, t[1])
 
-  t = {1, a=3, b={4, 5, b1=3}, c=3}
-  T.eq({2, a=4, b={4, 7, 6, b1=3, b2=4}, c=3}, merge(t, {
-    2, a=4, b={[2]=7, [3]=6, b2=4},
-  }))
+  T.eq({1, 2}, merge({1}, {2}))
+  T.eq({1, 2, a='a2'}, merge({1, a='a1'}, {2, a='a2'}))
+  T.eq({
+    l = {1, 2},
+    t = {a='a1', b='b2'},
+  }, merge({l={1}, t={a='a1', b='b1'}}, {l={2}, t={b='b2'}}))
 
   T.eq(2, M.pairlen{1, 2})
   T.eq(3, M.pairlen{1, 2, z=4})

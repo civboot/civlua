@@ -43,7 +43,7 @@ civ._Base = shim.cmd'_Base' {
 --- Initialize the repository. This should be run when starting a new repo.
 civ.init = shim.cmd'init' {
   'config [string]: path to config.lua to output',
-  'base [string]: base config to copy from',
+    config = core.DEFAULT_CONFIG,
 }
 
 --- Usage: [$civ build hub:tgt#name][{br}]
@@ -64,7 +64,7 @@ civ.install = mty.extend(civ._Base, 'install', {
   "force [bool]: do not confirm deletion of files.",
 })
 
-local CONFIG_TMPL = [[
+local BASE_TEMPL = [[
 -- holds the config table, returned at end.
 local C = {}
 
@@ -85,13 +85,22 @@ C.hubs = {
   sys = %q,
 }
 
--- The directory where `civ build` and `civ test` puts files.
-C.buildDir = '.civ/'
-
 -- The directory where `civ install` puts files.
 C.installDir = HOME..'.local/civ/'
 
 return C -- return for civ to read.
+]]
+
+local CONFIG_TEMPL = [[
+local C = {} -- config
+
+-- Additional hubs for this project
+C.hubs = {}
+
+-- The directory where `civ build` and `civ test` puts files.
+C.buildDir = '.civ/'
+
+return C
 ]]
 
 local BASH_ADD = [[
@@ -107,23 +116,17 @@ function civ.init:__call()
   civ._pre()
   info('civ init', self)
   local cfg
-  if G.BOOTSTRAP then
-    cfg = self.base and assert(dload(self.base)) and pth.read(self.base)
-       or sfmt(CONFIG_TMPL, ix.OS, core.DIR, core.DIR..'sys/')
-  else
-    cfg = self.base or core.HOME_CONFIG
-    cfg = assert(require'ds.load'(cfg)) and pth.read(cfg)
-  end
-  if not ix.exists(core.HOME_CONFIG) then
-    pth.write(core.HOME_CONFIG, cfg)
+  if not ix.exists(core.BASE_CONFIG) then
+    pth.write(core.BASE_CONFIG, sfmt(BASE_TEMPL,
+      ix.OS, core.DIR, core.DIR..'sys/'))
     io.fmt:styled('notify', 'Wrote base config to: ')
-    io.fmt:styled('path', core.HOME_CONFIG, '\n')
+    io.fmt:styled('path', core.BASE_CONFIG, '\n')
   end
-  pth.write(self.config, cfg)
-
-  io.fmt:styled('notify', 'Local config is at: ')
-  io.fmt:styled('path', self.config, '\n')
-  io.fmt:styled('notify', 'Feel free to customize it as-needed.', '\n')
+  if not ix.exists(self.config) then
+    pth.write(self.config, CONFIG_TEMPL)
+    io.fmt:styled('notify', 'Wrote project config to: ')
+    io.fmt:styled('path', self.config, '\n')
+  end
 end
 
 function civ._build(cv, tgtnames)

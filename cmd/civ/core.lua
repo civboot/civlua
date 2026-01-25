@@ -35,7 +35,7 @@ local MOD_INVALID = '[^%w_.]+' -- lua mod name.
 M.DIR = pth.canonical( (pth.last(pth.last(ds.srcdir() or ''))) )
 M.LIB_EXT = '.so'
 M.DEFAULT_CONFIG = '.civconfig.lua'
-M.HOME_CONFIG = pth.concat{pth.home(), '.config/civ.lua'}
+M.BASE_CONFIG = os.getenv'CIV_BASE' or pth.concat{pth.home(), '.config/civ.lua'}
 M.DEFAULT_OUT = '.civ/'
 
 M.ENV = ds.copy(luk.ENV)
@@ -156,7 +156,7 @@ M.Hub = mty'Hub' {
 }
 
 --- Cfg.builder settings
-M.CfgBuilder = mty'CfgBuilder' {
+M.BuilderCfg = mty'BuilderCfg' {
  [[direct [bool]: prefer building directly
    (running build scripts w/ dofile).
  ]],
@@ -165,21 +165,28 @@ M.CfgBuilder = mty'CfgBuilder' {
 --- The user configuration, typically at ./.civconfig.lua
 M.Cfg = mty'Cfg' {
   'path [string]: the path to this config file.',
+  'basePath [string]: the base path of this config file.',
  [[host_os [string]: the operating system of this computer.'
     Typically equal to civix.OS]],
   'hubs {string: string}: table of hubname -> /absolute/dir/path',
   'buildDir [string]: directory to put build/test files.',
   'installDir [string]: directory to install files to.',
-  'builder [CfgBuilder]: builder settings',
+  'builder [BuilderCfg]: builder settings',
 }
+local CFG_ERROR = 'No config exists at %s\nRecommended: ./bootstrap.lua init'
 M.Cfg.load = function(T, path)
-  path = path or M.DEFAULT_CONFIG
+  local base, path = M.BASE_CONFIG, path or M.DEFAULT_CONFIG
+  assertf(ix.exists(base), CFG_ERROR, base)
+  assertf(ix.exists(path), CFG_ERROR, path)
+  info('basePath=%q', base)
+  local ok, cfg = dload(base, {HOME=pth.home()}); assert(ok, cfg)
+
   info('cfgPath=%q', path)
-  local ok, t = dload(path, {HOME=pth.home()})
-  assert(ok, t)
-  t.path = path
+  local ok, t = dload(path, {HOME=pth.home()});   assert(ok, t)
+  ds.merge(cfg, t)
+  t.basePath, t.path = base, path
   for h, d in pairs(t.hubs) do t.hubs[h] = pth.abs(d) end
-  t.builder = M.CfgBuilder(t.builder or {})
+  t.builder = M.BuilderCfg(t.builder or {})
   return M.Cfg(t)
 end
 
