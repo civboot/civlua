@@ -7,6 +7,7 @@ local G = mty.G
 local fmt = require'fmt'
 local shim = require'shim'
 
+local ty = mty.ty
 local next, getmt        = mty.from(G,      'next,getmetatable')
 local push, pop, concat  = mty.from(table,  'insert,remove,concat')
 local move, sort, unpack = mty.from(table,  'move,sort,unpack')
@@ -364,8 +365,11 @@ M.set = function(t, k, v)
   t[k] = v
 end
 
---- Return whether [$t] is nil or the result of [$next(t)] is nil.
-M.isEmpty = function(t) return t == nil or next(t) == nil end
+--- Return whether [$t] contains a single value.
+M.isEmpty = function(t)
+  for _ in pairs(t) do return false end
+  return true
+end
 
 --- the full length of all pairs
 --- ["WARNING: very slow, requires iterating the whole table]
@@ -504,6 +508,7 @@ M.clear = function(t, si, len) --> t
 end
 --- return t with the key/vals of add inserted
 M.update = M._B.update
+local update = M.update
 
 --- Given a list of lists return a single depth list.
 M.flatten = function(listOfLists) --> list
@@ -692,12 +697,19 @@ M.defaultICopy = function(r)
   return t
 end
 
+M.rawcopy = function(t)
+  return setmetatable(updateRaw({}, t), getmt(t))
+end
+
 --- Copy and update full table
+--- FIXME: remove add
 M.copy = function(t, add) --> new t
-  return setmetatable(
-    add and updateRaw(updateRaw({}, t), add) -- copy+add
-         or updateRaw({}, t)                 -- copy
-    , getmt(t))
+  if ty(t) ~= 'table' then
+    return add and update(t:__copy(), add)
+        or t:__copy()
+  end
+  return add and update(update({}, t), add)
+      or update({}, t)
 end
 
 --- Recursively copy the table.
@@ -887,12 +899,12 @@ M.Duration.fromSeconds = fromSeconds
 M.Duration.fromMs = fromMs
 M.Duration.asSeconds = asSeconds
 M.Duration.__sub = function(self, r)
-  assert(mty.ty(r) == M.Duration)
+  assert(ty(r) == M.Duration)
   local s, ns = durationSub(self.s, self.ns, r.s, r.ns)
   return M.Duration(s, ns)
 end
 M.Duration.__add = function(self, r)
-  assert(mty.ty(r) == M.Duration)
+  assert(ty(r) == M.Duration)
   local s, ns = durationSub(self.s, self.ns, -r.s, -r.ns)
   return M.Duration(s, ns)
 end
@@ -918,8 +930,8 @@ M.Epoch.__sub = function(self, r)
   assert(self);     assert(r)
   assertTime(self); assertTime(r)
   local s, ns = durationSub(self.s, self.ns, r.s, r.ns)
-  if mty.ty(r) == M.Duration then return M.Epoch(s, ns) end
-  assert(mty.ty(r) == M.Epoch, 'can only subtract Duration or Epoch')
+  if ty(r) == M.Duration then return M.Epoch(s, ns) end
+  assert(ty(r) == M.Epoch, 'can only subtract Duration or Epoch')
   return M.Duration(s, ns)
 end
 M.Epoch.__lt = function(self, o)
@@ -1268,7 +1280,7 @@ M.Error.__tostring = function(e) return fmt(e) end
 --- tb can be one of: [$coroutine|string|table]
 M.Error.from = function(msg, tb, cause) --> Error
   local cause
-  if mty.ty(msg) == M.Error then
+  if ty(msg) == M.Error then
     cause, msg = msg, '(rethrown)'
   end
   tb = (type(tb) == 'thread') and traceback(tb) or tb

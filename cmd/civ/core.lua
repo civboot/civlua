@@ -9,6 +9,7 @@ local M = mty.mod'civ.core'
 local G = mty.G
 G.MAIN = G.MAIN or M
 
+local freeze = require'metaty.freeze'
 local shim = require'shim'
 local fmt = require'fmt'
 local ds = require'ds'
@@ -23,6 +24,7 @@ local ix = require'civix'
 local File = require'lines.File'
 local T = require'civtest'
 
+local forceset = freeze.forceset
 local info = log.info
 local sfmt = string.format
 local getmt, setmt = getmetatable, setmetatable
@@ -95,7 +97,7 @@ M.TargetName.parse = function(T, tgtname)
 end
 
 --- A build target, the result of compiling a package.
-M.Target = pod(mty'Target' {
+M.Target = freeze.freezy(pod(mty'Target' {
   'pkgname [str]: name of package target is in.',
   'name [str]: the name of the target.',
   'kind [str]: the kind of target: build, test, executable',
@@ -116,7 +118,7 @@ M.Target = pod(mty'Target' {
   'link {str: str}: link outputs from -> to',
   'tag [table]: arbitrary attributes like test, testonly, etc.',
   'run [str]: executable script which performs the operation kind.',
-})
+}))
 getmetatable(M.Target).__call = function(T, t)
   if type(t.src) == 'string' then t.src = {t.src} end
   if type(t.dep) == 'string' then t.dep = {t.dep} end
@@ -215,7 +217,7 @@ getmetatable(M.Civ).__call = function(T, self)
   self.pkgs = self.pkgs or {}
 
   if not self.luk then
-    local lukEnv = ds.update(ds.copy(luk.ENV), {
+    local lukEnv = ds.update(ds.rawcopy(luk.ENV), {
       Target = M.Target,
     })
     lukEnv.__index = lukEnv
@@ -380,7 +382,8 @@ function M.Civ:loadPkg(pkgname)
   pkg = assert(self.luk:import(pkgfile))
   assertf(mty.ty(pkg) == luk.Table,
     '%q did not return a table', pkgfile)
-  pkg.pkgname = pkgname
+  info('@@ loaded pkg: %q', pkg)
+  forceset(pkg, 'pkgname', pkgname)
   for k, tgt in pairs(pkg) do -- validation
     assertf(type(k) == 'string',
       '%s.%q: must have only string keys', pkgname, k)
@@ -391,8 +394,9 @@ function M.Civ:loadPkg(pkgname)
   end
   for k, tgt in pairs(pkg) do -- load deps
     if mty.ty(tgt) == M.Target then
-      tgt.pkgname, tgt.name = pkgname, k
-      tgt.dir = self:abspath(pkgname)..'/'
+      forceset(tgt, 'pkgname', pkgname)
+      forceset(tgt, 'name',    k)
+      forceset(tgt, 'dir',     self:abspath(pkgname)..'/')
       for _, dep in ipairs(tgt.dep) do
         local dty = mty.ty(dep)
         assertf(dty == 'string',

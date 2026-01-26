@@ -1,5 +1,6 @@
 
 local T = require'civtest'
+local freeze = require'metaty.freeze'
 local ds = require'ds'
 local pth = require'ds.path'
 local ix = require'civix'
@@ -58,6 +59,36 @@ local FMT_PKG = core.Target {
   kind='build', run=LUA_BUILD,
 }
 
+T'Target' do
+  local function getTarget()
+    return core.Target{
+      out={lua={"metaty.lua", ['freeze.lua'] = 'metaty/freeze.lua'}},
+      api={'metaty', 'metaty.freeze'},
+    }
+  end
+  local t = getTarget()
+  T.eq({'metaty', 'metaty.freeze'}, t.api)
+  local p = luk.value(luk.Table{t = getTarget()})
+  T.eq(getTarget(), p.t)
+  T.eq('metaty',             t.api[1])
+  T.eq('metaty.freeze',      t.api[2])
+
+  local fs = freeze.forceset
+  fs(p,   'pkgname', 'p')
+  fs(p.t, 'pkgname', 'p')
+  T.eq('p', p.pkgname)
+  T.eq('p', p.t.pkgname)
+  local t2 = getTarget()
+  t2.pkgname = 'p'
+  T.eq('p', t2.pkgname)
+  T.eq(t2, p.t)
+
+  local p = luk.Table{t = t}:freeze()
+  T.eq({'metaty', 'metaty.freeze'}, p.t.api)
+
+  T.eq('["metaty","metaty.freeze"]', require'lson'.json(t.api))
+end
+
 T.tgtname = function()
   T.eq({'foo:bar',  'baz'}, {core.tgtnameSplit'foo:bar#baz'})
   T.eq({'foo:bar',  'bar'}, {core.tgtnameSplit'foo:bar'})
@@ -70,11 +101,12 @@ T.loadPkg = function()
   local c = newCiv()
 
   local metatyPkg = c:loadPkg'civ:lib/metaty'
+  T.eq({'metaty', 'metaty.freeze'}, METATY_PKG.api)
   T.eq(luk.Table{
     pkgname="civ:lib/metaty",
     summary="Simple but effective Lua type system.",
     metaty=METATY_PKG,
-  }, metatyPkg)
+  }:freeze(), metatyPkg)
 
   local fmtPkg = c:loadPkg'civ:lib/fmt'
   T.eq(FMT_PKG, fmtPkg.fmt)
@@ -93,9 +125,9 @@ T.loadFd = function()
   l:loadPkgs{'civ:lib/fd'}
   T.eq(METATY_PKG.out, l.pkgs['civ:lib/metaty'].metaty.out)
   local fdpkg = l.pkgs['civ:lib/fd']
-  T.eq(fd_out,    fdpkg.fd.out)
+  T.eq(fd_out,          fdpkg.fd.out)
   T.eq({'fd.c'},  fdpkg.libfd.src)
-  T.eq(libfd_out, fdpkg.libfd.out)
+  T.eq(libfd_out,       fdpkg.libfd.out)
 end
 
 T.loadLinesTesting = function()

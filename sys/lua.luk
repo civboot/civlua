@@ -64,7 +64,9 @@ function M.__call(l)
   end
   assert(not isEmpty(luaOut), 'src is empty')
   t.out = { lua = luaOut }
+  info('@@ api %q', api)
   t.api = api
+  info('@@ t.api %q', t.api)
   t.link = l.link
   return t
 end

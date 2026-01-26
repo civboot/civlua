@@ -29,6 +29,7 @@ local mty = require'metaty'
 local M = mty.mod'ds.load'
 
 local ds = require'ds'
+local log = require'ds.log'
 local fmt = require'fmt'
 
 local getmt, setmt = getmetatable, setmetatable
@@ -50,6 +51,8 @@ M.ENV = {
 
   record = mty.record, enum = mty.enum,
   type = mty.ty,
+
+  warn = log.warn, info = log.info, trace = log.trace,
 }; M.ENV.__index = M.ENV
 setmetatable(M.ENV, {
   __index = function(_, k)

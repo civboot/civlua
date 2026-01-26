@@ -3,6 +3,7 @@ local mty = require'metaty'
 --- luk: lua config language.[{br}]
 local M = mty.mod'luk'
 
+local freeze = require'metaty.freeze'
 local fmt = require'fmt'
 local ds = require'ds'
 local info = require'ds.log'.info
@@ -26,8 +27,8 @@ end
 --- A normal table except if you set [$__call] it will make
 --- the table callable (since luk doesn't support setmetatable).
 ---
---- In addition, this will likely be frozen (made immutable)
---- after being returned from a luk module.
+--- In addition, this will be frozen (made immutable) after being returned from
+--- a luk module.
 M.Table = mty'Table' {}
 getmt(M.Table).__call = function(T, self)
   for k, v in pairs(self) do
@@ -39,18 +40,18 @@ getmt(M.Table).__call = function(T, self)
   return setmetatable(self, T)
 end
 function M.Table:__call(...)
-  return assert(rawget(self, '__call'),
+  return assert(self.__call,
                 'attempt to call luck table which has no __call set')(...)
 end
-M.Table.__newindex = nil
-getmt(M.Table).__index = nil
+M.Table.__newindex = rawset
+getmt(M.Table).__index = ds.noop
 M.Table.__fmt = fmt.table
+freeze.freezy(M.Table)
 
 --- Convert value to luk-value. This is mostly used internally,
 --- but feel free to use it as well.
 function M.value(v)
-  return type(v) == 'table' and not getmt(v) and M.Table(v)
-      or v
+  return freeze(type(v)=='table' and not getmt(v) and M.Table(v) or v)
 end
 
 --- Usage: [$Luk{}:import'path/to/file.luk'][{br}]

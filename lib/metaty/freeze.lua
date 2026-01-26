@@ -14,18 +14,53 @@ M.FROZEN = setmetatable({}, {__mode='k'})
 local FROZEN = M.FROZEN
 
 local sfmt = string.format
-local getmt, setmt = getmetatable, setmetatable
+local type, getmt, setmt   = type, getmetatable, setmetatable
 local rawget, rawset       = rawget, rawset
 local next, pairs, rawlen  = next, pairs, rawlen
 
+local freeze
+
+-- freeze the values in a table.
+-- It is the metamethod jobs to check FROZEN[self] to ensure it stays
+-- not-mutated.
+local function freezeTable(t)
+  if FROZEN[t] then return t end
+  local fr = {}
+  for k, v in next, t, nil do
+    fr[k] = freeze(v); t[k] = nil
+  end
+  FROZEN[t] = fr
+  return t
+end
+
 local function iden(v) return v end
 
---- A "plain old table" that has been frozen (made immutable).
-M.frozen = mty'frozen' {}
-getmetatable(M.frozen).__call = function(T, self)
-  return setmt(self, T):freeze()
+function M.frozenNext(f, k) return next(FROZEN[f], k) end
+local frozenNext = M.frozenNext
+
+M._freezyPairs = function(r)
+  local fr = FROZEN[r]; if fr then return frozenNext, r, nil end
+  return next, r, nil
 end
-local frozen = M.frozen
+
+M._freezyLen = function(r)
+  local fr = FROZEN[r]; if fr then return #fr end
+  return rawlen(r)
+end
+
+--- A "plain old table" that has been frozen (made immutable).
+M.frozen = mty'frozen' {}; local frozen = M.frozen
+getmetatable(frozen).__call = function(T, self)
+  return setmt(freezeTable(self), T)
+end
+frozen.__len   = M._freezyLen
+frozen.__pairs = M._freezyPairs
+function frozen:__index(k) return rawget(FROZEN[self] or self, k) end
+function frozen:__newindex(k, v)
+  if FROZEN[self] then error(sfmt('Attempt to set key %q to frozen table', k)) end
+  rawset(self, k, v)
+end
+frozen.__metatable = 'table'
 
 --- Usage: [$MyType.__index = mty._freezyIndex][{br}]
 --- This is the [$__index] set by [<#freeze>]. It retrieves from FROZEN (if it
@@ -42,21 +77,9 @@ M._freezyIndex = function(r, k)
   return getmt(R).__index(R, k)
 end
 
-M._freezyNewindex = function(r, k)
-  if FROZEN[r] then error(sfmt('Attempt to set key %q to frozen value', k)) end
-  return getmt(r).newindex(r, k)
-end
-
-function M.frozenNext(f, k) return next(FROZEN[f], k) end
-local frozenNext = M.frozenNext
-M._freezyPairs = function(r)
-  local fr = FROZEN[r]; if fr then return frozenNext, r, nil end
-  return next, r, nil
-end
-
-M._freezyLen = function(r)
-  local fr = FROZEN[r]; if fr then return #fr end
-  return rawlen(r)
+M._freezyNewindex = function(r, k, v)
+  return FROZEN[r] and error(sfmt('Attempt to set key %q to frozen value', k))
+      or getmt(r).newindex(r, k, v)
 end
 
 local FREEZE_TYPE = {
@@ -84,17 +107,7 @@ local FREEZE_TYPE = {
 function M.freeze(v)
   return (FREEZE_TYPE[type(v)] or error('unfreezeable type: '..type(v)))(v)
 end
-local freeze = M.freeze
-
---- The [$FreezyType:freeze()] method.
-function M._freezeMethod(self)
-  local fr = {}
-  for k, v in pairs(self) do
-    fr[k] = freeze(v); self[k] = nil
-  end
-  FROZEN[self] = fr
-  return self
-end
+freeze = M.freeze
 
 --- Usage: [$M.MyType = freeze.freezy(mty'MyType' { ... })][{br}]
 --- Make the type [$:freeze()]-able, after which it will be immutable.
@@ -109,24 +122,36 @@ end
 ---   - Dr Seuss, "Fox in Socks"
 --- ]
 M.freezy = function(R)
-  assert(not R.index,    'already has index')
-  assert(not R.newindex, 'already has newindex')
-  assert(not R.__len,    'already has __len')
-  assert(not R.__pairs,  'already has __pairs')
-  R.index, R.__index = R.__index, M._freezyIndex
+  assert(not rawget(R, 'index',    'already has index'))
+  assert(not rawget(R, 'newindex', 'already has newindex'))
+  assert(not rawget(R, '__len',    'already has __len'))
+  assert(not rawget(R, '__pairs',  'already has __pairs'))
+  rawset(R, 'index', R.__index)
+  rawset(R, '__index', M._freezyIndex)
   if type(R.index) == 'table' then
     assert(R.index == R, '__index was unexpected table')
     R.index = nil
   end
-  R.newindex, R.__newindex = R.__newindex, M._freezyNewindex
-  R.__len,    R.__pairs    = M._freezyLen, M._freezyPairs
-  R.freeze = M._freezeMethod
+  rawset(R, 'newindex',   R.__newindex)
+  rawset(R, '__newindex', M._freezyNewindex)
+  rawset(R, '__len',      M._freezyLen)
+  rawset(R, '__pairs',    M._freezyPairs)
+  rawset(R, 'freeze',     freezeTable)
+  rawset(R, 'fmt',        nil)
   return R
 end
 
-getmetatable(frozen).__index = function() end
-frozen.__newindex = rawset
-M.freezy(frozen)
+--- Return whether v is immutable.
+function M.isFrozen(v)
+  return (FREEZE_TYPE[type(v)]==iden) or (FROZEN[v] and true) or false
+end
+
+--- Force set the value, even on a frozen type. Obviously,
+--- this should be used with caution.
+function M.forceset(t, k, v)
+  local fr = FROZEN[t]; if fr then fr[k] = v
+  else                             t[k]  = v end
+end
 
 getmetatable(M).__call = function(_, v) return freeze(v) end
 return M

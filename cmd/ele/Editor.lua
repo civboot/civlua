@@ -51,7 +51,7 @@ getmetatable(Editor).__call = function(T, t)
   t = ds.merge({
     s=EdSettings{},
     mode='command', modes={},
-    actions=ds.copy(require'ele.actions'),
+    actions=ds.rawcopy(require'ele.actions'),
     buffers={}, bufferId={},
     namedBuffers=ds.WeakV{},
     overlay = Buffer{id=-1, dat=Gap{}},

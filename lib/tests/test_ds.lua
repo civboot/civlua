@@ -251,6 +251,14 @@ T.table = function()
   T.eq({'.', 'h', 's'}, M.sortUnique{'h', '.', 's', 'h'})
 end
 
+T.freeze = function()
+  local freeze = require'metaty.freeze'
+  local t = freeze{1, 2, a='a1', b='b2', t={3, 4}}
+  T.eq(1, t[1]); T.eq(2, t[2]); T.eq('a1', t.a)
+  local c = ds.copy(t)
+  T.eq(t, c)
+end
+
 T.Slc = function()
   local Slc = M.Slc
   local a = Slc{si=2, ei=10}

@@ -256,6 +256,13 @@ M.split = function(subj, pat--[[%s+]], index--[[1]]) --> (cxt, str) iter
   return M.rawsplit, subj, {pat or '%s+', index or 1}
 end
 
+--- The [$__copy] method.
+M.copyMethod = function(self)
+  local c = {}
+  for k, v in pairs(self) do c[k] = v end
+  return setmetatable(c, getmetatable(self))
+end
+
 --- The default __fmt method.
 M.fmt = function(self, f)
   local mt = getmt(self)
@@ -499,6 +506,7 @@ M._namedRecord = function(name, R, loc)
   end; R.reserved = nil
   R.__fields, R.__fieldIds, R.__docs = extendFields({}, fieldIds, {}, R)
   R.__fmt      = rawget(R, '__fmt')      or M.fmt
+  R.__copy     = rawget(R, '__copy')     or M.copyMethod
   R.__doc      = rawget(R, '__doc')      or M.doc
   R.__tostring = rawget(R, '__tostring') or M.tostring
   R.__index    = rawget(R, '__index')    or R

@@ -75,6 +75,11 @@ T.toPod = function()
   })
 end
 
+T'freeze'; do
+  local freeze = require'metaty.freeze'
+  T.eq(true, pod.isPod(freeze.frozen{}))
+end
+
 if not G.NOLIB then
 T['ds.pod.serialize'] = function()
   testing.testAll(pod.ser, function(str, P)
@@ -84,4 +89,3 @@ T['ds.pod.serialize'] = function()
   end)
 end
 end -- if not G.NOLIB
-

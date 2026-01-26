@@ -117,6 +117,11 @@ IFile.reader = function(fi) --> IFile?, err?
   return r
 end
 
+function IFile:__copy()
+  local c = {}; for k, v in next, self, nil do c[k] = v end
+  return setmetatable(c, getmetatable(self))
+end
+
 IFile.__fmt = function(fi, fmt)
   fmt:write('IFile(sz=', tostring(fi.sz), ' ')
   if fi.path then fmt:write(fi.path) end

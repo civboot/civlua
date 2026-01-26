@@ -25,17 +25,17 @@ end
 
 local function assertMatch(expectPat, result)
   if not result:match(expectPat) then
-    M.errorf('Does not match pattern:\nPattern: %q\n Result:  %s',
-           expectPat, result)
+    error(sfmt('Does not match pattern:\nPattern: %q\n Result:  %s',
+          expectPat, result))
   end
 end
 
 local function assertErrorPat(errPat, fn, plain)
   local ok, err = pcall(fn)
-  if ok then M.errorf('! No error received, expected: %q', errPat) end
-  if not err:find(errPat, 1, plain) then M.errorf(
+  if ok then error(sfmt('! No error received, expected: %q', errPat)) end
+  if not err:find(errPat, 1, plain) then error(sfmt(
     '! Expected error %q but got %q', errPat, err
-  )end
+  ))end
 end
 
 local function splitT(...)
@@ -213,21 +213,40 @@ test('freeze', function()
   assert(freeze.FROZEN[t])
   assertEq({freeze.frozenNext, t}, {pairs(t)})
   assertGet()
-  assertErrorPat('"d" to frozen value', function()
+  assertErrorPat('"d" to frozen table', function()
     t.d = 'foo'
   end)
-  assertErrorPat('"a" to frozen value', function()
+  assertErrorPat('"a" to frozen table', function()
     t.a = 'foo'
   end)
-  assertErrorPat('"c" to frozen value', function()
+  assertErrorPat('"c" to frozen table', function()
     t.t.c = 'foo'
   end)
+  assertEq(true, freeze.isFrozen(t.a))
+  assertEq(true, freeze.isFrozen(t.t))
+
+  local forceset = freeze.forceset
+  forceset(t, 'z', 'last'); assertEq('last', t.z)
 end)
 
--- test('fmtFile', function()
---   local f = Fmt{file=io.open('.out/TEST', 'w+')}
---   f:fmt{1, 2, z='bob', a='hi'}
---   f.file:flush(); f.file:seek'set'
---   assertEq('{1,2 :: a="hi" z="bob"}', f.file:read'a')
---   f.file:close()
--- end)
+
+test('freeze Type', function()
+  local freeze = require'metaty.freeze'
+  local A = freeze.freezy(mty'A' {'a1[string]', 'a2[number]'})
+  local a = A{a1='hi'}
+    assertEq('hi', a.a1);   assertEq(nil, a.a2);
+    assertEq(A{a1='hi'}, a)
+
+  a.a1 = 'bye'
+  a.a2 = 42
+    assertEq('bye', a.a1)
+    assertEq(42, a.a2)
+    assertEq(A{a1='bye', a2=42}, a)
+  a:freeze()
+    assertEq('bye', a.a1);   assertEq(42, a.a2);
+    assertEq(A{a1='bye', a2=42}:freeze(), a)
+
+  assertErrorPat('"a1" to frozen value', function()
+    a.a1 = 'foo'
+  end)
+end)

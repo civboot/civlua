@@ -3,11 +3,14 @@ local G = G or _G
 local M = G.mod and mod'pod' or setmetatable({}, {})
 
 local mty = require'metaty'
+local ds = require'ds'
 local push = table.insert
 local mtype = math.type
 local sfmt = string.format
+local getmt = getmetatable
 
 local CONCRETE, BUILTIN = mty.CONCRETE, mty.BUILTIN
+local ty = mty.ty
 
 -- FIXME: remove
 M.isConcrete = mty.isConcrete
@@ -35,23 +38,28 @@ M.Pod = mty'Pod'{
 local Pod = M.Pod
 Pod.DEFAULT = Pod{}
 
--- return true if the value is "plain old data".
---
--- Plain old data is defined as any native type or a table with no metatable
--- and who's pairs() are only POD.
-local isPod; isPod = function(v, mtFn)
-  local ty = type(v); if ty == 'table' then
-    local mt = getmetatable(v); if mt then return mtFn(v, mt) end
-    for k, v in pairs(v) do
-      if not (isPod(k, mtFn) and isPod(v, mtFn)) then
-        return false
-      end
+local function _isPod(v, isPodFn)
+  local mt = type(v); if mt ~= 'table' then return BUILTIN[mt] end
+  mt = ty(v);         if mt ~= 'table' then return isPodFn(v) end
+  for k, v in pairs(v) do
+    if not (_isPod(k, isPodFn) and _isPod(v, isPodFn)) then
+      return false
     end
-    return true
   end
-  return BUILTIN[ty]
+  return true
 end
-M.isPod = isPod
+
+local isPod
+--- return true if the value is "plain old data".
+---
+--- Plain old data is defined as any native type or a table with no metatable
+--- and who's pairs() are only POD.
+---
+--- The [$isPodFn] fn takes [$v] and should return true if it is pod.
+function M.isPod(v, isPodFn)
+  return _isPod(v, isPodFn or ds.retFalse)
+end
+isPod = M.isPod
 
 --- A type who's sole job is converting values to/from POD.
 M.Podder = mty'Podder' {
@@ -95,11 +103,13 @@ local BUILTIN_PODDER = {
     name='integer', __toPod=tpInt, __fromPod=tpInt,
   },
 }
-BUILTIN_PODDER.table.__toPod = function(T, pod, t)
+function M.tableToPod(T, pod, t)
   if type(t) ~= 'table' then error('expected table got '..type(t)) end
-  assert(isPod(t, pod.mtPodFn), 'table is not plain-old-data')
-  return t
+  return isPod(t, pod.mtPodFn) and t
+      or error(mty.name(t)..' is not plain-old-data')
 end
+
+BUILTIN_PODDER.table.__toPod = M.tableToPod
 BUILTIN_PODDER.int = BUILTIN_PODDER.integer
 BUILTIN_PODDER.str = BUILTIN_PODDER.string
 
@@ -171,7 +181,7 @@ M.toPod = function(v, podder, pod)
   if not podder then
     local ty = type(v)
     if ty == 'table' then
-      podder = getmetatable(v) or M.table
+      podder = getmt(v) or M.table
       if podder == 'table' then podder = M.table end
     else
       podder = BUILTIN_PODDER[ty] or error('not pod: '..ty)
@@ -189,16 +199,12 @@ M.mty_toPod = function(T, pod, t)
   local p, podders = {}, T.__podders
   if pod.fieldIds then
     local fieldIds = T.__fieldIds
-    for field, field in ipairs(T.__fields) do
-      local v = rawget(t, field); if v ~= nil then
-        p[fieldIds[field]] = podders[field]:__toPod(pod, v)
-      end
+    for k, v in pairs(t) do
+      p[fieldIds[k]] = podders[k]:__toPod(pod, v)
     end
   else
-    for _, field in ipairs(T.__fields) do
-      local v = rawget(t, field); if v ~= nil then
-        p[field]           = podders[field]:__toPod(pod, v)
-      end
+    for k, v in pairs(t) do
+      p[k] = podders[k]:__toPod(pod, v)
     end
   end
   return p
@@ -291,5 +297,18 @@ M.load = function(f, ...)
   assert(str, err); return M.deser(str, ...)
 end
 
-getmetatable(M).__call = function(M, ...) return M.implPod(...) end
+do
+  local frozen = require'metaty.freeze'.frozen
+  function frozen:__toPod(pod, v)
+    local p = {}
+    for k, v in pairs(self) do p[k] = toPod(v, nil, pod) end
+    return p
+  end
+  function frozen.__fromPod(T, pod, v)
+    assert(type(v) == 'table')
+    return v
+  end
+end
+
+getmt(M).__call = function(M, ...) return M.implPod(...) end
 return M
