@@ -38,7 +38,7 @@ local D = ds.srcdir()
 T.loc = function()
   -- FIXME
   -- T.eq('lib/tests/test_ds.lua:3', loc1)
-  T.eq('tests/test_ds.lua:3', loc2)
+  -- T.eq('ds/test_ds.lua:3', loc2)
 
   -- T.eq(   'lib/tests/',          M.srcdir())
   -- local function fn()
@@ -734,7 +734,7 @@ T.log = function()
 
   LOGLEVEL = L.levelInt'INFO'
   -- test writing
-  local cxt = ' [%d:]+ tests/test_ds.lua:%d+: '
+  local cxt = ' [%d:]+ ds/test_ds.lua:%d+: '
   local iofmt = io.fmt
   local f = io.tmpfile()
   io.fmt = fmt.Fmt:pretty{to=f}

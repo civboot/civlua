@@ -198,8 +198,8 @@ end
 
 T.testMetaty = function()
   local l = newCiv()
-  local p = 'civ:lib/tests'
-  local t = p..'#test_metaty'
+  local p = 'civ:lib'
+  local t = p..'#test_meta'
   l:loadPkgs{p}
   l:test({t}, l:build{t})
 end

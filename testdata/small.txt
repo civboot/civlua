@@ -1,5 +1,0 @@
-This is a small file
-it is for testing.
-
-It ends in a newline
-

@@ -2,7 +2,7 @@ local lua = import'sys:lua.luk'
 
 local P = { summary = "Write scripts for Lua, execute from shell" }
 
--- Note: tests are in lib/tests/
+-- Note: tests are in lib/PKG.lua
 P.shim = lua {
   mod = 'shim',
   dep = { 'civ:lib/metaty' },

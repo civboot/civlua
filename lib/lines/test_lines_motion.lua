@@ -1,4 +1,3 @@
-local mty = require'metaty'
 local ds  = require'ds'
 local T = require'civtest'
 

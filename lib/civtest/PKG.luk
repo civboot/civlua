@@ -2,7 +2,7 @@ local P = {}
 P.summary = "Ultra simple testing library"
 local lua = import'sys:lua.luk'
 
--- Note: tests are in lib/tests/
+-- Note: tests are in lib/PKG.lua
 P.civtest = lua {
   mod = 'civtest',
   src = { 'civtest.lua' },

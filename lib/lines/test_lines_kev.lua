@@ -1,5 +1,4 @@
 local T = require'civtest'
-
 local push = table.insert
 
 T.kev = function()

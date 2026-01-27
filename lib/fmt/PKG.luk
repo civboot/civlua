@@ -2,7 +2,7 @@ local lua = import'sys:lua.luk'
 
 local P = { summary = "format and style anything" }
 
--- Note: tests are in lib/tests/
+-- Note: tests are in lib/PKG.lua
 P.fmt = lua {
   mod = 'fmt',
   src = {

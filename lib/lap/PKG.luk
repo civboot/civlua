@@ -2,7 +2,7 @@ local P = {}
 P.summary = "Lua Asynchronous Protocol and helper library"
 local lua = import'sys:lua.luk'
 
--- Note: tests are in lib/tests/
+-- Note: tests are in lib/PKG.lua
 P.lap = lua {
   mod = 'lap',
   dep = {

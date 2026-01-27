@@ -79,28 +79,13 @@ local core = require'civ.core'
 local function bootTest()
   print'[[test]]'
   -- setup and run tests
-
-  dofile(D..'lib/tests/test_metaty.lua')
-  dofile(D..'lib/tests/test_fmt.lua')
-  dofile(D..'lib/tests/test_civtest.lua')
-
   local log = require'ds.log'
   LOGFN = log.logFn; log.setLevel()
 
-  dofile(D..'lib/tests/test_shim.lua')
-  dofile(D..'lib/tests/test_ds.lua')
-  dofile(D..'lib/tests/test_ds_IFile.lua')
-  dofile(D..'lib/tests/test_lines_diff.lua')
-  dofile(D..'lib/tests/test_lines_file.lua')
-  dofile(D..'lib/tests/test_lap.lua')
-  dofile(D..'lib/tests/test_pod.lua')
-  dofile(D..'lib/tests/test_lson.lua')
-  dofile(D..'lib/tests/test_civix.lua')
-
-  dofile(D..'lib/tests/test_lines.lua')
-  dofile(D..'lib/tests/test_asciicolor.lua')
-  dofile(D..'lib/tests/test_vt100.lua')
-  -- dofile(D..'lib/luk/test.lua') TODO
+  local L = D..'lib/'
+  for _, libtest in ipairs(dofile(L..'boot_tests.luk')) do
+    dofile(L..libtest)
+  end
 
   dofile(D..'cmd/civ/test_civ.lua')
   io.fmt:styled('notify', 'boot-test done', '\n')

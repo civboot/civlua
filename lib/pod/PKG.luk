@@ -8,7 +8,7 @@ P.podlib = lua.cc {
   tag = { builder = 'bootstrap' },
 }
 
--- Note: tests are in lib/tests/
+-- Note: tests are in lib/PKG.lua
 P.pod = lua {
   mod = 'pod',
   src = { 'pod.lua' },

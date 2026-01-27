@@ -109,9 +109,9 @@ end
 --- * default controls val==nil
 --- * empty   controls val==''
 --- ]
-M.list = function(val, default, empty)
-  if val == nil then val = default or {} end
-  if empty and val == '' then return empty end
+M.list = function(val, default, empty) --> {string}
+  if val == nil                 then val = default or {} end
+  if empty ~= nil and val == '' then return empty        end
   return (type(val) == 'table') and val or {val}
 end
 

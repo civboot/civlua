@@ -2,7 +2,7 @@ local lua = import'sys:lua.luk'
 
 local P = { summary = "Civboot VT100 Terminal Library" }
 
--- Note: tests are in lib/tests/
+-- Note: tests are in lib/PKG.lua
 P.vt100 = lua {
   mod = 'vt100',
   src = {

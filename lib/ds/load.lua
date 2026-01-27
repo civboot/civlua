@@ -50,7 +50,7 @@ M.ENV = {
   error=error,   assert=fmt.assertf,
 
   record = mty.record, enum = mty.enum,
-  type = mty.ty,
+  type = type, ty = mty.ty,
 
   warn = log.warn, info = log.info, trace = log.trace,
 }; M.ENV.__index = M.ENV

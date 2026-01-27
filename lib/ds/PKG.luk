@@ -10,7 +10,7 @@ P.dslib = lua.cc {
   tag = { builder = 'bootstrap', }
 }
 
--- Note: tests are in lib/tests/
+-- Note: tests are in lib/PKG.lua
 P.ds = lua {
   mod = 'ds',
   src = {

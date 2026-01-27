@@ -2,7 +2,7 @@ local P = {}
 P.summary = "Data structures for mixed media (memory/fs) lines of text"
 local lua = import'sys:lua.luk'
 
--- Note: tests are in lib/tests/
+-- Note: tests are in lib/PKG.lua
 P.lines = lua {
   mod = 'lines',
   src = {

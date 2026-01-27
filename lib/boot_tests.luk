@@ -1,0 +1,23 @@
+--- These are in [$bootstrap.lua boot-test] and [$civ:lib#boot_tests].
+return {
+  -- core
+  'metaty/test_metaty.lua',
+  'fmt/test_fmt.lua',
+  'civtest/test_civtest.lua',
+  'shim/test_shim.lua',
+  'lap/test_lap.lua',
+  'ds/test_ds.lua',
+  'ds/test_ds_IFile.lua',
+
+  -- lines
+  'lines/test_lines_diff.lua',
+  'lines/test_lines_file.lua',
+  'lines/test_lines.lua',
+
+  -- cmd
+  'pod/test_pod.lua',
+  'lson/test_lson.lua',
+  'civix/test_civix.lua',
+  'asciicolor/test_asciicolor.lua',
+  'vt100/test_vt100.lua',
+}
