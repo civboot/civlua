@@ -9,7 +9,7 @@ local T  = require'civtest'
 
 --- Test [$eq(v, decFn(encFn(v))]
 --- If expectEncoding is provided then test [$eq(expectEncoding, encFn(v)]
-M.round = function(v, encFn, decFn, expectEncoding) --> (enc, dec)
+function M.round(v, encFn, decFn, expectEncoding) --> (enc, dec)
   local P = mty.ty(v); if type(P) == 'string' then P = nil end
   local enc = encFn(v, P)
   if expectEncoding ~= nil then
@@ -19,7 +19,7 @@ M.round = function(v, encFn, decFn, expectEncoding) --> (enc, dec)
   T.eq(v, dec)
   return enc, dec
 end
-M.roundList = function(values, encFn, decFn)
+function M.roundList(values, encFn, decFn)
   for _, v in ipairs(values) do
     local ok, err = ds.try(M.round, v, encFn, decFn)
     if not ok then
@@ -98,14 +98,14 @@ getmetatable(M.I).__call = function(T, t)
 end
 pod(M.I)
 
-M.roundMetaty = function(encFn, decFn)
+function M.roundMetaty(encFn, decFn)
   local round = function(v) return M.round(v, encFn, decFn) end
 
   round(M.A{})
   round(M.A{i=42, e=M.E.FIRST})
 end
 
-M.testAll = function(...)
+function M.testAll(...)
   M.roundList(M.BUILTIN, ...)
   M.roundMetaty(...)
 end

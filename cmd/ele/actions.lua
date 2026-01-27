@@ -33,7 +33,7 @@ local assertf = fmt.assertf
 -- state necessary for determining user intent across a chord of keys,
 -- which are pressed in sequence. Typically, these end with the binding
 -- generating an event when all keys are gathered.
-M.keyinput = function(ed, ev, evsend)
+function M.keyinput(ed, ev, evsend)
   local mode = ed.modes[ed.mode]; local fallback = mode.fallback
   -- note: ki=key-input
   local ki, K, err = assert(ev[1], 'missing key'), ed.ext.keys
@@ -86,14 +86,14 @@ end
 
 -- merge action
 -- directly merges ed with event (action key removed)
-M.merge = function(ed, ev)
+function M.merge(ed, ev)
   ev.action = nil; ds.merge(ed, ev)
 end
 
 -- chain: push multiple events to the FRONT, effectively
 --   replacing this action with it's children.
 -- Note: supports times
-M.chain = function(ed, ev, evsend)
+function M.chain(ed, ev, evsend)
   for _=1,ev.times or 1 do evsend:extendLeft(ev) end
   ed:handleStandard(ev)
 end
@@ -134,7 +134,7 @@ local DOMOVE = {
     e.c = motion.findBack(line, ev.findback, e.c, true) or e.c
   end,
 }
-local domove = function(e, ev)
+local function domove(e, ev)
   local fn = ev.move and DOMOVE[ev.move]
   if fn      then fn(e, e.buf:get(e.l), ev) end
   if ev.cols then e.c = e.c + ev.cols       end
@@ -159,7 +159,7 @@ end
 --   cols, off: move cursor by columns/offset (positive or negative)
 --
 -- Supports: times
-M.move = function(ed, ev)
+function M.move(ed, ev)
   local e = ed.edit
   log.trace('move %q [start %s.%s]', ev, e.l, e.c)
   if ev.move == 'absolute' then
@@ -177,7 +177,7 @@ end
 -- insert action, normally inserts ev[1] at the current position.
 --
 -- Set [$special] to call I_SPECIAL fn first.
-M.insert = function(ed, ev, evsend)
+function M.insert(ed, ev, evsend)
   -- Note: changeStart is in Editor.handleStandard.
   local e = ed.edit
   if ev[1] then
@@ -186,7 +186,7 @@ M.insert = function(ed, ev, evsend)
   ed:handleStandard(ev)
 end
 
-M.insertTab = function(ed, ev)
+function M.insertTab(ed, ev)
   local tw = ed.s.tabwidth
   local c = (ed.edit.c - 1) % tw
   ed.edit:insert(srep(' ', tw - c))
@@ -201,7 +201,7 @@ end
 --
 -- Exceptions:
 -- * lines=0 removes a single line (also supports times)
-M.remove = function(ed, ev)
+function M.remove(ed, ev)
   local mode = ds.popk(ev, 'mode') -- cache, we handle at end
   local e = ed.edit; e:changeStart()
   if ev.lines == 0 then
@@ -227,7 +227,7 @@ end
 ----------------------------------
 -- Search Buf
 
-M.searchBuf = function(ed, ev)
+function M.searchBuf(ed, ev)
   local e, sb = ed.edit, ed:namedBuffer'search'
   if ev.overlay then -- update find buffer from overlay
     ed.search = ed.overlay:get(1)
@@ -292,10 +292,10 @@ M.DO_NAV = {
   end,
 }
 
-nav.getFocus = function(line)
+function nav.getFocus(line)
   return line:match'^%-?([.~]?/[^\n]*)'
 end
-nav.getEntry = function(line) --> (indent, kind, entry)
+function nav.getEntry(line) --> (indent, kind, entry)
   local i, k, e = line:match'^(%s+)([*+-])%s*([^\n]+)'
   if not i then return end
   return i, k, e:match'^%./' and e:sub(3) or e
@@ -304,7 +304,7 @@ local getFocus, getEntry = nav.getFocus, nav.getEntry
 
 --- Find the parent of current path entry
 --- if isFocus the entry will be the focus (and ind will be 0)
-nav.findParent = function(b, l) --> linenum, line
+function nav.findParent(b, l) --> linenum, line
   local line = b:get(l);
   if getFocus(line) then return l, line, true  end
   local ind = getEntry(line); if not ind then return end
@@ -318,7 +318,7 @@ nav.findParent = function(b, l) --> linenum, line
 end
 
 --- Find the focus path line num (i.e. the starting directory)
-nav.findFocus = function(b, l) --> linenum, line
+function nav.findFocus(b, l) --> linenum, line
   for l=l,1,-1 do
     local line = b:get(l)
     if getFocus(line)     then return l, line end
@@ -328,7 +328,7 @@ end
 
 --- Find the last line of the focus's entities (or itself).
 --- invariant: line l is an entry or focus.
-nav.findEnd = function(b, l) --> linenum
+function nav.findEnd(b, l) --> linenum
   while l + 1 <= #b do
     l = l + 1
     if not getEntry(b:get(l)) then return l - 1 end
@@ -337,14 +337,14 @@ nav.findEnd = function(b, l) --> linenum
 end
 
 --- Find the view (focusLineNum, endLineNum, focusLine)
-nav.findView = function(b, l) --> (fln, eln, fline)
+function nav.findView(b, l) --> (fln, eln, fline)
   local fl, fline = nav.findFocus(b, l); if not fl then return end
   return fl, assert(nav.findEnd(b, l), 'findEnd'), fline
 end
 
 --- Walk up the parents, getting the full path.
 --- If not an entry, try to find the path from the column.
-nav.getPath = function(b, l,c) --> string
+function nav.getPath(b, l,c) --> string
   local ln = b:get(l); local path, ind
   local focus   = getFocus(ln); if focus then return focus  end
   local i, _, e = getEntry(ln); if not i then goto nonentry end
@@ -367,7 +367,7 @@ nav.getPath = function(b, l,c) --> string
   return ln:sub(si,ei)
 end
 
-nav.findEntryEnd = function(b, l) --> linenum
+function nav.findEntryEnd(b, l) --> linenum
   local ind = getEntry(b:get(l)); if not ind then return end
   ind = #ind
   for l=l+1, #b do
@@ -376,7 +376,7 @@ nav.findEntryEnd = function(b, l) --> linenum
   end
 end
 
-nav.backFocus = function(b, l)
+function nav.backFocus(b, l)
   local fl,fe = nav.findView(b, l)
   log.info('nav.backFocus fl=%i fe=%i', fl, fe)
   if not fl then return end
@@ -389,7 +389,7 @@ end
 --- Go backwards on the entry, returning the new line
 --- For focus, this will go back one component.
 --- For entry, this will collapse parent (and move to it).
-nav.backEntry = function(b, l) --> ln
+function nav.backEntry(b, l) --> ln
   ::start::
   local le = nav.findEntryEnd(b, l)
   if not le then
@@ -404,7 +404,7 @@ nav.backEntry = function(b, l) --> ln
   return l
 end
 
-nav.expandEntry = function(b, l, ls) --> numEntries
+function nav.expandEntry(b, l, ls) --> numEntries
   local entries = ls(nav.getPath(b, l))
   if #entries == 0 then return end
   local line = b:get(l)
@@ -417,14 +417,14 @@ nav.expandEntry = function(b, l, ls) --> numEntries
   return #entries - 2
 end
 
-nav.doBack = function(b, l, times)
+function nav.doBack(b, l, times)
   for _=1,times do
     local nl = nav.backEntry(b, l); if l == nl then break end
     l = nl
   end
 end
 
-nav.doExpand = function(b, l, times, ls)
+function nav.doExpand(b, l, times, ls)
   local line, en = b:get(l), nil
   local path = getFocus(line) or select(3, getEntry(line))
   if not path or not pth.isDir(path) then return end
@@ -436,7 +436,7 @@ nav.doExpand = function(b, l, times, ls)
 end
 
 --- go to path at l,c. If op=='create' then create the path
-nav.goPath = function(ed, create)
+function nav.goPath(ed, create)
   local e = ed.edit
   local p = nav.getPath(e.buf, e.l,e.c)
   if p then
@@ -457,7 +457,7 @@ local DO_ENTRY = {
 }
 
 --- perform the entry operation
-nav.doEntry = function(ed, op, times, ls)
+function nav.doEntry(ed, op, times, ls)
   local e = ed.edit; local l = e.l
   e:changeStart()
   local fn = fmt.assertf(DO_ENTRY[op], 'uknown entry op: %s', op)
@@ -467,7 +467,7 @@ nav.doEntry = function(ed, op, times, ls)
   e:changeUpdate2()
 end
 
-M.path = function(ed, ev, evsend)
+function M.path(ed, ev, evsend)
   if ev.entry then
     nav.doEntry(ed, ev.entry, ev.times or 1, ix.ls)
   end
@@ -486,7 +486,7 @@ end
 --- * focus: focus the buffer, typically 'b#named'.
 --- * clear: clear the current edit view.
 --- ]
-M.edit = function(ed, ev)
+function M.edit(ed, ev)
   if ev.save  then ed.edit:save(ed)   end
   if ev.focus then ed:focus(ev.focus) end
   if ev.clear then
@@ -508,7 +508,7 @@ end
 
 --- Directly modify a buffer by name. This is most commonly
 --- used for the overlay.
-M.buf = function(ed, ev)
+function M.buf(ed, ev)
   local b; if ev.create then b = ed:buffer(ev.buf)
   else                       b = ed:getBuffer(ev.buf) end
   b:changeStart(0,0)
@@ -530,7 +530,7 @@ M.SPLIT = {
   v = et.VSplit, vertical=et.VSplit,
 }
 --- Window operations like split and close
-M.window = function(ed, ev)
+function M.window(ed, ev)
   if ev.split then
     local S = assert(M.SPLIT[ev.split], ev.split)
     ed.edit:split(S)

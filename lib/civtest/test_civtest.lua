@@ -3,14 +3,14 @@ local mty = require'metaty'
 local ds  = require'ds'
 local T = require'civtest'
 
-T.civtest = function()
+T'civtest'; do
   T.eq(1, 1)
   T.eq('hi', 'hi')
   T.eq({1, 2, a=5}, {1, 2, a=5})
   T.throws('hi there', function() error('hi there bob') end)
 end
 
-T.global = function()
+T'global'; do
   G.testGlobal = true; assert(testGlobal)
   testGlobal = nil;    assert(nil == G.testGlobal)
   T.throws('global someGlobal is nil/unset', function()

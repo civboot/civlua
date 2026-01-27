@@ -14,17 +14,17 @@ local s = ds.simplestr
 fd.ioStd()
 
 --- test some basic internal functions
-T.internal = function()
+T'internal'; do
   T.eq(0, pvc._calcPatchDepth(1))
   T.eq(0, pvc._calcPatchDepth(10))
   T.eq(2, pvc._calcPatchDepth(101))
 end
 
-T.patchPath = function()
+T'patchPath'; do
   T.eq('foo/commit/00/1.p', pvc._patchPath('foo', 1, '.p', 2))
 end
 
-local initPvc = function(d) --> projDir
+local function initPvc(d) --> projDir
   d = d or D
   ix.rmRecursive(d);
   pvc.init{dir=d}
@@ -32,7 +32,7 @@ local initPvc = function(d) --> projDir
 end
 
 --- test empty files
-T.empty = function()
+T'empty'; do
   local d = initPvc()
   local diff = pvc.diff{dir=d, paths=true}
   T.eq(pvc.Diff{
@@ -63,7 +63,7 @@ T.empty = function()
 end
 
 -- binary not supported
-T.binary = function()
+T'binary'; do
   local P = initPvc()
   local bpath, BIN = P..'bin', '\x00\xFF'
   pth.write(bpath, BIN)
@@ -74,7 +74,7 @@ T.binary = function()
 end
 
 -- missing path is an error
-T.missingPath = function()
+T'missingPath'; do
   local P = initPvc()
   pth.append(P..'.pvcpaths', 'file.dne')
   T.throws('but does not exist', function()
@@ -88,7 +88,7 @@ local HELLO_PATCH1 = [[
 @@ -0,0 +1,5 @@
 +local M = {}
 +
-+M.helloworld = function()
++function M.helloworld()
 +  print'hello world'
 +end
 ]]

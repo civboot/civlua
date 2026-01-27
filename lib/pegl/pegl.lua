@@ -22,34 +22,34 @@ local function zero() return 0 end
 --- Tokens use a packed span to preserve space.
 --- Maximums: line start|len = 2^24|2^16. cols=255
 M.SPAN_PACK = '>I3I2I2I2'
-M.encodeSpan = function(l1, c1, l2, c2)
+function M.encodeSpan(l1, c1, l2, c2)
   return string.pack(M.SPAN_PACK, l1, c1, l2-l1, c2)
 end
-M.decodeSpan = function(s)
+function M.decodeSpan(s)
   local l, c, l2, c2 = string.unpack(M.SPAN_PACK, s)
   return l, c, l + l2, c2
 end
 
 M.Token = mty'Token'{'kind [string]: optional, used for debugging'}
-M.Token.span = function(t, dec) return M.decodeSpan(t[1]) end
-M.Token.encode = function(ty_, p, l, c, l2, c2, kind)
-  return M.Token{M.encodeSpan(l, c, l2, c2), kind=kind}
+function M.Token:span(dec) return M.decodeSpan(self[1]) end
+M.Token.encode = function(T, p, l, c, l2, c2, kind)
+  return T{M.encodeSpan(l, c, l2, c2), kind=kind}
 end
-M.Token.decode = function(t, dat) return lines.sub(dat, M.decodeSpan(t[1])) end
-M.Token.__fmt = function(t, f)
-  f:write'Tkn'; if t.kind then f:write(sfmt('<%s>', t.kind)) end
-  f:write(sfmt('(%s.%s %s.%s)', t:span()))
+function M.Token:decode(dat) return lines.sub(dat, M.decodeSpan(self[1])) end
+function M.Token:__fmt(f)
+  f:write'Tkn'; if self.kind then f:write(sfmt('<%s>', self.kind)) end
+  f:write(sfmt('(%s.%s %s.%s)', self:span()))
 end
 
 local TOKEN_TY = {string=true, [M.Token]=true}
-M.firstToken = function(list) --> t, listWithToken
+function M.firstToken(list) --> t, listWithToken
   if TOKEN_TY[ty(list)] then return list, nil end
   local t = list[1]; while not TOKEN_TY[ty(t)] do
     list = t; t = list[1]
   end
   return t, list
 end
-M.lastToken = function(list) --> t, listWithToken
+function M.lastToken(list) --> t, listWithToken
   if TOKEN_TY[ty(list)] then return list, nil end
   local t = list[#list]; while t and not TOKEN_TY[ty(t)] do
     list = t; t = list[#list]
@@ -57,7 +57,7 @@ M.lastToken = function(list) --> t, listWithToken
   return t, list
 end
 
-M.nodeSpan = function(t)
+function M.nodeSpan(t)
   local fst, lst = M.firstToken(t), M.lastToken(t)
   local l1, c1 = fst:span()
   return l1, c1, select(3, lst:span())
@@ -116,7 +116,7 @@ M.Parser = mty'Parser'{
   'firstError {l=int,c=int, [1]=str}: first error.',
 }
 
-M.fmtSpec = function(s, f)
+function M.fmtSpec(s, f)
   if type(s) == 'string'   then return f(s) end
   if type(s) == 'function' then return f(s) end
   if s.name or s.kind then
@@ -130,7 +130,7 @@ M.fmtSpec = function(s, f)
   end
   f:level(-1); f:write(f.tableEnd)
 end
-M.specToStr = function(s, fmt)
+function M.specToStr(s, fmt)
   local fmt = fmt or fmt.Fmt:pretty()
   M.fmtSpec(s, fmt)
   return concat(fmt)
@@ -138,7 +138,7 @@ end
 
 --- Create a parser spec record. These have the fields [$kind] and [$name]
 --- and must define the [$parse] method.
-M.specTy = function(name)
+function M.specTy(name)
   local s = mty(name){'kind [string]', 'name [string]', __fmt=M.fmtSpec}
   s.get, s.set = rawget, rawset
   s.extend = ds.defaultExtend
@@ -206,7 +206,7 @@ end
 --- Prefer [$Key] if selecting among multiple string or token paths as [$Or] is
 --- not performant ([$O(N)] vs Key's [$O(1)])
 M.Or = M.specTy'Or'
-M.Maybe = function(spec) return M.Or{spec, M.Empty} end
+function M.Maybe(spec) return M.Or{spec, M.Empty} end
 --- match a Spec multiple times
 --- Example: [$Many{'keyword', OtherSpec, min=1, kind='myMany'}] will match the
 --- given sequence one or more times ([$min=0] times by default). The parse
@@ -251,7 +251,7 @@ M.Many = mty'Many' {
 --- ]
 M.Seq = M.specTy'Seq'
 M.Not = M.specTy'Not'
-M.Not.parse = function(self, p) return not M.parseSeq(p, self) end
+function M.Not:parse(p) return not M.parseSeq(p, self) end
 
 -- Used in Seq to "pin" or "unpin" the parser, affecting when errors
 -- are thrown.
@@ -263,8 +263,8 @@ M.UNPIN = ds.sentinel('UNPIN', {name='UNPIN', kind=false})
 M.EMPTY = ds.sentinel('EMPTY', {kind='EMPTY', __len=zero})
 M.Empty = ds.sentinel('Empty', {parse = function() return M.EMPTY end})
 
-M.isEmpty  = function(t) return mty.eq(M.EMPTY, t) end
-M.notEmpty = function(t) return not mty.eq(M.EMPTY, t) end
+function M.isEmpty(t) return mty.eq(M.EMPTY, t) end
+function M.notEmpty(t) return not mty.eq(M.EMPTY, t) end
 
 -- Denotes the end of the file
 M.EOF = ds.sentinel('EOF', {kind='EOF', __len=zero})
@@ -278,7 +278,7 @@ M.Eof = ds.sentinel('Eof', {
 -------------------
 -- Root and Utilities
 
-M.skipWs1 = function(p)
+function M.skipWs1(p)
   if p.c > #p.line then p:incLine(); return
   else
     local c, c2 = p.line:find('^%s+', p.c)
@@ -287,7 +287,7 @@ M.skipWs1 = function(p)
   return true
 end
 
-M.skipEmpty = function(p)
+function M.skipEmpty(p)
   local loop, sc, cmt, cL = true, p.config.skipComment, nil, nil
   while loop and not p:isEof() do
     loop = not M.skipWs1(p)
@@ -306,14 +306,14 @@ M.skipEmpty = function(p)
 end
 M.Config.skipEmpty = M.skipEmpty
 
-M.skipEmptyMinimal = function(p)
+function M.skipEmptyMinimal(p)
   while not p:isEof() do
     if p.c > #p.line then p:incLine()
     else return end
   end
 end
 
-M.defaultTokenizer = function(p)
+function M.defaultTokenizer(p)
   if p:isEof() then return end
   return p.line:match('^%p', p.c) or p.line:match('^[_%w]+', p.c)
 end
@@ -344,9 +344,9 @@ end
 -------------------
 -- Key
 
-M.Key.parse = function(key, p)
+function M.Key:parse(p)
   p:skipEmpty()
-  local c, keys, found = p.c, key.keys, false
+  local c, keys, found = p.c, self.keys, false
   while true do
     local k = p.config.tokenizer(p); if not k    then break end
     keys = keys[k];                if not keys then break end
@@ -355,7 +355,7 @@ M.Key.parse = function(key, p)
     found = keys[true]
   end
   if found then
-    local kind = key.kind or lines.sub(p.dat, p.l, c, p.l, p.c - 1)
+    local kind = self.kind or lines.sub(p.dat, p.l, c, p.l, p.c - 1)
     return M.Token:encode(p, p.l, c, p.l, p.c -1, kind)
   end
   p.c = c
@@ -364,7 +364,7 @@ end
 -------------------
 -- Pat
 
-M.Pat.parse = function(self, p)
+function M.Pat:parse(p)
   p:skipEmpty()
   for _, pat in ipairs(self) do
     local t = p:consume(pat)
@@ -386,7 +386,7 @@ local function _seqAdd(p, out, spec, t)
   else push(out, t) end
 end
 
-M.parseSeq = function(p, seq)
+function M.parseSeq(p, seq)
   p:skipEmpty()
   local out, pin = {}, nil
   p:dbgEnter(seq)
@@ -414,14 +414,14 @@ M.Seq.parse = function(seq, p) return M.parseSeq(p, seq) end
 -------------------
 -- Or
 
-M.Or.parse = function(or_, p)
+function M.Or:parse(p)
   p:skipEmpty()
-  p:dbgEnter(or_)
+  p:dbgEnter(self)
   local state = p:state()
-  for _, spec in ipairs(or_) do
+  for _, spec in ipairs(self) do
     local t = p:parse(spec)
     if t then
-      t = node(spec, t, or_.kind)
+      t = node(spec, t, self.kind)
       p:dbgLeave(t)
       return t
     end
@@ -433,22 +433,22 @@ end
 -------------------
 -- Many
 
-M.Many.parse = function(many, p)
+function M.Many:parse(p)
   p:skipEmpty()
   local out = {}
-  p:dbgEnter(many)
+  p:dbgEnter(self)
   while true do
-    local t = M.parseSeq(p, many)
+    local t = M.parseSeq(p, self)
     if not t then break end
     if ty(t) ~= M.Token and #t == 1 then push(out, t[1])
-    else _seqAdd(p, out, many, t) end
+    else _seqAdd(p, out, self, t) end
   end
-  if #out < many.min then
-    p:dbgMissed(many, ' got count=%s', #out)
+  if #out < self.min then
+    p:dbgMissed(self, ' got count=%s', #out)
     out = nil
   end
-  p:dbgLeave(many)
-  return node(many, out, many.kind)
+  p:dbgLeave(self)
+  return node(self, out, self.kind)
 end
 
 -------------------
@@ -471,17 +471,17 @@ local SPEC_TY = {
 ---
 --- [$config] is used to define settings of the parser such as how to skip
 --- comments and whether to use debug mode.
-M.parse = function(dat, spec, config) --> list[Node]
+function M.parse(dat, spec, config) --> list[Node]
   local p = M.Parser:new(dat, config)
   local n = p:parse(spec)
   return n, p
 end
 
-M.Parser.assertNode = function(p, expect, node, config)
-  local result = p:toStrTokens(node)
+function M.Parser:assertNode(expect, node, config)
+  local result = self:toStrTokens(node)
   if not mty.eq(expect, result) then
-    local eStr = concat(p.config.newFmt()(expect))
-    local rStr = concat(p.config.newFmt()(result))
+    local eStr = concat(self.config.newFmt()(expect))
+    local rStr = concat(self.config.newFmt()(result))
     if eStr ~= rStr then
       print('\n#### EXPECT:'); print(eStr)
       print('\n#### RESULT:'); print(rStr)
@@ -503,7 +503,7 @@ end
 --- the input is a table of the form: [{$ lang=lua}
 ---   {dat, spec, expect, dbg=nil, config=default} --> nil
 --- ]
-M.assertParse = function (t) --> result, node, parser
+function M.assertParse (t) --> result, node, parser
   assert(t.dat, 'dat'); assert(t.spec, 'spec')
   local config = (t.config and ds.copy(t.config)) or M.Config{}
   config.dbg   = t.dbg or config.dbg
@@ -513,7 +513,7 @@ M.assertParse = function (t) --> result, node, parser
   return result, node, parser
 end
 
-M.assertParseError = function(t)
+function M.assertParseError(t)
   T.throws(
     t.errPat,
     function() M.parse(assert(t.dat), assert(t.spec)) end,
@@ -537,83 +537,83 @@ end
 --- the main entry point and used recursively.
 --- Parses the spec, returning the node, which is a table of nodes that are
 --- eventually tokens.
-M.Parser.parse = function(p, spec) --> node
+function M.Parser:parse(spec) --> node
   local Ty = ty(spec)
   local specFn = SPEC_TY[Ty]
-  if specFn then return specFn(p, spec)
-  else           return spec:parse(p) end
+  if specFn then return specFn(self, spec)
+  else           return spec:parse(self) end
 end
 --- consume the pattern, advancing the column if found
-M.Parser.consume = function(p, pat, plain) --> Token
-  local t = p:peek(pat, plain)
-  if t then p.c = select(4, t:span()) + 1 end
+function M.Parser:consume(pat, plain) --> Token
+  local t = self:peek(pat, plain)
+  if t then self.c = select(4, t:span()) + 1 end
   return t
 end
 --- identical to `consume` except it does not advance the column
-M.Parser.peek = function(p, pat)
-  if p:isEof() then return nil end
-  local c, c2 = p.line:find(pat, p.c)
-  if c == p.c then
-    return M.Token:encode(p, p.l, c, p.l, c2)
+function M.Parser:peek(pat)
+  if self:isEof() then return nil end
+  local c, c2 = self.line:find(pat, self.c)
+  if c == self.c then
+    return M.Token:encode(self, self.l, c, self.l, c2)
   end
 end
-M.Parser.sub = function(p, t) -- t=token
-  return lines.sub(p.dat, t:span())
+function M.Parser:sub(t) -- t=token
+  return lines.sub(self.dat, t:span())
 end
-M.Parser.incLine = function(p)
-  p.l, p.c = p.l + 1, 1
-  p.line = get(p.dat,p.l)
+function M.Parser:incLine()
+  self.l, self.c = self.l + 1, 1
+  self.line = get(self.dat,self.l)
 end
-M.Parser.isEof = function(p) return not p.line end --> isAtEndOfFile
-M.Parser.skipEmpty = function(p)
-  p.config.skipEmpty(p)
-  return p:isEof()
+function M.Parser:isEof() return not self.line end --> isAtEndOfFile
+function M.Parser:skipEmpty()
+  self.config.skipEmpty(self)
+  return self:isEof()
 end
 --- get the current parser state [${l, c, line}]
-M.Parser.state = function(p) return {l=p.l, c=p.c, line=p.line} end
+function M.Parser:state() return {l=self.l, c=self.c, line=self.line} end
 --- restore the current parser state [${l, c, line}]
-M.Parser.setState = function(p, st) p.l, p.c, p.line = st.l, st.c, st.line end
+function M.Parser:setState(st) self.l, self.c, self.line = st.l, st.c, st.line end
 -- convert to token strings for test assertion
-M.Parser.toStrTokens = function(p, n)
+function M.Parser:toStrTokens(n)
   if not n then return nil end
   if ty(n) == M.Token then
-    local t = p:tokenStr(n)
+    local t = self:tokenStr(n)
     return n.kind and {t, kind=n.kind} or t
   elseif #n == 0 then return n end
-  local t={} for _, n in ipairs(n) do push(t, p:toStrTokens(n)) end
+  local t={} for _, n in ipairs(n) do push(t, self:toStrTokens(n)) end
   t.kind=n.kind
   return t
 end
 --- recursively mutate table converting all Tokens to strings
-M.Parser.makeStrTokens = function(p, t) --> t
+function M.Parser:makeStrTokens(t) --> t
   for k, v in pairs(t) do
-    if ty(v) == M.Token       then t[k] = p:tokenStr(v)
-    elseif type(v) == 'table' then p:makeStrTokens(v) end
+    if ty(v) == M.Token       then t[k] = self:tokenStr(v)
+    elseif type(v) == 'table' then self:makeStrTokens(v) end
   end
   return t
 end
-M.Parser.tokenStr = function(p, t) return t:decode(p.dat) end --> string
+function M.Parser:tokenStr(t) return t:decode(self.dat) end --> string
 -- recurse through the start of list and trim the start of first token
-M.Parser.trimTokenStart = function(p, list)
+function M.Parser:trimTokenStart(list)
   local t, list = M.firstToken(list); assert(list)
   if type(t) == 'string' then return end
   local l1, c1, l2, c2 = t:span()
-  local line = get(p.dat,l1)
-  local s = p:tokenStr(t); c1 = line:find('[^ ]', c1) or c1
-  list[1] = M.Token:encode(p, l1, c1, l2, c2)
+  local line = get(self.dat,l1)
+  local s = self:tokenStr(t); c1 = line:find('[^ ]', c1) or c1
+  list[1] = M.Token:encode(self, l1, c1, l2, c2)
 end
 
 -- recurse through the end of list and trim the end of last token
-M.Parser.trimTokenLast = function(p, list, trimNl)
+function M.Parser:trimTokenLast(list, trimNl)
   local t, list = M.lastToken(list); assert(list)
   if not t or type(t) == 'string' then return end
   local l1, c1, l2, c2 = t:span()
-  local line = get(p.dat,l2)
+  local line = get(self.dat,l2)
   while line:sub(c2,c2) == ' ' do c2 = c2 - 1 end
   if trimNl and l2 > l1 and c2 == 0 then
-    l2 = l2 - 1; c2 = #get(p.dat,l2)
+    l2 = l2 - 1; c2 = #get(self.dat,l2)
   end
-  list[#list] = M.Token:encode(p, l1, c1, l2, c2)
+  list[#list] = M.Token:encode(self, l1, c1, l2, c2)
 end
 
 local function fmtStack(p)
@@ -628,64 +628,64 @@ local function fmtStack(p)
   push(b, sfmt('%s(%s.%s)', x, y or '?', z or '?'))
   return concat(b, '\n  ')
 end
-M.Parser.checkPin = function(p, pin, expect)
+function M.Parser:checkPin(pin, expect)
   if not pin then return end
-  if p.line then p:error(fmt.format(
+  if self.line then self:error(fmt.format(
     "parser expected: %q\nGot: %s",
-    expect, p.line:sub(p.c))
-  )else p:error(
+    expect, self.line:sub(self.c))
+  )else self:error(
     "parser reached EOF but expected: "..fmt(expect)
   )end
 end
-M.Parser.error = function(p, msg)
-  local lmsg = sfmt('[LINE %s.%s]', p.l, p.c)
+function M.Parser:error(msg)
+  local lmsg = sfmt('[LINE %s.%s]', self.l, self.c)
   local err = fmt.format("ERROR\nPath: %s\n%s%s\n%s\nCause: %s\nParse stack:\n  %s",
-    rawget(p.dat, 'path') or p.path or '(rawdata)',
-    lmsg, p.line or '(eof)', srep(' ', #lmsg + p.c - 1)..'^',
-    msg, fmtStack(p))
-  if not p.firstError then p.firstError = {l=p.l, c=p.c, err} end
-  if not p.config.lenient then error(err) end
-  log.warn('lenient parsing error (%i.%i): %s', p.l, p.c, msg)
+    rawget(self.dat, 'path') or self.path or '(rawdata)',
+    lmsg, self.line or '(eof)', srep(' ', #lmsg + self.c - 1)..'^',
+    msg, fmtStack(self))
+  if not self.firstError then self.firstError = {l=self.l, c=self.c, err} end
+  if not self.config.lenient then error(err) end
+  log.warn('lenient parsing error (%i.%i): %s', self.l, self.c, msg)
 end
 
-M.Parser.parseAssert = function(p, spec)
-  local n = p:parse(spec); if not n then return p:error(fmt.format(
+function M.Parser:parseAssert(spec)
+  local n = self:parse(spec); if not n then return self:error(fmt.format(
     "parser expected: %q\nGot: %s",
-    spec, p.line:sub(p.c))
+    spec, self.line:sub(self.c))
   )end
   return n
 end
 
-M.Parser.dbgEnter = function(p, spec)
-  push(p.stack, spec.kind or spec.name or true)
-  push(p.stackL, p.l); push(p.stackC, p.c)
-  if not p.config.dbg then return end
-  p:dbg('ENTER: %s', fmt(spec))
-  p.dbgLevel = p.dbgLevel + 1
+function M.Parser:dbgEnter(spec)
+  push(self.stack, spec.kind or spec.name or true)
+  push(self.stackL, self.l); push(self.stackC, self.c)
+  if not self.config.dbg then return end
+  self:dbg('ENTER: %s', fmt(spec))
+  self.dbgLevel = self.dbgLevel + 1
 end
 
-M.Parser.dbgLeave = function(p, n)
-  local sl = p.stackLast
-  sl[1], sl[2], sl[3] = pop(p.stack), pop(p.stackL), pop(p.stackC)
-  if not p.config.dbg then return n end
-  p.dbgLevel = p.dbgLevel - 1
-  p:dbg('LEAVE: %s(%s.%s)', fmt(n or sl[1]), sl[2], sl[3])
+function M.Parser:dbgLeave(n)
+  local sl = self.stackLast
+  sl[1], sl[2], sl[3] = pop(self.stack), pop(self.stackL), pop(self.stackC)
+  if not self.config.dbg then return n end
+  self.dbgLevel = self.dbgLevel - 1
+  self:dbg('LEAVE: %s(%s.%s)', fmt(n or sl[1]), sl[2], sl[3])
   return n
 end
-M.Parser.dbgMatched = function(p, spec)
-  if p.config.dbg then p:dbg('MATCH: %s', fmt(spec)) end
+function M.Parser:dbgMatched(spec)
+  if self.config.dbg then self:dbg('MATCH: %s', fmt(spec)) end
 end
-M.Parser.dbgMissed = function(p, spec, note)
-  if p.config.dbg then p:dbg('MISS: %s%s', fmt(spec), (note or '')) end
+function M.Parser:dbgMissed(spec, note)
+  if self.config.dbg then self:dbg('MISS: %s%s', fmt(spec), (note or '')) end
 end
-M.Parser.dbgUnpack = function(p, spec, t)
-  if p.config.dbg then p:dbg('UNPACK: %s :: %s', fmt(spec), fmt(t)) end
+function M.Parser:dbgUnpack(spec, t)
+  if self.config.dbg then self:dbg('UNPACK: %s :: %s', fmt(spec), fmt(t)) end
 end
-M.Parser.dbg = function(p, fmtstr, ...)
-  if not p.config.dbg then return end
+function M.Parser:dbg(fmtstr, ...)
+  if not self.config.dbg then return end
   local msg = sfmt(fmtstr, ...)
   fmt.print(sfmt('%%%s%s (%s.%s)',
-    string.rep('* ', p.dbgLevel), msg, p.l, p.c))
+    string.rep('* ', self.dbgLevel), msg, self.l, self.c))
 end
 
 local _10pat = M.Pat'[0-9]+'
@@ -717,25 +717,25 @@ M.common.base16 = {kind='base16',
   M.Maybe{'.', M.Pat(_16pat)},
 }
 
-M.isKeyword = function(t) return #t == 1 and t.kind == t[1] end
+function M.isKeyword(t) return #t == 1 and t.kind == t[1] end
 
 -- Debugging keywords(KW), names(N) and numbers(NUM/HEX)
 M.testing = {}
-local KW = function(kw)    return {kw, kind=kw} end -- keyword
+local function KW(kw)    return {kw, kind=kw} end -- keyword
 local neg, dot = KW'-', KW'.'
 local function NumT(kind, t)
   if type(t) == 'string' then t = {t} end; assert(#t <= 3)
   return ds.extend({kind=kind, (t.neg and neg) or M.EMPTY, tostring(t[1])},
     t[2] and {dot, tostring(t[2])} or {M.EMPTY})
 end
-M.testing.N  = function(name) return {name, kind='name'} end -- name
-M.testing.TY = function(ty)   return {ty,   kind='ty'} end -- ty
-M.testing.NUM = function(t)   return NumT('base10', t) end
-M.testing.HEX = function(t)   return NumT('base16', t) end
+function M.testing.N(name)  return {name, kind='name'} end -- name
+function M.testing.TY(ty)   return {ty,   kind='ty'} end -- ty
+function M.testing.NUM(n)   return NumT('base10', n) end
+function M.testing.HEX(h)   return NumT('base16', h) end
 M.testing.KW = KW
 
 -- formatting parsed so it can be copy/pasted
-local fmtKindNum = function(name, f, t)
+local function fmtKindNum(name, f, t)
   f:write(name..sfmt('{%s%s%s}',
     mty.eq(t[1],M.EMPTY) and '' or 'neg=1 ', t[2],
     (mty.eq(t[3],M.EMPTY) and '') or (','..t[4])
@@ -753,9 +753,9 @@ M.fmtKinds = {
 M.FmtPegl = mty'FmtPegl' {
   'kinds [table]: kind -> fmtFn', kinds=M.fmtKinds,
 }
-M.FmtPegl.__call = function(ft, f, t)
+function M.FmtPegl:__call(f, t)
   if M.isKeyword(t) then f:write(sfmt('KW%q', t[1])); return end
-  local fmtK = t.kind and ft.kinds and ft.kinds[t.kind]
+  local fmtK = t.kind and self.kinds and self.kinds[t.kind]
   if fmtK then fmtK(f, t) else fmt.Fmt.table(f, t) end
 end
 M.Config.newFmt = function()

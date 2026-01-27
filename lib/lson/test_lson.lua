@@ -12,12 +12,12 @@ local function testString(encoded, decoded)
   local de = mty.construct(M.De, {l=1, c=1, line=encoded})
   T.eq(decoded, M._deString(de))
 end
-T.string = function()
+T'string'; do
   testString([["example string"]],     [[example string]])
   testString([["example \"string\""]], [[example "string"]])
 end
 
-T.skipWs = function()
+T'skipWs'; do
   local de = M.De(lines'  a\n  b')
   de:skipWs(); T.eq('a', de.line:sub(de.c,de.c))
   de.c = de.c + 1
@@ -38,21 +38,21 @@ local function ltest(t, enc, expectEncoding, P)
   return enc, de
 end
 
-T.lax = function()
+T'lax'; do
   T.eq({1, 2},   M.decode'[1 2]')
   T.eq({a=2, 1}, M.decode'{1:1 "a":2}')
   T.throws('1.4: missing pattern ":"',
     function() M.decode'{1 "a":2}' end)
 end
 
-T.bytes = function()
+T'bytes'; do
   T.eq('abc',     M.decode '|abc|')
   T.eq('a\nc',    M.decode '|a\\nc|')
   T.eq('a\\nc',   M.decode[[|a\\nc|]])
   T.eq('a\\nc |', M.decode[[|a\\nc \||  ]])
 end
 
-T.round = function()
+T'round'; do
   local L = M.Lson
   ltest({1, 2, 3},      nil,  '[1,2,3]')
   ltest({1, 2, 3},      L{},  '[1 2 3]')
@@ -84,7 +84,7 @@ T.round = function()
   ltest({[ds.none]=false}, nil, '{null:false}')
 end
 
-T.lson_pod = function()
+T'lson_pod'; do
   Tm.A = mty'A' { 'a1 [builtin]', 'a2 [Tm.A]' }
   pod(Tm.A)
   local a = Tm.A{ a1='hi'}
@@ -98,7 +98,7 @@ T.lson_pod = function()
     pod.Map{K=pod.str, V=Tm.A})
 end
 
-T.lson_run_testing_pod = function()
+T'lson_run_testing_pod'; do
   local tp = require'pod.testing'
   local encLson = function(v, P) return table.concat(Lson{}(v, P)) end
   local encJson = function(v, P) return table.concat(Json{}(v, P)) end

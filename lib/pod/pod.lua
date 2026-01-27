@@ -67,8 +67,8 @@ M.Podder = mty'Podder' {
   '__toPod   [(self, pset, v) -> p]',
   '__fromPod [(self, pset, p) -> v]',
 }
-M.Podder.__tostring = function(p) return p.name end
-M.isPodder = function(P) --> isPodder, whyNot?
+function M.Podder:__tostring() return self.name end
+function M.isPodder(P) --> isPodder, whyNot?
   if not mty.callable(P.__toPod) and mty.callable(P.__fromPod) then
     return false, 'must implement __toPod and __fromPod'
   end
@@ -76,7 +76,7 @@ M.isPodder = function(P) --> isPodder, whyNot?
   return true
 end
 
-local makeNativePodder = function(ty)
+local function makeNativePodder(ty)
   local expected = 'expected '..ty
   local f = function(self, pod, v)
     if v == nil then return end
@@ -87,7 +87,7 @@ local makeNativePodder = function(ty)
   end
   return M.Podder{name=ty, __toPod=f, __fromPod=f}
 end
-local tpInt = function(self, pod, i)
+local function tpInt(self, pod, i)
   if i == nil then return end
   if mtype(i) ~= 'integer' then error('expected integer got '..type(i)) end
   return i
@@ -118,7 +118,7 @@ M.nil_ = BUILTIN_PODDER['nil']
 
 --- Handles concrete non-nil types (boolean, number, string)
 M.key = mty'key' {}
-M.key.__toPod = function(self, pod, v)
+function M.key:__toPod(pod, v)
   if CONCRETE[type(v)] then return v end
   error('nonconrete type: '..type(v))
 end
@@ -130,7 +130,7 @@ M.builtin = mty'builtin' {}; local builtin = M.builtin
 
 assert(PKG_LOOKUP['pod.builtin'] == M.builtin)
 
-builtin.__toPod = function(self, pod, v)
+function builtin:__toPod(pod, v)
   local ty = type(v)
   if ty == 'table' then
     assert(isPod(v, pod.mtPodFn), 'table is not plain-old-data')
@@ -138,7 +138,7 @@ builtin.__toPod = function(self, pod, v)
   elseif BUILTIN[ty]   then return v end
   error('nonnative type: '..type(v))
 end
-builtin.__fromPod = function(self, pod, v)
+function builtin:__fromPod(pod, v)
   if BUILTIN[type(v)] then return v end
   error('nonbuiltin type: '..type(v))
 end
@@ -146,12 +146,12 @@ BUILTIN_PODDER.builtin = builtin
 
 --- Poder for a list of items with a type.
 M.List = mty'List' {'I [Podder]: the type of each list item'}
-M.List.__toPod = function(self, pod, l)
+function M.List:__toPod(pod, l)
   local I, p = self.I, {}
   for i, v in ipairs(l) do p[i] = I:__toPod(pod, v) end
   return p
 end
-M.List.__fromPod = function(self, pod, p)
+function M.List:__fromPod(pod, p)
   local I, l = self.I, {}
   for i, v in ipairs(l) do l[i] = I:__fromPod(pod, v) end
   return l
@@ -162,14 +162,14 @@ M.Map = mty'Map' {
   'K [Podder]: keys type', K=M.key,
   'V [Podder]: values type',
 }
-M.Map.__toPod = function(self, pod, m)
+function M.Map:__toPod(pod, m)
   local K, V, p = self.K, self.V, {}
   for k, v in pairs(m) do
     p[K:__toPod(pod, k)] = V:__toPod(pod, v)
   end
   return p
 end
-M.Map.__fromPod = function(self, pod, p)
+function M.Map:__fromPod(pod, p)
   local K, V, m = self.K, self.V, {}
   for k, v in pairs(p) do
     m[K:__fromPod(pod, k)] = V:__fromPod(pod, v)
@@ -177,7 +177,7 @@ M.Map.__fromPod = function(self, pod, p)
   return m
 end
 
-M.toPod = function(v, podder, pod)
+function M.toPod(v, podder, pod)
   if not podder then
     local ty = type(v)
     if ty == 'table' then
@@ -189,13 +189,13 @@ M.toPod = function(v, podder, pod)
   end
   return podder:__toPod(pod or Pod.DEFAULT, v)
 end
-M.fromPod = function(v, poder, pod)
+function M.fromPod(v, poder, pod)
   return (poder or builtin):__fromPod(pod or Pod.DEFAULT, v)
 end
 local toPod, fromPod = M.toPod, M.fromPod
 
 --- Default __toPod for metatype records
-M.mty_toPod = function(T, pod, t)
+function M.mty_toPod(T, pod, t)
   local p, podders = {}, T.__podders
   if pod.fieldIds then
     local fieldIds = T.__fieldIds
@@ -211,7 +211,7 @@ M.mty_toPod = function(T, pod, t)
 end
 
 --- Default __fromPod for metatype records
-M.mty_fromPod = function(T, pod, p)
+function M.mty_fromPod(T, pod, p)
   local t, podders, fieldIds = {}, T.__podders, T.__fieldIds
   for k, v in pairs(p) do
     if type(k) == 'number' then k = fieldIds[k] end
@@ -221,7 +221,7 @@ M.mty_fromPod = function(T, pod, p)
 end
 
 --- lookup podder from types, native, PKG_LOOKUP
-local lookupPodder = function(T, types, name)
+local function lookupPodder(T, types, name)
   if G.PKG_NAMES[T] == name then return T end
   local p = types[name] or BUILTIN_PODDER[name] or G.PKG_LOOKUP[name]
          or error('Cannot find type '..name)
@@ -235,7 +235,7 @@ end
 ---
 --- Typically this is called by calling the module itself,
 --- i.e. [$$pod(mty'myType'{'field [int]#1'})]$
-M.implPod = function(T, tys)
+function M.implPod(T, tys)
   tys = tys or {}
   local errs, podders, podder = {}, {}, nil
   for _, field in ipairs(T.__fields) do
@@ -266,19 +266,19 @@ end
 
 --- Serialize value, converting it to a compact string.
 --- Note: this function first calls toPod on the value.
-M.ser = function(value) --> string
+function M.ser(value) --> string
   return ser(toPod(value))
 end
 
 --- Deserialize value from a compact string (and call fromPod on it)
 --- [$index] (default=1) is where to start in [$str]
-M.deser = function(str, P, index) --> value, lenUsed
+function M.deser(str, P, index) --> value, lenUsed
   local p, elen = deser(str, index)
   return fromPod(p, P), elen
 end
 
 --- dump ser(...) to f, which can be a path or file.
-M.dump = function(f, ...)
+function M.dump(f, ...)
   local close
   if type(f) == 'string' then
     f = assert(io.open(f, 'w')); close = true
@@ -288,7 +288,7 @@ M.dump = function(f, ...)
 end
 
 --- load [$deser(f:read'a', ...)], f can be a path or file.
-M.load = function(f, ...)
+function M.load(f, ...)
   local close
   if type(f) == 'string' then
     f = assert(io.open(f)); close = true

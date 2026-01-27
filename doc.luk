@@ -7,7 +7,7 @@ local LuaDoc = record'LuaDoc' {
   'lua {tgtname}: lua module targets to document',
 }
 
-M.lua = function(l)
+function M.lua(l)
   assert(l.mod, 'must set mod')
   l.src = type(l.src)=='string' and {l.src} or l.src or {}
   l.lua = l.lua or {}

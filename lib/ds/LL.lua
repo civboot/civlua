@@ -42,58 +42,58 @@ LL.from = function(T, list) --> (head, tail) from list of vals
   return h, t
 end
 
-LL.head = function(ll) while ll.l do ll = ll.l end; return ll end
-LL.tail = function(ll) while ll.r do ll = ll.r end; return ll end
+function LL:head() while self.l do self = self.l end; return self end
+function LL:tail() while self.r do self = self.r end; return self end
 
-LL.tolist = function(ll) --> {a.v, b.v, c.v, ...}
-  local t = {}; while ll do push(t, ll.v); ll = ll.r end
+function LL:tolist() --> {a.v, b.v, c.v, ...}
+  local t = {}; while self do push(t, self.v); self = self.r end
   return t
 end
 
 --- create l -> r link
-LL.link = function(l, r) l.r, r.l = r, l end
+function LL:link(r) self.r, r.l = r, self end
 
 --- insert LL(v) to right of ll
 --- [$(h -> 2); h:insert(1) ==> (h -> 1 -> 2)]
-LL.insert = function(ll, v)
-  ll.r = construct(getmetatable(ll), {v=v, l=ll, r=ll.r})
+function LL:insert(v)
+  self.r = construct(getmetatable(self), {v=v, l=self, r=self.r})
 end
 
 --- remove node ll from linked list
 --- if ll was the head, returns the new head (or nil)
-LL.rm = function(ll) --> head?
-  local l, r = ll.l, ll.r
+function LL:rm() --> head?
+  local l, r = self.l, self.r
   if l then
-    if r then l.r, r.l, ll.l, ll.r = r, l -- both left+right
-    else        ll.l, l.r = nil end       -- only left
+    if r then l.r, r.l, self.l, self.r = r, l -- both left+right
+    else        self.l, l.r = nil end       -- only left
   elseif r then -- only right
-    ll.r, r.l = nil
+    self.r, r.l = nil
     return r -- new head
   end
 end
 
-LL.get = function(ll, i) --> node? (at index +/- i)
+function LL:get(i) --> node? (at index +/- i)
   if i < 0 then
     for i=1,-i do
-      ll = ll.l; if not ll then return end
+      self = self.l; if not self then return end
     end
   else
     for i=1,i do
-      ll = ll.r; if not ll then return end
+      self = self.r; if not self then return end
     end
   end
-  return ll
+  return self
 end
 
 
---- Add DSL (ll + v). Puts node with v=v after tail, returns new tail.
-LL.__add = function(ll, v) --> tail
-  local n = getmetatable(ll)(v)
-  ll:tail():link(n)
+--- Add DSL (self + v). Puts node with v=v after tail, returns new tail.
+function LL:__add(v) --> tail
+  local n = getmetatable(self)(v)
+  self:tail():link(n)
   return n
 end
 
---- Link DSL: l - r ==> l -> r
+--- Link DSL: [$l - r ==> l -> r]
 --- Links [$l:tail() -> r:head(), return r:tail()]
 ---
 --- Note: This is for convienience and expressiveness of small lists.
@@ -103,21 +103,21 @@ end
 ---   l6     = LL(3) - (LL(4) + 5) - L(6) ==> (3 -> 4 -> 5 -> 6)
 ---   l3tail = l1 - l2 - l3
 --- ]$
-LL.__sub = function(l, r)
+function LL:__sub(r)
   local t = r:tail()
-  l, r = l:tail(), r:head()
+  local l, r = self:tail(), r:head()
   l.r, r.l = r, l -- link
   return t
 end
 
-LL.__call = function(ll) return ll.r end --> ll.r (use with `for`)
+function LL:__call() return self.r end --> self.r (use with `for`)
 LL.__pairs  = ds.nosupport
 LL.__ipairs = ds.nosupport
-LL.__fmt = function(ll, f)
+function LL:__fmt(f)
   f:write'LL{'
   while true do
-    f(ll.v); ll = ll.r
-    if ll then f:write' -> ' else break end
+    f(self.v); self = self.r
+    if self then f:write' -> ' else break end
   end
   f:write'}'
 end

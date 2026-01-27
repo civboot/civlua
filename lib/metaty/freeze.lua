@@ -38,12 +38,12 @@ local function iden(v) return v end
 function M.frozenNext(f, k) return next(FROZEN[f], k) end
 local frozenNext = M.frozenNext
 
-M._freezyPairs = function(r)
+function M._freezyPairs(r)
   local fr = FROZEN[r]; if fr then return frozenNext, r, nil end
   return next, r, nil
 end
 
-M._freezyLen = function(r)
+function M._freezyLen(r)
   local fr = FROZEN[r]; if fr then return #fr end
   return rawlen(r)
 end
@@ -65,7 +65,7 @@ frozen.__metatable = 'table'
 --- Usage: [$MyType.__index = mty._freezyIndex][{br}]
 --- This is the [$__index] set by [<#freeze>]. It retrieves from FROZEN (if it
 --- exists), else returns the default or falls back to [$getmt(R).__index].
-M._freezyIndex = function(r, k)
+function M._freezyIndex(r, k)
   -- first, get from frozen
   local fr, v = FROZEN[r]; if fr then
     v = fr[k]; if v ~= nil then return v end
@@ -77,7 +77,7 @@ M._freezyIndex = function(r, k)
   return getmt(R).__index(R, k)
 end
 
-M._freezyNewindex = function(r, k, v)
+function M._freezyNewindex(r, k, v)
   return FROZEN[r] and error(sfmt('Attempt to set key %q to frozen value', k))
       or getmt(r).newindex(r, k, v)
 end
@@ -121,7 +121,7 @@ freeze = M.freeze
 ---   That's what made these three free fleas sneeze.[{br}]
 ---   - Dr Seuss, "Fox in Socks"
 --- ]
-M.freezy = function(R)
+function M.freezy(R)
   assert(not rawget(R, 'index',    'already has index'))
   assert(not rawget(R, 'newindex', 'already has newindex'))
   assert(not rawget(R, '__len',    'already has __len'))

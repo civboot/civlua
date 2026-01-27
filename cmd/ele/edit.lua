@@ -40,23 +40,23 @@ getmetatable(M.Edit).__call = function(T, t)
   local b = assert(t.buf, 'must set buf')
   t.l, t.c = t.l or b.l, t.c or b.c
   t.id = types.uniqueId()
-  local e = mty.construct(T, t)
-  e:changeStart()
-  return e
+  local self = mty.construct(T, t)
+  self:changeStart()
+  return self
 end
 
-M.Edit.close = function(e, ed)
-  assert(not e.container, "Edit not removed before close")
-  e.closed = true
-  if e.buf.tmp then
-    e.buf.tmp[e] = nil; if #e.buf.tmp == 0 then
-      ed.buffers[e.id] = nil
+function M.Edit:close(ed)
+  assert(not self.container, "Edit not removed before close")
+  self.closed = true
+  if self.buf.tmp then
+    self.buf.tmp[self] = nil; if #self.buf.tmp == 0 then
+      ed.buffers[self.id] = nil
     end
   end
 end
 
-M.Edit.save = function(e, ed)
-  local b = e.buf; local dat = b.dat
+function M.Edit:save(ed)
+  local b = self.buf; local dat = b.dat
   local ro = b.readonly; b.readonly = true
   local path = assert(dat.path, 'must set path')
   local tpath = path..'.__ELE__'
@@ -74,161 +74,161 @@ M.Edit.save = function(e, ed)
   b.dat = dat
 end
 
-M.Edit.__fmt       = function(e, f)
-  f:write'Edit[id='; f:number(e.id); f:write']'
+function M.Edit:__fmt(f)
+  f:write'Edit[id='; f:number(self.id); f:write']'
 end
 
-M.Edit.__len       = function(e) return #e.buf end
-M.Edit.copy        = function(e) return ds.copy(e, {id=T.nextViewId()}) end
-M.Edit.forceHeight = function(e) return e.fh end
-M.Edit.forceWidth  = function(e) return e.fw end
-M.Edit.curLine     = function(e)
-  return e.buf.dat[e.l] end
-M.Edit.colEnd      = function(e) return #(e:curLine() or '') + 1 end
-M.Edit.lastLine    = function(e) return e.buf[#e] end
-M.Edit.offset = function(e, off)
-  return lines.offset(e.buf.dat, off, e.l, e.c)
+function M.Edit:__len() return #self.buf end
+function M.Edit:copy() return ds.copy(self, {id=T.nextViewId()}) end
+function M.Edit:forceHeight() return self.fh end
+function M.Edit:forceWidth() return self.fw end
+function M.Edit:curLine()
+  return self.buf.dat[self.l] end
+function M.Edit:colEnd() return #(self:curLine() or '') + 1 end
+function M.Edit:lastLine() return self.buf[#self] end
+function M.Edit:offset(off)
+  return lines.offset(self.buf.dat, off, self.l, self.c)
 end
 
-M.Edit.boundC = function(e, l,c)
-  return ds.bound(c, 1, #e.buf:get(l) + 1)
+function M.Edit:boundC(l,c)
+  return ds.bound(c, 1, #self.buf:get(l) + 1)
 end
-M.Edit.boundLC = function(e, l, c)
+function M.Edit:boundLC(l, c)
   if l <= 1 then
-    if #e == 0 then return 1, 1 end
-    return 1, ds.bound(c, 1, #e.buf:get(1) + 1)
+    if #self == 0 then return 1, 1 end
+    return 1, ds.bound(c, 1, #self.buf:get(1) + 1)
   end
-  l = ds.bound(l, 1, #e)
-  return l, e:boundC(l,c)
+  l = ds.bound(l, 1, #self)
+  return l, self:boundC(l,c)
 end
 
 -- bound the column for the line
-M.Edit.boundCol= function(e, c, l)
-  return ds.bound(c, 1, #e.buf:get(l or e.l) + 1)
+function M.Edit:boundCol(c, l)
+  return ds.bound(c, 1, #self.buf:get(l or self.l) + 1)
 end
 
 -- update view fields to see cursor (if needed)
-M.Edit.viewCursor = function(e)
-  local l, c = e:boundLC(e.l, e.c)
-  local bh, bw = e:barDims()
-  local th, tw = e.th - bh, e.tw - bw
-  if e.vl > l          then e.vl = l end
-  if l > e.vl + th - 1 then e.vl = l - th + 1 end
-  if c < e.vc          then e.vc = c end
-  if c > e.vc + tw - 1 then e.vc = c - tw + 1 end
+function M.Edit:viewCursor()
+  local l, c = self:boundLC(self.l, self.c)
+  local bh, bw = self:barDims()
+  local th, tw = self.th - bh, self.tw - bw
+  if self.vl > l          then self.vl = l end
+  if l > self.vl + th - 1 then self.vl = l - th + 1 end
+  if c < self.vc          then self.vc = c end
+  if c > self.vc + tw - 1 then self.vc = c - tw + 1 end
 end
 
 -----------------
 -- Mutations: these update the changes in the buffer
-M.Edit.changeStart = function(e)
-  e.buf:changeStart(e.l, e.c)
+function M.Edit:changeStart()
+  self.buf:changeStart(self.l, self.c)
 end
 
-M.Edit.changeUpdate2 = function(e)
-  local b = e.buf
+function M.Edit:changeUpdate2()
+  local b = self.buf
   if b:changed() then
-    local ch = assert(e.buf:getStart())
-    ch.l2, ch.c2 = e.l, e.c
+    local ch = assert(self.buf:getStart())
+    ch.l2, ch.c2 = self.l, self.c
   end
 end
 
-M.Edit.append = function(e, msg)
-  local l2 = #e + 1
-  e.buf:append(msg)
-  e.l, e.c = l2, 1
-  e:changeUpdate2()
+function M.Edit:append(msg)
+  local l2 = #self + 1
+  self.buf:append(msg)
+  self.l, self.c = l2, 1
+  self:changeUpdate2()
 end
 
-M.Edit.insert = function(e, s)
-  local b = e.buf
-  b:insert(s, e.l, e.c);
-  e.l, e.c = lines.offset(b.dat, #s, e.l, e.c)
+function M.Edit:insert(s)
+  local b = self.buf
+  b:insert(s, self.l, self.c);
+  self.l, self.c = lines.offset(b.dat, #s, self.l, self.c)
   -- if causes cursor to move to next line, move to end of cur line
   -- except in specific circumstances
-  if (e.l > 1) and (e.c == 1) and ('\n' ~= s:sub(#s)) then
-    e.l, e.c = e.l - 1, #b[e.l - 1] + 1
+  if (self.l > 1) and (self.c == 1) and ('\n' ~= s:sub(#s)) then
+    self.l, self.c = self.l - 1, #b[self.l - 1] + 1
   end
-  e:changeUpdate2()
+  self:changeUpdate2()
 end
 
-M.Edit.remove = function(e, ...)
-  local ch = e.buf:remove(...)
-  e:changeUpdate2()
+function M.Edit:remove(...)
+  local ch = self.buf:remove(...)
+  self:changeUpdate2()
 end
 
-M.Edit.removeOff = function(e, off, l, c)
+function M.Edit:removeOff(off, l, c)
   if off == 0 then return end
-  l, c = l or e.l, c or e.c;
-  local l2, c2 = lines.offset(e.buf.dat, ds.absDec(off), l, c)
+  l, c = l or self.l, c or self.c;
+  local l2, c2 = lines.offset(self.buf.dat, ds.absDec(off), l, c)
   if off < 0 then l, l2, c, c2 = l2, l, c2, c end
-  e:remove(l, c, l2, c2)
+  self:remove(l, c, l2, c2)
 end
 
-M.Edit.replace = function(e, s, ...)
-  local l1, c1 = e.l, e.c
+function M.Edit:replace(s, ...)
+  local l1, c1 = self.l, self.c
   local l, c = span(...)
-  assert(e.l == l and (not c or c1 == c))
-  local chR = e:remove(...);
-  local chI = e:insert(s)  ;
-  e.l, e.c = l1, c1
-  e:changeUpdate2()
+  assert(self.l == l and (not c or c1 == c))
+  local chR = self:remove(...);
+  local chI = self:insert(s)  ;
+  self.l, self.c = l1, c1
+  self:changeUpdate2()
 end
 
 --- Clear the buffer.
-M.Edit.clear = function(e)
-  e:remove(1,#e)
-  e.l,e.c = 1,1
-  e:changeUpdate2()
+function M.Edit:clear()
+  self:remove(1,#self)
+  self.l,self.c = 1,1
+  self:changeUpdate2()
 end
 
 -----------------
 -- Undo / Redo
-M.Edit.undo = function(e)
-  local chs = e.buf:undo(); if not chs then return end
+function M.Edit:undo()
+  local chs = self.buf:undo(); if not chs then return end
   local c = assert(chs[1])
-  e.l, e.c = c.l1, c.c1
+  self.l, self.c = c.l1, c.c1
   return true
 end
-M.Edit.redo = function(e)
-  local chs = e.buf:redo(); if not chs then return end
+function M.Edit:redo()
+  local chs = self.buf:redo(); if not chs then return end
   local c = assert(chs[1])
-  e.l, e.c = c.l2, c.c2
+  self.l, self.c = c.l2, c.c2
   return true
 end
 
 -----------------
 -- Draw to display
-M.Edit.draw = function(e, ed, isRight)
+function M.Edit:draw(ed, isRight)
   local d = ed.display
-  local bh, bw = e:barDims()
-  e:viewCursor()
-  e:drawBars(d)
-  e.th = e.th - bh
-  e.tw = e.tw - bw
-  e.tc = e.tc + bw
-  local b = lines.box(e.buf.dat,
-    e.vl,            e.vc,
-    e.vl + e.th - 1, e.vc + e.tw - 1)
-  d.text:insert(e.tl, e.tc, b)
+  local bh, bw = self:barDims()
+  self:viewCursor()
+  self:drawBars(d)
+  self.th = self.th - bh
+  self.tw = self.tw - bw
+  self.tc = self.tc + bw
+  local b = lines.box(self.buf.dat,
+    self.vl,            self.vc,
+    self.vl + self.th - 1, self.vc + self.tw - 1)
+  d.text:insert(self.tl, self.tc, b)
 end
 
-M.Edit.barDims = function(e)
-  if e.tw <= 10 or e.th <= 3 then return 0, 0 end
+function M.Edit:barDims()
+  if self.tw <= 10 or self.th <= 3 then return 0, 0 end
   return 1, 2
 end
-local pad2 = function(i)
+local function pad2(i)
   i = tostring(i)
   return srep(' ', 2 - #i)..i
 end
-M.Edit.drawBars = function(e, d) --> botHeight, leftWidth
-  if e.tw <= 10 or e.th <= 3 then return end
-  local tl, tc, th, tw = e.tl, e.tc, e.th, e.tw
-  local cl, cc, len = e.l,e.c, #e -- cl,cc: cursor line,col
+function M.Edit:drawBars(d) --> botHeight, leftWidth
+  if self.tw <= 10 or self.th <= 3 then return end
+  local tl, tc, th, tw = self.tl, self.tc, self.th, self.tw
+  local cl, cc, len = self.l,self.c, #self -- cl,cc: cursor line,col
   local wl = tl  -- wl: write line
   local txt, fgd, bgd = d.text, d.fg, d.bg
-  local fb = d.styler:getFB(e.lineStyle)
+  local fb = d.styler:getFB(self.lineStyle)
   local fg,bg = srep(fb:sub(1,1), 2), srep(fb:sub(-1), 2)
-  for l=e.vl, e.vl+e.th - 2 do
+  for l=self.vl, self.vl+self.th - 2 do
     if     l <= cl  then txt:insert(wl, tc, pad2(cl - l))
     elseif l <= len then txt:insert(wl, tc, pad2(l - cl))
     else                 txt:insert(wl, tc, '  ') end
@@ -237,44 +237,44 @@ M.Edit.drawBars = function(e, d) --> botHeight, leftWidth
     wl = wl + 1
   end
 
-  local b, info = e.buf, {'|'}
+  local b, info = self.buf, {'|'}
   local name, id, p = b.name, assert(b.id), b.dat.path
-  if p    then push(info, sfmt(' %s:%i.%i', pth.nice(p), e.l, e.c)) end
-  if name then push(info, ' b#'..name..(p and '' or sfmt(':%i.%i', e.l,e.c)))
+  if p    then push(info, sfmt(' %s:%i.%i', pth.nice(p), self.l, self.c)) end
+  if name then push(info, ' b#'..name..(p and '' or sfmt(':%i.%i', self.l,self.c)))
   end push(info, ' (b#'..id)
   if p or name then push(info, ')')
-  else              push(info, sfmt(':%i.%i)', e.l, e.c)) end
+  else              push(info, sfmt(':%i.%i)', self.l, self.c)) end
 
-  info = concat(info):sub(1, e.tw - 1)..' '
+  info = concat(info):sub(1, self.tw - 1)..' '
   txt:insert(wl, tc, info)
   for c=tc+#info, tc+tw-1 do txt[wl][c] = '=' end
   return 1, 2
 end
 
 -- Called by model for only the focused editor
-M.Edit.drawCursor = function(e, ed)
+function M.Edit:drawCursor(ed)
   local d = ed.display
-  local c = math.min(e.c, e:colEnd())
-  d.l, d.c = e.tl + (e.l - e.vl), e.tc + (c - e.vc)
+  local c = math.min(self.c, self:colEnd())
+  d.l, d.c = self.tl + (self.l - self.vl), self.tc + (c - self.vc)
 end
 
-M.Edit.copy = function(e)
-  e.tl,e.tc, e.tw,e.th = -1,-1, -1,-1
-  local e2 = ds.copy(e)
+function M.Edit:copy()
+  self.tl,self.tc, self.tw,self.th = -1,-1, -1,-1
+  local e2 = ds.copy(self)
   e2.id, e2.container = types.uniqueId(), nil
-  e2.modes = e.modes and ds.copy(e.modes) or nil
+  e2.modes = self.modes and ds.copy(self.modes) or nil
   return e2
 end
 
 --- Split the edit by wrapping it and a copy into split type S.
 --- Return the resulting split.
-M.Edit.split = function(e, S) --> split
-  local c = e.container
-  local sp = S{};  c:replace(e, sp)
-  sp:insert(1, e); sp:insert(2, e:copy())
+function M.Edit:split(S) --> split
+  local c = self.container
+  local sp = S{};  c:replace(self, sp)
+  sp:insert(1, self); sp:insert(2, self:copy())
   return sp
 end
 
-M.Edit.path = function(e) return e.buf:path() end --> path?
+function M.Edit:path() return self.buf:path() end --> path?
 
 return M

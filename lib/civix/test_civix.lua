@@ -11,10 +11,10 @@ local O = '.out/'
 local push = table.insert
 
 local fin
-local tests = function()
+local function tests()
 
 -- test lib or bootstrap
-local testLib = function(m)
+local function testLib(m)
   local p1 = O..'lib.test'
   os.remove(p1)
   pth.write(p1, 'test data'); assert(m.exists(p1))
@@ -44,11 +44,11 @@ local testLib = function(m)
 end
 
 if not G.NOLIB then
-  T.lib   = function() testLib(M) end
+  T'lib'; do testLib(M) end
 end
-T.libBoot = function() testLib(B) end
+T'libBoot'; do testLib(B) end
 
-local directShTest = function(sh)
+local function directShTest(sh)
   T.eq('',           sh'true')
   T.eq('hi there\n', sh{'echo', 'hi there'})
   T.eq('foo --abc=ya --aa=bar --bb=42\n',
@@ -62,10 +62,10 @@ local directShTest = function(sh)
   end)
 end
 
-T.directSh     = function() directShTest(M.sh) end
-T.directShBoot = function() directShTest(B.sh) end
+T'directSh';     do directShTest(M.sh) end
+T'directShBoot'; do directShTest(B.sh) end
 
-T.testSh = function()
+T'testSh'; do
   local sh, out, err, s = M.sh
 
   T.eq('/tmp\n', sh{'pwd', CWD='/tmp'})
@@ -97,7 +97,7 @@ T.testSh = function()
   collectgarbage()
 end
 
-T.time = function()
+T'time'; do
   local period, e1 = ds.Duration(0.001), M.epoch()
   for i=1,10 do
     M.sleep(period)
@@ -124,7 +124,7 @@ local function mkTestTree(tree)
   return d
 end
 
-T.cp = function()
+T'cp'; do
   local p1, p2 = O..'cp.txt', O..'cp.2.txt'
   pth.write(p1, 'copy this\ndata')
   M.cp(p1, p2)
@@ -134,7 +134,7 @@ T.cp = function()
   M.rm(p2); assert(not M.exists(p2))
 end
 
-T.walk = function()
+T'walk'; do
   local d = mkTestTree()
   local paths, types, depths = {}, {}, {}
   local w = M.Walk{d}; for path, ty in w do
@@ -164,7 +164,7 @@ T.walk = function()
   T.eq(expect, saw)
 end
 
-T.mkRmTree = function()
+T'mkRmTree'; do
   local d = mkTestTree()
   T.eq(pth.read'.out/civix/a.txt', 
   'for civix a test')
@@ -174,7 +174,7 @@ T.mkRmTree = function()
   assert(not M.exists(d))
 end
 
-T.cpTree = function()
+T'cpTree'; do
   local d = mkTestTree()
   local d2 = '.out/civix2'
   if M.exists(d2) then M.rmRecursive(d2) end
@@ -185,7 +185,7 @@ T.cpTree = function()
   assert(not M.exists(d2..'b/b2.txt'))
 end
 
-T.stat = function()
+T'stat'; do
   local path = O..'stat.txt'
   pth.write(path, 'hello\n')
   T.eq(6, M.stat(path):size())

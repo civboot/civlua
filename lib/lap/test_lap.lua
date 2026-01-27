@@ -6,7 +6,7 @@ local M  = require'lap'
 local push, yield = table.insert, coroutine.yield
 local co = coroutine
 
-T.execute = function()
+T'execute'; do
   local l = M.Lap{}
   local v = 0
   local res = l:execute(co.create(
@@ -33,7 +33,7 @@ local l = M.Lap {
 }
 
 local _, errors = l:run{function()
-T.schedule =  function()
+T'schedule'; do
   local i = 0
   local cor = M.schedule(function()
     for _=1,3 do i = i + 1; yield(true) end
@@ -49,7 +49,7 @@ T.schedule =  function()
   finished = finished + 1
 end
 
-T.ch = function()
+T'ch'; do
   local r = M.Recv(); local s = r:sender()
 
   local t = {}

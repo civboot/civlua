@@ -6,13 +6,13 @@ local testing = require'lines.testing'
 local Gap = require'lines.Gap'
 local T = require'civtest'
 
-T.new = function()
+T'new'; do
   T.eq({'one', 'two 2', ''}, lines'one\ntwo 2\n')
   T.eq({'one', 'two 2', ''}, lines._args'one\ntwo 2\n')
   T.eq({'one', 'two 2', ''}, lines._args('one\n', 'two 2\n'))
 end
 
-T.sort = function()
+T'sort'; do
   local sort = lines.sort
   T.eq({1, 1, 2, 2}, {sort(1, 1, 2, 2)})
   T.eq({1, 1, 2, 2}, {sort(2, 2, 1, 1)})
@@ -20,7 +20,7 @@ T.sort = function()
   T.eq({1, 5, 2, 1}, {sort(2, 1, 1, 5)})
 end
 
-T.sub = function()
+T'sub'; do
   local lsub = lines.sub
   local l = lines'ab\nc\n\nd'
   T.eq({'ab', ''},      lsub(l, 1, 1))
@@ -37,7 +37,7 @@ T.sub = function()
   T.eq(" nice",  lsub(l, 1, 11, 1, 15))
 end
 
-T.find = function()
+T'find'; do
   local t = lines'12345\n6789\n98765\n'
   T.eq({1, 3,4}, {lines.find(t, '34', 1, 1)})
   T.eq({2, 1,2}, {lines.find(t, '67', 1, 3)})
@@ -49,11 +49,11 @@ T.find = function()
   T.eq({2, 1,1}, {lines.findBack(t, '6', 3, 3)})
 end
 
-T.offset = function()
+T'offset'; do
   testing.testOffset(lines(testing.DATA.offset))
 end
 
-T.inset = function()
+T'inset'; do
   local t = {''}
   T.eq(1, #t)
   lines.insert(t, 'foo bar', 1, 0)
@@ -71,13 +71,13 @@ T.inset = function()
   T.eq('foo\nbar', lines.join(t))
 end
 
-T.remove = function()
+T'remove'; do
   testing.testLinesRemove(function(t)
     return type(t) == 'string' and lines(t) or t
   end)
 end
 
-T.box = function()
+T'box'; do
   local l = lines(
     '1 3 5 7 9\n'
   ..' 2 4 6\n'
@@ -92,7 +92,7 @@ end
 ------------------------
 -- Gap Tests
 
-T['Gap.set'] = function()
+T'Gap.set'; do
   local g = Gap'ab\nc\n\nd'
   T.eq('ab\nc\n\nd', fmt(g))
   T.eq({'ab', 'c', '', 'd'}, g.bot)
@@ -102,13 +102,13 @@ T['Gap.set'] = function()
   T.eq('ab\nc\n\nd', fmt(g))
 end
 
-T['Gap.inset'] = function()
+T'Gap.inset'; do
   -- FIXME: Gap actually passes testInset lol. Need to
   --   assert inputs are strings.
   require'ds.testing'.testInsetStr(Gap)
 end
 
-T['Gap lines.insert'] = function()
+T'Gap lines.insert'; do
   T.eq(1, #Gap'')
   local g = Gap(); T.eq(0, #g)
   lines.insert(g, 'foo bar', 1, 0)
@@ -129,7 +129,7 @@ T['Gap lines.insert'] = function()
   T.eq('foo\nbar', fmt(g))
 end
 
-T['Gap.remove'] = function()
+T'Gap.remove'; do
   testing.testLinesRemove(Gap)
 end
 
@@ -140,7 +140,7 @@ local function subTests(g)
   T.eq('ab\n',          lines.sub(g, 1, 1, 1, 3))
   T.eq('b\nc',          lines.sub(g, 1, 2, 2, 1))
 end
-T['Gap.sub'] = function()
+T'Gap.sub'; do
   local g = Gap'ab\nc\n\nd'
   g:setGap(4); subTests(g)
   g:setGap(1); subTests(g)
@@ -153,7 +153,7 @@ T['Gap.sub'] = function()
   T.eq(" nice",  lines.sub(g, 1, 11, 1, 15))
 end
 
-T['Gap.offset'] = function()
+T'Gap.offset'; do
   local testOffset = testing.testOffset
   local g = Gap(testing.DATA.offset)
   testOffset(g)
@@ -162,7 +162,7 @@ T['Gap.offset'] = function()
   g:setGap(4); testOffset(g)
 end
 
-T['Gap.find'] = function()
+T'Gap.find'; do
   local g = Gap'12345\n6789\n98765\n'
   T.eq({1, 3,4}, {lines.find(g, '34', 1, 1)})
   T.eq({2, 1,2}, {lines.find(g, '67', 1, 3)})
@@ -170,7 +170,7 @@ T['Gap.find'] = function()
   T.eq({3, 4,4}, {lines.find(g, '6',  2, 2)})
 end
 
-T['Gap.ipairs'] = function()
+T'Gap.ipairs'; do
   local g = Gap'12345\n6789\n98765\n'
   local t = {}; for i, v in ipairs(g) do
     T.eq(g[i], g[i]) t[i] = v
@@ -179,20 +179,20 @@ T['Gap.ipairs'] = function()
   T.eq({'12345', '6789', '98765', ''}, ds.icopy(g))
 end
 
-T['Gap.extend'] = function()
+T'Gap.extend'; do
   local g = Gap'123'
   ds.extend(g, {'456', '7'})
   T.eq('123\n456\n7', fmt(g))
 end
 
-T['Gap.write'] = function()
+T'Gap.write'; do
   local g = Gap''
   g:write'hi'; T.eq('hi', fmt(g))
   g:write' there\n'; T.eq('hi there\n', fmt(g))
   g:write'  next\nline'; T.eq('hi there\n  next\nline', fmt(g))
 end
 
-T['Gap.clear'] = function()
+T'Gap.clear'; do
   local g = Gap'a\nb\n'
   T.eq('a\nb\n', fmt(g))
   g:inset(1, nil, #g); T.eq('', fmt(g))
@@ -202,7 +202,7 @@ T['Gap.clear'] = function()
   T.eq('hi\nbye', fmt(g))
 end
 
-T.Writer = function()
+T'Writer'; do
   local W = require'lines.Writer'; local w = W{}
   w:write'hi there'
   T.eq({'hi there'}, ds.icopy(w))

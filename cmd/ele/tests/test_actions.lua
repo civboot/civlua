@@ -17,7 +17,7 @@ local nav = M.nav
 local O = './.out/ele/'; if ix.exists(O) then ix.rmRecursive(O) end
 ix.mkDir(O)
 
-local newEditor = function(lines)
+local function newEditor(lines)
   local ed = Editor{}
   B.install(ed)
   local e = ed:focus()
@@ -30,7 +30,7 @@ local lines3 =
 ..'  3 5\n'
 ..'1 3 5 7 9\n'
 
-T.move = function()
+T'move'; do
   local d = newEditor(lines3); local e = d.edit
   local function assertMove(mv, ev, l, c)
     ev.move = mv; M.move(d, ev)
@@ -60,7 +60,7 @@ T.move = function()
   assertMove('findback', {findback='1'}, 1, 1)
 end
 
-T.remove = function()
+T'remove'; do
   local d = newEditor(lines3); local e, b = d.edit, d.edit.buf
   local function assertRemove(mv, ev, l, c)
     ev.move = mv; M.remove(d, ev)
@@ -81,7 +81,7 @@ T.remove = function()
     T.eq('1  7 9\n', fmt(b.dat))
 end
 
-T.insert = function()
+T'insert'; do
   local d = newEditor'1 2 3\n4 5 6'; local e, b = d.edit, d.edit.buf
   local function assertInsert(txt, ev, l, c)
     ev[1] = txt; M.insert(d, ev)
@@ -102,7 +102,7 @@ local NAV1 = [[
     * d/
     * f
 ]]
-T.nav = function()
+T'nav'; do
   local d = newEditor(NAV1)
   assert(d.edit.container == d)
   local e, b = d.edit, d.edit.buf
@@ -165,7 +165,7 @@ T.nav = function()
   T.path(test_txt, content)
 end
 
-T.namedBuffer = function()
+T'namedBuffer'; do
   local d = newEditor''
   T.eq({'find', 'nav', 'overlay', 'search'}, ds.sort(ds.keys(d.namedBuffers)))
   local n = d:namedBuffer'nav'

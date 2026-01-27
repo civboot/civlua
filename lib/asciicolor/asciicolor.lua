@@ -49,7 +49,7 @@ local CODES = {}; do
 end
 M.CODES = CODES
 
-M.assertcode = function(ac) --> single leter (or error)
+function M.assertcode(ac) --> single leter (or error)
   return CODES[ac] or error(sfmt('invalid ascii color: %q', ac))
 end
 
@@ -114,11 +114,11 @@ end
 
 -- TODO: light-mode styles
 
-M.mode = function() return G.CLIMODE or os.getenv'CLIMODE' end
+function M.mode() return G.CLIMODE or os.getenv'CLIMODE' end
 
-M.stylePath = function() return pth.concat{pth.home(), CONFIG_PATH} end
+function M.stylePath() return pth.concat{pth.home(), CONFIG_PATH} end
 
-M.loadStyle = function(mode, path)
+function M.loadStyle(mode, path)
   mode = mode or M.mode() or 'dark'
   path = (path == true) and M.stylePath() or path
   local style = M[mode] or error('styles not found: '..mode)
@@ -183,7 +183,7 @@ end
 
 
 --- Setup standard formatters (io.fmt and io.user).
-M.setup = function(to, user)
+function M.setup(to, user)
   io.fmt  = M.Fmt{to=to   or io.stderr}
   io.user = M.Fmt{to=user or io.stdout}
 end

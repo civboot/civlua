@@ -14,7 +14,7 @@ local extend, splitList = ds.extend, ds.splitList
 local clear             = ds.clear
 
 --- read file at path or throw error
-M.read = function(path) --!> string
+function M.read(path) --!> string
   local f, err, out = io.open(path, 'r'); if not f then error(sfmt(
     "open %q mode=r: %s", path, err
   ))end
@@ -24,7 +24,7 @@ M.read = function(path) --!> string
 end
 
 --- write string to file at path or throw error
-M.write = function(path, text) --!> nil
+function M.write(path, text) --!> nil
   local f, err, out = io.open(path, 'w'); if not f then error(sfmt(
     "open %q mode=w: %s", path, err
   ))end
@@ -32,7 +32,7 @@ M.write = function(path, text) --!> nil
 end
 
 --- append text to path, adds a newline if text doesn't end in one.
-M.append = function(path, text)
+function M.append(path, text)
   local f, err, out = io.open(path, 'a'); if not f then error(sfmt(
     "open %q mode=a: %s", path, err
   ))end
@@ -52,7 +52,7 @@ getmetatable(M).__call = function(_, p)
   return p
 end
 
-M.pathenv = function(var, alt)
+function M.pathenv(var, alt)
   local d = G[var]; if d then return d end
   d = os.getenv(var) or alt and os.getenv(alt)
   if not d then error('no '..var..' path set') end
@@ -62,23 +62,23 @@ end
 
 -- FIXME: stop setting dir here.
 --- get the current working directory
-M.cwd = function(dir) --> /...cwd/
+function M.cwd(dir) --> /...cwd/
   if dir then return M.cd(dir)
   else        return M.pathenv('PWD', 'CD') end
 end
 
 --- Set the CWD, changing the result of [@ds.cwd].
-M.cd = function(dir)
+function M.cd(dir)
   if not M.isDir(dir) then error(dir..' must be a dir/') end
   M.PWD = M.abs(dir)
   return M.PWD
 end
 
 --- get the user's home directory
-M.home = function() return M.pathenv('HOME', 'HOMEDIR') end
+function M.home() return M.pathenv('HOME', 'HOMEDIR') end
 
 --- join a table of path components
-M.concat = function(t, _) --> string
+function M.concat(t, _) --> string
   assert(not _, 'usage: concat{...}')
   if #t == 0 then return '' end
   local root = (t[1]:sub(1,1)=='/') and '/' or ''
@@ -91,7 +91,7 @@ M.concat = function(t, _) --> string
 end
 
 --- return whether a path has any '..' components
-M.hasBacktrack = function(path) --> bool. path: [str|list]
+function M.hasBacktrack(path) --> bool. path: [str|list]
   if type(path) == 'string' then
     return path:match'^%.%.$' or path:match'^%.%./'
         or path:match'/%.%./' or path:match'/%.%.$'
@@ -100,7 +100,7 @@ M.hasBacktrack = function(path) --> bool. path: [str|list]
     if c == '..' then return true end
   end; return false
 end
-M.ext = function(path) --> string. path: [str|list]
+function M.ext(path) --> string. path: [str|list]
   if type(path) == 'table' then path = path[#path] end
   return path:match'.*%.([^/]+)$'
 end
@@ -108,7 +108,7 @@ end
 --- Ensure the path is absolute, using the wd (default=cwd()) if necessary
 ---
 --- This preserves the type of the input: str -> str; table -> table
-M.abs = function(path, wd) --> /absolute/path
+function M.abs(path, wd) --> /absolute/path
   if type(path) == 'string' then
     if (path:sub(1,1) == '/') then return path end
     wd = wd or M.cwd()
@@ -122,7 +122,7 @@ end
 --- resolve any `..` or `.` path components, making the path
 --- /absolute if necessary.
 --- The return type is the same as the input type.
-M.resolve = function(path, wd) --> list|str
+function M.resolve(path, wd) --> list|str
   local outTy = type(path)
   if type(path) == 'table' then path = update({}, path)
   else                          path = M(path) end
@@ -161,14 +161,14 @@ end
 
 --- Get the canonical path.
 --- This is a shortcut for [$resolve(abs(path))].
-M.canonical = function(path) return M.resolve(M.abs(path)) end
+function M.canonical(path) return M.resolve(M.abs(path)) end
 
-M.itemeq = function(a, b) --> boolean: path items are equal
+function M.itemeq(a, b) --> boolean: path items are equal
   return a:match'^/*(.-)/*$' == b:match'^/*(.-)/*$'
 end
 
 --- ds.rmleft for path components
-M.rmleft = function(path, rm)
+function M.rmleft(path, rm)
   return ds.rmleft(path, rm, M.itemeq)
 end
 
@@ -176,7 +176,7 @@ end
 ---
 --- It's 'nice' because it has no '/../' or '/./' elements
 --- and has CWD stripped.
-M.nice = function(path, wd) --> string
+function M.nice(path, wd) --> string
   wd = wd or M.cwd()
   path, wd = M.resolve(M(path), wd), M(wd)
   M.rmleft(path, wd)
@@ -186,19 +186,19 @@ end
 
 --- Return the nice path but always keep either / or ./
 --- at the start.
-M.small = function(path, wd)
+function M.small(path, wd)
   path = M.nice(path)
   return path:find'^%.?/' and path or ('./'..path)
 end
 
 --- Return only the parent dir and final item.
 --- This is often used for documentation/etc
-M.short = function(path, wd)
+function M.short(path, wd)
   return M.nice(path, wd):match'([^/]*/[^/]+)'
 end
 
 --- [$first/middle/last -> ("first", "middle/last")]
-M.first = function(path)
+function M.first(path)
   if path:sub(1,1) == '/' then return '/', path:sub(2) end
   local a, b = path:match('^(.-)/(.*)$')
   if not a or a == '' or b == '' then return path, '' end
@@ -206,7 +206,7 @@ M.first = function(path)
 end
 
 --- [$first/middle/last -> ("first/middle/", "last")]
-M.last = function(path)
+function M.last(path)
   local a, b = path:match('^(.*/)(.+)$')
   if not a or b == '' then
     if path:sub(1,1) ~= '/' then a = './' end
@@ -216,7 +216,7 @@ M.last = function(path)
 end
 
 --- Get the directory of the path or nil if it is root.
-M.dir = function(path)
+function M.dir(path)
   if path == '/' then return end
   return path:match'^(.*/)(.+)$' or './'
 end
@@ -224,13 +224,13 @@ end
 --- return whether the path looks like a dir.
 --- Note: civstack tries to make all ftype='dir' paths end in '/'
 ---   but other libraries or APIs may not conform to this.
-M.isDir = function(path) return path:sub(-1) == '/' end
+function M.isDir(path) return path:sub(-1) == '/' end
 local isDir = M.isDir
-M.toDir = function(path) --> path/
+function M.toDir(path) --> path/
   return (path:sub(-1) ~= '/') and (path..'/') or path
 end
 
-M.toNonDir = function(path) --> path (without ending /)
+function M.toNonDir(path) --> path (without ending /)
   return (path:sub(-1) == '/') and path:sub(1,-2) or path
 end
 
@@ -241,7 +241,7 @@ end
 --- For example
 --- T.eq(relative('/foo/bar',  '/foo/baz/bob'), 'baz/bob')
 --- T.eq(relative('/foo/bar/', '/foo/baz/bob'), '../baz/bob')
-M.relative = function(from, to, wd)
+function M.relative(from, to, wd)
   local inpTy = type(from)
   from, to = M.abs(M(from), wd), M.abs(M(to), wd) -- make abspath lists
   assert(from[1] == to[1] and from[1] == '/', 'not abs paths')
@@ -261,7 +261,7 @@ end
 
 --- path comparison function for [$table.sort] that sorts
 --- dirs last, else alphabetically.
-M.cmpDirsLast = function(a, b)
+function M.cmpDirsLast(a, b)
   if isDir(a) then
     if isDir(b) then return a < b end
     return false

@@ -144,7 +144,7 @@ end
 
 --- inset the dat, pushing to dats the values that have to be
 --- reinserted into the EdFile.dats
-local insetDat = function(dats, dat, i, values, rmlen)
+local function insetDat(dats, dat, i, values, rmlen)
   if getmt(dat) ~= Slc then
     inset(dat, i, values, rmlen)
     push(dats, dat)

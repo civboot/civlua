@@ -51,11 +51,11 @@ Any events scheduled directly by the action will be handled immediately (the LAP
 executor will not be run). The actual implementation of `model()` is:
 
 ```
-Ele.model = function(ele)
-  local ev = ele.events:pop()
+function Ele:model()
+  local ev = self.events:pop()
   while ev do
-    Actions[ev.action or 'noaction'](ele.data, ev, ele.events)
-    ev = ele.events:pop()
+    Actions[ev.action or 'noaction'](self.data, ev, self.events)
+    ev = self.events:pop()
   end
 end
 ```

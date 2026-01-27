@@ -1,7 +1,7 @@
 -- a small lua file for tests
 local M = {}
 
-M.main = function()
+function M.main()
   print'hello world'
 end
 

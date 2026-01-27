@@ -20,17 +20,17 @@ getmetatable(G).__call = function(T, t)
 end
 
 --- clear the grid
-G.clear = function(g) --> g
-  for l=1,g.h do
-    local line = g[l] or {}
-    clear(line, 1, max(#line, g.w)); assert(next(line) == nil)
-    g[l] = line
+function G:clear() --> self
+  for l=1,self.h do
+    local line = self[l] or {}
+    clear(line, 1, max(#line, self.w)); assert(next(line) == nil)
+    self[l] = line
   end
-  clear(g, g.h + 1, #g)
-  return g
+  clear(self, self.h + 1, #self)
+  return self
 end
 
-local split = function(s) --> lines
+local function split(s) --> lines
   if type(s) == 'string' then return ds.split(s, '\n')
   else --[[lines]]            return ipairs(s) end
 end
@@ -42,9 +42,9 @@ end
 --- NOT clear any data after the insert text, meaning it is essentially a
 --- replace.
 --- FIXME: considere renaming to replace... or something.
-G.insert = function(g, l, c, str)
+function G:insert(l, c, str)
   for _, sline in split(str) do -- line from string
-    local row = g[l]; if not row then return end
+    local row = self[l]; if not row then return end
     for i=#row+1, c-1 do row[i] = ' ' end -- fill pre-column space
     local lc = c -- unicode column within line
     for _, uchr in codes(sline) do
@@ -54,9 +54,9 @@ G.insert = function(g, l, c, str)
   end
 end
 
-G.__fmt = function(g, f)
-  local h = g.h; for l=1,h-1 do f:write(concat(g[l]), '\n') end
-  f:write(concat(g[h]))
+function G:__fmt(f)
+  local h = self.h; for l=1,h-1 do f:write(concat(self[l]), '\n') end
+  f:write(concat(self[h]))
 end
 
 return G

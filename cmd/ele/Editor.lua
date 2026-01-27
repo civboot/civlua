@@ -64,35 +64,35 @@ getmetatable(Editor).__call = function(T, t)
   return t
 end
 
-Editor.__fmt = function(ed, f)
-  f:write'Editor{mode='; f:string(ed.mode); f:write'}'
+function Editor:__fmt(f)
+  f:write'Editor{mode='; f:string(self.mode); f:write'}'
 end
 
 --- list of named buffers (name -> buffer)
 
-Editor.init = function(ed)
-  require'ele.bindings'.install(ed)
-  return ed
+function Editor:init()
+  require'ele.bindings'.install(self)
+  return self
 end
 
 --- Get an existing buffer if it exists.
 --- Else return false if the buffer is path-like and should be
 --- created, else nil.
-Editor.getBuffer = function(ed, v) --> Buffer?
+function Editor:getBuffer(v) --> Buffer?
   if mty.ty(v) == Buffer then
-    assert(ed.bufferId[v], 'must create buffer with Editor:buffer')
+    assert(self.bufferId[v], 'must create buffer with Editor:buffer')
     return v
   end
   if type(v) == 'number' then
-    local b = ed.buffers[v]; if b then return b end
+    local b = self.buffers[v]; if b then return b end
   elseif type(v) == 'string' then
-    local id = v:match'^b#(%d+)$'; if id then return ed.buffers[tonumber(id)] end
+    local id = v:match'^b#(%d+)$'; if id then return self.buffers[tonumber(id)] end
     id = v:match'^b#([%w_-]+)$' if id then
-      return assertf(ed.namedBuffers[id], 'unknown named buffer: %q', id)
+      return assertf(self.namedBuffers[id], 'unknown named buffer: %q', id)
     end
-    id = v:match'^%d+$'; if id then return ed.buffers[tonumber(id)] end
+    id = v:match'^%d+$'; if id then return self.buffers[tonumber(id)] end
     v = pth.canonical(v)
-    for _, b in pairs(ed.buffers) do
+    for _, b in pairs(self.buffers) do
       if v == b.dat.path then return b end
     end
   elseif type(v) == 'nil' then -- create buffer
@@ -103,46 +103,46 @@ end
 -- idOrPath can be a buffer id, b#123 string or path/to/file.txt.
 -- It will look for an existing buffer first, then create a
 -- new one if not.
-Editor.buffer = function(ed, idOrPath) --> Buffer
+function Editor:buffer(idOrPath) --> Buffer
   if idOrPath ~= nil then
-    local b = ed:getBuffer(idOrPath); if b then return b end
+    local b = self:getBuffer(idOrPath); if b then return b end
   end
   log.info('creating buffer %q', idOrPath)
-  local dat = ed.newDat(idOrPath) -- do first to allow yield
-  local id = #ed.buffers + 1
+  local dat = self.newDat(idOrPath) -- do first to allow yield
+  local id = #self.buffers + 1
   local b = Buffer{id=id, dat=dat, tmp=not idOrPath and {} or nil}
-  ed.buffers[id] = b
-  ed.bufferId[b] = id
-  return ed.buffers[id]
+  self.buffers[id] = b
+  self.bufferId[b] = id
+  return self.buffers[id]
 end
 
 --- Get or create a named buffer (NOT a path).
-Editor.namedBuffer = function(ed, name, path)
-  local b = ed.namedBuffers[name]; if b then return b end
-  b = ed:buffer(path)
+function Editor:namedBuffer(name, path)
+  local b = self.namedBuffers[name]; if b then return b end
+  b = self:buffer(path)
   b.name                = name
-  ed.namedBuffers[name] = b
+  self.namedBuffers[name] = b
   return b
 end
 
 
 -- open path and focus. If already open then use existing buffer.
-Editor.open = function(ed, path) --> edit
-  return ed:focus(ed:buffer(path))
+function Editor:open(path) --> edit
+  return self:focus(self:buffer(path))
 end
 
-Editor.draw = function(ed)
-  local v, d, e = ed.view, ed.display, ed.edit
-  d.text:insert(1,1, sfmt('[mode:%s]', ed.mode))
+function Editor:draw()
+  local v, d, e = self.view, self.display, self.edit
+  d.text:insert(1,1, sfmt('[mode:%s]', self.mode))
   v.tl, v.tc, v.th, v.tw = 2, 1, d.h-1, d.w
-  v:draw(ed, true)
-  e:drawCursor(ed)
-  ed:_drawOverlay()
+  v:draw(self, true)
+  e:drawCursor(self)
+  self:_drawOverlay()
 end
 
-Editor._drawOverlay = function(ed)
-  local ov = ed.overlay; if not ov.ext.show then return end
-  local d = ed.display
+function Editor:_drawOverlay()
+  local ov = self.overlay; if not ov.ext.show then return end
+  local d = self.display
   local h, w = min(d.h, max(1, #ov)), 1 -- get height and width of overlay
   for l=1,#ov do w = max(w, #ov:get(l)) end
 
@@ -164,63 +164,63 @@ end
 
 --- Handle standard event fields.
 --- Currently this only handles the [$mode] field.
-Editor.handleStandard = function(ed, ev)
-  local m = ev.mode; if m and ed.mode ~= m then
-    local err = et.checkMode(ed, m); if err then
-      return ed.error('%s has invalid mode', ev, m)
+function Editor:handleStandard(ev)
+  local m = ev.mode; if m and self.mode ~= m then
+    local err = et.checkMode(self, m); if err then
+      return self.error('%s has invalid mode', ev, m)
     end
-    log.info(' + mode %s -> %s', ed.mode, m)
-    if m == 'insert' and not ed.edit.buf:changed() then
-      ed.edit:changeStart()
-    elseif ed.mode == 'insert' then
-      ed.edit.buf:discardUnusedStart()
+    log.info(' + mode %s -> %s', self.mode, m)
+    if m == 'insert' and not self.edit.buf:changed() then
+      self.edit:changeStart()
+    elseif self.mode == 'insert' then
+      self.edit.buf:discardUnusedStart()
     end
-    ed.mode = m
+    self.mode = m
   end
 end
 
 --- Replace the view/edit from with to.
---- Since Editor supports only [$ed.view] this means
+--- Since Editor supports only [$self.view] this means
 --- it must be that value.
-Editor.replace = function(ed, from, to) --> from
+function Editor:replace(from, to) --> from
   assert(to)
-  assert(ed.view == from, 'view being replaced is not ed.view')
-  assert(from.container == ed)
+  assert(self.view == from, 'view being replaced is not self.view')
+  assert(from.container == self)
   assert(not to.container or to.container == from)
-  ed.view = to
-  to.container, from.container = ed, nil
+  self.view = to
+  to.container, from.container = self, nil
   return from
 end
 
 --- Remove a view and remove self as it's container.
 --- This does NOT close the view.
-Editor.remove = function(ed, v) --> v
-  assert(ed.view == v, 'view being removed is not ed.view')
-  assert(v.container == ed)
-  ed.view = nil
-  if ed.edit == v then ed.edit = nil end
+function Editor:remove(v) --> v
+  assert(self.view == v, 'view being removed is not self.view')
+  assert(v.container == self)
+  self.view = nil
+  if self.edit == v then self.edit = nil end
   v.container = nil
   return v
 end
 
---- Focus the first edit view in container c (default ed.view)
-Editor.focusFirst = function(ed, c)
-  c = c or ed.view
+--- Focus the first edit view in container c (default self.view)
+function Editor:focusFirst(c)
+  c = c or self.view
   while mty.ty(c) ~= Edit do c = c[1] end
   assert(mty.ty(c) == Edit)
-  ed.edit = c
-  if not ed.view then ed.view = c end
+  self.edit = c
+  if not self.view then self.view = c end
 end
 
---- Replace the current edit view with the new [$ed:buffer(b)].
+--- Replace the current edit view with the new [$self:buffer(b)].
 --- Return the new edit view being focused.
-Editor.focus = function(ed, b) --> Edit
-  local b = assertf(ed:buffer(b), '%q', b)
+function Editor:focus(b) --> Edit
+  local b = assertf(self:buffer(b), '%q', b)
   local e = Edit{buf=b}
-  if ed.edit then ed.edit.container:replace(ed.edit, e)
-  else            e.container = ed end
-  ed.edit = e
-  if not ed.view then ed.view = e end
+  if self.edit then self.edit.container:replace(self.edit, e)
+  else            e.container = self end
+  self.edit = e
+  if not self.view then self.view = e end
   return e
 end
 

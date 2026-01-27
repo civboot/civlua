@@ -63,17 +63,17 @@ getmetatable(M.Term).__call = function(T, t)
   return t
 end
 
-M.Term._updateChildren = function(tm)
-  local h, w = tm.h, tm.w
-  tm.text.h, tm.fg.h, tm.bg.h = h, h, h
-  tm.text.w, tm.fg.w, tm.bg.w = w, w, w
+function M.Term:_updateChildren()
+  local h, w = self.h, self.w
+  self.text.h, self.fg.h, self.bg.h = h, h, h
+  self.text.w, self.fg.w, self.bg.w = w, w, w
 end
 
-M.Term.clear = function(tm)
-  tm.text:clear(); tm.fg:clear(); tm.bg:clear()
+function M.Term:clear()
+  self.text:clear(); self.fg:clear(); self.bg:clear()
 end
 
-M.Term.__fmt = function(tm, fmt) return tm.text:__fmt(fmt) end
+function M.Term:__fmt(fmt) return self.text:__fmt(fmt) end
 
 -- Escape Sequences
 local ESC,  LETO, LETR, LBR = 27, byte'O', byte'R', byte'['
@@ -112,10 +112,10 @@ local CMD = { -- command characters (not sequences)
   [127] = 'back',  [ESC] = 'esc',
 }
 M.CMD = CMD
-local ctrlChar = function(c) --> string: key user pressed w/ctrl
+local function ctrlChar(c) --> string: key user pressed w/ctrl
   return (c < 32) and char(96+c) or nil
 end
-local nice = function(c) --> nice key string
+local function nice(c) --> nice key string
   return CMD[c] or (ctrlChar(c) and '^'..ctrlChar(c)) or char(c)
 end
 M.ctrlChar, M.key = ctrlChar, nice
@@ -138,7 +138,7 @@ M.LITERALS = {
 ---   literal'enter'   -> '\n'
 ---   literal'esc'     -> nil
 --- ]
-M.literal = function(key) --> literalstring?
+function M.literal(key) --> literalstring?
   return (1 == ulen(key)) and key or M.LITERALS[key]
 end
 
@@ -154,7 +154,7 @@ for _, kc in pairs(M.INP_SEQO)    do VK[kc] = true end
 M.VALID_KEY = VK
 
 --- Check that a key is valid. Return errstring if not.
-M.keyError = function(key) --> errstring?
+function M.keyError(key) --> errstring?
   if #key == 0 then return 'empty key' end
   local v = VK[key]; if v then
     return (v ~= true) and sfmt('%q not valid key: %s', key, v) or nil
@@ -169,7 +169,7 @@ M.keyError = function(key) --> errstring?
     return sfmt('invalid key: %q', key)
   end
 end
-M.checkKey = function(key) --> key?, errstring?
+function M.checkKey(key) --> key?, errstring?
   local err = M.keyError(key); if err then return nil, err end
   return key
 end
@@ -177,7 +177,7 @@ end
 ---------------------------------
 -- Terminal Control (functions)
 
-local termFn = function(name, fmt)
+local function termFn(name, fmt)
   local fmt = '\027['..fmt
   return function(f, ...) return f:write(fmt:format(...)) end
 end
@@ -197,7 +197,7 @@ local cleareol             = ctrl.cleareol
 local golc, nextline       = ctrl.golc, ctrl.nextline
 
 --- causes terminal to send size as (escaped) cursor position
-ctrl.size = function(f)
+function ctrl.size(f)
   local C = ctrl
   C.save(f); C.down(f, 999); C.right(f, 999)
   C.getlc(f); C.restore(f)
@@ -249,7 +249,7 @@ end
 local Fg, Bg = M.Fg, M.Bg
 
 --- Set the color, taking into account the previous color
-M.colorFB = function(f, fg, bg, fg0, bg0)
+function M.colorFB(f, fg, bg, fg0, bg0)
   local bold,     bold0,     ul,       ul0 =
         isup(fg), isup(fg0), isup(bg), isup(bg0)
   if (bold ~= bold0) or (ul ~= ul0) then
@@ -268,7 +268,7 @@ end
 ---
 --- Return: [$fg, bg, write(str, ...)]
 --- [" Note: fg and bg are the updated color codes]
-M.acwrite = function(f, colorFB, fg, bg, fgstr, bgstr, str, ...)
+function M.acwrite(f, colorFB, fg, bg, fgstr, bgstr, str, ...)
   str, fgstr, bgstr = str or '', fgstr or '', bgstr or ''
   local w1, w2, si, slen, chr, fc, bc = true, nil, 1, #str
   for i=1,slen do
@@ -301,44 +301,44 @@ end
 
 --- send a request for size.
 --- Note: the input() coroutine will receive and call _ready()
-M.Term._requestSize = function(tm)
-  tm._waiting = coroutine.running(); ctrl.size(tm.fd)
+function M.Term:_requestSize()
+  self._waiting = coroutine.running(); ctrl.size(self.fd)
 end
-M.Term._ready = function(tm, msg)
-  LAP_READY[assert(tm._waiting)] = msg or true
-  tm._waiting = nil
+function M.Term:_ready(msg)
+  LAP_READY[assert(self._waiting)] = msg or true
+  self._waiting = nil
 end
 
 --- request size and clear children
 --- This can only be run with an active (LAP) input coroutine
-M.Term.resize = function(tm)
-  tm:_requestSize()
-  while tm._waiting do coroutine.yield'forget' end -- wait for size
-  tm:_updateChildren(); tm:clear() -- note: clear updates row length
+function M.Term:resize()
+  self:_requestSize()
+  while self._waiting do coroutine.yield'forget' end -- wait for size
+  self:_updateChildren(); self:clear() -- note: clear updates row length
 end
 
 --- draw the text and color(fg/bg) grids to the screen
-M.Term.draw = function(tm)
-  local fd = tm.fd
-  local w, h, fg, bg, ok, err = tm.text.w, tm.text.h
+function M.Term:draw()
+  local fd = self.fd
+  local w, h, fg, bg, ok, err = self.text.w, self.text.h
   ctrl.hide(fd); golc(fd, 1,1)
   for l=1,h  do
-    local txt = concat(tm.text[l])
+    local txt = concat(self.text[l])
     fg, bg, ok, err = acwrite(fd, colorFB, 'z', 'z',
-      concat(tm.fg[l]), concat(tm.bg[l]), txt)
+      concat(self.fg[l]), concat(self.bg[l]), txt)
     if fg ~= 'z' or bg ~= 'z' then ctrl.color(fd, 0) end
     if #txt < w               then cleareol(fd)      end
     if l < h                  then fd:write'\r\n'    end
   end
-  golc(fd, tm.l, tm.c); ctrl.show(fd) -- set cursor and show it
+  golc(fd, self.l, self.c); ctrl.show(fd) -- set cursor and show it
 end
 
 --- function to run in a (LAP) coroutine.
 --- [$send()] is called with each key recieved. Typically this is a lap.Send.
-M.Term.input = function(tm, send) --> infinite loop (run in coroutine)
+function M.Term:input(send) --> infinite loop (run in coroutine)
   local b, s, dat, len = 0, '', {}
   ::continue::
-  if not tm.run then return end
+  if not self.run then return end
   b = getb()
   ::restart::
   ds.clear(dat)
@@ -374,9 +374,9 @@ M.Term.input = function(tm, send) --> infinite loop (run in coroutine)
       b = getb(); if b <= 0x20 or b > 0x7F then break end
       if b == LETR then
         local h, w = char(unpack(dat)):match'(%d+);(%d+)'
-        if h and tm._waiting then
-          tm.h, tm.w = tonumber(h), tonumber(w)
-          tm:_ready'size updated'
+        if h and self._waiting then
+          self.h, self.w = tonumber(h), tonumber(w)
+          self:_ready'size updated'
         end
         goto continue
       end
@@ -392,23 +392,23 @@ end
 -------------------
 -- start / stop raw mode
 local READALL = (_VERSION < "Lua 5.3") and "*a" or "a"
-M.setrawmode = function()
+function M.setrawmode()
   return os.execute'stty raw -echo 2> /dev/null'
 end
-M.setsanemode = function() return os.execute'stty sane' end
-M.savemode = function() --> mode?, errmsg?
+function M.setsanemode() return os.execute'stty sane' end
+function M.savemode() --> mode?, errmsg?
   local fh = io.popen'stty -g'; local mode = fh:read(READALL)
   local ok, e, msg = fh:close()
   return ok and mode or nil, msg
 end
-M.restoremode = function(mode) return os.execute('stty '..mode) end
+function M.restoremode(mode) return os.execute('stty '..mode) end
 
-M.start = function() --> savedmode
+function M.start() --> savedmode
   local sm = M.savemode()
   M.setrawmode()
   return sm
 end
-M.stop = function(fd, savedmode)
+function M.stop(fd, savedmode)
   assert(fd and savedmode, 'must pass in fd and savedmode')
   ctrl.clear(fd)
   ctrl.show(fd)
@@ -421,7 +421,7 @@ local function isatty(f)
 end
 
 --- create a Fmt with sensible defaults from the config
-M.Fmt = function(t)
+function M.Fmt(t)
   assert(t.to, 'must set to = the output')
   if t.style == nil then t.style = shim.getEnvBool'COLOR' end
   if t.style or (t.style==nil) and isatty(t.to) then
@@ -434,7 +434,7 @@ M.Fmt = function(t)
 end
 
 --- Listens to keyboard inputs and echoes them.
-M.main = function(args)
+function M.main(args)
   local epath = '/tmp/vt100.err'
   print('vt100 echo, use ^c (cntrl+c) to quit. stderr at', epath)
   M.start(assert(io.open(epath, 'a')))
@@ -453,7 +453,7 @@ end
 
 --- The recommended setup function, enables color in the terminal in civstack
 --- libraries (and those that adhere to them).
-M.setup = function(args)
+function M.setup(args)
   if G.IS_SETUP then return end
   args = args or {}
   io.user = M.Fmt{to=assert(shim.file(rawget(args, 'to'),  io.stdout))}

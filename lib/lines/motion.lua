@@ -13,25 +13,25 @@ local byte, char = string.byte, string.char
 
 --- Move [$s] closer to [$e] by 1.[{br}]
 --- If they are equal do nothing.
-M.decDistance = function(s, e) --> int
+function M.decDistance(s, e) --> int
   if s == e then return e end
   return (s < e) and (e - 1) or (e + 1)
 end
 
 --- Return whether [$l.c] is equal to or before [$l2.c2].
-M.lcLe = function(l, c, l2, c2) --> bool
+function M.lcLe(l, c, l2, c2) --> bool
   if l == l2 then return c <= c2 end
   return l < l2
 end
 
 --- Return whether [$l.c] is equal to or after [$l2.c2]
-M.lcGe = function(l, c, l2, c2) --> bool
+function M.lcGe(l, c, l2, c2) --> bool
   if l == l2 then return c >= c2 end
   return l > l2
 end
 
 --- Return the top-left (aka the minimum) of two points.
-M.topLeft = function(l, c, l2, c2) --> (l, c)
+function M.topLeft(l, c, l2, c2) --> (l, c)
   if not c then
     assert(not c2); return sort2(l, l2), 1
   end
@@ -41,7 +41,7 @@ M.topLeft = function(l, c, l2, c2) --> (l, c)
 end
 
 -- Return whether [$l.c] is between [$l1.c1 - l2.c2] (inclusive).
-M.lcWithin = function(l, c, l1, c1, l2, c2) --> bool
+function M.lcWithin(l, c, l1, c1, l2, c2) --> bool
   if l1 > l2 then l1, c1, l2, c2 = l2, c2, l1, c1
   elseif l1 == l2 then
     c1, c2 = sort2(c1, c2)
@@ -74,7 +74,7 @@ WordKind['"'] = '"'   WordKind["'"] = "'"
 
 --- Given a character, return it's word-kind:
 --- ws (whitespace), sym (symbol), let (letter).
-M.wordKind = function(ch) --> ws|sym|let
+function M.wordKind(ch) --> ws|sym|let
   return WordKind[ch] or 'let' -- letter
 end
 
@@ -85,12 +85,12 @@ end
 
 --- Given a character, return it's path-kind:
 --- ws (whitespace), sym (symbol), path (path)
-M.pathKind = function(ch) --> ws|sym|path
+function M.pathKind(ch) --> ws|sym|path
   return PathKind[ch] or 'path'
 end
 
 --- Get the start of the next word from si (start-index).
-M.forword = function(s, si, getKind) --> int
+function M.forword(s, si, getKind) --> int
   si, getKind = si or 1, getKind or M.wordKind
   local i, kStart = si+1, getKind(s:sub(si,si))
   for ch in string.gmatch(s:sub(si+1), '.') do
@@ -105,7 +105,7 @@ M.forword = function(s, si, getKind) --> int
 end
 
 --- Get the start of the previous word from ei (end-index).
-M.backword = function(s, ei, getKind) --> int
+function M.backword(s, ei, getKind) --> int
   getKind = getKind or M.wordKind
   s = s:sub(1, ei-1):reverse()
   local i, kStart = 2, getKind(s:sub(1,1))
@@ -120,7 +120,7 @@ M.backword = function(s, ei, getKind) --> int
 end
 
 --- get the [$$range[si,ei]]$ of whatever is at [$$s[i]]$.
-M.getRange = function(s, i, getKind) --> si,ei
+function M.getRange(s, i, getKind) --> si,ei
   getKind = getKind or M.wordKind
   local si, ei = 1, #s; if ei < i then return nil end
   local kind = getKind(s:sub(i,i))
@@ -139,7 +139,7 @@ end
 --- This searches for the pattern and returns the LAST one found.
 --- This is HORRIBLY non-performant, only use for small amounts of data (like a
 --- line).
-M.findBack = function(s, pat, ei, plain) --> int
+function M.findBack(s, pat, ei, plain) --> int
   local s, fs, fe = s:sub(1, ei), nil, 0
   assert(#s < 256)
   while true do

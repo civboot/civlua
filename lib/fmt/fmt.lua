@@ -23,7 +23,7 @@ M.TTY = {
 --- Compares two values of any type.
 ---
 --- Note: [$nil < bool < number < string < table]
-M.cmpDuck = function(a, b)
+function M.cmpDuck(a, b)
   local aTy, bTy = type(a), type(b)
   if aTy ~= bTy then return aTy < bTy end
   return a < b
@@ -40,7 +40,7 @@ then      true      until     while
 local KEYWORD = M.KEYWORD
 
 --- Return a list of the table's keys sorted using [$cmpDuck]
-M.sortKeys = function(t) --> list
+function M.sortKeys(t) --> list
   local len, keys = #t, {}
   for k, v in pairs(t) do
     if not (mathtype(k) == 'integer' and (1 <= k) and (k <= len)) then
@@ -89,7 +89,7 @@ end
 
 --- Create a new Formatter object with default "pretty" settings.
 --- Generally, this means line-separated and indented tables.
-Fmt.pretty = function(F, t) return F(t):toPretty() end
+Fmt.pretty = function(T, self) return T(self):toPretty() end
 
 --- Add to the indent level and get the new value
 --- call with [$add=nil] to just get the current level
@@ -283,14 +283,14 @@ function Fmt:__tostring() return 'fmt.Fmt{}' end
 
 --- Similar to lua's [$tostring()] function except formats
 --- tables/types.
-M.tostring = function(v, fmt)
+function M.tostring(v, fmt)
   fmt = fmt or Fmt{}; assert(#fmt == 0, 'non-empty Fmt')
   return concat(fmt(v))
 end
 
 --- Similar to lua's [$string.format(...)] function
 --- except [$%q] formats tables/types.
-M.format = function(fmt, ...)
+function M.format(fmt, ...)
   local f = Fmt{}
   assert(f:format(fmt, ...) == select('#', ...),
          'invalid number of %args')
@@ -299,15 +299,15 @@ end
 local format = M.format
 
 --- Shortcut for [$error(fmt.format(...))]
-M.errorf  = function(...) error(format(...), 2) end
+function M.errorf(...) error(format(...), 2) end
 
 --- Asserts [$a] else throws [$error(fmt.format(...))].
-M.assertf = function(a, ...) --> a
+function M.assertf(a, ...) --> a
   return a or error(format(...), 2)
 end
 
 --- Writes the formatted arguments to [$f].
-M.fprint = function(fmter, ...)
+function M.fprint(fmter, ...)
   assert(fmter, 'must set fmter')
   local a, len = {...}, select('#', ...)
   for i=1,len do
@@ -319,10 +319,10 @@ end
 local fprint = M.fprint
 
 --- [$print(...)] but using [$io.fmt].
-M.print  = function(...) return fprint(io.fmt, ...) end
+function M.print(...) return fprint(io.fmt, ...) end
 
 --- pretty print
-M.pprint = function(...)
+function M.pprint(...)
   local f; if io.fmt then
     -- FIXME: Whoa... I'm making copy here? Improve this...
     f = {}
@@ -334,10 +334,10 @@ M.pprint = function(...)
 end
 
 --- pretty format the value
-M.pretty = function(v) return concat(Fmt:pretty{}(v)) end --> string
+function M.pretty(v) return concat(Fmt:pretty{}(v)) end --> string
 
 --- Set to __fmt to format a type like a table.
-M.table = function(tbl, fmter) return fmter:rawtable(tbl) end
+function M.table(tbl, fmter) return fmter:rawtable(tbl) end
 
 --- directly call fmt for better [$tostring]
 getmt(M).__call = function(_, v) return concat(Fmt{}(v)) end

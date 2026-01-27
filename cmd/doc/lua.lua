@@ -17,9 +17,9 @@ local M = mod and mod'doc.lua' or error(ERROR)
 local Keyword = {
   __name='keyword', __tostring = function() return 'keyword' end
 }
-M.keyword = function() return setmetatable({}, Keyword) end
+function M.keyword() return setmetatable({}, Keyword) end
 
-local undocumented = function(name)
+local function undocumented(name)
   local t = {}
   for k, v in pairs(_G[name]) do
     k = name..'.'..k; if not rawget(M, k) then t[k] = v end

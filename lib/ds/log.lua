@@ -26,7 +26,7 @@ local io = io
 
 --- It is intended that this be overriden with a better
 --- time function.
-M._time = function() return os.date():match'%d%d:%d%d:%d%d' end
+function M._time() return os.date():match'%d%d:%d%d:%d%d' end
 
 local LEVEL = ds.Checked{
   SLIENT=0, [0]='SILENT',
@@ -57,7 +57,7 @@ end
 function M.levelStr(lvl) return M.LEVEL[M.levelInt(lvl)] end
 
 --- Set the global logging level (default=os.getenv'LOGLEVEL')
-M.setLevel = function(lvl)
+function M.setLevel(lvl)
   G.LOGLEVEL = M.levelInt(lvl or os.getenv'LOGLEVEL' or 0)
 end
 M.setLevel(G.LOGLEVEL)
@@ -94,13 +94,13 @@ function M.trace(...) if LOGLEVEL >= 5 then _log(5, ...) end end
 M.LogTable = mty.record'LogTable'{
   'tee [fn(...)] call calls will also call tee',
 }
-M.LogTable.__fmt = function(lt, f)
-  f:write'LogTable'; f:list(lt)
+function M.LogTable:__fmt(f)
+  f:write'LogTable'; f:list(self)
 end
 M.LogTable.__eq = ds.ieq
-M.LogTable.__call = function(lt, ...)
-  if lt.tee then lt.tee(...) end
-  push(lt, {...})
+function M.LogTable:__call(...)
+  if self.tee then self.tee(...) end
+  push(self, {...})
 end
 
 return M

@@ -64,7 +64,7 @@ end
 
 --- Returns lists of line numbers which are unique in both [$b] and [$c],
 --- ordered by when the appear in b.
-local uniqueMatches = function(bLines, cLines, b, b2, c, c2) --> bList, cList
+local function uniqueMatches(bLines, cLines, b, b2, c, c2) --> bList, cList
   local bcount, ccount = {}, {}
   for i=b,b2 do countLine(bcount, i, bLines[i], true) end
   for i=c,c2 do countLine(ccount, i, cLines[i]) end
@@ -78,7 +78,7 @@ end
 
 --- Find the stack to the left of where we should place
 --- using binary search.
-local findLeftStack = function(stacks, mc, c)
+local function findLeftStack(stacks, mc, c)
   local low, high, mid = 0, #stacks + 1
   while low + 1 < high do
     mid = (low + high) // 2
@@ -89,7 +89,7 @@ local findLeftStack = function(stacks, mc, c)
 end
 
 --- Get the longest increasing sequence (in reverse order).
-local patienceLIS = function(mb, mc) --> bList, cList
+local function patienceLIS(mb, mc) --> bList, cList
   local stacks = {}
   local prev, c, i = {}
   for mi, b in ipairs(mb) do
@@ -107,7 +107,7 @@ end
 ----------------------------
 -- Compute the diff
 
-local skipEqLinesTop = function(linesB, linesC, b, b2, c, c2) --> bi, ci
+local function skipEqLinesTop(linesB, linesC, b, b2, c, c2) --> bi, ci
   while b <= b2 and c <= c2 do
     if linesB[b] ~= linesC[c] then return b, c end
     b, c = b + 1, c + 1
@@ -115,7 +115,7 @@ local skipEqLinesTop = function(linesB, linesC, b, b2, c, c2) --> bi, ci
   return b, c
 end
 
-local skipEqLinesBot = function(linesB, linesC, b, b2, c, c2) --> bi, ci
+local function skipEqLinesBot(linesB, linesC, b, b2, c, c2) --> bi, ci
   while b <= b2 and c <= c2 do
     if linesB[b2] ~= linesC[c2] then return b2, c2 end
     b2, c2 = b2 - 1, c2 - 1
@@ -164,7 +164,7 @@ function Diff:_calc(b, b2, c, c2)
 end
 
 --- accumulate list[i] = list[i]+list[j], treating 0 as nil
-local acc = function(list, i, j)
+local function acc(list, i, j)
   local v = (list[i] or 0) + (list[j] or 0)
   if v ~= 0 then list[i] = v end
 end
@@ -240,9 +240,9 @@ local function styleNoc(f, base, bl, cl)
   f:styled('line', sfmt('% 5i % 5i ', bl, cl))
   f:styled(nil   , base[bl] or '<eof>', '\n')
 end
-Diff.__fmt = function(d, f)
-  local base, chan = d.b, d.c
-  d:map(
+function Diff:__fmt(f)
+  local base, chan = self.b, self.c
+  self:map(
     function(bl, n, cl) -- nochange
       if n > 0 then styleNoc(f, base, bl, cl)         end
       if n > 1 then styleNoc(f, base, bl+n-1, cl+n-1) end

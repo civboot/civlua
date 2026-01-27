@@ -18,7 +18,7 @@ local EMPTY = {}
 --- it is split on whitespace and parsed as a list.
 ---
 --- Note: this handles repeat keys by creating and appending a list for that key.
-M.parse = function(v) --> args
+function M.parse(v) --> args
   if type(v) == 'string' then return M.parseStr(v)
   else                        return M.parseList(v) end
 end
@@ -36,7 +36,7 @@ end
 --- This is for convinience, use a table if it's not enough.
 ---
 --- Note: if the input is already a table it just returns it.
-M.parseStr = function(str) --> args
+function M.parseStr(str) --> args
   str = str or {}
   if type(str) == 'table' then return str end
   if str:find'[%[%]\'"]' then error(
@@ -47,7 +47,7 @@ M.parseStr = function(str) --> args
 end
 
 --- Note: typically use parse() or parseStr() instead.
-M.parseList = function(strlist) --> args
+function M.parseList(strlist) --> args
   local t = {}; for i, arg in ipairs(strlist) do
     if arg == '--' then -- lone '--' indicates special parsing
       table.move(strlist, i, #strlist, #t+1, t)
@@ -63,7 +63,7 @@ end
 
 --- Helper for dealing with [$-s --short] arguments. Mutates
 --- args to convert short paramaters to their long counterpart.
-M.short = function(args, short, long, value) --> nil
+function M.short(args, short, long, value) --> nil
   if args[short] then args[long] = value; args[short] = nil end
 end
 
@@ -74,20 +74,20 @@ local BOOLS = {
 
 --- Duck type: always return a boolean (except for nil).
 --- See BOOLS (above) for mapping.
-M.bool = function(v)
+function M.bool(v)
   if v == nil then return nil end
   local b = BOOLS[v] if b ~= nil then return b end
   error('invalid boolean: '..tostring(v))
 end
 M.boolean = M.bool
-M.bools = function(args, ...)
+function M.bools(args, ...)
   for _, arg in ipairs{...} do
     args[arg] = M.boolean(args[arg])
   end
 end
 
 --- Duck type: always return a number
-M.number = function(num)
+function M.number(num)
   if num == nil then return nil end
   return (type(num)=='number') and num or tonumber(num)
 end
@@ -100,7 +100,7 @@ local TOSTR = {
 --- This is useful for some APIs where you want to convert
 --- number/true/false to strings
 --- ["Converts nil to '']
-M.string = function(v)
+function M.string(v)
   local f = TOSTR[type(v)]; if f then return f(v) end
   error('invalid type for shim.string: '..type(v))
 end
@@ -109,7 +109,7 @@ end
 --- * default controls val==nil
 --- * empty   controls val==''
 --- ]
-M.list = function(val, default, empty) --> {string}
+function M.list(val, default, empty) --> {string}
   if val == nil                 then val = default or {} end
   if empty ~= nil and val == '' then return empty        end
   return (type(val) == 'table') and val or {val}
@@ -117,7 +117,7 @@ end
 
 --- Duck type: if val is a string then splits it
 --- if it's a list leaves alone.
-M.listSplit = function(val, sep)
+function M.listSplit(val, sep)
   if val == nil then return {} end
   if type(val) == 'table' then return val end
   sep = '[^'..(sep or '%s')..']+'
@@ -127,7 +127,7 @@ end
 
 --- Duck type: get a file handle.
 --- If [$v or default] is a string then open the file in mode [$default='w+']
-M.file = function(v, default, mode--[[w+]]) --> file, error?
+function M.file(v, default, mode--[[w+]]) --> file, error?
   if BOOLS[v] ~= nil then
     return default -- TODO: handle false -> /dev/null.
   end
@@ -138,7 +138,7 @@ end
 
 --- expand string keys into [$--key=value], ordered alphabetically.
 --- This is mostly useful for interfacing with non-lua shells.
-M.expand = function(args)
+function M.expand(args)
   local out, keys = {}, {}
   for k, v in pairs(args) do
     if type(k) == 'number'     then out[k] = M.string(v)
@@ -153,14 +153,14 @@ end
 
 
 --- return nil if env var does not exist, else boolean (true for 'true' or '1')
-M.getEnvBool = function(k)
+function M.getEnvBool(k)
   local v = os.getenv(k); if not v then return v end
   return ENV_VALS[lower(v)] or false
 end
 
 --- pop raw arguments after '--'
 --- Removes them (including '--') from args.
-M.popRaw = function(args, to) --> to
+function M.popRaw(args, to) --> to
   local ri; for i, v in ipairs(args) do
     if v == '--' then ri = i; break end
   end; if not ri then return end
@@ -173,7 +173,7 @@ end
 --- Setup lua using [$require(LUA_SETUP).setup(args, force)].
 ---
 --- The default is to use ds.setup.
-M.runSetup = function(args, force)
+function M.runSetup(args, force)
   mty.setup()
   require(G.LUA_SETUP or os.getenv'LUA_SETUP' or 'ds')
     .setup(args, force)
@@ -190,7 +190,7 @@ end
 --- [$construct({foo=Foo, bar=Bar}, {'foo', 'ding', zing=true})]
 --- returns a {foo=Foo{'ding', zing=true}}.
 -- FIXME: remove
-M.construct = function(Cmd, args) --> ok, err?
+function M.construct(Cmd, args) --> ok, err?
   args = M.parseStr(args)
   assert(Cmd and args, 'must provide (Cmd,args)')
   if type(Cmd) == 'table' and rawget(Cmd, 'subcmd') then
@@ -212,7 +212,7 @@ M.construct = function(Cmd, args) --> ok, err?
   return mty.construct(Cmd, args)
 end
 
-M.constructNew = function(Cmd, args) --> ok, err?
+function M.constructNew(Cmd, args) --> ok, err?
   args = M.parseStr(args)
   assert(Cmd and args, 'must provide (Cmd,args)')
   if type(Cmd) == 'table' and rawget(Cmd, 'subcmd') then
@@ -232,19 +232,19 @@ M.constructNew = function(Cmd, args) --> ok, err?
 end
 
 --- FIXME delete
-M.init = function(Cmd, args)
+function M.init(Cmd, args)
   local a, err = M.construct(Cmd, args)
   M.runSetup(a or {})
   return assert(a, err)
 end
 
 -- FIXME delete
-M.run = function(Args, args)
+function M.run(Args, args)
   return M.init(Args, args)()
 end
 
 --- Return whether a record was created with [@shim.cmd]
-M.isCmd = function(R)
+function M.isCmd(R)
   return type(R) == 'table' and rawget(R, '__cmd') and true
 end
 
@@ -261,7 +261,7 @@ end
 --- Usage: [{$$ lang=lua}
 ---   if shim.isMain(mycmd) then mycmd:main(G.arg) end
 --- ]$
-M._main = function(Cmd, args)
+function M._main(Cmd, args)
   local self, err = Cmd:new(M.parse(args))
   M.runSetup(self or {})
   assert(self, err)
@@ -269,7 +269,7 @@ M._main = function(Cmd, args)
 end
 
 --- for [$cmd.__doc]
-M._doc = function(R, d, pre)
+function M._doc(R, d, pre)
   d.done[R] = true
   local name, loc, cmt, code = d:anyExtract(R)
   local hname = R.__name
@@ -283,7 +283,7 @@ M._doc = function(R, d, pre)
 end
 
 --- for [$subcmds.__doc]
-M._subsdoc = function(R, d, pre)
+function M._subsdoc(R, d, pre)
   local name, loc, cmt, code = d:anyExtract(R)
   pre = ((pre and (pre..' ')) or '')..R.__name
   d:header(d.modHeader, 'Command '..pre, name)
@@ -324,7 +324,7 @@ end
 --- if shim.isMain(M) then M:main(arg) end
 --- return M
 --- ]$
-M.cmd = function(name)
+function M.cmd(name)
   return function(R)
     namedCmd(name, R)
     mod.save(name, R)
@@ -333,7 +333,7 @@ M.cmd = function(name)
 end
 
 --- Create a command composed of subcommands.
-M.subcmds = function(name)
+function M.subcmds(name)
   return function(R)
     R.__doc = R.__doc or M._subsdoc
     R.subcmd = true  -- FIXME: rename?

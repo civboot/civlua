@@ -28,10 +28,10 @@ end
 local new = getmetatable(M).__call
 
 --- Join a table of strings with newlines.
-M.join = function(t) return concat(t, '\n') end --> string
+function M.join(t) return concat(t, '\n') end --> string
 local join = M.join
 
-M._args = function(...) --> lines
+function M._args(...) --> lines
   local len = select('#', ...)
   if     len == 0 then return {}
   elseif len == 1 then return new(nil, select(1, ...))
@@ -39,7 +39,7 @@ M._args = function(...) --> lines
 end
 local args = M._args
 
-local sinsert = function (s, i, v)
+local function sinsert (s, i, v)
   return s:sub(1, i-1)..v..s:sub(i)
 end
 
@@ -47,7 +47,7 @@ end
 ---
 --- Note: this is NOT performant (O(N)) for large tables.[{br}]
 --- See: [<#Gap>] (or similar) for handling real-world workloads.
-M.insert = function(t, s, l,c) --> nil
+function M.insert(t, s, l,c) --> nil
   inset(t, l, M(sinsert(get(t, l) or '', c or 1, s)), 1)
 end
 
@@ -63,7 +63,7 @@ end
 local span = M.span
 
 --- sort the span
-M.sort = function(...) --> l1, c1, l2, c2
+function M.sort(...) --> l1, c1, l2, c2
   local l, c, l2, c2 = span(...)
   if l > l2 then l, c, l2, c2 = l2, c2, l, c
   elseif c and (l == l2) and (c > c2) then c, c2 = c2, c end
@@ -97,18 +97,18 @@ end
 
 --- Get the sub-span of the lines.[{br}]
 --- Returns a string if the result is a single line, else a table of lines.
-M.sub  = function(l, ...) --> string | table
+function M.sub(l, ...) --> string | table
   return _lsub(string.sub, string.len, l, ...)
 end
 
 --- Get the UTF8 aware sub-span of the lines.[{br}]
 --- Returns a string if the result is a single line, else a table of lines.
-M.usub = function(l, ...) --> string | table
+function M.usub(l, ...) --> string | table
   return _lsub(ds.usub, utf8.len, l, ...)
 end
 
 --- create a table of lineText -> {lineNums}
-M.map = function(lines) --> table
+function M.map(lines) --> table
   local map = {}; for l, line in ipairs(lines) do
     push(ds.getOrSet(map, line, ds.emptyTable), l)
   end
@@ -118,7 +118,7 @@ end
 --- bound the line/col for the lines table.
 --- This will automatically convert negatives indexes to positive,
 --- where [$-1] is the last item.
-M.bound = function(t, l, c, len, line) --> l, c
+function M.bound(t, l, c, len, line) --> l, c
   if l < 0 then l = #t + l + 1 end
   l = bound(l, 1, max(1, len or #t))
   if not c then return l end
@@ -129,7 +129,7 @@ M.bound = function(t, l, c, len, line) --> l, c
 end
 
 --- Get the [$l, c] with the +/- offset applied
-M.offset=function(t, off, l, c) --> l, c
+function M.offset(t, off, l, c) --> l, c
   local len, m, llen, line = #t
   -- 0 based index for column
   l = bound(l, 1, len); c = bound(c - 1, 0, #get(t,l))
@@ -158,7 +158,7 @@ M.offset=function(t, off, l, c) --> l, c
 end
 
 --- get the byte offset 
-M.offsetOf=function(t, l, c, l2, c2) --> int
+function M.offsetOf(t, l, c, l2, c2) --> int
   local off, len, llen = 0, #t
   l, c = M.bound(t, l, c, len);  l2, c2 = M.bound(t, l2, c2, len)
   c, c2 = c - 1, c2 - 1 -- column math is 0-indexed
@@ -182,7 +182,7 @@ end
 
 --- find the pattern starting at l/c
 --- Note: matches are only within a single line.
-M.find = function(t, pat, l, c) --> (l, c, c2)
+function M.find(t, pat, l, c) --> (l, c, c2)
   l, c = M.bound(t, l or 1, c or 1)
   local c2
   while true do
@@ -193,7 +193,7 @@ M.find = function(t, pat, l, c) --> (l, c, c2)
   end
 end
 
-local findBack = function(s, pat, end_)
+local function findBack(s, pat, end_)
   local s, fs, fe = s:sub(1, end_), nil, 0
   assert(#s < 256)
   while true do
@@ -206,7 +206,7 @@ local findBack = function(s, pat, end_)
 end
 
 --- find the pattern (backwards) starting at l/c
-M.findBack = function(t, pat, l, c)
+function M.findBack(t, pat, l, c)
   l, c = M.bound(t, l or 1, c)
   local c2
   while true do
@@ -219,7 +219,7 @@ M.findBack = function(t, pat, l, c)
 end
 
 --- remove span (l, c) -> (l2, c2), return what was removed
-M.remove = function(t, ...) --> string|table
+function M.remove(t, ...) --> string|table
   local l, c, l2, c2 = span(...);
   local len = #t
   if l2 > len then l2, c2 = len, #get(t,len) + 1 end
@@ -267,7 +267,7 @@ end
 --- ***+------------------------2**
 --- *So no '*' chars are returned.*
 --- ]$
-M.box = function(t, l1, c1, l2, c2, fill) --> lines
+function M.box(t, l1, c1, l2, c2, fill) --> lines
   local f = fill and assert(type(fill) == 'string') and (c2 - c1 + 1)
   local b = {}; for l=l1,l2 do
     local line = get(t,l)
@@ -282,7 +282,7 @@ end
 -- Save / Load from file
 
 --- load lines from file or path. On error return (nil, errstr)
-M.load = function(f, close) --> (table?, errstr?)
+function M.load(f, close) --> (table?, errstr?)
   local err
   if type(f) == 'string' then close, f, err = true, io.open(f, 'r') end
   if f == nil then return nil, err or 'load(f=nil)' end
@@ -294,7 +294,7 @@ end
 
 --- write lines [$t] to file [$f] in chunks (default = 16KiB)
 --- if f is a string then it is opened as a file and closed when done
-M.dump = function(t, f, close, chunk)
+function M.dump(t, f, close, chunk)
   if type(f) == 'string' then
     f = assert(io.open(f, 'w')); close = true
   end
@@ -320,7 +320,7 @@ end
 --- Logic to make a table behave like a [$file:write(...)] method.
 ---
 --- This is NOT performant, especially for large lines.
-M.write = function(t, ...) --> true
+function M.write(t, ...) --> true
   local w = args(...); if #w == 0 then return true end
   local len, first = #t, w[1]
   if first ~= '' then

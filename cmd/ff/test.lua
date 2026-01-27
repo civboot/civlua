@@ -46,7 +46,7 @@ local function simpleSub(fmt, subfmt)
   return table.concat(t, '\n')..'\n'
 end
 
-T.ff_FF = function()
+T'ff_FF'; do
   local m = ff:new{'a', 'p:b/c', '-b', '-p:%.ef', 'r:r1/', '--', 'r2/'}
   T.eq(mty.construct(ff, {
     root={'r2/', 'r1/'},
@@ -90,7 +90,7 @@ local function testA()
   T.eq({}, res); T.eq('', stdout); T.eq('', stderr)
 end
 
-T.ff_find = function()
+T'ff_find'; do
   testA()
 
   local bArgs = {'-p:', 'b %d1', '--', dir}
@@ -106,7 +106,7 @@ T.ff_find = function()
   T.eq({dir..'b/b1.txt'}, res)
 end
 
-T.ff_sub = function()
+T'ff_sub'; do
   local subArgs = {'-p:', 'a (%d1)', sub='s %1', '--', dir}
   local ok, res, stdout, stderr = runFF(ds.copy(subArgs))
   assert(ok, res)

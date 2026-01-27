@@ -31,7 +31,7 @@ G.PKG_NAMES  = G.PKG_NAMES  or setmetatable({}, weakk) -- obj -> name
 G.PKG_LOC    = G.PKG_LOC    or setmetatable({}, weakk) -- obj -> path:loc
 G.PKG_LOOKUP = G.PKG_LOOKUP or setmetatable({}, weakv) -- name -> obj
 
-local srcloc = function(level)
+local function srcloc(level)
   local info = debug.getinfo(2 + (level or 0), 'Sl')
   local loc = info.source; if loc:sub(1,1) ~= '@' then return end
   return loc:sub(2)..':'..info.currentline
@@ -51,7 +51,7 @@ local mod; mod = {
 
 -- member function (not method)
 -- save v with name to PKG variables
-mod.save = function(name, v)
+function mod.save(name, v)
   if CONCRETE[type(v)] then return end
   PKG_LOC[v]       = PKG_LOC[v]       or srcloc(2)
   PKG_NAMES[v]     = PKG_NAMES[v]     or name
@@ -89,7 +89,7 @@ M.G = G
 --- Create typosafe module.
 M.mod = mod
 --- Return whether the value is a module.
-M.isMod = function(t) --> boolean
+function M.isMod(t) --> boolean
   if type(t) ~= 'table' then return false end
   local mt = getmetatable(t)
   return mt and mt.__name and mt.__name:find'^Mod<'
@@ -99,7 +99,7 @@ end
 G.G = G.G or G
 G.mod = mod
 
-local noG = function(_, k)
+local function noG(_, k)
   error(sfmt(
     'global %s is nil/unset. Initialize with G.%s = non_nil_value', k, k
   ), 2)
@@ -108,23 +108,23 @@ end
 ---
 --- Currently this only makes non-[$G] global access typosafe (throw error if
 --- not previously set).
-M.setup = function()
+function M.setup()
   setmetatable(_G, {
     __name='_G(metatable by metaty)',
     __index=noG, __newindex=noG,
   })
 end
 
-local update = function(t, update)
+local function update(t, update)
   for k, v in pairs(update) do t[k] = v end; return t
 end
 
 -- set of concrete types
 M.CONCRETE, M.BUILTIN = CONCRETE, BUILTIN
 --- Return whether v is a nil, boolean, number or string.
-M.isConcrete = function(v) return CONCRETE[type(v)] end
+function M.isConcrete(v) return CONCRETE[type(v)] end
 --- Return whether v is concrete or a table with no metatable.
-M.isBuiltin = function(obj)
+function M.isBuiltin(obj)
   return M.isConcrete(obj) or (obj == nil) or (getmetatable(obj) == nil)
 end
 
@@ -135,11 +135,11 @@ local IS_ENV = { ['true']=true,   ['1']=true,
 local EMPTY = {}
 
 --- Given a string return whether os.getenv returns 'true' or '1'.
-M.isEnv = function(var)
+function M.isEnv(var)
   var = os.getenv(var); if var then return IS_ENV[var] end
 end
 --- Same as isEnv but first checks globals.
-M.isEnvG = function(var) -- is env or globals
+function M.isEnvG(var) -- is env or globals
   if G[var] ~= nil then return G[var] end
   return M.isEnv(var)
 end
@@ -147,7 +147,7 @@ end
 --- Get method of table if it exists.[{br}]
 --- This first looks for the item directly on the table, then the item in the
 --- table's metatable. It does NOT use the table's normal [$__index].
-M.getmethod = function(t, method)
+function M.getmethod(t, method)
   return rawget(t, method) or rawget(getmt(t) or EMPTY, method)
 end
 
@@ -157,14 +157,14 @@ M.DEPTH_ERROR = '{!max depth reached!}'
 
 --- Get the type of the value which is either the values metatable or the
 --- string result of [$type(v)].
-M.ty = function(v) --> type
+function M.ty(v) --> type
   local t = type(v)
   return t == 'table' and getmt(v) or t
 end
 local getTy = M.ty
 
 --- Given a type return it's name.
-M.tyName = function(T, default) --> string
+function M.tyName(T, default) --> string
   local Tty = type(T)
   return Tty == 'string' and T
     or ((Tty == 'table') and rawget(T, '__name'))
@@ -173,7 +173,7 @@ end
 
 --- Given an object (function, table, userdata) return its name.
 --- Return it's string type if it's not one of the above types.
-M.name = function(o)
+function M.name(o)
   local ty = type(o)
   return ty == 'function' and M.fninfo(o)
       or ty == 'table'    and M.tyName(getTy(o))
@@ -182,7 +182,7 @@ M.name = function(o)
 end
 
 --- Return whether obj is callable (function or has [$mt.__call]).
-M.callable = function(obj) --> bool
+function M.callable(obj) --> bool
   if type(obj) == 'function' then return true end
   local m = getmt(obj)
   return m and rawget(m, '__call') and true
@@ -199,14 +199,14 @@ then      true      until     while
 
 --- Return whether s can be used directly as a key
 --- in syntax.
-M.validKey = function(s) --> boolean
+function M.validKey(s) --> boolean
   return type(s) == 'string' and
     not (M.KEYWORD[s] or tonumber(s)
          or s:find'[^_%w]')
 end
 
 --- Extract name,loc from function value.
-M.fninfo = function(fn) --> name, loc
+function M.fninfo(fn) --> name, loc
   local info
   local name = PKG_NAMES[fn]; if not name then
     info = debug.getinfo(fn)
@@ -233,7 +233,7 @@ end
 
 --- You probably want split instead.
 --- Usage: [$for ctx, line in rawsplit, text, {'\n', 1} do]
-M.rawsplit = function(subj, ctx) --> (state, splitstr)
+function M.rawsplit(subj, ctx) --> (state, splitstr)
   local pat, i = table.unpack(ctx)
   if not i then return end
   if i > #subj then
@@ -252,19 +252,19 @@ end
 ---   ... do something with line
 --- end
 --- ]$
-M.split = function(subj, pat--[[%s+]], index--[[1]]) --> (cxt, str) iter
+function M.split(subj, pat--[[%s+]], index--[[1]]) --> (cxt, str) iter
   return M.rawsplit, subj, {pat or '%s+', index or 1}
 end
 
 --- The [$__copy] method.
-M.copyMethod = function(self)
+function M.copyMethod(self)
   local c = {}
   for k, v in pairs(self) do c[k] = v end
   return setmetatable(c, getmetatable(self))
 end
 
 --- The default __fmt method.
-M.fmt = function(self, f)
+function M.fmt(self, f)
   local mt = getmt(self)
   local len, fields = #self, rawget(mt, '__fields')
   local multi = len + #fields > 1 -- use multiple lines
@@ -277,7 +277,7 @@ M.fmt = function(self, f)
 end
 
 --- The default __tostring method.
-M.tostring = function(self)
+function M.tostring(self)
   local mt = getmt(self)
   return sfmt('%s@%p', rawget(mt, '__name'), self)
 end
@@ -286,7 +286,7 @@ local function cleanupFieldTy(tyStr)
   return tyStr:match'%[(.*)%]' or tyStr
 end
 
-M._docFields = function(R, d, name, kind)
+function M._docFields(R, d, name, kind)
   local fmt = require'fmt'
   local fields = {}
   for _, fname in ipairs(R.__fields or EMPTY) do
@@ -321,7 +321,7 @@ M._docFields = function(R, d, name, kind)
   end
 end
 
-M._docMethods = function(R, d, name)
+function M._docMethods(R, d, name)
   local methods = {}
   for _, k in ipairs(R.__attrs) do
     if k:match'^_' then goto continue end
@@ -347,7 +347,7 @@ end
 ---
 --- ["d is of type [$doc.Documenter].
 ---   Tests are in cmd/doc/test.lua ]
-M.doc = function(R, d)
+function M.doc(R, d)
   d.done[R] = true
   local name, loc = M.anyinfo(R)
   local cmt, code = d:extractCode(loc)
@@ -400,19 +400,19 @@ local NATIVE_TY_EQ = {
 
 --- Compare two values (any values) for equality. This will
 --- recursively check tables for equality.
-M.eq = function(a, b) return NATIVE_TY_EQ[type(a)](a, b) end --> bool
+function M.eq(a, b) return NATIVE_TY_EQ[type(a)](a, b) end --> bool
 
 -----------------------
 -- record
 
 --- Throws a formatted index error when called.
-M.indexError = function(R, k, lvl)
+function M.indexError(R, k, lvl)
   error(sfmt('%q is not a field of %s', k, R.__name), lvl or 2)
 end
 
 --- Usage: [$getmetable(MyType).__index = mty.index][{br}]
 --- Allows integers to be insert into your value. This is the default __index.
-M.index = function(R, k) -- Note: R is record's metatable
+function M.index(R, k) -- Note: R is record's metatable
   if type(k) == 'string' and not rawget(R, '__fields')[k] then
     M.indexError(R, k, 3)
   end
@@ -420,7 +420,7 @@ end
 --- Usage: [$getmetable(MyType).__index = mty.index][{br}]
 --- Allows nothing except your type's fields to be insert into
 --- your value.
-M.hardIndex = function(R, k)
+function M.hardIndex(R, k)
   if type(k) ~= 'string' or not rawget(R, '__fields')[k] then
     M.indexError(R, k, 3)
   end
@@ -428,7 +428,7 @@ end
 
 --- Usage: [$MyType.__newindex = mty.newindex][{br}]
 --- (record default) this allows non-string keys to always be insert.
-M.newindex = function(r, k, v)
+function M.newindex(r, k, v)
   if type(k) == 'string' and not metaget(r, '__fields')[k] then
     M.indexError(getmt(r), k, 3)
   end
@@ -436,7 +436,7 @@ M.newindex = function(r, k, v)
 end
 --- Usage: [$MyType.__newindex = mty.hardNewindex][{br}]
 --- This allows only registered fields to be insert.
-M.hardNewindex = function(r, k, v)
+function M.hardNewindex(r, k, v)
   if type(k) ~= 'string' or not metaget(r, '__fields')[k] then
     M.indexError(getmt(r), k, 3)
   end
@@ -456,7 +456,7 @@ end
 ---
 --- Check type with field typochecking. This is the default when
 --- [$LUA_OPT <= 2]
-M.constructChecked = function(T, t)
+function M.constructChecked(T, t)
   fieldsCheck(T, rawget(T, '__fields'), t)
   return setmetatable(t, T)
 end
@@ -464,7 +464,7 @@ end
 ---
 --- Check type with field typochecking. This is the default when
 --- [$LUA_OPT >= 3].
-M.constructUnchecked = function(T, t)
+function M.constructUnchecked(T, t)
   return setmetatable(t, T)
 end
 --- [$constructChecked] or [$constructUnchecked] depending on [$LUA_OPT].
@@ -499,7 +499,7 @@ local function extendFields(fields, ids, docs, R)
   return fields, ids, docs
 end
 
-M._namedRecord = function(name, R, loc)
+function M._namedRecord(name, R, loc)
   rawset(R, '__name', name)
   local fieldIds = {}; for id in ipairs(R.reserved or {}) do
     fieldIds[id] = id
@@ -530,14 +530,14 @@ end
 --- Usage: [$$record'name'{ 'field [type]: documentation' }]$
 ---
 --- Start a new record. See module documentation for details.
-M.record = function(name)
+function M.record(name)
   assert(type(name) == 'string' and #name > 0,
          'must set name to string')
   return function(R) return M._namedRecord(name, R) end
 end
 
 --- Start a new record which acts as a lua module (i.e. the file returns it).
-M.recordMod = function(name)
+function M.recordMod(name)
   return function(R)
     R = M._namedRecord(name, R)
     mod.save(R.__name, R)
@@ -546,7 +546,7 @@ M.recordMod = function(name)
 end
 
 --- Return true if [$t] is a record value.
-M.isRecord = function(t)
+function M.isRecord(t)
   if type(t) ~= 'table' then return false end
   local mt = getmt(t)
   return mt and mt.__name and mt.__name:find'^Ty<'
@@ -555,7 +555,7 @@ end
 --- Usage: [$mty.extend(MyBase, 'NewName', {...new fields...})]
 ---
 --- Extend the Type with (optional) new name and (optional) additional fields.
-M.extend = function(Type, name, fields)
+function M.extend(Type, name, fields)
   assert(type(Type) == 'table' and getmt(Type), 'arg 1 must be Type')
   assert(type(name) == 'string',                'arg 2 must be name')
   name, fields = name or Type.__name, fields or {}
@@ -575,18 +575,18 @@ M.extend = function(Type, name, fields)
 end
 
 --- Extend the type with new name and use as a module.
-M.extendMod = function(T, name, fields)
+function M.extendMod(T, name, fields)
   T = M.extend(T, name, fields)
   mod.save(name, T)
   return T
 end
 
-local enum_tostring = function(E) return E.__name end
-local enum_toPod = function(E, pset, e)
+local function enum_tostring(E) return E.__name end
+local function enum_toPod(E, pset, e)
   if pset.enumIds then return E.id(e) else return E.name(e) end
 end
-local enum_fromPod = function(E, pset, e) return E.name(e) end
-local enum_partialMatcher = function(E, fnMap)
+local function enum_fromPod(E, pset, e) return E.name(e) end
+local function enum_partialMatcher(E, fnMap)
   for name, fn in pairs(fnMap) do
     if not E.__names[name] then error(name..' is not in enum '..E.__name) end
     if not M.callable(fn) then error(name ..'is not callable') end
@@ -596,7 +596,7 @@ local enum_partialMatcher = function(E, fnMap)
   end
   return fnMap
 end
-local enum_matcher = function(E, fnMap)
+local function enum_matcher(E, fnMap)
   local missing = {}
   for name in pairs(E.__names) do
     if not fnMap[name] then push(missing, name) end
@@ -644,7 +644,7 @@ end
 
 --- Usage: [$mty.enum'name' { A = 1, B = 2, ... }][{br}]
 --- Create an enum type. See module documentation.
-M.enum = function(name)
+function M.enum(name)
   assert(type(name) == 'string' and #name > 0,
         'must name the enum using a string')
   return function(nameIds) return namedEnum(name, nameIds) end
@@ -652,7 +652,7 @@ end
 
 
 --- like require but returns nil if not found.
-M.want = function(mod) --> module?
+function M.want(mod) --> module?
   local ok, m = pcall(function() return require(mod) end)
   if ok then return m end
 end
@@ -663,7 +663,7 @@ end
 --- local foo = require'foo'
 --- local bar, baz = foo.bar, foo.baz
 --- ]$
-M.from = function(a, b)
+function M.from(a, b)
   local m, str -- mod and str to split
   if b then
     m = type(a)=='string' and assert(require(a), a) or a

@@ -20,7 +20,7 @@ local getmethod = mty.getmethod
 local EMPTY = {}
 
 --- Default LUA_SETUP, though vt100 is recommended for most users.
-M.setup = function(args)
+function M.setup(args)
   if G.IS_SETUP then return end
   args = args or {}
   io.user = fmt.Fmt{to=assert(shim.file(rawget(args, 'to'),  io.stdout))}
@@ -37,12 +37,12 @@ M._B.string_concat = function(sep, ...) --> string
 end
 
 --- push v onto table, returning index.
-M._B.push = function(t, v) --> index
+function M._B.push(t, v) --> index
   local i = #t + 1; t[i] = v; return i
 end
 
 --- return t with the key/vals of add inserted
-M._B.update = function(t, add) --> t
+function M._B.update(t, add) --> t
   for k,v in pairs(add) do t[k] = v end
   return t
 end
@@ -84,7 +84,7 @@ M.PlainStyler = mty'PlainStyler' {}
 -- these use new "metaevent" (similar to __len) that tables can override
 
 --- if t is a table returns t.__name or '?'
-M.name = function(t) --> string
+function M.name(t) --> string
   if not type(t) == 'table' then return end
   local mt = getmt(t)
 end
@@ -95,7 +95,7 @@ end
 ---
 --- inset is like an extend but the items are insert at any place in the array.
 --- The rmlen will also remove a certain number of items.
-M.inset = function(t, i, values, rmlen) --> nil
+function M.inset(t, i, values, rmlen) --> nil
   if getmt(t) then return t:inset(i, values, rmlen) end
   -- impl notes, there are two modes:
   -- * we want to keep some values after i: we cache those values then shift in
@@ -147,32 +147,32 @@ isPod = M.isPod
 
 M.SKIP      = 'skip'
 --- function that does and returns nothing.
-M.noop      = function() end
+function M.noop() end
 --- Function that indicates an API is not supported for a type.
 --- Throws [$error'not supported'].
-M.nosupport = function() error'not supported' end
+function M.nosupport() error'not supported' end
 --- identity function, return the inputs.
-M.iden      = function(...) return ... end --> ...
+function M.iden(...) return ... end --> ...
 --- function that always return true.
-M.retTrue   = function() return true  end --> true
+function M.retTrue() return true  end --> true
 --- function that always return false.
-M.retFalse  = function() return false end --> false
+function M.retFalse() return false end --> false
 --- Function that creates a new, empty table.
-M.newTable  = function() return {}    end --> {}
+function M.newTable() return {}    end --> {}
 --- Function that returns [$a == b].
-M.eq        = function(a, b) return a == b end --> bool
+function M.eq(a, b) return a == b end --> bool
 
 local retTrue = M.retTrue
 
 --- Get the source location of wherever this is called
 --- (or at a higher [$level]).
-M.srcloc = function(level) --> "/path/to/dir/file.lua:10"
+function M.srcloc(level) --> "/path/to/dir/file.lua:10"
   local info = debug.getinfo(2 + (level or 0), 'Sl')
   local loc = info.source; if loc:sub(1,1) ~= '@' then return end
   return loc:sub(2)..':'..info.currentline
 end
 --- Same as srcloc but shortens to only the parent dir.
-M.shortloc = function(level) --> "dir/file.lua:10"
+function M.shortloc(level) --> "dir/file.lua:10"
   local info = debug.getinfo(2 + (level or 0), 'Sl')
   local loc = info.source; if loc:sub(1,1) ~= '@' then return end
   -- Get only the dir/file.lua. If no dir, get just file.lua.
@@ -180,13 +180,13 @@ M.shortloc = function(level) --> "dir/file.lua:10"
   return loc..':'..info.currentline
 end
 --- Same as srcloc but removes the [$file:linenum]
-M.srcdir = function(level) --> "/path/to/dir/"
+function M.srcdir(level) --> "/path/to/dir/"
   return M.srcloc(1 + (level or 0)):match'^(.*/)[^/]+$'
 end
 
 --- Create an error message for the coroutine which includes
 --- it's traceback.
-M.coroutineErrorMessage = function(cor, err) --> string
+function M.coroutineErrorMessage(cor, err) --> string
   return sconcat('',
     'Coroutine error: ', debug.stacktraceback(cor, err), '\n',
     'Coroutine failed!')
@@ -196,34 +196,34 @@ end
 -- Order checking functions
 
 --- Return whether [$min <= v <= max].
-M.isWithin = function(v, min, max) --> bool
+function M.isWithin(v, min, max) --> bool
   return (min <= v) and (v <= max)
 end
 --- Return [$a < b].
-M.lt  = function(a, b) return a < b  end --> bool
+function M.lt(a, b) return a < b  end --> bool
 --- Return [$a > b].
-M.gt  = function(a, b) return a > b  end --> bool
+function M.gt(a, b) return a > b  end --> bool
 --- Return [$a <= b].
-M.lte = function(a, b) return a <= b end --> bool
+function M.lte(a, b) return a <= b end --> bool
 local lte = M.lte
 --- Return value within [$$[min,max]]$ (inclusive).
-M.bound = function(v, min, max) --> int
+function M.bound(v, min, max) --> int
   return ((v>max) and max) or ((v<min) and min) or v
 end
 --- Return the two passed-in values in sorted order.
-M.sort2 = function(a, b) --> (small, large)
+function M.sort2(a, b) --> (small, large)
   if a <= b then return a, b end; return b, a
 end
 
 ---------------------
 -- Number Functions
 --- Return whether value is even.
-M.isEven = function(a) return a % 2 == 0 end --> bool
+function M.isEven(a) return a % 2 == 0 end --> bool
 --- Return whether value is odd.
-M.isOdd  = function(a) return a % 2 == 1 end --> bool
+function M.isOdd(a) return a % 2 == 1 end --> bool
 --- Moves the absolute value of [$v] towards [$0] by [$1].
 --- If [$v==0] then do nothing.
-M.absDec = function(v) --> number
+function M.absDec(v) --> number
   if v == 0 then return 0 end
   return ((v > 0) and v - 1) or v + 1
 end
@@ -242,27 +242,27 @@ end
 M.concat = string.concat--(sep, ...) --> string
 
 --- return the string if it is only uppercase letters
-M.isupper = function(c) return c:match'^%u+$' end --> string?
+function M.isupper(c) return c:match'^%u+$' end --> string?
 
 --- return the string if it is only lowercase letters
-M.islower = function(c) return c:match'^%l+$' end --> string?
+function M.islower(c) return c:match'^%l+$' end --> string?
 
 --- Remove [$pat] (default=[$%s], aka whitespace) from the front and back
 --- of the string.
-M.trim = function(subj, pat, si) --> string
+function M.trim(subj, pat, si) --> string
   pat = pat and ('^'..pat..'*(.-)'..pat..'*$') or '^%s*(.-)%s*$'
   return subj:match(pat, si)
 end
 
 --- Trim the end of the string by removing pat (default=[$%s])
-M.trimEnd = function(subj, pat, index) --> string
+function M.trimEnd(subj, pat, index) --> string
   pat = pat and ('^(.-)'..pat..'*$') or '^(.-)%s*$'
   return subj:match(pat, index)
 end
 
 --- Find any of a list of patterns. Return the match [$start, end] as well as
 --- the [$index, pat] of the pattern matched.
-M.find = function(subj, pats, si, plain) --> (ms, me, pi, pat)
+function M.find(subj, pats, si, plain) --> (ms, me, pi, pat)
   si = si or 1
   for pi, p in ipairs(pats) do
     local ms, me = sfind(subj, p, si, plain)
@@ -273,16 +273,16 @@ end
 M.split = mty.split         --(s, sep) --> strIter
 
 --- Perform a split but returning a list instead of a string.
-M.splitList = function(...) --(s, sep) --> list
+function M.splitList(...) --(s, sep) --> list
   local t = {}; for _, v in mty.split(...) do push(t, v) end
   return t
 end
 
 --- Squash a string: convert all whitespace to repl (default=single-space).
-M.squash = function(s, repl) return s:gsub('%s+', repl or ' ') end --> string
+function M.squash(s, repl) return s:gsub('%s+', repl or ' ') end --> string
 
 --- utf8 sub. If len is pre-computed you can pass it in for better performance.
-M.usub = function(s, si, ei, len)
+function M.usub(s, si, ei, len)
   ei = ei or -1
   if si < 0 then len = len or ulen(s); si = len + si + 1 end
   local so = uoff(s, si)
@@ -308,7 +308,7 @@ end
 --- ]]
 --- T.eq('this is\n  a string.', mystr)
 --- ]$
-M.simplestr = function(s)
+function M.simplestr(s)
   local i, out, iden, spcs = 1, {}, nil
   for _, line in M.split(s, '\n') do
     spcs = line:match'^%s*'
@@ -329,7 +329,7 @@ end
 --- * sep4 will be used to separate every 4 bits, set to
 ---   nil to disable.
 --- ]
-M.bin = function(uint, width--[[8]], sep4--[['_']]) --> str
+function M.bin(uint, width--[[8]], sep4--[['_']]) --> str
   width = width or 8
   if sep4 == nil then sep4 = '_' end
   local str = {}
@@ -350,7 +350,7 @@ end
 ---
 --- This lets many types be substitutable for raw-tables in some APIs (i.e.
 --- lines).
-M.get = function(t, k) --> value
+function M.get(t, k) --> value
   if getmt(t) then return t:get(k) end
   return t[k]
 end
@@ -360,29 +360,29 @@ local get = M.get
 ---
 --- This lets many types be substitutable for raw-tables in some APIs (i.e.
 --- lines).
-M.set = function(t, k, v)
+function M.set(t, k, v)
   if getmt(t) then return t:set(k, v) end
   t[k] = v
 end
 
 --- Return whether [$t] contains a single value.
-M.isEmpty = function(t)
+function M.isEmpty(t)
   for _ in pairs(t) do return false end
   return true
 end
 
 --- the full length of all pairs
 --- ["WARNING: very slow, requires iterating the whole table]
-M.pairlen = function(t) --> int
+function M.pairlen(t) --> int
   local l = 0; for _ in pairs(t) do l = l + 1 end; return l
 end
 
 --- Sort table and return it. Eventually this may use the [$__sort] metamethod.
-M.sort = function(t, fn) sort(t, fn); return t end --> t
+function M.sort(t, fn) sort(t, fn); return t end --> t
 
 --- sort t and remove anything where [$rmFn(v1, v2)]
 --- (normally rmFn is [$ds.eq])
-M.sortUnique = function(t, sortFn, rmFn) --> t
+function M.sortUnique(t, sortFn, rmFn) --> t
   sort(t, sortFn); rmFn = rmFn or M.eq
   local i, len, iv, kv = 1, #t
   for k=2,len do
@@ -397,27 +397,27 @@ M.sortUnique = function(t, sortFn, rmFn) --> t
 end
 
 --- get index, handling negatives
-M.geti = function(t, i) --> t[i]
+function M.geti(t, i) --> t[i]
   return (i >= 0) and t[i] or t[#t + i + 1]
 end
 
 --- get the last value of a list-like table.
-M.last = function(t) return t[#t] end
+function M.last(t) return t[#t] end
 
 --- get the first (and assert only) element of the list
-M.only = function(t) --> t[1]
+function M.only(t) --> t[1]
   local l = #t; fmt.assertf(l == 1, 'not only: len=%s', l)
   return t[1]
 end
 
 --- get only the values of pairs(t) as a list
-M.values = function(t) --> list
+function M.values(t) --> list
   local vals = {}; for _, v in pairs(t) do push(vals, v) end
   return vals
 end
 
 --- get only the keys of [$pairs(t)] as a list.
-M.keys = function(t) --> list
+function M.keys(t) --> list
   local keys = {}; for k in pairs(t) do push(keys, k) end
   return keys
 end
@@ -427,17 +427,17 @@ M.inext = ipairs{} --(t, i) --> (i+1, v)
 local inext = M.inext
 
 --- inext but reversed.
-M.iprev = function(t, i) --> (t, i) --> (i-1, v)
+function M.iprev(t, i) --> (t, i) --> (i-1, v)
   if i > 1 then return i - 1, t[i - 1] end
 end
 
 --- ipairs reversed
-M.ireverse = function(t) return M.iprev, t, #t + 1 end --> iter
+function M.ireverse(t) return M.iprev, t, #t + 1 end --> iter
 
 --- ["You probably want islice instead.]
 --- Usage: [$for i, v in rawislice, {t, ei}, si do ... end][{br}]
 --- where [$si, ei] is the start/end indexes.
-M.rawislice = function(state, i) --> (i+1, v)
+function M.rawislice(state, i) --> (i+1, v)
   i = i + 1; if i > state[2] then return end
   return i, state[1][i]
 end
@@ -445,7 +445,7 @@ end
 --- Usage: [$for i,v in islice(t, starti, endi)][{br}]
 --- The default endi is [$#t], otherwise this ignores the list's length
 --- ([$v] may be [$nil] for some [$i] values).
-M.islice = function(t, starti, endi) --> iter
+function M.islice(t, starti, endi) --> iter
   if endi then
     return M.rawislice, {t, endi}, (starti or 1) - 1
   end
@@ -454,7 +454,7 @@ end
 
 --- Get a new list of indexes [$$[si-ei]]$ (inclusive).[{br}]
 --- Defaults: [$si=1, ei=#t].
-M.slice = function(t, si, ei) --> list
+function M.slice(t, si, ei) --> list
   local sl = {}
   for i=si or 1,ei or #t do push(sl, t[i]) end
   return sl
@@ -463,14 +463,14 @@ end
 --- Return true if two list-like tables are equal.[{br}]
 --- Note that this only compares integer keys and ignores
 --- others.
-M.ieq = function(a, b)
+function M.ieq(a, b)
   if #a ~= #b then return false end
   for i=1,#a do if a[i] ~= b[i] then return false end end
   return true
 end
 
 --- Reverse a list-like table in-place (mutating it).
-M.reverse = function(t) --> t
+function M.reverse(t) --> t
   local l = #t; for i=1, l/2 do
     t[i], t[l-i+1] = t[l-i+1], t[i]
   end
@@ -479,7 +479,7 @@ end
 
 --- Extend [$t] with list-like values from [$l].
 --- This mutates [$t].
-M.extend = function(t, l) --> t
+function M.extend(t, l) --> t
   if getmt(t) then return t:extend(l) end
   return move(l, 1, #l, #t + 1, t)
 end
@@ -491,7 +491,7 @@ local extend = M.extend
 ---
 --- ["types do this if they may [$yield] in their get/set, which
 ---   is not allowed through a C boundary like [$table.move]]
-M.defaultExtend = function(r, l) --> r
+function M.defaultExtend(r, l) --> r
   local rset = getmt(r) and assert(r.set) or rawset
   local lget = getmt(l) and assert(l.get) or rawget
   local rlen = #r
@@ -502,7 +502,7 @@ end
 --- Clear list-like elements of table.
 --- default is all of it, but you can also specify a specific
 --- start index and length.
-M.clear = function(t, si, len) --> t
+function M.clear(t, si, len) --> t
   -- TODO: (len or #t) - si + 1
   return move(EMPTY, 1, len or #t, si or 1, t)
 end
@@ -511,26 +511,26 @@ M.update = M._B.update
 local update = M.update
 
 --- Given a list of lists return a single depth list.
-M.flatten = function(listOfLists) --> list
+function M.flatten(listOfLists) --> list
   local t = {}
   for i, l in ipairs(listOfLists) do M.extend(t, l) end
   return t
 end
 
 --- like update but only for specified keys
-M.updateKeys = function(t, add, keys) --> t
+function M.updateKeys(t, add, keys) --> t
   for _, k in ipairs(keys) do t[k] = add[k] end; return t
 end
 
 --- Get the sorted keys of t.
-M.orderedKeys = function(t, cmpFn) --> keys
+function M.orderedKeys(t, cmpFn) --> keys
   local keys = {}; for k in pairs(t) do push(keys, k) end
   sort(keys, cmpFn)
   return keys
 end
 --- Adds all [$key=index] to the table so the keys can
 --- be iterated using [$for _, k in ipairs(t)]
-M.pushSortedKeys = function(t, cmpFn) --> t
+function M.pushSortedKeys(t, cmpFn) --> t
   local keys = M.orderedKeys(t, cmpFn)
   for i, k in ipairs(keys) do t[i] = k end
   return t
@@ -538,7 +538,7 @@ end
 
 --- Recursively merge m into t, overriding existing values.
 --- List (integer) indexes are [,extended] instead of overwritten.
-M.merge = function(t, m) --> t
+function M.merge(t, m) --> t
   local len = #m
   if len > 0 then move(m, 1, len, #t + 1, t) end -- extend
   for k, v in pairs(m) do
@@ -552,19 +552,19 @@ M.merge = function(t, m) --> t
 end
 
 --- Remove key from [$t] and return it's value.
-M.popk = function(t, key) --> value
+function M.popk(t, key) --> value
   local val = t[key]; t[key] = nil; return val
 end
 
 --- return len items from the end of [$t], removing them from [$t]
-M.drain = function(t, len--[[#t]]) --> table
+function M.drain(t, len--[[#t]]) --> table
   local out = {}; for i=1, min(#t, len) do push(out, pop(t)) end
   return M.reverse(out)
 end
 
 --- If the key exists, return it's value.
 --- Else return [$newFn()]
-M.getOrSet = function(t, k, newFn) --> t[k] or newFn()
+function M.getOrSet(t, k, newFn) --> t[k] or newFn()
   local v = t[k]; if v ~= nil then return v end
   v = newFn(t, k); t[k] = v
   return v
@@ -572,16 +572,16 @@ end
 
 --- Set the key to a value if it is currently nil.
 --- Else do not change it.
-M.setIfNil = function(t, k, v)
+function M.setIfNil(t, k, v)
   if t[k] == nil then t[k] = v end
 end
 
 --- Return an empty table, useful for newFn/etc in some APIs.
-M.emptyTable = function() return {} end
+function M.emptyTable() return {} end
 
 --- remove (mutate) the left side of the table (list).
 --- noop if rm is not exactly equal to the left side.
-M.rmleft = function(t, rm, eq--[[ds.eq]]) --> t (mutated)
+function M.rmleft(t, rm, eq--[[ds.eq]]) --> t (mutated)
   eq = eq or M.eq
   for i, v in ipairs(rm) do
     if not t[i] or not eq(v, t[i]) then
@@ -598,7 +598,7 @@ end
 ---   local dp = require'ds'.dotpath
 ---   ds.getp(t, dp'a.b.c')
 --- ]$
-M.dotpath = function(dots) --> list split by '.'
+function M.dotpath(dots) --> list split by '.'
   local p = {}; for v in dots:gmatch'[^%.]+' do push(p, v) end
   return p
 end
@@ -609,7 +609,7 @@ end
 ---   get(t, {'a', 2, 'c'})  -> t.a?[2]?.c?
 ---   get(t, dotpath'a.b.c') -> t.a?.b?.c?
 --- ]$
-M.getp = function(t, path) --> value? at path
+function M.getp(t, path) --> value? at path
   for _, k in ipairs(path) do
     t = t[k]; if t == nil then return nil end
   end
@@ -617,7 +617,7 @@ M.getp = function(t, path) --> value? at path
 end
 
 --- same as ds.getp but uses [$rawget]
-M.rawgetp = function(t, path) --> value? at path
+function M.rawgetp(t, path) --> value? at path
   for _, k in ipairs(path) do
     t = rawget(t, k); if t == nil then return nil end
   end
@@ -629,7 +629,7 @@ end
 --- [{$$ lang=lua}
 --- set(t, dotpath'a.b.c', 2) -- t.a?.b?.c = 2
 --- ]$
-M.setp = function(d, path, value, newFn) --> nil
+function M.setp(d, path, value, newFn) --> nil
   newFn = newFn or M.emptyTable
   local len = #path; assert(len > 0, 'empty path')
   for i=1,len-1 do d = M.getOrSet(d, path[i], newFn) end
@@ -637,14 +637,14 @@ M.setp = function(d, path, value, newFn) --> nil
 end
 
 --- Return the index where the value is == find.
-M.indexOf = function(t, find) --> int
+function M.indexOf(t, find) --> int
   for i, v in ipairs(t) do
     if v == find then return i end
   end
 end
 
 --- Return the index where [$value:match(pat)].
-M.indexOfPat = function(strs, pat) --> int
+function M.indexOfPat(strs, pat) --> int
   for i, s in ipairs(strs) do if s:find(pat) then return i end end
 end
 
@@ -655,7 +655,7 @@ end
 ---
 --- If tableFn [$stop==ds.SKIP] (i.e. 'skip') then that table is not recursed.
 --- Else if stop then the walk is halted immediately
-M.walk = function(t, fieldFn, tableFn, maxDepth, state) --> nil
+function M.walk(t, fieldFn, tableFn, maxDepth, state) --> nil
   if maxDepth then
     maxDepth = maxDepth - 1; if maxDepth < 0 then return end
   end
@@ -686,24 +686,24 @@ M.TypoSafe.__newindex = nil
 -- Untyped Functions
 
 --- Copy list-elements only
-M.icopy = function(t) --> list
+function M.icopy(t) --> list
   if getmt(t) then return t:icopy() end
   return move(t, 1, #t, 1, {})
 end
 
 --- For types implementing [$:copy()] method.
-M.defaultICopy = function(r)
+function M.defaultICopy(r)
   local t = {}; for i=1,#r do t[i] = r:get(i) end
   return t
 end
 
-M.rawcopy = function(t)
+function M.rawcopy(t)
   return setmetatable(updateRaw({}, t), getmt(t))
 end
 
 --- Copy and update full table
 --- FIXME: remove add
-M.copy = function(t, add) --> new t
+function M.copy(t, add) --> new t
   if ty(t) ~= 'table' then
     return add and update(t:__copy(), add)
         or t:__copy()
@@ -713,7 +713,7 @@ M.copy = function(t, add) --> new t
 end
 
 --- Recursively copy the table.
-M.deepcopy = function(t) --> table
+function M.deepcopy(t) --> table
   local out = {}; for k, v in pairs(t) do
     if 'table' == type(v) then v = M.deepcopy(v) end
     out[k] = v
@@ -725,14 +725,14 @@ end
 -- File Functions
 
 --- Read the full contents of the path or throw an error.
-M.readPath = function(path) --!> string
+function M.readPath(path) --!> string
   local f, out, err = assert(io.open(path))
   out, err = f:read('a'); f:close()
   return assert(out, err)
 end
 
 --- Write text to path or throw an error.
-M.writePath = function(path, text) --!> nil
+function M.writePath(path, text) --!> nil
   local f = fmt.assertf(io.open(path, 'w'), 'invalid %s', path)
   local out, err = f:write(text); f:close(); assert(out, err)
 end
@@ -783,27 +783,27 @@ local Slc = M.Slc
 M.Slc.__len = function(s) return s.ei - s.si + 1 end --> #s
 
 --- return either a single (new) merged or two sorted Slcs.
-M.Slc.merge  = function(a, b) --> first, second?
-  if a.si > b.si     then a, b = b, a end -- fix ordering
-  if a.ei + 1 < b.si then return a, b end -- check overlap
-  return Slc{si=a.si, ei=max(a.ei, b.ei)}
+function M.Slc:merge(b) --> first, second?
+  if self.si > b.si     then self, b = b, self end -- fix ordering
+  if self.ei + 1 < b.si then return self, b end -- check overlap
+  return Slc{si=self.si, ei=max(self.ei, b.ei)}
 end
 
-M.Slc.__fmt = function(s, fmt) --> string
-  fmt:write(sfmt('Slc[%s:%s]', s.si, s.ei))
+function M.Slc:__fmt(fmt) --> string
+  fmt:write(sfmt('Slc[%s:%s]', self.si, self.ei))
 end
 
 ---------------------
 -- Sentinal, none type, bool()
 
-local _si=function() error('invalid operation on sentinel', 2) end
+local function _si() error('invalid operation on sentinel', 2) end
 --- [$sentinel(name, metatable)]
 --- Use to create a "sentinel type". Return the (singular) instance.
 ---
 --- Sentinels are "single values" commonly used for things like: none, empty, EOF, etc.
 --- They have most metatable methods disallowed and are immutable down. Methods can
 --- only be set by the provided metatable value.
-M.sentinel = function(name, mt) --> NewType
+function M.sentinel(name, mt) --> NewType
   mt = M.update({
     __name=name, __tostring=function() return name end,
     __newindex=_si, __len=_si, __pairs=_si,
@@ -829,7 +829,7 @@ end
 M.none = M.sentinel('none', {__metatable='none'})
 
 --- convert to boolean (none aware)
-M.bool = function(v) --> bool
+function M.bool(v) --> bool
   return not rawequal(M.none, v) and v and true or false
 end
 
@@ -847,12 +847,12 @@ getmt(M.Imm).__call = function(T, t)
 end
 M.Imm.__metatable = 'table'
 M.Imm.__newindex = function() error'cannot modify Imm table' end
-M.Imm.__index    = function(t, k)
-  local d = rawget(t, IMM_DATA); return d and d[k]
+function M.Imm:__index(k)
+  local d = rawget(self, IMM_DATA); return d and d[k]
 end
-M.Imm.__pairs    = function(t) return next, rawget(t, IMM_DATA) or t end
-M.Imm.__len      = function(t)
-  local d = rawget(t, IMM_DATA); return not d and 0 or #d
+function M.Imm:__pairs() return next, rawget(self, IMM_DATA) or self end
+function M.Imm:__len()
+  local d = rawget(self, IMM_DATA); return not d and 0 or #d
 end
 
 M.empty = M.Imm{}
@@ -876,18 +876,18 @@ local function assertTime(t)
   return t
 end
 
-local timeNew = function(T, s, ns)
+local function timeNew(T, s, ns)
   if ns == nil then return T:fromSeconds(s) end
   local out = {s=s, ns=ns}
   return setmetatable(assertTime(out), T)
 end
-local fromSeconds = function(ty_, s)
+local function fromSeconds(ty_, s)
   local sec = math.floor(s)
   return ty_(sec, math.floor(NANO * (s - sec)))
 end
-local fromMs = function(ty_, s)     return ty_(s / 1000) end
-local fromMicros = function(ty_, s) return ty_(s / 1000000) end
-local asSeconds = function(time) return time.s + (time.ns / NANO) end
+local function fromMs(ty_, s)     return ty_(s / 1000) end
+local function fromMicros(ty_, s) return ty_(s / 1000000) end
+local function asSeconds(time) return time.s + (time.ns / NANO) end
 
 M.Duration = mty'Duration' {
   's[int]: seconds', 'ns[int]: nanoseconds',
@@ -898,22 +898,22 @@ M.Duration.NANO = NANO
 M.Duration.fromSeconds = fromSeconds
 M.Duration.fromMs = fromMs
 M.Duration.asSeconds = asSeconds
-M.Duration.__sub = function(self, r)
+function M.Duration:__sub(r)
   assert(ty(r) == M.Duration)
   local s, ns = durationSub(self.s, self.ns, r.s, r.ns)
   return M.Duration(s, ns)
 end
-M.Duration.__add = function(self, r)
+function M.Duration:__add(r)
   assert(ty(r) == M.Duration)
   local s, ns = durationSub(self.s, self.ns, -r.s, -r.ns)
   return M.Duration(s, ns)
 end
-M.Duration.__lt = function(self, o)
+function M.Duration:__lt(o)
   if self.s < o.s then return true end
   return self.ns < o.ns
 end
 M.Duration.__fmt = nil
-M.Duration.__tostring = function(self) return self:asSeconds() .. 's' end
+function M.Duration:__tostring() return self:asSeconds() .. 's' end
 
 M.DURATION_ZERO = M.Duration(0, 0)
 
@@ -926,7 +926,7 @@ getmt(M.Epoch).__call = timeNew
 
 M.Epoch.fromSeconds = fromSeconds
 M.Epoch.asSeconds = asSeconds
-M.Epoch.__sub = function(self, r)
+function M.Epoch:__sub(r)
   assert(self);     assert(r)
   assertTime(self); assertTime(r)
   local s, ns = durationSub(self.s, self.ns, r.s, r.ns)
@@ -934,12 +934,12 @@ M.Epoch.__sub = function(self, r)
   assert(ty(r) == M.Epoch, 'can only subtract Duration or Epoch')
   return M.Duration(s, ns)
 end
-M.Epoch.__lt = function(self, o)
+function M.Epoch:__lt(o)
   if self.s < o.s then return true end
   return self.ns < o.ns
 end
 M.Epoch.__fmt = nil
-M.Epoch.__tostring = function(self)
+function M.Epoch:__tostring()
   return string.format('Epoch(%ss)', self:asSeconds())
 end
 
@@ -954,7 +954,7 @@ getmt(M.Set).__call = function(T, t)
   return mty.constructUnchecked(T, s)
 end
 
-M.Set.__fmt = function(self, f) --> nil
+function M.Set:__fmt(f) --> nil
   f:write('Set', f.tableStart)
   local keys = {}; for k in ipairs(self) do push(keys, k) end
   sort(keys)
@@ -967,7 +967,7 @@ M.Set.__fmt = function(self, f) --> nil
   f:write(f.tableEnd)
 end
 
-M.Set.__eq = function(self, t) --> bool
+function M.Set:__eq(t) --> bool
   local len = 0
   for k in pairs(self) do
     if not t[k] then return false end
@@ -980,14 +980,14 @@ M.Set.__eq = function(self, t) --> bool
   return true
 end
 
-M.Set.union = function(self, s) --> Set
+function M.Set:union(s) --> Set
   local both = M.Set{}
   for k in pairs(self) do if s[k] then both[k] = true end end
   return both
 end
 
 --- items in self but not in s
-M.Set.diff = function(self, s) --> Set
+function M.Set:diff(s) --> Set
   local left = M.Set{}
   for k in pairs(self) do if not s[k] then left[k] = true end end
   return left
@@ -1012,7 +1012,7 @@ end
 --- ]
 --- If you want a value perfectly equal then check equality
 --- on the resulting index.
-M.binarySearch = function(t, v, cmp, si--[[1]], ei--[[#t]]) --> index
+function M.binarySearch(t, v, cmp, si--[[1]], ei--[[#t]]) --> index
   return _bs(t, v, cmp or lte, si or 1, ei or #t)
 end
 
@@ -1023,12 +1023,12 @@ end
 --- These functions treat an indexed table as a binary tree
 --- where root is at [$index=1]
 M.bt = mod and mod'bt' or {}
-M.bt.left = function(t, i)    return t[i * 2]     end
-M.bt.right = function(t, i)   return t[i * 2 + 1] end
-M.bt.parent = function(t, i)  return t[i // 2]    end
-M.bt.lefti = function(t, i)   return   i * 2      end
-M.bt.righti = function(t, i)  return   i * 2 + 1  end
-M.bt.parenti = function(t, i) return   i // 2     end
+function M.bt.left(t, i)    return t[i * 2]     end
+function M.bt.right(t, i)   return t[i * 2 + 1] end
+function M.bt.parent(t, i)  return t[i // 2]    end
+function M.bt.lefti(t, i)   return   i * 2      end
+function M.bt.righti(t, i)  return   i * 2 + 1  end
+function M.bt.parenti(t, i) return   i // 2     end
 
 ---------------------
 -- Directed Acyclic Graph
@@ -1058,7 +1058,7 @@ end
 --- to put children before the parents.
 ---
 --- returns [$nil, cycle] in the case of a cycle
-M.dagSort = function(ids, parentMap) --> sorted?, cycle?
+function M.dagSort(ids, parentMap) --> sorted?, cycle?
   local out, visited, cycle = {}, {}
   for _, id in ipairs(ids) do
     cycle = _dagSort(out, id, parentMap, visited)
@@ -1081,17 +1081,17 @@ M.BiMap.__fields   = nil
 M.BiMap.__fmt      = nil
 M.BiMap.__tostring = nil
 
-getmt(M.BiMap).__call = function(ty_, t)
-  local rev = {}; for k, v in pairs(t) do rev[v] = k end
-  for k, v in pairs(rev) do t[k] = v end
-  return setmetatable(t, ty_)
+getmt(M.BiMap).__call = function(T, self)
+  local rev = {}; for k, v in pairs(self) do rev[v] = k end
+  for k, v in pairs(rev) do self[k] = v end
+  return setmetatable(self, T)
 end
-M.BiMap.__newindex = function(t, k, v)
-  rawset(t, k, v); rawset(t, v, k)
+function M.BiMap:__newindex(k, v)
+  rawset(self, k, v); rawset(self, v, k)
 end
 getmt(M.BiMap).__index = nil
-M.BiMap.remove = function(t, k) --> v
-  local v = t[k]; t[k] = nil; t[v] = nil; return v
+function M.BiMap:remove(k) --> v
+  local v = self[k]; self[k] = nil; self[v] = nil; return v
 end
 
 ---------------------
@@ -1112,45 +1112,45 @@ M.Deq = mty'Deq'{
 getmt(M.Deq).__call = function(T)
   return mty.construct(T, {right=0, left=1})
 end
-M.Deq.pushRight = function(deq, val)
-  local r = deq.right + 1; deq[r] = val; deq.right = r
+function M.Deq:pushRight(val)
+  local r = self.right + 1; self[r] = val; self.right = r
 end
 --- extend deq to right
-M.Deq.extendRight = function(deq, vals) --> nil
-  local r, vlen = deq.right, #vals
-  move(vals, 1, vlen, r + 1, deq)
-  deq.right = deq.right + vlen
+function M.Deq:extendRight(vals) --> nil
+  local r, vlen = self.right, #vals
+  move(vals, 1, vlen, r + 1, self)
+  self.right = self.right + vlen
 end
-M.Deq.pushLeft = function(deq, val) --> nil
-  local l = deq.left - 1;  deq[l] = val; deq.left = l
+function M.Deq:pushLeft(val) --> nil
+  local l = self.left - 1;  self[l] = val; self.left = l
 end
 --- extend deq to left ([$$vals[1]]$ is left-most)
-M.Deq.extendLeft = function(deq, vals) --> nil
+function M.Deq:extendLeft(vals) --> nil
   local vlen = #vals
-  deq.left = deq.left - vlen
-  move(vals, 1, vlen, deq.left, deq)
+  self.left = self.left - vlen
+  move(vals, 1, vlen, self.left, self)
 end
-M.Deq.popLeft = function(deq) --> v
-  local l = deq.left; if l > deq.right then return nil end
-  local val = deq[l]; deq[l] = nil; deq.left = l + 1
+function M.Deq:popLeft() --> v
+  local l = self.left; if l > self.right then return nil end
+  local val = self[l]; self[l] = nil; self.left = l + 1
   return val
 end
-M.Deq.popRight = function(deq) --> v
-  local r = deq.right; if deq.left > r then return nil end
-  local val = deq[r]; deq[r] = nil; deq.right = r - 1
+function M.Deq:popRight() --> v
+  local r = self.right; if self.left > r then return nil end
+  local val = self[r]; self[r] = nil; self.right = r - 1
   return val
 end
 M.Deq.push = M.Deq.pushRight --(d, v) --> nil
-M.Deq.__len = function(d) return d.right - d.left + 1 end --> #d
+function M.Deq:__len() return self.right - self.left + 1 end --> #d
 M.Deq.pop = M.Deq.popLeft --> (d) -> v
 M.Deq.__call = M.Deq.pop  --> () -> v
-M.Deq.clear = function(deq) --> nil: clear deq
-  local l = deq.left; move(EMPTY, l, deq.right, l, deq)
-  deq.left, deq.right = 1, 0
+function M.Deq:clear() --> nil: clear deq
+  local l = self.left; move(EMPTY, l, self.right, l, self)
+  self.left, self.right = 1, 0
 end
-M.Deq.drain = function(deq) --> table: get all items and clear deq
-  local t = move(deq, deq.left, deq.right, 1, {})
-  deq:clear(); return t
+function M.Deq:drain() --> table: get all items and clear deq
+  local t = move(self, self.left, self.right, 1, {})
+  self:clear(); return t
 end
 
 ---------------------
@@ -1158,9 +1158,9 @@ end
 -- This is a table pretending to be a write-only file.
 
 M.TWriter = mty'TWriter' {}
-M.TWriter.write = function(tw, ...)
-  push(tw, sconcat('', ...))
-  return tw
+function M.TWriter:write(...)
+  push(self, sconcat('', ...))
+  return self
 end
 M.TWriter.flush = M.noop
 M.TWriter.close = M.noop
@@ -1195,13 +1195,13 @@ if not G.NOLIB then
 --- seek() and flush(). close() will free all internal memory. pos(n) gets and
 --- sets the current "file" position, and supports negative indexes.
 M.bytearray = lib.bytearray
-M.bytearray.lines = function(b, opt)
-  return function() return b:read(opt) end
+function M.bytearray:lines(opt)
+  return function() return self:read(opt) end
 end
-M.bytearray.seek = function(b, whence, offset)
-  if not whence or whence == 'cur' then return b:pos()
-  elseif whence == 'set'           then return b:pos(offset or 0)
-  elseif whence == 'end'           then return b:pos(-1) end
+function M.bytearray:seek(whence, offset)
+  if not whence or whence == 'cur' then return self:pos()
+  elseif whence == 'set'           then return self:pos(offset or 0)
+  elseif whence == 'end'           then return self:pos(-1) end
   error('unknown whence: '..whence)
 end
 M.bytearray.flush   = M.noop
@@ -1219,7 +1219,7 @@ end -- if not NOLIB
 ---
 --- Therefore you can use [$line = check(2, f:read'L')]
 --- to only assert on the presence of errmsg.
-M.check = function(i, ...) --!> ...
+function M.check(i, ...) --!> ...
   if select(i, ...) then error(tostring(select(i, ...))) end
   return ...
 end
@@ -1232,7 +1232,7 @@ M.IGNORE_TRACE = {
 }
 
 --- convert the string traceback into a list
-M.tracelist = function(tbstr, level) --> {traceback}
+function M.tracelist(tbstr, level) --> {traceback}
   tbstr = tbstr or traceback(2 + (level or 0))
   local ig, tb = M.IGNORE_TRACE, {}
   for l in tbstr:gmatch'%s*([^\n]*)' do
@@ -1241,7 +1241,7 @@ M.tracelist = function(tbstr, level) --> {traceback}
   return tb
 end
 --- Get the current traceback as an indented string.
-M.traceback = function(level) --> string
+function M.traceback(level) --> string
   return concat(M.tracelist(nil, 1 + (level or 0)), '\n    ')
 end
 
@@ -1259,26 +1259,27 @@ end
 M.Error = mty'Error' {
   'msg [string]', 'traceback {path}', 'cause [Error]',
 }
-M.Error.__fmt = function(e, f)
+function M.Error:__fmt(f)
   local pth = require'ds.path'
-  f:styled('warn', '[ERROR] '..e.msg)
-  if e.traceback and #e.traceback > 0 then
+  f:styled('warn', '[ERROR] '..self.msg)
+  if self.traceback and #self.traceback > 0 then
     f:styled('warn', '\ntraceback:', '\n')
-    for _, item in ipairs(e.traceback) do
+    for _, item in ipairs(self.traceback) do
       fmtTracebackItem(f, item)
     end
   end
-  if e.cause then
+  if self.cause then
     f:styled('warn', '\nCaused by: ', '\n')
-    f(e.cause)
+    f(self.cause)
   end
   f:write'\n'
 end
-M.Error.__tostring = function(e) return fmt(e) end
+function M.Error:__tostring() return fmt(self) end
 
 --- create the error from the arguments.
 --- tb can be one of: [$coroutine|string|table]
-M.Error.from = function(msg, tb, cause) --> Error
+--- FIXME: have this take T as first arg
+function M.Error.from(msg, tb, cause) --> Error
   local cause
   if ty(msg) == M.Error then
     cause, msg = msg, '(rethrown)'
@@ -1292,7 +1293,7 @@ M.Error.from = function(msg, tb, cause) --> Error
 end
 
 --- for use with xpcall. See: try
-M.Error.msgh = function(msg, level) --> Error
+function M.Error.msgh(msg, level) --> Error
   return M.Error.from(msg, traceback('', (level or 1) + 1))
 end
 
@@ -1300,19 +1301,19 @@ end
 --- * successs: [$(true, ...)]
 --- * failure: [$(false, ds.Error{...})]
 --- ]
-M.try = function(fn, ...) --> (ok, ...)
+function M.try(fn, ...) --> (ok, ...)
   return xpcall(fn, M.Error.msgh, ...)
 end
 
 --- Helper function for running commands as "main".
-M.main = function(fn, ...) --> errno?
+function M.main(fn, ...) --> errno?
   local ok, err = M.try(fn, ...); if ok then return nil end
   (io.fmt or print)(err); os.exit(1)
 end
 
 --- Same as coroutine.resume except uses a ds.Error object for errors
 --- (has traceback)
-M.resume = function(th) --> (ok, err, b, c)
+function M.resume(th) --> (ok, err, b, c)
   local ok, a, b, c = resume(th)
   if ok then return ok, a, b, c end
   return nil, M.Error.from(a, th)
@@ -1324,7 +1325,7 @@ end
 --- DEPRECATED: do not use this function.[{br}]
 --- auto-set nil locals using require(mod)
 --- [$local x, y, z; ds.auto'mm' -- sets x=mm.x; y=mm.y; z=mm.z]
-M.auto = function(mod, i) --> (mod, i)
+function M.auto(mod, i) --> (mod, i)
   mod, i = type(mod) == 'string' and require(mod) or mod, i or 1
   while true do
     local n, v = debug.getlocal(2, i)
@@ -1340,7 +1341,7 @@ end
 
 --- Try to get any [$string.to.path] by trying all possible combinations of
 --- requiring the prefixes and getting the postfixes.
-M.wantpath = function(path) --> value?
+function M.wantpath(path) --> value?
   path = type(path) == 'string' and M.splitList(path, '%.') or path
   local obj
   for i=1,#path do
@@ -1361,12 +1362,12 @@ M.R = setmetatable({}, {
 --- Include a resource (raw data) relative to the current file.
 ---
 --- Example: [$M.myData = ds.resource'data/myData.csv']
-M.resource = function(relpath)
+function M.resource(relpath)
   return require'ds.path'.read(M.srcdir(1)..relpath)
 end
 
 --- exit immediately with message and errorcode = 99
-M.yeet = function(fmt, ...)
+function M.yeet(fmt, ...)
   io.fmt:styled('error',
     sfmt('YEET %s: %s', M.shortloc(1), sfmt(fmt or '', ...)),
     '\n')
@@ -1374,7 +1375,7 @@ M.yeet = function(fmt, ...)
 end
 
 --- Print to io.sderr
-M.eprint = function(...)
+function M.eprint(...)
   local t = {...}; for i,v in ipairs(t)
     do t[i] = tostring(v)
   end

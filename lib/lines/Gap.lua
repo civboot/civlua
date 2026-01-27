@@ -59,7 +59,7 @@ Gap.load = function(T, f, close) --> Gap?, err?
   return T(dat, type(f) == 'string' and f or nil)
 end
 
-Gap.__len = function(g) return #g.bot + #g.top end
+function Gap:__len() return #self.bot + #self.top end
 --- Get a specific line index.
 function Gap:get(l) --> string
   local bl = #self.bot
@@ -67,18 +67,18 @@ function Gap:get(l) --> string
   else            return self.top[#self.top - (l - bl) + 1] end
 end
 --- FIXME: I need to delete this!
-Gap.__index = function(g, l)
-  if type(l) ~= 'number' then return getmetatable(g)[l] end
-  return g:get(l)
+function Gap:__index(l)
+  if type(l) ~= 'number' then return getmetatable(self)[l] end
+  return self:get(l)
 end
 
-Gap.__fmt = function(g, f)
-  local len = #g
-  for i, l in ipairs(g.bot) do
+function Gap:__fmt(f)
+  local len = #self
+  for i, l in ipairs(self.bot) do
     f:write(l); if i < len then f:write'\n' end
   end
-  for i=#g.top,1,-1 do
-    f:write(g.top[i]); if i > 1 then f:write'\n' end
+  for i=#self.top,1,-1 do
+    f:write(self.top[i]); if i > 1 then f:write'\n' end
   end
 end
 Gap.__pairs = ipairs

@@ -93,7 +93,7 @@ M.lenientBlock = Many{M.lenient}
 
 -----------------
 -- String (+exp1)
-local quoteImpl = function(p, char, pat, kind)
+local function quoteImpl(p, char, pat, kind)
   p:skipEmpty()
   local l, c = p.l, p.c
   if not p:consume(char) then return end
@@ -113,10 +113,10 @@ local quoteImpl = function(p, char, pat, kind)
   end
 end
 
-local singleStr = function(p) return quoteImpl(p, "'", "(\\*)'", 'singleStr') end
-local doubleStr = function(p) return quoteImpl(p, '"', '(\\*)"', 'doubleStr') end
+local function singleStr(p) return quoteImpl(p, "'", "(\\*)'", 'singleStr') end
+local function doubleStr(p) return quoteImpl(p, '"', '(\\*)"', 'doubleStr') end
 
-local bracketStrImpl = function(p)
+local function bracketStrImpl(p)
   local l, c = p.l, p.c
   local start = p:consume('%[=*%['); if not start then return end
   local _, cs, _, cs2 = start:span()
@@ -137,7 +137,7 @@ local bracketStrImpl = function(p)
     end
   end
 end
-local bracketStr     = function(p)
+local function bracketStr(p)
   p:skipEmpty()
   return bracketStrImpl(p)
 end
@@ -265,7 +265,7 @@ local src = {name='src', block, Eof}
 M.config = pegl.Config{skipComment=skipComment}
 M.lenientConfig = ds.copy(M.config, {lenient=true})
 
-local parse = function(dat, spec, config)
+local function parse(dat, spec, config)
   config = config or M.config
   if not config.skipComment then config.skipComment = skipComment end
   return pegl.parse(dat, spec, config)

@@ -26,7 +26,7 @@ function M.new(T, self)
   return shim.construct(T, self)
 end
 
-M.format = function(f, str, fmt)
+function M.format(f, str, fmt)
   fmt = fmt or FMT
   local b
   for i=1,#str do
@@ -38,7 +38,7 @@ M.format = function(f, str, fmt)
 end
 local format = M.format
 
-M.ascii = function(f, str)
+function M.ascii(f, str)
   for c=1,#str do
     local b = byte(str,c,c)
     if 32 <= b and b <= 127 then f:write(str:sub(c,c))
@@ -47,12 +47,12 @@ M.ascii = function(f, str)
 end
 local ascii = M.ascii
 
-local formatCols = function(f, str, fmt, offset)
+local function formatCols(f, str, fmt, offset)
   f:styled('line', sfmt('% 6i: ', offset));
   format(f, str, fmt)
 end
 
-M.columns = function(f, str, width, si, fmt)
+function M.columns(f, str, width, si, fmt)
   fmt, width, si = fmt or FMT, width or 16, si or 0
   local i, len, s = 1, #str
   if len == 0 then return end

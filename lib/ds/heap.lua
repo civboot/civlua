@@ -72,14 +72,17 @@ getmetatable(M.Heap).__call = function(T, t)
 end
 
 --- [$h:add(v)] add value to the heap.
-M.Heap.add = function(h, v) push(h, v); percUp(h, 1, #h, #h, h.cmp) end
+function M.Heap:add(v)
+  push(self, v)
+  percUp(self, 1, #self, #self, self.cmp)
+end
 
 --- [$h:pop() -> v] pop the top node.
-M.Heap.pop = function(h) --> v
-  if #h <= 1 then return table.remove(h) end
+function M.Heap:pop() --> v
+  if #self <= 1 then return table.remove(self) end
   -- move last child to root and fix
-  local v = h[1]; h[1] = table.remove(h)
-  percDown(h, 1, #h, 1, h.cmp)
+  local v = self[1]; self[1] = table.remove(self)
+  percDown(self, 1, #self, 1, self.cmp)
   return v
 end
 

@@ -16,7 +16,7 @@ local function offsetRound(t, l, c, off, expect, expectOff)
   T.eq(expectOff or off, res)
 end
 M.DATA.offset = '12345\n6789\n'
-M.testOffset = function(t)
+function M.testOffset(t)
   local l, c
   offsetRound(t, 1, 2, 0,   {1, 2})
   offsetRound(t, 1, 2, 1,   {1, 3})
@@ -55,7 +55,7 @@ end
 --- Test lines.remove on object. new must accept either a string or table of
 --- lines to create a new object (does NOT need to be copied)
 --- called for various data structures which implement lines
-M.testLinesRemove = function(new, assertEq, assertEqRemove)
+function M.testLinesRemove(new, assertEq, assertEqRemove)
   local assertEqR = assertEqRemove or T.eq
   local assertEq = assertEq or T.eq
   local t = new''

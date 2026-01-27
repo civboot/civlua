@@ -14,11 +14,11 @@ local actions = {
   insert=ds.noop, move=ds.noop, remove=ds.noop, merge=ds.noop,
 }
 
-local events = function()
+local function events()
   local e = {}; return e, function(v) push(e, v) end
 end
 
-T.chords = function()
+T'chords'; do
   T.eq({'space', 'a', 'b'}, M.chord'space a b')
 
   T.eq('a b', M.chordstr{'a', 'space', 'b'})
@@ -34,7 +34,7 @@ local function newEditor(mode)
   return ed
 end
 
-T.bindings = function()
+T'bindings'; do
   local data = newEditor'insert'
   et.checkBindings(M.insert)
   et.checkBindings(M.command)
@@ -54,7 +54,7 @@ local function assertKeys(keyinputs, mode, expectKeys, expectEvents)
   return data
 end
 
-T.action = function()
+T'action'; do
   local d
   local mode = function(mode) return {mode=mode} end
   -- Switch between modes

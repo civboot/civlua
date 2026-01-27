@@ -11,7 +11,7 @@ local vtt = require'vt100.testing'
 
 local pause = tonumber(os.getenv'SHOWTIME') or 0.1
 
-local demobox = function(t, l, c)
+local function demobox(t, l, c)
   t.l, t.c = l, c
   local tw, th = 6, 3 -- text width, height
   local txt = 'this\n  is a\ndemo\n'

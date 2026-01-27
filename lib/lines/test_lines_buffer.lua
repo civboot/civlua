@@ -7,7 +7,7 @@ local buffer = require'lines.buffer'
 local Buffer = buffer.Buffer
 local C, CS = buffer.Change, buffer.ChangeStart
 
-T['insert & remove'] = function()
+T'insert & remove'; do
   local b = Buffer.new'a\nb\n'; local g = b.dat
   T.eq('a\nb\n', fmt(g))
   b:changeStart(0,0)
@@ -19,7 +19,7 @@ T['insert & remove'] = function()
   T.eq({'lala', 'b', ''}, ds.icopy(g))
 end
 
-T['clear'] = function()
+T'clear'; do
   local b = Buffer.new'a\nb\n'; local g = b.dat
   T.eq('a\nb\n', fmt(g))
   b:changeStart(0,0)
@@ -29,7 +29,7 @@ T['clear'] = function()
   T.eq('hi', fmt(g)); T.eq({'hi'}, ds.icopy(g))
 end
 
-T.undoIns = function()
+T'undoIns'; do
   local b = Buffer.new(''); local g = b.dat
 
   local ch1 = C{k='ins', s='hello ', l=1, c=1}
@@ -66,7 +66,7 @@ T.undoIns = function()
   T.eq('hello world!', fmt(g))
 end
 
-T.undoInsRm = function()
+T'undoInsRm'; do
   local b = Buffer.new(''); local g, ch = b.dat
   local ch1 = C{k='ins', s='12345\n', l=1, c=1}
   local ch2 = C{k='rm', s='12', l=1, c=1}
@@ -84,7 +84,7 @@ T.undoInsRm = function()
   T.eq('345\n', fmt(g))
 end
 
-T.undoReal = function() -- undo/redo word deleting
+T'undoReal'; do -- undo/redo word deleting
   local START = "4     It's nice to have some real data"
   local b = Buffer.new(START); local g, ch = b.dat
   local ch1 = C{k='rm', s='It',  l=1, c=7}
@@ -102,7 +102,7 @@ T.undoReal = function() -- undo/redo word deleting
   T.eq("4     s nice to have some real data", fmt(g))
 end
 
-T.undoMulti = function() -- undo/redo across multi lines
+T'undoMulti'; do -- undo/redo across multi lines
   local START = '123\n456\n789\nabc'
   local b = Buffer.new(START); local g, ch = b.dat
   T.eq(false, b:changed())

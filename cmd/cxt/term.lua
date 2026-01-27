@@ -98,7 +98,7 @@ local SER_KIND = {
 SER_KIND.block = SER_KIND.code
 
 -- Handle a special type of node.
-local special = function(w, node, style, str)
+local function special(w, node, style, str)
   -- If the text would be the same, simply write w/style.
   if #node == 1 and w:eqStr(node[1], str) then
     w.to:styled(style, str, '')
@@ -111,7 +111,7 @@ local special = function(w, node, style, str)
 end
 
 -- serialize node to a writer
-M.serialize = function(w, node)
+function M.serialize(w, node)
   local kind = nodeKind(node)
   local fn = SER_KIND[kind]
   if fn then return fn(w, node) end
@@ -130,7 +130,7 @@ M.serialize = function(w, node)
   end
 end
 
-M.convert = function(dat, to)
+function M.convert(dat, to)
   if type(dat) == 'string' then dat = lines(dat) end
   local node, p = cxt.parse(dat)
   local w = cxt.Writer:fromParser(p, to)
@@ -138,7 +138,7 @@ M.convert = function(dat, to)
   return w, node, p
 end
 
-M.main = function(args)
+function M.main(args)
   args = M.Args(shim.parseStr(args))
   args.out = args.out or io.fmt
   if #args > 0    then args.inp = lines(table.concat(args, ' '))

@@ -36,19 +36,19 @@ local podSet = pod.Pod{
 -- Main Public API
 
 --- Encode lua value to JSON string
-M.json = function(v, pretty) --> string
+function M.json(v, pretty) --> string
   local enc = pretty and Json:pretty{} or Json{}
   return concat(enc(v))
 end
 
 --- Encode lua value to LSON string
-M.lson = function(v, pretty) --> string
+function M.lson(v, pretty) --> string
   local enc = pretty and Lson:pretty{} or Lson{}
   return concat(enc(v))
 end
 
 --- Decode JSON/LSON string or lines object to a lua value.
-M.decode = function(s, podder, pset) --> value
+function M.decode(s, podder, pset) --> value
   return De(s)(podder, pset)
 end
 
@@ -65,11 +65,11 @@ M.Json = mty.extend(fmt.Fmt, 'Json', {
   indexEnd = ',',  keyEnd = ',',
   keySet   = ':',
 })
-M.Json.pretty = function(E, t)
-  t.listStart = t.listStart or '[\n'
-  t.listEnd   = t.listEnd   or '\n]'
-  t.keySet    = t.keySet    or ': '
-  return fmt.Fmt.pretty(E, t)
+M.Json.pretty = function(T, self)
+  self.listStart = self.listStart or '[\n'
+  self.listEnd   = self.listEnd   or '\n]'
+  self.keySet    = self.keySet    or ': '
+  return fmt.Fmt.pretty(T, self)
 end
 
 ---- note: [$%q] formats ALL newlines with a [$'\'] in front of them
@@ -78,10 +78,10 @@ local CTRL_SUB = {
   ['\\\n'] = '\\n', ['\\9'] = '\\t',
   ['\n'] = true, -- "invalid replacement value" but unreachable
 }
-M.Json.string = function(enc, s)
-  enc:write( (sfmt('%q', s):gsub('\\?[\n9]', CTRL_SUB)) )
+function M.Json.string(f, s)
+  f:write( (sfmt('%q', s):gsub('\\?[\n9]', CTRL_SUB)) )
 end
-M.Json.table = function(f, t)
+function M.Json.table(f, t)
   if rawequal(t, f.null) then return f:write'null' end
   if f._level >= f.maxIndent then error'max depth reached (recursion?)' end
   local keys = sortKeys(t)
@@ -97,12 +97,12 @@ M.Json.table = function(f, t)
     f:write((#keys > 1) and f.tableEnd or '}')
   end
 end
-M.Json.__call = function(f, v, podder, pod)
+function M.Json:__call(v, podder, pod)
   log.trace('Json.__call %q', v)
   if v ~= none then
     v = toPod(v, podder, pod or podSet)
   end
-  f[type(v)](f, v); return f
+  self[type(v)](self, v); return self
 end
 M.Json.tableKey = M.Json.__call
 
@@ -123,7 +123,7 @@ end
 --- The bytes type-encoder. Encodes as [$|bytes|] instead of [$"string"] for
 --- lson You can set [$Enc.string = lson.bytes] for this behavior (or use the
 --- Lson type).
-M.bytes = function(f, s)
+function M.bytes(f, s)
   f:write('|', s:gsub('(\\*)([\\\n|n])', mbytes), '|')
 end
 
@@ -132,29 +132,29 @@ M.Lson = mty.extend(M.Json, 'Lson', {
   indexEnd = ' ', keyEnd=' ',
 })
 M.Lson.string = M.bytes
-M.Lson.pretty = function(E, t)
-  t.listStart = t.listStart or '[\n'
-  t.listEnd   = t.listEnd   or '\n]'
-  t.indexEnd  = t.indexEnd  or '\n'
-  t.keyEnd    = t.keyEnd    or '\n'
-  t.keySet    = t.keySet    or ': '
-  return fmt.Fmt.pretty(E, t)
+M.Lson.pretty = function(T, self)
+  self.listStart = self.listStart or '[\n'
+  self.listEnd   = self.listEnd   or '\n]'
+  self.indexEnd  = self.indexEnd  or '\n'
+  self.keyEnd    = self.keyEnd    or '\n'
+  self.keySet    = self.keySet    or ': '
+  return fmt.Fmt.pretty(T, self)
 end
 
 -------------------------------
 -- Decoder
-local eval = function(s) return load('return '..s, nil, 't', empty) end
+local function eval(s) return load('return '..s, nil, 't', empty) end
 
-M._deNull  = function(de) de:consume'^null';  return de.null end
-M._deTrue  = function(de) de:consume'^true';  return true    end
-M._deFalse = function(de) de:consume'^false'; return false   end
-M._deNumber = function(de)
+function M._deNull(de) de:consume'^null';  return de.null end
+function M._deTrue(de) de:consume'^true';  return true    end
+function M._deFalse(de) de:consume'^false'; return false   end
+function M._deNumber(de)
   local str = de:consume'^[^%s:,%]}]+'
   local n = de:assert(eval(str))()
   assert(type(n) == 'number')
   return n
 end
-M._deString = function(de)
+function M._deString(de)
   local c, line, q1, c2 = de.c + 1, de.line
   while true do
     q1, c2 = line:find('\\*"', c)
@@ -170,7 +170,7 @@ local DE_BYTES = {
   ['\\\n'] = '\\\n', ['\\n'] = '\n',
   ['\\|']  = '|',    ['\\']  = '\\', ['\\\\'] = '\\',
 }
-M._deBytes = function(de) -- |binary data|
+function M._deBytes(de) -- |binary data|
   local b, l, c, line = {}, de.l, de.c + 1, de.line
   local c1, c2 = c
   while true do
@@ -193,7 +193,7 @@ M._deBytes = function(de) -- |binary data|
   de.l, de.c, de.line = l, c, line
   return concat(b):gsub('\\[\nn|\\]?', DE_BYTES)
 end
-M._deArray = function(de)
+function M._deArray(de)
   de.c = de.c + 1
   local arr, value, line, c = {}
   while true do
@@ -205,7 +205,7 @@ M._deArray = function(de)
   de.c = de.c + 1
   return arr
 end
-M._deObject = function(de)
+function M._deObject(de)
   de.c = de.c + 1
   local obj, key, val, line, c = {}
   while true do
@@ -245,16 +245,16 @@ getmetatable(M.De).__call = function(T, dat)
   return mty.construct(T, {dat=dat, l=1, c=1, line=dat[1]})
 end
 
-M.De.assert = function(de, ok, msg)
-  return ok or error(sfmt('%s.%s: %s', de.l, de.c, msg))
+function M.De:assert(ok, msg)
+  return ok or error(sfmt('%s.%s: %s', self.l, self.c, msg))
 end
-M.De.skipWs  = function(de, eofOkay)
-  local l, c, line, dat = de.l, de.c, de.line, de.dat
+function M.De:skipWs(eofOkay)
+  local l, c, line, dat = self.l, self.c, self.line, self.dat
   while true do
     while c > #line do
       l, c, line = l+1, 1, dat[l+1]
       if not line then
-        de:assert(eofOkay, 'unexpected end of file')
+        self:assert(eofOkay, 'unexpected end of file')
         goto done
       end
     end
@@ -262,26 +262,26 @@ M.De.skipWs  = function(de, eofOkay)
     l, c, line = l + 1, 1, dat[l+1]
   end
   ::done::
-  de.l, de.c, de.line = l, c, line
+  self.l, self.c, self.line = l, c, line
 end
 -- consume the pattern returning the consumed string
-M.De.consume = function(de, pat, context)
-  local line = de.line
-  local c1, c2 = line:find(pat, de.c)
+function M.De:consume(pat, context)
+  local line = self.line
+  local c1, c2 = line:find(pat, self.c)
   if not c1 then error(sfmt(
-    '%s.%s: missing %s %q', de.l, de.c,
+    '%s.%s: missing %s %q', self.l, self.c,
     context or 'pattern', pat:gsub('[%^%%]', '')
   ))end
-  de.c = c2 + 1
+  self.c = c2 + 1
   return line:sub(c1, c2)
 end
-M.De.__call = function(de, podder, pset)
-  de:skipWs(true)
-  local l, c = de.l, de.c
-  if l > #de.dat then return end
-  local fn = DE_FNS[de.line:sub(c, c)] or error(sfmt(
-    'unrecognized character: %q', de.line:sub(c,c)))
-  return fromPod(fn(de), podder, pset or podSet)
+function M.De:__call(podder, pset)
+  self:skipWs(true)
+  local l, c = self.l, self.c
+  if l > #self.dat then return end
+  local fn = DE_FNS[self.line:sub(c, c)] or error(sfmt(
+    'unrecognized character: %q', self.line:sub(c,c)))
+  return fromPod(fn(self), podder, pset or podSet)
 end
 
 Json, Lson, De = M.Json, M.Lson, M.De -- locals

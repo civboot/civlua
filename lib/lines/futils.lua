@@ -18,7 +18,7 @@ function M.forceLoadIdx(f, idxpath)
 end
 
 --- load or reindex the file at path to/from idxpath.
-M.loadIdx = function(f, idxpath, fmode, reindex) --> idxFile
+function M.loadIdx(f, idxpath, fmode, reindex) --> idxFile
   local fstat, xstat
   if G.NOLIB then goto createnew end
   trace('loadIdx idxpath=%s mode=%s reindex=%q', idxpath, fmode, reindex)

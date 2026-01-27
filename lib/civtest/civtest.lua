@@ -29,7 +29,7 @@ local function fail(name)
   error(sfmt('Failed %s', name), 2)
 end
 
-M._printName = function(name, path)
+function M._printName(name, path)
   name = name..M.SUBNAME
   rawset(M, 'NAME', name);
   io.fmt:styled('h2', sfmt('## Test %-32s', name), ' ')
@@ -43,14 +43,14 @@ end
 --- This function computes name=[$name..civtest.SUBNAME]
 --- and sets civtest.NAME to the new name, which can be
 --- used in the test.
-M.runTest = function(name, fn, path) -- TODO: delete this
+function M.runTest(name, fn, path)
   M._printName(name, path)
   return fn()
 end
 
 --- Write the diff of strings a vs b to the [@fmt.Fmt] [$f].
 --- Typically, you want to call [<#civtest.eq>] instead.
-M.showDiff = function(f, a, b)
+function M.showDiff(f, a, b)
   f:styled('error', '\n!! EXPECT:', '\n');   f(a)
   f:styled('error', '\n!! RESULT:', '\n');   f(b)
   if mty.ty(a) ~= mty.ty(b) then
@@ -69,14 +69,14 @@ local showDiff = M.showDiff
 
 --- Assert that [$a] equals [$b] (according to [<#metaty.eq>]
 --- and print a diff if not.
-M.eq = function(a, b)
+function M.eq(a, b)
   if mty.eq(a, b) then return end
   showDiff(io.fmt, a, b); fail'Test.eq'
 end
 
 --- Same as eq but for binary strings. Shows a very clear
 --- diff for binary.
-M.binEq = function(e, r)
+function M.binEq(e, r)
   assert(type(e) == 'string', 'expect must be string')
   assert(type(r) == 'string', 'result must be string')
   if e == r then return end
@@ -88,7 +88,7 @@ M.binEq = function(e, r)
 end
 
 --- assert [$subj:find(pat)] or show a helpful error message.
-M.matches = function(pat, subj) --> !?error
+function M.matches(pat, subj) --> !?error
   if subj:find(pat) then return end
   local f = io.fmt
   print('pat:', pat, 'subj:', subj)
@@ -101,7 +101,7 @@ end
 
 --- assert [$subj:find(pat, 1, true)] (plain find)
 --- or show a helpful error message.
-M.contains = function(plain, subj) --> !?error
+function M.contains(plain, subj) --> !?error
   if subj:find(plain, 1, true) then return end
   local f = io.fmt
   f:styled('error', '\n!! RESULT:', '\n');   f(subj)
@@ -112,7 +112,7 @@ M.contains = function(plain, subj) --> !?error
 end
 
 --- assert [$fn()] fails and the [$contains] is in the message.
-M.throws = function(contains, fn) --> ds.Error
+function M.throws(contains, fn) --> ds.Error
   local ok, err = ds.try(fn)
   if ok then
     io.fmt:styled('error',
@@ -130,14 +130,14 @@ M.throws = function(contains, fn) --> ds.Error
 end
 
 --- Assert that the path exists.
-M.exists = function(path)
+function M.exists(path)
   if not require'civix'.exists(path) then error(
     'does not exist: '..path
   )end
 end
 
 --- Assert the contents at the two paths are equal.
-M.fileEq = function(a, b)
+function M.fileEq(a, b)
   local at, bt = pth.read(a), pth.read(b)
   if at == bt then return end
   showDiff(io.fmt, at, bt);
@@ -152,7 +152,7 @@ M.pathEq = M.fileEq
 --- Assert that path matches expect. Expect can be of type:
 --- * string: asserts the file contents match.
 --- * table: recursively assert the subtree contents exist.
-M.path = function(path, expect)
+function M.path(path, expect)
   M.exists(path)
   if io.type(expect) then
     expect:seek'set'
@@ -173,8 +173,5 @@ getmetatable(M).__call = function(_, name)
   return M._printName(name, ds.shortloc(1))
 end
 
---- TODO: remove this.
-getmetatable(M).__newindex = function(m, name, fn)
-  return m.runTest(name, fn, select(2, mty.fninfo(fn)))
-end
+getmetatable(M).__newindex = function() error"Immutable mod" end
 return M

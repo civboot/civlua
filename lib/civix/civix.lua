@@ -39,7 +39,7 @@ local B = M._B
 B.EEXIST = 17
 
 --- Mostly for bootstrapping. Makes command str quoted if necessary.
-local cmdstr = function(cmd) --> 'cmd'
+local function cmdstr(cmd) --> 'cmd'
   assert(not cmd:find"'",
     "single quote ' not allowed in bootstrapped civix.sh: "..cmd)
   return cmd:find'[^%w_.-/]' and sfmt("'%s'", cmd) or cmd
@@ -47,14 +47,14 @@ end
 
 B.SH_UNSUPPORTED = {'stdin', 'ENV', 'CWD'}
 
-local shError = function(cmd, out, rc)
+local function shError(cmd, out, rc)
   fmt.errorf(
     'Command failed with rc=%s: %q%s', rc, cmd,
     (out and (#out > 0) and ('\nSTDOUT:\n'..out) or ''))
 end
 
 -- sh used for bootstrap
-B.sh = function(cmd) --> stdout, stderr, fakeSh
+function B.sh(cmd) --> stdout, stderr, fakeSh
   local rcOk
   if type(cmd) == 'table' then
     rcOk = ds.popk(cmd, 'rc')
@@ -84,14 +84,14 @@ M.OS = ds.trim(G.OS or os.getenv'OS'
   or (package.config:sub(1,1)=='\\' and 'windows')
   or assert(B.sh'uname')):lower()
 
-B.mkdir = function(dir)
+function B.mkdir(dir)
   if B.exists(dir) then return false, M.EEXIST, dir..' exists' end
   local out_, _, sh_ = B.sh{'mkdir', dir, rc=true}
   local ok = sh_:rc() == 0; if ok then return ok end
   return ok, 'mkdir failed', sh_:rc()
 end
 
-B.rmdir = function(dir)
+function B.rmdir(dir)
   local out_, _, sh_ = B.sh{'rmdir', dir, rc=true}
   local ok = sh_:rc() == 0; if ok then return ok end
   return ok, 'rmdir failed', sh_:rc()
@@ -100,7 +100,7 @@ end
 local DIR_CMD = 'find %s -maxdepth 1 '
   ..'\\( -type d -printf "%%p/\\n" ,'   -- print dir/
   ..   ' ! -type d -printf "%%p\\n" \\)'
-B.dir = function(dir) --> iter[entry]
+function B.dir(dir) --> iter[entry]
   if not pth.isDir(dir) then error('must be a dir/: '..dir) end
   local out, _, s = B.sh(sfmt(DIR_CMD, cmdstr(dir:sub(1,-2))))
   if s:rc() ~= 0 then return ds.noop end -- empty iter
@@ -111,12 +111,12 @@ B.dir = function(dir) --> iter[entry]
   end)
 end
 
-B.exists = function(path) --> bool
+function B.exists(path) --> bool
   local _out, _, s = B.sh{'test', '-e', path, rc=true}
   return s:rc() == 0
 end
 
-B.pathtype = function(path)
+function B.pathtype(path)
   if not B.exists(path) then return nil, path..' does not exist' end
   local _out, _, s = B.sh{'test', '-d', path, rc=true}
   return (s:rc() == 0) and M.DIR or M.FILE
@@ -147,7 +147,7 @@ M.mkdir = lib.mkdir --(dir)
 M.Stat = lib.Stat
 
 --- list entires in directory.
-M.dir = function(dir) --> iter[entry]
+function M.dir(dir) --> iter[entry]
   return lib.dir(pth.canonical(dir))
 end
 
@@ -159,7 +159,7 @@ M.exists = lib.exists -- (path) --> bool
 
 --- return path type (i.e. M.FILE, M.DIR, etc).
 --- if path DNE then return (nil, errmsg).
-M.pathtype = function(path) --> str?, err
+function M.pathtype(path) --> str?, err
   local stat, err = lib.stat(path)
   if not stat then return nil, err end
   return fmodeName(lib.S_IFMT & stat:mode())
@@ -185,34 +185,34 @@ M.BLOCK_SZ = 1 << 15
 
 --- Given two Stat objects return whether their modifications
 --- are equal
-M.statModifiedEq = function(fs1, fs2)
+function M.statModifiedEq(fs1, fs2)
   local s1, ns1 = fs1:modified()
   local s2, ns2 = fs2:modified()
   return (s1 == s2) and (ns1 == ns2)
 end
 
 --- Given a path|File|Stat return a Stat
-M.stat = function(v) --> Stat?, errmsg?
+function M.stat(v) --> Stat?, errmsg?
   if getmetatable(v) == M.Stat then return v end
   if type(v) == 'string'       then return lib.stat(v) end
   return lib.stat(fd.fileno(v))
 end
 
 --- return whether two Stat's have equal modification times
-M.statModifiedEq = function(fs1, fs2) --> boolean
+function M.statModifiedEq(fs1, fs2) --> boolean
   local s1, ns1 = fs1:modified()
   local s2, ns2 = fs2:modified()
   return (s1 == s2) and (ns1 == ns2)
 end
 
 --- return whether two path|File|Stat have equal modification times
-M.modifiedEq = function(a, b)
+function M.modifiedEq(a, b)
   return M.statModifiedEq(M.stat(a), M.stat(b))
 end
 
 --- Return the entries in a dir as a list.
 --- They are sorted to put the directories first.
-M.ls = function(dir) --> list[str]
+function M.ls(dir) --> list[str]
   local d, f = {}, {} -- dirs, files
   for e, ftype in M.dir(dir) do
     if ftype == 'dir' then push(d, pth.toDir(e))
@@ -222,10 +222,10 @@ M.ls = function(dir) --> list[str]
 end
 
 --- Move path from old -> new, throwing an error on failure.
-M.mv = function(old, new) assert(os.rename(old, new)) end
+function M.mv(old, new) assert(os.rename(old, new)) end
 
 --- Read data from fd [$from] and write to fd [$to], then flush.
-M.fdWrite = function(to, from, sz--[[=BLOCK_SZ]]) --> (to, from)
+function M.fdWrite(to, from, sz--[[=BLOCK_SZ]]) --> (to, from)
   sz = sz or M.BLOCK_SZ
   while true do
     local b = check(2, from:read(sz)); if not b then break end
@@ -236,7 +236,7 @@ end
 
 --- copy data from [$from] to [$to]. Their types can be either
 --- a string (path) or a file descriptor.
-M.cp = function(from, to)
+function M.cp(from, to)
   if type(from) == 'string' and type(to) == 'string' then
     M.sh{'cp', from, to}
     return
@@ -252,13 +252,13 @@ M.cp = function(from, to)
 end
 
 --- swap paths a <-> b
-M.swap = function(a, b, ext)
+function M.swap(a, b, ext)
   ext = ext or '.SWAP'
   M.mv(a, a..ext); M.mv(b, a); M.mv(a..ext, a)
 end
 
 --- set the modified time of the path|file
-M.setModified = function(f, sec, nsec) --> ok, errmsg?
+function M.setModified(f, sec, nsec) --> ok, errmsg?
   local close; if type(f) == 'string' then f = io.open(f); close = true end
   local ok, err = lib.setmodified(fd.fileno(f), sec, nsec)
   if close then f:close() end
@@ -269,7 +269,7 @@ end
 -- Utility
 
 --- quote the str if it's possible
-M.quote = function(str)
+function M.quote(str)
   if string.find(str, "'") then return nil end
   return "'" .. str .. "'"
 end
@@ -281,17 +281,17 @@ M.SH_SET = { debug=false, host=false }
 -- Time Functions
 
 --- Sleep for the specified duration
-M.sleep = function(d) --> nil
+function M.sleep(d) --> nil
   if type(d) == 'number' then d = ds.Duration:fromSeconds(d) end
   if d.s >= 0 then lib.nanosleep(d.s, d.ns) end
 end
 
 --- Return the Epoch/Mono time
 --- Time according to realtime clock
-M.epoch   = function() return ds.Epoch(lib.epoch())   end
+function M.epoch() return ds.Epoch(lib.epoch())   end
 --- Duration according to monotomically incrementing clock.
-M.mono    = function() return ds.Duration(lib.mono()) end
-M.monoSec = function() return M.mono():asSeconds()    end
+function M.mono() return ds.Duration(lib.mono()) end
+function M.monoSec() return M.mono():asSeconds()    end
 
 -------------------------------------
 -- Core Filesystem
@@ -303,15 +303,15 @@ end
 --- return if the contents of the two paths are equal.
 --- If both are directories return true (do not recurse).
 --- If both don't exist return true
-M.pathEq = function(path1, path2)
+function M.pathEq(path1, path2)
   local ty1, ty2 = M.pathtype(path1), M.pathtype(path2)
   if ty1 ~= ty2              then return false end
   if not ty1 or ty1 == 'dir' then return true end
   return pth.read(path1) == pth.read(path2)
 end
 
-M.isFile = function(path) return M.pathtype(path) == 'file' end
-M.isDir  = function(path) return M.pathtype(path) == 'dir'  end
+function M.isFile(path) return M.pathtype(path) == 'file' end
+function M.isDir(path) return M.pathtype(path) == 'dir'  end
 local isFile = M.isFile
 
 local function _walkcall(ftypeFns, path, ftype, err)
@@ -355,7 +355,7 @@ end
 --- The Fn signatures are: (path, ftype) -> stopWalk
 --- If either return true then the walk is ended immediately
 --- If dirFn returns 'skip' then the directory is skipped
-M.walk = function(paths, ftypeFns, maxDepth)
+function M.walk(paths, ftypeFns, maxDepth)
   for _, path in ipairs(paths) do
     assert('' ~= path, 'empty path')
     local ftype, err = M.pathtype(path)
@@ -391,27 +391,27 @@ getmetatable(M.Walk).__call = function(T, t)
   return construct(T, t)
 end
 ---- get the depth of the current directory being walked
-M.Walk.depth = function(w) return #w._dirs end
+function M.Walk:depth() return #self._dirs end
 --- skip the current directory level
-M.Walk.skip = function(w) pop(w._dirs) end
-M.Walk.__call = function(w) --> path, ftype
-  local pi = w.pi if pi > #w then return end
-  while #w._dirs > 0 do
-    local path, err = w._dirs[#w._dirs](w) -- DFS: top of stack
+function M.Walk:skip() pop(self._dirs) end
+function M.Walk:__call() --> path, ftype
+  local pi = self.pi if pi > #self then return end
+  while #self._dirs > 0 do
+    local path, err = self._dirs[#self._dirs](self) -- DFS: top of stack
     if path then return path, err end
-    pop(w._dirs) -- else _WalkDir is done, pop it.
+    pop(self._dirs) -- else _WalkDir is done, pop it.
   end
-  pi = pi + 1; w.pi = pi;
-  local path = w[pi]; if not path then return end
+  pi = pi + 1; self.pi = pi;
+  local path = self[pi]; if not path then return end
   local ftype = M.pathtype(path)
-  if ftype == 'dir' then path = toDir(path); w:_deeper(path)
+  if ftype == 'dir' then path = toDir(path); self:_deeper(path)
   else                   path = toNonDir(path) end
   return path, ftype -- emit the 'root' path
 end
 --- walk one level deeper by pushing onto _dirs stack.
-M.Walk._deeper = function(w, path)
-  if not w.maxDepth or #w._dirs <= w.maxDepth then
-    push(w._dirs, M._WalkDir{base=path})
+function M.Walk:_deeper(path)
+  if not self.maxDepth or #self._dirs <= self.maxDepth then
+    push(self._dirs, M._WalkDir{base=path})
   end
 end
 
@@ -433,16 +433,16 @@ getmetatable(M._WalkDir).__call = function(T, t)
   t._i, t.ftypes = 0, ftypes
   return construct(T, t)
 end
-M._WalkDir.__call = function(wd, walk) --> path, ftype
-  local i = wd._i; if i >= #wd then return end
-  i = i + 1; wd._i = i
-  local path = wd[i]; local ftype = wd.ftypes[path]
+function M._WalkDir:__call(walk) --> path, ftype
+  local i = self._i; if i >= #self then return end
+  i = i + 1; self._i = i
+  local path = self[i]; local ftype = self.ftypes[path]
   if i > 0 and ftype == 'dir' then walk:_deeper(path) end
   return path, ftype
 end
 
 --- Find the filename path going backwards.
-M.findBack = function(name, dir) --> path
+function M.findBack(name, dir) --> path
   dir = dir or pth.cwd()
   while true do
     local path = pth.concat{dir, name}
@@ -453,7 +453,7 @@ M.findBack = function(name, dir) --> path
 end
 
 --- recursively copy [$from/] to new [$to/] directory.
-M.cpRecursive = function(from, to, except)
+function M.cpRecursive(from, to, except)
   assert(M.isDir(from),    'from must be a directory')
   assert(not M.exists(to), 'to must not exist')
   from, to = pth.toDir(from), pth.toDir(to)
@@ -473,12 +473,12 @@ local RM_FNS = {
   dirDone = function(p) assert(M.rmdir(p)) end,
 }
 --- Recursively (force) remove the directory and all children.
-M.rmRecursive = function(path)
+function M.rmRecursive(path)
   if not M.exists(path) then return end
   M.walk({path}, RM_FNS, nil)
 end
 --- Recursively (force) create the directory and any missing children.
-M.mkDirs = function(path)
+function M.mkDirs(path)
   if type(path) == 'string' then path = pth(path) end
   local dir = ''; for _, c in ipairs(path) do
     dir = pc{dir, c}
@@ -489,26 +489,26 @@ M.mkDirs = function(path)
   end
 end
 --- Create a single directory. The parent must exist.
-M.mkDir = function(path, parents) --!> nil
+function M.mkDir(path, parents) --!> nil
   if parents then M.mkDirs(pth(path))
   else fmt.assertf(mkdir(path), "mkdir failed: %s", path) end
 end
 
 --- copy [$from] to [$to], creating the directory structure if necessary.
-M.forceCp = function(from, to)
+function M.forceCp(from, to)
   M.rmRecursive(to); M.mkDirs( (pth.last(to)) )
   M.cp(from, to)
 end
 
 --- write [$text] to [$path], creating the directory structure if necessary.
-M.forceWrite = function(path, text)
+function M.forceWrite(path, text)
   M.rm(path); M.mkDirs( (pth.last(path)) )
   pth.write(path, text)
 end
 
 --- Force move a file or directory, creating directory structure
 --- if necessary.
-M.forceMv = function(old, new)
+function M.forceMv(old, new)
   M.mkDirs( (pth.last(new)) )
   M.cp(old, new)
 end
@@ -534,7 +534,7 @@ end
 --- a/a2.txt    # content: stuff in a2.txt
 --- a/a3/a4.txt # content: stuff in a3.txt
 --- ]
-M.mkTree = function(dir, tree, parents) --!> nil
+function M.mkTree(dir, tree, parents) --!> nil
   M.mkDir(dir, parents)
   for name, v in pairs(tree) do
     local p = pc{dir, name, type(v) == 'table' and '/' or nil}
@@ -549,7 +549,7 @@ end
 
 --- civix's implementation of [@lap.Lap], enabling asynchronous file
 --- reading/writing and async shell operations using pure lua coroutines.
-M.Lap = function() return lap.Lap {
+function M.Lap() return lap.Lap {
   sleepFn=M.sleep, monoFn=M.monoSec, pollList=fd.PollList(),
 }end
 
@@ -648,7 +648,7 @@ end
 M.Sh.write = function(sh, ...) return sh.stdin:write(...) end
 M.Sh.read  = function(sh, ...) return sh.stdout:read(...) end
 
-M._sh = function(cmd) --> Sh
+function M._sh(cmd) --> Sh
   local pk, sh, other = ds.popk, {}, {}
   if type(cmd) == 'string' then cmd = shim.parseStr(cmd)
   else
@@ -703,6 +703,6 @@ M.sh = rawget(M,'sh') or function(cmd) --> out, err, Sh
   return out, err, sh
 end
 
-M.isRoot = function() return os.getenv'EUID' == '0' end
+function M.isRoot() return os.getenv'EUID' == '0' end
 
 return M

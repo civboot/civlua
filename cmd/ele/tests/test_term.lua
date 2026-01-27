@@ -22,7 +22,7 @@ local L_2l3c2h5w =
 .."  line1\n"
 .."    lin"
 
-T.edit = function()
+T'edit'; do
   local e = edit.Edit{buf=Buffer.new(lines3)}
   T.eq(3, #e.buf.dat)
   T.eq(3, #e.buf)

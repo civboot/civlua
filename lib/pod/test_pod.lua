@@ -6,13 +6,13 @@ local testing = require'pod.testing'
 
 local T = require'civtest'
 
-local podRound = function(P, v)
+local function podRound(P, v)
   local t = P(ds.deepcopy(v))
   T.eq(v, pod.toPod(t))
   T.eq(t, pod.fromPod(v, P))
 end
 
-T.isPod = function()
+T'isPod'; do
   T.eq(true,  pod.isPod(true))
   T.eq(true,  pod.isPod(false))
   T.eq(true,  pod.isPod(3))
@@ -28,7 +28,7 @@ T.isPod = function()
 end
 
 
-T.toPod = function()
+T'toPod'; do
   local test = mod'test'
 
   -- simple type
@@ -81,7 +81,7 @@ T'freeze'; do
 end
 
 if not G.NOLIB then
-T['ds.pod.serialize'] = function()
+T'ds.pod.serialize'; do
   testing.testAll(pod.ser, function(str, P)
     local t, len = pod.deser(str, P)
     T.eq(#str, len) -- decoded full length

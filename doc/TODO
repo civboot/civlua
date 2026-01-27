@@ -1,12 +1,6 @@
-Review Docs
-* pegl
-* pod
-* shim
-* vcds
-* vt100
 
 General
-* kev is rendering weird...
+* When running tests and a lib has a syntax error, the error is not helpful.
 * I need io.open/etc to respect G.PWD
 * Have good way to check if sh command exists.
   Check for stuff in pvc, especially merge (install rcs).
@@ -17,3 +11,10 @@ General
 Need a mty.recordmod. Use for
 * ds.Grid
 * ds.IFile
+
+Review Docs
+* pegl
+* pod
+* shim
+* vcds
+* vt100

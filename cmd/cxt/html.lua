@@ -176,7 +176,7 @@ local function _serialize(w, line, node) --> line
 end
 
 --- serialize the node to the writer.
-M.serialize = function(w, node)
+function M.serialize(w, node)
   -- line is an implementation detail of html around when to line break.
   -- We want to keep the output html as concise as reasonable, which
   -- this approach helps with.
@@ -187,7 +187,7 @@ M.serialize = function(w, node)
     addLine(w, line)
   end
 end
-M.serializeDoc = function(w, node, head)
+function M.serializeDoc(w, node, head)
   addLine(w, {'<!DOCTYPE html>\n<html>'})
   if head then addLine(w, {head}) end
   addLine(w, {'<body><div class=doc>'})
@@ -195,7 +195,7 @@ M.serializeDoc = function(w, node, head)
   addLine(w, {'</div></body>\n</html>'})
 end
 
-M.convert = function(dat, to, config)
+function M.convert(dat, to, config)
   local node, p = cxt.parse(dat)
   local w = cxt.Writer:fromParser(p, to)
   w.config = config or cxt.Config{}
@@ -203,7 +203,7 @@ M.convert = function(dat, to, config)
   return w.to, p, w
 end
 
-M.assertHtml = function(expectedHtml, cxtDat, dbg)
+function M.assertHtml(expectedHtml, cxtDat, dbg)
   local node, p = cxt.parse(cxtDat, dbg)
   local w = cxt.Writer:fromParser(p)
   M.serialize(w, node)

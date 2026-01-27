@@ -1,0 +1,8 @@
+[{h1}find-fix usage]
+
+
+Replace [$Foo.foo = function(self)] with [$Foo:foo()]
+
+[$$
+ff '^([%w_.]-)%.([%w_]+)%s*=%s*function%(self,?%s*' --sub='function %1:%2('  --mut  # fix-self
+]$

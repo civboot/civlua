@@ -15,14 +15,14 @@ local function testEncode(d, e, ...)
   T.eq({...}, {d(e(...))})
 end
 
-T.lc_encode = function()
+T'lc_encode'; do
   local e, d = pegl.encodeSpan, pegl.decodeSpan
   testEncode(d, e, 1, 2, 3, 4)
   local bigL = 0x1FFFF
   testEncode(d, e, bigL, 1, bigL+100, 20)
 end
 
-T.keywords = function()
+T'keywords'; do
   assertParse{
     dat='hi there bob',
     spec=Seq{'hi', 'there', 'bob', Eof},
@@ -43,7 +43,7 @@ T.keywords = function()
   }
 end
 
-T.key = function()
+T'key'; do
   local kws = Key{{'hi', 'there', 'bob'}, kind='kw'}
   assertParse{
     dat='hi there', spec={kws, kws},
@@ -56,7 +56,7 @@ T.key = function()
   }
 end
 
-T.pat = function()
+T'pat'; do
   assertParse{
     dat='hi there bob',
     spec={'hi', Pat('%w+'), 'bob', Eof},
@@ -64,7 +64,7 @@ T.pat = function()
   }
 end
 
-T.or_ = function()
+T'or_'; do
   assertParse{
     dat='hi +-',
     spec={'hi', Or{'-', '+'}, Or{'-', '+', Empty}, Or{'+', Empty}, Eof},
@@ -72,7 +72,7 @@ T.or_ = function()
   }
 end
 
-T.many = function()
+T'many'; do
   assertParse{
     dat='hi there bob',
     spec=Seq{Many{Pat'%w+', kind='words'}},
@@ -80,7 +80,7 @@ T.many = function()
   }
 end
 
-T.pin = function()
+T'pin'; do
   assertParseError{
     dat='hi there jane',
     spec={'hi', 'there', 'bob', Eof},

@@ -46,7 +46,7 @@ getmetatable(M.Highlighter).__call = function(T, t)
   return construct(T, t)
 end
 
-M.Highlighter._highlight = function(hl, modTime, node, fgLf, bgLf)
+function M.Highlighter:_highlight(modTime, node, fgLf, bgLf)
   local n = node.name or node.kind
   local sty = style[n]
   if sty then -- found style, write it out.
@@ -55,18 +55,18 @@ M.Highlighter._highlight = function(hl, modTime, node, fgLf, bgLf)
 end
 
 --- Highlight the LinesFile (lf) returning a fg and bg lines file.
-M.Highlighter.highlight = function(hl, lf) --> fgLf, bgLf
-  local modTime = ix.stat(hl.f):modified()
-  local root = pegl.parse(lf, hl.spec, hl.config)
+function M.Highlighter:highlight(lf) --> fgLf, bgLf
+  local modTime = ix.stat(self.f):modified()
+  local root = pegl.parse(lf, self.spec, self.config)
 
-  local path = pth.concat(hl.dir, lf:path())
+  local path = pth.concat(self.dir, lf:path())
   ix.mkDirs( (pth.last(path)) )
 
   local fgPath, bgPath = path..'fg', path..'bg'
   local fgLf = assert(EdFile(fgPath, 'w'))
   local bgLf = assert(EdFile(bgPath, 'w'))
 
-  hl:_highlight(modTime, root, fgFile, bgFile)
+  self:_highlight(modTime, root, fgFile, bgFile)
 
   fgFile:close(), bgFile:close()
   return fgPath, bgPath

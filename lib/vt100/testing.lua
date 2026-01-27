@@ -10,17 +10,17 @@ local co = coroutine
 
 M.Fake = mty.extend(vt.Term, 'Fake')
 
-M.Fake.resize = function(tm, l, c)
+function M.Fake:resize(l, c)
   assert(l and c, 'must pass l,c for Fake')
-  tm.l, tm.c = l, c
-  tm:clear()
+  self.l, self.c = l, c
+  self:clear()
 end
 
 M.Fake.draw  = ds.nosupport
 M.Fake.input = ds.nosupport
 
 --- start rawmode using tmpfiles
-M.startTmp = function() --> out, err
+function M.startTmp() --> out, err
   local err = io.tmpfile()
   vt.start(err)
   return err

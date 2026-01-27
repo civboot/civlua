@@ -183,7 +183,7 @@ end
 
 local COLON = {['r:']='root', ['p:']='path', ['s:']='pat'}
 --- parse [$c:commands] into t
-parseColons = function(args)
+function parseColons(args)
   local no, cmd, si
   for _, str in ipairs(args) do
     si = 1; no = str:sub(1,1) == '-'; if no then si = si + 1 end
@@ -196,10 +196,10 @@ end
 
 -----------------------
 -- Logging Utilities
-local linenum = function(l) return sfmt('% 6i ', l) end
+local function linenum(l) return sfmt('% 6i ', l) end
 local AFTER = '   --> '
 
-local splitMatch = function(str, ms, me) --> beg, mat, end_
+local function splitMatch(str, ms, me) --> beg, mat, end_
   local beg, mat = str:sub(1,ms-1), str:sub(ms,me)
   local end_     = str:sub(me+1)
   local hasNL = str:sub(-1) == '\n'
@@ -210,14 +210,14 @@ local splitMatch = function(str, ms, me) --> beg, mat, end_
   return beg, mat, end_
 end
 
-fmtMatch = function(f, l, str, ms, me)
+function fmtMatch(f, l, str, ms, me)
   local beg, mat, end_ = splitMatch(str, ms, me)
   f:styled('line',  l and linenum(l) or '       ')
   f:styled(nil,     beg)
   f:styled('match', mat)
   f:styled(nil,     end_, '\n')
 end
-fmtSub = function(f, before, after)
+function fmtSub(f, before, after)
   local si, ei = 1, -1
   while before:sub(si,si) == after:sub(si,si) do si = si + 1 end
   while before:sub(ei,ei) == after:sub(ei,ei) do ei = ei - 1 end

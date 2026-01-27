@@ -11,16 +11,16 @@ local AcWriter = mty'vt100.AcWriter' {
   'bg [string]: current background ac letter', bg='z',
 }
 
-AcWriter.flush = function(aw) return aw.f:flush() end
+function AcWriter:flush() return self.f:flush() end
 
 --- [$:acwrite(fgstr, bgstr, str, ...)]: writes str with style of fg/bg str
-AcWriter.acwrite = function(aw, fgstr, bgstr, ...) --> write(...)
+function AcWriter:acwrite(fgstr, bgstr, ...) --> write(...)
   local w1, w2
-  aw.fg, aw.bg, w1, w2 = acwrite(
-    aw.f, colorFB, aw.fg, aw.bg, fgstr, bgstr, ...)
+  self.fg, self.bg, w1, w2 = acwrite(
+    self.f, colorFB, self.fg, self.bg, fgstr, bgstr, ...)
   return w1, w2
 end
 --- write plain
-AcWriter.write = function(aw, ...) return aw:acwrite(nil, nil, ...) end
+function AcWriter:write(...) return self:acwrite(nil, nil, ...) end
 
 return AcWriter

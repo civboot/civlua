@@ -25,7 +25,7 @@ local info = require'ds.log'.info
 
 ix.mkDirs(O)
 
-local loadu3s = function(f)
+local function loadu3s(f)
   local pos, t = f:seek'cur', {}; assert(pos)
   info('end: %i', f:seek'end')
   f:seek'set'
@@ -35,8 +35,8 @@ local loadu3s = function(f)
 end
 
 local fin = false
-local tests = function()
-T.U3File = function()
+local function tests()
+T'U3File'; do
   local u = U3File:create()
   u:set(1, 11); u:set(2, 22); u:set(3, 33)
   T.eq(11, u:get(1))
@@ -74,7 +74,7 @@ T.U3File = function()
   T.eq({0, 3, 5, 7}, loadu3s(u.f))
 end
 
-T.reindex = function()
+T'reindex'; do
   local reindex = File._reindex
   local idx, f = {}, io.tmpfile()
   local txt = 'hi\nthere\nindex'
@@ -92,7 +92,7 @@ T.reindex = function()
     T.eq({0, 3, 9, 15}, idx)
 end
 
-T.File = function()
+T'File'; do
   local f = assert(File()); f.cache = ds.Forget{}
   T.eq('lines.File()', fmt(f))
   T.eq(0, #f); T.eq({}, ds.icopy(f))
@@ -138,7 +138,7 @@ local function edEq(a, b)
   T.eq(ds.icopy(a), ds.icopy(b))
 end
 
-T.EdFile_index = function()
+T'EdFile_index'; do
   local ef = mty.construct(EdFile, {lens={}, dats={
     ds.Slc{si=1, ei=2},
     ds.Slc{si=3, ei=6},
@@ -171,7 +171,7 @@ T.EdFile_index = function()
   T.eq(6, #ef)
 end
 
-T.EdFile_newindex = function()
+T'EdFile_newindex'; do
   local S = function(si, ei) return ds.Slc{si=si, ei=ei} end
   local ef = EdFile()
   T.eq(0, #ef)
@@ -195,7 +195,7 @@ T.EdFile_newindex = function()
   T.eq({1, 2}, ef.lens); T.eq(2, #ef)
 end
 
-T.EdFile_write = function()
+T'EdFile_write'; do
   local ed = EdFile(TXT, 'w+')
   ed:write'one\nthree\nfive'
   ed:flush()
@@ -246,7 +246,7 @@ T.EdFile_write = function()
   ]], pth.read(O..'ed.dump'))
 end
 
-T.EdFile_big = function()
+T'EdFile_big'; do
   local ed = EdFile(TXT, 'w+')
   for i=1,100 do ed:set(#ed+1, 'line '..i) end
   -- FIXME: sometimes this reports 200 (ioAsync)
@@ -275,15 +275,15 @@ local function newEdFile(text, ...)
   return ed
 end
 
-T.EdFile_linesOffset = function()
+T'EdFile_linesOffset'; do
   testing.testOffset(newEdFile(testing.DATA.offset))
 end
 
-T.EdFile_linesRemove = function()
+T'EdFile_linesRemove'; do
   testing.testLinesRemove(newEdFile, edEq, ds.noop)
 end
 
-T.EdFile_inset = function()
+T'EdFile_inset'; do
   require'ds.testing'.testInsetStr(newEdFile, edEq)
 end
 fin = true

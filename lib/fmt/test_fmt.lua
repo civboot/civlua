@@ -5,7 +5,7 @@ local M = require'fmt'
 local fmt = M
 local sfmt = string.format
 
-T.tostring = function()
+T'tostring'; do
   T.eq('"a123"',    fmt("a123"))
   T.eq('"123"',     fmt("123"))
   T.eq('"abc def"', fmt("abc def"))
@@ -19,7 +19,7 @@ T.tostring = function()
   )
 end
 
-T.fmt = function()
+T'fmt'; do
   T.eq("{1, 2, 3}", M.tostring{1, 2, 3})
 
   local t = {1, 2}; t[3] = t
@@ -35,14 +35,14 @@ T.fmt = function()
            M.tostring({1, 2, a=12}, M.Fmt:pretty{}))
 end
 
-T.format = function()
+T'format'; do
   T.eq('hi "Bob"! Goodbye',
     M.format('hi %q! %s', 'Bob', 'Goodbye'))
   T.eq('running point: {x=3, y=7}...',
     M.format('%s point: %q...', 'running', {x=3, y=7}))
 end
 
-T.record = function()
+T'record'; do
   local A = mty'A'{'a2[any]', 'a1[any]'}
   local B = mty'B'{
     'b1[number]', 'b2[number] (default=32)',
@@ -54,7 +54,7 @@ T.record = function()
   }))
 end
 
-T.binary = function()
+T'binary'; do
   local bin = require'fmt.binary'
   local format = function(...)
     local f = M.Fmt{}; bin.format(f, ...); return table.concat(f)
@@ -72,7 +72,7 @@ T.binary = function()
 "     0: 68 69        | hi", bin.bstring('hi', 4))
 end
 
-T.metaty = function()
+T'metaty'; do
   local A = mty'A'{'a1', 'a2'}
   T.eq('A{a1=42, a2=nil}', M(A{a1=42}))
   local a = A{a1=1, a2=2, 3, 4, 5}

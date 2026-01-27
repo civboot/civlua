@@ -22,12 +22,12 @@ local byte, char = string.byte, string.char
 local push = table.insert
 
 M.tableToIa = {}
-M.toIa = function(tok)
-  assert(tok.kind, 'only supports tokens with a kind')
-  local toFn = M.tableToIa[tok.kind]; if not toFn then
-    error(tok.kind..' is not a known kind')
+function M.toIa(self)
+  assert(self.kind, 'only supports tokens with a kind')
+  local toFn = M.tableToIa[self.kind]; if not toFn then
+    error(self.kind..' is not a known kind')
   end
-  return toFn(tok)
+  return toFn(self)
 end
 
 M.rvalue = Or{name='rvalue'}
@@ -41,7 +41,7 @@ M.num = Or{
 M.literal = Or{M.num, lua.str}
 
 -- form: neg? number (. number)
-local extractNum = function(t) --> str
+local function extractNum(t) --> str
   return (isEmpty(t[1]) and '' or '-1')
        ..t[2]
        ..(isEmpty(t[3]) and '' or ('.'..t[4]))
@@ -62,7 +62,7 @@ ds.update(M.tableToIa, {
 
 --- ( rvalue ): used for i.e. (A = 3) += ...
 M.group = {kind='group', '(', M.rvalue, ')'}
-M.tableToIa.group = function(t) return toIa(t[2]) end
+function M.tableToIa:group() return toIa(self[2]) end
 
 M.keyword = pegl.Key{name='keyw', {
   'do', 'end', 'if', 'else', 'elseif',
@@ -75,7 +75,7 @@ for b=byte'A',byte'Z' do push(M.reg, char(b)) end
 M.reg = pegl.Key{kind='reg', M.reg}
 
 M.name   = {UNPIN, Not{M.keyword}, common.name}
-M.tableToIa.name = function(r) return iA.Var{name=r[1]} end
+function M.tableToIa:name() return iA.Var{name=self[1]} end
 
 M.tySpec = {kind='tySpec', ':', common.ty}
 M.var    = {kind='var',
@@ -83,12 +83,12 @@ M.var    = {kind='var',
   Maybe(M.tySpec),
 }
 
-M.tableToIa.var = function(r)
-  local reg = r[2][1]; assert(iA.Reg.name(reg))
+function M.tableToIa:var()
+  local reg = self[2][1]; assert(iA.Reg.name(reg))
   return iA.Var{
-    imm=isEmpty(r[1]) or nil, reg=reg,
-    name=notEmpty(r[3]) and r[3][1] or nil,
-    ty=notEmpty(r[4]) and assert(r[4][2][1]) or nil,
+    imm=isEmpty(self[1]) or nil, reg=reg,
+    name=notEmpty(self[3]) and self[3][1] or nil,
+    ty=notEmpty(self[4]) and assert(self[4][2][1]) or nil,
   }
 end
 
@@ -111,8 +111,8 @@ M.cmpOp = pegl.Key{{
   ['>']={true, ['=']=true},                     -- >  and >=
 }}
 M.cmp = {kind='cmp', UNPIN, M.rvalue, M.cmpOp, PIN, M.rvalue}
-M.tableToIa.eq = function(tok)
-  return iA.Cmp{l=M.toIa(tok[1]), op=tok[2][1], r=M.toIa(tok[3])}
+function M.tableToIa:eq()
+  return iA.Cmp{l=M.toIa(self[1]), op=self[2][1], r=M.toIa(self[3])}
 end
 
 local _eq = {['=']=true} -- tokens end in =
@@ -131,11 +131,11 @@ M.eq = {kind='eq',
   UNPIN, M.lvalue, Not{M.cmpOp},
   M.eqOp, PIN, M.rvalue
 }
-M.tableToIa.eq = function(tok)
+function M.tableToIa:eq()
   return iA.Expr1{
     kind=iA.Expr1Kind.EQ1,
-    op=iA.Op.name(assert(M.eqOpToken[tok[2][1]])),
-    M.toIa(tok[1]), M.toIa(tok[3]),
+    op=iA.Op.name(assert(M.eqOpToken[self[2][1]])),
+    M.toIa(self[1]), M.toIa(self[3]),
   }
 end
 
@@ -189,7 +189,7 @@ M.if_ = {kind='if',
   'end',
 }
 
-local condBlockToIa = function(t)
+local function condBlockToIa(t)
   local cond = iA.CondBlock{cond=M.toIa(t[2])}
   for i, stmt in ipairs(t[4]) do cond[i] = M.toIa(stmt) end
   return cond

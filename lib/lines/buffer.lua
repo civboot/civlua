@@ -11,7 +11,7 @@ local push, ty = table.insert, mty.ty
 local concat = table.concat
 
 M.ChangeId = 0
-M.nextChangeId = function() M.ChangeId = M.ChangeId + 1; return M.ChangeId end
+function M.nextChangeId() M.ChangeId = M.ChangeId + 1; return M.ChangeId end
 
 M.ChangeStart = mty'ChangeStart' {
   'l1[int]',       'c1[int]',
@@ -69,160 +69,160 @@ local CHANGE_REDO = { ins=redoIns, rm=redoRm, }
 local CHANGE_UNDO = { ins=redoRm, rm=redoIns, }
 
 -- TODO: remove this
-Buffer.new = function(s)
+function Buffer.new(s)
   return Buffer{ dat=Gap(s) }
 end
 
-Buffer.path = function(b) return b.dat.path end --> path?
+function Buffer:path() return self.dat.path end --> path?
 
-Buffer.__fmt = function(b, fmt)
+function Buffer:__fmt(fmt)
   fmt:write(('Buffer{%s, id=%s, path=%q}'):format(
-    b.tmp and (#b.tmp == 0) and '(closed) ' or '(tmp)',
-    b.id, b.dat.path))
+    self.tmp and (#self.tmp == 0) and '(closed) ' or '(tmp)',
+    self.id, self.dat.path))
 end
-Buffer.__len = function(b)    return #b.dat end
-Buffer.get   = function(b, i) return b.dat:get(i) end
+function Buffer:__len() return #self.dat       end
+function Buffer:get(i)  return self.dat:get(i) end
 
-Buffer.addChange = function(b, ch)
-  b.changeI = b.changeI + 1; b.changeMax = b.changeI
-  b.changes[b.changeI] = ch
+function Buffer:addChange(ch)
+  self.changeI = self.changeI + 1; self.changeMax = self.changeI
+  self.changes[self.changeI] = ch
   return ch
 end
 --- Return true if anything has changed since i (default=changeStartI)
-Buffer.changed = function(b, i) --> bool
-  return (i or b.changeStartI) < b.changeI
+function Buffer:changed(i) --> bool
+  return (i or self.changeStartI) < self.changeI
 end
-Buffer.discardUnusedStart = function(b)
-  if b.changeI ~= 0 and b.changeStartI == b.changeI then
-    local ch = b.changes[b.changeI]
+function Buffer:discardUnusedStart()
+  if self.changeI ~= 0 and self.changeStartI == self.changeI then
+    local ch = self.changes[self.changeI]
     assert(ty(ch) == ChangeStart)
-    b.changeI = b.changeI - 1
-    b.changeMax = b.changeI
-    b.changeStartI = 0
+    self.changeI = self.changeI - 1
+    self.changeMax = self.changeI
+    self.changeStartI = 0
   end
 end
-Buffer.changeStart = function(b, l, c)
+function Buffer:changeStart(l, c)
   local ch = ChangeStart{l1=l, c1=c}
-  b:discardUnusedStart()
-  b:addChange(ch); b.changeStartI = b.changeI
+  self:discardUnusedStart()
+  self:addChange(ch); self.changeStartI = self.changeI
   return ch
 end
-Buffer.getStart = function(b)
-  if b.changeStartI <= b.changeMax then
-    return b.changes[b.changeStartI]
+function Buffer:getStart()
+  if self.changeStartI <= self.changeMax then
+    return self.changes[self.changeStartI]
   end
 end
-Buffer.printChanges = function(b)
-  for i=1,b.changeMax do
-    pnt(b.changes[i], (i == b.changeI) and "<-- changeI" or "")
+function Buffer:printChanges()
+  for i=1,self.changeMax do
+    pnt(self.changes[i], (i == self.changeI) and "<-- changeI" or "")
   end
 end
 
-Buffer.changeIns = function(b, s, l, c)
-  return b:addChange(Change{k='ins', s=s, l=l, c=c})
+function Buffer:changeIns(s, l, c)
+  return self:addChange(Change{k='ins', s=s, l=l, c=c})
 end
-Buffer.changeRm = function(b, s, l, c)
-  return b:addChange(Change{k='rm', s=s, l=l, c=c})
+function Buffer:changeRm(s, l, c)
+  return self:addChange(Change{k='rm', s=s, l=l, c=c})
 end
 
-Buffer.canUndo = function(b) return b.changeI >= 1 end
+function Buffer:canUndo() return self.changeI >= 1 end
 -- TODO: shouldn't it be '<=' ?
-Buffer.canRedo = function(b) return b.changeI < b.changeMax end
+function Buffer:canRedo() return self.changeI < self.changeMax end
 
-Buffer.undoTop = function(b)
-  if b:canUndo() then return b.changes[b.changeI] end
+function Buffer:undoTop()
+  if self:canUndo() then return self.changes[self.changeI] end
 end
-Buffer.redoTop = function(b)
-  if b:canRedo() then return b.changes[b.changeI + 1] end
+function Buffer:redoTop()
+  if self:canRedo() then return self.changes[self.changeI + 1] end
 end
 
-Buffer.undo = function(b)
-  local ch = b:undoTop(); if not ch then return end
-  b:discardUnusedStart(); b.changeStartI = 0
+function Buffer:undo()
+  local ch = self:undoTop(); if not ch then return end
+  self:discardUnusedStart(); self.changeStartI = 0
 
   local done = {}
   while ch do
-    b.changeI = b.changeI - 1
+    self.changeI = self.changeI - 1
     push(done, ch)
     if ty(ch) == ChangeStart then break
     else
       assert(ty(ch) == Change)
-      CHANGE_UNDO[ch.k](ch, b)
+      CHANGE_UNDO[ch.k](ch, self)
     end
-    ch = b:undoTop()
+    ch = self:undoTop()
   end
   return ds.reverse(done)
 end
 
-Buffer.redo = function(b)
-  local ch = b:redoTop(); if not ch then return end
-  b:discardUnusedStart(); b.changeStartI = 0
+function Buffer:redo()
+  local ch = self:redoTop(); if not ch then return end
+  self:discardUnusedStart(); self.changeStartI = 0
   assert(ty(ch) == ChangeStart)
-  local done = {ch}; b.changeI = b.changeI + 1
-  ch = b:redoTop(); assert(ty(ch) ~= ChangeStart)
+  local done = {ch}; self.changeI = self.changeI + 1
+  ch = self:redoTop(); assert(ty(ch) ~= ChangeStart)
   while ch and ty(ch) ~= ChangeStart do
-    b.changeI = b.changeI + 1
+    self.changeI = self.changeI + 1
     push(done, ch)
-    CHANGE_REDO[ch.k](ch, b)
-    ch = b:redoTop()
+    CHANGE_REDO[ch.k](ch, self)
+    ch = self:redoTop()
   end
   return done
 end
 
 --- Some APIs allow negative values for spans, this converts them
 --- to absolute positive line/cols.
-Buffer.span = function(b, ...)
+function Buffer:span(...)
   local l, c, l2, c2 = span(...)
-  if l  < 0 then l  = #b + l  + 1 end
-  if l2 < 0 then l2 = #b + l2 + 1 end
-  if c  and c  < 0 then c  = #b:get(l)  + c  + 1 end
-  if c2 and c2 < 0 then c2 = #b:get(l2) + c2 + 1 end
+  if l  < 0 then l  = #self + l  + 1 end
+  if l2 < 0 then l2 = #self + l2 + 1 end
+  if c  and c  < 0 then c  = #self:get(l)  + c  + 1 end
+  if c2 and c2 < 0 then c2 = #self:get(l2) + c2 + 1 end
   return l, c, l2, c2
 end
 
-Buffer.append = function(b, s)
-  local ch = b:changeIns(s, #b.dat + 1, 1)
-  b.dat:append(s)
+function Buffer:append(s)
+  local ch = self:changeIns(s, #self.dat + 1, 1)
+  self.dat:append(s)
   return ch
 end
 
-Buffer.insetTracked = function(b, l, lines, rmlen) --> changes
-  local chs, rm = {}, b:inset(l, lines, rmlen)
+function Buffer:insetTracked(l, lines, rmlen) --> changes
+  local chs, rm = {}, self:inset(l, lines, rmlen)
   if rm then
-    push(chs, b:changeRm(concat(rm, '\n'), l,1))
+    push(chs, self:changeRm(concat(rm, '\n'), l,1))
   end
   if lines and #lines > 0 then
-    push(chs, b:changeIns(concat(lines, '\n'), l,1))
+    push(chs, self:changeIns(concat(lines, '\n'), l,1))
   end
   return chs
 end
 
-Buffer.insert = function(b, s, l, c)
-  l, c = lines.bound(b.dat, l, c)
-  local ch = b:changeIns(s, l, c)
-  lines.insert(b.dat, s, l, c)
+function Buffer:insert(s, l, c)
+  l, c = lines.bound(self.dat, l, c)
+  local ch = self:changeIns(s, l, c)
+  lines.insert(self.dat, s, l, c)
   return ch
 end
 
-Buffer.remove = function(b, ...)
+function Buffer:remove(...)
   local l, c, l2, c2 = span(...)
-  local dat = b.dat
+  local dat = self.dat
   l,c = bound(dat, l,c); l2,c2 = bound(dat, l2,c2)
   local lt, ct = motion.topLeft(l, c, l2, c2)
   lt, ct = lines.bound(dat, lt, ct)
   local ch = lines.sub(dat, l, c, l2, c2)
   ch = (type(ch)=='string' and ch) or concat(ch, '\n')
-  ch = b:changeRm(ch, lt, ct)
+  ch = self:changeRm(ch, lt, ct)
   log.info('remove %s.%s : %s.%s', l, c, l2, c2)
   lines.remove(dat, l, c, l2, c2)
   return ch
 end
 
-ChangeStart.__tostring = function(c)
-  return string.format('[%s.%s -> %s.%s]', c.l1, c.c1, c.l2, c.c2)
+function ChangeStart:__tostring()
+  return string.format('[%s.%s -> %s.%s]', self.l1, self.c1, self.l2, self.c2)
 end
-Change.__tostring = function(c)
-  return string.format('{%s %s.%s %q}', c.k, c.l, c.c, c.s)
+function Change:__tostring()
+  return string.format('{%s %s.%s %q}', self.k, self.l, self.c, self.s)
 end
 
 return M

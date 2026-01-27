@@ -30,13 +30,13 @@ G.LAP_CORS      = G.LAP_CORS or ds.WeakKV{}
 G.LAP_ASYNC     = G.LAP_ASYNC or false
 
 --- Clear all lap globals.
-M.reset = function()
+function M.reset()
   assert(not LAP_ASYNC, "don't clear while still running")
   G.LAP_READY, G.LAP_TRACE = {}, {}
   G.LAP_CORS = ds.WeakKV{}
 end
 
-M.formatCorErrors = function(corErrors)
+function M.formatCorErrors(corErrors)
   local f = fmt.Fmt{}
   for i, ce in ipairs(corErrors) do
     f:write(sfmt('Coroutine Error #%s:\n', i))
@@ -46,14 +46,14 @@ M.formatCorErrors = function(corErrors)
 end
 
 --- Switch lua to synchronous (blocking) mode.
-M.sync  = function()
+function M.sync()
   if not LAP_ASYNC then return end
   for _, fn in ipairs(LAP_FNS_SYNC)  do fn() end
   assert(not LAP_ASYNC)
 end
 
 --- Switch lua to asynchronous (yielding) mode.
-M.async = function()
+function M.async()
   if LAP_ASYNC then return end
   for _, fn in ipairs(LAP_FNS_ASYNC) do fn() end
   assert(LAP_ASYNC)
@@ -71,7 +71,7 @@ M._async.yield = yield
 --- * sync:  run the fn immediately and return nil
 --- * async: create and schedule returned coroutine
 --- ]
-M.schedule = function(fn, ...) fn(...) end
+function M.schedule(fn, ...) fn(...) end
 M._sync.schedule = M.schedule
 function M._async.schedule(fn, ...)
   assert(select('#', ...) == 0, 'only function supported')
@@ -265,20 +265,20 @@ getmetatable(M.Any).__call = function(T, fns)
   return mty.construct(T, self)
 end
 --- Stop running functions.
-M.Any.ignore = function(self) self.cor = nil end
+function M.Any:ignore() self.cor = nil end
 
 --- ensure all fns are scheduled
-M.Any.schedule = function(self) --> self
+function M.Any:schedule() --> self
   for i in pairs(self.done) do self:restart(i) end
 end
 
 --- yield until any fn is done
-M.Any.yield = function(self) --> fnIndex
+function M.Any:yield() --> fnIndex
   while not next(self.done) do yield'forget' end
   return next(self.done)
 end
 --- restart fn at index
-M.Any.restart = function(self, i)
+function M.Any:restart(i)
   LAP_READY[coroutine.create(self.fns[i])] = 'any-item'
   self.done[i] = nil
 end

@@ -45,13 +45,13 @@ local MFLAGS = mty.enum'MFLAGS'{
   ['a+'] = S.O_RDWR   | S.O_CREAT | S.O_APPEND,
 }
 --- Given a string mode, return whether the file will be truncated.
-M.isTrunc = function(mode) --> bool
+function M.isTrunc(mode) --> bool
   return (assert(MFLAGS.id(mode), mode) & S.O_TRUNC) ~= 0
 end
 
 --- Given a string mode, return whether the file will be created
 --- if it doesn't exist.
-M.isCreate = function(mode)
+function M.isCreate(mode)
   return (assert(MFLAGS.id(mode), mode) & S.O_CREAT) ~= 0
 end
 
@@ -91,18 +91,18 @@ M.PIPE_BUF = 512 -- POSIX.1
 
 S.FD.__close  = S.FD.__index.close
 S.FD.__name = 'fd.FD'
-S.FD.__tostring = function(fd) return sfmt('FD(%s)', fd:fileno()) end
+function S.FD:__tostring() return sfmt('FD(%s)', self:fileno()) end
 S.FDT.__close = S.FDT.__index.close
 S.FDT.__name = 'fd.FDT'
 S.FDT.__tostring = S.FD.__tostring
 
-local function finishRunning(fd, kind, ...)
-  while fd:code() == S.FD_RUNNING do yield(kind or true, ...) end
+local function finishRunning(self, kind, ...)
+  while self:code() == S.FD_RUNNING do yield(kind or true, ...) end
 end
 
 --- return whether two fstat's have equal modification times
 --- FIXME: move this to civix
-M.modifiedEq = function(fs1, fs2)
+function M.modifiedEq(fs1, fs2)
   local s1, ns1 = fs1:modified()
   local s2, ns2 = fs2:modified()
   return (s1 == s2) and (ns1 == ns2)
@@ -111,62 +111,62 @@ end
 ----------------------------
 -- WRITE / SEEK
 
-S.FD.__index.write = function(fd, ...)
+function S.FD.__index:write(...)
   local s = sconcat('', ...)
-  local c = fd:_write(s, 0)
+  local c = self:_write(s, 0)
   while YIELD_CODE[c] do
-    yield('poll', fd:fileno(), S.POLLOUT)
-    c = fd:_write(s)
+    yield('poll', self:fileno(), S.POLLOUT)
+    c = self:_write(s)
   end
-  if c > 0 then return nil, fd:codestr() end
-  return fd
+  if c > 0 then return nil, self:codestr() end
+  return self
 end
-M.FDT.__index.write = function(fd, ...)
+function M.FDT.__index:write(...)
   local s = sconcat('', ...)
-  while fd:_write(s) do end
-  finishRunning(fd, 'poll', fd:_evfileno(), S.POLLIN)
-  if fd:code() > 0 then return nil, fd:codestr() end
-  return fd
+  while self:_write(s) do end
+  finishRunning(self, 'poll', self:_evfileno(), S.POLLIN)
+  if self:code() > 0 then return nil, self:codestr() end
+  return self
 end
 
 local WHENCE = { set=S.SEEK_SET, cur=S.SEEK_CUR, ['end']=S.SEEK_END }
-S.FD.__index.seek = function(fd, whence, offset)
+function S.FD.__index:seek(whence, offset)
   whence = assert(WHENCE[whence or 'cur'], 'unrecognized whence')
-  while fd:_seek(offset or 0, whence) do end
-  finishRunning(fd, 'poll', fd:getpoll(S.POLLIN | S.POLLOUT))
-  if(fd:code() > 0) then return nil, fd:codestr() end
-  return fd:pos()
+  while self:_seek(offset or 0, whence) do end
+  finishRunning(self, 'poll', self:getpoll(S.POLLIN | S.POLLOUT))
+  if(self:code() > 0) then return nil, self:codestr() end
+  return self:pos()
 end
 
-S.FD.__index.flush = function(fd)
-  fd:_flush(); finishRunning(fd, 'sleep', 1e-4)
-  if fd:code() ~= 0 then return nil, fd:codestr() else return true end
+function S.FD.__index:flush()
+  self:_flush(); finishRunning(self, 'sleep', 1e-4)
+  if self:code() ~= 0 then return nil, self:codestr() else return true end
 end
 
-S.FD.__index.flags = function(fd)
-  local code, flags = fd:_getflags()
-  if code ~= 0 then error(fd:codestr()) end
+function S.FD.__index:flags()
+  local code, flags = self:_getflags()
+  if code ~= 0 then error(self:codestr()) end
   return flags
 end
-S.FD.__index.toNonblock = function(fd)
-  if fd:_setflags(S.O_NONBLOCK | fd:flags()) ~= 0 then
-    return nil, fd:codestr()
-  end; return fd
+function S.FD.__index:toNonblock()
+  if self:_setflags(S.O_NONBLOCK | self:flags()) ~= 0 then
+    return nil, self:codestr()
+  end; return self
 end
-S.FD.__index.toBlock = function(fd)
-  if fd:_setflags(~S.O_NONBLOCK & fd:flags()) ~= 0 then
-    return nil, fd:codestr()
-  end; return fd
+function S.FD.__index:toBlock()
+  if self:_setflags(~S.O_NONBLOCK & self:flags()) ~= 0 then
+    return nil, self:codestr()
+  end; return self
 end
-S.FD.__index.isAsync = function(fd)
-  return (fd:flags() & S.O_NONBLOCK) ~= 0
+function S.FD.__index:isAsync()
+  return (self:flags() & S.O_NONBLOCK) ~= 0
 end
 
-S.FD.__index.getpoll = function(fd, events)
-  return fd:fileno(), events
+function S.FD.__index:getpoll(events)
+  return self:fileno(), events
 end
-S.FDT.__index.getpoll = function(fdt)
-  return fdt:_evfileno(), S.POLLIN
+function S.FDT.__index:getpoll()
+  return self:_evfileno(), S.POLLIN
 end
 
 ----------------------------
@@ -182,12 +182,12 @@ local function readLap(fd, c)
   end
   return nil, fd:codestr()
 end
-S.FD.__index._readTill = function(fd, till)
-  while readLap(fd, fd:_read(till)) do end
+function S.FD.__index:_readTill(till)
+  while readLap(self, self:_read(till)) do end
 end
-S.FDT.__index._readTill = function(fd, till)
-  fd:_read(till)
-  while readLap(fd, fd:code()) do end
+function S.FDT.__index:_readTill(till)
+  self:_read(till)
+  while readLap(self, self:code()) do end
 end
 
 --- Different read modes
@@ -214,18 +214,18 @@ end
 local READ_MODE = {
   a=readAll, ['*a']=readAll, l=readLineNoNL, L=readLineYesNL,
 }
-local modeFn = function(mode)
+local function modeFn(mode)
   local fn = (type(mode) == 'number') and readAmt or READ_MODE[mode or 'l']
   if not fn then error('mode not supported: '..tostring(mode)) end
   return fn
 end
-S.FD.__index.read = function(fd, mode)
-  return modeFn(mode)(fd, mode)
+function S.FD.__index:read(mode)
+  return modeFn(mode)(self, mode)
 end
 
-S.FD.__index.lines = function(fd, mode)
+function S.FD.__index:lines(mode)
   local fn = modeFn(mode or 'l')
-  return function() return fn(fd, mode) end
+  return function() return fn(self, mode) end
 end
 
 ----------------------------
@@ -242,9 +242,9 @@ S.FDT.__index.toNonblock = function() error'invalid' end
 S.FDT.__index.toBlock    = function() error'invalid' end
 S.FDT.__index.isAsync    = function() return true end
 
-S.FDT.__index.close = function(fd)
-  finishRunning(fd, 'sleep', 1e-4)
-  fd:_close();
+function S.FDT.__index:close()
+  finishRunning(self, 'sleep', 1e-4)
+  self:_close();
 end
 
 ----------------------------
@@ -287,20 +287,20 @@ __index = {
 ----------------------------
 -- io backfill
 
-M.openWith = function(openFn, path, mode)
+function M.openWith(openFn, path, mode)
   mode = mode or 'r'
   local flags = mflagsInt(mode:gsub('b', ''))
   local f = openFn(path, flags); finishRunning(f, 'sleep', 1e-4)
   if f:code() ~= 0 then return nil, f:codestr() end
   return f
 end
-M.openFD  = function(...) return M.openWith(S.openFD, ...)  end
-M.openFDT = function(...) return M.openWith(S.openFDT, ...) end
-M.open = function(...)
+function M.openFD(...) return M.openWith(S.openFD, ...)  end
+function M.openFDT(...) return M.openWith(S.openFDT, ...) end
+function M.open(...)
   return M.openWith((LAP_ASYNC and S.openFDT) or S.openFD, ...)
 end
-M.close   = function(fd) fd:close() end
-M.tmpfileFn = function(sysFn)
+function M.close(fd) fd:close() end
+function M.tmpfileFn(sysFn)
   local f = sysFn(); finishRunning(f, 'sleep', 1e-4)
   if f:code() ~= 0 then return nil, f:codestr() end
   return f
@@ -309,12 +309,12 @@ M._sync.tmpfile  = function() return M.tmpfileFn(S.tmpFD)  end
 M._async.tmpfile = function() return M.tmpfileFn(S.tmpFDT) end
 M.tmpfile = M._sync.tmpfile
 
-M.read    = function(...)
+function M.read(...)
   local inp = M.input()
   io.stderr:flush()
   return inp:read(...)
 end
-M.lines   = function(path, mode)
+function M.lines(path, mode)
   mode = mode or 'l'
   if not path then return M.input():lines(mode) end
   local fd = M.open(path)
@@ -326,39 +326,39 @@ M.lines   = function(path, mode)
   end
   return fn, nil, nil, fd
 end
-M.write = function(...) return M.output():write(...) end
+function M.write(...) return M.output():write(...) end
 
-M.openFileno = function(fileno)
+function M.openFileno(fileno)
   local fd = S.newFD(); fd:_setfileno(fileno)
   return fd
 end
 M.stdin  = M.openFileno(S.STDIN_FILENO)
 M.stdout = M.openFileno(S.STDOUT_FILENO)
 
-M.input  = function() return M.stdin end
-M.output = function() return M.stdout end
-M.flush  = function() return M.output():flush() end
+function M.input() return M.stdin end
+function M.output() return M.stdout end
+function M.flush() return M.output():flush() end
 
 local FD_TYPES = {[S.FD] = true, [S.FDT] = true}
 
-M.type   = function(fd)
+function M.type(fd)
   local mt = getmetatable(fd)
   if mt and FD_TYPES[mt] then
     return (fd:fileno() >= 0) and 'file' or 'closed file'
   end
   return iotype(fd)
 end
-M.fileno = function(fd)
+function M.fileno(fd)
   if iotype(fd) then return S.fileno(fd) end
   if type(fd) == 'userdata' then return fd:fileno() end
   local meth = rawget(getmetatable(fd), 'fileno')
   return meth and meth(fd)
 end
 local fileno = M.fileno
-M.ftype = function(f)
+function M.ftype(f)
   return fmodeName(S_IFMT & fstmode(fileno(f)))
 end
-M.isatty = function(fd)
+function M.isatty(fd)
   fd = type(fd) == 'number' and fd or fileno(fd)
   return fd and S.isatty(fd)
 end
@@ -389,17 +389,17 @@ end
 copyKeysM(IO_KEYS, io, M.io)
 
 --- Switch the global [$io] module to use builtin functions.
-M.ioStd = function()
+function M.ioStd()
   assert(not LAP_ASYNC); copyKeysM(IO_KEYS, M.io,    io)
 end
 --- Switch the global [$io] module to use sync functions from
 --- this module.
-M.ioSync = function()
+function M.ioSync()
   assert(not LAP_ASYNC); copyKeysM(IO_KEYS, M._sync, io)
 end
 --- Switch the global [$io] module to use async functions from
 --- this module.
-M.ioAsync = function()
+function M.ioAsync()
   assert(LAP_ASYNC);     copyKeysM(IO_KEYS, M._async, io)
 end
 

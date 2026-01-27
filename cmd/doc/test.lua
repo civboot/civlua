@@ -2,7 +2,7 @@ local mty = require'metaty'
 --- Example module
 local Tm = mty.mod'TestMod'
 --- Example function documentation.
-Tm.exampleFn = function(a) --> b
+function Tm.exampleFn(a) --> b
 end
 --- Example record documentation.
 ---

@@ -10,7 +10,7 @@ local mty = require'metaty'
 local M = mty.mod'mymod'
 
 --- my fn docs in [$cxt]
-M.myFn = function(a, b) --> string
+function M.myFn(a, b) --> string
   -- do stuff
 end
 ]$

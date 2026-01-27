@@ -21,7 +21,7 @@ local concat, sort = table.concat, table.sort
 local sfmt, find = string.format, string.find
 
 --- convert to a table of [$key=value] lines.
-M.to = function(t)
+function M.to(t)
   local kv = {}; for k, v in pairs(t) do
     push(kv, sconcat('=', tostring(k), tostring(v)))
   end
@@ -30,7 +30,7 @@ M.to = function(t)
 end
 
 --- convert [$key=value] lines to a table.
-M.from = function(lines, to)
+function M.from(lines, to)
   to = to or {}
   for _, line in ipairs(lines) do
     local i = not (line:sub(1,1)=='#') and find(line, '=')
@@ -41,7 +41,7 @@ M.from = function(lines, to)
   return to
 end
 
-M.load = function(f, to) return M.from(lines.load(f), to) end
-M.dump = function(t, f)  return lines.dump(M.to(t), f)    end
+function M.load(f, to) return M.from(lines.load(f), to) end
+function M.dump(t, f)  return lines.dump(M.to(t), f)    end
 
 return M

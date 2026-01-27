@@ -11,7 +11,7 @@ local pegl = ds.auto'pegl'
 
 local KW, N, TY, NUM, HEX; ds.auto(testing)
 
-T.expr1 = function()
+T'expr1'; do
   -- literal 42
   local tok = assertParse{dat='42', spec=pegl.common.base10,
     expect=NUM{42},
@@ -39,14 +39,14 @@ T.expr1 = function()
     }, piA.toIa(tok))
 end
 
-T.Cmp = function()
+T'Cmp'; do
   local tok = assertParse{dat='a==3', spec=piA.stmt,
     expect={kind='cmp', N'a', KW'==', NUM{3},
     },
   }
 end
 
-T.Block = function()
+T'Block'; do
   local tok = assertParse{dat='true false a=2',
     spec=piA.block, expect={kind='block',
       KW'true', KW'false', {kind='assign',
@@ -61,7 +61,7 @@ T.Block = function()
   }, piA.toIa(tok))
 end
 
-T.If = function()
+T'If'; do
   local tok = assertParse{dat='goto loc', spec=piA.stmt,
     expect={kind='goto',
       KW'goto', N'loc',

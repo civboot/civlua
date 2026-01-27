@@ -1,8 +1,8 @@
 local function testloc()  return require'ds'.srcloc() end
 local function testshort() return require'ds'.shortloc() end
 local loc1, loc2 = testloc(), testshort()
-local a = function() error'a error' end
-local b = function() a() end; local c = function() b() end
+local function a() error'a error' end
+local function b() a() end; local c = function() b() end
 
 local push, yield = table.insert, coroutine.yield
 local pop = table.remove
@@ -35,7 +35,7 @@ local D = ds.srcdir()
 ---------------------
 -- ds.lua
 
-T.loc = function()
+T'loc'; do
   -- FIXME
   -- T.eq('lib/tests/test_ds.lua:3', loc1)
   -- T.eq('ds/test_ds.lua:3', loc2)
@@ -47,7 +47,7 @@ T.loc = function()
   -- end; fn()
 end
 
-T.simplestr = function()
+T'simplestr'; do
   T.eq('a', [[
 a]])
   T.eq('this is\n  a simple str.', s[[
@@ -67,14 +67,14 @@ a]])
   ]])
 end
 
-T.binString = function()
+T'binString'; do
   T.eq('0000_1000', M.bin(8))
   T.eq('1100_1010', M.bin(0xCA))
   T.eq('1000',      M.bin(8, 4))
   T.eq('0_1000',    M.bin(8, 5))
 end
 
-T.bool_and_none = function()
+T'bool_and_none'; do
   local none = assert(M.none)
   T.eq(false, M.bool())
   T.eq(false, M.bool(false))
@@ -97,7 +97,7 @@ T.bool_and_none = function()
   T.throws(err, function() return #none end)
 end
 
-T.imm = function()
+T'imm'; do
   T.eq({}, M.empty)
   T.eq(nil, next(M.empty))
   T.eq(0,  #M.empty)
@@ -128,7 +128,7 @@ T.imm = function()
   T.eq({kind='Empty'}, M.Imm{kind='Empty'})
 end
 
-T.number = function()
+T'number'; do
   assert(0, absDec(1)); assert(0, absDec(-1))
 
   assert(1 == bound(0, 1, 5))
@@ -146,7 +146,7 @@ T.number = function()
   local a, b = sort2(2, 1); assert(a == 1); assert(b == 2)
 end
 
-T.str = function()
+T'str'; do
   T.eq('hi there', trim('  hi there\n '))
   T.eq('hi there', trim('hi there'))
   local multi = [[  one
@@ -180,7 +180,7 @@ four
   T.eq('',     M.usub(u8, 100))
 end
 
-T.table = function()
+T'table'; do
   local t1, t2 = {1, 2}, {3, 4}
   assert(1 == indexOf(t2, 3)); assert(2 == indexOf(t2, 4))
 
@@ -251,7 +251,7 @@ T.table = function()
   T.eq({'.', 'h', 's'}, M.sortUnique{'h', '.', 's', 'h'})
 end
 
-T.freeze = function()
+T'freeze'; do
   local freeze = require'metaty.freeze'
   local t = freeze{1, 2, a='a1', b='b2', t={3, 4}}
   T.eq(1, t[1]); T.eq(2, t[2]); T.eq('a1', t.a)
@@ -259,7 +259,7 @@ T.freeze = function()
   T.eq(t, c)
 end
 
-T.Slc = function()
+T'Slc'; do
   local Slc = M.Slc
   local a = Slc{si=2, ei=10}
   T.eq(9, #a); T.eq('Slc[2:10]', fmt(a))
@@ -270,7 +270,7 @@ T.Slc = function()
   T.eq(expect, {Slc{si=12, ei=13}:merge(a)})
 end
 
-T.list = function()
+T'list'; do
   local t = {4, 5, 6}
   T.eq(4, M.geti(t, 1))
   T.eq(6, M.geti(t, -1))
@@ -300,14 +300,14 @@ T.list = function()
   require'ds.testing'.testInsetStr(ds.iden)
 end
 
-T.Set = function()
+T'Set'; do
   local s = Set{'a', 'b', 'c'}
   T.eq(Set{'a', 'c', 'b'}, s)
   T.eq(Set{'a', 'b'}, s:union(Set{'a', 'b', 'z'}))
   T.eq(Set{'a'}, s:diff(Set{'b', 'c', 'z'}))
 end
 
-T.LL = function()
+T'LL'; do
   local h, _ = LL(2)
   T.eq({2}, h:tolist())
 
@@ -340,7 +340,7 @@ T.LL = function()
   T.eq('LL{1 -> 3 -> 5}', fmt((LL:from{1, 3, 5})))
 end
 
-T['binary-search'] = function()
+T'binary-search'; do
   local bs = M.binarySearch
   local t = {1, 5, 8, 10, 12, 33}
   T.eq(0,   bs(t, -1))
@@ -350,7 +350,7 @@ T['binary-search'] = function()
   T.eq(6,   bs(t, 33)) T.eq(6,   bs(t, 1024))
 end
 
-T.time = function()
+T'time'; do
   local N = Duration.NANO
   local d = Duration(3, 500)
   T.eq(Duration(2, 500),     Duration(3, 500) - Duration(1))
@@ -375,7 +375,7 @@ local function assertPath(fn, expect, p)
   T.eq(expect, fn(p))       -- pass in string
   T.eq(expect, fn(pth(p))) -- pass in table
 end
-T.ds_path = function()
+T'ds_path'; do
   T.eq({'a', 'b', 'c'},  pth('a/b/c'))
   T.eq({'/', 'b', 'c'},  pth('/b/c'))
   T.eq({'a', 'b', 'c/'}, pth('a/b/c/'))
@@ -482,7 +482,7 @@ local function assertPops(expect, h)
   end
   T.eq(expect, t)
 end
-T.heap = function()
+T'heap'; do
   local h = heap.Heap{1, 5, 9, 10, 3, 2}
   assertPops({1, 2, 3, 5, 9, 10}, h)
   T.eq(0, #h)
@@ -497,7 +497,7 @@ T.heap = function()
   assertPops({{1}, {2}, {3}}, h)
 end
 
-T.dag = function()
+T'dag'; do
   local childrenMap = {
     a = {'b', 'c'},
     b = {'c', 'd'},
@@ -512,7 +512,7 @@ T.dag = function()
   T.eq({'a', 'b', 'c', 'd', 'a'}, cycle)
 end
 
-T.bimap = function()
+T'bimap'; do
   local bm = M.BiMap{'one', 'two'}
   T.eq(bm[1], 'one');   T.eq(bm.one, 1)
   T.eq(bm[2], 'two');   T.eq(bm.two, 2)
@@ -529,7 +529,7 @@ T.bimap = function()
        , fmt(bm))
 end
 
-T.deq = function()
+T'deq'; do
   local d = M.Deq()
   d:pushRight(4); T.eq(1, #d)
   d:pushRight(5); T.eq(2, #d)
@@ -553,7 +553,7 @@ stack traceback:
         lib/ds/ds.lua:1064: in function 'ds.tracelist'
         lib/ds/ds.lua:1084: in function <lib/ds/ds.lua:1081>
 ]]
-T.error = function()
+T'error'; do
   T.throws('expect failure', function()
     M.check(3, nil, nil, 'expect failure', 'other')
   end)
@@ -585,7 +585,7 @@ end
 
 ---------------------
 -- ds/Iter.lua
-T['ds.Iter'] = function()
+T'ds.Iter'; do
   local It = require'ds.Iter'
   local t = {4, 5, 'six', 7}
 
@@ -686,7 +686,7 @@ end
 --   print('{'+', '.join('0x%X' % c for c in '🙃'.encode('utf-8'))+'}')
 -- Edge case characters are from:
 --   https://design215.com/toolbox/ascii-utf8.php
-T.u8edges = function()
+T'u8edges'; do
   testU8('\0', {0})
   testU8(' ', {0x20})
   testU8('a', {string.byte('a')})
@@ -711,7 +711,7 @@ end
 
 -----------------
 -- Log
-T.log = function()
+T'log'; do
   local L = require'ds.log'
   local fn, lvl = assert(LOGFN), assert(LOGLEVEL)
   local logs = {}
@@ -754,7 +754,7 @@ end
 
 -----------------
 -- Grid
-T.Grid = function()
+T'Grid'; do
   local Grid = require'ds.Grid'
   local g = Grid{h=3, w=20}
     T.eq('\n\n', fmt(g))
@@ -792,7 +792,7 @@ end
 -- ds.lib (ds.c, ds.h)
 
 if G.NOLIB then print'skip bytearray' else
-T.bytearray = function()
+T'bytearray'; do
   local bytearray = ds.bytearray
   T.eq('bytearray', bytearray.__name)
   T.eq('bytearray type', getmetatable(bytearray).__name)
@@ -832,7 +832,7 @@ T.bytearray = function()
 end
 end -- if not G.NOLIB
 
-T['string.concat'] = function()
+T'string.concat'; do
   local sc = string.concat
   T.eq('',             sc(''))
   T.eq('one',          sc(' ', 'one'))
@@ -841,7 +841,7 @@ T['string.concat'] = function()
   T.eq('one-two-true', sc('-', 'one', 'two', 'true'))
 end
 
-T['table.update'] = function()
+T'table.update'; do
   local tu = table.update
   T.eq({},       tu({},  {}))
   T.eq({1},      tu({},  {1}))
@@ -850,13 +850,13 @@ T['table.update'] = function()
         tu({1, a=3, b=4}, {b=44, c=5}))
 end
 
-T['table.push'] = function()
+T'table.push'; do
   local tp = table.push
   local t = {1, 2, a=3}
   T.eq(3, tp(t, 3)); T.eq({1, 2, 3, a=3}, t)
 end
 
-T.load = function()
+T'load'; do
   local dload = require'ds.load'
   local env = {}
   local ok, res = dload(D..'data/load_data.lua', env)
@@ -867,7 +867,7 @@ T.load = function()
   T.eq(env, {global_ = 'global value'})
 end
 
-T.want = function()
+T'want'; do
   T.eq(ds,          mty.want'ds')
   T.eq(nil,         mty.want'lkja;lskjdflksajdf')
   T.eq(ds,          ds.wantpath'ds')

@@ -10,7 +10,7 @@ local push = table.insert
 
 M.SLEEP = 0
 
-M.newSession = function(text)
+function M.newSession(text)
   local s = Session:test{}; local ed = s.ed
   push(ed.buffers, buffer.Buffer.new(text))
   ed.edit = edit.Edit{buf=ed.buffers[1]}

@@ -30,7 +30,7 @@ local LINES3 =
 ..' 2 4 6\n'
 ..''
 
-local y = function(v) coroutine.yield(v or true) end
+local function y(v) coroutine.yield(v or true) end
 
 local function run(s)
   while (#s.keys + #s.events > 0) do coroutine.yield(true) end
@@ -146,7 +146,7 @@ local SMALL_1 = '\n'..[[
  0-- a small lua file for test
  1local M = {}
  2
- 3M.main = function()
+ 3function M.main()
  4  print'hello world'
  5end
  6

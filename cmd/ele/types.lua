@@ -83,17 +83,17 @@ M.HSplit.draw = function(sp, ed, isRight)
 end
 
 M.ID = 1
-M.uniqueId = function()
+function M.uniqueId()
   local id = M.ID; M.ID = M.ID+1; return id
 end
 
-M.checkBinding = function(b)
+function M.checkBinding(b)
   if not mty.callable(b) then
     return 'binding must be callable'
   end
 end
 
-M.checkBindings = function(btable, path)
+function M.checkBindings(btable, path)
   path = path or {}; push(path, '<root>')
   if type(btable) ~= 'table' then error(sfmt(
     '%s: bindings must be only tables and callables', concat(path)
@@ -118,13 +118,13 @@ M.checkBindings = function(btable, path)
   pop(path)
 end
 
-M.checkMode = function(data, mode) --> errstring
+function M.checkMode(data, mode) --> errstring
   if not data.modes[mode] then
     return sfmt('modes.%s does not exist', mode)
   end
 end
 
-M.checkAction = function(data, action) --> errstring
+function M.checkAction(data, action) --> errstring
   if not mty.callable(getp(data, {'actions', action})) then
     return sfmt('actions.%s is not a callable', action)
   end

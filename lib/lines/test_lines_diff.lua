@@ -14,7 +14,7 @@ local push = table.insert
 
 local function B(b) return {-1, b} end
 
-T.skip = function()
+T'skip'; do
   T.eq({3, 3}, {dt.skipEqLinesTop({1,1,1}, {1,1,2}, 1,3, 1,3)})
   T.eq({2, 3}, {dt.skipEqLinesTop({1,1,1}, {1,1,2}, 1,3, 2,3)})
   T.eq({1, 3}, {dt.skipEqLinesTop({1,1,1}, {1,1,2}, 1,3, 3,3)})
@@ -24,7 +24,7 @@ T.skip = function()
   T.eq({1, 0}, {dt.skipEqLinesBot({1,1,1}, {1,1,2}, 1,3, 1,2)})
 end
 
-T.findStack = function()
+T'findStack'; do
   local mb     = {3, 5, 12, 20, 30, 50, 60, 70, 90}
   local stacks = {1, 2, 3,  4,  5,  6,  7,  8,  9}
   T.eq(0, dt.findLeftStack(stacks, mb, 2))
@@ -38,7 +38,7 @@ local function uniqueMatches(aLines, bLines, a, a2, b, b2)
   return dt.uniqueMatches(aLines, bLines, a, a2, b, b2)
 end
 
-T.example = function()
+T'example'; do
   --                          1     2   3        4     5      6     6      7
   local linesA = ds.splitList'david a   electric gil slits    faust sonics sonics'
   local linesB = ds.splitList'slits gil david    a   electric faust sonics sonics'
@@ -69,7 +69,7 @@ T.example = function()
 ", fmt(res))
 end
 
-T.complex = function()
+T'complex'; do
   local linesA = ds.splitList'b c d e'
   local linesB = ds.splitList'X c d X'
 
@@ -118,8 +118,8 @@ local function assertDiff(expect, a, b)
   return d
 end
 
-local L = function(b, c) return sfmt('%5s %5s ', b or '', c or '') end
-T.smallDiffs = function()
+local function L(b, c) return sfmt('%5s %5s ', b or '', c or '') end
+T'smallDiffs'; do
   assertDiff(L('',1)..'peasy\n'
            ..L(1, 2)..'easy\n',
     'easy',

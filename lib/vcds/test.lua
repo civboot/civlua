@@ -5,7 +5,7 @@ local T = require'civtest'
 local Diff, Keep, Change; local M = ds.auto'vcds'
 local push = table.insert
 
-T.create_anchor = function()
+T'create_anchor'; do
   local base = {'1', '1', ' ', '2', '3', '3', ' ', '1', '2'}
   T.eq({}, M.createAnchorTop(base, 0, 2))
   T.eq({Diff(1, '@', '1')}, M.createAnchorTop(base, 1, 2))
@@ -32,7 +32,7 @@ T.create_anchor = function()
   }, M.createAnchorBot(base, 7, 2))
 end
 
-T.patch = function()
+T'patch'; do
   local base = {'2', '2', '2', '5', '5_', '7_', '9'}
 
   local diffs = {
@@ -107,7 +107,7 @@ local function findAnchorTest(expectBl, expectLines, base, anchors, above)
   T.eq({expectBl, expectLines}, {M.findAnchor(base, baseMap, aDiffs, above)})
 end
 
-T.find_anchor = function()
+T'find_anchor'; do
   local tl = {'a', 'b', 'b', 'c', '', 'd', 'b', 'a'}
   -- above
   findAnchorTest(1, 2, tl, {'a', 'b'},      true)
@@ -129,7 +129,7 @@ T.find_anchor = function()
   findAnchorTest(nil, nil, tl, {'b'},       false)
 end
 
-T.create_patch = function()
+T'create_patch'; do
   local base = {'1', '2', '3', '4', '5', '6', '7'}
   local baseMap = lines.map(base)
    T.eq(M.Patch{bl=0,

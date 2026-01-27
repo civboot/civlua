@@ -84,11 +84,11 @@ M.Ty = mty'Ty' {
   'kind [iA.TyKind]: the kind of type',
   'field [table[string, int]]: STRUCT/ENUM only, map of name -> idx.',
 }
-M.Ty.__fmt = function(ty, f)
-  f:write(sfmt('Ty(%s.%s)', mod.name, ty.name))
+function M.Ty:__fmt(f)
+  f:write(sfmt('Ty(%s.%s)', self.mod.name, self.name))
 end
 
-local native = function(name, sz)
+local function native(name, sz)
   return M.Ty{mod=C, name=name, sz=sz, ref=0, kind=M.TyKind.NATIVE}
 end
 
@@ -104,7 +104,7 @@ C.Int = native('Int', 4)
 --- Note: platforms may mutate this size
 C.UInt = native('UInt', 4)
 
-local userTyCheck = function(t)
+local function userTyCheck(t)
   assert(t.fields, 'user type must have fields table')
   for f, i in pairs(t.fields) do
     if not t[i] then error('field '..f..' is missing type') end
@@ -112,7 +112,7 @@ local userTyCheck = function(t)
 end
 
 --- Create or fetch an array with inner-type.
-M.array.__call = function(_, ty)
+function M.array:__call(ty)
   assert(mty.ty(ty) == M.Ty)
   local name = sfmt('[%s.%s]', ty.mod.name, ty.name)
   local a = rawget(M.array, name); if a then
@@ -127,7 +127,7 @@ M.array.__call = function(_, ty)
 end
 
 --- Create a new struct type
-M.struct = function(t)
+function M.struct(t)
   assert(t.mod, 'missing mod'); assert(t.name, 'missing name')
   userTyCheck(t)
   t.kind = M.TyKind.STRUCT
@@ -135,7 +135,7 @@ M.struct = function(t)
 end
 
 --- Create a new enum type
-C.enum = function(t)
+function C.enum(t)
   assert(t.mod, 'missing mod'); assert(t.name, 'missing name')
   userTyCheck(t)
   t.kind = M.TyKind.ENUM
@@ -157,7 +157,7 @@ M.Var = mty'Var' {
 M.Literal = mty'Literal' { 'ty [iA.Ty]' }
 
 --- Create a Literal
-M.literal = function(v)
+function M.literal(v)
   if not v then error('invalid literal: '..tostring(v)) end
   if type(v) == 'string' then
     error'strings not yet impl'

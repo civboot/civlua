@@ -34,9 +34,9 @@ local RAW = '$'
 local RAWP = '%$'
 
 --- escape the string so it renders literally
-cxt.escape = function(str) return str:gsub('([\\%[%]])', '\\%1') end
+function cxt.escape(str) return str:gsub('([\\%[%]])', '\\%1') end
 
-cxt._hasUnbalancedBrackets = function(str)
+function cxt._hasUnbalancedBrackets(str)
   local c = 0; for m in str:gmatch'[%[%]]' do
     if m == '[' then c = c + 1
     elseif           c == 0 then return true
@@ -44,13 +44,13 @@ cxt._hasUnbalancedBrackets = function(str)
   end
   return c ~= 0
 end
-cxt._endDollars = function(str)
+function cxt._endDollars(str)
   local n; for m in str:gmatch'%](%$*)' do n = max(0, #m+1) end
   return n or 0
 end
 
 --- create [$$ [$inline code] ]$
-cxt.code = function(str, lang)
+function cxt.code(str, lang)
   local n = cxt._endDollars(str)
   local hs, he = srep(RAW, n+1), srep(RAW, n)
   return lang and sfmt('[{%s lang=%s}%s]%s', hs, lang, str, he)
@@ -285,7 +285,7 @@ local CONTENT_SPEC = {kind='cxt'}
 --- parse normal content, adding to node
 --- p is a [$pegl.Parser]. isRoot indicates
 --- it is currently parsing plain text.
-cxt.content = function(p, node, isRoot, altEnd)
+function cxt.content(p, node, isRoot, altEnd)
   local l, c = p.l, p.c
   p:dbgEnter(CONTENT_SPEC)
   ::loop::
@@ -424,7 +424,7 @@ local function resolveFetches(p, node, named)
 end
 
 --- Main parsing entry point.
-cxt.parse = function(dat, dbg, path)
+function cxt.parse(dat, dbg, path)
   local p = pegl.Parser:new(dat, pegl.Config{dbg=dbg})
   p.path = path
   skipWs(p)
@@ -435,7 +435,7 @@ cxt.parse = function(dat, dbg, path)
   return config, p
 end
 
-cxt.checkParse = function(dat, context) --> dat
+function cxt.checkParse(dat, context) --> dat
   local ok, config, p = pcall(cxt.parse, dat); if ok then
     if p.l <= #p.dat then error(sfmt(
       '%s: parse stopped before end\n%s.%s: %s', context, p.l, p.c, p.line
@@ -451,7 +451,7 @@ end
 -- Testing Helpers
 
 local SKIP_FOR_STR = ds.Set{'pos', 'raw'}
-cxt.parsedStrings = function(p, node)
+function cxt.parsedStrings(p, node)
   if type(node) ~= 'table' then return node end
   if mty.ty(node) == Token then return p:tokenStr(node) end
   local n = {}
@@ -464,14 +464,14 @@ cxt.parsedStrings = function(p, node)
   return n
 end
 
-cxt.assertParse = function(dat, expected, dbg) --> node
+function cxt.assertParse(dat, expected, dbg) --> node
   local node, p = cxt.parse(dat, dbg)
   node = cxt.parsedStrings(p, node)
   T.eq(expected, node)
   return node
 end
 
-cxt.assertThrows = function(dat, err, dbg)
+function cxt.assertThrows(dat, err, dbg)
   T.throws(err, function()
     cxt.parse(dat, dbg)
   end)
@@ -495,28 +495,28 @@ cxt.Writer = mty'Writer' {
   'src', 'to',
   'config [Config]', config=cxt.Config{}
 }
-cxt.Writer.fromParser = function(ty_, p, to)
-  return ty_{src=p.dat, to=to or fmt.Fmt{}}
+cxt.Writer.fromParser = function(T, p, to)
+  return T{src=p.dat, to=to or fmt.Fmt{}}
 end
-cxt.Writer.tokenStr = function(w, t)
-  return (type(t) == 'string') and t or t:decode(w.src)
+function cxt.Writer:tokenStr(t)
+  return (type(t) == 'string') and t or t:decode(self.src)
 end
-cxt.Writer.eqStr = function(w, t, str)
+function cxt.Writer:eqStr(t, str)
   if type(t) == 'string' then return t == str end
-  return (mty.ty(t) == Token) and (w:tokenStr(t) == str)
+  return (mty.ty(t) == Token) and (self:tokenStr(t) == str)
 end
-cxt.Writer.__index = function(w, l)
-  local m = getmetatable(w)[l]; if m then return m end
+function cxt.Writer:__index(l)
+  local m = getmetatable(self)[l]; if m then return m end
   if type(l) ~= 'number' then return end
   fmt.errorf('index cxt.Writer: %s', l)
 end
 
-cxt.Writer.__newindex = function(w, l, line)
-  if type(l) == 'string' then return rawset(w, l, line) end
+function cxt.Writer:__newindex(l, line)
+  if type(l) == 'string' then return rawset(self, l, line) end
   error"don't set index"
 end
-cxt.Writer.__len = function(w) error'Writer.len not supported' end
-cxt.Writer.level = function(w, add) return w.to:level(add) end
+function cxt.Writer:__len() error'Writer.len not supported' end
+function cxt.Writer:level(add) return self.to:level(add) end
 
 function cxt.html:__call()
   local LFile = require'lines.File'

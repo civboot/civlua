@@ -89,7 +89,7 @@ T'Target' do
   T.eq('["metaty","metaty.freeze"]', require'lson'.json(t.api))
 end
 
-T.tgtname = function()
+T'tgtname'; do
   T.eq({'foo:bar',  'baz'}, {core.tgtnameSplit'foo:bar#baz'})
   T.eq({'foo:bar',  'bar'}, {core.tgtnameSplit'foo:bar'})
   T.eq({'foo:',     'foo'}, {core.tgtnameSplit'foo:'})
@@ -97,7 +97,7 @@ T.tgtname = function()
   T.eq({'foo:',     'foo'}, {core.tgtnameSplit'foo:'})
 end
 
-T.loadPkg = function()
+T'loadPkg'; do
   local c = newCiv()
 
   local metatyPkg = c:loadPkg'civ:lib/metaty'
@@ -120,7 +120,7 @@ local libfd_out = {
   lib     = 'libfd.so',
 }
 
-T.loadFd = function()
+T'loadFd'; do
   local l = newCiv()
   l:loadPkgs{'civ:lib/fd'}
   T.eq(METATY_PKG.out, l.pkgs['civ:lib/metaty'].metaty.out)
@@ -130,7 +130,7 @@ T.loadFd = function()
   T.eq(libfd_out,       fdpkg.libfd.out)
 end
 
-T.loadLinesTesting = function()
+T'loadLinesTesting'; do
   local l = newCiv()
   l:loadPkgs{'civ:lib/lines/testing'}
   T.eq({
@@ -138,7 +138,7 @@ T.loadLinesTesting = function()
   }, l.pkgs['civ:lib/lines/testing'].testing.out)
 end
 
-T.expand = function()
+T'expand'; do
   local l = newCiv()
   T.eq({"civ:lib/metaty#metaty"},             l:expand'civ:lib/metaty#.*')
   T.eq({"civ:lib/ds#ds", "civ:lib/ds#dslib"}, l:expand'civ:lib/ds#')
@@ -150,7 +150,7 @@ T.expand = function()
   T.eq({"civ:lib/ds#ds"}, l:expand'civ:lib/ds#ds')
 end
 
-T.buildMetaty = function()
+T'buildMetaty'; do
   local l = newCiv()
   l:loadPkgs{'civ:lib/metaty'}
   l:build{'civ:lib/metaty'}
@@ -161,7 +161,7 @@ T.buildMetaty = function()
   })
 end
 
-T.buildDs = function()
+T'buildDs'; do
   local l = newCiv()
   l:loadPkgs{'civ:lib/ds'}
   local dsPkg = l.pkgs['civ:lib/ds']
@@ -190,13 +190,13 @@ T.buildDs = function()
   T.exists'.out/civ/lib/libds.so'
 end
 
-T.buildCiv = function()
+T'buildCiv'; do
   local l = newCiv()
   l:loadPkgs{'civ:cmd/civ'}
   l:build{'civ:cmd/civ'}
 end
 
-T.testMetaty = function()
+T'testMetaty'; do
   local l = newCiv()
   local p = 'civ:lib'
   local t = p..'#test_meta'

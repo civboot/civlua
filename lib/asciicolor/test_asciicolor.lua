@@ -8,7 +8,7 @@ local M = require'asciicolor'
 local aeq = T.eq
 
 -- make sure the codes don't change accidentally
-T.nochange = function()
+T'nochange'; do
   local LETTERS = 'z b w d l r p y h g t c a n s m f'
   local NUM_LET = 17
   local VALID = {}; for c in LETTERS:gmatch'%S+' do VALID[c] = true end
@@ -29,7 +29,7 @@ T.nochange = function()
   aeq(NUM_LET * 2 + 2, ds.pairlen(M.CODES))
 end
 
-T.code = function()
+T'code'; do
   local c = M.assertcode
   aeq('a',  c'a')
   aeq('Z',  c'Z')
@@ -39,7 +39,7 @@ T.code = function()
   T.throws('invalid ascii color: "O"', function() c'O' end)
 end
 
-T.getFB = function()
+T'getFB'; do
   local st = M.Styler{}
   T.eq('m', st:getFB'path')
   T.eq('Z', st:getFB'bold')

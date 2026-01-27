@@ -19,7 +19,7 @@ local getp, dp = ds.getp, ds.dotpath
 -- Utility Functions and Callable Records
 
 -- space-separated keys to a list, asserting valid keys
-M.chord = function(str) --> keylist
+function M.chord(str) --> keylist
   local checkKey = et._term.checkKey
   local keys = {}; for k in str:gmatch'%S+' do
     push(keys, assert(checkKey(k)))
@@ -27,11 +27,11 @@ M.chord = function(str) --> keylist
   return keys
 end
 
-M.literal = function(key)
+function M.literal(key)
   return fmt.assertf(et._term.literal(key),
     'invalid literal: %q', key)
 end
-M.chordstr = function(chord)
+function M.chordstr(chord)
   local s = {}
   for _, key in ipairs(chord) do push(s, M.literal(key)) end
   return concat(s)
@@ -52,11 +52,11 @@ M.KeySt = mty'KeySt' {
 }
 
 --- Check the current Key State.
-M.KeySt.check = function(k, ele) --> errstring?
-  if k.next == nil then return end
-  return (type(k.next) ~= 'table') and et.checkBinding(k.next)
-    or getp(k, {'event', 'action'})
-       and et.checkAction(ele, k.event.action)
+function M.KeySt:check(ele) --> errstring?
+  if self.next == nil then return end
+  return (type(self.next) ~= 'table') and et.checkBinding(self.next)
+    or getp(self, {'event', 'action'})
+       and et.checkAction(ele, self.event.action)
 end
 
 --- A map of key -> binding.
@@ -83,10 +83,10 @@ end
 getmetatable(M.KeyBindings).__index = function(G, k)
   assert(et._term.checkKey(k))
 end
-M.KeyBindings.__newindex = function(kb, k, v)
+function M.KeyBindings:__newindex(k, v)
   if M.KeyBindings.__fields[k] then
     assert(type(v) == 'string', k)
-    rawset(kb, k, v)
+    rawset(self, k, v)
     return
   end
   local mtv = getmetatable(v)
@@ -94,7 +94,8 @@ M.KeyBindings.__newindex = function(kb, k, v)
               or (mtv == M.KeyBindings)
               or (not mtv and type(v) == 'table'),
     '[%s] binding must be callable or plain table: %q', k, v)
-  if k == 'fallback' then return rawset(kb,k, v) end
+  if k == 'fallback' then return rawset(self,k, v) end
+  local kb = self -- walk the key bindings
   k = M.chord(k); assert(#k > 0, 'empty chord')
   for i=1,#k-1 do
     local key = k[i]; assert(et._term.checkKey(key))
@@ -127,12 +128,12 @@ M.windowRight = {action='window', moveH=1}
 
 M.windowClose = {action='window', close=true}
 
-M.insertChord = function(keys)
+function M.insertChord(keys)
   return ds.update(keys.event or {}, {
     M.chordstr(keys.chord), action='insert',
   })
 end
-M.unboundChord = function(keys)
+function M.unboundChord(keys)
   error('unbound chord: '..concat(keys.chord, ' '))
 end
 
@@ -154,7 +155,7 @@ M.insertAbove = {
   {action='move', rows=-1},
 }
 
-M.moveAction = function(event)
+function M.moveAction(event)
   return function(keys)
     local ev = keys.event or {}
     ev.action = ev.action or 'move'
@@ -174,19 +175,19 @@ do local MA = M.moveAction
   M.downScreen           = MA{move='screen', mul=1,  div=2}
 end
 
-M.moveG = function(keySt) -- specific line or end-of-file
+function M.moveG(keySt) -- specific line or end-of-file
   local ev = keySt.event or {}
   return ev.times and {action='move', move='absolute', l=ev.times} or M.eof
 end
 
-M.movekey = function(keys)
+function M.movekey(keys)
   local ev = keys.event or {}
   ev[ev.move] = M.literal(ds.last(keys.chord))
   return ev
 end
 
 -- Find a single character.
-M.find = function(keys)
+function M.find(keys)
   local ev = keys.event or {}; keys.event = ev
   ev.action, ev.move = ev.action or 'move', ev.move or 'find'
   keys.next = M.movekey
@@ -194,18 +195,18 @@ M.find = function(keys)
 end
 
 --- go to the column before the character
-M.till = function(keys)
+function M.till(keys)
   M.find(keys); keys.event.cols = -1
 end
 
 --- go back to the character
-M.findback = function(keys)
+function M.findback(keys)
   M.find(keys)
   keys.event.move = 'findback'
 end
 
 --- go back to the column after the character
-M.tillback = function(keys)
+function M.tillback(keys)
   M.findback(keys); keys.event.cols = 1
 end
 
@@ -213,7 +214,7 @@ M.backspace = {action='remove', off=-1, cols1=-1}
 M.delkey    = {action='remove', off=1}
 
 --- delete until a movement command (or similar)
-M.delete = function(keySt)
+function M.delete(keySt)
   local ev = keySt.event or {}; keySt.event = ev
   if ev.action == 'remove' then
     ev.lines = 0
@@ -222,7 +223,7 @@ M.delete = function(keySt)
   ev.action = 'remove'
   keySt.keep = true
 end
-M.deleteEol = function(keySt)
+function M.deleteEol(keySt)
   M.delete(keySt)
   local ev = ds.popk(keySt, 'event')
   ev.move, keySt.keep = 'eol', nil
@@ -230,12 +231,12 @@ M.deleteEol = function(keySt)
 end
 
 --- Delete <move> then enter insert.
-M.change = function(keySt)
+function M.change(keySt)
   local ev = M.delete(keySt)
   keySt.event.mode = 'insert'
   return ev
 end
-M.changeEol = function(keySt, evsend)
+function M.changeEol(keySt, evsend)
   M.delete(keySt)
   local ev = ds.popk(keySt, 'event')
   ev.move, ev.mode, keySt.keep = 'eol', 'insert', nil
@@ -244,12 +245,12 @@ end
 
 --- used for setting the number of times to do an action.
 --- 1 0 d t x: delete till the 10th x
-M.times = function(keys)
+function M.times(keys)
   local ev = keys.event or {}; keys.event = ev
   ev.times = (ev.times or 0) * 10 + tonumber(ds.last(keys.chord))
   keys.keep = true
 end
-M.zero = function(keys) -- special: movement if not after a digit
+function M.zero(keys) -- special: movement if not after a digit
   local ev = keys.event or {}
   if not ev.action and ev.times then return M.times(keys) end
   ev.action, ev.move = ev.action or 'move', 'sol'
@@ -269,7 +270,7 @@ M.searchBufSub  = {action='searchBuf', next=true, sub=true, wrap=true}
 ---
 --- This holds onto keySt (sets .keep), effectively owning all keyboard
 --- inputs.
-M.searchBuf = function(keySt)
+function M.searchBuf(keySt)
   local ev, chord = keySt.event or {}, keySt.chord
   keySt.event, keySt.keep = ev, true
   if #chord == 1 then -- initial call
@@ -334,7 +335,7 @@ M.navBuf = {action='nav', nav='buf', mode='system'}
 -- install the builtin keys plugin
 --
 -- Note: this does NOT start the keyactions coroutine
-M.install = function(ed)
+function M.install(ed)
   ed.ext.keys = M.KeySt{}
   -- TODO: replace with merge but need shouldMerge closure.
   ed.modes = ds.update(ed.modes or {}, {
@@ -350,7 +351,7 @@ end
 
 -- keyactions coroutine.
 -- This should be scheduled with LAP, see user.lua and testing.lua
-M.keyactions = function(ed, keyrecv, evsend)
+function M.keyactions(ed, keyrecv, evsend)
   assert(keyrecv:hasSender())
   log.info('keyactions keyrecv=%q', keyrecv)
   for key in keyrecv do

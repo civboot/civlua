@@ -18,7 +18,7 @@ M.REM = '-'
 -- TODO: I want to use this when applying patches
 --- normalize a line for comparing (anchoring).
 --- This just squashes and trims the end.
-M.normalize = function(s) return ds.squash(ds.trimEnd(s)) end
+function M.normalize(s) return ds.squash(ds.trimEnd(s)) end
 
 --- Single Line Diff
 --- This type is good for displaying differences to a user.
@@ -31,11 +31,11 @@ getmetatable(M.Diff).__call = function(T, b, c, text)
   return mty.construct(T, {b=b, c=c, text=text})
 end
 
-M.Diff.__tostring = function(d)
-  return string.format("%4s %4s|%s", d.b, d.c, d.text)
+function M.Diff:__tostring()
+  return string.format("%4s %4s|%s", self.b, self.c, self.text)
 end
-M.Diff.isKeep = function(d)
-  return (d.b ~= M.ADD) and (d.c ~= M.REM)
+function M.Diff:isKeep()
+  return (self.b ~= M.ADD) and (self.c ~= M.REM)
 end
 
 local function pushAdd(ch, text)
@@ -47,18 +47,18 @@ end
 -- This is how diffs are often serialized
 
 M.Keep = mty'Keep' {'num[int]'}
-M.Keep.len = function(k) return k.num and k.num or #k end
+function M.Keep:len() return self.num and self.num or #self end
 
 M.Change = mty'Change' {
   'rem[int|table] removed lines',
   'add[string]    text to add',
 }
-M.Change.len = function(ch)
-  return (type(ch.rem) == 'number') and ch.rem or #ch.rem
+function M.Change:len()
+  return (type(self.rem) == 'number') and self.rem or #self.rem
 end
 
 --- Apply changes to base (TableLines), push to [$out]
-M.apply = function(base, changes, out--[[{}]]) --> out
+function M.apply(base, changes, out--[[{}]]) --> out
   local l = 1; out = out or {}
   for _, p in ipairs(changes) do
     local pty = mty.ty(p)
@@ -77,7 +77,7 @@ end
 ----------------------
 -- Conversion
 
-M.toChanges = function(diffs, full)
+function M.toChanges(diffs, full)
   local changes, p = {}, nil
   for _, d in ipairs(diffs) do
     if d:isKeep() then
@@ -113,33 +113,33 @@ getmetatable(M.DiffsExtender).__call = function(T, base)
   return construct(T, {diffs={}, base=base, bl=1, cl=1})
 end
 --- extend change to diffs
-M.DiffsExtender.__call = function(de, ch, keepMax)
-  local chTy, base, diffs = mty.ty(ch), de.base, de.diffs
+function M.DiffsExtender:__call(ch, keepMax)
+  local chTy, base, diffs = mty.ty(ch), self.base, self.diffs
   if chTy == M.Keep then
-    for l = de.bl, de.bl + ch:len() - 1 do
-      push(diffs, M.Diff(l, de.cl, base[l]))
-      de.cl = de.cl + 1
-    end; de.bl = de.bl + ch:len()
+    for l = self.bl, self.bl + ch:len() - 1 do
+      push(diffs, M.Diff(l, self.cl, base[l]))
+      self.cl = self.cl + 1
+    end; self.bl = self.bl + ch:len()
   else
     fmt.assertf(chTy == M.Change, "changes must be Keep|Change: %s", chTy)
     for _, a in ipairs(ch.add) do
-      push(diffs, M.Diff('+', de.cl, a)); de.cl = de.cl + 1
+      push(diffs, M.Diff('+', self.cl, a)); self.cl = self.cl + 1
     end
-    for l = de.bl, de.bl + ch:len() - 1 do
+    for l = self.bl, self.bl + ch:len() - 1 do
       push(diffs, M.Diff(l, '-', base[l]))
-    end; de.bl = de.bl + ch:len()
+    end; self.bl = self.bl + ch:len()
   end
 end
 local DiffsExtender = M.DiffsExtender
 
 --- Convert Changes to Diffs with full context
-M.toDiffs = function(base, changes) --> diffs
+function M.toDiffs(base, changes) --> diffs
   local de = DiffsExtender(base)
   for _, ch in ipairs(changes) do de(ch) end
   return de.diffs
 end
 
-M.createAnchorTop = function(base, l, aLen)
+function M.createAnchorTop(base, l, aLen)
   local a = {}; if l < 1 then return a end
   for l = l, 1, -1 do
     if aLen <= 0 then break end
@@ -149,7 +149,7 @@ M.createAnchorTop = function(base, l, aLen)
   return ds.reverse(a)
 end
 
-M.createAnchorBot = function(base, l, aLen)
+function M.createAnchorBot(base, l, aLen)
   local a = {}; for l, line in ds.islice(base, l) do
     if aLen <= 0 then break end
     push(a, M.Diff(l, '@', line))
@@ -178,15 +178,15 @@ getmetatable(M.Picks).__call = function(T, base, changes, set) --> Picks
     set=set,
   })
 end
-M.Picks.__call = function(p) --> iterator
-  local de, changes, aLen = p.de, p.changes, p.set.anchorLen
-  if p.ci > #changes then return end
+function M.Picks:__call() --> iterator
+  local de, changes, aLen = self.de, self.changes, self.set.anchorLen
+  if self.ci > #changes then return end
   assert(ds.isEmpty(de.diffs))
 
-  local ci, endci = p:groupChanges(p.ci)
-  while p.ci < ci do de(changes[p.ci]); p.ci = p.ci + 1 end -- discard
+  local ci, endci = self:groupChanges(self.ci)
+  while self.ci < ci do de(changes[self.ci]); self.ci = self.ci + 1 end -- discard
   de.diffs = M.createAnchorTop(de.base, de.bl - 1, aLen)
-  while p.ci <= endci do de(changes[p.ci]); p.ci = p.ci + 1 end -- changes
+  while self.ci <= endci do de(changes[self.ci]); self.ci = self.ci + 1 end -- changes
   ds.extend(de.diffs, M.createAnchorBot(de.base, de.bl, aLen))
   local diffs = de.diffs; de.diffs = {}
   return diffs
@@ -195,12 +195,12 @@ end
 --- Get which changes to include in a patch group.
 --- A group is a series of patches with Keep:len() < anchorLen (default=3)
 --- between them.
-M.Picks.groupChanges = function(p, ci)
-  local len, aLen = #p.changes, p.set.anchorLen
-  while ci <= len and mty.ty(p.changes[ci]) == M.Keep do
+function M.Picks:groupChanges(ci)
+  local len, aLen = #self.changes, self.set.anchorLen
+  while ci <= len and mty.ty(self.changes[ci]) == M.Keep do
     ci = ci + 1
   end
-  local starti = ci; for ci, ch in ds.islice(p.changes, ci) do
+  local starti = ci; for ci, ch in ds.islice(self.changes, ci) do
     local chTy = mty.ty(ch)
     if ci == len then
       if chTy == M.Keep then ci = ci - 1 end
@@ -226,7 +226,7 @@ end
 --- * above=true:  find above (search up)
 --- * above=false: find below (search down)
 --- ]
-M.findAnchor = function(base, baseMap, anchors, above--[[false]]) --> (l, c)
+function M.findAnchor(base, baseMap, anchors, above--[[false]]) --> (l, c)
   local iterFn = above and ds.ireverse or ipairs
   local alines = {}
   for ai, anchor in iterFn(anchors) do
@@ -252,14 +252,14 @@ M.Patch = mty'Patch' {
   'conflict [string]', 'bl [number]',
 }
 
-M.pickAnchorsTop = function(pick) --> isStartOfFile, anchors
+function M.pickAnchorsTop(pick) --> isStartOfFile, anchors
   local anchors = {}; for _, d in ipairs(pick) do
     if not d:isKeep() then break end; push(anchors, d)
   end
   return pick[1].c == 1, anchors
 end
 
-M.pickAnchorsBot = function(base, pick) --> isEndOfFile, anchors
+function M.pickAnchorsBot(base, pick) --> isEndOfFile, anchors
   local anchors = {}; for _, d in ds.ireverse(pick) do
     if not d:isKeep() then break end; push(anchors, d)
   end
@@ -315,7 +315,7 @@ end
 ---   try to continue the change with or without them (dynamic programming)
 --- * empty lines are entirely ignored and are not considered an anchor
 --- ]
-M.createPatch = function(base, baseMap, pick)
+function M.createPatch(base, baseMap, pick)
   local isSof, topA = M.pickAnchorsTop(pick)
   local isEof, botA = M.pickAnchorsBot(base, pick)
   local top, topLines = M.findAnchor(base, baseMap, topA, true)

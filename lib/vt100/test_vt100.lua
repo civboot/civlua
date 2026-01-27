@@ -4,24 +4,24 @@ local mty = require'metaty'
 local fmt = require'fmt'
 local ac = require'asciicolor'
 
-local assertHasAsciiColors = function(c)
+local function assertHasAsciiColors(c)
   for code, name in pairs(ac.Color) do
     fmt.assertf(c[name], 'missing %q', name)
   end
 end
-T.color = function()
+T'color'; do
   assertHasAsciiColors(M.FgColor)
   assertHasAsciiColors(M.BgColor)
 end
 
-T.literal = function()
+T'literal'; do
   local l = M.literal
   T.eq('a',  l'a')
   T.eq('\n', l'enter')
   T.eq(nil,  l'invalid')
 end
 
-T.keyError = function()
+T'keyError'; do
   local ke = M.keyError
   T.eq(nil, ke'a')
   T.eq(nil, ke'esc')
@@ -31,7 +31,7 @@ T.keyError = function()
   T.eq([[key "\8" not a printable character]], ke'\x08')
 end
 
-T.keynice = function()
+T'keynice'; do
   local key, b = M.key, string.byte
   T.eq('a',      key(b'a'))
   T.eq('^a',     key(1))

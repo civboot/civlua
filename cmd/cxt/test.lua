@@ -14,11 +14,11 @@ local pegl = ds.auto'pegl'
 local KW, N, NUM, HEX; ds.auto(testing)
 local s = ds.simplestr
 
-T.escape = function()
+T'escape'; do
   T.eq('foo \\[bar\\] \\\\ baz', M.escape'foo [bar] \\ baz')
 end
 
-T.code = function()
+T'code'; do
   local hub = M._hasUnbalancedBrackets
   T.eq(false, hub'abc')
   T.eq(false, hub'[[a]b]')
@@ -37,7 +37,7 @@ T.code = function()
 end
 
 
-T.simple = function()
+T'simple'; do
   M.assertParse('hi there', {'hi there'})
   M.assertParse('hi there [*bob]', {
     'hi there ', {'bob', b=true},
@@ -78,7 +78,7 @@ T.simple = function()
   })
 end
 
-T.block = function()
+T'block'; do
   M.assertParse([[
 Some code:
 [$$
@@ -93,7 +93,7 @@ This is a bit
 
 end
 
-T.attrs = function()
+T'attrs'; do
   pegl.assertParse{dat='i', spec=M.attr, expect={
       'i', pegl.EMPTY, kind='keyval',
     },
@@ -114,7 +114,7 @@ T.attrs = function()
   })
 end
 
-T.quote = function()
+T'quote'; do
   M.assertParse([[
 A quote:
 ["We work with being,[{br}]
@@ -134,7 +134,7 @@ A quote:
   }, true)
 end
 
-T.list = function()
+T'list'; do
   M.assertParse([[
 A list:[+
 * first item
@@ -196,7 +196,7 @@ A list:[+
   true)
 end
 
-T.nested = function()
+T'nested'; do
   M.assertParse([[
 [+
 * list item
@@ -221,7 +221,7 @@ T.nested = function()
 end
 
 
-T.table = function()
+T'table'; do
   local doc = [[
 [{table}
 # [*h]1     | h2   | h3
@@ -260,7 +260,7 @@ T.table = function()
   M.assertParse(docIndent, noIndent)
 end
 
-T.named = function()
+T'named'; do
   M.assertParse([[
 [{n=n1 href=hi.com}N1]
 [@n1]
@@ -285,7 +285,7 @@ see [@N_2], I like [<@N_2>links]
   })
 end
 
-T.htmlEncode = function()
+T'htmlEncode'; do
   local he = html.htmlEncode
   T.eq('foo',                         he'foo')
   T.eq('foo bar',                     he'foo bar')
@@ -300,7 +300,7 @@ T.htmlEncode = function()
      he'\n   $      shortcut')
 end
 
-T.html = function()
+T'html'; do
   html.assertHtml('hi <b>there</b> bob\n', 'hi [*there] bob')
   html.assertHtml('code <span class=code>code</span>.\n', 'code [$$code]$.')
   html.assertHtml('p1\n\n<p>p2\n\n<p>p3\n', 'p1\n\np2\n  \np3')
@@ -410,7 +410,7 @@ list [+
 ]])
 end
 
-T.term = function()
+T'term'; do
   local f = fmt.Fmt{}
   term{'[$code] not code', out=f}
   T.eq('code not code\n', f:tostring())

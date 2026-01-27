@@ -14,11 +14,11 @@ end
 local U8MSK = {0x7F, 0x1F, 0x0F, 0x07} -- len -> msk
 
 --- given the first byte return the number of bytes in the utf8 char
-M.decodelen = function(firstbyte) return U8LEN[0xF8 & firstbyte] end
+function M.decodelen(firstbyte) return U8LEN[0xF8 & firstbyte] end
 
 --- decode utf8 data (table) into an integer.
 --- Use [$utf8.char] (from lua's stdlib) to turn into a string.
-M.decode = function(dat) --> int
+function M.decode(dat) --> int
   local c = U8MSK[#dat] & dat[1]
   for i=2,#dat do c = (c << 6) | (0x3F & dat[i]) end
   return c

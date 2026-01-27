@@ -12,7 +12,7 @@ M.NODOC = {3, 4, a=5}
 
 --- this is a function.
 --- it has documentation.
-M.fun1 = function() end --> thing
+function M.fun1() end --> thing
 
 --- Documentation for A
 M.A = mty'A' {

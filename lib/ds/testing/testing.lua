@@ -4,7 +4,7 @@ local ds = require'ds'
 
 local T = require'civtest'
 
-M.testInset = function(new, assertEq)
+function M.testInset(new, assertEq)
   local N, eq, t, rm = new, assertEq or T.eq
   t = N{}; ds.inset(t, 1, {}); eq(N{}, t);
 
@@ -18,7 +18,7 @@ M.testInset = function(new, assertEq)
     eq(N{1, 2, 3}, t)
 end
 
-M.testInsetStr = function(new, assertEq)
+function M.testInsetStr(new, assertEq)
   local N, eq, t, rm = new, assertEq or T.eq
   t = N{};  ds.inset(t, 1, {})
    eq(N{}, t)

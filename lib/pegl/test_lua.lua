@@ -13,9 +13,9 @@ local M = ds.auto'pegl.lua'
 local D = 'lib/pegl/'
 
 local KW, N, NUM, HEX; ds.auto(testing)
-local SRC = function(...) return {..., EMPTY, EMPTY, EOF} end
+local function SRC(...) return {..., EMPTY, EMPTY, EOF} end
 
-T.easy = function()
+T'easy'; do
   assertParse{dat='42  0x3A', spec={num, num}, expect={
     NUM'42', HEX'0x3A',
   }, config=config}
@@ -28,7 +28,7 @@ T.easy = function()
   assertParse{dat='  nil\n', spec={exp}, expect=KW('nil')}
 end
 
-T.str = function()
+T'str'; do
   assertParse{dat=' "hi there" ', spec={str},
     expect={kind='doubleStr', '"hi there"'}}
   assertParse{dat=[[  'yo\'ya'  ]], spec={str},
@@ -50,13 +50,13 @@ T.str = function()
     }}
 end
 
-T.decimal = function()
+T'decimal'; do
   assertParse{dat='-42 . 3343', spec={num}, expect=
     NUM{neg=true, '42','3343'}
   , config=config}
 end
 
-T.field = function()
+T'field'; do
   assertParse{dat=' 44 ',     spec={field},
     expect={kind='field', NUM'44'}}
   assertParse{dat=' hi ',     spec={field},
@@ -75,7 +75,7 @@ T.field = function()
   }
 end
 
-T.table = function()
+T'table'; do
   assertParse{dat='{}', spec={exp}, 
     expect={kind='table',
       KW('{'), EMPTY, KW('}'),
@@ -102,7 +102,7 @@ T.table = function()
   }
 end
 
-T.fnValue = function()
+T'fnValue'; do
   assertParse{dat='function() end', spec={exp},
     expect = { kind='fnvalue',
       KW('function'), KW('('), EMPTY, KW(')'),
@@ -112,7 +112,7 @@ T.fnValue = function()
   }
 end
 
-T.expression = function()
+T'expression'; do
   assertParse{dat='x+3', spec=exp,
     expect={N'x', KW'+', NUM'3'},
   }
@@ -125,7 +125,7 @@ T.expression = function()
   }
 end
 
-T.require = function()
+T'require'; do
   assertParse{dat='local F = require"foo"', spec=src,
     expect = SRC(
       { kind='varlocal',
@@ -140,14 +140,14 @@ T.require = function()
   }
 end
 
-T.varset = function()
+T'varset'; do
   local code1 = 'a = 7'
   local expect1 = {kind='varset', N'a', KW'=', NUM'7',
   }
   assertParse{dat=code1, spec=varset, expect=expect1}
 end
 
-T.comment = function()
+T'comment'; do
   local expect = SRC(
     {kind='varset',
       N"x", KW"=", {kind="table",
@@ -165,7 +165,7 @@ T.comment = function()
   }
 end
 
-T.function_ = function()
+T'function_'; do
   assertParse{ spec=src, config=config,
     dat=[[ local function f(a) end ]],
     expect = {
@@ -176,7 +176,7 @@ T.function_ = function()
   }
 end
 
-T.fncall = function()
+T'fncall'; do
   local r, n, p = assertParse{dat='foo(4)', spec=src, config=config,
     expect = SRC({ kind="stmtexp",
       N"foo", {kind='call',
@@ -224,7 +224,7 @@ T.fncall = function()
   }
 end
 
-T.if_elseif_else = function()
+T'if_elseif_else'; do
   assertParse{dat='if n==nil then return "" end', spec=src, config=config,
     expect=SRC(
     { kind='if',
@@ -240,7 +240,7 @@ T.if_elseif_else = function()
   }
 end
 
-T.fnChain = function()
+T'fnChain'; do
   assertParse{dat='x(1)(3)', spec=src, config=config,
     expect=SRC{ kind="stmtexp", N"x",
       { KW"(", NUM{1}, KW")", kind="call" },
@@ -258,7 +258,7 @@ T.fnChain = function()
   }
 end
 
-T.src1 = function()
+T'src1'; do
   local code1 = 'a.b = function(y, z) return y + z end'
   local expect1 = SRC({kind='varset',
     N'a', KW'.', N'b', KW'=', {kind='fnvalue',
@@ -291,7 +291,7 @@ local function extendExpectAssert(code, spec, expect, extend, dbg)
   assertParse{dat=code, spec=spec, expect=expect, config=config, dbg=dbg}
 end
 
-T.src2 = function()
+T'src2'; do
   local code = '-- this is a comment\n--\n-- and another comment\n'
   assertParse{dat=code, spec=src, expect={EMPTY, EOF}, config=config}
 
@@ -350,13 +350,13 @@ local BAD_LUA = [[
     x = 1 + {2 3} -- '2 3' is invalid
   end
 ]]
-T.error = function()
+T'error'; do
   T.throws(ERR_EXPECT, function()
     pegl.parse(BAD_LUA, src, Config{dbg=false})
   end)
 end
 
-T.lenient = function()
+T'lenient'; do
   local r, n, p = assertParse{
     dat=BAD_LUA, spec=M.lenientBlock, config=lenientConfig,
     expect= {
@@ -383,7 +383,7 @@ local function testLuaPath(path)
   assertParse{dat=text, spec=src, config=config, parseOnly=true}
 end
 
-T.parseSrc = function()
+T'parseSrc'; do
   -- testLuaPath('/patience/patience2.lua')
   testLuaPath(D..'pegl.lua')
   testLuaPath(D..'lua.lua')

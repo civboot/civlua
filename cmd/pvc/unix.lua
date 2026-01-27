@@ -21,7 +21,7 @@ local EMPTY_DIFF = [[
 +
 ]]
 
-local diffCheckPath = function(p, pl) --> p, pl
+local function diffCheckPath(p, pl) --> p, pl
   if not p then return NULL, NULL end
   local st = ix.stat(p); if not st then
     error(p..' is in .pvcpaths but does not exist')
@@ -36,7 +36,7 @@ end
 --- properly handling file creation/deleting
 --- the [$l] variables are the "label" to use.
 --- when the coresponding value is nil then the label is [$/dev/null]
-M.diff = function(a,al, b,bl) --> string?
+function M.diff(a,al, b,bl) --> string?
   a, al = diffCheckPath(a, al)
   b, bl = diffCheckPath(b, bl)
   local o, e, sh = ix.sh{
@@ -60,12 +60,12 @@ Solution: Add a newline (or any other content) to the file,
           or delete the file.]])
 end
 
-local patchArgs = function(cwd, path)
+local function patchArgs(cwd, path)
   return {'patch', '-p0', '-fu', input=pth.abs(path), CWD=cwd}
 end
 
 --- forward patch
-M._patch = function(cwd, path)
+function M._patch(cwd, path)
   cwd = pth.toDir(cwd)
   local args = patchArgs(cwd, path); push(args, '-N')
   trace('sh%q', args)
@@ -73,7 +73,7 @@ M._patch = function(cwd, path)
 end
 
 --- reverse patch
-M._rpatch = function(cwd, path)
+function M._rpatch(cwd, path)
   cwd = pth.toDir(cwd)
   local args = patchArgs(cwd, path); push(args, '-R')
   trace('sh%q', args)
@@ -81,7 +81,7 @@ M._rpatch = function(cwd, path)
 end
 
 --- incorporate all changes that went into going from base to change into to
-M.merge = function(to, base, change) --> ok, err
+function M.merge(to, base, change) --> ok, err
   assert(to, 'must provide to')
   base, change = base or NULL, change or NULL
   trace('merging t:%s b:%s c:%s', to, base, change)

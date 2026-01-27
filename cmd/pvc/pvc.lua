@@ -189,7 +189,7 @@ pvc.INIT_PATCH = [[
 local toint = math.tointeger
 
 --- this exists for tests to override
-pvc._backupId = function() return tostring(ix.epoch():asSeconds()) end
+function pvc._backupId() return tostring(ix.epoch():asSeconds()) end
 
 --- reserved branch names
 pvc._RESERVED_NAMES = { ['local']=1, at=1, tip=1, }
@@ -198,17 +198,17 @@ pvc._RESERVED_NAMES = { ['local']=1, at=1, tip=1, }
 -- Utilities
 
 --- get a set of the lines in a file
-local loadLineSet = function(path) --> set
+local function loadLineSet(path) --> set
   local s = {}; for l in io.lines(path) do s[l] = true end; return s
 end
 
-local loadPaths = function(P) --> list
+local function loadPaths(P) --> list
   local paths = ds.BiMap(lines.load(P..pvc.PVCPATHS))
   if not paths[pvc.PVCPATHS] then push(paths, pvc.PVCPATHS) end
   return paths
 end
 
-local loadIgnore = function(P) --> list
+local function loadIgnore(P) --> list
   local ignore = {'%./%.pvc/'}
   local path = P..'.pvcignore'
   if not ix.exists(path) then return ignore end
@@ -221,20 +221,20 @@ local loadIgnore = function(P) --> list
 end
 
 --- copy all paths in [$from/.pvcpaths] -> [$to/]
-local cpPaths = function(from, to)
+local function cpPaths(from, to)
   trace('cpPaths %s -> %s', from, to)
   for path in io.lines(from..pvc.PVCPATHS) do
     ix.forceCp(from..path, to..path)
   end
 end
 
-local readInt = function(path) return toint(pth.read(path)) end
+local function readInt(path) return toint(pth.read(path)) end
 
 --- call [$fn(path1, path2)] for all files in [$dir/.pvcpaths]
 --- the value will be nil if it is missing in either path.
 ---
 --- Note: the passed in paths are still relative.
-local mapPvcPaths = function(dir1, dir2, fn)
+local function mapPvcPaths(dir1, dir2, fn)
   local paths1, paths2 = loadPaths(dir1), loadPaths(dir2)
   for _, p1 in ipairs(paths1) do fn(p1, paths2[p1] and p1 or nil) end
   for _, p2 in ipairs(paths2) do
@@ -242,7 +242,7 @@ local mapPvcPaths = function(dir1, dir2, fn)
   end
 end
 
-local untracked = function(P) --> list[string]
+local function untracked(P) --> list[string]
   trace('untracked %s', P)
   local out, paths = {}, ds.Set(loadPaths(P))
   local ignore = loadIgnore(P)
@@ -293,7 +293,7 @@ local postCmd = {
 ---
 --- If reverse is given it does the opposite; also this should be called BEFORE
 --- calling [$patch(reverse=true)]
-pvc._patchPost = function(dir, patch, reverse)
+function pvc._patchPost(dir, patch, reverse)
   for line in io.lines(patch) do
     if line:sub(1,3) == '---' then break end -- stop after first diff
     if line:sub(1,1) == '!' then
@@ -305,20 +305,20 @@ pvc._patchPost = function(dir, patch, reverse)
 end
 
 --- forward patch, applying diff to dir
-pvc._patch = function(dir, diff)
+function pvc._patch(dir, diff)
   pu._patch(dir, diff)
   pvc._patchPost(dir, diff)
 end
 
 --- reverse patch, applying diff to dir
-pvc._rpatch = function(dir, diff)
+function pvc._rpatch(dir, diff)
   pvc._patchPost(dir, diff, true)
   pu._rpatch(dir, diff)
 end
 
 --- calculate necessary directory depth.
 --- Example: 01/23/12345.p has dirDepth=4
-pvc._calcPatchDepth = function(id)
+function pvc._calcPatchDepth(id)
   local len = #tostring(id); if len <= 2 then return 0 end
   return len - (2 - (len % 2))
 end
@@ -354,14 +354,14 @@ pvc.Diff.of = function(T, d1, d2)
   return t
 end
 
-pvc.Diff.hasDiff = function(d)
-  return (#d.changed > 0) or (#d.deleted > 0) or (#d.created > 0)
+function pvc.Diff:hasDiff()
+  return (#self.changed > 0) or (#self.deleted > 0) or (#self.created > 0)
 end
 
-pvc.Diff.format = function(d, fmt, full)
+function pvc.Diff:format(fmt, full)
   local function s(...) return fmt:styled(...) end
   if full then
-    for _, line in ds.split(d:patch(), '\n') do
+    for _, line in ds.split(self:patch(), '\n') do
       local l2 = line:sub(1,2)
       if l2 == '--' or l2 == '++' or l2 == '@@' then s('notify', line, '\n')
       elseif line:sub(1,1) == '-' then s('base',   line, '\n')
@@ -369,23 +369,23 @@ pvc.Diff.format = function(d, fmt, full)
       else fmt:write(line, '\n') end
     end
   else
-    if not d:hasDiff() then return s('bold', 'No Difference', '\n') end
-    s('bold', 'Diff:', ' ', d.dir1, ' --> ', d.dir2, '\n')
-    for _,path in ipairs(d.deleted) do s('base',   '-'..path, '\n') end
-    for _,path in ipairs(d.created) do s('change', '+'..path, '\n') end
-    for _,path in ipairs(d.changed) do s('notify', '~'..path, '\n') end
+    if not self:hasDiff() then return s('bold', 'No Difference', '\n') end
+    s('bold', 'Diff:', ' ', self.dir1, ' --> ', self.dir2, '\n')
+    for _,path in ipairs(self.deleted) do s('base',   '-'..path, '\n') end
+    for _,path in ipairs(self.created) do s('change', '+'..path, '\n') end
+    for _,path in ipairs(self.changed) do s('notify', '~'..path, '\n') end
   end
 end
 
-pvc.Diff.patch = function(d) --> patchText
-  local d1, d2, patch = d.dir1, d.dir2, {}
-  for _, path in ipairs(d.changed) do
+function pvc.Diff:patch() --> patchText
+  local d1, d2, patch = self.dir1, self.dir2, {}
+  for _, path in ipairs(self.changed) do
     push(patch, pu.diff(d1..path, path, d2..path, path))
   end
-  for _, path in ipairs(d.created) do
+  for _, path in ipairs(self.created) do
     push(patch, pu.diff(nil, nil, d2..path, path))
   end
-  for _, path in ipairs(d.deleted) do
+  for _, path in ipairs(self.deleted) do
     push(patch, pu.diff(d1..path, path))
   end
   return concat(patch, '\n')
@@ -395,24 +395,24 @@ end
 -- Branch
 
 --- return the branch path in project regardless of whether it exists
-pvc.branchDir = function(P, branch, dot)
+function pvc.branchDir(P, branch, dot)
   assert(branch, 'branch is nil')
   assert(not pvc._RESERVED_NAMES[branch], 'branch name is reserved')
   return pth.concat{P, dot or '.pvc', branch, '/'}
 end
 
-pvc._getbase = function(bdir, br) --> br, id
+function pvc._getbase(bdir, br) --> br, id
   local bpath = bdir..'base'
   if ix.exists(bpath) then return pvc._parseBranch(pth.read(bpath))
   else return br, 0 end
 end
-pvc._rawtip = function(bdir, id) --> id
+function pvc._rawtip(bdir, id) --> id
   if id then pth.write(toDir(bdir)..'tip', tostring(id))
   else return readInt(toDir(bdir)..'tip') end
 end
-pvc.depth = function(bdir) return readInt(toDir(bdir)..'commit/depth') end
+function pvc.depth(bdir) return readInt(toDir(bdir)..'commit/depth') end
 
-pvc._patchPath = function(bdir, id, last, depth) --> string?
+function pvc._patchPath(bdir, id, last, depth) --> string?
   depth = depth or pvc.depth(bdir)
   if pvc._calcPatchDepth(id) > depth then return end
   local dirstr = tostring(id):sub(1,-3)
@@ -425,7 +425,7 @@ pvc._patchPath = function(bdir, id, last, depth) --> string?
 end
 
 --- Get the snap/ path regardless of whether it exists
-pvc.snapDir = function(bdir, id) --> string?
+function pvc.snapDir(bdir, id) --> string?
   return pvc._patchPath(bdir, id, '.snap/')
 end
 
@@ -449,7 +449,7 @@ end
 
 --- Snapshot the branch#id by applying patches.
 --- Return the snapshot directory
-pvc.snapshot = function(P, br,id) --> .../id.snap/
+function pvc.snapshot(P, br,id) --> .../id.snap/
   trace('snapshot %s#%s', br,id)
   -- f=from, t=to
   local bdir = pvc.branchDir(P, br)
@@ -499,7 +499,7 @@ pvc.snapshot = function(P, br,id) --> .../id.snap/
 end
 
 --- increase the depth of branch by 2, adding a [$00/] directory.
-pvc._deepen = function(bdir)
+function pvc._deepen(bdir)
   local depth, pp, zz = pvc.depth(bdir), bdir..'commit/', bdir..'00/'
   ix.mv(pp, zz); ix.mkDir(pp) ix.mv(zz, pp)
   pth.write(pp..'depth', tostring(depth + 2))
@@ -508,7 +508,7 @@ end
 -----------------
 -- Project Methods
 
-pvc._parseBranch = function(str, bdefault, idefault) --> branch, id
+function pvc._parseBranch(str, bdefault, idefault) --> branch, id
   local i = str:find'#'
   if i              then return str:sub(1,i-1), toint(str:sub(i+1))
   elseif toint(str) then return bdefault,       toint(str)
@@ -516,14 +516,14 @@ pvc._parseBranch = function(str, bdefault, idefault) --> branch, id
 end
 
 --- get or hard set the current branch/id
-pvc._rawat = function(P, branch, id)
+function pvc._rawat(P, branch, id)
   local apath = pth.concat{P, '.pvc/at'}
   if branch then pth.write(apath, sfmt('%s#%s', branch, id))
   else    return pvc._parseBranch(pth.read(apath)) end
 end
 
 --- get or set where the working id is at.
-pvc.atId = function(P, nbr,nid) --!> branch?, id?
+function pvc.atId(P, nbr,nid) --!> branch?, id?
   -- c=current, n=next
   local cbr, cid = pvc._rawat(P); if not nbr then return cbr, cid end
   local npath = pvc.branchDir(P, nbr)
@@ -587,7 +587,7 @@ pvc.atId = function(P, nbr,nid) --!> branch?, id?
 end
 
 --- update paths file (path) with the added and removed items
-pvc._pathsUpdate = function(P, add, rm)
+function pvc._pathsUpdate(P, add, rm)
   local pfile = pth.concat{P, pvc.PVCPATHS}
   local paths = assert(lines.load(pfile), pfile)
   if add then ds.extend(paths, add) end
@@ -604,7 +604,7 @@ end
 --- * [$branch] or [$branch#id]
 --- * Special: at
 --- ]
-pvc.resolve = function(P, branch) --> br, id, bdir
+function pvc.resolve(P, branch) --> br, id, bdir
   local br, id = pvc._parseBranch(branch)
   if not br then error('unknown branch: '..branch) end
   if br == 'local' then error('local not valid here') end
@@ -613,7 +613,7 @@ pvc.resolve = function(P, branch) --> br, id, bdir
 end
 
 --- resolve and take snapshot, permits local
-pvc.resolveSnap = function(P, branch) --> snap/, br, id, bdir
+function pvc.resolveSnap(P, branch) --> snap/, br, id, bdir
   if branch:find'/' then return branch end -- directory
   if branch == 'local' then return P end
   local br, id, bdir = pvc.resolve(P, branch)
@@ -624,27 +624,27 @@ end
 --- * br1 = 'at'
 --- * br2 = 'local'
 --- ]
-pvc.resolve2 = function(P, br1, br2) --> branch1/ branch2/
+function pvc.resolve2(P, br1, br2) --> branch1/ branch2/
   return  pvc.resolveSnap(P, br1 or 'at'),
           pvc.resolveSnap(P, br2 or 'local')
 end
 
-pvc._diff = function(P, branch1, branch2) --> Diff
+function pvc._diff(P, branch1, branch2) --> Diff
   return pvc.Diff:of(pvc.resolve2(P, branch1, branch2))
 end
 
 --- Create a patch file from two branch arguments (see resolve2).
-pvc._patch = function(P, br1, br2) --> string, s1, s2
+function pvc._patch(P, br1, br2) --> string, s1, s2
   return pvc.Diff:of(pvc.resolve2(P, br1, br2)):patch()
 end
 
 
-local isPatchLike = function(line)
+local function isPatchLike(line)
   return line:sub(1,3) == '---'
       or line:sub(1,3) == '+++'
       or line:sub(1,2) == '!!'
 end
-pvc._commit = function(P, desc) --> snap/, id
+function pvc._commit(P, desc) --> snap/, id
   assert(desc, 'commit must provide description')
   for _, line in ds.split(desc, '\n') do
     assert(not isPatchLike(line),
@@ -682,13 +682,13 @@ pvc._commit = function(P, desc) --> snap/, id
 end
 
 --- get the conventional brName, id for a branch,id pair
-pvc.nameId = function(P, branch,id) --> br,id
+function pvc.nameId(P, branch,id) --> br,id
   local br,bid; if not branch then br,bid = pvc.atId(P)
   else                             br,bid = pvc._parseBranch(branch) end
   return br, id or bid or pvc._rawtip(pvc.branchDir(P, br))
 end
 
-pvc._branch = function(P, name, fbr,fid) --> bdir, id
+function pvc._branch(P, name, fbr,fid) --> bdir, id
   local fpath = pvc.branchDir(P, fbr)
   if not ix.exists(fpath) then error(fpath..' does not exist') end
   fid = fid or pvc._rawtip(fpath)
@@ -699,10 +699,10 @@ pvc._branch = function(P, name, fbr,fid) --> bdir, id
 end
 
 local NOT_BRANCH = { backup = 1, at = 1}
-local branchesRm = function(a, b) return NOT_BRANCH[a] end
+local function branchesRm(a, b) return NOT_BRANCH[a] end
 
 --- get all branches
-pvc.branches = function(P) --> list
+function pvc.branches(P) --> list
   local entries = {}
   local d = P..'.pvc/'
   for e in ix.dir(d) do
@@ -714,7 +714,7 @@ pvc.branches = function(P) --> list
   return entries
 end
 
-pvc._checkBranch = function(P, name, checks, dir)
+function pvc._checkBranch(P, name, checks, dir)
   dir = dir or P..name
   local bbr,bid = pvc._getbase(dir, nil)
   local tip     = pvc._rawtip(dir)
@@ -734,7 +734,7 @@ pvc._checkBranch = function(P, name, checks, dir)
   end
 end
 
-pvc.__graft = function(P, name, from)
+function pvc.__graft(P, name, from)
   local ndir = P..name
   if ix.exists(ndir) then error(ndir..' already exists') end
   pvc._checkBranch(P, name, {base=1}, from)
@@ -748,7 +748,7 @@ FAILED MERGE
 change: %s
  ERROR: %s]]
 
-pvc._merge = function(tdir, bdir, cdir) --!>
+function pvc._merge(tdir, bdir, cdir) --!>
   trace('pvc.merge to=%s base=%s change=%s', tdir, bdir, cdir)
   local paths, conflicts = {}, false
   mapPvcPaths(bdir, cdir, function(bpath, cpath)
@@ -768,7 +768,7 @@ pvc._merge = function(tdir, bdir, cdir) --!>
 end
 
 --- return a backup directory (uses the timestamp)
-pvc.backupDir = function(P, name) --> string
+function pvc.backupDir(P, name) --> string
   for _=1,10 do
     local b = sfmt('%s.pvc/backup/%s-%s/', P, name, pvc._backupId())
     if ix.exists(b) then ix.sleep(0.01) else return b end
@@ -777,7 +777,7 @@ pvc.backupDir = function(P, name) --> string
 end
 
 --- rebase the branch (current branch) to make it's baseid=id
-pvc._rebase = function(P, branch, id) --> backup/dir/
+function pvc._rebase(P, branch, id) --> backup/dir/
   local cbr = branch
 
   --- process: repeatedly use merge on the (new) branch__rebase branch.
@@ -847,7 +847,7 @@ pvc._rebase = function(P, branch, id) --> backup/dir/
 end
 
 --- Grow [$to] by copying patches [$from]
-pvc._grow = function(P, to, from) --!>
+function pvc._grow(P, to, from) --!>
   local fbr, fdir = assert(from, 'must set from'), pvc.branchDir(P, from)
   local ftip = pvc._rawtip(fdir)
   local bbr, bid = pvc._getbase(fdir)
@@ -883,7 +883,7 @@ pvc._grow = function(P, to, from) --!>
 end
 
 --- return the description of ppath
-pvc._desc = function(ppath, num) --> {string}
+function pvc._desc(ppath, num) --> {string}
   local desc = {}
   for line in io.lines(ppath) do
     if line:sub(1,2) == '!!' or line:sub(1,3) == '---'
@@ -894,7 +894,7 @@ pvc._desc = function(ppath, num) --> {string}
 end
 
 --- squash num commits together before br#id.
-pvc._squash = function(P, br, bot,top)
+function pvc._squash(P, br, bot,top)
   assert(br and bot, 'must set br + bot')
   local bdir = pvc.branchDir(P, br)
   local tip, bbr, bid = pvc._rawtip(bdir), pvc._getbase(P, br)
@@ -946,7 +946,7 @@ pvc._squash = function(P, br, bot,top)
     sfmt('squashed [%s - %s] into %s. New tip=%i', bot, top, bot, bi), '\n')
 end
 
-local popdir = function(args)
+local function popdir(args)
   return pth.toDir(pk(args, 'dir') or pth.cwd())
 end
 

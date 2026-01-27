@@ -1,7 +1,7 @@
 local T = require'civtest'
 local push = table.insert
 
-T.kev = function()
+T'kev'; do
   local kev = require'lines.kev'
   local t = {a='value a', b='value b', e=''}
   local r = {'a=value a', 'b=value b', 'e='}

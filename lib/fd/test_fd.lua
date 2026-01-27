@@ -20,12 +20,12 @@ local p = '.out/fd.text'
 ---------------------
 -- non-general tests
 
-T.bitops = function()
+T'bitops'; do
   T.eq(0xFF00, 0xFFFF & (~0x00FF))
   T.eq(0xF0F0, 0xFFFF & (~0x0F0F))
 end
 
-T.isTruncate = function()
+T'isTruncate'; do
   T.eq(false, M.isTrunc'r')
   T.eq(true,  M.isTrunc'w')
   T.eq(true,  M.isTrunc'w+')
@@ -33,7 +33,7 @@ T.isTruncate = function()
   T.eq(false, M.isTrunc'a+')
 end
 
-T['open -> _write -> _read'] = function()
+T'open -> _write -> _read'; do
   local f = M.open(p, 'w'); T.eq(0, f:code())
   print'opened'
   T.eq(0, f:_write'line 1\nline 2\n'); print'wrote lines'
@@ -50,8 +50,8 @@ end
 -- General tests (sync or async with any io impl)
 local fin = false
 
-local generalTest = function()
-T.openWriteRead = function()
+local function generalTest()
+T'openWriteRead'; do
   local f = assert(io.open(p, 'w'))
   assert(f:write'line 1\nline 2\n'); f:close()
 
@@ -65,20 +65,20 @@ T.openWriteRead = function()
   T.eq('closed file', M.type(f))
 end
 
-T.append = function()
+T'append'; do
   local f = assert(io.open(p, 'a'))
   T.eq(14, f:seek'cur')
   f:write'line 3\n'; T.eq(21, f:seek'cur')
 end
 
-T.read = function()
+T'read'; do
   local f = assert(io.open(p, 'r'))
   T.eq('line 1\nline 2\nline 3\n', f:read'a')
   T.eq(21, f:seek'cur')
   f:close()
 end
 
-T.readLine = function()
+T'readLine'; do
   local f = io.open(p, 'r')
   T.eq('line 1',   f:read'l')
   T.eq('line 2',   f:read'l')
@@ -88,7 +88,7 @@ T.readLine = function()
 end
 
 --- check that both files behave the same
-T.generalFile = function()
+T'generalFile'; do
   local f = io.open(p, 'w+')
   f:write'hello!'
     -- TODO: try read'a' here for odd results
@@ -112,7 +112,7 @@ T.generalFile = function()
     T.eq(nil, f:read())
 end
 
-T.fileno_and_friends = function()
+T'fileno_and_friends'; do
   T.eq(type(io.stderr), 'userdata')
   assert(iotype(io.stderr))
   T.eq(0, M.fileno(io.stdin))
@@ -140,16 +140,16 @@ T.SUBNAME = ''
 
 ---------------------
 -- Targeted tests (async)
-local pipeTest = function(r, w)
+local function pipeTest(r, w)
   w:write'hi there'
   T.eq('hi', r:read(2)); T.eq(' there', r:read(6))
 end
 
-T.pipe = function() pipeTest(S.pipe()) end
+T'pipe'; do pipeTest(S.pipe()) end
 
 fin = 0
 ixt.runAsyncTest(function()
-T.pipe_async = function()
+T'pipe_async'; do
   local r, w = S.pipe()
   pipeTest(r:toNonblock(), w:toNonblock())
   T.eq(S.EWOULDBLOCK, r:_read(1))
@@ -159,7 +159,7 @@ T.pipe_async = function()
 end
 
 local text = 'line 1\nline 2\nline 3\nline 4\n'
-T.FDT_write = function()
+T'FDT_write'; do
   local f = assert(M.openFDT(p, 'w')); info'opened'
   T.eq(M.FDT, getmetatable(f))
   T.eq(0, f:code())
@@ -168,7 +168,7 @@ T.FDT_write = function()
   fin = fin + 1
 end
 
-T.FDT_read = function()
+T'FDT_read'; do
   info'started test'
   local f = assert(M.openFDT(p)); info'opened'
   T.eq(M.FDT, getmetatable(f))

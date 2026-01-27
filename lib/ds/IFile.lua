@@ -17,11 +17,11 @@ getmetatable(IFile).__index = mty.hardIndex
 IFile.__newindex            = mty.hardNewindex
 
 --- seek to index in the "mode" m. Invariant: [$i <= len+1]
-local function iseek(fi, i, m, sz) --!> nil
-  if fi._i == i and fi._m == m then return end
-  fi._m = m
+local function iseek(self, i, m, sz) --!> nil
+  if self._i == i and self._m == m then return end
+  self._m = m
   local to = (i-1) * sz
-  local pos = assert(fi.f:seek('set', to))
+  local pos = assert(self.f:seek('set', to))
   assert(pos % sz == 0, 'pos incorrect')
 end
 
@@ -36,14 +36,14 @@ IFile.create = function(T, sz, path) --> IFile?, errmsg?
 end
 
 --- Reload IFile from path.
-IFile.reload = function(fi) --> IFile?, errmsg?
-  local f, err = io.open(fi.path, fi.mode or 'r+')
+function IFile:reload() --> IFile?, errmsg?
+  local f, err = io.open(self.path, self.mode or 'r+')
   if not f then return nil, err end
-  local sz, bytes = fi.sz, f:seek'end'
+  local sz, bytes = self.sz, f:seek'end'
   f:seek('set', bytes - bytes % sz) -- truncate invalid bytes
   local len = bytes // sz
-  fi.f, fi.len, fi._i = f, len, len + 1
-  return fi
+  self.f, self.len, self._i = f, len, len + 1
+  return self
 end
 
 --- load an index file
@@ -52,36 +52,36 @@ IFile.load = function(T, sz, path, mode) --> IFile?, errmsg?
   return mty.construct(T, {sz=sz, path=path, mode=mode}):reload()
 end
 
-IFile.flush   = function(fi) return fi.f:flush() end
-IFile.__len   = function(fi) return fi.len       end
+function IFile:flush() return self.f:flush() end
+function IFile:__len() return self.len       end
 IFile.__pairs = ipairs
 
-IFile.close = function(fi)
-  if fi.f then fi.f:close(); fi.f = false end
+function IFile:close()
+  if self.f then self.f:close(); self.f = false end
 end
-IFile.closed = function(fi) --> bool
-  return fi.f and true or false
+function IFile:closed() --> bool
+  return self.f and true or false
 end
 
 --- get bytes. If index out of bounds return nil.
 --- Panic if there are read errors.
-IFile.getbytes = function(fi, i) --!> str?
-  if i > fi.len then return end
-  local sz = fi.sz; iseek(fi, i, 'r', sz)
-  local v = assert(fi.f:read(sz))
+function IFile:getbytes(i) --!> str?
+  if i > self.len then return end
+  local sz = self.sz; iseek(self, i, 'r', sz)
+  local v = assert(self.f:read(sz))
   assert(#v == sz, 'did not read sz bytes')
-  fi._i = i + 1
+  self._i = i + 1
   return v
 end
 IFile.get = IFile.getbytes
 
-IFile.setbytes = function(fi, i, v)
-  local len = fi.len; assert(i <= len + 1, 'newindex OOB')
-  local sz = fi.sz
+function IFile:setbytes(i, v)
+  local len = self.len; assert(i <= len + 1, 'newindex OOB')
+  local sz = self.sz
   if #v ~= sz then error(sfmt('failed to write %i bytes', #v)) end
-  iseek(fi, i, 'w', sz); assert(fi.f:write(v))
-  if i > len then fi.len = i end
-  fi._i = i + 1
+  iseek(self, i, 'w', sz); assert(self.f:write(v))
+  if i > len then self.len = i end
+  self._i = i + 1
 end
 IFile.set = IFile.setbytes
 
@@ -94,13 +94,13 @@ IFile.set = IFile.setbytes
 ---
 --- The IFile will re-open on the new file regardless of the
 --- previous state.
-IFile.move = function(fi, to, mvFn) --> fi
-  assert(fi.path, 'cannot move tmp file')
+function IFile:move(to, mvFn) --> self
+  assert(self.path, 'cannot move tmp file')
   mvFn = mvFn or require'civix'.mv
-  if fi.f then fi:flush(); fi:close() end
-  mvFn(fi.path, to); fi.path = to
-  fi.mode = 'r+'
-  return fi:reload()
+  if self.f then self:flush(); self:close() end
+  mvFn(self.path, to); self.path = to
+  self.mode = 'r+'
+  return self:reload()
 end
 
 --- Get a new read-only instance with an independent file-descriptor.
@@ -108,11 +108,11 @@ end
 --- Warning: currently the reader's len will be static, so this should
 --- be mostly used for temporary cases. This might be changed in
 --- the future.
-IFile.reader = function(fi) --> IFile?, err?
-  assert(fi.path, 'reader only allowed on file with path')
-  fi:flush()
-  local f,e = io.open(fi.path, 'r'); if not f then return nil, e end
-  local r = ds.copy(fi)
+function IFile:reader() --> IFile?, err?
+  assert(self.path, 'reader only allowed on file with path')
+  self:flush()
+  local f,e = io.open(self.path, 'r'); if not f then return nil, e end
+  local r = ds.copy(self)
   r.f, r.mode = f, 'r'
   return r
 end
@@ -122,9 +122,9 @@ function IFile:__copy()
   return setmetatable(c, getmetatable(self))
 end
 
-IFile.__fmt = function(fi, fmt)
-  fmt:write('IFile(sz=', tostring(fi.sz), ' ')
-  if fi.path then fmt:write(fi.path) end
+function IFile:__fmt(fmt)
+  fmt:write('IFile(sz=', tostring(self.sz), ' ')
+  if self.path then fmt:write(self.path) end
   fmt:write')'
 end
 

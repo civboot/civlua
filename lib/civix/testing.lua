@@ -15,7 +15,7 @@ local fd  = require'fd'
 --- ["This does not print test names/etc. Use civtest or
 ---   equivalent for that.
 --- ]
-M.runAsyncTest = function(fn)
+function M.runAsyncTest(fn)
   assert(not G.LAP_ASYNC, 'already in async mode')
   local lr = ix.Lap()
   local _, errors = lr:run{fd.ioAsync, fn}
