@@ -3,6 +3,7 @@
 #include <lua.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 #define LUA_BYTEARRAY  "bytearray"
 

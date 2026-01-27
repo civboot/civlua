@@ -44,6 +44,8 @@ civ._Base = shim.cmd'_Base' {
 civ.init = shim.cmd'init' {
   'config [string]: path to config.lua to output',
     config = core.DEFAULT_CONFIG,
+  'llua [string]: the lua library name override for pkg-config, i.e. lua5.3',
+    llua = 'lua',
 }
 
 --- Usage: [$civ build hub:tgt#name][{br}]
@@ -127,7 +129,7 @@ function civ.init:__call()
   local cfg
   if not ix.exists(core.BASE_CONFIG) then
     local luaFlags = ds.splitList(ds.trim(
-      (ix.sh'pkg-config --cflags --libs lua')
+      ( ix.sh('pkg-config --cflags --libs '..self.llua) )
     ))
     pth.write(core.BASE_CONFIG, fmt.format(BASE_TEMPL,
       ix.OS, core.DIR, core.DIR..'sys/', luaFlags))
