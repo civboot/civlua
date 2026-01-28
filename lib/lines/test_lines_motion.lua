@@ -1,11 +1,17 @@
+local mty = require'metaty'
 local ds  = require'ds'
 local T = require'civtest'
 
-local decDistance, lcLe, lcGe, lcWithin
-local forword, backword, findBack
-local wordKind, pathKind, getRange
-local topLeft
-ds.auto'lines.motion'
+local decDistance, lcLe, lcGe, lcWithin,
+      forword, backword, findBack,
+      wordKind, pathKind, getRange,
+      topLeft
+      = mty.from[[lines.motion
+      decDistance, lcLe, lcGe, lcWithin,
+      forword, backword, findBack,
+      wordKind, pathKind, getRange,
+      topLeft
+]]
 
 T'distance'; do
   T.eq(3, decDistance(1, 4))

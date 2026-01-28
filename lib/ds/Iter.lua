@@ -13,7 +13,7 @@ local mty = require'metaty'
 --- ]$
 local Iter = mty'Iter' {
   '_li [int]: left index of fns (stored at negative index)', _li = 0,
-  '_nextK [any]: next key when [$iter()]ated',
+  '_prevK [any]: the prevous key, used to get next',
 }
 
 local ds = require'ds'
@@ -38,7 +38,7 @@ local function swapKV(k, v) return v, k end
 ---   self = Iter{myIterFn}
 --- ]$
 getmetatable(Iter).__call = function(T, t)
-  t._nextK = t[3]; return setmetatable(t, T)
+  t._prevK = t[3]; return setmetatable(t, T)
 end
 
 --- create iterable of [$pairs(t)]
@@ -256,13 +256,13 @@ end
 function Iter:concat(sep) return concat(self:to(), sep) end
 
 --- reset the iterator to run from the start
-function Iter:reset() self._nextK = self[3]; return self end --> self
+function Iter:reset() self._prevK = self[3]; return self end --> self
 
 --- use as an iterator.
 function Iter:__call()
   local li, k = self._li
-  for key, v in self[1], self[2], self._nextK do
-    k, self._nextK = key, key
+  for key, v in self[1], self[2], self._prevK do
+    k, self._prevK = key, key
     for i=-1,li,-1 do
       k, v = self[i](k, v); if k == nil then goto skip end
     end

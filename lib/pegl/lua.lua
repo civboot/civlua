@@ -10,12 +10,18 @@ local mty = require'metaty'
 local ds  = require'ds'
 local add, sfmt = table.insert, string.format
 local get = ds.get
+local pegl = require'pegl'
 
-local Key
-local Pat, Or, Not, Many, Maybe
-local Token, Empty, Eof, PIN, UNPIN
-local EMPTY, common
-local pegl = ds.auto'pegl'
+local Key,
+      Pat, Or, Not, Many, Maybe,
+      Token, Empty, Eof, PIN, UNPIN,
+      EMPTY, common
+  = mty.from(pegl, [[
+      Key,
+      Pat, Or, Not, Many, Maybe,
+      Token, Empty, Eof, PIN, UNPIN,
+      EMPTY, common
+]])
 local num = Or{name='num', common.base16, common.base10}
 
 local stmt = Or{name='stmt'}

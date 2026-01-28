@@ -2,17 +2,25 @@ local mty = require'metaty'
 local ds = require'ds'
 local pth = require'ds.path'
 local T = require'civtest'
+local pegl = require'pegl'
+local M = require'pegl.lua'
 
-local Config, Token
-local testing, EMPTY, EOF, assertParse, assertParseError
-local pegl = ds.auto'pegl'
+local Config, Token,
+  testing, EMPTY, EOF, assertParse, assertParseError
+  = mty.from(pegl, [[
+      Config, Token,
+      testing, EMPTY, EOF, assertParse, assertParseError
+]])
 
-local num, str, exp1, exp, field, varset
-local config, lenientConfig, src
-local M = ds.auto'pegl.lua'
+local num, str, exp1, exp, field, varset,
+  config, lenientConfig, src
+  = mty.from(M, [[
+      num, str, exp1, exp, field, varset,
+      config, lenientConfig, src
+]])
 local D = 'lib/pegl/'
 
-local KW, N, NUM, HEX; ds.auto(testing)
+local KW, N, NUM, HEX = mty.from(testing, 'KW,N,NUM,HEX')
 local function SRC(...) return {..., EMPTY, EMPTY, EOF} end
 
 T'easy'; do

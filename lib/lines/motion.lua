@@ -6,8 +6,8 @@ local M = mod and mod'lines.motion' or {}
 
 local mty = require'metaty'
 local ds = require'ds'
-local sort2, bound, isWithin; ds.auto'ds'
-local min, max = math.min, math.max
+local sort2, bound, isWithin = mty.from(ds, 'sort2,bound,isWithin')
+local min, max               = mty.from(math, 'min,max')
 
 local byte, char = string.byte, string.char
 

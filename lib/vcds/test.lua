@@ -2,7 +2,9 @@ local mty = require'metaty'
 local ds  = require'ds'
 local lines = require'lines'
 local T = require'civtest'
-local Diff, Keep, Change; local M = ds.auto'vcds'
+local M = require'vcds'
+
+local Diff, Keep, Change = mty.from(M, 'Diff,Keep,Change')
 local push = table.insert
 
 T'create_anchor'; do

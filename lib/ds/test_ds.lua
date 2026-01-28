@@ -13,17 +13,26 @@ local fmt = require'fmt'
 local ds = require'ds'; local M = ds
 local lines = require'lines'
 local testing = require'lines.testing'
+local M = require'ds'
 
 local T = require'civtest'
 
-local bound, isWithin, sort2, absDec
-local indexOf, copy, deepcopy
-local trim
-local extend, clear, merge
-local getOrSet, getp, setp
-local drain, reverse
-local Set, Duration, Epoch
-local M = M.auto'ds'
+local bound, isWithin, sort2, absDec,
+  indexOf, copy, deepcopy,
+  trim,
+  extend, clear, merge,
+  getOrSet, getp, setp,
+  drain, reverse,
+  Set, Duration, Epoch
+  = mty.from(M, [[
+  bound, isWithin, sort2, absDec,
+  indexOf, copy, deepcopy,
+  trim,
+  extend, clear, merge,
+  getOrSet, getp, setp,
+  drain, reverse,
+  Set, Duration, Epoch
+]])
 local d8 = require'ds.utf8'
 local dp = M.dotpath
 local pth = require'ds.path'

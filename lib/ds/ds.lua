@@ -1153,18 +1153,6 @@ function M.Deq:drain() --> table: get all items and clear deq
   self:clear(); return t
 end
 
----------------------
--- TWriter: table writer
--- This is a table pretending to be a write-only file.
-
-M.TWriter = mty'TWriter' {}
-function M.TWriter:write(...)
-  push(self, sconcat('', ...))
-  return self
-end
-M.TWriter.flush = M.noop
-M.TWriter.close = M.noop
-
 ------------------
 -- Export bytearray
 
@@ -1321,23 +1309,6 @@ end
 
 -----------------------
 -- Import helpers
-
---- DEPRECATED: do not use this function.[{br}]
---- auto-set nil locals using require(mod)
---- [$local x, y, z; ds.auto'mm' -- sets x=mm.x; y=mm.y; z=mm.z]
-function M.auto(mod, i) --> (mod, i)
-  mod, i = type(mod) == 'string' and require(mod) or mod, i or 1
-  while true do
-    local n, v = debug.getlocal(2, i)
-    if not n then break end
-    if nil == v then
-      if not mod[n] then error(n.." not in module", 2) end
-      debug.setlocal(2, i, mod[n])
-    end
-    i = i + 1
-  end
-  return mod, i
-end
 
 --- Try to get any [$string.to.path] by trying all possible combinations of
 --- requiring the prefixes and getting the postfixes.

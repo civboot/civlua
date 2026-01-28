@@ -1,13 +1,19 @@
 local mty = require'metaty'
 local T = require'civtest'
 local ds = require'ds'
+local pegl = require'pegl'
 local Set = ds.Set
 
-local Config, Key
-local Pat, Or, Not, Many, Maybe, Seq
-local Empty, Eof, PIN, UNPIN
-local testing, EMPTY, EOF, assertParse, assertParseError
-local pegl = ds.auto'pegl'
+local Config, Key,
+      Pat, Or, Not, Many, Maybe, Seq,
+      Empty, Eof, PIN, UNPIN,
+      testing, EMPTY, EOF, assertParse, assertParseError
+      = mty.from(pegl, [[
+      Config, Key,
+      Pat, Or, Not, Many, Maybe, Seq,
+      Empty, Eof, PIN, UNPIN,
+      testing, EMPTY, EOF, assertParse, assertParseError
+]])
 
 local KW, N = testing.KW, testing.N
 

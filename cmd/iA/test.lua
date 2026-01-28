@@ -3,13 +3,14 @@ local iA = require'iA'
 local piA = require'iA.parse'
 local T = require'civtest'
 local info = require'ds.log'.info
+local pegl = require'pegl'
 
 local C = iA.core
 
 local testing, EMPTY, EOF, assertParse, assertParseError
-local pegl = ds.auto'pegl'
+  = mty.from(pegl, 'testing, EMPTY, EOF, assertParse, assertParseError')
 
-local KW, N, TY, NUM, HEX; ds.auto(testing)
+local KW, N, TY, NUM, HEX = mty.from(testing, 'KW, N, TY, NUM, HEX')
 
 T'expr1'; do
   -- literal 42

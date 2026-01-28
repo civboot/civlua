@@ -672,7 +672,8 @@ function M.from(a, b)
     m = assert(require(a:match'[^%s,]+'))
     str = a:match'[^%s,]+[%s,]*(.*)'
   end
-  local o = {}; for _, s in M.split(str, '[%s,]+') do
+  local o = {}
+  for _, s in M.split(str:match'^%s*(.-)%s*$', '[%s\n,]+') do
     push(o, ( assert(m[s], s) ))
   end
   return table.unpack(o)

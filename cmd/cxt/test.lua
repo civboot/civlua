@@ -6,12 +6,11 @@ local M = require'cxt'
 local term = require'cxt.term'
 local html = require'cxt.html'
 local T = require'civtest'
+local pegl = require'pegl'
 
-local Config, Token
-local testing, EMPTY, EOF
-local pegl = ds.auto'pegl'
-
-local KW, N, NUM, HEX; ds.auto(testing)
+local Config, Token       = mty.from'pegl  Config,Token'
+local testing, EMPTY, EOF = mty.from'pegl  testing,EMPTY,EOF'
+local KW, N, NUM, HEX     = mty.from(testing, 'KW, N, NUM, HEX')
 local s = ds.simplestr
 
 T'escape'; do
