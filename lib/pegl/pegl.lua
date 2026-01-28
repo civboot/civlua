@@ -16,6 +16,7 @@ local sfmt    = string.format
 local srep = string.rep
 local ty = mty.ty
 local get, set = ds.get, ds.set
+local info = mty.from'ds.log info'
 
 local function zero() return 0 end
 
@@ -30,15 +31,32 @@ function M.decodeSpan(s)
   return l, c, l + l2, c2
 end
 
-M.Token = mty'Token'{'kind [string]: optional, used for debugging'}
-function M.Token:span(dec) return M.decodeSpan(self[1]) end
-M.Token.encode = function(T, p, l, c, l2, c2, kind)
-  return T{M.encodeSpan(l, c, l2, c2), kind=kind}
+M.Token = mty'Token'{
+  'kind [string]: optional, used for debugging',
+  'style [string]: computed by acsyntax',
+}
+function M.Token:span(dec) --> l, c, l2, c2
+  return M.decodeSpan(self[1])
+end
+-- TODO: remove `p`?
+M.Token.encode = function(T, p, l, c, l2, c2, kind, style)
+  return T{M.encodeSpan(l,c, l2,c2), kind=kind, style=style}
 end
 function M.Token:decode(dat) return lines.sub(dat, M.decodeSpan(self[1])) end
 function M.Token:__fmt(f)
-  f:write'Tkn'; if self.kind then f:write(sfmt('<%s>', self.kind)) end
-  f:write(sfmt('(%s.%s %s.%s)', self:span()))
+  f:write'Tkn';
+  f:write(sfmt('(%s.%s %s.%s', self:span()))
+  if self.kind  then f:write(' kind=', self.kind) end
+  if self.style then f:write(' style=', self.style) end
+  f:write')'
+end
+--- compare two tokens, commonly used in sorting algorithms.
+function M.Token:lte(r) 
+  local l1, c1 = self:span()
+  local l2, c2 = r:span()
+  if l1 < l2 then return true  end
+  if l1 > l2 then return false end
+  return c1 <= c2
 end
 
 local TOKEN_TY = {string=true, [M.Token]=true}
@@ -78,7 +96,7 @@ M.Config = mty'Config' {
       this function alone.
   ]]==],
 
-  'skipComment [function]: fn(p) -> Token for found comment',
+  'skipComment [fn(p) -> Token]: function for behavior of found comment',
 
 [==[tokenizer [fn(p) -> nil] Requires: [+
     * must return one token. The default is to return a single punctuation character
@@ -110,7 +128,8 @@ M.Parser = mty'Parser'{
   'config [Config]',
   'stack [list]', 'stackL [list]', 'stackC [list]',
   'stackLast [{item, l, c}]',
-  'commentLC [table]: table of {line={col=CommentToken}}',
+  'commentLC [table]: table of cached {line={col=CommentToken}}',
+  'comments {Token}: list of comment tokens',
   'dbgLevel [number]', dbgLevel = 0,
   'path [string]',
   'firstError {l=int,c=int, [1]=str}: first error.',
@@ -288,17 +307,21 @@ function M.skipWs1(p)
 end
 
 function M.skipEmpty(p)
-  local loop, sc, cmt, cL = true, p.config.skipComment, nil, nil
+  local loop, sc, cmt, cL, cached = true, p.config.skipComment, nil, nil
   while loop and not p:isEof() do
     loop = not M.skipWs1(p)
     if sc then
-      -- cL=comments at line. Parse the comment if not already done.
-      cL = p.commentLC[p.l]; cmt = (cL and cL[p.c]) or sc(p)
+      -- cL=cached comments at line. Load from cache or parse with sc.
+      cL = p.commentLC[p.l]
+      cmt = (cL and cL[p.c]) or sc(p)
       if cmt then -- found comment, advance past it.
         p:dbg('COMMENT: %s.%s', p.l, p.c)
         cL = p.commentLC[p.l]
         if not cL then cL = {}; p.commentLC[p.l] = cL end
-        cL[p.c] = cmt
+        if not cL[p.c] then -- not yet cached
+          cL[p.c] = cmt
+          push(p.comments, cmt)
+        end
         p.l, p.c = select(3, cmt:span()); p.c = p.c + 1
       end
     end
@@ -331,8 +354,10 @@ local function shouldUnpack(spec, t)
   return r
 end
 
--- Create node with optional kind
-local function node(spec, t, kind)
+-- Create node with optional kind.
+-- This may just return `true`, which means no node is
+-- generated but parsing should not fail.
+local function node(spec, t, kind) --> {token, kind=kind}
   if type(t) ~= 'boolean' and t and kind then
     if type(t) == 'table' and not t.kind then t.kind = kind
     else t = {t, kind=kind} end
@@ -477,7 +502,7 @@ function M.parse(dat, spec, config) --> list[Node]
   return n, p
 end
 
-function M.Parser:assertNode(expect, node, config)
+function M.Parser:assertNode(expect, node, config) --> strTokens
   local result = self:toStrTokens(node)
   if not mty.eq(expect, result) then
     local eStr = concat(self.config.newFmt()(expect))
@@ -503,7 +528,7 @@ end
 --- the input is a table of the form: [{$ lang=lua}
 ---   {dat, spec, expect, dbg=nil, config=default} --> nil
 --- ]
-function M.assertParse (t) --> result, node, parser
+function M.assertParse(t) --> result, node, parser
   assert(t.dat, 'dat'); assert(t.spec, 'spec')
   local config = (t.config and ds.copy(t.config)) or M.Config{}
   config.dbg   = t.dbg or config.dbg
@@ -530,7 +555,7 @@ M.Parser.new = function(T, dat, config)
     dat=dat, l=1, c=1, line=get(dat,1), lines=#dat,
     config=config or M.Config{},
     stack={}, stackL={}, stackC={}, stackLast={},
-    commentLC={},
+    commentLC={}, comments={},
   })
 end
 

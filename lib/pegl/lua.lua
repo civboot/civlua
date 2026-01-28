@@ -36,8 +36,8 @@ local methname = ds.copy(name)
 methname.name = 'methname'
 
 -- uniary and binary operations
-local op1 = Key{name='op1', {'-', 'not', '#'}}
-local op2 = Key{name='op2', {
+local op1 = Key{kind='op1', {'-', 'not', '#'}}
+local op2 = Key{kind='op2', {
   -- standard binops
   '+', '-', '*', '/', '^', '%', 'and', 'or',
   ['.'] = {true, '.'},                      -- .    ..
@@ -276,6 +276,53 @@ local function parse(dat, spec, config)
   if not config.skipComment then config.skipComment = skipComment end
   return pegl.parse(dat, spec, config)
 end
+
+--- The default lua syntax highlighter.
+M.highlighter = require'pegl.acsyntax'.Highlighter {
+  config = M.lenientConfig,
+  spec   = M.lenientBlock,
+  -- todo: define most of these in pegl.BASE_STYLE and copy+update it.
+  style = {
+    -- Code Syntax
+    keyword = 'keyword', ['return'] = 'keyword', ['break'] = 'keyword',
+    ['nil'] = 'literal', ['true'] = 'literal',   ['false'] = 'literal',
+    base2     = 'num',    base10    = 'num',    base16     = 'num',
+    singleStr = 'string', doubleStr = 'string', bracketStr = 'string',
+
+    ['='] = 'symbol',
+    op1 = 'symbol', op2 = 'symbol',
+    [';'] = 'meta', [','] = 'meta',
+
+    funcname = 'api',
+    field = 'key', -- key in map/struct/etc
+    methname = 'dispatch',
+    comment = 'comment',
+
+    name = 'none',
+  },
+  builtin = {
+    -- truly builtin (special functionality)
+    'self', '_G', '_ENV', '_VERSION',
+
+    -- modules
+    'io', 'os', 'coroutine', 'debug',
+    'math', 'table', 'string',
+
+    -- builtin functions
+    'require',
+    'print', 'warn', 'assert', 'error',
+    'load', 'loadfile', 'dofile', 'collectgarbage',
+    'pcall', 'xpcall',
+    'pairs', 'ipairs', 'next',
+    'rawequal', 'rawget', 'rawset',
+    'setmetatable', 'getmetatable',
+    'tonumber', 'tostring', 'type',
+    'select',
+
+    -- conventional names
+    'M', 'G',
+  },
+}
 
 return ds.update(M, {
   src=src,

@@ -76,11 +76,6 @@ doc/see_also.cxt
 doc/why.cxt
 lib/PKG.luk
 lib/README
-lib/acsyntax/PKG.luk
-lib/acsyntax/README.cxt
-lib/acsyntax/acsyntax.lua
-lib/acsyntax/acsyntax/lua.lua
-lib/acsyntax/test.lua
 lib/asciicolor/PKG.luk
 lib/asciicolor/README.cxt
 lib/asciicolor/asciicolor.lua

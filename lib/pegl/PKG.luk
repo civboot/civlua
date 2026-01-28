@@ -7,12 +7,14 @@ P.pegl = lua {
   mod = 'pegl',
   src = {
     'pegl.lua',
+    'acsyntax.lua',
     'lua.lua',
   },
   dep = {
     'civ:lib/ds',
     'civ:lib/lines',
     'civ:lib/civtest',
+    'civ:lib/asciicolor',
   },
 }
 
@@ -21,6 +23,11 @@ P.test = lua.test {
     'test_pegl.lua',
     'test_lua.lua',
   },
+  dep = { 'civ:lib/pegl' },
+}
+
+P.test_acsyntax = lua.test {
+  src = 'test_acsyntax.lua',
   dep = { 'civ:lib/pegl' },
 }
 

@@ -105,7 +105,6 @@ local STORY_PATCH1 = [[
 
 --- This test is large but does an entire "common" workflow
 T'workflow' do
-  info('@@ started workflow D=%q', D)
   ix.rmRecursive(D);
   -- initialize PVC
   pvc.init{dir=D}

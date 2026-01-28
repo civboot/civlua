@@ -18,7 +18,7 @@ local sort = table.sort
 local push, pop = table.insert, table.remove
 local yield = coroutine.yield
 local pc = pth.concat
-local construct = mty.construct
+local construct, ty = mty.construct, mty.ty
 local type = type
 local check = ds.check
 local toDir, toNonDir = pth.toDir, pth.toNonDir
@@ -183,14 +183,6 @@ ds.update(M, {
 --- Default is 32 KiB
 M.BLOCK_SZ = 1 << 15
 
---- Given two Stat objects return whether their modifications
---- are equal
-function M.statModifiedEq(fs1, fs2)
-  local s1, ns1 = fs1:modified()
-  local s2, ns2 = fs2:modified()
-  return (s1 == s2) and (ns1 == ns2)
-end
-
 --- Given a path|File|Stat return a Stat
 function M.stat(v) --> Stat?, errmsg?
   if getmetatable(v) == M.Stat then return v end
@@ -260,6 +252,8 @@ end
 --- set the modified time of the path|file
 function M.setModified(f, sec, nsec) --> ok, errmsg?
   local close; if type(f) == 'string' then f = io.open(f); close = true end
+  if ty(sec) == ds.Epoch              then sec, nsec = sec.s, sec.ns    end
+
   local ok, err = lib.setmodified(fd.fileno(f), sec, nsec)
   if close then f:close() end
   return ok, err

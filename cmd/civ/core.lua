@@ -382,7 +382,6 @@ function M.Civ:loadPkg(pkgname)
   pkg = assert(self.luk:import(pkgfile))
   assertf(mty.ty(pkg) == luk.Table,
     '%q did not return a table', pkgfile)
-  info('@@ loaded pkg: %q', pkg)
   forceset(pkg, 'pkgname', pkgname)
   for k, tgt in pairs(pkg) do -- validation
     assertf(type(k) == 'string',

@@ -57,6 +57,8 @@ end
 M.dark = {
   bg = 'b',
 
+  none = '',
+
   -- Find tools (i.e. ff)
   path  = 'm',  -- file/dir path
   match = 'Bf', -- search match

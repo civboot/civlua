@@ -258,6 +258,8 @@ T'table'; do
   T.eq({'a', 'b', 'c'}, M.sortUnique{'c', 'b', 'a'})
   T.eq({'a', 'b', 'c'}, M.sortUnique{'a', 'c', 'b', 'a'})
   T.eq({'.', 'h', 's'}, M.sortUnique{'h', '.', 's', 'h'})
+
+  T.eq({1,2,3,4,5}, M.orderedMerge({1,3,5}, {2, 4}))
 end
 
 T'freeze'; do

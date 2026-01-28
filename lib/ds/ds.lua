@@ -8,12 +8,13 @@ local fmt = require'fmt'
 local shim = require'shim'
 
 local ty = mty.ty
-local next, getmt        = mty.from(G,      'next,getmetatable')
+local next, getmt, setmt = mty.from(G,      'next,getmetatable,setmetatable')
 local push, pop, concat  = mty.from(table,  'insert,remove,concat')
 local move, sort, unpack = mty.from(table,  'move,sort,unpack')
 local sfmt, sfind        = mty.from(string, 'format,find')
 local ulen, uoff         = mty.from(utf8,   'len,offset')
 local mathty, min, max   = mty.from(math,   'type,min,max')
+local floor              = mty.from(math,   'floor')
 local xpcall, traceback = xpcall, debug.traceback
 local resume = coroutine.resume
 local getmethod = mty.getmethod
@@ -551,6 +552,47 @@ function M.merge(t, m) --> t
   return t
 end
 
+--- Perform an ordered merge of [$$a[a_si:a_ei]$ and [$$b[b_si:b_ei]$
+--- to [$$to[ti:a_ei-a_si + b_ei-b_si + 2]$, using [$cmp] (default [$ds.lte])
+--- for comparison.
+---
+--- The return values is the table [$to], which will be created if not provided.
+---
+--- The [$mv] function is used for moving final values after one list
+--- is empty (default=[$table.move]).
+---
+--- This can be part of a sorting algorithm or used to merge two
+--- already-sorted lists.
+function M.orderedMerge(a, b, to, cmp, a_si, a_ei, b_si, b_ei, ti, mv) --> to
+  to = to or {}
+  return M.orderedMergeRaw(
+    a, b, to, cmp or lte,
+    a_si or 1, a_ei or #a,
+    b_si or 1, b_ei or #b,
+    ti or #to + 1,
+    mv or move)
+end
+
+--- orderedMerge without any default values.
+function M.orderedMergeRaw(a, b, to, cmp, a_si, a_ei, b_si, b_ei, ti, mv) --> to
+  -- Check for empty tables. In the loop we only check when the index changes.
+  if b_si > b_ei then return mv(a, a_si,a_ei, ti, to) end
+  if a_si > a_ei then return mv(b, b_si,b_ei, ti, to) end
+  local av, bv
+  while true do
+    av, bv = a[a_si], b[b_si]
+    if cmp(av, bv) then -- traditionally if(a <= b)
+      to[ti], a_si, ti = av, a_si + 1, ti + 1 -- copy val from a
+      -- if a is empty, move from b and finish.
+      if a_si > a_ei then return mv(b, b_si,b_ei, ti, to) end
+    else
+      to[ti], b_si, ti = bv, b_si + 1, ti + 1 -- copy val from b
+      -- if b is empty, move from a and finish.
+      if b_si > b_ei then return mv(a, a_si,a_ei, ti, to) end
+    end
+  end
+end
+
 --- Remove key from [$t] and return it's value.
 function M.popk(t, key) --> value
   local val = t[key]; t[key] = nil; return val
@@ -698,7 +740,7 @@ function M.defaultICopy(r)
 end
 
 function M.rawcopy(t)
-  return setmetatable(updateRaw({}, t), getmt(t))
+  return setmt(updateRaw({}, t), getmt(t))
 end
 
 --- Copy and update full table
@@ -718,7 +760,7 @@ function M.deepcopy(t) --> table
     if 'table' == type(v) then v = M.deepcopy(v) end
     out[k] = v
   end
-  return setmetatable(out, getmt(t))
+  return setmt(out, getmt(t))
 end
 
 ---------------------
@@ -741,31 +783,31 @@ end
 -- Low-level Types
 
 --- Weak key table, see docs on [$__mode]
-M.WeakK = setmetatable(
+M.WeakK = setmt(
   {__name='WeakK', __mode='k'}, {
   __name='Ty<WeakK>', __call=mty.constructUnchecked,
 })
 
 --- Weak value table, see docs on [$__mode]
-M.WeakV = setmetatable(
+M.WeakV = setmt(
   {__name='WeakV', __mode='v'}, {
   __name='Ty<WeakV>', __call=mty.constructUnchecked,
 })
 
 --- Weak key+value table, see docs on [$__mode]
-M.WeakKV = setmetatable(
+M.WeakKV = setmt(
   {__name='WeakKV', __mode='kv'}, {
   __name='Ty<WeakKV>', __call=mty.constructUnchecked,
 })
 
 --- Table that ignores new indexes. Used to disable caching in tests.
-M.Forget = setmetatable(
+M.Forget = setmt(
   {__name='Forget', __newindex=M.noop},
   {__name='Ty<Forget>', __call=mty.constructUnchecked}
 )
 
 --- Table that errors on missing key
-M.Checked = setmetatable(
+M.Checked = setmt(
   {__name='Checked', __metatable='table',
    __index=function(_, k) error('unknown key: '..k) end,
   },
@@ -810,8 +852,8 @@ function M.sentinel(name, mt) --> NewType
     __pairs = function() return M.noop end,
   }, mt or {})
   mt.__index = mt
-  setmetatable(mt, {__name='Ty<'..name..'>', __index=mty.indexError})
-  local S = setmetatable({}, mt)
+  setmt(mt, {__name='Ty<'..name..'>', __index=mty.indexError})
+  local S = setmt({}, mt)
   mt.__toPod   = function() return S end
   mt.__fromPod = function(_, pod, v)
     if v ~= S then error('expected '..name..' got '..type(v)) end
@@ -834,7 +876,7 @@ function M.bool(v) --> bool
 end
 
 --- An immutable empty table
-M.empty = setmetatable({}, {
+M.empty = setmt({}, {
   __newindex = function() error('mutate ds.empty', 2) end,
   __metatable = 'table',
 })
@@ -843,7 +885,7 @@ M.empty = setmetatable({}, {
 M.Imm = mty'Imm' {}
 local IMM_DATA = '<!imm data!>'
 getmt(M.Imm).__call = function(T, t)
-  return setmetatable({[IMM_DATA]=(next(t) ~= nil) and t or nil}, T)
+  return setmt({[IMM_DATA]=(next(t) ~= nil) and t or nil}, T)
 end
 M.Imm.__metatable = 'table'
 M.Imm.__newindex = function() error'cannot modify Imm table' end
@@ -859,7 +901,8 @@ M.empty = M.Imm{}
 
 ---------------------
 -- Duration
-local NANO  = 1000000000
+local NANO   = 1000000000
+local MICRO  = 1000000
 local function durationSub(s, ns, s2, ns2)
   s, ns = s - s2, ns - ns2
   if ns < 0 then
@@ -879,7 +922,7 @@ end
 local function timeNew(T, s, ns)
   if ns == nil then return T:fromSeconds(s) end
   local out = {s=s, ns=ns}
-  return setmetatable(assertTime(out), T)
+  return setmt(assertTime(out), T)
 end
 local function fromSeconds(ty_, s)
   local sec = math.floor(s)
@@ -1084,7 +1127,7 @@ M.BiMap.__tostring = nil
 getmt(M.BiMap).__call = function(T, self)
   local rev = {}; for k, v in pairs(self) do rev[v] = k end
   for k, v in pairs(rev) do self[k] = v end
-  return setmetatable(self, T)
+  return setmt(self, T)
 end
 function M.BiMap:__newindex(k, v)
   rawset(self, k, v); rawset(self, v, k)
@@ -1325,7 +1368,7 @@ end
 
 --- indexrequire: [$R.foo] is same as [$require'foo']
 --- This is mostly used in scripts/etc
-M.R = setmetatable({}, {
+M.R = setmt({}, {
   __index=function(_, k) return require(k) end,
   __newindex=function() error"don't set fields" end,
 })

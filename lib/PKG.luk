@@ -7,7 +7,6 @@ local P = {}
 -- Most civ:cmd commands just include the whole thing for convinience.
 P.lib = Target {
   dep = {
-    'civ:lib/acsyntax',
     'civ:lib/asciicolor',
     'civ:lib/civix',
     'civ:lib/civtest',
@@ -63,7 +62,6 @@ local function libdoc(mod, readme)
     lua = { 'civ:lib/'..mod },
   }
 end
--- libdoc('acsyntax', true) -- FIXME
 libdoc('asciicolor', true)
 libdoc('civix', true)
 libdoc('civtest', true)

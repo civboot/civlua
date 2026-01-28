@@ -23,6 +23,9 @@ local D = 'lib/pegl/'
 local KW, N, NUM, HEX = mty.from(testing, 'KW,N,NUM,HEX')
 local function SRC(...) return {..., EMPTY, EMPTY, EOF} end
 
+local OP1 = function(sym) return {kind='op1', sym} end
+local OP2 = function(sym) return {kind='op2', sym} end
+
 T'easy'; do
   assertParse{dat='42  0x3A', spec={num, num}, expect={
     NUM'42', HEX'0x3A',
@@ -122,13 +125,13 @@ end
 
 T'expression'; do
   assertParse{dat='x+3', spec=exp,
-    expect={N'x', KW'+', NUM'3'},
+    expect={N'x', OP2'+', NUM'3'},
   }
   assertParse{dat='x()+3', spec=exp,
     expect= {
       N"x", {kind='call',
         KW"(", EMPTY, KW")",
-      }, KW"+", NUM'3'
+      }, OP2'+', NUM'3'
     },
   }
 end
@@ -238,7 +241,7 @@ T'if_elseif_else'; do
     { kind='if',
       KW"if",
         { kind='cond',
-          N"n", KW"==", KW"nil",
+          N"n", OP2'==', KW"nil",
         }, KW"then", { kind='return',
         KW"return", {
           "\"\"", kind="doubleStr"
@@ -269,9 +272,9 @@ end
 T'src1'; do
   local code1 = 'a.b = function(y, z) return y + z end'
   local expect1 = SRC({kind='varset',
-    N'a', KW'.', N'b', KW'=', {kind='fnvalue',
+    N'a', OP2'.', N'b', KW'=', {kind='fnvalue',
       KW'function', KW'(', N'y', KW',', N'z', KW')',
-      {kind='return', KW'return', N'y', KW'+', N'z'},
+      {kind='return', KW'return', N'y', OP2'+', N'z'},
       EMPTY,
       KW'end',
     },
@@ -306,12 +309,12 @@ T'src2'; do
   local expect = {EMPTY, EMPTY, EOF}
   local code = code..'\nlocal add = table.insert\n'
   extendExpectAssert(code, src, expect, {{kind='varlocal',
-    KW'local', N'add', KW'=', N'table', KW'.', N'insert'
+    KW'local', N'add', KW'=', N'table', OP2'.', N'insert'
   }})
 
   local code = code..'\nlocal add = table.insert\n'
   extendExpectAssert(code, src, expect, {EMPTY, {kind='varlocal',
-    KW'local', N'add', KW'=', N'table', KW'.', N'insert'
+    KW'local', N'add', KW'=', N'table', OP2'.', N'insert'
   }})
 
   local code = code..'local last = function(t) return t[#t] end\n'
@@ -321,7 +324,7 @@ T'src2'; do
         KW'function', KW'(', N't', KW')',
         {kind='return',
           KW'return', N't', {kind='index',
-            KW'[', KW'#', N't', KW']',
+            KW'[', OP1'#', N't', KW']',
           }
         },
         EMPTY, KW'end',

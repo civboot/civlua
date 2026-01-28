@@ -64,17 +64,13 @@ function M.__call(l)
   end
   assert(not isEmpty(luaOut), 'src is empty')
   t.out = { lua = luaOut }
-  info('@@ api %q', api)
   t.api = api
-  info('@@ t.api %q', t.api)
   t.link = l.link
   return t
 end
 
 function M.test(l)
-  info('@@ l.src=%q', l.src)
   l.src = type(l.src) == 'string' and {l.src} or l.src
-  info('@@ l.src2=%q %q', l.src, type(l.src))
   assert(type(l.src) == 'table', 'must set src to one or more tests')
   l.dep = type(l.dep) == 'string' and {l.dep} or l.dep or {}
   l.kind, l.run = 'test', l.run or 'sys:lua/test.lua'
