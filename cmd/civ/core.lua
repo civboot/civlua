@@ -30,6 +30,7 @@ local sfmt = string.format
 local getmt, setmt = getmetatable, setmetatable
 local push, pop = ds.push, table.remove
 local assertf = fmt.assertf
+local Epoch = mty.from'ds Epoch'
 
 local EMPTY = {}
 local MOD_INVALID = '[^%w_.]+' -- lua mod name.
@@ -105,7 +106,6 @@ M.Target = freeze.freezy(pod(mty'Target' {
   'src {key: str}: list of input source files (strings).',
   'extra [builtin]: arbitrary value, used by run command',
   'dep {str}: list of input Target objects (dependencies).',
-  'depIds {int}: list of dependency target ids. Populated for Worker.',
   'api [table]: the lang-specific exported import paths.',
  [[out [table]: POD table output segregated by language.[+
      * t: PoD in a k/v table, can be used to configure downstream targets.
@@ -118,6 +118,9 @@ M.Target = freeze.freezy(pod(mty'Target' {
   'link {str: str}: link outputs from -> to',
   'tag [table]: arbitrary attributes like test, testonly, etc.',
   'run [str]: executable script which performs the operation kind.',
+  'mtime [ds.Epoch]: modified time of target and deps',
+  'id     [int]: id of this target. Populated for Worker.',
+  'depIds {int}: list of dependency target ids. Populated for Worker.',
 }))
 getmetatable(M.Target).__call = function(T, t)
   if type(t.src) == 'string' then t.src = {t.src} end
@@ -130,13 +133,15 @@ getmetatable(M.Target).__call = function(T, t)
   end
   return mty.construct(T, t)
 end
-function M.Target:tgtname() 
+function M.Target:tgtname()
   return sfmt('%s#%s', self.pkgname, self.name)
 end
 
 --- Return a copy of the target with ids used instead of deps.
 local function targetWithIds(tgt, ids)
   tgt = ds.copy(tgt)
+  -- local tgtname = tgt:tgtname()
+  -- tgt.id = assertf(ids[tgtname], '%q target not found', tgtname)
   tgt.depIds = {}
   for i, dep in ipairs(tgt.dep) do
     tgt.depIds[i] = assertf(ids[dep], '%q target not found', dep)
@@ -207,6 +212,7 @@ M.Civ = mty'Civ' {
   'luk [luk.Luk]',
   'cycle',
   'worker [civ.Worker]: direct worker',
+  'lastTargets {tgtname: Target}: the last targets',
   'ENV [table]: environment for running workers',
 }
 getmetatable(M.Civ).__call = function(T, self)
@@ -215,6 +221,7 @@ getmetatable(M.Civ).__call = function(T, self)
   B = pth.abs(B); cfg.buildDir = B
   self.hubs = cfg.hubs
   self.pkgs = self.pkgs or {}
+  self.lastTargets = self.lastTargets or {}
 
   if not self.luk then
     local lukEnv = ds.update(ds.rawcopy(luk.ENV), {
@@ -369,6 +376,21 @@ function M.Civ:target(tgt) --> Target?, errmsg
   return nil, sfmt('%s: target %q not found in pkg', tgt, tgt.name)
 end
 
+--- Get the "modtime" of the whole target.
+function M.Civ:tgtMod(tgt) --> ds.Epoch
+  if tgt.mtime then return tgt.mtime end
+  local mtime = Epoch(-1, 0)
+  for _, src in ipairs(tgt.src or EMPTY) do
+    mtime = ds.max(mtime, Epoch(ix.stat(tgt.dir..src):modified()))
+  end
+  for _, dep in ipairs(tgt.dep or EMPTY) do
+    mtime = ds.max(mtime, self:target(dep).mtime)
+  end
+  assert(mtime.s > 0, 'tgt contained no src or dep')
+  forceset(tgt, 'mtime', mtime)
+  return mtime
+end
+
 function M.Civ:loadPkg(pkgname)
   pkgnameValidate(pkgname)
   local pkg, err = self.pkgs[pkgname]; if pkg then return pkg end
@@ -447,13 +469,39 @@ function M.Civ:run(stage, tgtname, script, ids)
   end
 end
 
---- Build the target.
-function M.Civ:build(tgts) --> ordered, tgtsCache
-  info('Civ.build: %q', tgts)
+function M.Civ:prebuild(prevTgts, tgts) --> toBuild, ordered
+  info('Civ.prebuild: %q', tgts)
+  local allTgts = ds.icopy(tgts)
+  for k in pairs(prevTgts) do push(allTgts, k) end -- also build all prev targets
   local depMap = {}; self:targetDepMap(tgts, depMap)
   local ordered, cycle = ds.dagSort(tgts, depMap)
   assertf(not cycle, 'import cycle detected: %q', cycle)
-  info('build ordering: %q', ordered)
+
+  local toBuild = {}
+  for id, tgtname in ipairs(ordered) do
+    local tgt = self:target(tgtname)
+    if not G.BOOTSTRAP then self:tgtMod(tgt) end
+    if tgt.kind ~= 'build' then -- skip
+    elseif not G.BOOTSTRAP and mty.eq(tgt, prevTgts[tgtname]) then
+      info('using cached target %q', tgtname)
+    else
+      toBuild[tgtname] = true
+    end
+  end
+
+  return toBuild, ordered
+end
+
+--- Build the target.
+function M.Civ:build(tgts) --> ordered, tgtsCache
+  -- FIXME: pass in prevTgts
+  local toBuild, ordered = self:prebuild({}, tgts)
+
+  local tgtsCache = {}
+  local tgtsDbPath = self.cfg.buildDir..'targets.json'
+  ix.mkDirs(self.cfg.buildDir..'bin/')
+  local tgtFile = assert(File { path = tgtsDbPath, mode = 'w' })
+  local ids = {} -- map tgtname -> id
 
   -- For creating and running build scripts inline
   local main = G.MAIN
@@ -466,16 +514,16 @@ function M.Civ:build(tgts) --> ordered, tgtsCache
   local tgtsDbPath = self.cfg.buildDir..'targets.json'
   local cfgArg    = '--config='..assert(self.cfg.path)
   local tgtsDbArg = '--tgtsDb='..tgtsDbPath
-  local tgtFile = assert(File { path = tgtsDbPath, mode = 'w' })
   ix.mkDirs(self.cfg.buildDir..'bin/')
+  local tgtFile = assert(File { path = tgtsDbPath, mode = 'w' })
   for id, tgtname in ipairs(ordered) do
-    local tgt = self:target(tgtname)
-    tgt = targetWithIds(tgt, ids)
+    info('@@ building id=%s %q', id, tgtname)
     ids[tgtname] = id
+    local tgt = targetWithIds(self:target(tgtname), ids)
     push(worker.tgtsCache, tgt) -- for inline
     tgtFile:write(lson.json(tgt)); tgtFile:write'\n'
     tgtFile:flush()
-    if tgt.kind ~= 'build' then goto skip end
+    if not toBuild[tgtname] then goto skip end
     info('building target %q', tgtname)
     local hub, bpath = hubpathSplit(tgt.run)
     local script = self.hubs[hub]..bpath
@@ -528,6 +576,18 @@ function M.Civ:test(tgtnames, ordered, tgtsCache)
   G.MAIN = main
   info'Civ:test complete'
   return ran
+end
+
+function M.loadPrevTargets(jsonPath)
+  local tgts = {}
+  for line in io.lines(jsonPath) do
+    local tgt = M.Target(lson.decode(line))
+    local tgtname = tgt:tgtname()
+    assertf(not tgts[tgtname], 'duplicate tgtname %q', tgtname)
+    tgt.id, tgt.depIds = nil, nil
+    tgts[tgtname] = tgt
+  end
+  return tgts
 end
 
 return M

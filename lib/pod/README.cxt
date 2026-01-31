@@ -45,6 +45,18 @@ Explanation of above:[+
   [$pod.List] and [$pod.Map] respectively.
 ]
 
+[{h2}Custom Podder]
+For making your own podder impl, the signatures are
+[{$$ lang=lua}
+function MyT.__toPod(T, pod, value) ... end --> p
+function MyT.__fromPod(T, pod, p) ... end   --> value
+]$
+Where:[+
+* [$value] is the value (instance of T).
+* [$p] is a builtin plain-old-data (concrete)
+* [$T] will equal [$MyT]
+]
+
 [{h2}Serialization Best Practices]
 [+
 * Only make a type pod if it is actually plain-old-data -- the type must be

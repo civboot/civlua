@@ -200,6 +200,13 @@ end
 function M.isWithin(v, min, max) --> bool
   return (min <= v) and (v <= max)
 end
+--- return the minimum value
+function M.min(a, b) --> minimum
+return (a < b) and a or b
+end
+function M.max(a, b) --> max
+return (a < b) and b or a
+end
 --- Return [$a < b].
 function M.lt(a, b) return a < b  end --> bool
 --- Return [$a > b].
@@ -931,6 +938,12 @@ end
 local function fromMs(ty_, s)     return ty_(s / 1000) end
 local function fromMicros(ty_, s) return ty_(s / 1000000) end
 local function asSeconds(time) return time.s + (time.ns / NANO) end
+local function timeFromPod(T, pod, v)
+  return T{s=v[1], ns=v[2] or 0}
+end
+local function timeToPod(T, pod, v)
+  return {v.s, v.ns}
+end
 
 M.Duration = mty'Duration' {
   's[int]: seconds', 'ns[int]: nanoseconds',
@@ -957,6 +970,8 @@ function M.Duration:__lt(o)
 end
 M.Duration.__fmt = nil
 function M.Duration:__tostring() return self:asSeconds() .. 's' end
+M.Duration.__toPod   = timeToPod
+M.Duration.__fromPod = timeFromPod
 
 M.DURATION_ZERO = M.Duration(0, 0)
 
@@ -985,6 +1000,8 @@ M.Epoch.__fmt = nil
 function M.Epoch:__tostring()
   return string.format('Epoch(%ss)', self:asSeconds())
 end
+M.Epoch.__toPod   = timeToPod
+M.Epoch.__fromPod = timeFromPod
 
 ---------------------
 -- Set

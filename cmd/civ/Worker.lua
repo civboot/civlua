@@ -65,7 +65,10 @@ end
 
 function Worker:target(id) --> Target
   local tgt = self.tgtsCache[id]; if tgt then return tgt end
-  tgt = core.Target(lson.decode(self.tgtsDb:get(id)))
+  local tgtLson = self.tgtsDb:get(id)
+  if not tgtLson or tgtLson=='' then error('no target id '..id) end
+  info('@@ tgtLson %q', tgtLson)
+  tgt = core.Target(lson.decode(tgtLson))
   self.tgtsCache[id] = tgt
   return tgt
 end
