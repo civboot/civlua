@@ -939,7 +939,7 @@ local function fromMs(ty_, s)     return ty_(s / 1000) end
 local function fromMicros(ty_, s) return ty_(s / 1000000) end
 local function asSeconds(time) return time.s + (time.ns / NANO) end
 local function timeFromPod(T, pod, v)
-  return T{s=v[1], ns=v[2] or 0}
+  return timeNew(T, v[1], v[2] or 0)
 end
 local function timeToPod(T, pod, v)
   return {v.s, v.ns}

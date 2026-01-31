@@ -31,6 +31,7 @@ local getmt, setmt = getmetatable, setmetatable
 local push, pop = ds.push, table.remove
 local assertf = fmt.assertf
 local Epoch = mty.from'ds Epoch'
+local pretty = mty.from'fmt pretty'
 
 local EMPTY = {}
 local MOD_INVALID = '[^%w_.]+' -- lua mod name.
@@ -40,6 +41,8 @@ M.LIB_EXT = '.so'
 M.DEFAULT_CONFIG = '.civconfig.luk'
 M.BASE_CONFIG = os.getenv'CIV_BASE' or pth.concat{pth.home(), '.config/civ.luk'}
 M.DEFAULT_OUT = '.civ/'
+
+local CIV_TGTNAME = 'civ:cmd/civ#civ'
 
 
 -- #####################
@@ -123,14 +126,16 @@ M.Target = freeze.freezy(pod(mty'Target' {
   'depIds {int}: list of dependency target ids. Populated for Worker.',
 }))
 getmetatable(M.Target).__call = function(T, t)
+  info('@@ construct Target%q', t)
   if type(t.src) == 'string' then t.src = {t.src} end
   if type(t.dep) == 'string' then t.dep = {t.dep} end
   t.dep = t.dep or {}
   t.tag = t.tag or {}
-  if t.tag.builder ~= 'bootstrap' then push(t.dep, 'civ:cmd/civ') end
-  for i, dep in ipairs(t.dep) do
-    t.dep[i] = M.tgtname(dep)
+  if t.tag.builder ~= 'bootstrap' and
+    not ds.indexOf(t.dep, CIV_TGTNAME) then
+    push(t.dep, CIV_TGTNAME)
   end
+  for i=1,#t.dep do t.dep[i] = M.tgtname(t.dep[i]) end
   return mty.construct(T, t)
 end
 function M.Target:tgtname()
@@ -140,13 +145,33 @@ end
 --- Return a copy of the target with ids used instead of deps.
 local function targetWithIds(tgt, ids)
   tgt = ds.copy(tgt)
-  -- local tgtname = tgt:tgtname()
-  -- tgt.id = assertf(ids[tgtname], '%q target not found', tgtname)
+  local tgtname = tgt:tgtname()
+  tgt.id = assertf(ids[tgtname], '%q target not found', tgtname)
   tgt.depIds = {}
   for i, dep in ipairs(tgt.dep) do
     tgt.depIds[i] = assertf(ids[dep], '%q target not found', dep)
   end
   return tgt
+end
+
+local function outPaths(to, dir, out)
+  for k, o in pairs(out) do
+    if type(o) == 'table' then
+      assertf(type(k) == 'string', 'tables must have string key: %q', k)
+      outPaths(to, pth.toDir(dir..k), o)
+    elseif type(k) == 'number' then
+      push(to, dir..o)
+    else
+      to[k] = dir..o
+    end
+  end
+end
+
+--- Fill [$to] with output path strings.
+function M.Target:outPaths(dir) -- {path}
+  local to = {}
+  outPaths(to, dir or '', self.out)
+  return to
 end
 
 -- #####################
@@ -471,8 +496,13 @@ end
 
 function M.Civ:prebuild(prevTgts, tgts) --> toBuild, ordered
   info('Civ.prebuild: %q', tgts)
-  local allTgts = ds.icopy(tgts)
-  for k in pairs(prevTgts) do push(allTgts, k) end -- also build all prev targets
+  info('@@ prevTgts: %q', prevTgts)
+  tgts = ds.icopy(tgts)
+  for k in pairs(prevTgts) do push(tgts, k) end -- also build all prev targets
+
+  for _, tgtname in ipairs(tgts) do self:loadPkg(tgtnameSplit(tgtname)) end
+
+  info('@@ allTgts: %q', tgts)
   local depMap = {}; self:targetDepMap(tgts, depMap)
   local ordered, cycle = ds.dagSort(tgts, depMap)
   assertf(not cycle, 'import cycle detected: %q', cycle)
@@ -480,11 +510,20 @@ function M.Civ:prebuild(prevTgts, tgts) --> toBuild, ordered
   local toBuild = {}
   for id, tgtname in ipairs(ordered) do
     local tgt = self:target(tgtname)
+    tgtname = tgt:tgtname()
+    info('@@ %q deps=%q', tgtname, tgt.dep)
     if not G.BOOTSTRAP then self:tgtMod(tgt) end
     if tgt.kind ~= 'build' then -- skip
     elseif not G.BOOTSTRAP and mty.eq(tgt, prevTgts[tgtname]) then
       info('using cached target %q', tgtname)
     else
+      if not G.BOOTSTRAP then
+        info('@@ not cached %q', tgtname)
+        info('@@ prev deps=%q', (prevTgts[tgtname] or EMPTY).dep)
+        info('@@ cur  deps=%q', tgt.dep)
+        io.fmt(require'lines.diff'.Diff(
+          pretty(prevTgts[tgtname]), pretty(tgt)))
+      end
       toBuild[tgtname] = true
     end
   end
@@ -494,14 +533,11 @@ end
 
 --- Build the target.
 function M.Civ:build(tgts) --> ordered, tgtsCache
-  -- FIXME: pass in prevTgts
-  local toBuild, ordered = self:prebuild({}, tgts)
-
-  local tgtsCache = {}
   local tgtsDbPath = self.cfg.buildDir..'targets.json'
-  ix.mkDirs(self.cfg.buildDir..'bin/')
-  local tgtFile = assert(File { path = tgtsDbPath, mode = 'w' })
-  local ids = {} -- map tgtname -> id
+  local prevTgts = ix.exists(tgtsDbPath) and M.loadPrevTargets(tgtsDbPath) or {}
+  local toBuild, ordered = self:prebuild(prevTgts, tgts)
+  info('actually building %q', toBuild)
+  info('ordered %q', ordered)
 
   -- For creating and running build scripts inline
   local main = G.MAIN
@@ -511,19 +547,33 @@ function M.Civ:build(tgts) --> ordered, tgtsCache
   }:set()
 
   local ids = {} -- map tgtname -> id
-  local tgtsDbPath = self.cfg.buildDir..'targets.json'
   local cfgArg    = '--config='..assert(self.cfg.path)
   local tgtsDbArg = '--tgtsDb='..tgtsDbPath
   ix.mkDirs(self.cfg.buildDir..'bin/')
   local tgtFile = assert(File { path = tgtsDbPath, mode = 'w' })
   for id, tgtname in ipairs(ordered) do
-    info('@@ building id=%s %q', id, tgtname)
-    ids[tgtname] = id
-    local tgt = targetWithIds(self:target(tgtname), ids)
+    local tgt = self:target(tgtname)
+    tgtname = tgt:tgtname(); ids[tgtname] = id
+    local tgt = targetWithIds(tgt, ids)
     push(worker.tgtsCache, tgt) -- for inline
     tgtFile:write(lson.json(tgt)); tgtFile:write'\n'
     tgtFile:flush()
-    if not toBuild[tgtname] then goto skip end
+    if not toBuild[tgtname] then
+      info('not building %q', tgtname)
+      goto skip
+    end
+    local prev = prevTgts[tgtname] if prev then
+      info('removing previous %q', tgtname)
+      for _, out in pairs(prev:outPaths(self.cfg.buildDir)) do
+        info('@@ rm out %q', out)
+        assert(ix.rm(out))
+      end
+      for _, ln in pairs(prev.link or EMPTY) do
+        ln = self.cfg.buildDir..ln
+        info('@@ rm ln %q', ln)
+        assert(ix.rm(ln))
+      end
+    end
     info('building target %q', tgtname)
     local hub, bpath = hubpathSplit(tgt.run)
     local script = self.hubs[hub]..bpath
@@ -579,14 +629,16 @@ function M.Civ:test(tgtnames, ordered, tgtsCache)
 end
 
 function M.loadPrevTargets(jsonPath)
+  info('@@ loadPrevTargets %q', jsonPath)
   local tgts = {}
   for line in io.lines(jsonPath) do
-    local tgt = M.Target(lson.decode(line))
+    local tgt = lson.decode(line, M.Target)
     local tgtname = tgt:tgtname()
     assertf(not tgts[tgtname], 'duplicate tgtname %q', tgtname)
     tgt.id, tgt.depIds = nil, nil
     tgts[tgtname] = tgt
   end
+  info('@@ loadPrevTargets -> %q', tgts)
   return tgts
 end
 

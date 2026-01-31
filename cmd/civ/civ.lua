@@ -37,6 +37,7 @@ end
 
 civ._Base = shim.cmd'_Base' {
   'config [string]: path to civ config.',
+  'clean  [bool]',
 }
 
 --- Usage: [$civ init][{br}]
@@ -143,10 +144,11 @@ function civ.init:__call()
   end
 end
 
-function civ._build(cv, tgtnames)
+function civ._build(base, cv, tgtnames)
   assert(cv.cfg.buildDir, 'must set buildDir')
-  -- TODO: check timestamps/etc instead of just deleting everything.
-  ix.rmRecursive(cv.cfg.buildDir)
+  if base.clean or G.BOOTSTRAP then
+    ix.rmRecursive(cv.cfg.buildDir)
+  end
   ix.mkDirs(cv.cfg.buildDir)
   local out = cv:build(tgtnames)
   local f = io.fmt
@@ -157,8 +159,8 @@ function civ._build(cv, tgtnames)
   return out
 end
 
-function civ._test(cv, tgtnames)
-  local ordered = civ._build(cv, tgtnames)
+function civ._test(base, cv, tgtnames)
+  local ordered = civ._build(base, cv, tgtnames)
   local ran = cv:test(tgtnames, ordered)
   local f = io.fmt
   f:styled('good', #ran..' tests passed:', '\n')
@@ -173,14 +175,14 @@ function civ.build:__call()
   civ._pre()
   info('build %q', self)
   local cv = core.Civ:load(self.config)
-  return civ._build(cv, cv:expandAll(self))
+  return civ._build(self, cv, cv:expandAll(self))
 end
 
 function civ.test:__call()
   civ._pre()
   info('test %q', self)
   local cv = core.Civ:load(self.config)
-  return civ._test(cv, cv:expandAll(self))
+  return civ._test(self, cv, cv:expandAll(self))
 end
 
 function civ.run:__call()
@@ -200,7 +202,7 @@ function civ.run:__call()
   bin = select(2, next(bin))
   assertf(bin:match'^bin/', '%s is not in bin/', bin)
 
-  civ._build(cv, tgtnames)
+  civ._build(self, cv, tgtnames)
   table.insert(cmd, 1, cv.cfg.buildDir..bin)
   info('running: %q', cmd)
   cmd.ENV = cv.ENV
@@ -226,7 +228,7 @@ function civ.install:__call()
   end
   io.fmt:styled('notify', 'installing in ')
   io.fmt:styled('path', D, '\n')
-  civ._build(cv, tgtnames)
+  civ._build(self, cv, tgtnames)
   ix.rmRecursive(cv.cfg.installDir)
   ix.cpRecursive(cv.cfg.buildDir, cv.cfg.installDir)
   io.fmt:styled('notify', 'Installed in '); io.fmt:styled('path', D, '\n')

@@ -134,7 +134,6 @@ function M.Highlighter:_highlight(tz, fg, bg) --> nil
       l,c = l1,0
     end
     assert(c1 >= c)
-    info('@@ l.c=%s.%s l1.c1=%s.%s', l,c, l1,c1)
     if c1 - c > 1 then
       fg:write(srep(' ', c1-c-1))
       bg:write(srep(' ', c1-c-1))

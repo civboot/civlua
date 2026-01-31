@@ -67,22 +67,23 @@ function Worker:target(id) --> Target
   local tgt = self.tgtsCache[id]; if tgt then return tgt end
   local tgtLson = self.tgtsDb:get(id)
   if not tgtLson or tgtLson=='' then error('no target id '..id) end
-  info('@@ tgtLson %q', tgtLson)
-  tgt = core.Target(lson.decode(tgtLson))
+  tgt = lson.decode(tgtLson, core.Target)
   self.tgtsCache[id] = tgt
   return tgt
 end
 
 --- Copy output files from [$$tgt.out[outKey]]$.
-function Worker:copyOut(tgt, outKey)
-  if not tgt.out[outKey] then return nil, 'missing out: '..outKey end
-  local F, T = tgt.dir, self.cfg.buildDir..outKey..'/'
-  for from, to in pairs(tgt.out[outKey]) do
-    if type(from) == 'number' then from = to end
-    to = T..to; fmt.assertf(not ix.exists(to), 'to %q already exists', to)
-    from = F..from
-    fmt.assertf(ix.exists(from), 'src %q does not exists', from)
-    ix.forceCp(from, to)
+function Worker:copyOut(tgt)
+  local out = tgt:outPaths(self.cfg.buildDir)
+  info('@@ copyOut', out)
+  for from, to in pairs(out) do
+    if type(from) == 'string' then
+      local from = tgt.dir..from
+      info('@@ copy %q -> %q', from, to)
+      fmt.assertf(not ix.exists(to), 'to %q already exists', to)
+      fmt.assertf(ix.exists(from), 'src %q does not exists', from)
+      ix.forceCp(from, to)
+    end
   end
   return true
 end

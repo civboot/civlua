@@ -54,8 +54,10 @@ end
 
 T'round'; do
   local L = M.Lson
-  ltest({1, 2, 3},      nil,  '[1,2,3]')
-  ltest({1, 2, 3},      L{},  '[1 2 3]')
+  ltest({1, 2, 3},       nil,  '[1,2,3]')
+  ltest({1, 2, 3},       L{},  '[1 2 3]')
+  ltest({'a', 'b', 'c'}, nil,  '["a","b","c"]')
+  ltest({'a', 'b', 'c'}, L{},  '[|a| |b| |c|]')
 
   ltest({1, a=2},       nil,  '{"a":2,1:1}')
   ltest({1, a=2},       L{},  '{|a|:2 1:1}')
@@ -82,20 +84,25 @@ T'round'; do
   ltest(true,              nil,  'true')
   ltest(ds.none,           nil,  'null')
   ltest({[ds.none]=false}, nil, '{null:false}')
+
 end
 
 T'lson_pod'; do
-  Tm.A = mty'A' { 'a1 [builtin]', 'a2 [Tm.A]' }
+  Tm.A = mty'A' { 'a1 [builtin]', 'a2 [Tm.A]', 'ls {str}' }
   pod(Tm.A)
   local a = Tm.A{ a1='hi'}
   ltest(a, nil, [[{"a1":"hi"}]], Tm.A)
   a = Tm.A{a1={key='bye'}}
   ltest(a, nil, [[{"a1":{"key":"bye"}}]], Tm.A)
+  a.a1, a.ls = nil, {'a', 'b'}
+  ltest(a, nil, [[{"ls":["a","b"]}]], Tm.A)
+
   ltest({
       a=Tm.A{a1='a1value'}
     }, nil,
     [[{"a":{"a1":"a1value"}}]],
     pod.Map{K=pod.str, V=Tm.A})
+
 end
 
 T'lson_run_testing_pod'; do

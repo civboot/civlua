@@ -38,7 +38,10 @@ local METATY_PKG = core.Target {
   pkgname="civ:lib/metaty", name="metaty",
   dir = pth.abs(D.."lib/metaty/"),
   src={"metaty.lua", "freeze.lua"},
-  out={lua={"metaty.lua", ['freeze.lua'] = 'metaty/freeze.lua'}},
+  out={lua={
+    ['metaty.lua']="metaty.lua",
+    ['freeze.lua'] = 'metaty/freeze.lua',
+  }},
   api={'metaty', 'metaty.freeze'},
   tag={builder='bootstrap'},
   kind='build', run=LUA_BUILD,
@@ -50,7 +53,7 @@ local FMT_PKG = core.Target {
   src={ 'fmt.lua', 'binary.lua' },
   dep={'civ:lib/metaty#metaty'},
   out={lua={
-    'fmt.lua',
+    ['fmt.lua']    = 'fmt.lua',
     ['binary.lua'] = 'fmt/binary.lua',
   }},
   link={["lua/fmt/binary.lua"]="bin/seebin"},
@@ -60,8 +63,10 @@ local FMT_PKG = core.Target {
 }
 
 T'Target' do
+  local lson = require'lson'
+  local pod = require'pod'
   local function getTarget()
-    return core.Target{
+    return core.Target {
       out={lua={"metaty.lua", ['freeze.lua'] = 'metaty/freeze.lua'}},
       api={'metaty', 'metaty.freeze'},
     }
@@ -86,7 +91,23 @@ T'Target' do
   local p = luk.Table{t = t}:freeze()
   T.eq({'metaty', 'metaty.freeze'}, p.t.api)
 
-  T.eq('["metaty","metaty.freeze"]', require'lson'.json(t.api))
+  T.eq('["metaty","metaty.freeze"]', lson.json(t.api))
+
+  local t = getTarget()
+  T.eq({"D/lua/metaty.lua",
+        ["freeze.lua"] = "D/lua/metaty/freeze.lua"}, t:outPaths'D/')
+
+  t.mtime = ds.Epoch(6, 7)
+
+  local p = pod.toPod(t)
+  T.eq(p.mtime, {6, 7})
+  T.eq(ds.Epoch(6,7), pod.fromPod({6, 7}, ds.Epoch))
+
+  local tLson = lson.json(t)
+  local tDe = lson.decode(tLson, core.Target)
+  T.eq(ds.Epoch(6, 7), tDe.mtime)
+  T.eq({'civ:cmd/civ#civ'}, tDe.dep)
+  T.eq(t, tDe)
 end
 
 T'tgtname'; do
@@ -113,11 +134,11 @@ T'loadPkg'; do
 end
 
 local fd_out = {
-  lua = { 'fd.lua', }
+  lua = { ['fd.lua']='fd.lua', }
 }
 local libfd_out = {
-  include = { 'fd.h' },
-  lib     = 'libfd.so',
+  include = { ['fd.h'] = 'fd.h' },
+  lib     = { 'libfd.so' },
 }
 
 T'loadFd'; do
@@ -175,8 +196,8 @@ T'buildDs'; do
     extra=cfg.builder.lua.cc,
     dep={},
     out={
-      include={"ds.h"},
-      lib="libds.so"
+      include={['ds.h'] = "ds.h"},
+      lib={"libds.so"},
     },
     tag={ builder = 'bootstrap' },
     kind='build', run="sys:cc/build.lua",

@@ -27,8 +27,9 @@ for _, id in ipairs(w.ids) do
   local tgt = w:target(id)
   local extra = tgt.extra or EMPTY
   ix.mkDirs(w.cfg.buildDir..'lib')
-  w:copyOut(tgt, 'include')
+  w:copyOut(tgt)
   local lib = tgt.out.lib; if lib then
+    lib = ds.only(lib)
     local cmd = {'cc'}
     for _, src  in ipairs(tgt.src) do push(cmd, tgt.dir..src) end
     for _, flag in ipairs(tgt.extra or EMPTY) do push(cmd, flag) end

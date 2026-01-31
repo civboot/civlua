@@ -8,6 +8,7 @@ local push = table.insert
 local mtype = math.type
 local sfmt = string.format
 local getmt = getmetatable
+local info = require'ds.log'.info
 
 local CONCRETE, BUILTIN = mty.CONCRETE, mty.BUILTIN
 local ty = mty.ty
@@ -93,7 +94,7 @@ local function tpInt(self, pod, i)
   return i
 end
 
-local BUILTIN_PODDER = {
+M.BUILTIN_PODDER = {
   ['nil'] = makeNativePodder'nil',
   boolean = makeNativePodder'boolean',
   number = makeNativePodder'number',
@@ -103,6 +104,7 @@ local BUILTIN_PODDER = {
     name='integer', __toPod=tpInt, __fromPod=tpInt,
   },
 }
+local BUILTIN_PODDER = M.BUILTIN_PODDER
 function M.tableToPod(T, pod, t)
   if type(t) ~= 'table' then error('expected table got '..type(t)) end
   return isPod(t, pod.mtPodFn) and t
@@ -146,14 +148,18 @@ BUILTIN_PODDER.builtin = builtin
 
 --- Poder for a list of items with a type.
 M.List = mty'List' {'I [Podder]: the type of each list item'}
-function M.List:__toPod(pod, l)
-  local I, p = self.I, {}
+function M.List.__toPod(T, pod, l)
+  info('@@ List.__toPod %q', l)
+  local I, p = T.I, {}
   for i, v in ipairs(l) do p[i] = I:__toPod(pod, v) end
+  info('@@ List --> %q', p)
   return p
 end
-function M.List:__fromPod(pod, p)
-  local I, l = self.I, {}
-  for i, v in ipairs(l) do l[i] = I:__fromPod(pod, v) end
+function M.List.__fromPod(T, pod, p)
+  info('@@ List.__fromPod %q', p)
+  local I, l = T.I, {}
+  for i, v in ipairs(p) do l[i] = v end
+  info('@@ List --> %q', l)
   return l
 end
 

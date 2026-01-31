@@ -12,7 +12,6 @@ local info = require'ds.log'.info
 for _, id in ipairs(w.ids) do
   local tgt = w:target(id)
   info('building %q', tgt:tgtname())
-  w:copyOut(tgt, 'lua')
-  w:copyOut(tgt, 'data')
+  w:copyOut(tgt)
   w:link(tgt)
 end

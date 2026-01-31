@@ -58,8 +58,7 @@ function M.__call(l)
     local out
     if smod == '' then out = O:sub(1,-2)..ext
     else               out = O..smod:gsub('%.', '/')..ext end
-    if src == out then push(luaOut, out)
-    else               luaOut[src] = out end
+    luaOut[src] = out
     luaMap[out] = true
   end
   assert(not isEmpty(luaOut), 'src is empty')

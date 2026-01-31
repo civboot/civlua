@@ -58,6 +58,8 @@ T'toPod'; do
     'n [number] #1',
     'iA [test.A] #2',
     'iI [test.I] #3',
+    's  [str] #4',
+    'ls {str} #5',
   }
   getmetatable(test.I).__call = function(T, t)
     t.iA = t.iA and test.A(t.iA) or nil
@@ -65,13 +67,16 @@ T'toPod'; do
     return mty.construct(T, t)
   end
   pod(test.I)
+  T.eq(pod.List{I=pod.BUILTIN_PODDER.string}, test.I.__podders.ls)
   podRound(test.I, {
     n = 33,
     iA = {a1 = -1, a2=222 },
     iI = {
       n = 4444,
       iI = { n = 55555 },
-    }
+    },
+    s = 'hi',
+    ls = {'a', 'b'},
   })
 end
 

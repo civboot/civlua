@@ -17,8 +17,11 @@ return function(cc)
   assert(#cc.src > 0 or #cc.hdr > 0, 'must provide src or hdr')
 
   local out = {}
-  if cc.lib      then out.lib     = 'lib'..cc.lib..'.so' end
-  if #cc.hdr > 0 then out.include = cc.hdr               end
+  if cc.lib      then out.lib     = { 'lib'..cc.lib..'.so'} end
+  if #cc.hdr > 0 then
+    out.include = {}
+    for _, h in ipairs(cc.hdr) do out.include[h] = h end
+  end
 
   return Target {
     kind = 'build', run = 'sys:cc/build.lua',
