@@ -15,6 +15,7 @@ P.ds = lua {
   mod = 'ds',
   src = {
     'ds.lua',
+    'time.lua',
     'Iter.lua',
     'LL.lua',
     'path.lua',

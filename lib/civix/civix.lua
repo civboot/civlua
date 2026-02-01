@@ -11,6 +11,7 @@ local log  = require'ds.log'
 local Iter = require'ds.Iter'
 local lap  = require'lap'
 
+local Duration, Epoch = mty.from'ds.time  Duration,Epoch'
 local trace = require'ds.log'.trace
 local pth = require'ds.path'
 local concat, sfmt = table.concat, string.format
@@ -252,7 +253,7 @@ end
 --- set the modified time of the path|file
 function M.setModified(f, sec, nsec) --> ok, errmsg?
   local close; if type(f) == 'string' then f = io.open(f); close = true end
-  if ty(sec) == ds.Epoch              then sec, nsec = sec.s, sec.ns    end
+  if ty(sec) == Epoch              then sec, nsec = sec.s, sec.ns    end
 
   local ok, err = lib.setmodified(fd.fileno(f), sec, nsec)
   if close then f:close() end
@@ -276,15 +277,15 @@ M.SH_SET = { debug=false, host=false }
 
 --- Sleep for the specified duration
 function M.sleep(d) --> nil
-  if type(d) == 'number' then d = ds.Duration:fromSeconds(d) end
+  if type(d) == 'number' then d = Duration:fromSeconds(d) end
   if d.s >= 0 then lib.nanosleep(d.s, d.ns) end
 end
 
 --- Return the Epoch/Mono time
 --- Time according to realtime clock
-function M.epoch() return ds.Epoch(lib.epoch())   end
+function M.epoch() return Epoch(lib.epoch())   end
 --- Duration according to monotomically incrementing clock.
-function M.mono() return ds.Duration(lib.mono()) end
+function M.mono() return Duration(lib.mono()) end
 function M.monoSec() return M.mono():asSeconds()    end
 
 -------------------------------------

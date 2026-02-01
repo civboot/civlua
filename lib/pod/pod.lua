@@ -149,17 +149,13 @@ BUILTIN_PODDER.builtin = builtin
 --- Poder for a list of items with a type.
 M.List = mty'List' {'I [Podder]: the type of each list item'}
 function M.List.__toPod(T, pod, l)
-  info('@@ List.__toPod %q', l)
   local I, p = T.I, {}
   for i, v in ipairs(l) do p[i] = I:__toPod(pod, v) end
-  info('@@ List --> %q', p)
   return p
 end
 function M.List.__fromPod(T, pod, p)
-  info('@@ List.__fromPod %q', p)
   local I, l = T.I, {}
   for i, v in ipairs(p) do l[i] = v end
-  info('@@ List --> %q', l)
   return l
 end
 

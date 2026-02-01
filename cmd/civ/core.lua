@@ -30,7 +30,7 @@ local sfmt = string.format
 local getmt, setmt = getmetatable, setmetatable
 local push, pop = ds.push, table.remove
 local assertf = fmt.assertf
-local Epoch = mty.from'ds Epoch'
+local Epoch = mty.from'ds.time Epoch'
 local pretty = mty.from'fmt pretty'
 
 local EMPTY = {}
@@ -121,12 +121,11 @@ M.Target = freeze.freezy(pod(mty'Target' {
   'link {str: str}: link outputs from -> to',
   'tag [table]: arbitrary attributes like test, testonly, etc.',
   'run [str]: executable script which performs the operation kind.',
-  'mtime [ds.Epoch]: modified time of target and deps',
+  'mtime [ds.time.Epoch]: modified time of target and deps',
   'id     [int]: id of this target. Populated for Worker.',
   'depIds {int}: list of dependency target ids. Populated for Worker.',
 }))
 getmetatable(M.Target).__call = function(T, t)
-  info('@@ construct Target%q', t)
   if type(t.src) == 'string' then t.src = {t.src} end
   if type(t.dep) == 'string' then t.dep = {t.dep} end
   t.dep = t.dep or {}
@@ -402,13 +401,14 @@ function M.Civ:target(tgt) --> Target?, errmsg
 end
 
 --- Get the "modtime" of the whole target.
-function M.Civ:tgtMod(tgt) --> ds.Epoch
+function M.Civ:tgtMod(tgt) --> ds.time.Epoch
   if tgt.mtime then return tgt.mtime end
   local mtime = Epoch(-1, 0)
-  for _, src in ipairs(tgt.src or EMPTY) do
-    mtime = ds.max(mtime, Epoch(ix.stat(tgt.dir..src):modified()))
+  for _, src in pairs(tgt.src or EMPTY) do
+    local ftime = Epoch(ix.stat(tgt.dir..src):modified())
+    mtime = ds.max(mtime, ftime)
   end
-  for _, dep in ipairs(tgt.dep or EMPTY) do
+  for _, dep in pairs(tgt.dep or EMPTY) do
     mtime = ds.max(mtime, self:target(dep).mtime)
   end
   assert(mtime.s > 0, 'tgt contained no src or dep')
@@ -496,13 +496,11 @@ end
 
 function M.Civ:prebuild(prevTgts, tgts) --> toBuild, ordered
   info('Civ.prebuild: %q', tgts)
-  info('@@ prevTgts: %q', prevTgts)
   tgts = ds.icopy(tgts)
   for k in pairs(prevTgts) do push(tgts, k) end -- also build all prev targets
 
   for _, tgtname in ipairs(tgts) do self:loadPkg(tgtnameSplit(tgtname)) end
 
-  info('@@ allTgts: %q', tgts)
   local depMap = {}; self:targetDepMap(tgts, depMap)
   local ordered, cycle = ds.dagSort(tgts, depMap)
   assertf(not cycle, 'import cycle detected: %q', cycle)
@@ -511,16 +509,14 @@ function M.Civ:prebuild(prevTgts, tgts) --> toBuild, ordered
   for id, tgtname in ipairs(ordered) do
     local tgt = self:target(tgtname)
     tgtname = tgt:tgtname()
-    info('@@ %q deps=%q', tgtname, tgt.dep)
     if not G.BOOTSTRAP then self:tgtMod(tgt) end
-    if tgt.kind ~= 'build' then -- skip
+    if tgt.kind ~= 'build' then
+      info('target not kind=build: %q', tgtname)
     elseif not G.BOOTSTRAP and mty.eq(tgt, prevTgts[tgtname]) then
-      info('using cached target %q', tgtname)
+      info('target from cache: %q (%q)', tgtname, tgt.mtime)
     else
+      info('target being built: %q', tgtname)
       if not G.BOOTSTRAP then
-        info('@@ not cached %q', tgtname)
-        info('@@ prev deps=%q', (prevTgts[tgtname] or EMPTY).dep)
-        info('@@ cur  deps=%q', tgt.dep)
         io.fmt(require'lines.diff'.Diff(
           pretty(prevTgts[tgtname]), pretty(tgt)))
       end
@@ -559,22 +555,18 @@ function M.Civ:build(tgts) --> ordered, tgtsCache
     tgtFile:write(lson.json(tgt)); tgtFile:write'\n'
     tgtFile:flush()
     if not toBuild[tgtname] then
-      info('not building %q', tgtname)
       goto skip
     end
     local prev = prevTgts[tgtname] if prev then
       info('removing previous %q', tgtname)
       for _, out in pairs(prev:outPaths(self.cfg.buildDir)) do
-        info('@@ rm out %q', out)
         assert(ix.rm(out))
       end
       for _, ln in pairs(prev.link or EMPTY) do
         ln = self.cfg.buildDir..ln
-        info('@@ rm ln %q', ln)
         assert(ix.rm(ln))
       end
     end
-    info('building target %q', tgtname)
     local hub, bpath = hubpathSplit(tgt.run)
     local script = self.hubs[hub]..bpath
     if tgt.tag.builder == 'bootstrap'
@@ -585,6 +577,7 @@ function M.Civ:build(tgts) --> ordered, tgtsCache
       dofile(script); G.MAIN = nil
     else -- build in a separate process
       assertf(not G.BOOTSTRAP, '%s not tagged as bootstrap', tgtname)
+      info('build in worker: %q', script)
       self:run('build', tgtname, script, {id})
     end
     ::skip::
@@ -629,7 +622,6 @@ function M.Civ:test(tgtnames, ordered, tgtsCache)
 end
 
 function M.loadPrevTargets(jsonPath)
-  info('@@ loadPrevTargets %q', jsonPath)
   local tgts = {}
   for line in io.lines(jsonPath) do
     local tgt = lson.decode(line, M.Target)
@@ -638,7 +630,6 @@ function M.loadPrevTargets(jsonPath)
     tgt.id, tgt.depIds = nil, nil
     tgts[tgtname] = tgt
   end
-  info('@@ loadPrevTargets -> %q', tgts)
   return tgts
 end
 

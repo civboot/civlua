@@ -14,6 +14,7 @@ local ds = require'ds'; local M = ds
 local lines = require'lines'
 local testing = require'lines.testing'
 local M = require'ds'
+local time = require'ds.time'
 
 local T = require'civtest'
 
@@ -23,7 +24,7 @@ local bound, isWithin, sort2, absDec,
   extend, clear, merge,
   getOrSet, getp, setp,
   drain, reverse,
-  Set, Duration, Epoch
+  Set
   = mty.from(M, [[
   bound, isWithin, sort2, absDec,
   indexOf, copy, deepcopy,
@@ -31,8 +32,9 @@ local bound, isWithin, sort2, absDec,
   extend, clear, merge,
   getOrSet, getp, setp,
   drain, reverse,
-  Set, Duration, Epoch
+  Set
 ]])
+local Duration, Epoch, DateTime = mty.from'ds.time  Duration,Epoch,DateTime'
 local d8 = require'ds.utf8'
 local dp = M.dotpath
 local pth = require'ds.path'
@@ -153,6 +155,9 @@ T'number'; do
 
   local a, b = sort2(1, 2); assert(a == 1); assert(b == 2)
   local a, b = sort2(2, 1); assert(a == 1); assert(b == 2)
+
+  T.eq(4, ds.max(1, 4))
+  T.eq(3, ds.max(3, 2))
 end
 
 T'str'; do
@@ -362,7 +367,7 @@ T'binary-search'; do
 end
 
 T'time'; do
-  local N = Duration.NANO
+  local N = require'ds.time'.NANO
   local d = Duration(3, 500)
   T.eq(Duration(2, 500),     Duration(3, 500) - Duration(1))
   T.eq(Duration(2, N - 900), Duration(3, 0)   - Duration(0, 900))
@@ -371,15 +376,48 @@ T'time'; do
   assert(Duration(2) < Duration(3))
   assert(Duration(2) < Duration(2, 100))
   assert(not (Duration(2) < Duration(2)))
-  T.eq(Duration(1.5), Duration(1, N * 0.5))
+  T.eq(Duration(1.5), Duration(1, N // 2))
   T.eq('1.5s', tostring(Duration(1.5)))
 
   T.eq(Epoch(1) - Duration(1), Epoch(0))
   T.eq(Epoch(1) - Epoch(0), Duration(1))
   local e =    Epoch(1000001, 12342)
-  T.eq(e - Epoch(1000000, 12342), Duration(1))
+  T.eq(Duration(1), e - Epoch(1000000, 12342))
   T.eq('Epoch(1.5s)', tostring(Epoch(1.5)))
+  assert(not mty.eq(e, Epoch(1,1)))
+  assert(not mty.eq(e, Epoch(1000001, 12345)))
+  T.eq(e, ds.max(e, Epoch(1,1)))
+  T.eq(e, ds.max(Epoch(1,1), e))
+
+  T.eq(true, rawequal(e, ds.max(e, Epoch(1000001 - 1, 12342))))
+  local e2 = Epoch(1000001, 12342 + 1)
+  T.eq(e2, ds.max(e2, e))
+  T.eq(e2, ds.max(e, e2))
+
+  local e1 = Epoch(1769988703.7927)
+  local e2 = Epoch(1769920691.902)
+  T.eq(e1, ds.max(e1, e2))
+
+  local tz = time.Tz:of(-7)
+  T.eq('Z', time.Z.name)
+  T.eq('-07:00', tz.name)
+
+  local dt = DateTime:of(1769993669, time.Z)
+  T.eq(DateTime{ y=2026, yd=32, s=3279, ns=0, tz=time.Z }, dt)
+
+  local dt = DateTime:of(1770002194, time.Z)
+  T.eq(DateTime{ y=2026, yd=32, s=11804, ns=0, tz=time.Z }, dt)
+
+  T.eq(2026,      dt.y)
+  T.eq({2,2},     {dt:date()})
+  T.eq({3,16,44}, {dt:time()})
+  T.eq('2026-02-02T03:16:44Z', tostring(dt))
+
+  local dt = DateTime:of(1770004616, tz)
+  T.eq('2026-02-01T20:57:06-07:00', tostring(dt))
 end
+
+ds.yeet'ok'
 
 
 local function assertPath(fn, expect, p)

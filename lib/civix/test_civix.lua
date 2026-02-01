@@ -10,6 +10,8 @@ local D = 'lib/civix/'
 local O = '.out/'
 local push = table.insert
 
+local Duration = mty.from'ds.time  Duration'
+
 local fin
 local function tests()
 
@@ -98,7 +100,7 @@ T'testSh'; do
 end
 
 T'time'; do
-  local period, e1 = ds.Duration(0.001), M.epoch()
+  local period, e1 = Duration(0.001), M.epoch()
   for i=1,10 do
     M.sleep(period)
     local e2 = M.epoch()

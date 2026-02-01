@@ -202,10 +202,11 @@ function M.isWithin(v, min, max) --> bool
 end
 --- return the minimum value
 function M.min(a, b) --> minimum
-return (a < b) and a or b
+  return (b < a) and b or a
 end
-function M.max(a, b) --> max
-return (a < b) and b or a
+--- return the maximum value
+function M.max(a, b) --> maximum
+  return (a < b) and b or a
 end
 --- Return [$a < b].
 function M.lt(a, b) return a < b  end --> bool
@@ -905,103 +906,6 @@ function M.Imm:__len()
 end
 
 M.empty = M.Imm{}
-
----------------------
--- Duration
-local NANO   = 1000000000
-local MICRO  = 1000000
-local function durationSub(s, ns, s2, ns2)
-  s, ns = s - s2, ns - ns2
-  if ns < 0 then
-    ns = NANO + ns
-    s = s - 1
-  end
-  return s, ns
-end
-
-local function assertTime(t)
-  assert(math.floor(t.s) == t.s,   'non-int seconds')
-  assert(math.floor(t.ns) == t.ns, 'non-int nano-seconds')
-  assert(t.ns < NANO, 'ns too large')
-  return t
-end
-
-local function timeNew(T, s, ns)
-  if ns == nil then return T:fromSeconds(s) end
-  local out = {s=s, ns=ns}
-  return setmt(assertTime(out), T)
-end
-local function fromSeconds(ty_, s)
-  local sec = math.floor(s)
-  return ty_(sec, math.floor(NANO * (s - sec)))
-end
-local function fromMs(ty_, s)     return ty_(s / 1000) end
-local function fromMicros(ty_, s) return ty_(s / 1000000) end
-local function asSeconds(time) return time.s + (time.ns / NANO) end
-local function timeFromPod(T, pod, v)
-  return timeNew(T, v[1], v[2] or 0)
-end
-local function timeToPod(T, pod, v)
-  return {v.s, v.ns}
-end
-
-M.Duration = mty'Duration' {
-  's[int]: seconds', 'ns[int]: nanoseconds',
-}
-getmt(M.Duration).__call = timeNew
-
-M.Duration.NANO = NANO
-M.Duration.fromSeconds = fromSeconds
-M.Duration.fromMs = fromMs
-M.Duration.asSeconds = asSeconds
-function M.Duration:__sub(r)
-  assert(ty(r) == M.Duration)
-  local s, ns = durationSub(self.s, self.ns, r.s, r.ns)
-  return M.Duration(s, ns)
-end
-function M.Duration:__add(r)
-  assert(ty(r) == M.Duration)
-  local s, ns = durationSub(self.s, self.ns, -r.s, -r.ns)
-  return M.Duration(s, ns)
-end
-function M.Duration:__lt(o)
-  if self.s < o.s then return true end
-  return self.ns < o.ns
-end
-M.Duration.__fmt = nil
-function M.Duration:__tostring() return self:asSeconds() .. 's' end
-M.Duration.__toPod   = timeToPod
-M.Duration.__fromPod = timeFromPod
-
-M.DURATION_ZERO = M.Duration(0, 0)
-
----------------------
--- Epoch: time since the unix epoch. Interacts with duration.
-M.Epoch = mty'Epoch' {
-  's[int]: seconds', 'ns[int]: nanoseconds',
-}
-getmt(M.Epoch).__call = timeNew
-
-M.Epoch.fromSeconds = fromSeconds
-M.Epoch.asSeconds = asSeconds
-function M.Epoch:__sub(r)
-  assert(self);     assert(r)
-  assertTime(self); assertTime(r)
-  local s, ns = durationSub(self.s, self.ns, r.s, r.ns)
-  if ty(r) == M.Duration then return M.Epoch(s, ns) end
-  assert(ty(r) == M.Epoch, 'can only subtract Duration or Epoch')
-  return M.Duration(s, ns)
-end
-function M.Epoch:__lt(o)
-  if self.s < o.s then return true end
-  return self.ns < o.ns
-end
-M.Epoch.__fmt = nil
-function M.Epoch:__tostring()
-  return string.format('Epoch(%ss)', self:asSeconds())
-end
-M.Epoch.__toPod   = timeToPod
-M.Epoch.__fromPod = timeFromPod
 
 ---------------------
 -- Set

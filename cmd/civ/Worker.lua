@@ -75,11 +75,9 @@ end
 --- Copy output files from [$$tgt.out[outKey]]$.
 function Worker:copyOut(tgt)
   local out = tgt:outPaths(self.cfg.buildDir)
-  info('@@ copyOut', out)
   for from, to in pairs(out) do
     if type(from) == 'string' then
       local from = tgt.dir..from
-      info('@@ copy %q -> %q', from, to)
       fmt.assertf(not ix.exists(to), 'to %q already exists', to)
       fmt.assertf(ix.exists(from), 'src %q does not exists', from)
       ix.forceCp(from, to)

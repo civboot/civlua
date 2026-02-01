@@ -1,5 +1,6 @@
 
 local T = require'civtest'
+local mty = require'metaty'
 local freeze = require'metaty.freeze'
 local ds = require'ds'
 local pth = require'ds.path'
@@ -7,6 +8,8 @@ local ix = require'civix'
 local luk = require'luk'
 local civ = require'civ'
 local core = require'civ.core'
+
+local Epoch = mty.from'ds.time  Epoch'
 
 local D = pth.resolve(ds.srcdir()..'../..')
 local O = D..'.out/civ/'
@@ -97,17 +100,19 @@ T'Target' do
   T.eq({"D/lua/metaty.lua",
         ["freeze.lua"] = "D/lua/metaty/freeze.lua"}, t:outPaths'D/')
 
-  t.mtime = ds.Epoch(6, 7)
+  t.mtime = Epoch(6, 7)
 
   local p = pod.toPod(t)
   T.eq(p.mtime, {6, 7})
-  T.eq(ds.Epoch(6,7), pod.fromPod({6, 7}, ds.Epoch))
+  T.eq(Epoch(6,7), pod.fromPod({6, 7}, Epoch))
 
   local tLson = lson.json(t)
   local tDe = lson.decode(tLson, core.Target)
-  T.eq(ds.Epoch(6, 7), tDe.mtime)
+  T.eq(Epoch(6, 7), tDe.mtime)
   T.eq({'civ:cmd/civ#civ'}, tDe.dep)
   T.eq(t, tDe)
+  t.mtime = Epoch(6, 77)
+  assert(not mty.eq(t, tDe))
 end
 
 T'tgtname'; do

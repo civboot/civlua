@@ -33,6 +33,7 @@ print'[[load]]'
   preload('fmt', 'lib/fmt/fmt.lua')
     preload('fmt.binary', 'lib/fmt/binary.lua')
   preload('ds', 'lib/ds/ds.lua')
+    preload('ds.time', 'lib/ds/time.lua')
     preload('ds.heap', 'lib/ds/heap.lua')
     preload('ds.path', 'lib/ds/path.lua')
     preload('ds.log',  'lib/ds/log.lua')
