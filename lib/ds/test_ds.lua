@@ -402,19 +402,22 @@ T'time'; do
   T.eq('Z', time.Z.name)
   T.eq('-07:00', tz.name)
 
-  local dt = DateTime:of(1769993669, time.Z)
-  T.eq(DateTime{ y=2026, yd=32, s=3279, ns=0, tz=time.Z }, dt)
+  local dtZ = DateTime:of(1, time.Z)
+  T.eq(DateTime{ y=1970, yd=0,  s=1,     ns=0, tz=time.Z, wd=5 }, dtZ)
+  T.eq(Epoch(1), dtZ:epoch())
 
-  local dt = DateTime:of(1770002194, time.Z)
-  T.eq(DateTime{ y=2026, yd=32, s=11804, ns=0, tz=time.Z }, dt)
+  local s = 1770002194 -- epoch time stamp
+  local dt = DateTime:of(s, time.Z)
+  T.eq(DateTime{ y=2026, yd=32, s=11794, ns=0, tz=time.Z, wd=2 }, dt)
 
   T.eq(2026,      dt.y)
   T.eq({2,2},     {dt:date()})
-  T.eq({3,16,44}, {dt:time()})
-  T.eq('2026-02-02T03:16:44Z', tostring(dt))
+  T.eq({3,16,34}, {dt:time()})
+  T.eq('2026-02-02T03:16:34Z', tostring(dt))
+  T.eq(Epoch(s), dt:epoch())
 
-  local dt = DateTime:of(1770004616, tz)
-  T.eq('2026-02-01T20:57:06-07:00', tostring(dt))
+  dt.ns, dt.tz = nil, nil -- to test _ofFuture()
+  T.eq(dt, DateTime:_ofFuture(s))
 end
 
 ds.yeet'ok'

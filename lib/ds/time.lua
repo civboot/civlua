@@ -21,6 +21,7 @@ M.DateTime = mty'DateTime' {
   'ns [int]: nanoseconds in second',
  [[tz [Tz]: timezone offset from [$time.timezone()]
  ]],
+  'wd [int]: weekday, 1=sunday - 7=saturday',
 }
 
 --- Represents a Duration of time.
@@ -160,19 +161,15 @@ function M.isLeap(year)
 end
 local isLeap = M.isLeap
 
-M.DateTime.of = function(T, s, tz)
-  tz = tz or M.LOCAL or M.Z
-  local s, ns = splitTime(s)
-  s = s + tz.s
-
+--- Compute DateTime in a future-proof manner (works past 2100, etc).
+function M.DateTime._ofFuture(T, s)
   -- Re-bias from 1970 to 1601:
   -- 1970 - 1601 = 369 = 3*100 + 17*4 + 1 years (incl. 89 leap days) =
   -- (3*100*(365+24/100) + 17*4*(365+1/4) + 1*365)*24*3600 seconds
-  -- FIXME: + 10 which seems to be necessary for some reason (? leap seconds ?)
-  s = s + 11644473610
-  assert(mtype(s) == 'integer', 'not supported on 32bit integer systems')
+  s = s + 11644473600
+  local wd = floor(s / 86400 + 1) % 7 -- day of week
 
-  local wday = floor(s / 86400 + 1) % 7 -- day of week
+
   -- Remove multiples of 400 years (incl. 97 leap days)
   local quadricentennials = s // 12622780800 -- 400*365.2425*24*3600
   s =                        s % 12622780800
@@ -191,21 +188,51 @@ M.DateTime.of = function(T, s, tz)
   -- (because multiples of 4 years (incl. leap days) have been removed)
   local annuals = min(3, s // 31536000) -- 365*24*3600
   s =          s - (annuals * 31536000)
+  assert(mtype(s) == 'integer', 'not supported on 32bit integer systems')
 
-  -- Calculate the year
-  local year = 1601
-             + (quadricentennials * 400)
-             + (centennials * 100)
-             + (quadrennials * 4)
-             + annuals
-
-  return M.DateTime {
-    y  = year,
+  return T {
+    y = 1601 + (quadricentennials * 400) + (centennials * 100)
+             + (quadrennials * 4)        + annuals,
     yd = s // 86400,
     s  = s %  86400,
-    ns = ns,
-    tz = tz,
+    wd = wd + 1,
   }
+end
+
+--- Compute DateTime of epoch seconds, doesn't work starting in 2100.
+function M.DateTime._ofFast(T, s)
+  -- Re-bias from 1970 to Wed 1969-01-01 to be on a leap year boundary.
+  -- Every 4 years there will be a leap year.
+  s = s + 31536000 -- 365*24*3600
+  local wd = floor(s / 86400 + 3) % 7 -- day of week
+
+  -- Remove multiples of 4 years (incl. 1 leap day)
+  local quadrennials = s // 126230400 -- 4*(365+1/4)*24*3600
+  s =   s - (quadrennials * 126230400)
+
+  -- Remove multiples of years (incl. 0 leap days), can't be more than 3
+  -- (because multiples of 4 years (incl. leap days) have been removed)
+  local annuals = min(3, s // 31536000) -- 365*24*3600
+  s =          s - (annuals * 31536000)
+  assert(mtype(s) == 'integer', 'not supported on 32bit integer systems')
+
+  return T {
+    y  = 1969 + (quadrennials * 4) + annuals,
+    yd = s // 86400,
+    s  = s %  86400,
+    wd = wd + 1,
+  }
+end
+
+M.DateTime.of = function(T, s, tz)
+  tz = tz or M.LOCAL or M.Z
+  local s, ns = splitTime(s)
+  s = s + tz.s
+  -- check if before 2100-01-01T00:00:00Z
+  local dt = s < 4102470000 and T:_ofFast(s)
+                             or T:_ofFuture(s)
+  dt.ns, dt.tz = ns, tz
+  return dt
 end
 
 function M.DateTime:isLeap() return isLeap(self.y) end
@@ -238,9 +265,24 @@ function M.DateTime:__tostring() --> string
     self.y,M,d, h,m,s, self.tz.name)
 end
 
+function M.DateTime:_epochFast() --> Epoch
+  local y69 = self.y - 1969 -- years since 1969
+  local leaps = y69 // 4
+  return M.Epoch(
+    (leaps * 31622400)            -- 366*24*3600 years with leap day
+    + ((y69 - leaps) * 31536000)  -- 365*24*3600 years w/out leap day
+    + (self.yd * 86400)           -- 24 * 3600 days
+    + self.s
+    - 31536000                    -- subtract 1969 offset year.
+    - self.tz.s,
+    self.ns)
+end
+
 --- Convert a DateTime to an Epoch
 function M.DateTime:epoch() --> Epoch
-  error'not yet impl'
+  local y = self.y
+  return y > 1969 and y < 2100 and self:_epochFast()
+      or error'epoch past 2100 not yet implemented'
 end
 
 function M.Tz.of(T, hours, minutes)
