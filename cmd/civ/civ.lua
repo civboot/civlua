@@ -188,19 +188,26 @@ end
 function civ.run:__call()
   civ._pre()
   info('run %q', self)
-  local cmd = shim.popRaw(self)
+  local cmd = shim.popRaw(self) or {}
   assert(#self == 1, 'usage: civ run hub:tgtname')
   local cv = core.Civ:load(self.config)
   local tgtnames = cv:expandAll(self)
   assertf(#tgtnames == 1, 'must run a single target, expanded to: %q',
          tgtnames)
   local tgt = cv:target(tgtnames[1])
-  local bin = tgt.out.bin
-  if not bin then bin = tgt.link end
-  assertf(bin and ds.pairlen(bin) == 1,
-    '%s must have exatly one bin/ output: %q', tgtnames[1], tgt.out)
-  bin = select(2, next(bin))
-  assertf(bin:match'^bin/', '%s is not in bin/', bin)
+  info('@@ tgt.out %q', tgt.out)
+  info('@@ tgt.link %q', tgt.link)
+  local bin
+  local getBin = function(p)
+    info('@@ looking at bin: %s', p)
+    if p:match'^bin/' then
+      assertf(not bin, 'multiple bin outputs:\n%s\n%s', bin, p)
+      bin = p
+    end
+  end
+  for _, to in pairs(tgt:outPaths'')      do getBin(to) end
+  for _, link in pairs(tgt.link or EMPTY) do getBin(link) end
+  assertf(bin, 'no bin found in %s', tgt:tgtname())
 
   civ._build(self, cv, tgtnames)
   table.insert(cmd, 1, cv.cfg.buildDir..bin)

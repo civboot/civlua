@@ -1,5 +1,6 @@
 -- Test event handling actions
 
+local mty = require'metaty'
 local fmt = require'fmt'
 local T = require'civtest'
 local ds = require'ds'
@@ -12,6 +13,8 @@ local B = require'ele.bindings'
 local M = require'ele.actions'
 local Edit = require'ele.edit'.Edit
 local Editor = require'ele.Editor'
+
+local info = mty.from'ds.log  info'
 
 local nav = M.nav
 local O = './.out/ele/'; if ix.exists(O) then ix.rmRecursive(O) end
@@ -73,12 +76,20 @@ T'remove'; do
     T.eq('  3 5', b:get(2))
   assertRemove('find', {find='7', cols=-1}, 1, 1) -- remove before 7
     T.eq('7 9', b:get(1))
+    T.eq("7 9\n  3 5\n1 3 5 7 9\n", fmt(b.dat))
+  info'removing 2 lines'
   assertRemove('lines', {lines=0, times=2}, 1, 1) -- remove two lines
     T.eq('1 3 5 7 9\n', fmt(b.dat))
   e.c = 4; assertRemove(nil, {off=-1, cols1=-1}, 1, 3) -- backspace delete '3'
     T.eq('1  5 7 9\n', fmt(b.dat))
   e.c = 4; assertRemove(nil, {off=-1}, 1, 3) -- backspace delete ' 5'
     T.eq('1  7 9\n', fmt(b.dat))
+
+  info'removing first line'
+  d = newEditor(lines3); local e, b = d.edit, d.edit.buf
+  e.l, e.c = 1,1
+  assertRemove('lines', {lines=0, times=1}, 1,3) -- remove one lines
+    T.eq('  3 5\n1 3 5 7 9\n', fmt(b.dat))
 end
 
 T'insert'; do
@@ -137,17 +148,17 @@ T'nav'; do
 
   b.dat:set(2, '  * f')
   nav.backEntry(b, 1)
-  T.eq('/focus/path/', fmt(b.dat))
+  T.eq('/focus/path/\n', fmt(b.dat))
 
   nav.backEntry(b, 1)
-  T.eq('/focus/', fmt(b.dat))
+  T.eq('/focus/\n', fmt(b.dat))
 
   b.dat:set(1, '/focus/path/')
 
   local r, entries = nil, {'f', 'd/'}
   nav.expandEntry(b, 1, function(p) r = p; return entries end)
   T.eq('/focus/path/', r)
-  T.eq('/focus/path/\n  * f\n  * d/', fmt(b.dat))
+  T.eq('/focus/path/\n  * f\n  * d/\n', fmt(b.dat))
 
   T.eq(et.INIT_BUFS + 1, #d.buffers)
   local test_txt = O..'test.txt'

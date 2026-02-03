@@ -7,6 +7,8 @@ local mty = require'metaty'
 local M = mty.mod'lines'
 
 local ds  = require'ds'
+
+local info = mty.from'ds.log  info'
 local push, pop = table.insert, table.remove
 local concat    = table.concat
 local max, min, bound = math.max, math.min, ds.bound
@@ -115,16 +117,20 @@ function M.map(lines) --> table
   return map
 end
 
---- bound the line/col for the lines table.
---- This will automatically convert negatives indexes to positive,
---- where [$-1] is the last item.
+--- Bound the line/col for the lines table.[+
+--- * [$l] will be from [$1 -#t ].
+--- * [$c] will be from [$$1 - (#t[l]+1)]$.
+--- ]
+--- [$len] is precomputed [$t] and [$line] is pre-fetched [$$t[l]]$
+---
+--- This can handle negative integers.
 function M.bound(t, l, c, len, line) --> l, c
+  assert(l and c)
   if l < 0 then l = #t + l + 1 end
   l = bound(l, 1, max(1, len or #t))
-  if not c then return l end
   line = line or get(t, l) or ''
-  if c == 'end' then c = #line + 1
-  elseif c < 0  then c = #line + c + 1  end
+  if c == 'end' then c = #line + 1  end
+  if c < 0  then c = #line + c + 1  end
   return l, bound(c, 1, #line + 1)
 end
 
@@ -158,9 +164,9 @@ function M.offset(t, off, l, c) --> l, c
 end
 
 --- get the byte offset 
-function M.offsetOf(t, l, c, l2, c2) --> int
+function M.offsetOf(t, l,c, l2,c2) --> int
   local off, len, llen = 0, #t
-  l, c = M.bound(t, l, c, len);  l2, c2 = M.bound(t, l2, c2, len)
+  l,c = M.bound(t, l,c, len);  l2,c2 = M.bound(t, l2,c2, len)
   c, c2 = c - 1, c2 - 1 -- column math is 0-indexed
   while l < l2 do
     llen = #get(t,l) + 1
@@ -182,7 +188,7 @@ end
 
 --- find the pattern starting at l/c
 --- Note: matches are only within a single line.
-function M.find(t, pat, l, c) --> (l, c, c2)
+function M.find(t, pat, l,c) --> (l, c, c2)
   l, c = M.bound(t, l or 1, c or 1)
   local c2
   while true do
@@ -206,8 +212,8 @@ local function findBack(s, pat, end_)
 end
 
 --- find the pattern (backwards) starting at l/c
-function M.findBack(t, pat, l, c)
-  l, c = M.bound(t, l or 1, c)
+function M.findBack(t, pat, l,c)
+  l, c = M.bound(t, l or 1, c or (#get(t,l) + 1))
   local c2
   while true do
     local s = get(t,l)
@@ -221,38 +227,49 @@ end
 --- remove span (l, c) -> (l2, c2), return what was removed
 function M.remove(t, ...) --> string|table
   local l, c, l2, c2 = span(...);
+  info('@@ lines.remove %s.%s - %s.%s', l,c, l2,c2)
+  c, c2 = c or 1, c2 or #get(t,l2) + 1
   local len = #t
   if l2 > len then l2, c2 = len, #get(t,len) + 1 end
+  info('@@ + %s.%s - %s.%s', l,c, l2,c2)
+  if l > l2 then return {} end
   local rem, new = {}, {}
-  if l > l2 then -- empty span
-  elseif c then -- includes column info
-    if l == l2 then -- same line
-      if c <= c2 then
-        if c2 <= #get(t,l) then -- no newline
-          new[1] = get(t,l):sub(1, c-1)..get(t,l):sub(c2+1)
-          rem[1] = get(t,l):sub(c, c2)
-        else -- include newline in removal
-          l2 = l2 + 1 -- inset removes additional line
-          new[1]         = get(t,l):sub(1, c-1)..(get(t,l2) or '')
-          rem[1], rem[2] = get(t,l):sub(c, c2), ''
+  if l == l2 then -- same line
+    info'@@ + same line'
+    if c <= c2 then
+      local line = get(t,l); local llen = #line
+      if c2 > llen then -- include newline
+        if c > 1 then
+          l2 = l2 + 1
+          new[1] = line:sub(1, c-1)..(get(t,l2) or '')
         end
-      end
-    else -- spans multiple lines
-      local l1 = l
-      if c <= #get(t,l) then new[1] = get(t,l):sub(1, c - 1)
-      else l1 = l+1;     new[1] = get(t,l)..(get(t,l1) or '') end
-      rem[1] = get(t,l):sub(c)
-      for i=l1+1,l2-1 do push(rem, get(t,i)) end
-      if l1 < l2 then
-        if c2 > #get(t,l2) then push(rem, get(t,l2)) -- include newline
-        else
-          push(rem, get(t,l2):sub(1, c2)); push(new, get(t,l2):sub(c2 + 1))
-        end
+        rem[1] = line:sub(c, c2)
+      else -- include newline in removal
+        new[1] = line:sub(1, c-1)..line:sub(c2+1)
+        rem[1] = line:sub(c, c2)
       end
     end
-  else -- only lines, no col info
-    for i=l,l2 do push(rem, get(t,i)) end
+  else -- spans multiple lines
+    local line = get(t,l)
+    rem[1] = line:sub(c)
+    local l1 = l
+    if c <= 1     then -- skip, remove whole line
+    -- elseif c is within first line then get sub-string of line
+    elseif c <= #line then new[1] = line:sub(1, c - 1)
+    -- else join first+second line
+    else l1 = l+1;         new[1] = line..(get(t,l1) or '') end
+    for i=l1+1,l2-1 do push(rem, get(t,i)) end
+    if l1 < l2 then
+      if c2 > #get(t,l2) then -- include newline
+        push(rem, get(t,l2))
+      else
+        push(rem, get(t,l2):sub(1, c2))
+        push(new, get(t,l2):sub(c2 + 1))
+      end
+    end
   end
+
+  info('@@ + inset %s add=%s rm=%s', l, #new, l2-l+1)
   ds.inset(t, l, new, l2 - l + 1)
   return rem
 end

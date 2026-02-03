@@ -19,6 +19,7 @@ local unpack    = table.unpack
 local sfmt      = string.format
 local srep, sconcat = string.rep, string.concat
 local min, max  = math.min, math.max
+local info = mty.from'ds.log  info'
 local callable = mty.callable
 local try = ds.try
 local assertf = fmt.assertf
@@ -215,9 +216,9 @@ function M.remove(ed, ev)
   local l, c = e.l, e.c + (ev.cols1 or 0)
   M.move(ed, ev)
   local l, c, l2, c2 = lines.sort(l, c, e.l, e.c)
-  log.info('remove %q: %s.%s -> %s.%s', ev, l, c, l2, c2)
-  if ev.lines then e:remove(l, l2)
-  else             e:remove(l, c, l2, c2) end
+  log.info('remove %q: %s.%s -> %s.%s', ev, l,c, l2,c2)
+  if ev.lines then e:remove(l,l2)
+  else             e:remove(l,c, l2,c2) end
   l, c = motion.topLeft(l, c, l2, c2)
   e.l = math.min(#e.buf, l); e.c = e:boundCol(c)
   ev.mode = mode; ed:handleStandard(ev)
@@ -439,12 +440,14 @@ end
 function nav.goPath(ed, create)
   local e = ed.edit
   local p = nav.getPath(e.buf, e.l,e.c)
+  info('@@ nav.getPath %s', p)
   if p then
     local b = ed:getBuffer(p); if b then
       ed:focus(b); return
     end
   end
   p = pth.abs(pth.resolve(p))
+  info('goPath %s', p)
   if create or ed:getBuffer(p) or ix.exists(p) then
     ed:focus(p)
   else error'TODO: goto nav' end
@@ -476,7 +479,7 @@ function M.path(ed, ev, evsend)
     local e = ed.edit
     local line = e.buf:get(e.l)
     if pth.isDir(line) then nav.doEntry(ed, 'expand', ev.times or 1, ix.ls)
-    else                    goPath(ed, ev.create) end
+    else                    nav.goPath(ed, ev.create) end
   end
   ed:handleStandard(ev)
 end

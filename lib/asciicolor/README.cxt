@@ -73,7 +73,6 @@ be overriden by (TODO: allow override again).
   + keyword    | for while do etc
   + symbol     | = [$+ . { }] etc
   + builtin    | builtin fns/mods/names: io sys self etc
-  + commentbox | start/end of comment: -- [$// /**/] etc
   + comment    | content of comment:  [$/*content*/]
   + stringbox  | start/end of string: [$$'' "" [[]]]$ etc
   + string     | content of string inside quotes

@@ -420,9 +420,6 @@ T'time'; do
   T.eq(dt, DateTime:_ofFuture(s))
 end
 
-ds.yeet'ok'
-
-
 local function assertPath(fn, expect, p)
   T.eq(expect, fn(p))       -- pass in string
   T.eq(expect, fn(pth(p))) -- pass in table

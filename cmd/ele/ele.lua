@@ -42,6 +42,10 @@ function ele:__call()
     lap.schedule(function()
       s:draw()
     end)
+    lap.schedule(function()
+      log.info'ele: start highlight'
+      s:highlight()
+    end)
     log.info'ele: started'
     if #self > 0 then
       for _, path in ipairs(self) do

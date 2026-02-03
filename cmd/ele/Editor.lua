@@ -43,7 +43,7 @@ local Editor = mty'Editor' {
   'error [callable]: error handler (ds.log.logfmt sig)',
   'warn  [callable]: warn handler',
   'newDat [callable(text)]: function to create new buffer',
-  newDat = function(f) return f and Gap:load(f) or Gap({}, f) end,
+    newDat = function(f) return f and Gap:load(f) or Gap({}, f) end,
   'redraw [boolean]: set to true to force a redraw',
 }
 
@@ -218,7 +218,7 @@ function Editor:focus(b) --> Edit
   local b = assertf(self:buffer(b), '%q', b)
   local e = Edit{buf=b}
   if self.edit then self.edit.container:replace(self.edit, e)
-  else            e.container = self end
+  else              e.container = self end
   self.edit = e
   if not self.view then self.view = e end
   return e

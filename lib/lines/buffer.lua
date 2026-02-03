@@ -3,29 +3,44 @@ local ds = require'ds'
 local lines = require'lines'
 local motion  = require'lines.motion'
 local Gap  = require'lines.Gap'
-local log = require'ds.log'
 
 local M = {}
 local span, bound = lines.span, lines.bound
 local push, ty = table.insert, mty.ty
-local concat = table.concat
+local concat, sfmt, srep = mty.from(string, 'concat, format, rep')
+local info               = mty.from'ds.log  info'
+local construct = mty.construct
 
 M.ChangeId = 0
 function M.nextChangeId() M.ChangeId = M.ChangeId + 1; return M.ChangeId end
 
-M.ChangeStart = mty'ChangeStart' {
-  'l1[int]',       'c1[int]',
-  'l2[int]',       'c2[int]',
+M.ChangeKind = mty.enum'ChangeKind' {
+  START = 1,
+  INSERT = 2,
+  REMOVE = 3,
 }
+local START          = M.ChangeKind.START
+local INSERT, REMOVE = M.ChangeKind.INSERT, M.ChangeKind.REMOVE
+local checkKind = M.ChangeKind.id
 
+--- start kind:   [$Change{k=START, l,c, l2,c2}][{br}]
+--- insert kind:  [$Change{k=INSERT, l,c, s='inserted'}][{br}]
+--- removed kind: [$Change{k=REMOVE, l,c, s='removed'}]
 M.Change = mty'Change' {
-  'k[string]', 's[string]',
-  'l[int]',    'c[int]',
+  'k[ChangeKind]',
+  's[string]: string changed',
 }
+getmetatable(M.Change).__call = function(T, self)
+  checkKind(self.k)
+  assert(self[1] and self[2], 'must set l,c')
+  return construct(T, self)
+end
 
 M.Buffer = mty'Buffer' {
   'id  [int]', 'name [str?]',
-  'dat [Gap]',
+  'dat [lines.File]: i.e. Gap, EdFile',
+  'fg [lines.File]: foreground asciicolor',
+  'bg [lines.File]: background asciicolor',
   'readonly [bool]', -- TODO: actually implement readonly
   'l [int]', 'c [int]', -- used by clients
 
@@ -44,29 +59,73 @@ M.Buffer.__newindex            = mty.hardNewindex
 
 getmetatable(M.Buffer).__call = function(T, t)
   assert(t.dat, 'must set dat')
-  if #t.dat == 0 then push(t.dat, '') end
+  if #t.dat == 0 then
+    t.dat:write''
+    if t.fg then t.fg:write''; t.bg:write'' end
+  end
   t.changes = t.changes or {}
   t.ext = t.ext or {}
-  return mty.construct(T, t)
+  if t.fg then assert(t.bg, 'must set both fg and bg, or neither') end
+  return construct(T, t)
 end
 
-local Buffer, Change, ChangeStart = M.Buffer, M.Change, M.ChangeStart
+local Buffer, Change = M.Buffer, M.Change
 
-local function redoRm(ch, b)
+function Buffer:doRm(ch)
   local len = #ch.s - 1; if len < 0 then return ch end
-  local dat = b.dat
-  local l2, c2 = lines.offset(dat, len, ch.l, ch.c)
-  lines.remove(dat, ch.l, ch.c, l2, c2)
+  local dat = self.dat
+  local l,c = ch[1],ch[2]
+  local l2, c2 = lines.offset(dat, len, l,c)
+  if self.fg then self:_matchColorLine(l) end
+  lines.remove(dat, l,c, l2,c2)
+  if self.fg then
+    lines.remove(self.fg, l,c, l2,c2)
+    lines.remove(self.bg, l,c, l2,c2)
+  end
   return ch
 end
 
-local function redoIns(ch, b)
-  lines.insert(b.dat, ch.s, ch.l, ch.c)
+--- get the last character or space if empty.
+local function lastChar(s)
+  return #s == 0 and ' ' or s:sub(#s)
+end
+
+-- Force the line to match in length.
+-- Syntax highlighters are "lazy" and fill out
+-- blocks using only a single character.
+function Buffer:_matchColorLine(l)
+  while #self.fg < l do self.fg:write'\n'; self.bg:write'\n' end
+  local dln, fln = self.dat[l] or '', self.fg[l] or ''
+  if #dln == #fln then return end
+  assert(#fln < #dln)
+  local bln = self.bg[l]
+  self.fg[l] = fln..srep(lastChar(fln), #dln - #fln)
+  self.bg[l] = bln..srep(lastChar(bln), #dln - #bln)
+end
+
+function Buffer:doInsert(ch)
+  local l,c = ch[1],ch[2]
+  if self.fg then self:_matchColorLine(l) end
+  lines.insert(self.dat, ch.s, l,c)
+  if self.fg then
+    local s = ch.s:gsub('[^ \n]', 'z')
+    lines.insert(self.fg, s, l,c)
+    lines.insert(self.bg, s, l,c)
+  end
   return ch
 end
 
-local CHANGE_REDO = { ins=redoIns, rm=redoRm, }
-local CHANGE_UNDO = { ins=redoRm, rm=redoIns, }
+local function sError() error'attempt to use Start for undo/redo' end
+local CHANGE_REDO = M.ChangeKind:matcher{
+  START=sError,
+  INSERT=Buffer.doInsert,
+  REMOVE=Buffer.doRm,
+}
+local CHANGE_UNDO = M.ChangeKind:matcher{
+  START=sError,
+  INSERT=Buffer.doRm,
+  REMOVE=Buffer.doInsert,
+}
 
 -- TODO: remove this
 function Buffer.new(s)
@@ -84,6 +143,7 @@ function Buffer:__len() return #self.dat       end
 function Buffer:get(i)  return self.dat:get(i) end
 
 function Buffer:addChange(ch)
+  ch = Change(ch)
   self.changeI = self.changeI + 1; self.changeMax = self.changeI
   self.changes[self.changeI] = ch
   return ch
@@ -95,14 +155,14 @@ end
 function Buffer:discardUnusedStart()
   if self.changeI ~= 0 and self.changeStartI == self.changeI then
     local ch = self.changes[self.changeI]
-    assert(ty(ch) == ChangeStart)
+    assert(ch.k == START)
     self.changeI = self.changeI - 1
     self.changeMax = self.changeI
     self.changeStartI = 0
   end
 end
 function Buffer:changeStart(l, c)
-  local ch = ChangeStart{l1=l, c1=c}
+  local ch = Change{k=START, l,c}
   self:discardUnusedStart()
   self:addChange(ch); self.changeStartI = self.changeI
   return ch
@@ -118,15 +178,7 @@ function Buffer:printChanges()
   end
 end
 
-function Buffer:changeIns(s, l, c)
-  return self:addChange(Change{k='ins', s=s, l=l, c=c})
-end
-function Buffer:changeRm(s, l, c)
-  return self:addChange(Change{k='rm', s=s, l=l, c=c})
-end
-
 function Buffer:canUndo() return self.changeI >= 1 end
--- TODO: shouldn't it be '<=' ?
 function Buffer:canRedo() return self.changeI < self.changeMax end
 
 function Buffer:undoTop()
@@ -144,10 +196,10 @@ function Buffer:undo()
   while ch do
     self.changeI = self.changeI - 1
     push(done, ch)
-    if ty(ch) == ChangeStart then break
+    if ch.k == START then break
     else
       assert(ty(ch) == Change)
-      CHANGE_UNDO[ch.k](ch, self)
+      CHANGE_UNDO[ch.k](self, ch)
     end
     ch = self:undoTop()
   end
@@ -157,13 +209,13 @@ end
 function Buffer:redo()
   local ch = self:redoTop(); if not ch then return end
   self:discardUnusedStart(); self.changeStartI = 0
-  assert(ty(ch) == ChangeStart)
+  assert(ch.k == START)
   local done = {ch}; self.changeI = self.changeI + 1
-  ch = self:redoTop(); assert(ty(ch) ~= ChangeStart)
-  while ch and ty(ch) ~= ChangeStart do
+  ch = self:redoTop(); assert(ch.k ~= START)
+  while ch and ch.k ~= START do
     self.changeI = self.changeI + 1
     push(done, ch)
-    CHANGE_REDO[ch.k](ch, self)
+    CHANGE_REDO[ch.k](self, ch)
     ch = self:redoTop()
   end
   return done
@@ -181,48 +233,41 @@ function Buffer:span(...)
 end
 
 function Buffer:append(s)
-  local ch = self:changeIns(s, #self.dat + 1, 1)
-  self.dat:append(s)
+  local ch = self:addChange{k=INSERT, #self.dat+1,1, s=s}
+  self:doInsert(ch)
   return ch
 end
 
-function Buffer:insetTracked(l, lines, rmlen) --> changes
-  local chs, rm = {}, self:inset(l, lines, rmlen)
-  if rm then
-    push(chs, self:changeRm(concat(rm, '\n'), l,1))
-  end
-  if lines and #lines > 0 then
-    push(chs, self:changeIns(concat(lines, '\n'), l,1))
-  end
-  return chs
-end
-
-function Buffer:insert(s, l, c)
-  l, c = lines.bound(self.dat, l, c)
-  local ch = self:changeIns(s, l, c)
-  lines.insert(self.dat, s, l, c)
+function Buffer:insert(s, l,c)
+  l, c = bound(self.dat, l,c or 1)
+  local ch = self:addChange{k=INSERT, l,c, s=s}
+  self:doInsert(ch)
   return ch
 end
 
 function Buffer:remove(...)
   local l, c, l2, c2 = span(...)
-  local dat = self.dat
-  l,c = bound(dat, l,c); l2,c2 = bound(dat, l2,c2)
+  info('remove span %s.%s %s.%s', l,c, l2,c2)
+
+  local t = self.dat
+  if l2 > #t then l2, c2 = len, #get(t,#t) + 1 end
+  l,c   = bound(t, l, c or 1)
+  l2,c2 = bound(t, l2, c2 or (#t[l2] + 1))
   local lt, ct = motion.topLeft(l, c, l2, c2)
-  lt, ct = lines.bound(dat, lt, ct)
-  local ch = lines.sub(dat, l, c, l2, c2)
-  ch = (type(ch)=='string' and ch) or concat(ch, '\n')
-  ch = self:changeRm(ch, lt, ct)
-  log.info('remove %s.%s : %s.%s', l, c, l2, c2)
-  lines.remove(dat, l, c, l2, c2)
+  lt, ct = bound(t, lt, ct)
+  local s = lines.sub(t, l, c, l2, c2)
+  local ch = self:addChange{
+    k=REMOVE, lt,ct,
+    s=type(s)=='string' and s or concat(s, '\n'),
+  }
+  info('remove %s.%s : %s.%s', l,c, l2,c2)
+  self:doRm(ch)
   return ch
 end
 
-function ChangeStart:__tostring()
-  return string.format('[%s.%s -> %s.%s]', self.l1, self.c1, self.l2, self.c2)
-end
 function Change:__tostring()
-  return string.format('{%s %s.%s %q}', self.k, self.l, self.c, self.s)
+  return sfmt('Ch{%s %s.%s %s}', self.k, self[1],self[2],
+      ('len='..#self.s) or sfmt('%s.%s', self[3],self[4]))
 end
 
 return M

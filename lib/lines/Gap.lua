@@ -50,6 +50,14 @@ function Gap:icopy() --> list
   return o
 end
 
+function Gap:reader() --> Gap
+  return mty.construct(getmetatable(self), {
+    bot=ds.copy(self.bot),
+    top=ds.copy(self.top),
+    path=self.path,
+  })
+end
+
 --- Load gap from file, which can be a path.
 --- returns [$nil, err] on error
 Gap.load = function(T, f, close) --> Gap?, err?

@@ -71,11 +71,11 @@ function M.testLinesRemove(new, assertEq, assertEqRemove)
   t = new'a\nb'
   assertEqR({''}, lines.remove(t, 1, 2, 2, 0)) -- remove newline
   assertEq(new{'ab'}, t)
-  assertEqR({'ab', ''}, lines.remove(t, 1, 1, 2, 1))
-  assertEq(new{''}, t)
+  assertEqR({'ab'}, lines.remove(t, 1, 1, 2, 1))
+  assertEq(new{}, t)
 
   t = new'a\nb'
-  assertEqR({'', ''}, lines.remove(t, 1, 2, 1, 2)) -- alternate remove newline
+  assertEqR({''}, lines.remove(t, 1, 2, 1, 2)) -- alternate remove newline
   assertEq(new{'ab'}, t)
 
   t = new'ab\nc'
@@ -88,9 +88,7 @@ function M.testLinesRemove(new, assertEq, assertEqRemove)
 
   t = new'ab\nc\n\nd'
   assertEqR({'c', ''}, lines.remove(t, 2, 3))
-  if rawget(t, 'dats') then
-    t:flush()
-  end
+  if rawget(t, 'dats') then t:flush() end
   assertEq(new{'ab', 'd'}, t)
 
   t = new'ab\nc'
@@ -101,14 +99,18 @@ function M.testLinesRemove(new, assertEq, assertEqRemove)
   assertEq(new{'ab'}, t)
 
   t = new'ab\nc'
-  assertEqR({'', ''}, lines.remove(t, 1, 3, 1, 3)) -- remove \n (single)
+  assertEqR({''}, lines.remove(t, 1, 3, 1, 3)) -- remove \n (single)
   assertEq(new{'abc'}, t)
 
   t = new'ab\nc\nde\n'
   -- remove \n (single)
-  assertEqR({'', ''}, lines.remove(t, 1, 3, 1, 3))
+  assertEqR({''}, lines.remove(t, 1, 3, 1, 3))
   assertEq(new{'abc', 'de', ''}, t)
 
+  -- remove first line
+  t = new'ab\nc\nde\n'
+  assertEqR({'ab'}, lines.remove(t, 1,1, 1,3))
+  assertEq(new{'c', 'de', ''}, t)
 
   -- TODO: consider re-adding as a separate test
   -- t = new'a b c\nd e\nf g\nh i\n'

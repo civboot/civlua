@@ -653,8 +653,12 @@ end
 
 --- like require but returns nil if not found.
 function M.want(mod) --> module?
-  local ok, m = pcall(function() return require(mod) end)
+  local ok, m = xpcall(function() return require(mod) end, debug.traceback)
   if ok then return m end
+  local expect = sfmt("module '%s' not found", mod)
+  if not m:find(expect, 1, true) then
+    error(sfmt('mty.want expected error %q, got:\n%s', expect, m))
+  end
 end
 
 --- Usage: [$local bar, baz = mty.from'foo bar,baz'][{br}]

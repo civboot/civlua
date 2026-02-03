@@ -20,6 +20,7 @@ local edit = require'ele.edit'
 local bindings = require'ele.bindings'
 local actions = require'ele.actions'
 
+local info = mty.from'ds.log  info'
 local yield = coroutine.yield
 
 -- local FRAME = 0.05
@@ -131,6 +132,28 @@ Session.draw = function(s)
      end
      yield('sleep', FRAME)
    end
+end
+
+-- highlight coroutine
+function Session:highlight()
+  local Gap = require'lines.Gap'
+  local hl = mty.from'pegl.lua  highlighter'
+  hl.styleColor = require'asciicolor'.dark
+  while self.ed.run do
+    yield('sleep', 1)
+    local buf = self.ed.edit.buf
+    local path = buf.dat.path
+    info('@@ highlight loop %q', path)
+    if path and path:find'%.lu[ak]$' then
+      info('@@ highlighting %q', path)
+      local lf = buf.dat:reader()
+      local fg,bg = Gap{}, Gap{}
+      hl:highlight(lf, fg,bg)
+      if #buf == #fg then
+        buf.fg, buf.bg = fg, bg
+      end
+    end
+  end
 end
 
 return Session

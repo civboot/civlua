@@ -12,15 +12,16 @@ local lines = require'lines'
 local Gap   = require'lines.Gap'
 local types = require'ele.types'
 
+local unpack       = table.unpack
 local push, concat = table.insert, table.concat
-local sfmt, srep = string.format, string.rep
-local min, max = math.min, math.max
-local span, lsub = lines.span, lines.sub
+local sfmt, srep   = string.format, string.rep
+local min, max     = math.min, math.max
+local span, lsub, box = mty.from(lines, 'span, sub, box')
 
 M.Edit = mty'Edit' {
   'id[int]',
   'container', -- parent (Editor/Split)
-  'buf[Buffer]',
+  'buf [Buffer]',
   'l[int]',  l=1,     'c[int]',  c=1,   -- cursor line, col
   'vl[int]', vl=1,    'vc[int]', vc=1,  -- view   line, col (top-left)
   'tl[int]', tl=-1,   'tc[int]', tc=-1, -- term   line, col (top-left)
@@ -128,7 +129,7 @@ function M.Edit:changeUpdate2()
   local b = self.buf
   if b:changed() then
     local ch = assert(self.buf:getStart())
-    ch.l2, ch.c2 = self.l, self.c
+    ch[3], ch[4] = self.l, self.c
   end
 end
 
@@ -185,14 +186,14 @@ end
 -- Undo / Redo
 function M.Edit:undo()
   local chs = self.buf:undo(); if not chs then return end
-  local c = assert(chs[1])
-  self.l, self.c = c.l1, c.c1
+  local ch = assert(chs[1])
+  self.l, self.c = ch[1],ch[2]
   return true
 end
 function M.Edit:redo()
   local chs = self.buf:redo(); if not chs then return end
-  local c = assert(chs[1])
-  self.l, self.c = c.l2, c.c2
+  local ch = assert(chs[1])
+  self.l, self.c = ch[3],ch[4]
   return true
 end
 
@@ -206,10 +207,19 @@ function M.Edit:draw(ed, isRight)
   self.th = self.th - bh
   self.tw = self.tw - bw
   self.tc = self.tc + bw
-  local b = lines.box(self.buf.dat,
-    self.vl,            self.vc,
-    self.vl + self.th - 1, self.vc + self.tw - 1)
-  d.text:insert(self.tl, self.tc, b)
+  local buf = self.buf
+  self:_drawBox(d.text, buf.dat)
+  if buf.fg then
+    self:_drawBox(d.fg, buf.fg)
+    self:_drawBox(d.bg, buf.bg)
+  end
+end
+
+-- draw box from lf onto g(rid).
+function M.Edit:_drawBox(g, lf)
+  g:insert(self.tl, self.tc, box(lf,
+    self.vl,               self.vc,
+    self.vl + self.th - 1, self.vc + self.tw - 1))
 end
 
 function M.Edit:barDims()

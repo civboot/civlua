@@ -86,8 +86,7 @@ M.dark = {
   keyword       = 'R', -- for while do etc
   symbol        = 'A', -- = + . { } etc
   builtin       = 'p', -- builtin fns/mods/names: io sys self etc
-  commentbox    = 'bl', -- start/end of comment: -- // /**/ etc
-  comment       = 'zb', -- content of comment:  /*content*/
+  comment       = 'f', -- content of comment:  /*content*/
   stringbox     = 'd', -- start/end of string: '' "" [[]] etc
   string        = 'g', -- content of string inside quotes
   key           = 'T', -- key in map/struct/etc

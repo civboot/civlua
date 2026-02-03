@@ -21,6 +21,11 @@ local pop       = table.remove
 
 local construct = mty.construct
 
+--- Usage: [$$
+--- hl = require'pegl.lua'.highlighter
+--- hl:highlight(lf, fgFile, bgFile)
+--- ]$
+---
 --- The highlighter object determines how to parse and
 --- highlight a text file's syntax.
 M.Highlighter = mty'Highlighter' {
@@ -156,7 +161,8 @@ end
 --- It is intended that these are read as line-files, where the final character
 --- in the line is treated as the "default" for the rest of the line.
 function M.Highlighter:highlight(lf, fgFile, bgFile) --> nil
-  return self:_highlight(self:tokenize(lf), fgFile, bgFile)
+  assert(self.styleColor, 'must set styleColor')
+  self:_highlight(self:tokenize(lf), fgFile, bgFile)
 end
 
 function M.Highlighter:assertHighlight(str, fgExpect, bgExpect)

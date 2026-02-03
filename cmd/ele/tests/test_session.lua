@@ -18,6 +18,8 @@ local et = require'ele.types'
 local Buffer = require'lines.buffer'.Buffer
 local ixt = require'civix.testing'
 
+local info = mty.from'ds.log  info'
+
 local _PWD = PWD
 G.PWD = path.abs(ds.srcdir())
 
@@ -62,7 +64,15 @@ getmetatable(Test).__call = function(Ty, t)
     T.eq(log.LogTable{}, ed.error)
     ed.run = false
   end
-  ixt.runAsyncTest(function() T.runTest(name, testFn, path) end)
+  ixt.runAsyncTest(function()
+    local ok, err = ds.try(T.runTest, name, testFn, path)
+    if not ok then
+      io.fmt:styled('error', 'Session Test error:', '\n')
+      io.fmt(err)
+      io.fmt:write'\n'
+      error'Session Test error'
+    end
+  end)
   assert(running); running = false
 end
 
@@ -229,7 +239,7 @@ Test{'empty', dat=LINES3, th=5, tw=30, function(tst)
   s:play''
     T.eq(SC..'\n'..LINES3_wLN, fmt(ed.display))
 
-  e:clear(); T.eq({}, ds.icopy(g))
+  e:clear(); T.eq({''}, ds.icopy(g))
     e:insert'inserted'
     T.eq({'inserted'}, ds.icopy(g))
     s:play''; T.eq(SC..'\n'..INSERTED_3, fmt(ed.display))

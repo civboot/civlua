@@ -388,15 +388,18 @@ M.movement = {
   t=M.till,      T=M.tillback,
   ['^'] = M.sot, ['$'] = M.eol,
 
-  -- times (note: 1-9 defined below)
-  ['0'] = M.zero, -- sol+0times
+  ['^d'] = M.downScreen, ['^u'] = M.upScreen,
+
+  -- Search
+  ['/'] = M.searchBuf,
+  n = M.searchBufNext, N = M.searchBufPrev, ['^n'] = M.searchBufSub,
 }
 
 -- times
+M.movement['0'] = M.zero  -- sol+0times
 for b=('1'):byte(), ('9'):byte() do
   M.movement[string.char(b)] = M.times
 end
-
 
 M.searchBindings = {
   ['/'] = M.searchBuf,
@@ -432,11 +435,6 @@ ds.update(M.command, {
 
   -- movement
   f=M.find, F=M.findback,
-  ['^d'] = M.downScreen, ['^u'] = M.upScreen,
-
-  -- Search
-  ['/'] = M.searchBuf,
-  n = M.searchBufNext, N = M.searchBufPrev, ['^n'] = M.searchBufSub,
 
   -- System
   s = M.systemMode,
