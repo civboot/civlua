@@ -19,8 +19,7 @@ M.DateTime = mty'DateTime' {
   'yd [int]: the day of the year',
   's  [int]: seconds in day',
   'ns [int]: nanoseconds in second',
- [[tz [Tz]: timezone offset from [$time.timezone()]
- ]],
+  'tz [Tz]: timezone offset, see [<#ds.time.Tz>].',
   'wd [int]: weekday, 1=sunday - 7=saturday',
 }
 
@@ -282,7 +281,7 @@ end
 function M.DateTime:epoch() --> Epoch
   local y = self.y
   return y > 1969 and y < 2100 and self:_epochFast()
-      or error'epoch past 2100 not yet implemented'
+      or error'epoch past year 2100 not yet implemented'
 end
 
 function M.Tz.of(T, hours, minutes)

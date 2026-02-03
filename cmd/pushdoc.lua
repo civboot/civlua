@@ -29,6 +29,7 @@ M.Main = mty'Main' {
   'config [string]: path to civ.core.Config',
     config = core.DEFAULT_CONFIG,
   'dir [string]: output directory',
+  'clean [bool]', clean = false,
 }
 
 local HEAD = [[
@@ -73,7 +74,7 @@ function M.Main:__call()
   local tgtnames = cv:expandAll(self.pat)
   local header = HEAD:format('../styles.css')..LUA_NAV
   local nav = {}
-  civ._build(cv, tgtnames)
+  civ._build(self, cv, tgtnames)
   for _, tgtname in ipairs(tgtnames) do
     info('pushdoc %q', tgtname)
     local tgt = cv:target(tgtname)
